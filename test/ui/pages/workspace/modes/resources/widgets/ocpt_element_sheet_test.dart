@@ -117,7 +117,6 @@ OcptElement _element({
 /// A role the `Roles concerned` card resolves a link against.
 OcptRole _role({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,
@@ -125,11 +124,17 @@ OcptRole _role({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// A scene the links and the picker name.
-OcptSceneRef _scene({required String id, required int position, required String heading}) =>
-    OcptSceneRef(id: id, position: position, heading: heading, sceneNumber: null);
+OcptSceneRef _scene({required String id, required int position, required String heading}) => OcptSceneRef(
+  id: id,
+  position: position,
+  heading: heading,
+  sceneNumber: null,
+  episodeNumber: null,
+);
 
 void main() {
   /// Pumps the sheet over [element], returning the [Tr] its own context resolves.

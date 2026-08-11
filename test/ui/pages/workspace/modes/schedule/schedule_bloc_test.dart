@@ -204,6 +204,7 @@ const _sidesLabels = OcptSidesLabels(
   versionLabel: "Version",
   dayTagPrefix: "D",
   dayTitle: "",
+  episodeLabels: {},
   scriptPagePrefix: "p.",
   emptyDayNote: "Nothing to print.",
 );
@@ -294,9 +295,15 @@ class _FakeScheduleExportManager extends OcptExportManager {
   /// The presentation of the last [exportSides] call.
   OcptSidesPresentation? lastSidesPresentation;
 
-  /// The Fountain source text of the document handed to the last [exportSides] call — what proves
-  /// the handler read the screenplay out of the open project rather than handing over an empty one.
-  String? lastSidesSourceText;
+  /// The screenplay ids of the last [exportSides] call, in the order they were handed over — what
+  /// proves the handler resolved every episode the day plays, in the project's own episode order,
+  /// rather than always the one primary screenplay.
+  List<String>? lastSidesScreenplayIds;
+
+  /// The Fountain source texts of the documents handed to the last [exportSides] call, keyed by
+  /// screenplay id — what proves the handler read each episode's own screenplay out of the open
+  /// project rather than handing over an empty one.
+  Map<String, String>? lastSidesSourceTextsByScreenplayId;
 
   @override
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
@@ -397,7 +404,7 @@ class _FakeScheduleExportManager extends OcptExportManager {
   Future<String?> exportSides({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
-    required FountainDocument document,
+    required List<({String screenplayId, FountainDocument document})> documents,
     required OcptPageSetup pageSetup,
     required OcptSidesLabels labels,
     required String projectName,
@@ -407,7 +414,10 @@ class _FakeScheduleExportManager extends OcptExportManager {
   }) async {
     lastSidesDayId = dayId;
     lastSidesPresentation = presentation;
-    lastSidesSourceText = document.sourceText;
+    lastSidesScreenplayIds = [for (final pair in documents) pair.screenplayId];
+    lastSidesSourceTextsByScreenplayId = {
+      for (final pair in documents) pair.screenplayId: pair.document.sourceText,
+    };
 
     if (sidesFails) {
       throw StateError("sides export intentionally failed for the test");
@@ -481,14 +491,12 @@ void main() {
 
     final dayId = await projectsManager.scheduleService.createDay(
       database: project.database,
-      screenplayId: project.primaryScreenplayId,
       date: DateTime(2026, 8, 10),
     );
     expect(dayId, isNotNull);
 
     final snapshot = await projectsManager.scheduleService.loadSchedule(
       database: project.database,
-      screenplayId: project.primaryScreenplayId,
     );
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
 
@@ -547,6 +555,112 @@ void main() {
         "Umbrella",
         reason: "the sixth read the bloc now performs alongside the schedule, the shot list and the "
             "other three catalogues",
+      );
+
+      await bloc.close();
+    });
+
+    test("a project holding two episodes reads and orders both episodes' shot lists", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final project = projectsManager.currentProject!;
+
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      expect(secondEpisodeId, isNotNull);
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final firstSceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )..where((table) => table.screenplayId.equals(project.primaryScreenplayId))).get()).single.id;
+      final secondSceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
+
+      await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        sceneId: firstSceneId,
+      );
+      await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        sceneId: secondSceneId,
+      );
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.episodes.map((episode) => episode.id), [project.primaryScreenplayId, secondEpisodeId]);
+      expect(state.shotListSnapshots, hasLength(2));
+      expect(
+        state.shotListSnapshots.map((shotList) => shotList.screenplayId),
+        [project.primaryScreenplayId, secondEpisodeId],
+        reason: "episode 1's own shot list before episode 2's, the episodes' own order",
+      );
+
+      expect(
+        state.unplacedGroups.map((group) => group.heading),
+        ["INT. HOUSE - DAY", "EXT. STREET - NIGHT"],
+        reason: "the unplaced-shots grouping lists episode 1's sequences before episode 2's",
+      );
+
+      await bloc.close();
+    });
+  });
+
+  group("coming back from the project settings page", () {
+    test("drops an episode the settings page deleted", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final project = projectsManager.currentProject!;
+
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      expect(secondEpisodeId, isNotNull);
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final secondSceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
+      await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        sceneId: secondSceneId,
+      );
+
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.episodes, hasLength(2));
+
+      // What the settings page's own Episodes card writes before it pops.
+      expect(
+        await projectsManager.screenplayService.deleteEpisode(
+          database: project.database,
+          screenplayId: secondEpisodeId,
+        ),
+        isTrue,
+      );
+
+      bloc.add(const OcptScheduleProjectSettingsChangedEvent());
+      final state = await waitForState(bloc, (state) => state.episodes.length == 1);
+
+      expect(state.episodes.single.id, project.primaryScreenplayId);
+      expect(
+        state.unplacedGroups.map((group) => group.heading),
+        isNot(contains("EXT. STREET - NIGHT")),
+        reason: "a deleted episode's shots must not stay on the board — this mode shows no episode "
+            "selector, so no keyed remount tells it the project lost one",
       );
 
       await bloc.close();
@@ -645,7 +759,6 @@ void main() {
       // A second day, later than the fixture's own — J2 for now.
       final laterDayId = await projectsManager.scheduleService.createDay(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
         date: DateTime(2026, 8, 20),
       );
       expect(laterDayId, isNotNull);
@@ -836,7 +949,6 @@ void main() {
 
       final snapshot = await projectsManager.scheduleService.loadSchedule(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
       );
       final slotId = snapshot.slotsByDayId[fixture.dayId]!.single.id;
       await projectsManager.scheduleService.addSlotCrewMember(
@@ -1161,10 +1273,78 @@ void main() {
       expect(exportManager.lastSidesDayId, fixture.dayId);
       expect(exportManager.lastSidesPresentation, OcptSidesPresentation.packed);
       // The handler reads the Fountain text out of the open project rather than out of its own
-      // state, which holds none: what reaches the manager is the very screenplay the fixture wrote.
-      expect(exportManager.lastSidesSourceText, contains("INT. HOUSE - DAY"));
+      // state, which holds none: what reaches the manager is the very screenplay the fixture wrote,
+      // as the project's own single episode.
+      final project = projectsManager.currentProject!;
+      expect(exportManager.lastSidesScreenplayIds, [project.primaryScreenplayId]);
+      expect(
+        exportManager.lastSidesSourceTextsByScreenplayId?[project.primaryScreenplayId],
+        contains("INT. HOUSE - DAY"),
+      );
       expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
       expect(state.ioNotice?.path, "/tmp/sides.pdf");
+
+      await bloc.close();
+    });
+
+    test("a day playing two episodes hands the manager both episodes' documents, in episode order", () async {
+      final fixture = await writePlacedShot();
+      final project = projectsManager.currentProject!;
+
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      expect(secondEpisodeId, isNotNull);
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final secondSceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
+
+      final secondShotId = await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        sceneId: secondSceneId,
+      );
+      expect(secondShotId, isNotNull);
+
+      final secondSlotId = await projectsManager.scheduleService.createSlot(
+        database: project.database,
+        shootingDayId: fixture.dayId,
+        anchorMinute: 600,
+      );
+      expect(secondSlotId, isNotNull);
+      final secondBlockId = await projectsManager.scheduleService.placeShot(
+        database: project.database,
+        slotId: secondSlotId!,
+        shotId: secondShotId!,
+      );
+      expect(secondBlockId, isNotNull);
+
+      final exportManager = _FakeScheduleExportManager(sidesResult: "/tmp/sides.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(requestFor(fixture.dayId));
+      await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(
+        exportManager.lastSidesScreenplayIds,
+        [project.primaryScreenplayId, secondEpisodeId],
+        reason: "episode 1's own document before episode 2's, the project's own episode order",
+      );
+      expect(
+        exportManager.lastSidesSourceTextsByScreenplayId?[project.primaryScreenplayId],
+        contains("INT. HOUSE - DAY"),
+      );
+      expect(
+        exportManager.lastSidesSourceTextsByScreenplayId?[secondEpisodeId],
+        contains("EXT. STREET - NIGHT"),
+      );
 
       await bloc.close();
     });

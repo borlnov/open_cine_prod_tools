@@ -45,6 +45,7 @@ OcptBreakdownSnapshot _snapshot() {
         status: OcptBreakdownSceneStatus.toDo,
         notes: "",
         tags: [],
+        episodeNumber: null,
       ),
       const OcptBreakdownScene(
         id: "scene-b",
@@ -56,6 +57,7 @@ OcptBreakdownSnapshot _snapshot() {
         status: OcptBreakdownSceneStatus.toDo,
         notes: "",
         tags: [],
+        episodeNumber: null,
       ),
     ],
     tags: const [

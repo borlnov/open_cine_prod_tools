@@ -8,14 +8,18 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve (the shell's own
-/// toolbar reads them for its tooltips), and a wide test surface so the docks row has room for
-/// both docks plus the centre floor.
+/// toolbar reads them for its tooltips), a wide test surface so the docks row has room for both
+/// docks plus the centre floor, and a [Scaffold] (as the real workspace page already provides):
+/// the episode selector's trigger is a [PopupMenuButton] built with its own `child`, which wraps
+/// it in a plain [InkWell] rather than a self-contained button, so it needs a [Material] ancestor
+/// to paint into.
 ///
 /// [theme] is the application's own only where a test measures the chrome: the stock theme's
 /// [Divider] is 16 px tall, which alone takes the toolbar's own band down from 44 px to 28, so a
@@ -29,7 +33,7 @@ Widget _wrapInApp(Widget child, {ThemeData? theme}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: child,
+  home: Scaffold(body: child),
 );
 
 void main() {
@@ -436,6 +440,251 @@ void main() {
       expect(callCount, 1);
       expect(lastReported?.left, isNotNull);
       expect(lastReported?.right, isNull);
+    },
+  );
+
+  const pilotEpisode = OcptEpisode(id: "ep-1", number: 1, title: "Pilot");
+  const untitledEpisode = OcptEpisode(id: "ep-2", number: 3, title: "");
+
+  testWidgets("no episode selector when the project holds at most one episode", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          episodes: const [pilotEpisode],
+          selectedEpisodeId: pilotEpisode.id,
+          onEpisodeSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsNothing);
+  });
+
+  testWidgets("no episode selector when the mode withholds it", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          episodes: const [pilotEpisode, untitledEpisode],
+          selectedEpisodeId: pilotEpisode.id,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsNothing);
+  });
+
+  testWidgets(
+    "the episode selector lists every episode, an untitled one reading Episode 3, and clicking "
+    "one fires onEpisodeSelected",
+    (tester) async {
+      String? selectedEpisodeId;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            episodes: const [pilotEpisode, untitledEpisode],
+            selectedEpisodeId: pilotEpisode.id,
+            onEpisodeSelected: (episodeId) => selectedEpisodeId = episodeId,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      final selector = find.byTooltip(tr.workspaceEpisodeSelectorTooltip);
+      expect(selector, findsOneWidget);
+
+      await tester.tap(selector);
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.workspaceEpisodeTitledLabel(1, "Pilot")), findsWidgets);
+      expect(find.text(tr.workspaceEpisodeUntitledLabel(3)), findsOneWidget);
+
+      await tester.tap(find.text(tr.workspaceEpisodeUntitledLabel(3)));
+      await tester.pumpAndSettle();
+
+      expect(selectedEpisodeId, untitledEpisode.id);
+    },
+  );
+
+  testWidgets(
+    "no Manage episodes… entry when no project settings callback is wired",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            episodes: const [pilotEpisode, untitledEpisode],
+            selectedEpisodeId: pilotEpisode.id,
+            onEpisodeSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.workspaceManageEpisodesAction), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "the Manage episodes… entry is the menu's last one, and clicking it fires "
+    "onProjectSettingsRequested",
+    (tester) async {
+      var settingsCount = 0;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            episodes: const [pilotEpisode, untitledEpisode],
+            selectedEpisodeId: pilotEpisode.id,
+            onEpisodeSelected: (_) {},
+            onProjectSettingsRequested: () => settingsCount++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
+      await tester.pumpAndSettle();
+
+      final manageEntry = find.text(tr.workspaceManageEpisodesAction);
+      expect(manageEntry, findsOneWidget);
+
+      final entryTops = tester
+          .widgetList<PopupMenuItem<String>>(find.byType(PopupMenuItem<String>))
+          .toList();
+      expect(entryTops.last.child, isA<Text>());
+      expect((entryTops.last.child! as Text).data, tr.workspaceManageEpisodesAction);
+
+      await tester.tap(manageEntry);
+      await tester.pumpAndSettle();
+
+      expect(settingsCount, 1);
+    },
+  );
+
+  testWidgets(
+    "the Add an episode… button takes the selector's place on a single-episode project, and "
+    "clicking it fires onAddEpisodeRequested",
+    (tester) async {
+      var addCount = 0;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            episodes: const [pilotEpisode],
+            selectedEpisodeId: pilotEpisode.id,
+            onEpisodeSelected: (_) {},
+            onAddEpisodeRequested: () => addCount++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsNothing);
+
+      final addButton = find.byTooltip(tr.workspaceAddEpisodeTooltip);
+      expect(addButton, findsOneWidget);
+
+      await tester.tap(addButton);
+      await tester.pumpAndSettle();
+
+      expect(addCount, 1);
+    },
+  );
+
+  testWidgets("no Add an episode… button when the mode withholds it", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          episodes: const [pilotEpisode],
+          selectedEpisodeId: pilotEpisode.id,
+          onEpisodeSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
+  });
+
+  testWidgets(
+    "no Add an episode… button once the project holds several episodes, nor before they are "
+    "loaded",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            episodes: const [pilotEpisode, untitledEpisode],
+            selectedEpisodeId: pilotEpisode.id,
+            onEpisodeSelected: (_) {},
+            onAddEpisodeRequested: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
+      expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsOneWidget);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onEpisodeSelected: (_) {},
+            onAddEpisodeRequested: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
     },
   );
 }

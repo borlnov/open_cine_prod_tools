@@ -4,10 +4,11 @@
 
 import 'package:drift/drift.dart';
 
-/// The screenplays of a project, each holding its full Fountain source text.
-///
-/// A project is created with a single screenplay (whose title matches the project's name), but
-/// the schema doesn't prevent more from being added later.
+/// A row of this table **is an episode** (`docs/adr/0019-one-project-several-episodes.md`): a
+/// series, a mini-series and a feature shot in two parts are one production seen from the same
+/// angle — one crew, one address book, one schedule, several screenplays — and a screenplay is
+/// where that "several" lives. A project created today holds a single one, numbered 1, which is
+/// what a feature is; nothing in the schema stops more from being added later.
 @DataClassName('OcptScreenplayRow')
 class OcptScreenplaysTable extends Table {
   /// {@macro open_cine_prod_tools.OcptScreenplaysTable}
@@ -25,6 +26,18 @@ class OcptScreenplaysTable extends Table {
 
   /// The date and time at which [fountainText] was last saved.
   DateTimeColumn get updatedAt => dateTime()();
+
+  /// This episode's printed number — an ordinary integer, shown beside the page wherever the
+  /// episode is named, and carrying **no uniqueness constraint**. Two episodes numbered 4 is a
+  /// state the user can reach by hand (mid-renumbering, or simply a mistake) and repair by hand; a
+  /// constraint would refuse that intermediate state rather than help, exactly the reasoning that
+  /// keeps `shots.position` unenforced after `sortKey` took over ordering. [sortKey], not this
+  /// column, is what actually orders the episodes — the same split `shooting_days` already makes
+  /// between its date-ranked position and its own `sortKey` tiebreaker.
+  IntColumn get number => integer().withDefault(const Constant(1))();
+
+  /// {@macro open_cine_prod_tools.sortKey}
+  TextColumn get sortKey => text().withDefault(const Constant(''))();
 
   /// {@template open_cine_prod_tools.isDeleted}
   /// Whether this row has been deleted: a tombstone rather than a removal.

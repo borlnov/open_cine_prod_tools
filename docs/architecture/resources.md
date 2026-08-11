@@ -57,6 +57,25 @@ their sets, the elements catalogue, and the two documents the mode prints.
   `orphanedName` (`OcptRemovedRoleAlert`, the sibling of `OcptShotRemovedCharacterAlert`), and a
   hand-added `silent`/`extra` role is never touched. A rename reads as one disappearance and one
   appearance, repaired through the banner, exactly as a heading with no scene number is.
+  **A role belongs to the production, not to a script** (ADR 0019): `roles` carries no
+  `screenplayId`, and `role_episodes` records which episodes name it — a synchronised link table
+  with **no `sortKey`**, a role's episodes being an unordered set of answers exactly as `scene_sets`
+  is, read back in the episodes' own order. A character speaking in three episodes is therefore one
+  row: one casting, one set of notes, one number, one identity in `shooting_slot_cast`.
+  `reconcile` keeps its signature — one screenplay and its parsed document — but **only ever writes
+  the links of that episode**, while matching by name across every live `isFromScreenplay` role of
+  the project: a link is ensured, a link the episode no longer names is tombstoned, and
+  `orphanedName` is set only once **no live link is left anywhere**. A character cut from episode 2
+  but still speaking in episode 3 thus loses one link and stays cast; the removed-role banner still
+  answers the rest. `OcptRole.number` is the rank among the **project's** live roles, still derived
+  at read time and stored nowhere — one number across the series is what the shared schedule forces,
+  a day covering episodes 2 and 5 printing one `RÔLES` column.
+  The **roles tab shows the whole series**, each row wearing the episodes that name it: the other
+  three tabs are already the production's, and a cast list hiding half the cast in a mode of shared
+  catalogues would read as a bug. The same pills sit on the role sheet, **editable for a hand-added
+  role alone** — a `silent`/`extra` role is named by no cue, so it is created on the selected episode
+  and its pills are the one place in the app a `role_episodes` row is written by a gesture, while a
+  role that came from the screenplay reads its pills out and offers no control.
   A scene is linked to a **set** (`scene_sets`, many-to-many — a continuous action is regularly
   covered in two) and to an **element** (`scene_elements`, the *dépouillement* link, carrying the
   quantity and the note that belong to that scene alone). `ocptSceneSetSuggestionOf`

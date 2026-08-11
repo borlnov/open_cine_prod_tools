@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -43,7 +44,16 @@ typedef OcptSchedulePendingFieldKey = (String targetId, OcptScheduleField field)
 /// One group of the left dock's own "shots still to place" list: every live shot of one sequence
 /// (a real scene, or the orphan group) that has no live block placing it yet, in the sequence's own
 /// shot order.
+///
+/// [screenplayId] names the episode this group's sequence belongs to. It is not cosmetic:
+/// `OcptOrphanShotSequence.sequenceId` is the constant `"orphans"`, so a project holding several
+/// episodes walks several groups sharing that one [sequenceId] — the pair ([screenplayId],
+/// [sequenceId]) is what actually identifies one group once there is more than one episode to mix
+/// them up.
 class OcptScheduleUnplacedGroup extends Equatable {
+  /// The id of the episode (screenplay) this group's sequence belongs to.
+  final String screenplayId;
+
   /// The sequence's own id (a scene id, or `OcptOrphanShotSequence.sequenceId`).
   final String sequenceId;
 
@@ -58,6 +68,7 @@ class OcptScheduleUnplacedGroup extends Equatable {
 
   /// Class constructor
   const OcptScheduleUnplacedGroup({
+    required this.screenplayId,
     required this.sequenceId,
     required this.displaySceneNumber,
     required this.heading,
@@ -66,7 +77,7 @@ class OcptScheduleUnplacedGroup extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [sequenceId, displaySceneNumber, heading, shots];
+  List<Object?> get props => [screenplayId, sequenceId, displaySceneNumber, heading, shots];
 }
 
 /// The kind of transient notice [OcptScheduleIoNotice] carries, one per schedule export outcome.
@@ -150,9 +161,15 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// been read yet.
   final OcptScheduleSnapshot? snapshot;
 
-  /// The whole shot list read, as last loaded — what every placed or unplaced shot's own code,
-  /// size, duration and characters are resolved from. Null while nothing has been read yet.
-  final OcptShotListSnapshot? shotListSnapshot;
+  /// Every live episode's own shot list, as last loaded, in
+  /// `OcptScreenplayService.loadEpisodes`' own order — what every placed or unplaced shot's own
+  /// code, size, duration and characters are resolved from, across the whole project. Empty while
+  /// nothing has been read yet.
+  final List<OcptShotListSnapshot> shotListSnapshots;
+
+  /// The project's live episodes, as last loaded, in the same order as [shotListSnapshots] — what
+  /// [planSnapshot] names a scene's own screenplay through. Empty while nothing has been read yet.
+  final List<OcptEpisode> episodes;
 
   /// The project's whole location catalogue (with their sets), as last loaded — what a slot's
   /// place is resolved from and a day's own tint is read off.
@@ -270,9 +287,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
 
-  /// [snapshot] joined with [shotListSnapshot]/[locations]/[roles]/[people] into the day-level
-  /// facts the mode reads (`OcptSchedulePlanSnapshot`'s own doc comment) — null exactly while
-  /// [snapshot] is, since a plan snapshot always carries a whole schedule read.
+  /// [snapshot] joined with [shotListSnapshots]/[episodes]/[locations]/[roles]/[people] into the
+  /// day-level facts the mode reads (`OcptSchedulePlanSnapshot`'s own doc comment) — null exactly
+  /// while [snapshot] is, since a plan snapshot always carries a whole schedule read.
   ///
   /// Built **once per state instance**, on the first read, rather than on every read: a state is
   /// immutable and rebuilt per emit, so the join can never go stale inside one, and the mode reads
@@ -285,7 +302,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     null => null,
     final schedule => OcptSchedulePlanSnapshot.build(
       schedule: schedule,
-      shotList: shotListSnapshot,
+      shotLists: shotListSnapshots,
+      episodes: episodes,
       locations: locations,
       roles: roles,
       people: people,
@@ -306,9 +324,11 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// The number of shots placed somewhere in the schedule — the status bar's own second counter.
   int get placedShotCount => snapshot?.placedShotIds.length ?? 0;
 
-  /// Every live shot of the current shot list, across every sequence including the orphan group.
+  /// Every live shot of every episode's own shot list, across every sequence including the orphan
+  /// group, episode 1's before episode 2's — [shotListSnapshots]' own order.
   List<OcptShot> get _allShots => [
-    for (final sequence in shotListSnapshot?.sequences ?? const <OcptShotSequence>[]) ...sequence.shots,
+    for (final shotListSnapshot in shotListSnapshots)
+      for (final sequence in shotListSnapshot.sequences) ...sequence.shots,
   ];
 
   /// The number of shots that still have no live block placing them — the status bar's own third
@@ -343,7 +363,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   }
 
   /// The selected shot, or null while none is selected (or it disappeared from a freshly loaded
-  /// [shotListSnapshot]) — mirrors [selectedBlock]'s own convention.
+  /// [shotListSnapshots]) — mirrors [selectedBlock]'s own convention.
   OcptShot? get selectedShot {
     final selectedShotId = this.selectedShotId;
     return selectedShotId == null ? null : shotById(selectedShotId);
@@ -363,7 +383,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// The whole address book, keyed by id. Delegates to [planSnapshot], empty while it is null.
   Map<String, OcptPerson> get personById => planSnapshot?.personById ?? const {};
 
-  /// The shot [shotId] names, or null while [shotListSnapshot] hasn't loaded it (or it has since
+  /// The shot [shotId] names, or null while [shotListSnapshots] hasn't loaded it (or it has since
   /// been deleted). Delegates to [planSnapshot].
   OcptShot? shotById(String shotId) => planSnapshot?.shotById(shotId);
 
@@ -393,17 +413,20 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         : (snapshot?.eventsByDayId[selectedDayId] ?? const []);
   }
 
-  /// Every real scene of [shotListSnapshot], as an [OcptSceneShotSequence] — what a hold block's own
-  /// sequence picker offers. [OcptOrphanShotSequence] is deliberately excluded: it names no `scenes`
-  /// row, so `shooting_day_blocks.sceneId` could never point at it.
+  /// Every real scene of every episode's own [shotListSnapshots], as an [OcptSceneShotSequence],
+  /// episode 1's before episode 2's — what a hold block's own sequence picker offers.
+  /// [OcptOrphanShotSequence] is deliberately excluded: it names no `scenes` row, so
+  /// `shooting_day_blocks.sceneId` could never point at it.
   List<OcptSceneShotSequence> get sceneSequences => [
-    for (final sequence in shotListSnapshot?.sequences ?? const <OcptShotSequence>[])
-      if (sequence is OcptSceneShotSequence) sequence,
+    for (final shotListSnapshot in shotListSnapshots)
+      for (final sequence in shotListSnapshot.sequences)
+        if (sequence is OcptSceneShotSequence) sequence,
   ];
 
-  /// The live shots still to place, grouped by the sequence they belong to, sequences in their own
-  /// screenplay order and each group's shots in their own sequence order. A sequence with nothing
-  /// left to place has no entry at all.
+  /// The live shots still to place, grouped by the sequence they belong to, every episode's own
+  /// sequences in their own screenplay order and episode 1's groups before episode 2's
+  /// ([shotListSnapshots]' own order), each group's shots in their own sequence order. A sequence
+  /// with nothing left to place has no entry at all.
   ///
   /// Computed on every read rather than stored: the schedule mode never rebuilds on a per-keystroke
   /// timer the way the breakdown mode's own target suggestions do (nothing here is typed into), so
@@ -412,23 +435,26 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     final placedShotIds = snapshot?.placedShotIds ?? const <String>{};
     final groups = <OcptScheduleUnplacedGroup>[];
 
-    for (final sequence in shotListSnapshot?.sequences ?? const <OcptShotSequence>[]) {
-      final unplaced = [
-        for (final shot in sequence.shots)
-          if (!placedShotIds.contains(shot.id)) shot,
-      ];
-      if (unplaced.isEmpty) {
-        continue;
-      }
+    for (final shotListSnapshot in shotListSnapshots) {
+      for (final sequence in shotListSnapshot.sequences) {
+        final unplaced = [
+          for (final shot in sequence.shots)
+            if (!placedShotIds.contains(shot.id)) shot,
+        ];
+        if (unplaced.isEmpty) {
+          continue;
+        }
 
-      groups.add(
-        OcptScheduleUnplacedGroup(
-          sequenceId: sequence.id,
-          displaySceneNumber: sequence is OcptSceneShotSequence ? sequence.displaySceneNumber : null,
-          heading: sequence is OcptSceneShotSequence ? sequence.heading : null,
-          shots: unplaced,
-        ),
-      );
+        groups.add(
+          OcptScheduleUnplacedGroup(
+            screenplayId: shotListSnapshot.screenplayId,
+            sequenceId: sequence.id,
+            displaySceneNumber: sequence is OcptSceneShotSequence ? sequence.displaySceneNumber : null,
+            heading: sequence is OcptSceneShotSequence ? sequence.heading : null,
+            shots: unplaced,
+          ),
+        );
+      }
     }
 
     return groups;
@@ -509,7 +535,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.isLoading,
     required this.title,
     required this.snapshot,
-    required this.shotListSnapshot,
+    required this.shotListSnapshots,
+    required this.episodes,
     required this.locations,
     required this.roles,
     required this.people,
@@ -545,7 +572,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     : isLoading = true,
       title = "",
       snapshot = null,
-      shotListSnapshot = null,
+      shotListSnapshots = const [],
+      episodes = const [],
       locations = const [],
       roles = const [],
       people = const [],
@@ -577,8 +605,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [snapshot] and [shotListSnapshot] are only replaced when a new one is given, exactly as
-  /// `OcptBreakdownState.snapshot`. [selectedDayId], [selectedBlockId], [rightDockTab],
+  /// [snapshot], [shotListSnapshots] and [episodes] are only replaced when a new one is given,
+  /// exactly as `OcptBreakdownState.snapshot`. [selectedDayId], [selectedBlockId], [rightDockTab],
   /// [selectedShotId] and [minimumRestMinutes] all legitimately go back to null while the mode is
   /// alive, so each has its own clear flag. [pendingFieldEdits] is always replaced wholesale — the
   /// caller (the bloc's own field-edit handler) always computes the full next map.
@@ -587,7 +615,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     bool? isLoading,
     String? title,
     OcptScheduleSnapshot? snapshot,
-    OcptShotListSnapshot? shotListSnapshot,
+    List<OcptShotListSnapshot>? shotListSnapshots,
+    List<OcptEpisode>? episodes,
     List<OcptLocation>? locations,
     List<OcptRole>? roles,
     List<OcptPerson>? people,
@@ -632,7 +661,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
     snapshot: snapshot ?? this.snapshot,
-    shotListSnapshot: shotListSnapshot ?? this.shotListSnapshot,
+    shotListSnapshots: shotListSnapshots ?? this.shotListSnapshots,
+    episodes: episodes ?? this.episodes,
     locations: locations ?? this.locations,
     roles: roles ?? this.roles,
     people: people ?? this.people,
@@ -712,7 +742,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     isLoading,
     title,
     snapshot,
-    shotListSnapshot,
+    shotListSnapshots,
+    episodes,
     locations,
     roles,
     people,

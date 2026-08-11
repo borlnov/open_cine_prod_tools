@@ -910,6 +910,17 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeProjectEpisodeCount": "{count, plural, one{{count} episode} other{{count} episodes}}",
+  "@homeProjectEpisodeCount": {
+    "description": "Number of live episodes a project holds",
+    "context": "Displayed as a badge in the top-left of a project card's poster, only on a project holding more than one episode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeNewProjectDialogTitle": "New project",
   "@homeNewProjectDialogTitle": {
     "description": "Title of the dialog asking for the new project's name",
@@ -3610,6 +3621,17 @@
       }
     }
   },
+  "resourcesRolesListEpisodesLabel": "Ep. {numbers}",
+  "@resourcesRolesListEpisodesLabel": {
+    "description": "Muted line under a cast list row naming the episodes this role speaks in, the numbers already comma-joined by the widget",
+    "context": "Displayed in the resources mode's left dock, on the roles tab, only while the project holds more than one episode",
+    "type": "text",
+    "placeholders": {
+      "numbers": {
+        "type": "String"
+      }
+    }
+  },
   "resourcesAddRoleAction": "+ Add a role",
   "@resourcesAddRoleAction": {
     "description": "Action opening the menu of the two kinds a role may be hand-added as",
@@ -3660,6 +3682,13 @@
   "@resourcesRoleCastingCardTitle": {
     "description": "Title of the card holding a role's cast member and the other roles they hold",
     "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleEpisodesCardTitle": "Episodes",
+  "@resourcesRoleEpisodesCardTitle": {
+    "description": "Title of the card holding the toggleable chips naming the episodes a role speaks in",
+    "context": "Displayed in the resources mode's role sheet, only while the project holds more than one episode",
     "type": "text",
     "placeholders": {}
   },
@@ -5497,10 +5526,98 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsMinimumRestFieldHint": "e.g. 11",
+  "@projectSettingsMinimumRestFieldHint": {
+    "description": "Placeholder of the minimum rest field while it is empty",
+    "context": "Displayed in the minimum rest field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMinimumRestSuffix": "h",
+  "@projectSettingsMinimumRestSuffix": {
+    "description": "Unit suffix of the minimum rest field, which is typed in hours",
+    "context": "Displayed at the end of the minimum rest field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsMinimumRestHint": "Leave empty if no minimum has been recorded — that silences the schedule's rest-time alert, it does not mean no rest is owed. Deliberately not pre-filled with the legal eleven hours: this app ships in more than one country.",
   "@projectSettingsMinimumRestHint": {
     "description": "Explanation under the minimum rest field, read what an empty value means",
     "context": "Displayed under the minimum rest field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodesSectionTitle": "Episodes",
+  "@projectSettingsEpisodesSectionTitle": {
+    "description": "Title of the project settings page's episodes section",
+    "context": "Displayed at the top of the episodes section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeTitleHint": "Untitled",
+  "@projectSettingsEpisodeTitleHint": {
+    "description": "Hint of an episode row's title field while it has none",
+    "context": "Displayed in an episode row's title field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeMoveUpTooltip": "Move this episode up",
+  "@projectSettingsEpisodeMoveUpTooltip": {
+    "description": "Tooltip of an episode row's own control moving it one place up in the list",
+    "context": "Displayed on an episode row of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeMoveDownTooltip": "Move this episode down",
+  "@projectSettingsEpisodeMoveDownTooltip": {
+    "description": "Tooltip of an episode row's own control moving it one place down in the list",
+    "context": "Displayed on an episode row of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeDeleteTooltip": "Delete this episode",
+  "@projectSettingsEpisodeDeleteTooltip": {
+    "description": "Tooltip of an episode row's own delete action",
+    "context": "Displayed on an episode row of the project settings page, withheld on the project's last live episode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeAddAction": "Add",
+  "@projectSettingsEpisodeAddAction": {
+    "description": "Label of the action appending a new episode",
+    "context": "Displayed at the bottom of the episodes section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteEpisodeConfirmTitle": "Delete {episodeLabel}?",
+  "@projectSettingsDeleteEpisodeConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting an episode, naming it",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {
+      "episodeLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "projectSettingsDeleteEpisodeConfirmMessage": "This permanently deletes its screenplay, its snapshots, its scenes, its shots and their scenario coverage, and its breakdown, along with the cast links naming it. The people, the locations, the elements and the shooting days are left untouched — they were never this episode's alone. This can't be undone.",
+  "@projectSettingsDeleteEpisodeConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting an episode, stating what it takes and what it leaves",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteEpisodeConfirmCancelAction": "Cancel",
+  "@projectSettingsDeleteEpisodeConfirmCancelAction": {
+    "description": "Label of the confirmation dialog's cancel button before deleting an episode",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteEpisodeConfirmDeleteAction": "Delete",
+  "@projectSettingsDeleteEpisodeConfirmDeleteAction": {
+    "description": "Label of the confirmation dialog's confirm button before deleting an episode",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
     "type": "text",
     "placeholders": {}
   },
@@ -7100,6 +7217,17 @@
     "context": "Displayed in the schedule mode's right dock",
     "type": "text",
     "placeholders": {}
+  },
+  "scheduleStatsEpisodes": "{count, plural, one{{count} episode} other{{count} episodes}}",
+  "@scheduleStatsEpisodes": {
+    "description": "Number of live episodes in the project",
+    "context": "Displayed in the schedule mode's status bar, omitted on a single-episode project",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "scheduleStatsDays": "{count, plural, one{{count} day} other{{count} days}}",
   "@scheduleStatsDays": {
@@ -9101,6 +9229,70 @@
   "@scheduleAgendaEffectLegendMixed": {
     "description": "Legend entry for a day whose placed shots classify into more than one effect",
     "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "workspaceEpisodeSelectorTooltip": "Switch episode",
+  "@workspaceEpisodeSelectorTooltip": {
+    "description": "Tooltip of the toolbar's episode selector",
+    "context": "Displayed on hover over the episode selector, next to the project title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceEpisodeTag": "ep. {number}",
+  "@workspaceEpisodeTag": {
+    "description": "The selected episode's tag, appended to a mode's own export suggested file name",
+    "context": "Only ever appended while the open project holds more than one episode",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "workspaceEpisodeTitledLabel": "{number}. {title}",
+  "@workspaceEpisodeTitledLabel": {
+    "description": "How a titled episode reads, on the selector's trigger and in its menu",
+    "context": "Displayed by the toolbar's episode selector",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceEpisodeUntitledLabel": "Episode {number}",
+  "@workspaceEpisodeUntitledLabel": {
+    "description": "How an untitled episode reads, on the selector's trigger and in its menu",
+    "context": "Displayed by the toolbar's episode selector",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "workspaceManageEpisodesAction": "Manage episodes…",
+  "@workspaceManageEpisodesAction": {
+    "description": "Last entry of the episode selector's menu, opening the project settings page",
+    "context": "Displayed at the bottom of the toolbar's episode selector menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceAddEpisodeAction": "Add an episode…",
+  "@workspaceAddEpisodeAction": {
+    "description": "Label of the toolbar button opening the project settings page's episodes card",
+    "context": "Displayed in the screenplay mode's toolbar, in the episode selector's own place, while the project holds a single episode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceAddEpisodeTooltip": "Turn this project into a series: its episodes are managed in the project settings",
+  "@workspaceAddEpisodeTooltip": {
+    "description": "Tooltip of the toolbar button opening the project settings page's episodes card",
+    "context": "Displayed on hover over the screenplay mode's Add an episode button, next to the project title",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

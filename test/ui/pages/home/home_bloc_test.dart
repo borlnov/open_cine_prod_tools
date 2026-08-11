@@ -65,6 +65,13 @@ class _FakeFileSaverManager extends FileSaverManager {
 /// A router manager whose [push] only records the route pushed: these bloc tests don't build a
 /// real GoRouter for it to operate on.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Runs while [push] is awaited, standing in for whatever the user did in the workspace before
+  /// popping back to the home page — a real push only completes once they leave it.
+  final Future<void> Function()? whilePushed;
+
+  /// Class constructor
+  _RecordingRouterManager({this.whilePushed});
+
   /// The last route [push] was called with, or null if it never was.
   OcptRoute? pushedRoute;
 
@@ -76,6 +83,7 @@ class _RecordingRouterManager extends OcptRouterManager {
     Object? extra,
   }) async {
     pushedRoute = route;
+    await whilePushed?.call();
     return null;
   }
 }
@@ -134,6 +142,43 @@ void main() {
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
+
+  test("refreshes the recent projects list once the workspace pops back", () async {
+    final filePath = p.join(tempDir.path, "Series.ocpt");
+    final routerManager = _RecordingRouterManager(
+      whilePushed: () async {
+        // What a session in the workspace does: the settings page's Episodes card adds one, and
+        // closing the project is what writes the new count onto the recent projects entry.
+        final project = projectsManager.currentProject!;
+        expect(
+          await projectsManager.screenplayService.createEpisode(database: project.database),
+          isNotNull,
+        );
+        await projectsManager.closeCurrentProject();
+      },
+    );
+
+    final bloc = buildBloc(
+      fileSaverManager: _FakeFileSaverManager(result: filePath),
+      routerManager: routerManager,
+    );
+
+    bloc.add(const OcptHomeCreateProjectRequestedEvent(name: "Series"));
+    final state = await waitForState(
+      bloc,
+      (state) =>
+          state.recentProjects.length == 1 && state.recentProjects.single.project.episodeCount == 2,
+    );
+
+    expect(
+      state.recentProjects.single.project.path,
+      filePath,
+      reason: "the card the user comes back to must carry the count the project ended with, not "
+          "the one it was created with",
+    );
+
+    await bloc.close();
+  });
 
   test(
     'imports a picked fountain file into a new project and navigates to the editor',

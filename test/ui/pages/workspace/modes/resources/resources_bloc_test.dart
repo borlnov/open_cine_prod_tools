@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
@@ -278,6 +279,7 @@ void main() {
     FileSelectorManager? fileSelectorManager,
     OcptResourcesRevealRequest? revealRequest,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
+    String? selectedEpisodeId,
   }) => OcptResourcesBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
@@ -286,6 +288,7 @@ void main() {
     fileSelectorManager: fileSelectorManager,
     revealRequest: revealRequest,
     fieldEditDebounce: fieldEditDebounce,
+    selectedEpisodeId: selectedEpisodeId,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -641,6 +644,45 @@ void main() {
     await bloc.close();
   });
 
+  test(
+    "constructed with a second episode selected, reads and writes that episode rather than the "
+    "primary screenplay",
+    () async {
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      // The scenes offered to a set or an element are the selected episode's own, not the
+      // primary screenplay's.
+      expect(state.scenes, hasLength(1));
+      expect(state.scenes.single.heading, "INT. SECOND EPISODE - NIGHT");
+
+      // A hand-added role is linked to the selected episode (ADR 0019's "created on the
+      // selected episode"), not to the primary screenplay.
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+      final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+      expect(withRole.roles.single.episodeIds, [secondEpisodeId]);
+
+      await bloc.close();
+    },
+  );
+
   test("casting a person to a role and changing its kind both land in the database", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
@@ -663,6 +705,63 @@ void main() {
     bloc.add(OcptResourcesRoleKindChangedEvent(roleId: roleId, kind: OcptRoleKind.silent));
     state = await waitForState(bloc, (state) => state.roles.single.kind == OcptRoleKind.silent);
     expect(state.roles.single.personId, personId);
+
+    await bloc.close();
+  });
+
+  test(
+    "changing a role's episodes writes through setRoleEpisodes and the reload shows it",
+    () async {
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      // Created on the primary episode, ADR 0019's "created on the selected episode".
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+      final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+      final roleId = withRole.selectedRoleId!;
+      expect(withRole.roles.single.episodeIds, [project.primaryScreenplayId]);
+
+      bloc.add(
+        OcptResourcesRoleEpisodesChangedEvent(
+          roleId: roleId,
+          episodeIds: {project.primaryScreenplayId, secondEpisodeId!},
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.roles.single.episodeIds.length == 2);
+      expect(state.roles.single.episodeIds.toSet(), {project.primaryScreenplayId, secondEpisodeId});
+
+      await bloc.close();
+    },
+  );
+
+  test("a role's episodes cannot be changed while a version is being previewed", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+    final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+    final roleId = withRole.selectedRoleId!;
+    final originalEpisodeIds = withRole.roles.single.episodeIds;
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Cast locked", note: ""));
+    final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = withVersion.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    await waitForState(bloc, (state) => state.previewedVersionId != null);
+
+    bloc.add(OcptResourcesRoleEpisodesChangedEvent(roleId: roleId, episodeIds: const {}));
+    // The write is refused by the database's own preview guard; wait long enough that a bug
+    // silently applying it anyway would have shown up.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect(bloc.state.roles.single.episodeIds, originalEpisodeIds);
+    expect(bloc.state.hasWriteError, isFalse);
 
     await bloc.close();
   });

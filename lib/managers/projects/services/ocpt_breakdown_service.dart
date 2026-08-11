@@ -133,9 +133,15 @@ class OcptBreakdownService {
   /// `OcptLocationsService.loadScenes` in reading only the scenes, and [loadTags] already exists to
   /// read the other half — reading it twice, once per caller, would be the two ways of building a
   /// snapshot silently drifting apart.
+  ///
+  /// [episodeNumber] is [screenplayId]'s own episode number, or null when the project holds a
+  /// single episode; it is only carried onto each [OcptBreakdownScene] for `displayNumber` to read,
+  /// never resolved here — this service has no reason to depend on `OcptScreenplayService`, which
+  /// already depends on it (dependencies never reference their dependents).
   Future<List<OcptBreakdownScene>> loadScenes({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required int? episodeNumber,
   }) async {
     final sceneRows =
         await (database.select(database.ocptScenesTable)
@@ -152,6 +158,7 @@ class OcptBreakdownService {
       for (final sceneRow in sceneRows)
         OcptBreakdownScene.fromRows(
           sceneRow: sceneRow,
+          episodeNumber: episodeNumber,
           breakdownRow: breakdownRowsBySceneId[sceneRow.id],
         ),
     ];
@@ -596,6 +603,46 @@ class OcptBreakdownService {
         }
       }
     });
+  }
+
+  /// Tombstones every live `breakdown_tags` row and every live `scene_breakdowns` row of any of
+  /// [sceneIds], and — through [_elementsService] and [_locationsService] — every live
+  /// `scene_elements` and `scene_sets` row of those same scenes: `OcptScreenplayService.deleteEpisode`'s
+  /// cascade, once `OcptSceneIndexService.tombstoneScenesOfScreenplay` has handed it the ids of the
+  /// scenes going with the episode.
+  ///
+  /// **This is not [deleteTag]'s question.** [deleteTag] deliberately leaves the `scene_elements`/
+  /// `scene_sets` link a tag once ensured, because the user may have made the same link by hand and
+  /// removing a tag must not destroy work the breakdown pass never did. Here the scene those links
+  /// point at is **itself** going away with the episode, for good — a different fact, and the one
+  /// this method exists to act on rather than defer.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> tombstoneBreakdownOfScenes({
+    required OcptProjectDatabase database,
+    required List<String> sceneIds,
+  }) async {
+    if (sceneIds.isEmpty) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds))).write(
+      const OcptBreakdownTagsTableCompanion(isDeleted: Value(true)),
+    );
+    await (database.update(
+      database.ocptSceneBreakdownsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds))).write(
+      const OcptSceneBreakdownsTableCompanion(isDeleted: Value(true)),
+    );
+
+    await _elementsService.tombstoneSceneElementsOfScenes(database: database, sceneIds: sceneIds);
+    await _locationsService.tombstoneSceneSetsOfScenes(database: database, sceneIds: sceneIds);
   }
 
   /// Inserts the tag row itself and ensures the link it implies, without checking for an overlap:

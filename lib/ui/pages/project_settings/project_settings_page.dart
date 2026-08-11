@@ -2,18 +2,25 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The maximum width of the project settings page's content, matching the app-wide settings page.
 const _maxContentWidth = 720.0;
@@ -28,18 +35,27 @@ const _maxContentWidth = 720.0;
 /// changed, so a mode with something to repaginate (the screenplay, on a page-format change) knows
 /// whether it is worth reloading.
 ///
+/// A caller that opened this page for one of its cards in particular says so through [reveal], and
+/// the page scrolls there once the settings have loaded — the screenplay mode's `Add an episode…`
+/// button is the one that does, and landing at the top of four stacked cards would break the very
+/// promise its label makes.
+///
 /// Reachable only while a project is open (`OcptRouterManager`'s guard, mirroring the workspace
 /// route's own), and withheld entirely while a project version is being previewed — a preview has
 /// nothing here that may be written, so the mode that would open this page shows no button at all
 /// rather than a disabled one.
 class OcptProjectSettingsPage extends StatelessWidget {
+  /// The section to scroll to the moment the page opens, or null when it was opened plainly — see
+  /// [OcptProjectSettingsReveal].
+  final OcptProjectSettingsReveal? reveal;
+
   /// Creates the project settings page.
-  const OcptProjectSettingsPage({super.key});
+  const OcptProjectSettingsPage({this.reveal, super.key});
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (context) => OcptProjectSettingsBloc(),
-    child: const OcptProjectSettingsView(),
+    child: OcptProjectSettingsView(reveal: reveal),
   );
 }
 
@@ -49,9 +65,31 @@ class OcptProjectSettingsPage extends StatelessWidget {
 /// Unlike sibling pages' private `_XxxView`, this one is public: it lets widget tests pump it
 /// directly with a `BlocProvider.value` wrapping an [OcptProjectSettingsBloc] built with an
 /// injected `OcptProjectsManager`, the same reason `OcptSettingsView` is public.
-class OcptProjectSettingsView extends StatelessWidget {
+class OcptProjectSettingsView extends StatefulWidget {
+  /// The section to scroll to once the project's settings have loaded, or null to scroll nowhere.
+  final OcptProjectSettingsReveal? reveal;
+
   /// Class constructor
-  const OcptProjectSettingsView({super.key});
+  const OcptProjectSettingsView({this.reveal, super.key});
+
+  @override
+  State<OcptProjectSettingsView> createState() => _OcptProjectSettingsViewState();
+}
+
+/// The state of [OcptProjectSettingsView]: it exists for the reveal alone (every field of the page
+/// writes through the bloc), holding the key the scroll targets and the guard making it happen
+/// exactly once.
+class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
+  /// The key the `Episodes` card is built with, so [_reveal] has a render object to scroll to.
+  final GlobalKey _episodesSectionKey = GlobalKey();
+
+  /// Whether the reveal has already been scheduled.
+  ///
+  /// Flipped from `build` rather than through `setState`: it drives nothing that is drawn, it only
+  /// keeps the scroll from being scheduled again on every later rebuild (a currency picked, a title
+  /// committed). The reveal cannot be scheduled any earlier than that — the section it targets is
+  /// not in the tree while [OcptProjectSettingsState.isLoading].
+  bool _hasScheduledReveal = false;
 
   @override
   Widget build(BuildContext context) =>
@@ -60,6 +98,8 @@ class OcptProjectSettingsView extends StatelessWidget {
           if (state.isLoading) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
+
+          _scheduleReveal();
 
           return Scaffold(
             appBar: AppBar(
@@ -89,6 +129,20 @@ class OcptProjectSettingsView extends StatelessWidget {
                         onMinimumRestMinutesChanged: (minutes) =>
                             _onMinimumRestMinutesChanged(context, minutes),
                       ),
+                      const SizedBox(height: 16),
+                      OcptProjectSettingsEpisodesSection(
+                        key: _episodesSectionKey,
+                        episodes: state.episodes,
+                        onEpisodeAdded: () => _onEpisodeAdded(context),
+                        onEpisodeTitleChanged: (screenplayId, title) =>
+                            _onEpisodeTitleChanged(context, screenplayId, title),
+                        onEpisodeNumberChanged: (screenplayId, number) =>
+                            _onEpisodeNumberChanged(context, screenplayId, number),
+                        onEpisodeMoved: (screenplayId, newPosition) =>
+                            _onEpisodeMoved(context, screenplayId, newPosition),
+                        onEpisodeDeletionRequested: (episode) =>
+                            unawaited(_onEpisodeDeletionRequested(context, episode)),
+                      ),
                     ],
                   ),
                 ),
@@ -97,6 +151,41 @@ class OcptProjectSettingsView extends StatelessWidget {
           );
         },
       );
+
+  /// Schedules the scroll bringing [OcptProjectSettingsView.reveal]'s own section into view, once
+  /// the frame showing it has been laid out — nothing before that has a render object to scroll to.
+  ///
+  /// Does nothing at all for a page opened plainly, and never runs twice.
+  void _scheduleReveal() {
+    if (_hasScheduledReveal || widget.reveal == null) {
+      return;
+    }
+
+    _hasScheduledReveal = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
+  }
+
+  /// Scrolls [OcptProjectSettingsView.reveal]'s own section to the top of the page.
+  ///
+  /// A section already fully on screen — the whole page fits a tall enough window — is left where
+  /// it is by `ensureVisible` itself, which is the wanted answer: it is being looked at already.
+  void _reveal() {
+    final sectionContext = switch (widget.reveal) {
+      OcptProjectSettingsReveal.episodes => _episodesSectionKey.currentContext,
+      null => null,
+    };
+    if (sectionContext == null) {
+      return;
+    }
+
+    unawaited(
+      Scrollable.ensureVisible(
+        sectionContext,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      ),
+    );
+  }
 
   /// Pops the page, handing [OcptProjectSettingsState.hasChanged] back to whichever mode pushed
   /// it.
@@ -122,5 +211,59 @@ class OcptProjectSettingsView extends StatelessWidget {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsMinimumRestMinutesChangedEvent(minutes: minutes),
     );
+  }
+
+  /// Dispatches the event that appends a new episode.
+  void _onEpisodeAdded(BuildContext context) {
+    context.read<OcptProjectSettingsBloc>().add(const OcptProjectSettingsEpisodeAddedEvent());
+  }
+
+  /// Dispatches the event that writes an episode's newly committed title.
+  void _onEpisodeTitleChanged(BuildContext context, String screenplayId, String title) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsEpisodeTitleChangedEvent(screenplayId: screenplayId, title: title),
+    );
+  }
+
+  /// Dispatches the event that writes an episode's newly committed printed number.
+  void _onEpisodeNumberChanged(BuildContext context, String screenplayId, int number) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsEpisodeNumberChangedEvent(screenplayId: screenplayId, number: number),
+    );
+  }
+
+  /// Dispatches the event that moves an episode to its newly picked position.
+  void _onEpisodeMoved(BuildContext context, String screenplayId, int newPosition) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsEpisodeMovedEvent(screenplayId: screenplayId, newPosition: newPosition),
+    );
+  }
+
+  /// Asks `OcptConfirmDialog` whether [episode] really is to be deleted, naming it and stating
+  /// both what the deletion takes and what it leaves
+  /// (`docs/adr/0019-one-project-several-episodes.md`), then dispatches the deletion if the user
+  /// confirmed it.
+  ///
+  /// The card's own delete action is never shown for the project's last live episode, so this is
+  /// only ever reached with at least one other episode left.
+  Future<void> _onEpisodeDeletionRequested(BuildContext context, OcptEpisode episode) async {
+    final bloc = context.read<OcptProjectSettingsBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.projectSettingsDeleteEpisodeConfirmTitle(ocptWorkspaceEpisodeLabelOf(tr, episode)),
+      message: tr.projectSettingsDeleteEpisodeConfirmMessage,
+      cancelLabel: tr.projectSettingsDeleteEpisodeConfirmCancelAction,
+      confirmLabel: tr.projectSettingsDeleteEpisodeConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptProjectSettingsEpisodeDeletionConfirmedEvent(screenplayId: episode.id));
   }
 }

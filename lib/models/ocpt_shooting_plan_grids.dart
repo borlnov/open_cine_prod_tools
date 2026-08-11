@@ -11,7 +11,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shot_code.dart';
@@ -390,10 +389,7 @@ class OcptShootingPlanGrids extends Equatable {
       }
     }
 
-    final sequencesBySceneId = {
-      for (final sequence in plan.shotList?.sequences ?? const [])
-        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence,
-    };
+    final sequencesBySceneId = plan.sceneSequenceBySceneId;
 
     final rows = <OcptShootingPlanGridRow>[];
     for (final sequence in sequencesBySceneId.values) {

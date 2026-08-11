@@ -53,6 +53,8 @@ void main() {
         title: "My Movie",
         fountainText: "INT. HOUSE - DAY\n\nCLARA enters.",
         updatedAt: DateTime.utc(2026, 3, 4, 15, 42, 12, 345),
+        number: 1,
+        sortKey: "V",
         isDeleted: false,
       ),
       OcptScreenplayRow(
@@ -60,6 +62,8 @@ void main() {
         title: "Abandoned draft",
         fountainText: "",
         updatedAt: DateTime.utc(2026, 2, 2),
+        number: 2,
+        sortKey: "k",
         isDeleted: true,
       ),
     ],
@@ -295,7 +299,6 @@ void main() {
     roles: const [
       OcptRoleRow(
         id: "role-1",
-        screenplayId: "screenplay-1",
         name: "CLARA",
         sortKey: "V",
         isDeleted: false,
@@ -306,7 +309,6 @@ void main() {
       ),
       OcptRoleRow(
         id: "role-2",
-        screenplayId: "screenplay-1",
         name: "EXTRA",
         sortKey: "k",
         isDeleted: true,
@@ -314,6 +316,20 @@ void main() {
         isFromScreenplay: false,
         orphanedName: "GHOST",
         castingNotes: "",
+      ),
+    ],
+    roleEpisodes: const [
+      OcptRoleEpisodeRow(
+        id: "role-episode-1",
+        roleId: "role-1",
+        screenplayId: "screenplay-1",
+        isDeleted: false,
+      ),
+      OcptRoleEpisodeRow(
+        id: "role-episode-2",
+        roleId: "role-2",
+        screenplayId: "screenplay-1",
+        isDeleted: true,
       ),
     ],
     locations: [
@@ -570,7 +586,6 @@ void main() {
     shootingDays: [
       OcptShootingDayRow(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime.utc(2026, 3, 10),
         sortKey: "V",
         status: OcptShootingDayStatus.planned,
@@ -581,7 +596,6 @@ void main() {
       ),
       OcptShootingDayRow(
         id: "day-2",
-        screenplayId: "screenplay-1",
         date: DateTime.utc(2026, 3, 11),
         sortKey: "k",
         status: OcptShootingDayStatus.cancelled,
@@ -778,6 +792,46 @@ void main() {
     return result.value!;
   }
 
+  /// [encoded] — the current (format 13) encoding of a payload — put back into the shape a format
+  /// **12** payload actually had: `roles.screenplayId` and `shooting_days.screenplayId` restored
+  /// (read off [roleEpisodes]'s own links for a role, and hard-coded to the one screenplay every
+  /// shooting day of [buildRichPayload] belongs to, since format 12 carried nothing else to read
+  /// one off), `screenplays.number`/`sortKey` and `roleEpisodes` itself taken back out.
+  ///
+  /// Every fixture below format 13 in this file is [encoded] wound back further still, so each one
+  /// starts from this shape rather than from the current one directly — otherwise
+  /// [_upgradeFormat12To13] would run against a `roles` row that already lacks the very
+  /// `screenplayId` it means to derive `role_episodes` from, which no real payload of any format
+  /// below 13 was ever missing.
+  Map<String, dynamic> asFormat12Shape(Map<String, dynamic> encoded) {
+    final screenplayIdByRoleId = {
+      for (final row in encoded["roleEpisodes"] as List)
+        (row as Map<String, dynamic>)["roleId"] as String: row["screenplayId"],
+    };
+
+    final downgraded = {...encoded}..remove("roleEpisodes");
+
+    downgraded["screenplays"] = [
+      for (final screenplay in downgraded["screenplays"] as List)
+        ({...screenplay as Map<String, dynamic>}
+          ..remove("number")
+          ..remove("sortKey")),
+    ];
+    downgraded["roles"] = [
+      for (final role in downgraded["roles"] as List)
+        {
+          ...role as Map<String, dynamic>,
+          "screenplayId": screenplayIdByRoleId[role["id"]] ?? "screenplay-1",
+        },
+    ];
+    downgraded["shootingDays"] = [
+      for (final day in downgraded["shootingDays"] as List)
+        {...day as Map<String, dynamic>, "screenplayId": "screenplay-1"},
+    ];
+
+    return downgraded;
+  }
+
   group('OcptProjectVersionCodec round trip', () {
     test('decode(encode(payload)) returns an equal payload', () {
       final payload = buildRichPayload();
@@ -800,6 +854,7 @@ void main() {
       expect(roundTripped.personSkills.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.personUnavailabilities.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.roles.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.roleEpisodes.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.locations.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.sets.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.sceneSets.map((row) => row.isDeleted), [false, true]);
@@ -872,6 +927,21 @@ void main() {
       expect(orphanedRole.personId, isNull);
       expect(orphanedRole.kind, OcptRoleKind.extra);
       expect(orphanedRole.orphanedName, "GHOST");
+
+      final screenplay = roundTripped.screenplays.first;
+      expect(screenplay.number, 1);
+      expect(screenplay.sortKey, "V");
+      final tombstonedScreenplay = roundTripped.screenplays.last;
+      expect(tombstonedScreenplay.number, 2);
+      expect(tombstonedScreenplay.sortKey, "k");
+
+      final roleEpisode = roundTripped.roleEpisodes.first;
+      expect(roleEpisode.roleId, "role-1");
+      expect(roleEpisode.screenplayId, "screenplay-1");
+      expect(roleEpisode.isDeleted, isFalse);
+      final tombstonedRoleEpisode = roundTripped.roleEpisodes.last;
+      expect(tombstonedRoleEpisode.roleId, "role-2");
+      expect(tombstonedRoleEpisode.isDeleted, isTrue);
 
       final location = roundTripped.locations.first;
       expect(location.addressLine1, "3 rue Victor Hugo");
@@ -971,7 +1041,6 @@ void main() {
       final roundTripped = roundTrip(buildRichPayload());
 
       final day = roundTripped.shootingDays.firstWhere((row) => row.id == "day-1");
-      expect(day.screenplayId, "screenplay-1");
       expect(day.date, DateTime.utc(2026, 3, 10));
       expect(day.sortKey, "V");
       expect(day.status, OcptShootingDayStatus.planned);
@@ -1136,6 +1205,7 @@ void main() {
         personSkills: [],
         personUnavailabilities: [],
         roles: [],
+        roleEpisodes: [],
         locations: [],
         locationAvailabilities: [],
         sets: [],
@@ -1188,6 +1258,7 @@ void main() {
         personSkills: payload.personSkills.reversed.toList(),
         personUnavailabilities: payload.personUnavailabilities.reversed.toList(),
         roles: payload.roles.reversed.toList(),
+        roleEpisodes: payload.roleEpisodes.reversed.toList(),
         locations: payload.locations.reversed.toList(),
         locationAvailabilities: payload.locationAvailabilities.reversed.toList(),
         sets: payload.sets.reversed.toList(),
@@ -1228,6 +1299,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1276,6 +1348,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1327,6 +1400,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1367,6 +1441,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1407,6 +1482,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1449,6 +1525,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1476,6 +1553,148 @@ void main() {
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
     });
 
+    test('changes when a role_episodes row is added', () {
+      final payload = buildRichPayload();
+      final withNewLink = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: [
+          ...payload.roleEpisodes,
+          const OcptRoleEpisodeRow(
+            id: "role-episode-3",
+            roleId: "role-2",
+            screenplayId: "screenplay-2",
+            isDeleted: false,
+          ),
+        ],
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+      );
+
+      // Two states differing only in which episodes name a role are not the same project: a
+      // digest that left `role_episodes` out would let the working-copy card claim no drift after
+      // an afternoon spent saying, episode by episode, who speaks where.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewLink)));
+    });
+
+    test('changes when a role_episodes row is tombstoned', () {
+      final payload = buildRichPayload();
+      final tombstoned = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: [
+          payload.roleEpisodes.first.copyWith(isDeleted: true),
+          payload.roleEpisodes.last,
+        ],
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
+    });
+
+    test('changes when a role_episodes row is repointed to a different episode', () {
+      final payload = buildRichPayload();
+      final repointed = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: [
+          payload.roleEpisodes.first.copyWith(screenplayId: "screenplay-2"),
+          payload.roleEpisodes.last,
+        ],
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+      );
+
+      // A role recast onto a different episode changes the project even though every row's own id
+      // stays put — the same reason a tombstone must move the digest and not only an insertion.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(repointed)));
+    });
+
     test('changes when a breakdown tag is added', () {
       final payload = buildRichPayload();
       final withNewTag = OcptProjectVersionPayload(
@@ -1489,6 +1708,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1544,6 +1764,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1591,6 +1812,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1634,6 +1856,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1677,6 +1900,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1722,6 +1946,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1736,7 +1961,6 @@ void main() {
           ...payload.shootingDays,
           OcptShootingDayRow(
             id: "day-3",
-            screenplayId: "screenplay-1",
             date: DateTime.utc(2026, 3, 12),
             sortKey: "m",
             status: OcptShootingDayStatus.planned,
@@ -1777,6 +2001,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1820,6 +2045,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1863,6 +2089,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1914,6 +2141,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1957,6 +2185,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -1997,6 +2226,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -2041,6 +2271,7 @@ void main() {
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
         locations: payload.locations,
         locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
@@ -2834,9 +3065,10 @@ void main() {
       // fixture is the current encoding with the key taken back out and the format wound back,
       // rather than a second hand-written literal: what matters is the missing section, and every
       // other section is exercised by the round-trip tests already.
-      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>
-        ..remove("roleElements")
-        ..["payloadFormat"] = 9;
+      final encoded = asFormat12Shape(
+        jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>,
+      )..remove("roleElements");
+      encoded["payloadFormat"] = 9;
 
       final result = codec.decode(jsonEncode(encoded));
 
@@ -2857,7 +3089,9 @@ void main() {
         // design and null is its own truthful state. The fixture is the current encoding with the
         // key taken back out of every person row and the format wound back, rather than a second
         // hand-written literal.
-        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        final encoded = asFormat12Shape(
+          jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>,
+        );
         for (final person in encoded["people"] as List) {
           (person as Map<String, dynamic>).remove("maxDailyPresenceMinutes");
         }
@@ -2891,7 +3125,9 @@ void main() {
         // writes for `maxDailyPresenceMinutes`, not the currency's "leave the live value alone"
         // null. The fixture is the current encoding with every one of those keys taken back out and
         // the format wound back, rather than a second hand-written literal.
-        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>
+        final encoded = asFormat12Shape(
+          jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>,
+        )
           ..remove("shootingSlotGuests")
           ..remove("shootingDayEvents");
 
@@ -2939,6 +3175,86 @@ void main() {
         // never resurface either.
         final reEncoded = jsonDecode(codec.encode(result.value!)) as Map<String, dynamic>;
         expect(reEncoded.containsKey("shootingPresences"), isFalse);
+      },
+    );
+
+    test(
+      'a stored format-12 payload decodes with its single live screenplay numbered 1, every '
+      'live role linked to the episode it named and keeping its casting, no link for a '
+      'tombstoned role, and a shooting day carrying everything it held',
+      () {
+        // Format 12 predates `screenplays.number`/`sortKey` and `role_episodes` entirely, and
+        // still carries `roles.screenplayId`/`shooting_days.screenplayId` — the shape schema
+        // version 18 and payload format 13 both retire together
+        // (`docs/adr/0019-one-project-several-episodes.md`). The fixture is the current encoding
+        // wound back to that shape ([asFormat12Shape]) rather than a second hand-written literal:
+        // what matters here is the shape of the upgrade, and every column [_upgradeFormat12To13]
+        // doesn't touch is already exercised by the other round-trip tests.
+        final encoded = asFormat12Shape(
+          jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>,
+        );
+        encoded["payloadFormat"] = 12;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        final payload = result.value!;
+
+        // "This project had one episode, and it was the first" is the truthful reading of a
+        // format-12 capture — format 5's kind of materialisation, not a null left for a live
+        // value: the live screenplay is numbered 1 and keyed exactly as
+        // `_numberExistingScreenplays` keys a lone live row (`ocptFractionalKeySequence(1)`
+        // yields "V", the same key every other lone-row fixture in this file already uses). The
+        // tombstoned screenplay was never going to be episode anything, so it is left at the
+        // column's own defaults, exactly as `_numberExistingScreenplays` leaves a tombstoned row.
+        final liveScreenplay = payload.screenplays.firstWhere((row) => row.id == "screenplay-1");
+        expect(liveScreenplay.number, 1);
+        expect(liveScreenplay.sortKey, "V");
+        final tombstonedScreenplay = payload.screenplays.firstWhere(
+          (row) => row.id == "screenplay-2",
+        );
+        expect(tombstonedScreenplay.number, 1);
+        expect(tombstonedScreenplay.sortKey, "");
+
+        // `role_episodes` is derived from the very `roles.screenplayId` this step drops: the only
+        // lossless step in the codec. The link's id is the role's own — unique here, since a role
+        // named exactly one screenplay at format 12, and deterministic, the same reasoning
+        // `_deriveRoleEpisodes` gives for its own schema-migration twin.
+        final liveRole = payload.roles.firstWhere((row) => row.id == "role-1");
+        expect(liveRole.isDeleted, isFalse);
+        final linksOfLiveRole = payload.roleEpisodes.where((row) => row.roleId == "role-1");
+        expect(linksOfLiveRole, hasLength(1));
+        expect(linksOfLiveRole.single.id, "role-1");
+        expect(linksOfLiveRole.single.screenplayId, "screenplay-1");
+        expect(linksOfLiveRole.single.isDeleted, isFalse);
+        // No role loses its casting on the way through: a role is no longer a script's, but it
+        // is still the very same casting decision.
+        expect(liveRole.personId, "person-1");
+        expect(liveRole.castingNotes, "Confirmed");
+        expect(liveRole.orphanedName, isNull);
+
+        // A tombstoned role named no episode worth carrying forward, tombstoned or not — mirroring
+        // `_deriveRoleEpisodes`, which reads only live `roles` rows.
+        final tombstonedRole = payload.roles.firstWhere((row) => row.id == "role-2");
+        expect(tombstonedRole.isDeleted, isTrue);
+        expect(payload.roleEpisodes.where((row) => row.roleId == "role-2"), isEmpty);
+        // Its own casting fields survive the upgrade untouched too, whatever `role_episodes` ends
+        // up saying about it.
+        expect(tombstonedRole.orphanedName, "GHOST");
+
+        // `roles.screenplayId` and `shooting_days.screenplayId` are dropped outright — format 8's
+        // and format 12's own kind, not a reconstruction: a day comes back with everything else it
+        // held, simply belonging to no episode any more.
+        final day = payload.shootingDays.firstWhere((row) => row.id == "day-1");
+        expect(day.crewNote, "Arrive at the north gate");
+        expect(day.weatherNote, "Sunny, light wind");
+        expect(day.status, OcptShootingDayStatus.planned);
+        expect(day.isDeleted, isFalse);
+
+        // A round trip through encode/decode at the current format is lossless, `role_episodes`
+        // included.
+        final reEncoded = codec.decode(codec.encode(payload)).value!;
+        expect(reEncoded, payload);
       },
     );
   });

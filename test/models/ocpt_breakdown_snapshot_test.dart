@@ -33,6 +33,7 @@ OcptBreakdownScene _buildScene({
   status: status,
   notes: notes,
   tags: const [],
+  episodeNumber: null,
 );
 
 /// Builds a tag pointing scene [sceneId] at ([targetKind], [targetId]), everything else left at a
@@ -89,7 +90,6 @@ OcptElement _buildElement({
 /// Builds a role named [name].
 OcptRole _buildRole({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,
@@ -97,6 +97,7 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// Builds a set named [name].

@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -53,6 +54,7 @@ class _FailingScreenplayService extends OcptScreenplayService {
           elementsService: OcptElementsService(),
           locationsService: OcptLocationsService(),
         ),
+        scheduleService: const OcptScheduleService(),
       );
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
@@ -132,6 +134,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportFountain] call.
   String? lastExportedFileTypeLabel;
 
+  /// The episode tag of the last [exportFountain] call.
+  String? lastExportedEpisodeTag;
+
   /// The file type label of the last [pickAndReadFountain] call.
   String? lastImportFileTypeLabel;
 
@@ -153,15 +158,20 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportPdf] call.
   String? lastExportedPdfFileTypeLabel;
 
+  /// The episode tag of the last [exportPdf] call.
+  String? lastExportedPdfEpisodeTag;
+
   @override
   Future<String?> exportFountain({
     required String fountainText,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedText = fountainText;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
     return exportResult;
   }
 
@@ -173,6 +183,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeSceneNumbers,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedPdfDocument = document;
     lastExportedPdfPageSetup = pageSetup;
@@ -180,6 +191,7 @@ class _FakeExportManager extends OcptExportManager {
     lastExportedPdfIncludeSceneNumbers = includeSceneNumbers;
     lastExportedPdfIncludeTitlePage = includeTitlePage;
     lastExportedPdfFileTypeLabel = fileTypeLabel;
+    lastExportedPdfEpisodeTag = episodeTag;
     return exportPdfResult;
   }
 
@@ -204,6 +216,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
     required bool includeSceneNumbers,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async => throw StateError("PDF export intentionally failed for the test");
 }
 
@@ -256,6 +269,7 @@ void main() {
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
     OcptProjectsManager? overrideProjectsManager,
+    String? selectedEpisodeId,
   }) => OcptEditorBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
@@ -265,6 +279,7 @@ void main() {
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
     statisticsDebounce: const Duration(milliseconds: 30),
+    selectedEpisodeId: selectedEpisodeId,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -298,6 +313,50 @@ void main() {
     expect(state.scenes, isEmpty);
     expect(state.isDirty, isFalse);
     expect(state.statistics, FountainScriptStatistics.empty);
+
+    await bloc.close();
+  });
+
+  test('constructed with a second episode selected, reads and writes that episode rather than '
+      'the primary screenplay', () async {
+    final project = projectsManager.currentProject!;
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+    );
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: secondEpisodeId!,
+      fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.text, contains("SECOND EPISODE"));
+    expect(state.text, isNot(contains("PRIMARY")));
+
+    bloc.add(const OcptEditorTextChangedEvent(text: "INT. REWRITTEN - DAY\n\nAction.\n"));
+    await waitForState(bloc, (state) => state.isDirty);
+    bloc.add(const OcptEditorSaveRequestedEvent(isManual: true));
+    await waitForState(bloc, (state) => !state.isDirty && !state.isSaving);
+
+    final primaryText = await projectsManager.screenplayService.loadScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+    final secondEpisodeText = await projectsManager.screenplayService.loadScreenplayText(
+      database: project.database,
+      screenplayId: secondEpisodeId,
+    );
+    expect(primaryText, contains("PRIMARY"));
+    expect(secondEpisodeText, contains("REWRITTEN"));
 
     await bloc.close();
   });
@@ -1149,7 +1208,12 @@ void main() {
       bloc.add(const OcptEditorTextChangedEvent(text: editedText));
       await waitForState(bloc, (state) => state.isDirty);
 
-      bloc.add(const OcptEditorExportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
+      bloc.add(
+        const OcptEditorExportRequestedEvent(
+          fileTypeLabel: "Fountain screenplay",
+          episodeTag: "ep. 2",
+        ),
+      );
       final state = await waitForState(
         bloc,
         (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.exportSucceeded,
@@ -1160,6 +1224,7 @@ void main() {
       expect(exportManager.lastExportedText, editedText);
       expect(exportManager.lastExportedProjectName, "My Movie");
       expect(exportManager.lastExportedFileTypeLabel, "Fountain screenplay");
+      expect(exportManager.lastExportedEpisodeTag, "ep. 2");
 
       final snapshots = await readSnapshots();
       expect(snapshots.last.reason, OcptSnapshotReason.export);
@@ -1214,6 +1279,7 @@ void main() {
         const OcptEditorExportPdfRequestedEvent(
           options: options,
           fileTypeLabel: "PDF document",
+          episodeTag: "ep. 2",
         ),
       );
       final state = await waitForState(
@@ -1232,6 +1298,7 @@ void main() {
       expect(exportManager.lastExportedPdfIncludeSceneNumbers, isFalse);
       expect(exportManager.lastExportedPdfIncludeTitlePage, isFalse);
       expect(exportManager.lastExportedPdfFileTypeLabel, "PDF document");
+      expect(exportManager.lastExportedPdfEpisodeTag, "ep. 2");
 
       final snapshots = await readSnapshots();
       expect(snapshots.last.reason, OcptSnapshotReason.export);

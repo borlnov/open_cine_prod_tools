@@ -129,6 +129,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last export call, of either kind.
   String? lastExportedFileTypeLabel;
 
+  /// The episode tag of the last export call, of either kind.
+  String? lastExportedEpisodeTag;
+
   /// The screenplay text of the last [exportScenarioCoverage] call.
   String? lastCoverageScreenplayText;
 
@@ -150,11 +153,13 @@ class _FakeExportManager extends OcptExportManager {
     required OcptShotListXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedLabels = labels;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
 
     if (fails) {
       throw StateError("shot list export intentionally failed for the test");
@@ -176,10 +181,12 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeLegendPage,
     required bool includeSummaryPage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
     lastCoverageDocument = document;
     lastCoverageScreenplayText = screenplayText;
     lastCoveragePageSetup = pageSetup;
@@ -321,6 +328,7 @@ void main() {
     OcptShotCoverageService? shotCoverageService,
     OcptProjectsManager? overrideProjectsManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
+    String? selectedEpisodeId,
   }) => OcptShotListBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
@@ -329,6 +337,7 @@ void main() {
     shotListService: shotListService,
     shotCoverageService: shotCoverageService,
     fieldEditDebounce: fieldEditDebounce,
+    selectedEpisodeId: selectedEpisodeId,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -388,6 +397,48 @@ void main() {
 
     await bloc.close();
   });
+
+  test(
+    'constructed with a second episode selected, reads and writes that episode rather than the '
+    'primary screenplay',
+    () async {
+      await writeScreenplay(twoSceneText);
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.sequences, hasLength(1));
+      expect((state.sequences.single as OcptSceneShotSequence).heading, "INT. SECOND EPISODE - NIGHT");
+
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+      final primarySnapshot = await projectsManager.shotListService.loadShotList(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        episodeNumber: null,
+      );
+      final secondEpisodeSnapshot = await projectsManager.shotListService.loadShotList(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        episodeNumber: null,
+      );
+      expect(primarySnapshot.shotsById, isEmpty);
+      expect(secondEpisodeSnapshot.shotsById, hasLength(1));
+
+      await bloc.close();
+    },
+  );
 
   test('a screenplay with no scene leaves every selection empty', () async {
     final bloc = buildBloc();
@@ -914,6 +965,7 @@ void main() {
     final reloaded = await projectsManager.shotListService.loadShotList(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(reloaded.shotsById[shotId]!.sound, "Wind noise");
 
@@ -1469,6 +1521,7 @@ void main() {
       const OcptShotListXlsxExportRequestedEvent(
         labels: _exportLabels,
         fileTypeLabel: "Excel workbook",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -1477,6 +1530,7 @@ void main() {
     expect(state.ioNotice!.path, "/tmp/My Movie.xlsx");
     expect(exportManager.lastExportedProjectName, "My Movie");
     expect(exportManager.lastExportedFileTypeLabel, "Excel workbook");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
     expect(exportManager.lastExportedLabels, _exportLabels);
     // The whole shot list travels, not only the selected sequence.
     expect(exportManager.lastExportedSnapshot!.sequences, hasLength(2));
@@ -1580,6 +1634,7 @@ void main() {
         options: _coverageOptions,
         labels: _coverageLabels,
         fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -1588,6 +1643,7 @@ void main() {
     expect(state.ioNotice!.path, "/tmp/My Movie - coverage.pdf");
     expect(exportManager.lastExportedProjectName, "My Movie");
     expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
     expect(exportManager.lastCoverageLabels, _coverageLabels);
     // The document travels alongside the very text it was parsed from: a coverage range addresses
     // that text by character offset.

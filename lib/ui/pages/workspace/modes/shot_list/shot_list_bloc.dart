@@ -35,14 +35,15 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the shot list (découpage technique) production mode.
 ///
-/// It loads the current project's whole shot list from [OcptShotListService] on entry — sequences
-/// are built in memory by joining the scene index with the shots referencing it, so the mode
-/// always shows the screenplay as it stands rather than a duplicated copy of it — together with
-/// the screenplay's speaking characters (for the inspector's character chips), every free-text
-/// field's project-wide suggestion list, and where each shot sits in the schedule
+/// It loads the selected episode's whole shot list from [OcptShotListService] on entry —
+/// sequences are built in memory by joining the scene index with the shots referencing it, so the
+/// mode always shows the screenplay as it stands rather than a duplicated copy of it — together
+/// with the screenplay's speaking characters (for the inspector's character chips), every
+/// free-text field's own suggestion list, and where each shot sits in the schedule
 /// (`OcptScheduleService.loadShotPlacements`, joined onto the snapshot by [_loadSnapshot]: the
 /// schedule mode is the only writer of a shot's placement, this mode only ever reads it), and holds
 /// the selection, the dock geometry and the visible table columns on top of it.
@@ -122,6 +123,17 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The running field-edit debounce timer, if any.
   Timer? _fieldEditTimer;
 
+  /// The episode this bloc reads and writes, handed down by `OcptShotListMode` from
+  /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once
+  /// rather than watch, since `WorkspacePage` remounts this whole bloc on every episode switch (see
+  /// `WorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
+  ///
+  /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
+  /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s
+  /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
+  /// routine path.
+  final String? _selectedEpisodeId;
+
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -136,7 +148,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotCoverageService? shotCoverageService,
     OcptScheduleService? scheduleService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+    String? selectedEpisodeId,
+  }) : _selectedEpisodeId = selectedEpisodeId,
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
@@ -191,6 +205,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   @protected
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
+  /// selected (see [_selectedEpisodeId]'s own doc comment).
+  String _screenplayIdOf(OcptOpenProjectModel project) =>
+      _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Writes whatever field edit is still sitting in the field-edit debounce, so a preview about to
   /// swap the database can't send it into the previewed version instead.
@@ -278,7 +298,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Reads the whole shot list of [project]'s primary screenplay, joined with where each of its
+  /// Reads the whole shot list of the selected episode's screenplay, joined with where each of its
   /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id —
   /// what the table's and the metadata panel's own `Jour de tournage` read-out is built from. A
   /// project with no schedule at all simply joins an empty map, so every shot reads as unplaced.
@@ -286,26 +306,33 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Read again on every call, alongside every other write this bloc performs: the schedule is
   /// edited from its own mode, never from here, but this mode's own snapshot must still show
   /// whatever it currently says.
+  ///
+  /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
+  /// episodes through [_projectsManager]'s own `screenplayService` (never through
+  /// [_shotListService], which `OcptScreenplayService` already depends on) and resolves the
+  /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   Future<OcptShotListSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
+    final database = project.database;
+    final screenplayId = _screenplayIdOf(project);
+
+    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
     final snapshot = await _shotListService.loadShotList(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
+      database: database,
+      screenplayId: screenplayId,
+      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
     );
-    final placements = await _scheduleService.loadShotPlacements(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final placements = await _scheduleService.loadShotPlacements(database: database);
 
     return snapshot.copyWithPlacements(placements);
   }
 
-  /// Reads [project]'s current Fountain source text, kept in `OcptShotListState.screenplayText`
-  /// for [_screenplayCharactersOf] and every scenario coverage read/write that needs the whole
-  /// screenplay text rather than a single scene's own slice of it.
+  /// Reads the selected episode's current Fountain source text, kept in
+  /// `OcptShotListState.screenplayText` for [_screenplayCharactersOf] and every scenario coverage
+  /// read/write that needs the whole screenplay text rather than a single scene's own slice of it.
   Future<String> _loadScreenplayText(OcptOpenProjectModel project) =>
       _projectsManager.screenplayService.loadScreenplayText(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
+        screenplayId: _screenplayIdOf(project),
       );
 
   /// Reads the page setup the screenplay is typeset with: the open project's own page format,
@@ -337,10 +364,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     return screenplayCharactersOf(document.blocks);
   }
 
-  /// Reads every free-text field's project-wide suggestion list.
+  /// Reads every free-text field's suggestion list, scoped to the selected episode: what has
+  /// already been entered elsewhere in *this* screenplay, not the whole project's.
   Future<OcptShotFieldSuggestions> _loadSuggestions(OcptOpenProjectModel project) async {
     final database = project.database;
-    final screenplayId = project.primaryScreenplayId;
+    final screenplayId = _screenplayIdOf(project);
 
     return OcptShotFieldSuggestions(
       shotSizes: await _shotListService.distinctShotSizes(
@@ -455,7 +483,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       final shotId = await _shotListService.createShot(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
+        screenplayId: _screenplayIdOf(project),
         sceneId: sequence.sceneId,
       );
       final snapshot = await _loadSnapshot(project);
@@ -629,6 +657,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.
@@ -690,6 +719,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         includeLegendPage: options.includeLegendPage,
         includeSummaryPage: options.includeSummaryPage,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.
@@ -1140,7 +1170,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     characterName: event.characterName,
     action: (project) => _shotListService.removeCharacterFromEveryShot(
       database: project.database,
-      screenplayId: project.primaryScreenplayId,
+      screenplayId: _screenplayIdOf(project),
       characterName: event.characterName,
     ),
   );
@@ -1155,7 +1185,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     characterName: event.characterName,
     action: (project) => _shotListService.replaceCharacterEverywhere(
       database: project.database,
-      screenplayId: project.primaryScreenplayId,
+      screenplayId: _screenplayIdOf(project),
       oldCharacterName: event.characterName,
       newCharacterName: event.replacementName,
     ),

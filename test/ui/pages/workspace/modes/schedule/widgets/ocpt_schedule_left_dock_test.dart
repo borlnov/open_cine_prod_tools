@@ -6,12 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
@@ -35,7 +37,6 @@ OcptShootingDay _buildDay({
   OcptShootingDayStatus status = OcptShootingDayStatus.planned,
 }) => OcptShootingDay(
   id: id,
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 8, 4),
   dayNumber: dayNumber,
   status: status,
@@ -81,6 +82,7 @@ void main() {
   final dayThree = _buildDay(id: "day-3", dayNumber: 3, status: OcptShootingDayStatus.shot);
 
   final unplacedGroup = OcptScheduleUnplacedGroup(
+    screenplayId: "screenplay-1",
     sequenceId: "scene-1",
     displaySceneNumber: "4",
     heading: "INT. KITCHEN - DAY",
@@ -102,6 +104,7 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
+          episodes: const [],
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -138,6 +141,7 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
+          episodes: const [],
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -167,6 +171,7 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: [unplacedGroup],
+          episodes: const [],
           selectedShotId: null,
           onShotSelected: selected.add,
         ),
@@ -199,6 +204,7 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: deletionRequests.add,
           unplacedGroups: const [],
+          episodes: const [],
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -239,6 +245,7 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
+          episodes: const [],
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -289,6 +296,7 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
+          episodes: const [],
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -326,6 +334,7 @@ void main() {
             onDayDuplicationRequested: null,
             onDayDeletionRequested: null,
             unplacedGroups: [unplacedGroup],
+            episodes: const [],
             selectedShotId: null,
             onShotSelected: selected.add,
           ),
@@ -347,6 +356,100 @@ void main() {
       await tester.tap(find.text("4/1"));
       await tester.pump();
       expect(selected, ["shot-1"]);
+    },
+  );
+
+  testWidgets("a single-episode project draws no episode band at all", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleLeftDock(
+          days: const [],
+          selectedDayId: null,
+          blockCountByDayId: const {},
+          firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => const [],
+          onDaySelected: (_) {},
+          onDayCreated: (_) {},
+          onDayDateChangeRequested: (_, _) {},
+          onDayDuplicationRequested: (_, _) {},
+          onDayDeletionRequested: (_) {},
+          unplacedGroups: [unplacedGroup],
+          episodes: const [OcptEpisode(id: "screenplay-1", number: 1, title: "")],
+          selectedShotId: null,
+          onShotSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // A single-episode project names no episode anywhere (ADR 0019): the sequence section reads
+    // exactly as it always has, with no band drawn over it.
+    expect(find.byType(OcptScheduleEpisodeBand), findsNothing);
+    expect(find.text("Episode 1"), findsNothing);
+    expect(find.text("INT. KITCHEN - DAY"), findsOneWidget);
+  });
+
+  testWidgets(
+    "a two-episode project bands each episode's own sections, in episode order, and draws no "
+    "band for an episode with nothing left to place",
+    (tester) async {
+      final episodeOneGroup = OcptScheduleUnplacedGroup(
+        screenplayId: "screenplay-1",
+        sequenceId: "scene-1",
+        displaySceneNumber: "4",
+        heading: "INT. KITCHEN - DAY",
+        shots: [_buildShot(id: "shot-1", code: "4/1")],
+      );
+      final episodeThreeGroup = OcptScheduleUnplacedGroup(
+        screenplayId: "screenplay-3",
+        sequenceId: "scene-3",
+        displaySceneNumber: "7",
+        heading: "EXT. STREET - NIGHT",
+        shots: [_buildShot(id: "shot-2", code: "7/1")],
+      );
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptScheduleLeftDock(
+            days: const [],
+            selectedDayId: null,
+            blockCountByDayId: const {},
+            firstLocationByDayId: const {},
+            alertsOfDay: (dayId) => const [],
+            onDaySelected: (_) {},
+            onDayCreated: (_) {},
+            onDayDateChangeRequested: (_, _) {},
+            onDayDuplicationRequested: (_, _) {},
+            onDayDeletionRequested: (_) {},
+            // Episode 2 has nothing left to place: it is a live episode ([episodes] below still
+            // names it) but contributes no group, so it must draw no band of its own.
+            unplacedGroups: [episodeOneGroup, episodeThreeGroup],
+            episodes: const [
+              OcptEpisode(id: "screenplay-1", number: 1, title: ""),
+              OcptEpisode(id: "screenplay-2", number: 2, title: ""),
+              OcptEpisode(id: "screenplay-3", number: 3, title: ""),
+            ],
+            selectedShotId: null,
+            onShotSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptScheduleEpisodeBand), findsNWidgets(2));
+      expect(find.text("Episode 1"), findsOneWidget);
+      expect(find.text("Episode 2"), findsNothing);
+      expect(find.text("Episode 3"), findsOneWidget);
+
+      // Episode order: episode 1's own band and section sit above episode 3's.
+      final episodeOneBandY = tester.getTopLeft(find.text("Episode 1")).dy;
+      final episodeOneSectionY = tester.getTopLeft(find.text("INT. KITCHEN - DAY")).dy;
+      final episodeThreeBandY = tester.getTopLeft(find.text("Episode 3")).dy;
+      final episodeThreeSectionY = tester.getTopLeft(find.text("EXT. STREET - NIGHT")).dy;
+
+      expect(episodeOneBandY, lessThan(episodeOneSectionY));
+      expect(episodeOneSectionY, lessThan(episodeThreeBandY));
+      expect(episodeThreeBandY, lessThan(episodeThreeSectionY));
     },
   );
 }

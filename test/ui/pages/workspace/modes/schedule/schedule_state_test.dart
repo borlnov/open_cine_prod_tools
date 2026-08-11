@@ -8,11 +8,13 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
@@ -36,7 +38,93 @@ OcptShootingDayBlock _buildBlock({
   crewNote: "",
 );
 
+/// Builds a shot with the few fields these tests read, everything else neutral.
+OcptShot _buildShot({required String id, required String code}) => OcptShot(
+  id: id,
+  screenplayId: "screenplay-1",
+  sceneId: "scene-1",
+  orphanedHeading: null,
+  position: 0,
+  shotSize: "GP",
+  abbreviation: "GP",
+  framing: "",
+  cameraMove: "",
+  lens: "",
+  recordingFormat: "",
+  estimatedDurationMs: null,
+  shootingDay: null,
+  plannedTakes: null,
+  sound: "",
+  status: OcptShotStatus.toShoot,
+  difficultySet: 0,
+  difficultyCamera: 0,
+  difficultyActing: 0,
+  difficultySound: 0,
+  notes: "",
+  locationNotes: "",
+  needsCheck: false,
+  checkReason: null,
+  characters: const [],
+  coverageRanges: const [],
+  code: code,
+  averageDifficulty: 0,
+);
+
 void main() {
+  group("unplacedGroups", () {
+    test("reports each group's own episode alongside its sequence", () {
+      final state = OcptScheduleState.init().copyWith(
+        shotListSnapshots: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: [
+              OcptSceneShotSequence(
+                sceneId: "scene-1",
+                heading: "INT. KITCHEN - DAY",
+                sceneNumber: null,
+                displaySceneNumber: "4A",
+                charStart: 0,
+                charEnd: 0,
+                shots: [_buildShot(id: "shot-1", code: "4A/1")],
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final group = state.unplacedGroups.single;
+      expect(group.screenplayId, "screenplay-1");
+      expect(group.sequenceId, "scene-1");
+    });
+
+    test("two orphan groups from two episodes are two distinct groups, not one", () {
+      // OcptOrphanShotSequence.sequenceId is the constant "orphans", so without screenplayId the
+      // pair of groups below would collide into one.
+      final state = OcptScheduleState.init().copyWith(
+        shotListSnapshots: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: [
+              OcptOrphanShotSequence(shots: [_buildShot(id: "shot-1", code: "?/1")]),
+            ],
+          ),
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-2",
+            sequences: [
+              OcptOrphanShotSequence(shots: [_buildShot(id: "shot-2", code: "?/1")]),
+            ],
+          ),
+        ],
+      );
+
+      expect(state.unplacedGroups, hasLength(2));
+      expect(state.unplacedGroups[0].screenplayId, "screenplay-1");
+      expect(state.unplacedGroups[0].sequenceId, OcptOrphanShotSequence.sequenceId);
+      expect(state.unplacedGroups[1].screenplayId, "screenplay-2");
+      expect(state.unplacedGroups[1].sequenceId, OcptOrphanShotSequence.sequenceId);
+    });
+  });
+
   group("sceneSequences", () {
     test("keeps every real scene and drops the orphan group", () {
       const sceneSequence = OcptSceneShotSequence(
@@ -51,10 +139,12 @@ void main() {
       const orphanSequence = OcptOrphanShotSequence(shots: []);
 
       final state = OcptScheduleState.init().copyWith(
-        shotListSnapshot: OcptShotListSnapshot.build(
-          screenplayId: "screenplay-1",
-          sequences: const [sceneSequence, orphanSequence],
-        ),
+        shotListSnapshots: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: const [sceneSequence, orphanSequence],
+          ),
+        ],
       );
 
       expect(state.sceneSequences, [sceneSequence]);
@@ -106,7 +196,6 @@ void main() {
         );
         final day = OcptShootingDay(
           id: "day-1",
-          screenplayId: "screenplay-1",
           date: DateTime(2026),
           dayNumber: 1,
           status: OcptShootingDayStatus.planned,
@@ -115,7 +204,6 @@ void main() {
           notes: "",
         );
         final snapshot = OcptScheduleSnapshot.build(
-          screenplayId: "screenplay-1",
           days: [day],
           slotsByDayId: {
             "day-1": [slot],
@@ -164,7 +252,6 @@ void main() {
       final preparation = _buildBlock(id: "block-1", slotId: "slot-1");
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026),
         dayNumber: 1,
         status: OcptShootingDayStatus.planned,
@@ -173,7 +260,6 @@ void main() {
         notes: "",
       );
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -231,7 +317,6 @@ void main() {
       );
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026),
         dayNumber: 1,
         status: OcptShootingDayStatus.planned,
@@ -240,7 +325,6 @@ void main() {
         notes: "",
       );
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: {
           "day-1": [laterSlot, earlySlot],
@@ -273,7 +357,6 @@ void main() {
       );
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026),
         dayNumber: 1,
         status: OcptShootingDayStatus.planned,
@@ -282,7 +365,6 @@ void main() {
         notes: "",
       );
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: const {
           "day-1": [endAnchoredSlot],
@@ -306,7 +388,6 @@ void main() {
   group("placedDayNumbersByShotId", () {
     OcptShootingDay buildDay({required String id, required int dayNumber}) => OcptShootingDay(
       id: id,
-      screenplayId: "screenplay-1",
       date: DateTime(2026, 1, dayNumber),
       dayNumber: dayNumber,
       status: OcptShootingDayStatus.planned,
@@ -336,7 +417,6 @@ void main() {
     test("a shot placed twice on the same day reports that day's number once", () {
       final day = buildDay(id: "day-1", dayNumber: 3);
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: const {},
         blocksByDayId: {
@@ -357,7 +437,6 @@ void main() {
       final dayThree = buildDay(id: "day-1", dayNumber: 3);
       final dayFive = buildDay(id: "day-2", dayNumber: 5);
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [dayThree, dayFive],
         slotsByDayId: const {},
         blocksByDayId: {
@@ -375,7 +454,6 @@ void main() {
     test("a shot with no live block placing it has no entry at all", () {
       final day = buildDay(id: "day-1", dayNumber: 3);
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: const {},
         blocksByDayId: const {},

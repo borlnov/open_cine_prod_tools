@@ -139,7 +139,7 @@ OcptSceneRef _scene({
   String id = "sc1",
   int position = 0,
   String heading = "INT. CUISINE - JOUR",
-}) => OcptSceneRef(id: id, position: position, heading: heading, sceneNumber: null);
+}) => OcptSceneRef(id: id, position: position, heading: heading, sceneNumber: null, episodeNumber: null);
 
 /// An availability window of location `l1`, whole days, free of any condition.
 OcptLocationAvailability _availability({

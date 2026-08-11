@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_xlsx_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_status_bar.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -147,7 +148,6 @@ void main() {
       final project = projectsManager.currentProject!;
       final dayId = await projectsManager.scheduleService.createDay(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
         date: DateTime(2026, 8, 10),
       );
       expect(dayId, isNotNull);
@@ -183,7 +183,6 @@ void main() {
       final project = projectsManager.currentProject!;
       final dayId = await projectsManager.scheduleService.createDay(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
         date: DateTime(2026, 8, 10),
       );
       expect(dayId, isNotNull);
@@ -203,6 +202,38 @@ void main() {
 
       expect(find.text(tr.scheduleExportPanelTitle), findsNothing);
       expect(find.byType(OcptScheduleShootingPlanXlsxExportDialog), findsOneWidget);
+    },
+  );
+
+  testWidgets("a single-episode project's status bar names no episode", (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
+    await tester.pumpAndSettle();
+
+    final statusBar = tester.widget<OcptScheduleStatusBar>(find.byType(OcptScheduleStatusBar));
+    expect(statusBar.episodeCount, isNull);
+  });
+
+  testWidgets(
+    "a multi-episode project's status bar counts the episodes, off OcptScheduleState.episodes",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.createEpisode(database: project.database);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
+      await tester.pumpAndSettle();
+
+      final statusBar = tester.widget<OcptScheduleStatusBar>(find.byType(OcptScheduleStatusBar));
+      expect(statusBar.episodeCount, 2);
     },
   );
 }

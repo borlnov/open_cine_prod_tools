@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// The single place that knows the shape of `project_versions.payload`: it turns an
@@ -58,7 +59,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 12;
+  static const currentPayloadFormat = 13;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -93,6 +94,11 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the `roles` rows from a JSON object
   static const _rolesKey = "roles";
+
+  /// This is the key used to stringify or parse the `role_episodes` rows from a JSON object: which
+  /// episodes a role is named in, from payload format 13
+  /// (`docs/adr/0019-one-project-several-episodes.md`).
+  static const _roleEpisodesKey = "roleEpisodes";
 
   /// This is the key used to stringify or parse the `locations` rows from a JSON object
   static const _locationsKey = "locations";
@@ -176,7 +182,15 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a row's `sortKey` column from a JSON object
   static const _sortKeyKey = "sortKey";
 
-  /// This is the key used to stringify or parse a row's `screenplayId` column from a JSON object
+  /// This is the key used to stringify or parse a `screenplayId` column — `scenes.screenplayId`,
+  /// `shots.screenplayId` or, from payload format 13, `role_episodes.screenplayId` (the episode a
+  /// role is named in) — from a JSON object.
+  ///
+  /// `roles.screenplayId` and `shooting_days.screenplayId` read and wrote this same key up to
+  /// format 12: schema version 18 drops both columns
+  /// (`docs/adr/0019-one-project-several-episodes.md`) — a role belongs to the production now, not
+  /// to any one screenplay, and a shooting day belongs to no episode at all, a day regularly
+  /// covering two of them — so from format 13 on this key serves three tables, not five.
   static const _screenplayIdKey = "screenplayId";
 
   /// This is the key used to stringify or parse a row's `sceneId` column from a JSON object
@@ -195,6 +209,11 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a screenplay's `updatedAt` column from a JSON
   /// object
   static const _updatedAtKey = "updatedAt";
+
+  /// This is the key used to stringify or parse a screenplay's `number` column from a JSON object:
+  /// its printed episode number, from payload format 13
+  /// (`docs/adr/0019-one-project-several-episodes.md`).
+  static const _numberKey = "number";
 
   /// This is the key used to stringify or parse a scene's `heading` column from a JSON object
   static const _headingKey = "heading";
@@ -542,7 +561,8 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a `roleId` column
   /// (`breakdown_tags.roleId` — the sibling of [_elementIdKey] and [_setIdKey], non-null only when
   /// the tag's `targetKind` names a role —, `shooting_slot_cast.roleId`, always non-null, the role
-  /// a slot convokes, or `role_elements.roleId`, the role wearing an element) from a JSON object
+  /// a slot convokes, `role_elements.roleId`, the role wearing an element, or, from payload format
+  /// 13, `role_episodes.roleId`, the role an episode names) from a JSON object
   static const _roleIdKey = "roleId";
 
   /// This is the key used to stringify or parse an element's `category` column from a JSON object
@@ -749,6 +769,7 @@ class OcptProjectVersionCodec {
     9: _upgradeFormat9To10,
     10: _upgradeFormat10To11,
     11: _upgradeFormat11To12,
+    12: _upgradeFormat12To13,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1078,6 +1099,106 @@ class OcptProjectVersionCodec {
     };
   }
 
+  /// Turns a format-**12** JSON object into a format-**13** one: the payload's own half of schema
+  /// version 18, which makes a `screenplays` row an episode
+  /// (`docs/adr/0019-one-project-several-episodes.md`, §3.2 of the plan this ships under). It does
+  /// **four** kinds of thing, one of which is new to this codec — read the third bullet below in
+  /// full before ever adding a fifth.
+  ///
+  /// - Every `screenplays` row gains [_numberKey] and [_sortKeyKey]. This is [_upgradeFormat4To5]'s
+  ///   kind (`elements.status` filled with [OcptElementStatus.toFind]), **not**
+  ///   [_upgradeFormat3To4]'s currency null: a payload captured in format 12 held exactly one
+  ///   screenplay, so "this project had one episode, and it was the first" is the truthful reading
+  ///   of that moment — there is no live value anywhere to leave alone, unlike the currency, which
+  ///   the column has never itself been nullable for. Every **live** row is numbered `1..n` in
+  ///   `id` order and keyed with [ocptFractionalKeySequence] — the same rule, for the same
+  ///   determinism reason (two replicas restoring the same version must land on the same
+  ///   numbering), that `OcptProjectDatabase._numberExistingScreenplays` follows for the schema's
+  ///   own migration; the two **must** agree, since a payload restored into a freshly migrated file
+  ///   has to describe the same episode the file itself already settled on. A tombstoned row is left
+  ///   at the columns' own defaults (`1` and `""`), mirroring that same method: a deleted screenplay
+  ///   was never going to be episode anything.
+  /// - [_roleEpisodesKey] is derived from the very `roles.screenplayId` the next bullet drops. This
+  ///   is a **fourth kind of change, and the only lossless one in the whole codec**: every other
+  ///   upgrade step in this file either materialises a value that was never recorded (the bullet
+  ///   above) or discards one the app has no concept for any more (the bullet below) — this one
+  ///   instead rewrites a fact the payload already carries in full, into the shape the new table
+  ///   holds it in from here on, exactly as `OcptProjectDatabase._deriveRoleEpisodes` does for the
+  ///   schema's own migration and for the same reason. **This is the only entry that may do this —
+  ///   read it again before adding a fifth kind of upgrade step to this codec.** The link's `id` is
+  ///   **the role's own id**: a role has exactly one episode at format 12, which is what makes reuse
+  ///   safe (the id is unique here) and useful (it is deterministic, so two replicas restoring the
+  ///   same version produce the same `role_episodes` row rather than two a later merge would have
+  ///   to reconcile) — `_deriveRoleEpisodes`'s own doc comment, and
+  ///   `docs/adr/0019-one-project-several-episodes.md`, give the same reasoning for the same choice.
+  ///   Derived from **live** `roles` rows only, matching that same migration: a tombstoned role
+  ///   named no episode worth carrying forward, tombstoned or not.
+  /// - `roles.screenplayId` and `shooting_days.screenplayId` are **dropped** from every row, whether
+  ///   or not it is a tombstone. This is [_upgradeFormat7To8]'s and [_upgradeFormat11To12]'s kind:
+  ///   unlike the first bullet's empty-then-filled column it makes no claim about the moment of
+  ///   capture, and unlike the currency's null it leaves no live value alone — there is nothing
+  ///   truthful left to say through either column once the project being restored into has dropped
+  ///   the very idea each one named. A shooting day comes back with everything else it held, simply
+  ///   belonging to no episode any more: nothing here is reconstructed, exactly as a format-7
+  ///   payload's dropped lead times are not turned into a slot nobody asked for.
+  ///
+  /// The consequence, stated in the plan and in the ADR and worth restating here where a future
+  /// reader of this step will actually be looking: restoring a format-12 version into a
+  /// multi-episode project **tombstones every episode but the first**, along with its scenes, its
+  /// shots and its breakdown — the truthful reading of "this project had one episode when this
+  /// version was sealed", an edit like any other restore, undoable through the restore's own safety
+  /// version. **No role loses its casting** on the way through, since a role is no longer a
+  /// script's: only the link the second bullet derives says where it used to speak.
+  static Map<String, dynamic> _upgradeFormat12To13(Map<String, dynamic> json) {
+    final liveScreenplayIds = [
+      for (final screenplay in _rows(json, _screenplaysKey))
+        if (screenplay[_isDeletedKey] != true) screenplay[_idKey] as String,
+    ]..sort();
+    final freshKeys = ocptFractionalKeySequence(liveScreenplayIds.length);
+    final numberById = <String, int>{
+      for (var i = 0; i < liveScreenplayIds.length; i++) liveScreenplayIds[i]: i + 1,
+    };
+    final sortKeyById = <String, String>{
+      for (var i = 0; i < liveScreenplayIds.length; i++) liveScreenplayIds[i]: freshKeys[i],
+    };
+
+    final screenplays = [
+      for (final screenplay in _rows(json, _screenplaysKey))
+        {
+          ...screenplay,
+          _numberKey: numberById[screenplay[_idKey]] ?? 1,
+          _sortKeyKey: sortKeyById[screenplay[_idKey]] ?? "",
+        },
+    ];
+
+    final roleEpisodes = [
+      for (final role in _rows(json, _rolesKey))
+        if (role[_isDeletedKey] != true)
+          {
+            _idKey: role[_idKey],
+            _roleIdKey: role[_idKey],
+            _screenplayIdKey: role[_screenplayIdKey],
+            _isDeletedKey: false,
+          },
+    ];
+
+    final roles = [
+      for (final role in _rows(json, _rolesKey)) ({...role}..remove(_screenplayIdKey)),
+    ];
+
+    final shootingDays = [
+      for (final day in _rows(json, _shootingDaysKey)) ({...day}..remove(_screenplayIdKey)),
+    ];
+
+    return {
+      ...json,
+      _screenplaysKey: screenplays,
+      _rolesKey: roles,
+      _roleEpisodesKey: roleEpisodes,
+      _shootingDaysKey: shootingDays,
+    };
+  }
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1131,6 +1252,7 @@ class OcptProjectVersionCodec {
       for (final row in payload.personUnavailabilities) _personUnavailabilityToJson(row),
     ],
     _rolesKey: [for (final row in payload.roles) _roleToJson(row)],
+    _roleEpisodesKey: [for (final row in payload.roleEpisodes) _roleEpisodeToJson(row)],
     _locationsKey: [for (final row in payload.locations) _locationToJson(row)],
     _locationAvailabilitiesKey: [
       for (final row in payload.locationAvailabilities) _locationAvailabilityToJson(row),
@@ -1225,7 +1347,8 @@ class OcptProjectVersionCodec {
   /// exactly:
   ///
   /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
-  ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `locations`, `sets`,
+  ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `roleEpisodes`,
+  ///   `locations`, `sets`,
   ///   `sceneSets`, `elements`, `sceneElements`, `roleElements`, `assets`, `breakdownTags`,
   ///   `sceneBreakdowns`,
   ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
@@ -1235,7 +1358,12 @@ class OcptProjectVersionCodec {
   ///   "the project", as a user would describe it, and the resources tables are not optional here:
   ///   leave them out and two states differing only in their people, locations or elements would
   ///   hash identically — the working-copy card would claim no drift after an afternoon of typing
-  ///   resources in, and a restore would skip the safety version it promised to keep. The breakdown
+  ///   resources in, and a restore would skip the safety version it promised to keep. `roleEpisodes`
+  ///   is the same case in miniature, from payload format 13 on: two states differing only in which
+  ///   episodes name a role are not the same project — a character cut from episode 2 but kept in
+  ///   episode 3 is a real edit — and leaving the link table out would let the working-copy card
+  ///   claim no drift after an afternoon spent saying, episode by episode, who speaks where. The
+  ///   breakdown
   ///   tables are exactly the same case, one step later in the project's life: leave them out and an
   ///   afternoon spent tagging the script, or marking scenes done, would hash identically to a
   ///   screenplay nobody has ever broken down. The six schedule tables are the same case again, one
@@ -1308,6 +1436,11 @@ class OcptProjectVersionCodec {
         toJson: _personUnavailabilityToJson,
       ),
       _rolesKey: _canonicalRows(payload.roles, primaryKeyOf: (row) => row.id, toJson: _roleToJson),
+      _roleEpisodesKey: _canonicalRows(
+        payload.roleEpisodes,
+        primaryKeyOf: (row) => row.id,
+        toJson: _roleEpisodeToJson,
+      ),
       _locationsKey: _canonicalRows(
         payload.locations,
         primaryKeyOf: (row) => row.id,
@@ -1454,6 +1587,9 @@ class OcptProjectVersionCodec {
           _personUnavailabilityFromJson(row),
       ],
       roles: [for (final row in _rows(json, _rolesKey)) _roleFromJson(row)],
+      roleEpisodes: [
+        for (final row in _rows(json, _roleEpisodesKey)) _roleEpisodeFromJson(row),
+      ],
       locations: [for (final row in _rows(json, _locationsKey)) _locationFromJson(row)],
       locationAvailabilities: [
         for (final row in _rows(json, _locationAvailabilitiesKey))
@@ -1510,6 +1646,8 @@ class OcptProjectVersionCodec {
     _titleKey: row.title,
     _fountainTextKey: row.fountainText,
     _updatedAtKey: row.updatedAt.toIso8601String(),
+    _numberKey: row.number,
+    _sortKeyKey: row.sortKey,
     _isDeletedKey: row.isDeleted,
   };
 
@@ -1519,6 +1657,8 @@ class OcptProjectVersionCodec {
     title: _string(json, _titleKey),
     fountainText: _string(json, _fountainTextKey),
     updatedAt: _dateTime(json, _updatedAtKey),
+    number: _int(json, _numberKey),
+    sortKey: _string(json, _sortKeyKey),
     isDeleted: _bool(json, _isDeletedKey),
   );
 
@@ -1795,7 +1935,6 @@ class OcptProjectVersionCodec {
   /// Serializes one `roles` row.
   static Map<String, dynamic> _roleToJson(OcptRoleRow row) => {
     _idKey: row.id,
-    _screenplayIdKey: row.screenplayId,
     _nameKey: row.name,
     _sortKeyKey: row.sortKey,
     _isDeletedKey: row.isDeleted,
@@ -1809,7 +1948,6 @@ class OcptProjectVersionCodec {
   /// Parses one `roles` row.
   static OcptRoleRow _roleFromJson(Map<String, dynamic> json) => OcptRoleRow(
     id: _string(json, _idKey),
-    screenplayId: _string(json, _screenplayIdKey),
     name: _string(json, _nameKey),
     sortKey: _string(json, _sortKeyKey),
     isDeleted: _bool(json, _isDeletedKey),
@@ -1818,6 +1956,25 @@ class OcptProjectVersionCodec {
     isFromScreenplay: _bool(json, _isFromScreenplayKey),
     orphanedName: _nullableString(json, _orphanedNameKey),
     castingNotes: _string(json, _castingNotesKey),
+  );
+
+  /// Serializes one `role_episodes` row: the same shape of link row `scene_sets` is
+  /// ([_sceneSetToJson]) — id, two foreign keys, tombstone, no `sortKey`, since which episodes name
+  /// a role is an unordered set of answers rather than a list the user reorders
+  /// (`OcptRoleEpisodesTable`'s own doc comment).
+  static Map<String, dynamic> _roleEpisodeToJson(OcptRoleEpisodeRow row) => {
+    _idKey: row.id,
+    _roleIdKey: row.roleId,
+    _screenplayIdKey: row.screenplayId,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `role_episodes` row.
+  static OcptRoleEpisodeRow _roleEpisodeFromJson(Map<String, dynamic> json) => OcptRoleEpisodeRow(
+    id: _string(json, _idKey),
+    roleId: _string(json, _roleIdKey),
+    screenplayId: _string(json, _screenplayIdKey),
+    isDeleted: _bool(json, _isDeletedKey),
   );
 
   /// Serializes one `locations` row.
@@ -2119,7 +2276,6 @@ class OcptProjectVersionCodec {
   /// Serializes one `shooting_days` row.
   static Map<String, dynamic> _shootingDayToJson(OcptShootingDayRow row) => {
     _idKey: row.id,
-    _screenplayIdKey: row.screenplayId,
     _dateKey: row.date.toIso8601String(),
     _sortKeyKey: row.sortKey,
     _statusKey: row.status.name,
@@ -2132,7 +2288,6 @@ class OcptProjectVersionCodec {
   /// Parses one `shooting_days` row.
   static OcptShootingDayRow _shootingDayFromJson(Map<String, dynamic> json) => OcptShootingDayRow(
     id: _string(json, _idKey),
-    screenplayId: _string(json, _screenplayIdKey),
     date: _dateTime(json, _dateKey),
     sortKey: _string(json, _sortKeyKey),
     status: _enum(json, _statusKey, OcptShootingDayStatus.values.asNameMap()),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -64,9 +65,9 @@ OcptRole _role({
   OcptRoleKind kind = OcptRoleKind.speaking,
   String? orphanedName,
   int number = 1,
+  List<String> episodeIds = const [],
 }) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: personId,
   kind: kind,
@@ -74,6 +75,7 @@ OcptRole _role({
   orphanedName: orphanedName,
   castingNotes: "",
   number: number,
+  episodeIds: episodeIds,
 );
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
@@ -95,6 +97,7 @@ void main() {
         OcptRolesList(
           roles: [_role(id: "r1", name: "Le Client", personId: "p1")],
           people: [_person(id: "p1", firstName: "Léa", lastName: "Martin")],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "",
           onRoleSelected: (_) {},
@@ -113,6 +116,7 @@ void main() {
         OcptRolesList(
           roles: [_role(id: "r1", name: "Le Client")],
           people: const [],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "",
           onRoleSelected: (_) {},
@@ -134,6 +138,7 @@ void main() {
             _role(id: "r2", name: "Le Voisin", personId: "p1", number: 2),
           ],
           people: [_person(id: "p1", firstName: "Léa", lastName: "Martin")],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "",
           onRoleSelected: (_) {},
@@ -153,6 +158,7 @@ void main() {
         OcptRolesList(
           roles: const [],
           people: const [],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "",
           onRoleSelected: (_) {},
@@ -174,6 +180,7 @@ void main() {
             _role(id: "r2", name: "Le Voisin", number: 2),
           ],
           people: const [],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "",
           onRoleSelected: (_) {},
@@ -194,6 +201,7 @@ void main() {
         OcptRolesList(
           roles: [_role(id: "r1", name: "Le Client")],
           people: const [],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "",
           onRoleSelected: (roleId) => selected = roleId,
@@ -217,6 +225,7 @@ void main() {
             _role(id: "r2", name: "Le Voisin", number: 2),
           ],
           people: [_person(id: "p1", firstName: "Léa", lastName: "Martin")],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "martin",
           onRoleSelected: (_) {},
@@ -238,6 +247,7 @@ void main() {
             _role(id: "r2", name: "Le Voisin", number: 2),
           ],
           people: const [],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "vieux",
           onRoleSelected: (_) {},
@@ -258,6 +268,7 @@ void main() {
         OcptRolesList(
           roles: [_role(id: "r1", name: "Le Client")],
           people: const [],
+          episodes: const [],
           selectedRoleId: null,
           searchQuery: "zzz",
           onRoleSelected: (_) {},
@@ -269,5 +280,50 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
     expect(find.text(tr.resourcesSearchNoMatchHint("zzz")), findsOneWidget);
     expect(find.text(tr.resourcesRolesEmptyHint), findsNothing);
+  });
+
+  testWidgets("a role's episodes line shows its printed numbers, own order, comma-separated", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptRolesList(
+          roles: [_role(id: "r1", name: "Le Client", episodeIds: const ["ep-1", "ep-5", "ep-2"])],
+          people: const [],
+          episodes: const [
+            OcptEpisode(id: "ep-1", number: 1, title: ""),
+            OcptEpisode(id: "ep-2", number: 2, title: ""),
+            OcptEpisode(id: "ep-5", number: 5, title: ""),
+          ],
+          selectedRoleId: null,
+          searchQuery: "",
+          onRoleSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
+    expect(find.text(tr.resourcesRolesListEpisodesLabel("1, 5, 2")), findsOneWidget);
+  });
+
+  testWidgets("a single-episode project draws no episodes line", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptRolesList(
+          roles: [_role(id: "r1", name: "Le Client", episodeIds: const ["ep-1"])],
+          people: const [],
+          episodes: const [OcptEpisode(id: "ep-1", number: 1, title: "")],
+          selectedRoleId: null,
+          searchQuery: "",
+          onRoleSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
+    // The role is named in episode 1, but a single-episode project names no episode anywhere.
+    expect(find.text(tr.resourcesRolesListEpisodesLabel("1")), findsNothing);
   });
 }

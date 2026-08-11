@@ -314,7 +314,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// Every scene of the project's primary screenplay, in source order (empty while nothing is
+  /// Every scene of the selected episode's screenplay, in source order (empty while nothing is
   /// loaded): what a set's scenes are picked from, and what an element's own scenes are picked
   /// from.
   List<OcptSceneRef> get scenes => snapshot?.scenes ?? const [];

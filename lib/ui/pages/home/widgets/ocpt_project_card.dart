@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
@@ -18,6 +19,12 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 /// [OcptHomeRecentProjectEntry.exists] is false, the whole card is greyed out, tapping it is
 /// disabled, and a tooltip explains why; it can still be removed from the list through the
 /// overflow menu.
+///
+/// A project holding several episodes wears a small `⟨N episodes⟩` pill in the poster's top-left
+/// corner ([_OcptProjectCardEpisodeBadge]), mirroring the `⋮` overflow menu's own top-right one.
+/// [OcptRecentProjectModel.episodeCount] being null (an entry written before this app version
+/// recorded it) or 1 (a single-episode project, which never names an episode anywhere) both draw
+/// nothing at all — a single-episode project stays exactly what it is today.
 class OcptProjectCard extends StatelessWidget {
   /// The recent project shown by this card.
   final OcptHomeRecentProjectEntry entry;
@@ -36,6 +43,7 @@ class OcptProjectCard extends StatelessWidget {
     final tr = Tr.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final exists = entry.exists;
+    final episodeCount = entry.project.episodeCount;
 
     final posterTints = Theme.of(context).extension<OcptSpecificColors>()!.projectPosterTints;
     final posterTint = posterTints[_stablePathHash(entry.project.path) % posterTints.length];
@@ -69,6 +77,21 @@ class OcptProjectCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (episodeCount != null && episodeCount > 1)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      // Stops short of the `⋮` menu's own tap target rather than the card's edge,
+                      // so the two can never overlap.
+                      right: 40,
+                      child: Align(
+                        alignment: AlignmentDirectional.topStart,
+                        child: _OcptProjectCardEpisodeBadge(
+                          count: episodeCount,
+                          color: onPosterTint,
+                        ),
+                      ),
+                    ),
                   Positioned(
                     top: 4,
                     right: 4,
@@ -141,4 +164,40 @@ int _stablePathHash(String path) {
     hash = ((hash << 5) + hash + unit) & 0x7fffffff;
   }
   return hash;
+}
+
+/// The `⟨N episodes⟩` pill drawn in the top-left of a multi-episode project's poster, mirroring
+/// the `⋮` overflow menu's own top-right corner.
+///
+/// Tinted off [color] (the card's own `onPosterTint`, already legible against the poster) rather
+/// than a fixed scheme colour, since the poster tint it sits on varies per project.
+class _OcptProjectCardEpisodeBadge extends StatelessWidget {
+  /// How many live episodes the project holds — always > 1, the card only building this widget
+  /// then.
+  final int count;
+
+  /// The colour legible against this card's own poster tint, text and background alike.
+  final Color color;
+
+  /// Class constructor
+  const _OcptProjectCardEpisodeBadge({required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      ),
+      child: Text(
+        Tr.of(context).homeProjectEpisodeCount(count),
+        style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
 }

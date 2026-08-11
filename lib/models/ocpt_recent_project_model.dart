@@ -17,6 +17,9 @@ class OcptRecentProjectModel extends Equatable {
   /// This is the key used to stringify or parse the [lastOpenedAt] from a JSON object
   static const _lastOpenedAtKey = "lastOpenedAt";
 
+  /// This is the key used to stringify or parse the [episodeCount] from a JSON object
+  static const _episodeCountKey = "episodeCount";
+
   /// The absolute path to the project file on disk.
   final String path;
 
@@ -26,11 +29,18 @@ class OcptRecentProjectModel extends Equatable {
   /// The date and time at which the project was last opened.
   final DateTime lastOpenedAt;
 
+  /// How many live episodes this project held the last time it was open, or null when nobody has
+  /// recorded one yet — an entry written by an older version of the app. Null draws no badge on
+  /// the home page's project card, exactly as a count of 1 does: it is not read as "one episode",
+  /// it is read as "unknown", and a default of 1 would state something nobody actually recorded.
+  final int? episodeCount;
+
   /// Class constructor
   const OcptRecentProjectModel({
     required this.path,
     required this.name,
     required this.lastOpenedAt,
+    this.episodeCount,
   });
 
   /// Copy the current project and update the given elements
@@ -38,10 +48,12 @@ class OcptRecentProjectModel extends Equatable {
     String? path,
     String? name,
     DateTime? lastOpenedAt,
+    int? episodeCount,
   }) => OcptRecentProjectModel(
     path: path ?? this.path,
     name: name ?? this.name,
     lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
+    episodeCount: episodeCount ?? this.episodeCount,
   );
 
   /// Transform the element to a JSON object
@@ -49,6 +61,7 @@ class OcptRecentProjectModel extends Equatable {
     _pathKey: path,
     _nameKey: name,
     _lastOpenedAtKey: lastOpenedAt.toIso8601String(),
+    if (episodeCount != null) _episodeCountKey: episodeCount,
   };
 
   /// Parse the given [json] to a [OcptRecentProjectModel] object
@@ -75,7 +88,19 @@ class OcptRecentProjectModel extends Equatable {
       logger: appLogger(),
     );
 
-    if (!pathResult.isOk || !nameResult.isOk || !lastOpenedAtResult.isOk) {
+    // canBeUndefined: an entry written by an older version of the app never recorded this key at
+    // all, which must parse as null rather than fail the whole entry.
+    final episodeCountResult = JsonUtility.getOnePrimaryElement<int>(
+      json: json,
+      key: _episodeCountKey,
+      canBeUndefined: true,
+      logger: appLogger(),
+    );
+
+    if (!pathResult.isOk ||
+        !nameResult.isOk ||
+        !lastOpenedAtResult.isOk ||
+        !episodeCountResult.isOk) {
       appLogger().w("A problem occurred when tried to get the recent project from the given JSON");
       return null;
     }
@@ -84,15 +109,17 @@ class OcptRecentProjectModel extends Equatable {
       path: pathResult.value!,
       name: nameResult.value!,
       lastOpenedAt: lastOpenedAtResult.value!,
+      episodeCount: episodeCountResult.value,
     );
   }
 
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptRecentProjectModel(path: $path, name: $name, lastOpenedAt: $lastOpenedAt)";
+      "OcptRecentProjectModel(path: $path, name: $name, lastOpenedAt: $lastOpenedAt, "
+      "episodeCount: $episodeCount)";
 
   /// Object properties
   @override
-  List<Object?> get props => [path, name, lastOpenedAt];
+  List<Object?> get props => [path, name, lastOpenedAt, episodeCount];
 }

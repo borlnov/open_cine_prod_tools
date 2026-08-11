@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -39,6 +40,7 @@ void main() {
       elementsService: OcptElementsService(),
       locationsService: OcptLocationsService(),
     ),
+    scheduleService: OcptScheduleService(),
   );
   const screenplayId = "screenplay-1";
 
@@ -277,7 +279,11 @@ Action.
       );
       await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Marc");
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       expect(snapshot.shotsById[shotId]!.characters, ["CLARA", "MARC"]);
     });
 
@@ -298,7 +304,11 @@ Action.
 
       await shotListService.detachCharacter(database: database, shotId: shotId, characterName: "Marc");
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       expect(snapshot.shotsById[shotId]!.characters, ["CLARA", "THÉO"]);
     });
 
@@ -332,7 +342,11 @@ Action.
         characterName: "Clara",
       );
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       expect(snapshot.shotsById[shotA]!.characters, isEmpty);
       expect(snapshot.shotsById[shotB]!.characters, ["MARC"]);
     });
@@ -357,7 +371,11 @@ Action.
         newCharacterName: "Julie",
       );
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       expect(snapshot.shotsById[shotId]!.characters, ["JULIE"]);
     });
 
@@ -382,7 +400,11 @@ Action.
         newCharacterName: "Julie",
       );
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       expect(snapshot.shotsById[shotId]!.characters, ["JULIE"]);
     });
   });
@@ -405,7 +427,11 @@ Action.
         sceneId: scenes.single.id,
       );
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       final sequence = snapshot.sequences.single as OcptSceneShotSequence;
 
       expect(sequence.displaySceneNumber, "5");
@@ -429,7 +455,11 @@ Action.
         sceneId: scenes[1].id,
       ))!;
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
 
       expect(secondSequence.sceneNumber, isNull);
@@ -452,6 +482,7 @@ Action two.
     final snapshot = await shotListService.loadShotList(
       database: database,
       screenplayId: screenplayId,
+      episodeNumber: null,
     );
     final firstSequence = snapshot.sequences[0] as OcptSceneShotSequence;
     final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
@@ -533,7 +564,11 @@ Action one.
       final everyCoverage = await database.select(database.ocptShotCoveragesTable).get();
       expect(everyCoverage.single.isDeleted, isTrue);
 
-      final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
       final orphanSequence = snapshot.sequences.last as OcptOrphanShotSequence;
       expect(orphanSequence.shots.single.id, shotId);
       expect(orphanSequence.shots.single.orphanedHeading, "EXT. STREET - NIGHT");
@@ -588,6 +623,7 @@ Action.
       final snapshot = await shotListService.loadShotList(
         database: database,
         screenplayId: screenplayId,
+        episodeNumber: null,
       );
       expect(snapshot.shotsById.keys, [keptId]);
       expect(snapshot.shotsById[keptId]!.characters, ["CLARA"]);
@@ -614,6 +650,7 @@ Action.
       final afterReplace = await shotListService.loadShotList(
         database: database,
         screenplayId: screenplayId,
+        episodeNumber: null,
       );
       expect(afterReplace.shotsById.keys, [keptId]);
       expect(afterReplace.shotsById[keptId]!.characters, ["CLARA"]);
@@ -651,6 +688,7 @@ Action.
           (await shotListService.loadShotList(
             database: database,
             screenplayId: screenplayId,
+            episodeNumber: null,
           )).shotsById[shotId]!.characters;
 
       expect(await charactersOfShot(), ["MARC"]);
@@ -685,6 +723,7 @@ Action two.
         (await shotListService.loadShotList(
           database: database,
           screenplayId: screenplayId,
+          episodeNumber: null,
         )).sequences,
         hasLength(2),
       );
@@ -703,9 +742,82 @@ Action one.
       final sequences = (await shotListService.loadShotList(
         database: database,
         screenplayId: screenplayId,
+        episodeNumber: null,
       )).sequences;
       expect(sequences, hasLength(1));
       expect((sequences.single as OcptSceneShotSequence).heading, "INT. HOUSE - DAY");
+    });
+
+    test("prefixes a scene sequence's displaySceneNumber with the given episode number", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''');
+      final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
+
+      final withoutEpisode = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
+      final withoutEpisodeSequence =
+          withoutEpisode.sequences.whereType<OcptSceneShotSequence>().firstWhere(
+            (sequence) => sequence.sceneId == streetScene.id,
+          );
+      expect(withoutEpisodeSequence.displaySceneNumber, "2");
+
+      final withEpisode = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: 3,
+      );
+      final withEpisodeSequence = withEpisode.sequences.whereType<OcptSceneShotSequence>().firstWhere(
+        (sequence) => sequence.sceneId == streetScene.id,
+      );
+      expect(withEpisodeSequence.displaySceneNumber, "3.2");
+    });
+
+    test("never prefixes the orphaned-shot placeholder", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''');
+      final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
+      await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: streetScene.id,
+      );
+
+      // Dropping the street scene orphans its shot.
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: 3,
+      );
+      final orphanSequence = snapshot.sequences.last as OcptOrphanShotSequence;
+      expect(orphanSequence.shots.single.code, "—/1");
     });
   });
 

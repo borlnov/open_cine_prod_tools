@@ -13,6 +13,16 @@ seven documents a production runs on.
 
 - The mode lives in `lib/ui/pages/workspace/modes/schedule/` and says **when** the film is shot.
   It sits after the shot list, since what is placed on a day is a shot.
+  It is the **one mode that reads every episode at once** (ADR 0019), so the shell draws it no
+  episode selector at all: `shooting_days` carries no `screenplayId`, a day regularly covering two
+  episodes at one location being the whole point of shooting a series out of order, and filing it
+  under one would make the mode lie about the plan it holds. `OcptScheduleService` loads across the
+  project and `OcptSchedulePlanSnapshot` joins them — its shot list, its scene headings, its scene
+  numbers (`sceneNumberBySceneId`, `ocptSceneDisplayNumberOf`'s answer, hence `2.12`) and its scene
+  spans are the project's, not one screenplay's. Nothing about a day, a slot, a block or a
+  convocation changes: they never named a screenplay to begin with. The status band says so too —
+  `N episodes` sits second, right after the alerts, and is **absent on a single-episode project**,
+  which names no episode anywhere.
   A **shooting day** (`shooting_days`) is **always dated** — the week and month views, the sun times
   and every availability crossing depend on it — and its number, the `J3` a call sheet prints, is a
   **read-time rank** over the live days **in date order**, never a column, exactly as
@@ -244,21 +254,24 @@ seven documents a production runs on.
   cell), and a cell whose person is convoked on a day they are unavailable is marked from
   `OcptSchedulePersonUnavailableAlert`, not from a second reading of that rule.
   The left dock is the day list over the shots still to place, and a click on one of those
-  **selects** it, nothing more. The right dock is `Inspector` + `Convocations` + `Alerts` + the
-  shared `Versions` tab, the inspector reading block, then shot, then day, the block and shot
-  selections being mutually exclusive by construction. A block's own **duration is typed in the
-  inspector** — any figure, 12 included, against the `±` stepper's five-minute grid, the two writing
-  the same column from the two places a duration is thought about — and its **crew note** right
-  under it. **`Convocations` is the day's whole call** — one card per person, crew and cast folded
-  together (an actor read through `roles.personId`), plus one per **uncast role**, which is a
-  convocation the production still has to honour and is named by the role; each card reads arrival →
-  PAT band → departure, an **em dash** where there is no band, over the slots it is linked to by
-  label. It is scoped to the **selected day**, sorted by arrival then by name (the order people walk
-  in — `ocptComputeDayConvocations` itself can only tie on id, knowing no names, so the panel does
-  that last sort), and it is the reading no slot card can give once a person sits on several slots
-  of one day. **Guests form their own trailing group**, after the crew and cast cards and under
-  their own heading: they are on the day and are owed an hour, but they are not the call the
-  assistant director reads down.
+  **selects** it, nothing more. Those shots and `OcptScheduleShotPickerDialog`'s own list are the
+  two surfaces a multi-episode project regroups: both already grouped by sequence and head their
+  groups by **episode, then sequence** through the shared `OcptScheduleEpisodeBand` — a band rather
+  than a mechanism, and drawn by neither while the project holds one episode. The right dock is
+  `Inspector` + `Convocations` + `Alerts` + the shared `Versions` tab, the inspector reading block,
+  then shot, then day, the block and shot selections being mutually exclusive by construction. A
+  block's own **duration is typed in the inspector** — any figure, 12 included, against the `±`
+  stepper's five-minute grid, the two writing the same column from the two places a duration is
+  thought about — and its **crew note** right under it. **`Convocations` is the day's whole call**
+  — one card per person, crew and cast folded together (an actor read through `roles.personId`),
+  plus one per **uncast role**, which is a convocation the production still has to honour and is
+  named by the role; each card reads arrival → PAT band → departure, an **em dash** where there is
+  no band, over the slots it is linked to by label. It is scoped to the **selected day**, sorted by
+  arrival then by name (the order people walk in — `ocptComputeDayConvocations` itself can only tie
+  on id, knowing no names, so the panel does that last sort), and it is the reading no slot card can
+  give once a person sits on several slots of one day. **Guests form their own trailing group**,
+  after the crew and cast cards and under their own heading: they are on the day and are owed an
+  hour, but they are not the call the assistant director reads down.
 
 ## The alerts
 
@@ -296,8 +309,11 @@ seven documents a production runs on.
   `project_info.minimumRestMinutes` (nullable) is that same argument at the project's own level —
   the rest a production says it owes between two days — and it is **deliberately not defaulted to
   660**: eleven hours is French law, this app ships in more than one country, and a default would be
-  the app advancing a legal figure nobody here validated. It is typed on `OcptProjectSettingsPage`,
-  in minutes, read back as a formatted duration and **left empty by default**.
+  the app advancing a legal figure nobody here validated. It is typed on `OcptProjectSettingsPage`
+  **in hours** — the unit a production says a turnaround in, half hours included (`11,5`) — through
+  `ocptMinimumRestMinutesOf`, which is what turns it into the minutes the column and every rest
+  computation work in, and is **left empty by default**. The field wears its `h` as a `suffixText`
+  rather than in its own text, so what a commit reads back is always something it accepts again.
   The alerts live in the `Alerts` **dock tab** rather than above the agenda the mock puts them over:
   a plan is broken whichever view is being read, and the count in the status bar is what says so
   from the other three. Each entry names what it concerns and offers the day it concerns — a
@@ -431,8 +447,10 @@ seven documents a production runs on.
   "which roles" question is the pure function's, and a role the printed range convokes **nowhere**
   gets no row at all — a blank line would be indistinguishable from a hold-free span. Its cells read
   `convokedRoleIdsOfDay`, which names **roles and never actors**: a *Day Out of Days* is negotiated
-  per part, so recasting must not redraw it. The five code letters travel through `Tr` like
-  everything else (they read the same in both languages today, which is exactly why the **legend**
+  per part, so recasting must not redraw it — and a role being the production's rather than one
+  script's (ADR 0019), it draws **one row per part over the whole series**, which is how a cast
+  contract is actually negotiated, with no work of its own. The five code letters travel through
+  `Tr` like everything else (they read the same in both languages today, which is why the **legend**
   printed under the last chunk is fully localized), and the two trailing counts — days worked, days
   held — are the **whole printed range's**, never the chunk's: a contract is negotiated over the
   shoot, not over whichever days fell on one sheet.
@@ -464,8 +482,13 @@ seven documents a production runs on.
   `OcptScriptPagePainter` and composed by the same `FountainScriptComposer` the screenplay PDF and
   the coverage export already use, because a side that re-typeset its text would stop being the very
   page the crew is holding. **`OcptScriptSidesLayout`** (`lib/models/`, pure Dart, no `pdf` and no
-  Flutter) decides which rows land on which page and is where every hard case is tested: a day's
-  scenes are `sceneIdsOfDay` resolved through `sceneSpanBySceneId`, and each span is resolved onto
+  Flutter) is composed **once per episode** the day plays, the booklet chaining the results in
+  episode order under each run's own running head, and the bloc's export handler reads every one of
+  those screenplays rather than the one — a day regularly plays two episodes, and that is what the
+  shared schedule buys. The scene numbers in the margin stay the **screenplay's own, unprefixed**,
+  the pages being the script as written. It decides which rows land on which page and is where every
+  hard case is tested: a day's scenes are `sceneIdsOfDay` resolved through `sceneSpanBySceneId`, and
+  each span is resolved onto
   printed rows by the very bridge rule the coverage layout states — the first and last row whose
   `sourceRange` overlaps it, and **every row between them, anchored or not**, so a scene's blank
   separators, its `(MORE)` and its repeated `NAME (CONT'D)` stay inside the extract rather than
@@ -514,4 +537,7 @@ seven documents a production runs on.
   exception, deliberately not repeated — `repeat` redraws every marked row on every page, so several
   bands would stack into a heading that lies, and an element row already names itself. **Every hour
   on every page is the resolved one** and every convocation figure comes from
-  `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
+  `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented. **No document gains
+  an episode column**: the six read their sequence numbers off `OcptSchedulePlanSnapshot` and so
+  print `2.12` for free, and a column would say the same thing twice while costing width on grids
+  already chunked for want of it.

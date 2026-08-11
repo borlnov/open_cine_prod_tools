@@ -153,7 +153,6 @@ OcptRole _buildRole({
   String castingNotes = "",
 }) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: personId,
   kind: kind,
@@ -161,6 +160,7 @@ OcptRole _buildRole({
   orphanedName: orphanedName,
   castingNotes: castingNotes,
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds a set holding [sceneIds], every other field left at a neutral value unless overridden.

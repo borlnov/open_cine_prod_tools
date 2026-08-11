@@ -545,6 +545,26 @@ class OcptResourcesRoleKindChangedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, roleId, kind];
 }
 
+/// Sets the exact episodes role [roleId] is named in to [episodeIds], written immediately —
+/// `OcptRoleSheetEpisodesCard`'s own chips, the one place in the app a `role_episodes` row is
+/// written by a gesture rather than by `OcptRoleIndexService.reconcile`
+/// (`docs/adr/0019-one-project-several-episodes.md` §4.3). Only ever dispatched for a hand-added
+/// role: the sheet withholds the card's callback for one the screenplay still owns.
+class OcptResourcesRoleEpisodesChangedEvent extends OcptResourcesEvent {
+  /// The id of the role whose episodes changed.
+  final String roleId;
+
+  /// The full new set of episode ids the role is named in.
+  final Set<String> episodeIds;
+
+  /// Class constructor
+  const OcptResourcesRoleEpisodesChangedEvent({required this.roleId, required this.episodeIds});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId, episodeIds];
+}
+
 /// Requests deleting role [roleId], dispatched once `OcptResourcesDeleteConfirmDialog` has already
 /// confirmed it — or straight from the removed-role banner, which is that question itself.
 /// Tombstones the role,

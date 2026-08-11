@@ -37,7 +37,6 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 OcptShootingDay _buildDay({required String id, required int dayNumber, required DateTime date}) =>
     OcptShootingDay(
       id: id,
-      screenplayId: "screenplay-1",
       date: date,
       dayNumber: dayNumber,
       status: OcptShootingDayStatus.planned,

@@ -364,6 +364,13 @@ void main() {
         "My Movie - coverage.pdf",
       );
     });
+
+    test("appends the episode tag last, after the suffix, when there is one", () {
+      expect(
+        service.coverageFileName(projectName: "My Movie", suffix: "coverage", episodeTag: "ep. 2"),
+        "My Movie - coverage - ep. 2.pdf",
+      );
+    });
   });
 }
 

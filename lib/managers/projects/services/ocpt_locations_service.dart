@@ -133,9 +133,15 @@ class OcptLocationsService {
   /// the ones a set already holds. This service is where the read lives because `scene_sets` is
   /// its table; the scenes themselves are `OcptSceneIndexService`'s to write, and nothing here
   /// ever does.
+  ///
+  /// [episodeNumber] is [screenplayId]'s own episode number, or null when the project holds a
+  /// single episode; it is only carried onto each [OcptSceneRef] for `displayNumber` to read, never
+  /// resolved here — this service has no reason to depend on `OcptScreenplayService`, which already
+  /// depends on it (dependencies never reference their dependents).
   Future<List<OcptSceneRef>> loadScenes({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required int? episodeNumber,
   }) async {
     final rows =
         await (database.select(database.ocptScenesTable)
@@ -143,7 +149,9 @@ class OcptLocationsService {
               ..orderBy([(table) => OrderingTerm.asc(table.position)]))
             .get();
 
-    return rows.map(OcptSceneRef.fromRow).toList(growable: false);
+    return [
+      for (final row in rows) OcptSceneRef.fromRow(row: row, episodeNumber: episodeNumber),
+    ];
   }
 
   /// Creates a new location named [name] in [database], appended at the end, and returns its
@@ -847,6 +855,31 @@ class OcptLocationsService {
     }
 
     await assetsService.tombstoneAsset(database: database, assetId: permitAssetId);
+  }
+
+  /// Tombstones every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this service's
+  /// table, not `OcptBreakdownService`'s, so its own cascade
+  /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
+  /// writing the table itself — the set these links point at is, of course, untouched.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> tombstoneSceneSetsOfScenes({
+    required OcptProjectDatabase database,
+    required List<String> sceneIds,
+  }) async {
+    if (sceneIds.isEmpty) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptSceneSetsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds))).write(
+      const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
+    );
   }
 
   /// The ids of the live scenes linked to each of [setIds], keyed by set id and ordered by the

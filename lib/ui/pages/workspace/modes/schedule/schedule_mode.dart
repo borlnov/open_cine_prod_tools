@@ -55,6 +55,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -76,7 +78,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// row per person or per uncast role, ADR 0018) + the shared `Versions` tab.
 ///
 /// **There is no save control and no mode-specific toolbar action**: every write here is its own
-/// event, exactly as the breakdown mode's own shell is built.
+/// event, exactly as the breakdown mode's own shell is built. **Nor is there an episode
+/// selector**: the mode reads every episode of the project at once, so it withholds the shell's
+/// own `onEpisodeSelected` outright.
 class OcptScheduleMode extends StatelessWidget {
   /// Creates the schedule mode.
   const OcptScheduleMode({super.key});
@@ -140,6 +144,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptScheduleBloc>().add(const OcptScheduleBackRequestedEvent()),
+        // No episode selector here, left at its default null: the schedule reads every episode of
+        // the project at once, so a selector would either do nothing or lie about what the day
+        // view and the agenda show.
         modeLabel: Tr.of(context).workspaceModeLabelSchedule,
         onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context),
@@ -158,6 +165,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
         centre: _buildCentre(context, state),
         statusBar: OcptScheduleStatusBar(
           alertCount: state.planSnapshot?.alerts.length ?? 0,
+          // Null on a single-episode project, which draws no counter for it at all — see
+          // `OcptScheduleStatusBar`'s own doc comment.
+          episodeCount: state.episodes.length > 1 ? state.episodes.length : null,
           dayCount: state.dayCount,
           placedShotCount: state.placedShotCount,
           shotsLeftToPlaceCount: state.shotsLeftToPlaceCount,
@@ -486,6 +496,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         labels: ocptSidesLabelsOf(
           context,
           day: state.days.where((day) => day.id == options.dayId).firstOrNull,
+          episodes: state.episodes,
         ),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
       ),
@@ -521,6 +532,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (dayId) => unawaited(_handleDayDeletionRequested(context, dayId)),
       unplacedGroups: state.unplacedGroups,
+      episodes: state.episodes,
       selectedShotId: state.selectedShotId,
       onShotSelected: (shotId) => bloc.add(OcptScheduleShotSelectedEvent(shotId: shotId)),
     );
@@ -552,8 +564,16 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Opens the project settings page, then re-reads the page setup if the user changed something —
   /// mirrors `OcptBreakdownMode._requestProjectSettings`/`OcptShotListMode`'s own handler: the page
   /// format is what the three export dialogs pre-fill their format dropdown from.
+  ///
+  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
+  /// card can add or delete one, which the workspace bloc otherwise only learns about from
+  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire. This mode
+  /// shows no episode selector of its own (it reads every episode at once, `docs/adr/0019`), but
+  /// `OcptWorkspaceBloc`'s own list must still be current the moment the user switches to a mode
+  /// that does show one.
   Future<void> _requestProjectSettings(BuildContext context) async {
     final bloc = context.read<OcptScheduleBloc>();
+    final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
     );
@@ -562,6 +582,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
 
     bloc.add(const OcptScheduleProjectSettingsChangedEvent());
+    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
   /// Builds the shell's `centre`: the header band, then whichever of the agenda or the day view
@@ -995,7 +1016,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
     final shotId = await OcptScheduleShotPickerDialog.show(
       context,
-      sequences: state.shotListSnapshot?.sequences ?? const [],
+      shotListSnapshots: state.shotListSnapshots,
+      episodes: state.episodes,
       placedDayNumbersByShotId: state.placedDayNumbersByShotId,
     );
     if (shotId == null) {
@@ -1307,23 +1329,25 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
   /// [shot]'s own sequence label, exactly as the left dock heads that sequence's own section of
   /// the unplaced-shots list (`Tr.scheduleUnplacedSequenceLabel`/`Tr.scheduleUnplacedOrphanGroupLabel`
-  /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshot], rather than by
+  /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshots], rather than by
   /// the inspector itself, so a widget never has to search the snapshot on its own. Null while
-  /// [shot]'s own sequence isn't found there (the shot list hasn't loaded yet).
+  /// [shot]'s own sequence isn't found there (its episode's shot list hasn't loaded yet).
   String? _sequenceLabelOfShot(BuildContext context, OcptScheduleState state, OcptShot shot) {
     final tr = Tr.of(context);
 
-    for (final sequence in state.shotListSnapshot?.sequences ?? const <OcptShotSequence>[]) {
-      if (!sequence.shots.any((candidate) => candidate.id == shot.id)) {
-        continue;
-      }
+    for (final shotListSnapshot in state.shotListSnapshots) {
+      for (final sequence in shotListSnapshot.sequences) {
+        if (!sequence.shots.any((candidate) => candidate.id == shot.id)) {
+          continue;
+        }
 
-      if (sequence is OcptSceneShotSequence) {
-        final tag = tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber);
-        return sequence.heading.isEmpty ? tag : "$tag  ${sequence.heading}";
-      }
+        if (sequence is OcptSceneShotSequence) {
+          final tag = tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber);
+          return sequence.heading.isEmpty ? tag : "$tag  ${sequence.heading}";
+        }
 
-      return tr.scheduleUnplacedOrphanGroupLabel;
+        return tr.scheduleUnplacedOrphanGroupLabel;
+      }
     }
 
     return null;

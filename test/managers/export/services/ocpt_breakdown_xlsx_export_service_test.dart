@@ -86,6 +86,7 @@ OcptBreakdownScene _buildScene({
   status: status,
   notes: notes,
   tags: const [],
+  episodeNumber: null,
 );
 
 /// Builds a tag pointing scene [sceneId] at ([targetKind], [targetId]), carrying [taggedText].
@@ -143,7 +144,6 @@ OcptElement _buildElement({
 /// Builds a role named [name], numbered [number].
 OcptRole _buildRole({required String id, required String name, int number = 1}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,
@@ -151,6 +151,7 @@ OcptRole _buildRole({required String id, required String name, int number = 1}) 
   orphanedName: null,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds a set named [name], holding [sceneIds].
@@ -336,6 +337,13 @@ void main() {
 
     test("falls back to a bare name when the suffix is blank", () {
       expect(service.xlsxFileName(projectName: "My Movie", suffix: "   "), "My Movie.xlsx");
+    });
+
+    test("appends the episode tag last, after the suffix, when there is one", () {
+      expect(
+        service.xlsxFileName(projectName: "My Movie", suffix: "breakdown", episodeTag: "ep. 2"),
+        "My Movie - breakdown - ep. 2.xlsx",
+      );
     });
   });
 

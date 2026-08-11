@@ -7,10 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
 
 /// The tallest the dialog's own scrollable shot list is ever drawn before it starts scrolling, in
@@ -18,8 +22,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
 const double _ocptScheduleShotPickerMaxListHeight = 420;
 
 /// The dialog opened by a slot's own `+ Block` menu's `Shot` entry: every shot of the shot list,
-/// grouped by sequence exactly as the left dock's own unplaced-shots list heads them, searchable,
-/// each row clickable — picking one places that shot on the slot that opened this dialog.
+/// grouped by **episode, then sequence**, exactly as the left dock's own unplaced-shots list
+/// heads them once it too holds more than one episode, searchable, each row clickable — picking
+/// one places that shot on the slot that opened this dialog.
 ///
 /// **Every shot of the shot list is listed, not only the ones still unplaced**: a shot may be
 /// placed more than once (interrupted by the meal break and resumed after it), so an
@@ -32,9 +37,16 @@ const double _ocptScheduleShotPickerMaxListHeight = 420;
 /// (`OcptRouterManager`, never `Navigator`) is what actually pops it, both on a row click and on
 /// `Cancel`.
 class OcptScheduleShotPickerDialog extends StatefulWidget {
-  /// The shot list's own sequences (real scenes, then the orphan group), each with its shots in
-  /// their own order — `OcptScheduleState.shotListSnapshot`'s own, unfiltered by placement.
-  final List<OcptShotSequence> sequences;
+  /// Every episode's own shot list, in `OcptScreenplayService.loadEpisodes`' own order —
+  /// `OcptScheduleState.shotListSnapshots`, unfiltered by placement. Each snapshot's own
+  /// [OcptShotListSnapshot.screenplayId] is what a section is banded by, matched against
+  /// [episodes].
+  final List<OcptShotListSnapshot> shotListSnapshots;
+
+  /// The project's live episodes, in the same order as [shotListSnapshots]
+  /// (`OcptScheduleState.episodes`) — read only to band a section by episode, and only while it
+  /// holds more than one: a single-episode project names no episode anywhere (ADR 0019).
+  final List<OcptEpisode> episodes;
 
   /// For every shot already placed somewhere in the schedule, the day numbers it is placed on,
   /// deduplicated and in ascending order — `OcptScheduleState.placedDayNumbersByShotId`. A shot
@@ -44,19 +56,22 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
   /// Class constructor
   const OcptScheduleShotPickerDialog({
     super.key,
-    required this.sequences,
+    required this.shotListSnapshots,
+    required this.episodes,
     required this.placedDayNumbersByShotId,
   });
 
   /// Shows the dialog and returns the id of the shot picked, or null if the user dismissed it.
   static Future<String?> show(
     BuildContext context, {
-    required List<OcptShotSequence> sequences,
+    required List<OcptShotListSnapshot> shotListSnapshots,
+    required List<OcptEpisode> episodes,
     required Map<String, List<int>> placedDayNumbersByShotId,
   }) => showDialog<String>(
     context: context,
     builder: (context) => OcptScheduleShotPickerDialog(
-      sequences: sequences,
+      shotListSnapshots: shotListSnapshots,
+      episodes: episodes,
       placedDayNumbersByShotId: placedDayNumbersByShotId,
     ),
   );
@@ -65,8 +80,23 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
   State<OcptScheduleShotPickerDialog> createState() => _OcptScheduleShotPickerDialogState();
 }
 
+/// One episode's own section of the dialog's filtered list: its shot list snapshot's own
+/// [screenplayId] over the sequences that still match the search, in their own order — a plain
+/// data holder `_filteredSections` builds, `_buildEpisodeSection` draws.
+class _OcptScheduleShotPickerSection {
+  /// The id of the episode (screenplay) this section's sequences belong to.
+  final String screenplayId;
+
+  /// This episode's own sequences still matching the search, each already narrowed to its own
+  /// matching shots.
+  final List<OcptShotSequence> sequences;
+
+  /// Class constructor
+  const _OcptScheduleShotPickerSection({required this.screenplayId, required this.sequences});
+}
+
 /// The state of [OcptScheduleShotPickerDialog]: owns the search field and re-filters
-/// [OcptScheduleShotPickerDialog.sequences] on every keystroke.
+/// [OcptScheduleShotPickerDialog.shotListSnapshots] on every keystroke.
 class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDialog> {
   /// The search field's own controller.
   final TextEditingController _searchController = TextEditingController();
@@ -90,8 +120,10 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final hasAnyShot = widget.sequences.any((sequence) => sequence.shots.isNotEmpty);
-    final filteredSequences = _filteredSequences();
+    final hasAnyShot = widget.shotListSnapshots.any(
+      (shotListSnapshot) => shotListSnapshot.sequences.any((sequence) => sequence.shots.isNotEmpty),
+    );
+    final filteredSections = _filteredSections();
 
     return AlertDialog(
       title: Text(tr.scheduleShotPickerDialogTitle),
@@ -115,14 +147,14 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
               constraints: const BoxConstraints(maxHeight: _ocptScheduleShotPickerMaxListHeight),
               child: !hasAnyShot
                   ? _buildHint(context, tr.scheduleShotPickerEmptyHint)
-                  : (filteredSequences.isEmpty
+                  : (filteredSections.isEmpty
                         ? _buildHint(context, tr.scheduleShotPickerNoResultsHint)
                         : SingleChildScrollView(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                for (final sequence in filteredSequences)
-                                  _buildSequenceSection(context, tr, sequence),
+                                for (final section in filteredSections)
+                                  ..._buildEpisodeSection(context, tr, section),
                               ],
                             ),
                           )),
@@ -139,26 +171,40 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     );
   }
 
-  /// Every sequence of [OcptScheduleShotPickerDialog.sequences] with at least one shot still
-  /// matching the search field's own text, each sequence's own shots already narrowed to the
-  /// matching ones — a sequence left with nothing simply disappears from the result.
-  List<OcptShotSequence> _filteredSequences() {
+  /// Every episode of [OcptScheduleShotPickerDialog.shotListSnapshots] with at least one sequence
+  /// still matching the search field's own text, each such sequence's own shots already narrowed
+  /// to the matching ones — a sequence left with nothing simply disappears from the result, and so
+  /// does an episode left with no sequence, exactly as a sequence left with no matching shot
+  /// already does.
+  List<_OcptScheduleShotPickerSection> _filteredSections() {
     final query = _searchController.text;
-    final filtered = <OcptShotSequence>[];
+    final sections = <_OcptScheduleShotPickerSection>[];
 
-    for (final sequence in widget.sequences) {
-      final matchingShots = [
-        for (final shot in sequence.shots)
-          if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(sequence, shot))) shot,
-      ];
-      if (matchingShots.isEmpty) {
+    for (final shotListSnapshot in widget.shotListSnapshots) {
+      final filtered = <OcptShotSequence>[];
+
+      for (final sequence in shotListSnapshot.sequences) {
+        final matchingShots = [
+          for (final shot in sequence.shots)
+            if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(sequence, shot))) shot,
+        ];
+        if (matchingShots.isEmpty) {
+          continue;
+        }
+
+        filtered.add(_narrowedTo(sequence, matchingShots));
+      }
+
+      if (filtered.isEmpty) {
         continue;
       }
 
-      filtered.add(_narrowedTo(sequence, matchingShots));
+      sections.add(
+        _OcptScheduleShotPickerSection(screenplayId: shotListSnapshot.screenplayId, sequences: filtered),
+      );
     }
 
-    return filtered;
+    return sections;
   }
 
   /// The fields a shot of [sequence] is matched against: its own code and shot size, plus — for a
@@ -186,6 +232,30 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     ),
     OcptOrphanShotSequence() => OcptOrphanShotSequence(shots: shots),
   };
+
+  /// One episode's own run of sections: an [OcptScheduleEpisodeBand] naming it — the same reading
+  /// the left dock's own list gives it — over each of its own sequences still matching the search,
+  /// or no band at all while [OcptScheduleShotPickerDialog.episodes] holds one episode or none
+  /// (ADR 0019) or [section]'s own [_OcptScheduleShotPickerSection.screenplayId] names none of
+  /// them (a stale id mid-reload, read the same defensive way `ocptEpisodePrefixNumberOf` does).
+  List<Widget> _buildEpisodeSection(BuildContext context, Tr tr, _OcptScheduleShotPickerSection section) {
+    final widgets = <Widget>[];
+
+    if (widget.episodes.length > 1) {
+      for (final episode in widget.episodes) {
+        if (episode.id == section.screenplayId) {
+          widgets.add(OcptScheduleEpisodeBand(label: ocptWorkspaceEpisodeLabelOf(tr, episode)));
+          break;
+        }
+      }
+    }
+
+    for (final sequence in section.sequences) {
+      widgets.add(_buildSequenceSection(context, tr, sequence));
+    }
+
+    return widgets;
+  }
 
   /// One sequence's own section: its heading — the same reading the left dock's own unplaced-shots
   /// list gives a sequence — over its shots, each a clickable row.

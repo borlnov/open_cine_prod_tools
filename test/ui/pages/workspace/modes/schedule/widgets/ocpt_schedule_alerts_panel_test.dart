@@ -77,7 +77,6 @@ OcptPerson _buildPerson({required String id, required String firstName}) => Ocpt
 /// Builds a role with the few fields these tests read, everything else neutral.
 OcptRole _buildRole({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay-1",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,
@@ -85,13 +84,13 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({required String id, required int dayNumber, required DateTime date}) =>
     OcptShootingDay(
       id: id,
-      screenplayId: "screenplay-1",
       date: date,
       dayNumber: dayNumber,
       status: OcptShootingDayStatus.planned,

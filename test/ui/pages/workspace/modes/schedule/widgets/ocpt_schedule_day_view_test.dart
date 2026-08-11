@@ -27,7 +27,6 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay() => OcptShootingDay(
   id: "day-1",
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 8, 4),
   dayNumber: 1,
   status: OcptShootingDayStatus.planned,

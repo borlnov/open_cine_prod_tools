@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -40,7 +41,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
@@ -63,8 +67,12 @@ class EditorPage extends StatelessWidget {
   const EditorPage({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptEditorBloc(), child: const _EditorView());
+  Widget build(BuildContext context) => BlocProvider(
+    create: (context) => OcptEditorBloc(
+      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+    ),
+    child: const _EditorView(),
+  );
 }
 
 /// The intent behind the Ctrl+S / Cmd+S shortcut: save the screenplay now.
@@ -175,6 +183,7 @@ class _EditorViewState extends State<_EditorView> {
 
             final isReadOnly = state.isPreviewingVersion;
             final isRawMode = state.mode == OcptEditorMode.raw;
+            final workspaceState = context.watch<OcptWorkspaceBloc>().state;
 
             return OcptWorkspaceShell(
               title: state.title,
@@ -183,6 +192,19 @@ class _EditorViewState extends State<_EditorView> {
               onBack: () => context.read<OcptEditorBloc>().add(
                 const OcptEditorBackRequestedEvent(),
               ),
+              episodes: workspaceState.episodes,
+              selectedEpisodeId: workspaceState.selectedEpisodeId,
+              onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+                OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+              ),
+              // Withheld under a preview like every other way into the project settings: a preview
+              // has nothing there that may be written.
+              onAddEpisodeRequested: isReadOnly
+                  ? null
+                  : () => _requestProjectSettings(
+                      context,
+                      reveal: OcptProjectSettingsReveal.episodes,
+                    ),
               toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
               modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
               onExportRequested: () => unawaited(_requestExport(context)),
@@ -592,16 +614,29 @@ class _EditorViewState extends State<_EditorView> {
 
   /// Opens the project settings page, then reloads the page format (and repaginates) if the user
   /// changed anything there.
-  Future<void> _requestProjectSettings(BuildContext context) async {
+  ///
+  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
+  /// card can add or delete one, which the workspace bloc otherwise only learns about from
+  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire.
+  ///
+  /// [reveal] names the card the page opens on, for the toolbar's `Add an episode…` button which
+  /// promised one; the toolbar's plain settings action passes none and lands at the top.
+  Future<void> _requestProjectSettings(
+    BuildContext context, {
+    OcptProjectSettingsReveal? reveal,
+  }) async {
     final bloc = context.read<OcptEditorBloc>();
+    final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
+      extra: reveal,
     );
     if (hasChanged != true) {
       return;
     }
 
     bloc.add(const OcptEditorProjectSettingsChangedEvent());
+    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
   /// Builds the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
@@ -649,7 +684,10 @@ class _EditorViewState extends State<_EditorView> {
     switch (picked) {
       case OcptEditorExportDocument.fountain:
         context.read<OcptEditorBloc>().add(
-          OcptEditorExportRequestedEvent(fileTypeLabel: tr.editorImportFileTypeLabel),
+          OcptEditorExportRequestedEvent(
+            fileTypeLabel: tr.editorImportFileTypeLabel,
+            episodeTag: _episodeExportTag(context),
+          ),
         );
       case OcptEditorExportDocument.pdf:
         await _requestExportPdf(context);
@@ -672,7 +710,20 @@ class _EditorViewState extends State<_EditorView> {
       OcptEditorExportPdfRequestedEvent(
         options: options,
         fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
+    );
+  }
+
+  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
+  /// exactly as every other localized export payload already is.
+  String? _episodeExportTag(BuildContext context) {
+    final workspaceState = context.read<OcptWorkspaceBloc>().state;
+    return ocptWorkspaceEpisodeExportTagOf(
+      context: context,
+      episodes: workspaceState.episodes,
+      selectedEpisodeId: workspaceState.selectedEpisodeId,
     );
   }
 

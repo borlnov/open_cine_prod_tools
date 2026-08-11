@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
@@ -31,7 +32,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
   id: id,
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
   status: OcptShootingDayStatus.planned,
@@ -107,7 +107,6 @@ OcptShootingSlotCastMember _buildCastMember({required String id, required String
 /// Builds a role with the few fields these tests read, everything else neutral.
 OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) => OcptRole(
   id: id,
-  screenplayId: "screenplay-1",
   name: name,
   personId: personId,
   kind: OcptRoleKind.speaking,
@@ -115,6 +114,7 @@ OcptRole _buildRole({required String id, required String name, String? personId,
   orphanedName: null,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds a location with the few fields these tests read, everything else neutral.
@@ -231,6 +231,30 @@ OcptElement _buildElement({
   roleLinks: const [],
 );
 
+/// Builds a one-scene shot list snapshot for one episode, its scene's own display number already
+/// carrying the `<episode>.<scene>` prefix `OcptShotListService.loadShotList` would have given it —
+/// mirrors `ocpt_schedule_plan_snapshot_test.dart`'s own `_buildEpisodeShotList`.
+OcptShotListSnapshot _buildEpisodeShotList({
+  required String screenplayId,
+  required String sceneId,
+  required String heading,
+  required String displaySceneNumber,
+  required List<OcptShot> shots,
+}) => OcptShotListSnapshot.build(
+  screenplayId: screenplayId,
+  sequences: [
+    OcptSceneShotSequence(
+      sceneId: sceneId,
+      heading: heading,
+      sceneNumber: null,
+      displaySceneNumber: displaySceneNumber,
+      charStart: 0,
+      charEnd: 10,
+      shots: shots,
+    ),
+  ],
+);
+
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
 /// whichever catalogues a test needs — mirrors
 /// `ocpt_shooting_plan_pdf_service_test.dart`'s own `_buildSnapshot`.
@@ -241,16 +265,17 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptElement> elements = const [],
-  OcptShotListSnapshot? shotList,
+  List<OcptShotListSnapshot> shotLists = const [],
+  List<OcptEpisode> episodes = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
-    screenplayId: "screenplay-1",
     days: days,
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,
     eventsByDayId: const {},
   ),
-  shotList: shotList,
+  shotLists: shotLists,
+  episodes: episodes,
   locations: locations,
   roles: roles,
   people: const [],
@@ -413,7 +438,7 @@ void main() {
           blocksByDayId: {
             "day-1": [blockA, blockB],
           },
-          shotList: _buildShotList(shots: [shot1, shot2]),
+          shotLists: [_buildShotList(shots: [shot1, shot2])],
         ),
         dayIds: const ["day-1"],
       );
@@ -435,7 +460,7 @@ void main() {
           slotsByDayId: {
             "day-1": [slot],
           },
-          shotList: _buildShotList(shots: [shot]),
+          shotLists: [_buildShotList(shots: [shot])],
         ),
         dayIds: const ["day-1"],
       );
@@ -532,7 +557,7 @@ void main() {
           blocksByDayId: {
             "day-1": [block],
           },
-          shotList: _buildShotList(shots: [shot]),
+          shotLists: [_buildShotList(shots: [shot])],
           elements: [element],
         ),
         dayIds: const ["day-1", "day-2"],
@@ -566,6 +591,57 @@ void main() {
       );
 
       expect(grids.elementsRows, isEmpty);
+    });
+  });
+
+  group("multiple episodes", () {
+    const episodeOne = OcptEpisode(id: "episode-1", number: 1, title: "");
+    const episodeTwo = OcptEpisode(id: "episode-2", number: 2, title: "");
+
+    test("sequencesRows holds one row per sequence of each episode, prefixed, episode 1 before "
+        "episode 2", () {
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final slotOne = _buildSlot(id: "slot-1", shootingDayId: "day-1");
+      final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1");
+      final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1");
+      final blockOne = _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e1");
+      final blockTwo = _buildBlock(id: "block-2", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e2");
+
+      final grids = buildGrids(
+        plan: _buildSnapshot(
+          days: [day],
+          slotsByDayId: {
+            "day-1": [slotOne],
+          },
+          blocksByDayId: {
+            "day-1": [blockOne, blockTwo],
+          },
+          // [shotLists] is handed in episode order, exactly as `OcptScreenplayService.loadEpisodes`
+          // would hand it to `OcptSchedulePlanSnapshot.build` — the row order below is that
+          // insertion order, read straight off `sceneSequenceBySceneId`, not a re-sort by scene id
+          // or by anything else this model could have picked instead.
+          shotLists: [
+            _buildEpisodeShotList(
+              screenplayId: episodeOne.id,
+              sceneId: "scene-e1",
+              heading: "INT. HOUSE - DAY",
+              displaySceneNumber: "1.3",
+              shots: [shotOne],
+            ),
+            _buildEpisodeShotList(
+              screenplayId: episodeTwo.id,
+              sceneId: "scene-e2",
+              heading: "EXT. STREET - NIGHT",
+              displaySceneNumber: "2.4",
+              shots: [shotTwo],
+            ),
+          ],
+          episodes: const [episodeOne, episodeTwo],
+        ),
+        dayIds: const ["day-1"],
+      );
+
+      expect(grids.sequencesRows.map((row) => row.label), ["Seq. 1.3", "Seq. 2.4"]);
     });
   });
 }

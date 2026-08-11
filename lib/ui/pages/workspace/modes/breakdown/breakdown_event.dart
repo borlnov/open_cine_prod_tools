@@ -712,16 +712,22 @@ class OcptBreakdownSheetsExportRequestedEvent extends OcptBreakdownEvent {
   /// The localized label of the `.pdf` file type, shown by the native save dialog.
   final String fileTypeLabel;
 
+  /// The selected episode's own tag (`ep. 2`), resolved by `OcptBreakdownMode` from
+  /// `OcptWorkspaceBloc.state.episodes`/`.selectedEpisodeId` and null while the open project holds
+  /// one episode or none — see `ocptWorkspaceEpisodeExportTagOf`.
+  final String? episodeTag;
+
   /// Class constructor
   const OcptBreakdownSheetsExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.episodeTag,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, episodeTag];
 }
 
 /// Requests exporting the whole breakdown as a two-sheet XLSX workbook, dispatched by the mode's
@@ -741,12 +747,20 @@ class OcptBreakdownXlsxExportRequestedEvent extends OcptBreakdownEvent {
   /// The localized label of the `.xlsx` file type, shown by the native save dialog.
   final String fileTypeLabel;
 
+  /// The selected episode's own tag, exactly as
+  /// [OcptBreakdownSheetsExportRequestedEvent.episodeTag] is — see its own doc comment.
+  final String? episodeTag;
+
   /// Class constructor
-  const OcptBreakdownXlsxExportRequestedEvent({required this.labels, required this.fileTypeLabel});
+  const OcptBreakdownXlsxExportRequestedEvent({
+    required this.labels,
+    required this.fileTypeLabel,
+    this.episodeTag,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag];
 }
 
 /// Dismisses the transient export notice currently shown, if any.

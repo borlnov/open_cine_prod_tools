@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_unavaila
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_elements_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_episodes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_row_field_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scene_breakdowns_table.dart';
@@ -118,7 +119,12 @@ part 'ocpt_project_database.g.dart';
 /// restated, from a second source of truth, what `person_unavailabilities` already says in the
 /// resources mode. As with every other column and table this app has migrated away from, nothing is
 /// reconstructed — an override that said `travelling` does not become anything on the other side of
-/// the migration. `OcptProjectsManager` owns the single instance open at a time.
+/// the migration. Schema version 18 is what makes a screenplay row an episode
+/// (`docs/adr/0019-one-project-several-episodes.md`): `screenplays` gains `number` (printed) and
+/// `sortKey` (what actually orders the episodes), a role stops belonging to any one screenplay and
+/// [OcptRoleEpisodesTable] takes over saying which episodes name it, and `shooting_days` stops
+/// naming a screenplay at all — a day regularly covers two episodes at one location, which is the
+/// whole point of a shared schedule. `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -142,6 +148,7 @@ part 'ocpt_project_database.g.dart';
     OcptElementsTable,
     OcptSceneElementsTable,
     OcptRoleElementsTable,
+    OcptRoleEpisodesTable,
     OcptAssetsTable,
     OcptLocalErasuresTable,
     OcptBreakdownTagsTable,
@@ -223,7 +230,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   /// The database options used by this database.
   ///
@@ -318,13 +325,33 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// presence grid's click-through override restated, from a second source of truth, what
   /// `person_unavailabilities` already says in the resources mode, and nothing is reconstructed from
   /// it — an override that said `travelling` does not become anything on the other side of this
-  /// migration. Every step is additive, as
+  /// migration. From 17 to 18 it lands the whole of `docs/adr/0019-one-project-several-episodes.md`
+  /// in one step, in an order that matters: it adds `screenplays.number` and `screenplays.sortKey`
+  /// unconditionally (`screenplays` has existed, and been alterable, since version 1), then numbers
+  /// every **live** screenplay `1..n` in `id` order and gives each the matching
+  /// [ocptFractionalKeySequence] key (see [_numberExistingScreenplays]) — a tombstoned row keeps the
+  /// column defaults, [_backfillSetCodes] being the precedent for touching live rows only. A file
+  /// reaching this step has, in practice, always held exactly one screenplay, so this is simply
+  /// "that screenplay is episode 1"; the general form is only what makes the answer deterministic —
+  /// two replicas migrating the same file landing on the same numbering — if it ever holds more than
+  /// one. It then creates [OcptRoleEpisodesTable] (both tables it references, `roles` and
+  /// `screenplays`, exist by version 6 at the latest, and a file older than that has just had
+  /// `roles` created fresh above, so this is never a forward reference) and, guarded by `from >= 6`
+  /// for the reason [_deriveRoleEpisodes] states, derives a `role_episodes` row from every **live**
+  /// `roles` row's own `screenplayId` — the column the very next step drops — before dropping it: a
+  /// role has exactly one episode at this point, so the derivation is lossless, and it is the only
+  /// one in this whole migration that materialises nothing and guesses nothing (see that method's
+  /// own doc comment for why its link ids aren't fresh UUIDs). Finally it drops `roles.screenplayId`
+  /// (guarded `from >= 6`) and `shooting_days.screenplayId` (guarded `from >= 11`) through
+  /// [_alterRoleAndShootingDayTablesToV18] — a role belongs to the production now, and a day never
+  /// named one episode more truthfully than it names all of them, a shooting day regularly covering
+  /// two at once. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
-  /// and table drops, version 14's rename, and version 17's own table drop, none of which a plain
-  /// `addColumn` can express, which is why all four reshape existing tables through
-  /// [Migrator.alterTable]/[Migrator.deleteTable] instead.
+  /// and table drops, version 14's rename, version 17's own table drop, and version 18's own two
+  /// column drops, none of which a plain `addColumn` can express, which is why all five reshape
+  /// existing tables through [Migrator.alterTable]/[Migrator.deleteTable] instead.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -494,6 +521,29 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // mode, and nothing here is reconstructed from it — an override that said `travelling`
         // does not become anything on the other side of this migration.
         await m.deleteTable('shooting_presences');
+      }
+
+      if (from < 18) {
+        // `screenplays` has existed, and been alterable, since version 1: no guard needed, exactly
+        // as `project_info.minimumRestMinutes` above needed none.
+        await m.addColumn(ocptScreenplaysTable, ocptScreenplaysTable.number);
+        await m.addColumn(ocptScreenplaysTable, ocptScreenplaysTable.sortKey);
+        await _numberExistingScreenplays();
+
+        // Both tables it references, `roles` and `screenplays`, exist by version 6 at the latest —
+        // `screenplays` since version 1, `roles` created fresh just above for a file older than 6 —
+        // so this is never a forward reference.
+        await m.createTable(ocptRoleEpisodesTable);
+
+        // Must run before the `roles.screenplayId` drop just below: it is the column this derives
+        // from. Guarded by `from >= 6` for the reason [_deriveRoleEpisodes] itself states — a file
+        // older than that has just had `roles` created fresh, empty and already without the column,
+        // so there is nothing to derive.
+        if (from >= 6) {
+          await _deriveRoleEpisodes();
+        }
+
+        await _alterRoleAndShootingDayTablesToV18(m, from: from);
       }
     },
     beforeOpen: (details) async {
@@ -770,6 +820,110 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         },
       ),
     );
+  }
+
+  /// Numbers every **live** `screenplays` row `1..n`, in `id` order, and gives each the matching
+  /// [ocptFractionalKeySequence] key, on the way to schema version 18. `id` is the same tie-break
+  /// [_assignOrphanBlocksToFirstSlot] gives its own for the same reason: it is deterministic, so two
+  /// replicas migrating the same file land on the same numbering rather than two disagreeing ones.
+  ///
+  /// A tombstoned row is left at the column defaults ([_backfillSetCodes] is the precedent for
+  /// touching only live rows): a deleted screenplay was never going to be episode anything.
+  ///
+  /// A file reaching this step has, in practice, always held exactly one screenplay — every build
+  /// before schema version 18 only ever created one — so this is, concretely, "that screenplay is
+  /// episode 1". The general `1..n` form exists only to make the answer deterministic should a file
+  /// ever hold more than one, which nothing before this version could produce but a restored payload
+  /// or a hand-edited file conceivably could.
+  ///
+  /// Written in raw SQL rather than through the generated API, for the reason [_backfillSortKeys]
+  /// gives.
+  Future<void> _numberExistingScreenplays() async {
+    final rows = await customSelect(
+      'SELECT id FROM screenplays WHERE is_deleted = 0 ORDER BY id',
+    ).get();
+
+    final keys = ocptFractionalKeySequence(rows.length);
+    for (var i = 0; i < rows.length; i++) {
+      await customStatement('UPDATE screenplays SET number = ?, sort_key = ? WHERE id = ?', [
+        i + 1,
+        keys[i],
+        rows[i].data['id'],
+      ]);
+    }
+  }
+
+  /// Inserts a `role_episodes` row for every **live** `roles` row, on the way to schema version 18:
+  /// `role_id` names the role, `screenplay_id` is that very role's own `screenplayId` — the column
+  /// [_alterRoleAndShootingDayTablesToV18] drops right after this runs — and, the one judgement call
+  /// this migration makes on its own, **the link's `id` is the role's own id**.
+  ///
+  /// A role has exactly one episode at this point in the migration: the column about to be dropped
+  /// and the table just created both say the same single fact, which is what makes reusing the
+  /// role's id safe — it is unique here — and useful — it is deterministic, so two replicas
+  /// migrating the same file produce the same `role_episodes` row rather than two a later merge
+  /// would have to reconcile. This is the same reasoning [_assignOrphanBlocksToFirstSlot] gives for
+  /// its own tie-break, and `docs/adr/0019-one-project-several-episodes.md` gives for this one. It
+  /// needs no `row_field_versions` stamp for the same reason [_eraseLegacyShootingDays] needs none:
+  /// every replica performs the same deterministic derivation.
+  ///
+  /// This is the **only lossless step** the whole schema version 18 migration takes: nothing here is
+  /// materialised out of nothing (the way `screenplays.number` is) and nothing is discarded (the way
+  /// `shooting_days.screenplayId` is) — the fact `roles.screenplayId` already carries is simply
+  /// rewritten into the shape `role_episodes` holds it in from here on. A tombstoned role gets no
+  /// link: it named no episode worth carrying forward, tombstoned or not.
+  ///
+  /// Guarded by `from >= 6` at its call site: a file older than that has just had `roles` created
+  /// fresh, empty and already without a `screenplayId` column, so there is nothing here to derive
+  /// from. **Must run before** the `roles.screenplayId` column is dropped.
+  ///
+  /// Written in raw SQL rather than through the generated API, for the reason [_backfillSortKeys]
+  /// gives.
+  Future<void> _deriveRoleEpisodes() async {
+    final rows = await customSelect('SELECT id, screenplay_id FROM roles WHERE is_deleted = 0').get();
+
+    for (final row in rows) {
+      await customStatement(
+        'INSERT INTO role_episodes (id, role_id, screenplay_id) VALUES (?, ?, ?)',
+        [row.data['id'], row.data['id'], row.data['screenplay_id']],
+      );
+    }
+  }
+
+  /// Drops `roles.screenplayId` (guarded `from >= 6`) and `shooting_days.screenplayId` (guarded
+  /// `from >= 11`), on the way to schema version 18 — the same [Migrator.alterTable]/
+  /// `TableMigration` recipe [_alterScheduleTablesToV13] uses, and for the same reason: drift's
+  /// migrator has no plain "drop column" step. Neither call passes `newColumns`, since nothing is
+  /// being added, only dropped — the stock rewrite (create the current shape under a temporary name,
+  /// copy the columns that still exist, drop the old table, rename the temporary one) is all either
+  /// table needs.
+  ///
+  /// Each guard mirrors the table's own creation point in this migration: a file below 6 has just
+  /// had `roles` created fresh above, from the current (already column-less) declaration, and one
+  /// below 11 has just had `shooting_days` created the same way — only a file that genuinely carried
+  /// the column this far still has one for this to drop.
+  ///
+  /// [_deriveRoleEpisodes] must already have run for `roles` by the time this is called — see the
+  /// call site in [migration]. Nothing is reconstructed here: a role simply stops naming a
+  /// screenplay of its own (the production names it now, through `role_episodes`), and a day comes
+  /// back with everything it held, simply belonging to no episode any more.
+  Future<void> _alterRoleAndShootingDayTablesToV18(Migrator m, {required int from}) async {
+    if (from >= 6) {
+      await m.alterTable(
+        // TableMigration is drift's documented, if still @experimental, recipe for a column drop:
+        // see the method's own doc comment.
+        // ignore: experimental_member_use
+        TableMigration(ocptRolesTable),
+      );
+    }
+
+    if (from >= 11) {
+      await m.alterTable(
+        // Same as above.
+        // ignore: experimental_member_use
+        TableMigration(ocptShootingDaysTable),
+      );
+    }
   }
 
   /// Writes a `sortKey` onto every `shots` and `shot_characters` row that predates schema version

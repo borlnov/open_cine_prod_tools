@@ -34,6 +34,16 @@ described in that mode's file.
   display toggles, its page setup and its title page; the other four modes keep `Reset panel layout`
   alone, which is thin but honest.
 
+- A suggested file name is built in one place, `ocptExportFileNameOf`
+  (`lib/managers/export/services/ocpt_export_file_name.dart`):
+  `<projectName>[ - <suffix>][ - <episodeTag>].<extension>`, each part dropped rather than leaving a
+  dangling `" - "`. The **episode tag** (`ep. 2`) comes last, right before the extension, and is
+  present **only while the project holds more than one episode** (ADR 0019) — the exports scoped to
+  the selected episode (the screenplay PDF, the coverage, the shot list workbook, the breakdown
+  sheets and workbook) would otherwise overwrite each other when two episodes are saved into one
+  folder. It is the rule `OcptSidesPdfService.sidesFileName`'s own day tag already followed, for the
+  same reason.
+
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
   app: the native open dialog, and fifteen services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),

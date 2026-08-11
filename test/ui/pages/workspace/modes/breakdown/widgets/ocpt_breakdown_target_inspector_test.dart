@@ -58,6 +58,7 @@ OcptBreakdownScene _buildScene({
   status: OcptBreakdownSceneStatus.toDo,
   notes: "",
   tags: tags,
+  episodeNumber: null,
 );
 
 /// Builds a live tag pointing at [targetKind]/[targetId], the passage [taggedText].

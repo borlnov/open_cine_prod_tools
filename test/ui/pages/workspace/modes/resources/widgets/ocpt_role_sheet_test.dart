@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -73,9 +74,9 @@ OcptRole _role({
   String? orphanedName,
   String castingNotes = "",
   int number = 3,
+  List<String> episodeIds = const [],
 }) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: personId,
   kind: kind,
@@ -83,7 +84,14 @@ OcptRole _role({
   orphanedName: orphanedName,
   castingNotes: castingNotes,
   number: number,
+  episodeIds: episodeIds,
 );
+
+/// Two episodes the episodes-card tests toggle chips over.
+const _episodes = [
+  OcptEpisode(id: "ep-1", number: 1, title: "Le départ"),
+  OcptEpisode(id: "ep-2", number: 2, title: ""),
+];
 
 /// An element the things card reads and its picker offers.
 OcptElement _element({
@@ -141,6 +149,7 @@ Widget _buildSheet({
   List<OcptRole> otherRoles = const [],
   List<OcptPerson> people = const [],
   List<OcptElement> elements = const [],
+  List<OcptEpisode> episodes = const [],
   bool isReadOnly = false,
   void Function(OcptRoleField field, String rawValue)? onFieldChanged,
   ValueChanged<String?>? onCastChanged,
@@ -151,6 +160,7 @@ Widget _buildSheet({
   ValueChanged<String>? onElementLinked,
   void Function(String id, String notes)? onRoleElementUpdated,
   ValueChanged<String>? onRoleElementRemoved,
+  ValueChanged<Set<String>>? onEpisodesChanged,
 }) => _wrapInApp(
   OcptRoleSheet(
     role: role,
@@ -158,6 +168,7 @@ Widget _buildSheet({
     otherRoles: otherRoles,
     people: people,
     elements: elements,
+    episodes: episodes,
     removedRoleAlert: OcptRemovedRoleAlert.of(role),
     isReadOnly: isReadOnly,
     fieldValueOf: (field) => switch (field) {
@@ -173,6 +184,7 @@ Widget _buildSheet({
     onElementLinked: onElementLinked ?? (elementId) {},
     onRoleElementUpdated: onRoleElementUpdated ?? (id, notes) {},
     onRoleElementRemoved: onRoleElementRemoved ?? (id) {},
+    onEpisodesChanged: onEpisodesChanged ?? (episodeIds) {},
   ),
 );
 
@@ -566,5 +578,89 @@ void main() {
     // …while the picker and the unlink control are withheld, not disabled.
     expect(find.text(tr.resourcesAddElementToRoleAction), findsNothing);
     expect(find.byIcon(Icons.close), findsNothing);
+  });
+
+  testWidgets("the episodes card is absent on a single-episode project", (tester) async {
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(episodeIds: const ["ep-1"]),
+        episodes: const [OcptEpisode(id: "ep-1", number: 1, title: "")],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    expect(find.text(tr.resourcesRoleEpisodesCardTitle), findsNothing);
+    expect(find.byType(FilterChip), findsNothing);
+  });
+
+  testWidgets("a from-screenplay role's chips are present and not tappable", (tester) async {
+    await tester.pumpWidget(
+      _buildSheet(role: _role(episodeIds: const ["ep-1"]), episodes: _episodes),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    expect(find.text(tr.resourcesRoleEpisodesCardTitle), findsOneWidget);
+    expect(find.text("1. Le départ"), findsOneWidget);
+    expect(find.text(tr.workspaceEpisodeUntitledLabel(2)), findsOneWidget);
+
+    final chips = tester.widgetList<FilterChip>(find.byType(FilterChip));
+    expect(chips, hasLength(2));
+    for (final chip in chips) {
+      expect(chip.onSelected, isNull);
+    }
+  });
+
+  testWidgets("a hand-added role's chips toggle and report the new set", (tester) async {
+    final reported = <Set<String>>[];
+
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(kind: OcptRoleKind.extra, isFromScreenplay: false, episodeIds: const ["ep-1"]),
+        episodes: _episodes,
+        onEpisodesChanged: reported.add,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+
+    // Episode 2 isn't checked yet: toggling it on adds it to the set already holding episode 1.
+    await tester.tap(find.text(tr.workspaceEpisodeUntitledLabel(2)));
+    await tester.pumpAndSettle();
+    expect(reported, [
+      {"ep-1", "ep-2"},
+    ]);
+
+    // Episode 1 is checked: toggling it off drops it, whatever [reported] already holds.
+    await tester.tap(find.text("1. Le départ"));
+    await tester.pumpAndSettle();
+    expect(reported, [
+      {"ep-1", "ep-2"},
+      <String>{},
+    ]);
+  });
+
+  testWidgets("a read-only preview withholds the episodes card's affordance", (tester) async {
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(kind: OcptRoleKind.extra, isFromScreenplay: false, episodeIds: const ["ep-1"]),
+        episodes: _episodes,
+        isReadOnly: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    // What only reads stays: the card and its chips are still there…
+    expect(find.text(tr.resourcesRoleEpisodesCardTitle), findsOneWidget);
+    expect(find.text("1. Le départ"), findsOneWidget);
+    // …while every chip is withheld, not disabled.
+    final chips = tester.widgetList<FilterChip>(find.byType(FilterChip));
+    expect(chips, hasLength(2));
+    for (final chip in chips) {
+      expect(chip.onSelected, isNull);
+    }
   });
 }

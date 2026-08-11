@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -41,6 +42,7 @@ void main() {
     shotCoverageService: OcptShotCoverageService(),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
+    scheduleService: OcptScheduleService(),
   );
   const screenplayId = "screenplay-1";
 
@@ -766,6 +768,7 @@ Action two.
         final loaded = await breakdownService.loadScenes(
           database: database,
           screenplayId: screenplayId,
+          episodeNumber: null,
         );
 
         expect(loaded.map((scene) => scene.id), [houseScene.id, streetScene.id]);
@@ -809,6 +812,7 @@ Action two.
       final loaded = await breakdownService.loadScenes(
         database: database,
         screenplayId: screenplayId,
+        episodeNumber: null,
       );
 
       expect(loaded.any((scene) => scene.id == streetScene.id), isFalse);
@@ -832,10 +836,42 @@ Action two.
       final loaded = await breakdownService.loadScenes(
         database: database,
         screenplayId: screenplayId,
+        episodeNumber: null,
       );
 
       expect(loaded.single.status, OcptBreakdownSceneStatus.toDo);
       expect(loaded.single.notes, "");
+    });
+
+    test("carries the given episode number onto every scene's displayNumber", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final loadedWithoutEpisode = await breakdownService.loadScenes(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
+      expect(loadedWithoutEpisode.map((scene) => scene.displayNumber), ["1", "2"]);
+
+      final loadedWithEpisode = await breakdownService.loadScenes(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: 2,
+      );
+      expect(loadedWithEpisode.map((scene) => scene.displayNumber), ["2.1", "2.2"]);
     });
   });
 
@@ -1157,7 +1193,6 @@ Action two three.
         .insert(
           OcptRolesTableCompanion.insert(
             id: "role-1",
-            screenplayId: screenplayId,
             name: "LÉA",
             kind: OcptRoleKind.silent,
           ),

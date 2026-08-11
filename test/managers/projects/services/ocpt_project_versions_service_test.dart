@@ -61,6 +61,7 @@ void main() {
     shotCoverageService: OcptShotCoverageService(),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
+    scheduleService: scheduleService,
   );
   const service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
   const screenplayId = "screenplay-1";
@@ -141,7 +142,7 @@ void main() {
         ),
       );
 
-  /// Inserts the shooting day [id] of the project's screenplay, tombstoned when [isDeleted].
+  /// Inserts the shooting day [id], belonging to no episode, tombstoned when [isDeleted].
   Future<void> insertShootingDay({
     required String id,
     DateTime? date,
@@ -152,7 +153,6 @@ void main() {
       .insert(
         OcptShootingDaysTableCompanion.insert(
           id: id,
-          screenplayId: screenplayId,
           date: date ?? DateTime.utc(2026, 3, 10),
           sortKey: Value(sortKey),
           isDeleted: Value(isDeleted),
@@ -835,6 +835,7 @@ void main() {
                   personSkills: payload.personSkills,
                   personUnavailabilities: payload.personUnavailabilities,
                   roles: payload.roles,
+                  roleEpisodes: payload.roleEpisodes,
                   locations: payload.locations,
                   locationAvailabilities: payload.locationAvailabilities,
                   sets: payload.sets,
@@ -954,7 +955,6 @@ void main() {
           .insert(
             OcptRolesTableCompanion.insert(
               id: "role-1",
-              screenplayId: screenplayId,
               name: "CLARA",
               kind: OcptRoleKind.speaking,
             ),
@@ -1014,6 +1014,72 @@ void main() {
       )..where((table) => table.id.equals("link-2"))).getSingle();
       expect(later.isDeleted, isTrue);
     });
+
+    test(
+      "a role's episode links come back, and one made since is tombstoned like any other row",
+      () async {
+        await database
+            .into(database.ocptRolesTable)
+            .insert(
+              OcptRolesTableCompanion.insert(
+                id: "role-1",
+                name: "CLARA",
+                kind: OcptRoleKind.speaking,
+              ),
+            );
+        await database
+            .into(database.ocptRoleEpisodesTable)
+            .insert(
+              OcptRoleEpisodesTableCompanion.insert(
+                id: "link-1",
+                roleId: "role-1",
+                screenplayId: screenplayId,
+              ),
+            );
+
+        final version = await createVersion();
+
+        // Diverge: a second episode link is made since — as if the character had started
+        // speaking in a second episode of the same production.
+        await database
+            .into(database.ocptScreenplaysTable)
+            .insert(
+              OcptScreenplaysTableCompanion.insert(
+                id: "screenplay-2",
+                title: "Episode 2",
+                fountainText: const Value(""),
+                updatedAt: DateTime.utc(2026, 1, 6),
+              ),
+            );
+        await database
+            .into(database.ocptRoleEpisodesTable)
+            .insert(
+              OcptRoleEpisodesTableCompanion.insert(
+                id: "link-2",
+                roleId: "role-1",
+                screenplayId: "screenplay-2",
+              ),
+            );
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        final restored = await (database.select(
+          database.ocptRoleEpisodesTable,
+        )..where((table) => table.id.equals("link-1"))).getSingle();
+        expect(restored.roleId, "role-1");
+        expect(restored.screenplayId, screenplayId);
+        expect(restored.isDeleted, isFalse);
+
+        // The link the version never held is tombstoned, not deleted, exactly like every other
+        // row a payload doesn't carry.
+        final later = await (database.select(
+          database.ocptRoleEpisodesTable,
+        )..where((table) => table.id.equals("link-2"))).getSingle();
+        expect(later.isDeleted, isTrue);
+      },
+    );
 
     test("stamps a resources column it changed, above what it already held", () async {
       await database
@@ -1271,10 +1337,7 @@ void main() {
 
         // And the schedule mode reads the guest and the event back exactly the way they were
         // written.
-        final restoredSnapshot = await scheduleService.loadSchedule(
-          database: database,
-          screenplayId: screenplayId,
-        );
+        final restoredSnapshot = await scheduleService.loadSchedule(database: database);
         expect(
           restoredSnapshot.slotsByDayId["day-1"]!.first.guests.single.freeName,
           "Le maire",

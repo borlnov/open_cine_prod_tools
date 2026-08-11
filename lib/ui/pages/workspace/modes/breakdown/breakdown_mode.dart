@@ -45,6 +45,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
@@ -93,8 +94,12 @@ class OcptBreakdownMode extends StatelessWidget {
   const OcptBreakdownMode({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptBreakdownBloc(), child: const _BreakdownView());
+  Widget build(BuildContext context) => BlocProvider(
+    create: (context) => OcptBreakdownBloc(
+      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+    ),
+    child: const _BreakdownView(),
+  );
 }
 
 /// The content of [OcptBreakdownMode], separated from it so [OcptBreakdownMode] only wires the
@@ -149,11 +154,18 @@ class _BreakdownViewState extends State<_BreakdownView> {
         return const Center(child: CircularProgressIndicator());
       }
 
+      final workspaceState = context.watch<OcptWorkspaceBloc>().state;
+
       return OcptWorkspaceShell(
         title: state.title,
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptBreakdownBloc>().add(const OcptBreakdownBackRequestedEvent()),
+        episodes: workspaceState.episodes,
+        selectedEpisodeId: workspaceState.selectedEpisodeId,
+        onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+          OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+        ),
         modeLabel: Tr.of(context).workspaceModeLabelBreakdown,
         onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context),
@@ -271,6 +283,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         options: options,
         labels: ocptBreakdownSheetsLabelsOf(tr, state.scenes),
         fileTypeLabel: tr.breakdownExportSheetsFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
     );
   }
@@ -285,7 +298,20 @@ class _BreakdownViewState extends State<_BreakdownView> {
       OcptBreakdownXlsxExportRequestedEvent(
         labels: ocptBreakdownXlsxLabelsOf(tr),
         fileTypeLabel: tr.breakdownExportXlsxFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
+    );
+  }
+
+  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
+  /// exactly as every other localized export payload already is.
+  String? _episodeExportTag(BuildContext context) {
+    final workspaceState = context.read<OcptWorkspaceBloc>().state;
+    return ocptWorkspaceEpisodeExportTagOf(
+      context: context,
+      episodes: workspaceState.episodes,
+      selectedEpisodeId: workspaceState.selectedEpisodeId,
     );
   }
 
@@ -318,8 +344,13 @@ class _BreakdownViewState extends State<_BreakdownView> {
 
   /// Opens the project settings page, then reloads the mode's own read if the user changed
   /// anything there.
+  ///
+  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
+  /// card can add or delete one, which the workspace bloc otherwise only learns about from
+  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire.
   Future<void> _requestProjectSettings(BuildContext context) async {
     final bloc = context.read<OcptBreakdownBloc>();
+    final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
     );
@@ -328,6 +359,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     }
 
     bloc.add(const OcptBreakdownProjectSettingsChangedEvent());
+    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
   /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.

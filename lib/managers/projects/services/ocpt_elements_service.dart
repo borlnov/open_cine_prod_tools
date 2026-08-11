@@ -622,6 +622,31 @@ class OcptElementsService {
     const OcptRoleElementsTableCompanion(isDeleted: Value(true)),
   );
 
+  /// Tombstones every live `scene_elements` row naming any of [sceneIds]: `scene_elements` is this
+  /// service's table, not `OcptBreakdownService`'s, so its own cascade
+  /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
+  /// writing the table itself — the element these links point at is, of course, untouched.
+  ///
+  /// **Unguarded**, exactly as [tombstoneRoleLinksOfRole] is: its only caller has already refused
+  /// the write on a preview connection and is already inside the transaction removing the episode,
+  /// so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> tombstoneSceneElementsOfScenes({
+    required OcptProjectDatabase database,
+    required List<String> sceneIds,
+  }) async {
+    if (sceneIds.isEmpty) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptSceneElementsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds))).write(
+      const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
   /// Every live `scene_elements` row of scene [sceneId].
   Future<List<OcptSceneElementRow>> sceneElementsOfScene({
     required OcptProjectDatabase database,

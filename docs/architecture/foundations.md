@@ -7,8 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 # Architecture — the foundations
 
 The layers every task crosses: the managers, the routing, the BLoC pattern, the workspace
-shell, the app-wide look, the packaging, and the four things every mode inherits — the
-persistence, the project versions, the sync-ready data model and the read-only preview.
+shell and the episode it shows, the app-wide look, the packaging, and the four things every
+mode inherits — the persistence, the project versions, the sync-ready data model and the
+read-only preview.
 
 - `OcptGlobalManager extends AbsUiGlobalManager` owns every manager; managers are
   `AbsWithLifeCycle` classes registered with builder factories (`dependsOn` ordering) and
@@ -24,8 +25,9 @@ persistence, the project versions, the sync-ready data model and the read-only p
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
 
 - Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
-  state is `{ OcptWorkspaceMode mode, bool isLoading, OcptWorkspaceRevealRequest? revealRequest }` —
-  it owns *which* production mode is active, nothing about that mode's own content.
+  state is `{ OcptWorkspaceMode mode, bool isLoading, OcptWorkspaceRevealRequest? revealRequest,
+  List<OcptEpisode> episodes, String? selectedEpisodeId }` — it owns *which* production mode is
+  active and *which episode* it shows, nothing about that mode's own content.
   `OcptWorkspaceMode { screenplay, breakdown, shotList, resources, schedule, budget }` is ordered by
   the order the work happens in (write, break down, shoot-list, resource, schedule) with the one
   unimplemented mode last, and is persisted through `OcptPropertiesManager.workspaceMode` by
@@ -42,15 +44,91 @@ persistence, the project versions, the sync-ready data model and the read-only p
   two dock toggles (`isLeftDockOpen`/`onToggleLeftDock`, same pair for the right), the save control
   (`onSave`/`isSaving`, spinner while in flight), then the `⋮` menu — each rendered only when the
   mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's own
-  `toolbarActions` sit before that group. Two further slots serve the read-only preview of a project
-  version: `isReadOnly`, which swaps the unsaved-changes dot for the `Read only` pill, and `banner`,
-  a full-width widget between the toolbar and the docks row (`OcptWorkspaceReadOnlyBanner` fills
+  `toolbarActions` sit before that group, and the **episode selector** is the shell's own chrome at
+  the *other* end, right after the project title, for the same reason (below). Two further slots
+  serve the read-only preview of a project version: `isReadOnly`, which swaps the unsaved-changes
+  dot for the `Read only` pill, and `banner`, a full-width widget between the toolbar and the docks
+  row (`OcptWorkspaceReadOnlyBanner` fills
   it) — everything else a preview withholds is each mode's own job, since only a mode knows what its
   affordances are. `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
   `OcptWorkspaceDockLayoutController` (`lib/ui/pages/workspace/widgets/`) are the dock geometry
   primitives every mode's shell reuses; `OcptWorkspaceModeSwitcher` is the bottom band that selects
   the mode (all entries always selectable, unimplemented ones only discreetly marked). See
   `docs/adr/` for why this is a slot widget plus a mode-only bloc rather than a mode-aware god-bloc.
+
+- One project, several episodes (ADR 0019): a series, a mini-series and a feature shot in two parts
+  are one production with several screenplays — one crew, one address book, one set of locations,
+  one schedule. **A `screenplays` row *is* an episode**: it gains `number` (an ordinary integer, the
+  one that prints, with no uniqueness constraint — two episodes numbered 4 is a state the user
+  reaches and repairs by hand) and `sortKey` (what actually orders them, as everywhere else). There
+  is no `episodes` table, which would be a 1:1 indirection nothing reads. `OcptEpisode`
+  (`lib/models/`, pure: `id`, `number`, `title`) is how the UI reads one, an **untitled** episode
+  being ordinary — a series is numbered long before it is titled, and `ocptWorkspaceEpisodeLabelOf`
+  (`lib/ui/utils/`) is the single place `Episode 3` is worded from. `OcptScreenplayService` owns the
+  CRUD (`loadEpisodes`, `createEpisode`, `updateEpisode`, `reorderEpisode`, `deleteEpisode`): a
+  screenplay *is* an episode, so no service of its own was added for one.
+  The **selector** is built by `OcptWorkspaceShell` itself from `episodes`/`selectedEpisodeId`/
+  `onEpisodeSelected`, so the gesture cannot drift from one mode to the next, and its nullable
+  callback is the whole of its conditional behaviour: **no control is drawn at all** — never a
+  disabled one, the budget mode's missing `Export` button being the precedent — for a project with
+  a single episode, and for the **schedule mode**, which reads every episode at once and would
+  otherwise show a selector that either does nothing or lies. The menu only ever *chooses*; its last
+  entry, `Manage episodes…`, lands on `OcptProjectSettingsPage`.
+  That one toolbar slot holds **either** the selector **or**, for a project with a single episode,
+  the screenplay mode's `Add an episode…` button (`onAddEpisodeRequested`, wired by that mode alone)
+  — the only thing naming an episode on a project that has one, and the answer to a feature nobody
+  could find: the settings page's `Episodes` card was reachable only by someone already looking for
+  it. It is the screenplay mode's because that is where an episode is written, one button in the
+  whole app being a discovery rather than a recurring offer, and it is withheld under a version
+  preview like every other way into the settings. It leads there rather than creating anything: the
+  number and the title are set in the same gesture, and a misclick writes nothing.
+  **The selection is not persisted**:
+  opening a project lands on the first episode, a reading preference costing nothing to lose where a
+  per-project key would have to live either in `OcptPropertiesManager` (keyed by a path that moves)
+  or in `project_info` (which versions capture and hash).
+  **Switching episode remounts the mode**: the selection lives in `OcptWorkspaceBloc` and
+  `WorkspacePage` keys the mode widget on it, so a fresh mode bloc loads from scratch. This is
+  deliberate — a mode's state is full of things scoped to what it was showing (a selected shot, an
+  open tag anchor, a scroll position, a debounced field edit), and it reuses unchanged the
+  flush-on-leaving-the-tree path each mode already has for the version preview, so a pending write
+  reaches the working copy before the new episode is read. The stated cost is that **the current
+  selection is lost on every switch**.
+  The screenplay, breakdown, shot list and resources modes read the selected episode where they read
+  `primaryScreenplayId` before; that field survives as what its name says — the first episode's
+  screenplay, which the home page's "import a screenplay" path needs when it creates a project — and
+  is no longer what a mode reaches for. The schedule reads them all.
+  **The sequence prefix is one rule with one implementation**: `ocptSceneDisplayNumberOf`
+  (`lib/utils/`, pure and tested) renders `<episode>.<scene>` as soon as the project holds more than
+  one episode, and a **null `episodeNumber` means "this project has one episode"**, returning
+  `sceneNumber ?? "${position + 1}"` verbatim. Every reader calls it rather than restating it
+  (`OcptSceneRef`, `OcptBreakdownScene`, `OcptShotListService` and
+  `OcptSchedulePlanSnapshot.sceneNumberBySceneId`), and a shot's `<sceneNumber>/<rank>` code follows
+  without `OcptShot` changing at all — `ocptShotSceneNumberOf`/`ocptShotRankOf` split on the last
+  `/`, so `2.12/3` still gives `2.12` and `3`. **The screenplay itself is never prefixed** — not the
+  styled editor's computed numbers, not the raw preview, not the screenplay PDF, not the coverage
+  export, not the sides: the `#N#` numbers are the author's, and rewriting them at print time would
+  print something other than the screenplay. The episode is named beside the page instead.
+  Episodes are managed from the project settings page's own `Episodes` card
+  (`OcptProjectSettingsEpisodesSection`) — the list, an add action, inline rename, `▲`/`▼` reorder,
+  and a delete going through `OcptConfirmDialog` like every irreversible action. A caller that sent
+  the user there **for that card** says so through the route's `extra`
+  (`OcptProjectSettingsReveal`), and the page scrolls to it once its settings have loaded — landing
+  at the top of four stacked cards would break the promise the button that led there just made; a
+  page opened plainly passes null and scrolls nowhere. That dialog says
+  what it takes (the screenplay, its snapshots, its scenes, its shots and coverages, its breakdown,
+  and the `role_episodes` links naming it) and what it leaves: the people, the locations, the
+  elements and **the shooting days**, which were never that episode's — a block that placed one of
+  its shots is tombstoned with the shot, the day it sat on is not.
+  A project's episode count is also read outside the workspace: `OcptRecentProjectModel.episodeCount`
+  is recorded by `OcptProjectsManager` as it changes and on leaving a project, and
+  `OcptProjectCard` wears a `⟨N episodes⟩` pill for it — **null** (an entry written before the app
+  recorded it) and **1** both draw nothing.
+  **A single-episode project is exactly what it was before**: one screenplay numbered 1, no
+  selector, no prefix, nothing anywhere reading as an episode of something. That is a standing
+  constraint on every surface this feature touches, not a transitional state. Its one deliberate
+  exception is the screenplay toolbar's `Add an episode…` button above, which names no episode —
+  it offers to *make* the project a series, and is the only door to a feature that otherwise
+  advertises itself nowhere.
 
 - Cross-mode navigation: a mode sending the user to another one *for a reason* (the breakdown's
   `Open in Resources`, meaning "this very element, over there") attaches an
@@ -130,15 +208,23 @@ persistence, the project versions, the sync-ready data model and the read-only p
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v17 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, the fourteen resources tables (`role_elements` among them),
-  `breakdown_tags`, `scene_breakdowns`, the seven schedule tables, `row_field_versions`,
+- Persistence: drift schema v18 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, the fifteen resources tables (`role_elements` and `role_episodes`
+  among them), `breakdown_tags`, `scene_breakdowns`, the seven schedule tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
-  number → exact heading → relative order). `**/*.g.dart` is git-ignored (documented deviation); CI
-  regenerates with build_runner. A schema number is allocated **at merge time, not at branch time**
-  (ADR 0007): of two branches in flight, whichever merges second renumbers, and the migration test
-  pins what `onCreate` produces against what every upgrade path produces, so a table declared and
-  forgotten in `onUpgrade` fails there rather than on a user's file.
+  number → exact heading → relative order). v18 is the multi-episode migration: `screenplays` gains
+  `number` and `sortKey`, `role_episodes` is added, and `roles.screenplayId` and
+  `shooting_days.screenplayId` are **dropped** — the fifth time ADR 0007's additive-only rule is set
+  aside for a column drop, through drift's own `Migrator.alterTable`/`TableMigration` recipe. It
+  reconstructs nothing: the single screenplay a file holds is numbered 1 and given a key, every live
+  `roles` row gets the `role_episodes` row its own `screenplayId` already stated (**minted with the
+  role's own id**, so two replicas migrating the same file produce the same rows), and a shooting day
+  is not given an episode on the way out — it simply stops having one. `**/*.g.dart` is git-ignored
+  (documented deviation); CI regenerates with build_runner. A schema number is allocated **at merge
+  time, not at branch time** (ADR 0007): of two branches in flight, whichever merges second
+  renumbers, and the migration test pins what `onCreate` produces against what every upgrade path
+  produces, so a table declared and forgotten in `onUpgrade` fails there rather than on a user's
+  file.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
@@ -151,7 +237,7 @@ persistence, the project versions, the sync-ready data model and the read-only p
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  twenty-seven captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  twenty-eight captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat` — independent of the schema version, upgraded on decode when older, refused when
   newer. It is **a hand-written mirror of the schema**, and a new synchronised table has to be added
@@ -159,7 +245,7 @@ persistence, the project versions, the sync-ready data model and the read-only p
   rewinds half the project, out of the digest and the working copy claims not to have drifted, out
   of `_applyPayload` and it is never written back.
   The `_payloadUpgrades` map brings an older payload onto the current shape, and every entry is one
-  of **three kinds**, each argued in its own doc comment — read them before writing a fourth. A
+  of **four kinds**, each argued in its own doc comment — read them before writing a fifth. A
   **materialised** value states what was true at capture: an empty list for a table that did not
   exist yet, or a column's own default. Restoring such a version therefore tombstones every row
   added since, which is the truthful reading of "this project had none" — an edit like any other
@@ -168,9 +254,19 @@ persistence, the project versions, the sync-ready data model and the read-only p
   exception, its column having never been nullable, so *its* null alone means "leave the live value
   untouched". A **removal** drops a list or a column the project has no concept for any more: unlike
   an empty list it makes no claim about the moment of capture, and unlike the currency's null it
-  leaves no live value alone. Across all three, **nothing is ever reconstructed** — a dropped lead
-  time does not become a preparation slot nobody asked for. Counters shown on a card
-  (`OcptProjectVersionSummary`) are measured once, at creation.
+  leaves no live value alone. A **derived** value is format 13's own, and the **only lossless step
+  in the codec**: `role_episodes` is rewritten out of the `roles.screenplayId` that same step
+  removes, the payload already carrying, on every role row, exactly the fact the new table records.
+  It is allowed there and nowhere else — only because the column being dropped and the table being
+  added say the same thing — and it mints each link with the role's own id, deterministically, so
+  restoring one version twice writes one set of links rather than two for a later merge to
+  reconcile. Across all four, **nothing is ever reconstructed** — a dropped lead time does not
+  become a preparation slot nobody asked for. Counters shown on a card
+  (`OcptProjectVersionSummary`) are measured once, at creation. Restoring a format-12 version into a
+  multi-episode project therefore **tombstones every episode but the first**, with its scenes, its
+  shots and its breakdown, that being the truthful reading of "this project had one episode when
+  this version was sealed"; **no role loses its casting** on the way through, a role no longer being
+  a script's.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
   out, since the stamps change on every restore and the margins are an app-wide preference. It is

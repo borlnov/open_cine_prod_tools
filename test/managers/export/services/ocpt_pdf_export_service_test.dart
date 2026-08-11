@@ -200,7 +200,14 @@ void main() {
 
   group('pdfFileName', () {
     test('appends the pdf extension to the project name', () {
-      expect(service.pdfFileName('My Movie'), 'My Movie.pdf');
+      expect(service.pdfFileName(projectName: 'My Movie'), 'My Movie.pdf');
+    });
+
+    test('appends the episode tag last when there is one', () {
+      expect(
+        service.pdfFileName(projectName: 'My Movie', episodeTag: 'ep. 2'),
+        'My Movie - ep. 2.pdf',
+      );
     });
   });
 

@@ -142,6 +142,40 @@ class OcptSceneIndexService {
     ];
   }
 
+  /// Tombstones every live scene of [screenplayId] and returns the ids it tombstoned, the cascade
+  /// `OcptScreenplayService.deleteEpisode` reaches for first: everything else the episode carries
+  /// off — its shots and coverages, its breakdown — is keyed by `sceneId`, so the caller needs these
+  /// ids in hand before it can tombstone any of them.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<List<String>> tombstoneScenesOfScreenplay({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final rows =
+        await (database.select(database.ocptScenesTable)..where(
+              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
+            ))
+            .get();
+    if (rows.isEmpty) {
+      return const [];
+    }
+
+    final ids = rows.map((row) => row.id).toList(growable: false);
+
+    await (database.update(
+      database.ocptScenesTable,
+    )..where((table) => table.id.isIn(ids))).write(
+      const OcptScenesTableCompanion(isDeleted: Value(true)),
+    );
+
+    return ids;
+  }
+
   /// Runs the three matching passes described in [reconcile] and returns the resulting plan.
   static _SceneMatchPlan _matchScenes({
     required List<OcptSceneRow> existingRows,

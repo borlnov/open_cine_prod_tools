@@ -4,11 +4,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_minimum_rest.dart';
 
 /// The project settings page's "Minimum rest between two shooting days" section card: a single
-/// field, typed in minutes, whose committed value is read back as a formatted duration through
-/// [ocptFormatMinuteDuration] — typing `660` and leaving the field shows `11 h`.
+/// field, typed **in hours** — the unit a production says a turnaround in — and stored in minutes
+/// by [ocptMinimumRestMinutesOf], which is the unit `project_info.minimumRestMinutes` and every
+/// rest computation already work in. Half hours are typed as such, with either decimal separator:
+/// `11,5` and `11.5` both record 690 minutes.
 ///
 /// **Empty is legal, and means nobody has recorded a minimum** — never that no minimum applies —
 /// exactly the reading `project_info.minimumRestMinutes`'s own doc comment gives and
@@ -69,15 +71,21 @@ class OcptProjectSettingsMinimumRestSection extends StatelessWidget {
   }
 }
 
-/// The minimum rest field itself: typed freely in minutes, committed on submit or focus loss, and
-/// read back as a formatted duration — `OcptScheduleMinuteField`'s own idiom
+/// The minimum rest field itself: typed in hours, committed on submit or focus loss, and read back
+/// as the very digits [ocptMinimumRestHoursTextOf] writes — `OcptScheduleMinuteField`'s own idiom
 /// (`lib/ui/pages/workspace/modes/schedule/widgets/`), with the one difference its own doc comment
 /// states: an **empty** submission here is a legal value (null, "nobody has recorded one") rather
 /// than a reversion, since there is nothing else for this field to fall back to the way a slot's
 /// clock falls back to its own resolved hour.
 ///
+/// The unit is worn as the field's `suffixText` rather than written into the text, so what a
+/// committed field holds is always something it accepts back: a value read back as `11 h` could
+/// never be edited into `12 h` again, every such submission parsing as nothing at all and reverting
+/// to what was there before.
+///
 /// A negative or zero figure is not a minimum anybody meant and reverts the field to whatever was
-/// last committed, exactly as an unparseable one does.
+/// last committed, exactly as an unparseable one does — clearing the field, not typing `0`, is how
+/// a recorded minimum is taken back.
 class _OcptProjectSettingsMinimumRestField extends StatefulWidget {
   /// The project's current minimum rest, in minutes, or null while unset.
   final int? minimumRestMinutes;
@@ -112,10 +120,9 @@ class _OcptProjectSettingsMinimumRestFieldState
   /// loss never commits the very same edit twice (`OcptScheduleMinuteField`'s own reasoning).
   late int? _lastReportedMinutes = widget.minimumRestMinutes;
 
-  /// [_OcptProjectSettingsMinimumRestField.minimumRestMinutes] formatted through
-  /// [ocptFormatMinuteDuration], or the empty string while it is null.
-  String get _formatted =>
-      widget.minimumRestMinutes == null ? "" : ocptFormatMinuteDuration(widget.minimumRestMinutes!);
+  /// [_OcptProjectSettingsMinimumRestField.minimumRestMinutes] written in hours through
+  /// [ocptMinimumRestHoursTextOf], or the empty string while it is null.
+  String get _formatted => ocptMinimumRestHoursTextOf(widget.minimumRestMinutes);
 
   @override
   void initState() {
@@ -151,9 +158,10 @@ class _OcptProjectSettingsMinimumRestFieldState
     }
   }
 
-  /// Parses the field's current text and reports it: empty clears the minimum (a real gesture,
-  /// reported as null), a positive figure is reported and read back formatted, and anything else —
-  /// zero, negative, or unparseable — reverts the field to whatever was last committed.
+  /// Parses the field's current text as hours and reports the minutes it makes: empty clears the
+  /// minimum (a real gesture, reported as null), a positive figure is reported and read back in the
+  /// canonical hours writing, and anything else — zero, negative, or unparseable — reverts the
+  /// field to whatever was last committed.
   void _commit() {
     final text = _controller.text.trim();
 
@@ -166,13 +174,13 @@ class _OcptProjectSettingsMinimumRestFieldState
       return;
     }
 
-    final parsed = int.tryParse(text);
-    if (parsed == null || parsed <= 0) {
+    final parsed = ocptMinimumRestMinutesOf(text);
+    if (parsed == null) {
       _controller.text = _formatted;
       return;
     }
 
-    _controller.text = ocptFormatMinuteDuration(parsed);
+    _controller.text = ocptMinimumRestHoursTextOf(parsed);
     if (parsed != _lastReportedMinutes) {
       _lastReportedMinutes = parsed;
       widget.onChanged(parsed);
@@ -181,6 +189,7 @@ class _OcptProjectSettingsMinimumRestFieldState
 
   @override
   Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
 
     return SizedBox(
@@ -189,9 +198,13 @@ class _OcptProjectSettingsMinimumRestFieldState
         controller: _controller,
         focusNode: _focusNode,
         onSubmitted: (_) => _commit(),
-        keyboardType: TextInputType.number,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: theme.textTheme.bodySmall,
-        decoration: const InputDecoration(isDense: true),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: tr.projectSettingsMinimumRestFieldHint,
+          suffixText: tr.projectSettingsMinimumRestSuffix,
+        ),
       ),
     );
   }

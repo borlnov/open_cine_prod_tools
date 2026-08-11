@@ -134,6 +134,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportBreakdownSheets] call.
   String? lastExportedFileTypeLabel;
 
+  /// The episode tag of the last [exportBreakdownSheets] call.
+  String? lastExportedEpisodeTag;
+
   @override
   Future<String?> exportBreakdownSheets({
     required FountainDocument document,
@@ -145,6 +148,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeNotes,
     required bool includeToFindList,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedPageSetup = pageSetup;
@@ -156,6 +160,7 @@ class _FakeExportManager extends OcptExportManager {
       includeToFindList: includeToFindList,
     );
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
 
     if (fails) {
       throw StateError("breakdown sheets export intentionally failed for the test");
@@ -176,6 +181,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportBreakdownXlsx] call.
   String? lastExportedXlsxFileTypeLabel;
 
+  /// The episode tag of the last [exportBreakdownXlsx] call.
+  String? lastExportedXlsxEpisodeTag;
+
   @override
   Future<String?> exportBreakdownXlsx({
     required FountainDocument document,
@@ -184,11 +192,13 @@ class _FakeExportManager extends OcptExportManager {
     required OcptBreakdownXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedXlsxSnapshot = snapshot;
     lastExportedXlsxLabels = labels;
     lastExportedXlsxProjectName = projectName;
     lastExportedXlsxFileTypeLabel = fileTypeLabel;
+    lastExportedXlsxEpisodeTag = episodeTag;
 
     if (fails) {
       throw StateError("breakdown workbook export intentionally failed for the test");
@@ -282,12 +292,14 @@ void main() {
     OcptExportManager? exportManager,
     OcptProjectsManager? overrideProjectsManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
+    String? selectedEpisodeId,
   }) => OcptBreakdownBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
     exportManager: exportManager ?? _FakeExportManager(),
     fieldEditDebounce: fieldEditDebounce,
+    selectedEpisodeId: selectedEpisodeId,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -336,6 +348,50 @@ void main() {
 
     await bloc.close();
   });
+
+  test(
+    "constructed with a second episode selected, reads and writes that episode rather than the "
+    "primary screenplay",
+    () async {
+      await writeScreenplay("INT. PRIMARY - DAY\n\nAction one.\n");
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+      final state = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+      expect(state.scenes.single.heading, "INT. SECOND EPISODE - NIGHT");
+      expect(state.screenplayText, contains("SECOND EPISODE"));
+
+      final sceneId = state.scenes.single.id;
+      bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "note"));
+      await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+      await bloc.flushPendingFieldEdits();
+
+      final primaryScenes = await projectsManager.breakdownService.loadScenes(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        episodeNumber: null,
+      );
+      final secondEpisodeScenes = await projectsManager.breakdownService.loadScenes(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        episodeNumber: null,
+      );
+      expect(primaryScenes.single.notes, isEmpty);
+      expect(secondEpisodeScenes.single.notes, "note");
+
+      await bloc.close();
+    },
+  );
 
   test("a tagged element is resolved into the snapshot's targets and counters", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
@@ -900,7 +956,8 @@ void main() {
       final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
       final sceneId = loaded.scenes.single.id;
 
-      // "lamp" (20, 24) then "desk." (37, 42): the range closes on "lamp sits on the desk.".
+      // "lamp" (20, 24) then "desk." (37, 42): the range closes on "lamp sits on the desk", the
+      // full stop the last word is written against left out of it.
       bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
       await waitForState(bloc, (state) => state.pendingTagAnchor != null);
 
@@ -911,8 +968,8 @@ void main() {
       expect(state.pendingTagRange, (
         sceneId: sceneId,
         startOffset: 20,
-        endOffset: 42,
-        taggedText: "lamp sits on the desk.",
+        endOffset: 41,
+        taggedText: "lamp sits on the desk",
         closingWordStartOffset: 37,
         closingWordEndOffset: 42,
       ));
@@ -937,14 +994,34 @@ void main() {
       final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
 
       expect(state.pendingTagRange?.startOffset, 20);
-      expect(state.pendingTagRange?.endOffset, 42);
-      expect(state.pendingTagRange?.taggedText, "lamp sits on the desk.");
+      expect(state.pendingTagRange?.endOffset, 41);
+      expect(state.pendingTagRange?.taggedText, "lamp sits on the desk");
       // The popover still anchors under the word the second click actually landed on.
       expect(state.pendingTagRange?.closingWordStartOffset, 20);
 
       await bloc.close();
     },
   );
+
+  test("a range closed on a word written against punctuation leaves it out", () async {
+    await writeScreenplay('INT. HOUSE - DAY\n\nA lamp sits on the "desk", waiting.\n');
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    // The same word clicked twice: `"desk",` (37, 44) is tagged as `desk` (38, 42) alone.
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44));
+    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
+
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44));
+    final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
+
+    expect(state.pendingTagRange?.startOffset, 38);
+    expect(state.pendingTagRange?.endOffset, 42);
+    expect(state.pendingTagRange?.taggedText, "desk");
+
+    await bloc.close();
+  });
 
   test(
     "an overlapping second click is refused, keeping the anchor and opening no popover",
@@ -1771,6 +1848,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.status, OcptBreakdownSceneStatus.done);
 
@@ -1794,6 +1872,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.notes, "Bring the lamp");
 
@@ -1818,6 +1897,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.firstWhere((scene) => scene.id == firstSceneId).notes, "note one");
 
@@ -1839,6 +1919,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.notes, "note");
 
@@ -1860,6 +1941,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.notes, "handle with care");
 
@@ -1878,6 +1960,7 @@ void main() {
         options: _exportOptions,
         labels: _exportLabels,
         fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -1886,6 +1969,7 @@ void main() {
     expect(exportManager.lastExportedProjectName, "My Movie");
     expect(exportManager.lastExportedLabels, _exportLabels);
     expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
     // The dialog's own page format wins over the project's, and its margins travel with it.
     expect(exportManager.lastExportedPageSetup?.format, OcptPageFormat.a4);
     expect(exportManager.lastExportedPageSetup?.margins, const FountainPageMargins.standard());
@@ -1979,6 +2063,7 @@ void main() {
       const OcptBreakdownXlsxExportRequestedEvent(
         labels: _exportXlsxLabels,
         fileTypeLabel: "Excel workbook",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -1987,6 +2072,7 @@ void main() {
     expect(exportManager.lastExportedXlsxProjectName, "My Movie");
     expect(exportManager.lastExportedXlsxLabels, _exportXlsxLabels);
     expect(exportManager.lastExportedXlsxFileTypeLabel, "Excel workbook");
+    expect(exportManager.lastExportedXlsxEpisodeTag, "ep. 2");
     expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportSucceeded);
     expect(state.ioNotice?.path, "/tmp/My Movie - breakdown.xlsx");
 

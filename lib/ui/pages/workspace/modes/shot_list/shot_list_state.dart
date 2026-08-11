@@ -152,8 +152,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// (which can include a name no longer among these, see `OcptShotCharacterChips`).
   final List<String> screenplayCharacters;
 
-  /// The project-wide suggestion lists the inspector's free-text fields with suggestions read
-  /// from, reloaded after every field-edit flush.
+  /// The selected episode's own suggestion lists the inspector's free-text fields with suggestions
+  /// read from, reloaded after every field-edit flush.
   final OcptShotFieldSuggestions suggestions;
 
   /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the shot id

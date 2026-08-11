@@ -163,15 +163,23 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
   ///
-  /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. Returns
-  /// the path of the written file, or null if the user cancelled or the save failed (failures
-  /// are logged; the OS dialog already reported a cancellation to the user).
+  /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. [episodeTag]
+  /// is the selected episode's own tag, resolved by the caller (this manager has no `Tr` of its
+  /// own) and present only while the open project holds more than one episode — a screenplay is one
+  /// episode's own text, so two episodes exported into the same folder must not silently overwrite
+  /// one another (issue #55, ADR 0019). Returns the path of the written file, or null if the user
+  /// cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
   Future<String?> exportFountain({
     required String fountainText,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) => _writeToPickedLocation(
-    suggestedFileName: fountainIoService.fountainFileName(projectName),
+    suggestedFileName: fountainIoService.fountainFileName(
+      projectName: projectName,
+      episodeTag: episodeTag,
+    ),
     fileTypeLabel: fileTypeLabel,
     extensions: [OcptFountainIoService.fountainFileExtension],
     bytes: fountainIoService.encodeFountainText(fountainText),
@@ -180,9 +188,12 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// Renders [document] into a PDF via [pdfExportService] and shows the native save dialog to
   /// write it out.
   ///
-  /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. Returns
-  /// the path of the written file, or null if the user cancelled or the save failed (failures
-  /// are logged; the OS dialog already reported a cancellation to the user).
+  /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. [episodeTag]
+  /// is the selected episode's own tag, resolved by the caller (this manager has no `Tr` of its
+  /// own) and present only while the open project holds more than one episode — see
+  /// [exportFountain]'s own doc comment for why. Returns the path of the written file, or null if
+  /// the user cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
   Future<String?> exportPdf({
     required FountainDocument document,
     required OcptPageSetup pageSetup,
@@ -190,6 +201,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeSceneNumbers,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     final bytes = await pdfExportService.generate(
       document: document,
@@ -200,7 +212,10 @@ class OcptExportManager extends AbsWithLifeCycle {
     );
 
     return _writeToPickedLocation(
-      suggestedFileName: pdfExportService.pdfFileName(projectName),
+      suggestedFileName: pdfExportService.pdfFileName(
+        projectName: projectName,
+        episodeTag: episodeTag,
+      ),
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
@@ -212,16 +227,22 @@ class OcptExportManager extends AbsWithLifeCycle {
   ///
   /// [labels] carries every localized string the sheet itself holds (its name, its headers, the
   /// status labels and the sequence separator titles), and [fileTypeLabel] is the localized label
-  /// passed to the native dialog's type filter — this manager has no `Tr` of its own. Returns the
-  /// path of the written file, or null if the user cancelled or the save failed (failures are
+  /// passed to the native dialog's type filter — this manager has no `Tr` of its own. [episodeTag]
+  /// is the selected episode's own tag, resolved by the caller and present only while the open
+  /// project holds more than one episode — see [exportFountain]'s own doc comment for why. Returns
+  /// the path of the written file, or null if the user cancelled or the save failed (failures are
   /// logged; the OS dialog already reported a cancellation to the user).
   Future<String?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
     required OcptShotListXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) => _writeToPickedLocation(
-    suggestedFileName: shotListXlsxExportService.xlsxFileName(projectName),
+    suggestedFileName: shotListXlsxExportService.xlsxFileName(
+      projectName: projectName,
+      episodeTag: episodeTag,
+    ),
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
     bytes: shotListXlsxExportService.generate(snapshot: snapshot, labels: labels),
@@ -234,9 +255,11 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// indexed against — a coverage range addresses it by character offset. [labels] carries every
   /// localized string the document itself holds (the two appendix pages' headings and headers, the
   /// sequence titles and the file name's own suffix) and [fileTypeLabel] the one the native dialog
-  /// needs — this manager has no `Tr` of its own. Returns the path of the written file, or null if
-  /// the user cancelled or the save failed (failures are logged; the OS dialog already reported a
-  /// cancellation to the user).
+  /// needs — this manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag,
+  /// resolved by the caller and present only while the open project holds more than one episode —
+  /// see [exportFountain]'s own doc comment for why. Returns the path of the written file, or null
+  /// if the user cancelled or the save failed (failures are logged; the OS dialog already reported
+  /// a cancellation to the user).
   Future<String?> exportScenarioCoverage({
     required FountainDocument document,
     required String screenplayText,
@@ -249,6 +272,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeLegendPage,
     required bool includeSummaryPage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     final bytes = await scenarioCoveragePdfService.generate(
       document: document,
@@ -267,6 +291,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       suggestedFileName: scenarioCoveragePdfService.coverageFileName(
         projectName: projectName,
         suffix: labels.fileNameSuffix,
+        episodeTag: episodeTag,
       ),
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
@@ -340,8 +365,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// own length alone (see the service's own doc comment). [labels] carries every localized string
   /// the document itself holds (the scene titles, the section headings, the status and category
   /// labels and the file name's own suffix) and [fileTypeLabel] the one the native dialog needs —
-  /// this manager has no `Tr` of its own. Returns the path of the written file, or null if the user
-  /// cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// this manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag, resolved
+  /// by the caller and present only while the open project holds more than one episode — see
+  /// [exportFountain]'s own doc comment for why. Returns the path of the written file, or null if
+  /// the user cancelled or the save failed (failures are logged; the OS dialog already reported a
   /// cancellation to the user).
   Future<String?> exportBreakdownSheets({
     required FountainDocument document,
@@ -353,6 +380,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeNotes,
     required bool includeToFindList,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     final bytes = await breakdownSheetsPdfService.generate(
       document: document,
@@ -369,6 +397,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       suggestedFileName: breakdownSheetsPdfService.sheetsFileName(
         projectName: projectName,
         suffix: labels.fileNameSuffix,
+        episodeTag: episodeTag,
       ),
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
@@ -383,10 +412,12 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// own length alone, exactly as [exportBreakdownSheets] reads it — see
   /// [OcptBreakdownXlsxExportService]'s own doc comment. [labels] carries every localized string
   /// the two sheets themselves hold and [fileTypeLabel] the one the native dialog needs — this
-  /// manager has no `Tr` of its own. Unlike the breakdown sheets, this export takes no options
-  /// dialog: there is nothing to ask before writing it out. Returns the path of the written file,
-  /// or null if the user cancelled or the save failed (failures are logged; the OS dialog already
-  /// reported a cancellation to the user).
+  /// manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag, resolved by
+  /// the caller and present only while the open project holds more than one episode — see
+  /// [exportFountain]'s own doc comment for why. Unlike the breakdown sheets, this export takes no
+  /// options dialog: there is nothing to ask before writing it out. Returns the path of the written
+  /// file, or null if the user cancelled or the save failed (failures are logged; the OS dialog
+  /// already reported a cancellation to the user).
   Future<String?> exportBreakdownXlsx({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
@@ -394,10 +425,12 @@ class OcptExportManager extends AbsWithLifeCycle {
     required OcptBreakdownXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) => _writeToPickedLocation(
     suggestedFileName: breakdownXlsxExportService.xlsxFileName(
       projectName: projectName,
       suffix: labels.fileNameSuffix,
+      episodeTag: episodeTag,
     ),
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
@@ -711,21 +744,23 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// Renders [dayId]'s own sides booklet via [sidesPdfService] and shows the native save dialog to
   /// write it out.
   ///
-  /// [document] is a parameter rather than something this manager reads off the open project, for
+  /// [documents] is a parameter rather than something this manager reads off the open project, for
   /// the same reason [exportScenarioCoverage] takes one: this manager touches no database, and the
-  /// screenplay text a booklet is sliced from is the caller's to supply. [labels] carries every
-  /// localized string the document itself holds (its own title, the day tag prefix, the printed
-  /// day's own title, the script-page prefix and the file name's own suffix) and [fileTypeLabel]
-  /// the one the native dialog needs — this manager has no `Tr` of its own. Like the shooting plan,
-  /// the *Day Out of Days* and the one-line schedule, this is a **single** file, through
-  /// `pickSaveLocation` rather than a folder — one booklet is one day's own paperwork, handed to
-  /// one recipient at a time. Returns the path of the written file, or null if the user cancelled
-  /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
-  /// user).
+  /// screenplay text a booklet is sliced from is the caller's to supply — one composed run per
+  /// episode the day plays, in the order the booklet chains them in (see
+  /// [OcptSidesPdfService.generate]'s own doc comment for why a screenplay is never composed
+  /// alongside another's). [labels] carries every localized string the document itself holds (its
+  /// own title, the day tag prefix, the printed day's own title, each episode's own label, the
+  /// script-page prefix and the file name's own suffix) and [fileTypeLabel] the one the native
+  /// dialog needs — this manager has no `Tr` of its own. Like the shooting plan, the *Day Out of
+  /// Days* and the one-line schedule, this is a **single** file, through `pickSaveLocation` rather
+  /// than a folder — one booklet is one day's own paperwork, handed to one recipient at a time.
+  /// Returns the path of the written file, or null if the user cancelled or the save failed
+  /// (failures are logged; the OS dialog already reported a cancellation to the user).
   Future<String?> exportSides({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
-    required FountainDocument document,
+    required List<({String screenplayId, FountainDocument document})> documents,
     required OcptPageSetup pageSetup,
     required OcptSidesLabels labels,
     required String projectName,
@@ -736,7 +771,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     final bytes = await sidesPdfService.generate(
       plan: plan,
       dayId: dayId,
-      document: document,
+      documents: documents,
       pageSetup: pageSetup,
       labels: labels,
       projectName: projectName,

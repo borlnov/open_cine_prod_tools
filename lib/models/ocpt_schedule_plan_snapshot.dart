@@ -5,6 +5,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -37,11 +38,18 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// `ocpt_shooting_convocations.dart` and `ocpt_sun_times.dart` know nothing of `shots`, `roles` or
 /// drift at all; joining their pure inputs out of the stored rows is this class's whole job.
 ///
+/// A **shooting day belongs to no episode** (`docs/adr/0019`): a day regularly covers two episodes
+/// at one location, which is the point of shooting a series out of order and is what the shared
+/// schedule buys. [shotLists], [headingBySceneId], [sceneNumberBySceneId] and [sceneSpanBySceneId]
+/// are therefore the **project's**, not one screenplay's — every episode's own shot list joined
+/// into one set of maps, so a day playing two episodes reads one call sheet rather than one it
+/// would have to ask twice.
+///
 /// Built the same way `OcptBreakdownSnapshot.build` is: a pure function of already-loaded lists,
 /// with no database access of its own. Unlike a per-read state getter, [locationById]/[setById]/
-/// [roleById]/[personById] are built **once**, in [OcptSchedulePlanSnapshot.build], and stored as
-/// unmodifiable maps — a caller walking a whole shoot's worth of days must not rebuild the address
-/// book once per day.
+/// [roleById]/[personById]/[episodeById]/[shotsById] are built **once**, in
+/// [OcptSchedulePlanSnapshot.build], and stored as unmodifiable maps — a caller walking a whole
+/// shoot's worth of days must not rebuild the address book once per day.
 ///
 /// [alerts] is the same idea taken one step further: it is a whole-shoot walk (`lib/utils/
 /// ocpt_schedule_alerts.dart`), so it is a `late final` field computed once, on first read, rather
@@ -51,9 +59,16 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// The whole schedule read: days, slots and blocks.
   final OcptScheduleSnapshot schedule;
 
-  /// The whole shot list read, or null while nothing has been read yet — what a placed shot's own
-  /// duration and characters are resolved from.
-  final OcptShotListSnapshot? shotList;
+  /// Every live episode's own shot list, one entry per episode, in
+  /// `OcptScreenplayService.loadEpisodes`' own order (which is [episodes]' own order too) — empty
+  /// for a project whose shot lists have not been read yet, which is what a null used to mean before
+  /// a schedule could cover more than one episode. What a placed shot's own duration and characters
+  /// are resolved from, across every episode.
+  final List<OcptShotListSnapshot> shotLists;
+
+  /// The project's live episodes, in the same order as [shotLists] — what [episodeById] is derived
+  /// from, and what names a run when the sides are composed one per episode.
+  final List<OcptEpisode> episodes;
 
   /// The project's whole location catalogue (with their sets), as passed to
   /// [OcptSchedulePlanSnapshot.build].
@@ -87,15 +102,27 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// The whole address book, keyed by id.
   final Map<String, OcptPerson> personById;
 
+  /// [episodes], keyed by id — the same derivation [locationById]/[setById]/[roleById]/[personById]
+  /// already make, for the same reason.
+  final Map<String, OcptEpisode> episodeById;
+
+  /// Every shot of every entry of [shotLists], keyed by id — a plain union, since a shot's own id is
+  /// a UUID and cannot collide between two episodes. Derived once, in
+  /// [OcptSchedulePlanSnapshot.build], so [shotById] stays O(1): [alerts]' own whole-shoot walk
+  /// calls it once per placed block over the whole shoot, which a per-call walk of [shotLists] would
+  /// pay for on every one of them.
+  final Map<String, OcptShot> shotsById;
+
   /// Class constructor. Prefer [OcptSchedulePlanSnapshot.build], which derives [locationById],
-  /// [setById], [roleById] and [personById] rather than asking a caller to keep them in step by
-  /// hand.
+  /// [setById], [roleById], [personById], [episodeById] and [shotsById] rather than asking a caller
+  /// to keep them in step by hand.
   ///
   /// Not `const`, unlike most models in this app: [alerts] is a `late final` field, which a const
   /// constructor cannot carry. Nothing ever built this snapshot as a constant.
   OcptSchedulePlanSnapshot({
     required this.schedule,
-    required this.shotList,
+    required this.shotLists,
+    required this.episodes,
     required this.locations,
     required this.roles,
     required this.people,
@@ -105,14 +132,24 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required this.setById,
     required this.roleById,
     required this.personById,
+    required this.episodeById,
+    required this.shotsById,
   });
 
-  /// Builds an [OcptSchedulePlanSnapshot] from [schedule], [shotList], the four catalogues and
-  /// [minimumRestMinutes], deriving [locationById]/[setById]/[roleById]/[personById] from them
-  /// once.
+  /// Builds an [OcptSchedulePlanSnapshot] from [schedule], every live episode's own [shotLists], the
+  /// four catalogues and [minimumRestMinutes], deriving [locationById]/[setById]/[roleById]/
+  /// [personById]/[episodeById]/[shotsById] from them once.
+  ///
+  /// [episodes] is a **required** parameter with no default, exactly as [minimumRestMinutes] is and
+  /// for the same reason: an empty list is a truthful state (a project whose episodes have not been
+  /// read yet), so a default would let a caller reach it by forgetting rather than by meaning it —
+  /// and a forgotten one silently names no episode where a booklet of sides or a banded list is
+  /// supposed to name one. A single-episode project passes its single episode; a test exercising a
+  /// join that names none passes `const []` and says so by writing it.
   factory OcptSchedulePlanSnapshot.build({
     required OcptScheduleSnapshot schedule,
-    required OcptShotListSnapshot? shotList,
+    required List<OcptShotListSnapshot> shotLists,
+    required List<OcptEpisode> episodes,
     required List<OcptLocation> locations,
     required List<OcptRole> roles,
     required List<OcptPerson> people,
@@ -120,7 +157,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required int? minimumRestMinutes,
   }) => OcptSchedulePlanSnapshot(
     schedule: schedule,
-    shotList: shotList,
+    shotLists: shotLists,
+    episodes: episodes,
     locations: locations,
     roles: roles,
     people: people,
@@ -133,11 +171,16 @@ class OcptSchedulePlanSnapshot extends Equatable {
     }),
     roleById: Map.unmodifiable({for (final role in roles) role.id: role}),
     personById: Map.unmodifiable({for (final person in people) person.id: person}),
+    episodeById: Map.unmodifiable({for (final episode in episodes) episode.id: episode}),
+    shotsById: Map.unmodifiable({
+      for (final shotList in shotLists) ...shotList.shotsById,
+    }),
   );
 
-  /// The shot [shotId] names, or null while [shotList] hasn't loaded it (or it has since been
-  /// deleted).
-  OcptShot? shotById(String shotId) => shotList?.shotsById[shotId];
+  /// The shot [shotId] names, or null while it hasn't been read yet (or it has since been deleted).
+  /// Reads the merged [shotsById] rather than walking [shotLists] itself — see that field's own doc
+  /// comment for why.
+  OcptShot? shotById(String shotId) => shotsById[shotId];
 
   /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
   /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
@@ -385,41 +428,80 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return toBring;
   }
 
-  /// A map from every real scene's id to its own heading, built once — read by the two schedule PDF
-  /// exports for a [OcptShootingBlockKind.hold] block's own caption and the call sheet's own `EFFET`
-  /// column (`ocptScheduleHeadingBySceneId`, now a thin wrapper over this field), and by
-  /// [effectCategoryOfDay] below for the agenda's own "Colour by effect" tint — the very same join,
-  /// so a printed call sheet and the agenda can never read a heading differently.
+  /// A map from every real scene's id to its own heading, built once across every entry of
+  /// [shotLists] — read by the two schedule PDF exports for a [OcptShootingBlockKind.hold] block's
+  /// own caption and the call sheet's own `EFFET` column (`ocptScheduleHeadingBySceneId`, now a thin
+  /// wrapper over this field), and by [effectCategoryOfDay] below for the agenda's own "Colour by
+  /// effect" tint — the very same join, so a printed call sheet and the agenda can never read a
+  /// heading differently.
+  ///
+  /// This is the **project's** map now, not one screenplay's (`docs/adr/0019`): a scene id is a
+  /// UUID, so merging every episode's own shot list into one map can never collide two scenes onto
+  /// one entry.
   late final Map<String, String> headingBySceneId = {
-    for (final sequence in shotList?.sequences ?? const <OcptShotSequence>[])
-      if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
   };
 
-  /// A map from every real scene's id to its own display scene number, built once alongside
-  /// [headingBySceneId] and the very same way — read by the one-line schedule's own `SEQ` column
-  /// for every scene a hold or a shot block names, so a printed sequence number can never disagree
-  /// with the shot list's own reading of it. A shot naming no scene at all (an orphaned one) has no
-  /// entry here to read, which is why that column falls back to the shot's own
-  /// `ocptShotSceneNumberOf` rather than this map for such a shot.
+  /// A map from every real scene's id to its own display scene number, built once across every entry
+  /// of [shotLists], alongside [headingBySceneId] and the very same way — read by the one-line
+  /// schedule's own `SEQ` column for every scene a hold or a shot block names, so a printed sequence
+  /// number can never disagree with the shot list's own reading of it. A shot naming no scene at all
+  /// (an orphaned one) has no entry here to read, which is why that column falls back to the shot's
+  /// own `ocptShotSceneNumberOf` rather than this map for such a shot.
+  ///
+  /// This is the **project's** map now, not one screenplay's, and it is safe for the same reason
+  /// [headingBySceneId] is: a scene id is a UUID, so no two episodes' scenes ever collide onto one
+  /// entry. Each episode's own [OcptSceneShotSequence.displaySceneNumber] already carries its own
+  /// `<episode>.<scene>` prefix, resolved by `OcptShotListService.loadShotList`'s own
+  /// `episodeNumber` at the moment that episode's shot list was read — so this map is where a
+  /// printed sequence code becomes unambiguous across a day that plays two episodes: `1.3` and
+  /// `2.4` read here exactly as their own shot lists built them, never renumbered against one
+  /// another.
   late final Map<String, String> sceneNumberBySceneId = {
-    for (final sequence in shotList?.sequences ?? const <OcptShotSequence>[])
-      if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.displaySceneNumber,
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.displaySceneNumber,
   };
 
-  /// A map from every real scene's id to the span, `[charStart, charEnd)`, of the screenplay's own
+  /// A map from every real scene's id to the span, `[charStart, charEnd)`, of its own screenplay's
   /// Fountain source that scene was indexed at — copied off the `scenes` row through the shot list
   /// snapshot, exactly as [OcptSceneShotSequence.charStart]/`.charEnd` already carry it for the
-  /// scenario coverage editor. Built once, alongside [headingBySceneId] and [sceneNumberBySceneId]
-  /// and for the same reason: a caller walking a whole shoot's worth of days must not rebuild the
-  /// join per day.
+  /// scenario coverage editor. Built once across every entry of [shotLists], alongside
+  /// [headingBySceneId] and [sceneNumberBySceneId] and for the same reason: a caller walking a whole
+  /// shoot's worth of days must not rebuild the join per day, and a scene id being a UUID keeps the
+  /// merge across episodes as safe as theirs.
   ///
-  /// This is what the coming sides export slices a day's own scenes out of the composed script by:
-  /// a side is the screenplay's real page, reprinted rather than re-typeset, and the span is the
-  /// address of the source text that page has to be sliced from.
+  /// This is what the sides export slices a day's own scenes out of each episode's own composed
+  /// script by: a side is the screenplay's real page, reprinted rather than re-typeset, and the span
+  /// is the address of the source text that page has to be sliced from — [screenplayIdBySceneId] is
+  /// what says which episode's own text to slice it out of.
   late final Map<String, ({int charStart, int charEnd})> sceneSpanBySceneId = {
-    for (final sequence in shotList?.sequences ?? const <OcptShotSequence>[])
-      if (sequence is OcptSceneShotSequence)
-        sequence.sceneId: (charStart: sequence.charStart, charEnd: sequence.charEnd),
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence)
+          sequence.sceneId: (charStart: sequence.charStart, charEnd: sequence.charEnd),
+  };
+
+  /// Every real scene's id onto the screenplay (episode) it belongs to, built once across every
+  /// entry of [shotLists] — what the sides export slices a day's own scenes per episode by (a day
+  /// regularly plays two of them), and what the two grouped surfaces (the left dock's own "shots
+  /// still to place" list and the shot picker dialog) band their own rows by.
+  late final Map<String, String> screenplayIdBySceneId = {
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: shotList.screenplayId,
+  };
+
+  /// Every real scene's own [OcptSceneShotSequence], keyed by scene id, merged across every entry of
+  /// [shotLists] — built once so `OcptShootingPlanGrids` stops reaching into one screenplay's own
+  /// `shotList!.sequences` itself: it is the same join that class used to build inline, made once
+  /// per snapshot rather than once per grid.
+  late final Map<String, OcptSceneShotSequence> sceneSequenceBySceneId = {
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence,
   };
 
   /// [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of every
@@ -679,7 +761,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
   @override
   List<Object?> get props => [
     schedule,
-    shotList,
+    shotLists,
+    episodes,
     locations,
     roles,
     people,
@@ -689,5 +772,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     setById,
     roleById,
     personById,
+    episodeById,
+    shotsById,
   ];
 }

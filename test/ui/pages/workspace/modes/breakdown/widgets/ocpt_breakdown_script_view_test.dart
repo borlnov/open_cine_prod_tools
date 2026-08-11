@@ -68,6 +68,7 @@ OcptBreakdownScene _buildScene({List<OcptBreakdownTag> tags = const []}) => Ocpt
   status: OcptBreakdownSceneStatus.toDo,
   notes: "",
   tags: tags,
+  episodeNumber: null,
 );
 
 /// Builds a tag covering [word], pointing at target [targetId] of [targetKind].

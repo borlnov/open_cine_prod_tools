@@ -16,9 +16,6 @@ class OcptRole extends Equatable {
   /// The stable, unique id of this role (a UUID).
   final String id;
 
-  /// The screenplay this role belongs to.
-  final String screenplayId;
-
   /// The character's name. Owned by `OcptRoleIndexService` while [isFromScreenplay] is true.
   final String name;
 
@@ -41,10 +38,17 @@ class OcptRole extends Equatable {
   /// This role's 1-based rank in `sortKey` order. See the class doc comment.
   final int number;
 
+  /// The ids of the episodes (`screenplays` rows) this role is named in — the live `role_episodes`
+  /// links of this role, in the episodes' own `sortKey` order (`OcptRoleEpisodesTable` carries no
+  /// `sortKey` of its own; see its doc comment). Empty means the role is named in no episode: a
+  /// hand-added role's own choice through `OcptRoleIndexService.setRoleEpisodes`, not a state
+  /// `OcptRoleIndexService.reconcile` ever leaves a from-screenplay role in, since one of its links
+  /// is exactly what a speaking character matching it produced.
+  final List<String> episodeIds;
+
   /// Class constructor
   const OcptRole({
     required this.id,
-    required this.screenplayId,
     required this.name,
     required this.personId,
     required this.kind,
@@ -52,12 +56,17 @@ class OcptRole extends Equatable {
     required this.orphanedName,
     required this.castingNotes,
     required this.number,
+    required this.episodeIds,
   });
 
-  /// Builds an [OcptRole] from its stored [row] and its 1-based [number] in `sortKey` order.
-  factory OcptRole.fromRow({required OcptRoleRow row, required int number}) => OcptRole(
+  /// Builds an [OcptRole] from its stored [row], its 1-based [number] in `sortKey` order, and its
+  /// [episodeIds]: neither is a column on the row itself, exactly as [number] is not.
+  factory OcptRole.fromRow({
+    required OcptRoleRow row,
+    required int number,
+    required List<String> episodeIds,
+  }) => OcptRole(
     id: row.id,
-    screenplayId: row.screenplayId,
     name: row.name,
     personId: row.personId,
     kind: row.kind,
@@ -65,6 +74,7 @@ class OcptRole extends Equatable {
     orphanedName: row.orphanedName,
     castingNotes: row.castingNotes,
     number: number,
+    episodeIds: episodeIds,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -75,7 +85,6 @@ class OcptRole extends Equatable {
   @override
   List<Object?> get props => [
     id,
-    screenplayId,
     name,
     personId,
     kind,
@@ -83,5 +92,6 @@ class OcptRole extends Equatable {
     orphanedName,
     castingNotes,
     number,
+    episodeIds,
   ];
 }

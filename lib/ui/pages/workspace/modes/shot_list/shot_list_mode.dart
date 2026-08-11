@@ -37,8 +37,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
@@ -54,8 +57,12 @@ class OcptShotListMode extends StatelessWidget {
   const OcptShotListMode({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptShotListBloc(), child: const _ShotListView());
+  Widget build(BuildContext context) => BlocProvider(
+    create: (context) => OcptShotListBloc(
+      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+    ),
+    child: const _ShotListView(),
+  );
 }
 
 /// The content of [OcptShotListMode], separated from it so [OcptShotListMode] only wires the
@@ -110,11 +117,18 @@ class _ShotListViewState extends State<_ShotListView> {
         return const Center(child: CircularProgressIndicator());
       }
 
+      final workspaceState = context.watch<OcptWorkspaceBloc>().state;
+
       return OcptWorkspaceShell(
         title: state.title,
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
+        episodes: workspaceState.episodes,
+        selectedEpisodeId: workspaceState.selectedEpisodeId,
+        onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+          OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+        ),
         modeLabel: Tr.of(context).workspaceModeLabelShotList,
         onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context),
@@ -222,6 +236,7 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListXlsxExportRequestedEvent(
         labels: ocptShotListXlsxLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportXlsxFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
     );
   }
@@ -251,14 +266,32 @@ class _ShotListViewState extends State<_ShotListView> {
         options: options,
         labels: ocptScenarioCoverageLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
+    );
+  }
+
+  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
+  /// exactly as every other localized export payload already is.
+  String? _episodeExportTag(BuildContext context) {
+    final workspaceState = context.read<OcptWorkspaceBloc>().state;
+    return ocptWorkspaceEpisodeExportTagOf(
+      context: context,
+      episodes: workspaceState.episodes,
+      selectedEpisodeId: workspaceState.selectedEpisodeId,
     );
   }
 
   /// Opens the project settings page, then re-reads the page setup if the user changed anything
   /// there.
+  ///
+  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
+  /// card can add or delete one, which the workspace bloc otherwise only learns about from
+  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire.
   Future<void> _requestProjectSettings(BuildContext context) async {
     final bloc = context.read<OcptShotListBloc>();
+    final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
     );
@@ -267,6 +300,7 @@ class _ShotListViewState extends State<_ShotListView> {
     }
 
     bloc.add(const OcptShotListProjectSettingsChangedEvent());
+    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
   /// Builds the sequence tree, the shell's `leftPanel`, or null while it's hidden.

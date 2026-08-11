@@ -6,6 +6,7 @@ import 'package:act_router_manager/act_router_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
@@ -33,8 +34,18 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
       const RoutePageDetails(widget: WorkspacePage());
 
   /// Callback to create the [OcptProjectSettingsPage]
-  RoutePageDetails _createProjectSettingsPage(BuildContext context, GoRouterState state) =>
-      const RoutePageDetails(widget: OcptProjectSettingsPage());
+  ///
+  /// The route's `extra` names the section the page scrolls to when it opens, or is null (anything
+  /// that is not an [OcptProjectSettingsReveal] included) for the page opened plainly.
+  RoutePageDetails _createProjectSettingsPage(BuildContext context, GoRouterState state) {
+    final reveal = state.extra;
+
+    return RoutePageDetails(
+      widget: OcptProjectSettingsPage(
+        reveal: reveal is OcptProjectSettingsReveal ? reveal : null,
+      ),
+    );
+  }
 
   /// Callback to create the [SettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>

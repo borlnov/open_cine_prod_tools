@@ -12,6 +12,10 @@ progress per scene, and the two documents it prints.
 - Breakdown mode (`lib/ui/pages/workspace/modes/breakdown/`): the *dépouillement* — reading the
   script once and tagging what the shoot must provide. It is the pass that fills the catalogues the
   resources mode holds, so it sits between the screenplay and the shot list in the mode switcher.
+  It reads **the episode the workspace has selected** (ADR 0019) — its scenes, its tags and its
+  breakdown sheets — while the catalogues it fills stay the production's; `OcptBreakdownScene`'s
+  own `displayNumber` is `ocptSceneDisplayNumberOf`'s answer, so a sequence reads `2.12` in every
+  surface of the mode and in both its documents as soon as the project holds more than one episode.
   A **tag** (`breakdown_tags`, ADR 0014) is the anchor between a passage of the screenplay and the
   catalogue row it calls for: a discriminator (`OcptBreakdownTargetKind { element, role, set }`)
   plus three nullable foreign keys, exactly one non-null. A character is never an `elements` row —
@@ -45,7 +49,14 @@ progress per scene, and the two documents it prints.
   `OcptBreakdownTagPopover`, whose search field is **pre-filled with the passage** and whose results
   are grouped by kind; clicking a result links, clicking a **category chip** creates the element in
   that category and tags it in one write, then hands off to the inspector where the rest of the
-  sheet is. Elements and **sets** are the two things creatable here — a role's existence belongs to
+  sheet is. A clicked word is a whitespace-delimited run of the source, so the passage the two
+  clicks designate is narrowed by `ocptBreakdownTaggedSpanOf` before it is recorded: the quotes,
+  brackets, commas and full stops hugging either end belong to the sentence rather than to the
+  thing being tagged, and so do the emphasis markers Fountain writes around a word — a passage made
+  of punctuation alone is kept whole, having no word to narrow down to. Only the ends are touched,
+  never what a range spans in between, and this is the breakdown's own rule: a scenario coverage
+  range quotes a passage of the script, where the sentence's punctuation belongs.
+  Elements and **sets** are the two things creatable here — a role's existence belongs to
   the screenplay, `OcptRoleIndexService` reconciling it from the cue, so inventing one would be
   inventing a character. A set has no such source: the script names the place and the project has
   never heard of it, so the popover's own `Create a set` control picks the location holding it out

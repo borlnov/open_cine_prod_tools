@@ -534,10 +534,21 @@ void main() {
       final scenes = await locationsService.loadScenes(
         database: database,
         screenplayId: "screenplay-1",
+        episodeNumber: null,
       );
 
       expect(scenes.map((scene) => scene.id), ["scene-1", "scene-2"]);
       expect(scenes.map((scene) => scene.displayNumber), ["1", "2"]);
+    });
+
+    test("loadScenes carries the given episode number onto every scene's displayNumber", () async {
+      final scenes = await locationsService.loadScenes(
+        database: database,
+        screenplayId: "screenplay-1",
+        episodeNumber: 2,
+      );
+
+      expect(scenes.map((scene) => scene.displayNumber), ["2.1", "2.2"]);
     });
   });
 

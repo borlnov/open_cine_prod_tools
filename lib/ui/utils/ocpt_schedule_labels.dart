@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_schedule_effect_palette.dart
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -35,8 +36,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_out_of_days.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
@@ -682,7 +685,17 @@ OcptOneLineScheduleLabels ocptOneLineScheduleLabelsOf(
 /// booklet is one day's own paperwork, so there is a single title to carry rather than a map keyed
 /// by day id. A null [day] — a selection naming a day the mode no longer holds — leaves that title
 /// empty, which the running head prints as its own document title alone.
-OcptSidesLabels ocptSidesLabelsOf(BuildContext context, {required OcptShootingDay? day}) {
+///
+/// [episodes] is resolved into [OcptSidesLabels.episodeLabels] through [ocptWorkspaceEpisodeLabelOf]
+/// — one entry per episode while [episodes] holds more than one ([ocptEpisodePrefixNumberOf] is
+/// what already runs that test for every other export of this app, reused here rather than
+/// restated), and an empty map on a single-episode project, so the booklet names no episode
+/// anywhere (ADR 0019).
+OcptSidesLabels ocptSidesLabelsOf(
+  BuildContext context, {
+  required OcptShootingDay? day,
+  required List<OcptEpisode> episodes,
+}) {
   final tr = Tr.of(context);
   final locale = Localizations.localeOf(context).toString();
 
@@ -692,6 +705,11 @@ OcptSidesLabels ocptSidesLabelsOf(BuildContext context, {required OcptShootingDa
     versionLabel: tr.scheduleExportVersionLabel,
     dayTagPrefix: tr.scheduleDayTagPrefix,
     dayTitle: day == null ? "" : DateFormat.MMMMEEEEd(locale).format(day.date),
+    episodeLabels: {
+      for (final episode in episodes)
+        if (ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: episode.id) != null)
+          episode.id: ocptWorkspaceEpisodeLabelOf(tr, episode),
+    },
     scriptPagePrefix: tr.scheduleExportSidesScriptPagePrefix,
     emptyDayNote: tr.scheduleExportSidesEmptyDayNote,
   );

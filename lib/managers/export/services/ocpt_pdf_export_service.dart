@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -36,8 +37,14 @@ class OcptPdfExportService {
   final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the project named [projectName], mirroring
-  /// `OcptFountainIoService.fountainFileName`.
-  String pdfFileName(String projectName) => "$projectName.pdf";
+  /// `OcptFountainIoService.fountainFileName`. [episodeTag] is the selected episode's own tag,
+  /// present only while the open project holds more than one episode — see
+  /// `ocptExportFileNameOf`'s own doc comment.
+  String pdfFileName({required String projectName, String? episodeTag}) => ocptExportFileNameOf(
+    projectName: projectName,
+    episodeTag: episodeTag,
+    extension: "pdf",
+  );
 
   /// Renders [document] into a complete screenplay PDF, returning its bytes.
   ///

@@ -112,7 +112,6 @@ OcptPersonPosition _buildPosition({
 OcptRole _buildRole({required String id, required int number, String name = "", String? personId}) =>
     OcptRole(
       id: id,
-      screenplayId: "screenplay",
       name: name,
       personId: personId,
       kind: OcptRoleKind.speaking,
@@ -120,6 +119,7 @@ OcptRole _buildRole({required String id, required int number, String name = "", 
       orphanedName: null,
       castingNotes: "",
       number: number,
+      episodeIds: const [],
     );
 
 /// Builds a snapshot of [people] and [roles] alone: neither locations nor elements are read by this

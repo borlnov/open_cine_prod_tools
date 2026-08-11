@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
@@ -134,9 +135,19 @@ class OcptScenarioCoveragePdfService {
   ///
   /// [suffix] is the localized word telling this document apart from the plain screenplay export
   /// (`My Movie - couverture.pdf`); a blank one falls back to the project name alone rather than
-  /// producing a file name ending on a dangling separator.
-  String coverageFileName({required String projectName, required String suffix}) =>
-      suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
+  /// producing a file name ending on a dangling separator. [episodeTag] is the selected episode's
+  /// own tag, present only while the open project holds more than one episode — see
+  /// `ocptExportFileNameOf`'s own doc comment.
+  String coverageFileName({
+    required String projectName,
+    required String suffix,
+    String? episodeTag,
+  }) => ocptExportFileNameOf(
+    projectName: projectName,
+    suffix: suffix,
+    episodeTag: episodeTag,
+    extension: "pdf",
+  );
 
   /// Renders the scenario coverage of [snapshot] over [document], returning the PDF's bytes.
   ///

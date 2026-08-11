@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -20,11 +21,14 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
@@ -35,15 +39,18 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the schedule production mode.
 ///
 /// It loads the current project's title and the mode's own whole read on entry: the schedule
-/// itself ([_scheduleService]), the shot list ([_shotListService] — every placed or unplaced
-/// shot's own code, size, duration and characters), and the four resources catalogues the slot
-/// cards and the call sheet exports read from ([_locationsService], [_roleIndexService],
-/// [_peopleService], [_elementsService] — the last of them read for a named call sheet's own "to
-/// bring" section alone, nothing here shows an element on screen).
+/// itself ([_scheduleService]), every live episode's own shot list ([_shotListService], through
+/// [_loadShotLists] — every placed or unplaced shot's own code, size, duration and characters,
+/// across the whole project rather than one screenplay, a shooting day belonging to no episode),
+/// and the four resources catalogues the slot cards and the call sheet exports read from
+/// ([_locationsService], [_roleIndexService], [_peopleService], [_elementsService] — the last of
+/// them read for a named call sheet's own "to bring" section alone, nothing here shows an element
+/// on screen).
 /// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
 /// [_flushPendingFieldEdits] and [_onLoadRequested].
 ///
@@ -86,7 +93,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// The service used to read locations and their sets.
   final OcptLocationsService _locationsService;
 
-  /// The service used to read the cast reconciled against the screenplay.
+  /// The service used to read the cast, reconciled against the project's episodes.
   final OcptRoleIndexService _roleIndexService;
 
   /// The service used to read the address book.
@@ -280,15 +287,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     final previewedVersion = project.previewedVersion;
     final snapshot = await _loadScheduleSnapshot(project);
-    final shotListSnapshot = await _shotListService.loadShotList(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final shotLists = await _loadShotLists(project);
     final locations = await _locationsService.loadLocations(database: project.database);
-    final roles = await _roleIndexService.loadRoles(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final roles = await _roleIndexService.loadRoles(database: project.database);
     final people = await _peopleService.loadPeople(database: project.database);
     final elements = await _elementsService.loadElements(database: project.database);
     final pageSetup = await _loadPageSetup(project);
@@ -303,7 +304,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         previewedVersionId: previewedVersion?.id,
         clearPreviewedVersionId: previewedVersion == null,
         snapshot: snapshot,
-        shotListSnapshot: shotListSnapshot,
+        shotListSnapshots: shotLists.shotLists,
+        episodes: shotLists.episodes,
         locations: locations,
         roles: roles,
         people: people,
@@ -373,10 +375,42 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
   /// Reads [project]'s whole schedule.
   Future<OcptScheduleSnapshot> _loadScheduleSnapshot(OcptOpenProjectModel project) =>
-      _scheduleService.loadSchedule(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
+      _scheduleService.loadSchedule(database: project.database);
+
+  /// Reads every live episode's own whole shot list, in the same order — the schedule reading
+  /// across the whole project rather than one screenplay (`docs/adr/0019`): a shooting day belongs
+  /// to no episode, and regularly places shots of more than one.
+  ///
+  /// This bloc reads the project's live episodes through [_projectsManager]'s own
+  /// `screenplayService` (never through [_shotListService], which `OcptScreenplayService` already
+  /// depends on) and resolves each episode's own number with `ocptEpisodePrefixNumberOf`, null on a
+  /// single-episode project, so every shot list's own scene numbers are prefixed exactly as
+  /// `OcptShotListBloc`'s own single-episode read prefixes its one.
+  ///
+  /// Returns the episodes alongside their shot lists rather than the shot lists alone: every caller
+  /// (the initial load and [_onShotStatusChanged]) puts both into
+  /// [OcptScheduleState.episodes]/[OcptScheduleState.shotListSnapshots] in one write, and a second
+  /// read of [_projectsManager]'s own `screenplayService` right after this one returned would risk
+  /// disagreeing with it if an episode was renamed or reordered in between.
+  Future<({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})> _loadShotLists(
+    OcptOpenProjectModel project,
+  ) async {
+    final database = project.database;
+    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
+
+    final shotLists = <OcptShotListSnapshot>[];
+    for (final episode in episodes) {
+      shotLists.add(
+        await _shotListService.loadShotList(
+          database: database,
+          screenplayId: episode.id,
+          episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: episode.id),
+        ),
       );
+    }
+
+    return (episodes: episodes, shotLists: shotLists);
+  }
 
   /// Leaves the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(
@@ -595,11 +629,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    final dayId = await _scheduleService.createDay(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      date: event.date,
-    );
+    final dayId = await _scheduleService.createDay(database: project.database, date: event.date);
 
     await _applyScheduleSnapshot(emitter, project);
     if (dayId != null) {
@@ -937,8 +967,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   }
 
   /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector
-  /// edits — then reloads the shot list read so every shot code, block chip and inspector line
-  /// that shows it follows.
+  /// edits — then reloads every episode's own shot list so every shot code, block chip and
+  /// inspector line that shows it follows.
   Future<void> _onShotStatusChanged(
     OcptScheduleShotStatusChangedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -954,11 +984,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       status: Value(event.status),
     );
 
-    final shotListSnapshot = await _shotListService.loadShotList(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
+    final shotLists = await _loadShotLists(project);
+    emitter(
+      state.copyWith(shotListSnapshots: shotLists.shotLists, episodes: shotLists.episodes),
     );
-    emitter(state.copyWith(shotListSnapshot: shotListSnapshot));
     _requestWorkingCopyRefreshIfVersionsOpen();
   }
 
@@ -1340,28 +1369,26 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Re-reads the page setup and the project's own minimum rest after the project settings page
-  /// changed something, so the three export dialogs pre-fill from the page format actually in
-  /// effect and the rest-time alert reads the figure the user just typed rather than the one it
-  /// loaded on entry — that page is exactly where either is changed.
+  /// Re-reads the project's whole schedule after the project settings page changed something.
+  ///
+  /// The page setup and the minimum rest are the obvious two — the three export dialogs pre-fill
+  /// their format dropdown from the one, and the rest-time alert reads the other, and that page is
+  /// exactly where either is changed. But that page also **manages the project's episodes**, and
+  /// this mode is the one that reads every one of them at once: deleting an episode there
+  /// tombstones its scenes, its shots and the blocks placing them, none of which the shell's own
+  /// episode reload can tell this mode about — the mode is keyed on the *selected* episode
+  /// (`WorkspacePage._buildActiveMode`) and a mode showing no selector never sees that key change.
+  /// A partial re-read would leave a deleted episode's shots on the board, so the whole read is
+  /// redone, exactly as [reloadFromProjectDatabase] redoes it.
+  ///
+  /// The cost is the one [_onLoadRequested] always carries and states: the selected day is chosen
+  /// afresh, and the selected block and shot are dropped. Coming back from a page reached through
+  /// the toolbar is a deliberate detour, and a selection kept over a database that may have lost
+  /// rows underneath it is worth less than one that is certainly true.
   Future<void> _onProjectSettingsChanged(
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
-    emitter(
-      state.copyWith(
-        pageSetup: await _loadPageSetup(project),
-        minimumRestMinutes: minimumRestMinutes,
-        clearMinimumRestMinutes: minimumRestMinutes == null,
-      ),
-    );
-  }
+  ) => _onLoadRequested(const OcptScheduleLoadRequestedEvent(), emitter);
 
   /// Exports the general call sheets of `event.options.dayIds`, one PDF per day, into a folder the
   /// user picks.
@@ -1660,6 +1687,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// It is read straight from the open project's own database, which is where the shot list
   /// snapshot's scene offsets were indexed against — a version preview swaps that database out
   /// wholesale, so a previewed booklet reads the previewed screenplay, exactly as its scenes do.
+  ///
+  /// A day now regularly plays more than one episode, so this reads **every** episode [options
+  /// .dayId] plays rather than [OcptOpenProjectModel.primaryScreenplayId] alone: [_documentsOfDay]
+  /// resolves which ones through [OcptSchedulePlanSnapshot.screenplayIdBySceneId], narrowed to
+  /// [OcptScheduleState.episodes] and kept in that list's own order — the order
+  /// [OcptSidesPdfService.generate] then chains the booklet's runs in.
   Future<void> _onSidesExportRequested(
     OcptScheduleSidesExportRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -1674,15 +1707,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     try {
       final options = event.options;
-      final screenplayText = await _projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+      final documents = await _documentsOfDay(project: project, plan: plan, dayId: options.dayId);
 
       final path = await _exportManager.exportSides(
         plan: plan,
         dayId: options.dayId,
-        document: const FountainParser().parse(screenplayText),
+        documents: documents,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
         labels: event.labels,
         projectName: state.title,
@@ -1707,6 +1737,42 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       );
       emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
     }
+  }
+
+  /// Every live episode [dayId] plays, in [OcptScheduleState.episodes]' own order, each paired with
+  /// its own freshly-parsed screenplay text — what [_onSidesExportRequested] hands
+  /// [OcptExportManager.exportSides].
+  ///
+  /// [OcptSchedulePlanSnapshot.sceneIdsOfDay] gives the day's own scenes, and
+  /// [OcptSchedulePlanSnapshot.screenplayIdBySceneId] the episode each belongs to; the resulting id
+  /// set is walked against [OcptScheduleState.episodes] rather than the other way round, so an
+  /// episode the day does not play is silently absent and the ones it does play come out in the
+  /// project's own episode order regardless of which scene happened to name them first.
+  Future<List<({String screenplayId, FountainDocument document})>> _documentsOfDay({
+    required OcptOpenProjectModel project,
+    required OcptSchedulePlanSnapshot plan,
+    required String dayId,
+  }) async {
+    final dayEpisodeIds = {
+      for (final sceneId in plan.sceneIdsOfDay(dayId))
+        if (plan.screenplayIdBySceneId[sceneId] case final screenplayId?) screenplayId,
+    };
+
+    const parser = FountainParser();
+    final documents = <({String screenplayId, FountainDocument document})>[];
+    for (final episode in state.episodes) {
+      if (!dayEpisodeIds.contains(episode.id)) {
+        continue;
+      }
+
+      final screenplayText = await _projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: episode.id,
+      );
+      documents.add((screenplayId: episode.id, document: parser.parse(screenplayText)));
+    }
+
+    return documents;
   }
 
   /// Clears the transient export notice currently shown, if any.

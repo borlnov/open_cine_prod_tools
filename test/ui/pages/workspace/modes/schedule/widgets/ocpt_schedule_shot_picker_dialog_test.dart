@@ -9,9 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_picker_dialog.dart';
 
 /// A router manager whose [pop] only records the last call and its value: this dialog is pumped
@@ -107,17 +110,20 @@ void main() {
     managers.registerSingleton<OcptRouterManager>(routerManager);
   });
 
-  /// Pumps [OcptScheduleShotPickerDialog] directly (no `showDialog`/`.show`), for [sequences] and
-  /// [placedDayNumbersByShotId] (defaulting to empty, i.e. nothing placed yet).
+  /// Pumps [OcptScheduleShotPickerDialog] directly (no `showDialog`/`.show`), for
+  /// [shotListSnapshots], [episodes] (defaulting to empty, i.e. a single-episode project drawing
+  /// no band) and [placedDayNumbersByShotId] (defaulting to empty, i.e. nothing placed yet).
   Future<void> pumpDialog(
     WidgetTester tester, {
-    required List<OcptShotSequence> sequences,
+    required List<OcptShotListSnapshot> shotListSnapshots,
+    List<OcptEpisode> episodes = const [],
     Map<String, List<int>> placedDayNumbersByShotId = const {},
   }) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
         OcptScheduleShotPickerDialog(
-          sequences: sequences,
+          shotListSnapshots: shotListSnapshots,
+          episodes: episodes,
           placedDayNumbersByShotId: placedDayNumbersByShotId,
         ),
       ),
@@ -135,9 +141,14 @@ void main() {
 
       await pumpDialog(
         tester,
-        sequences: [
-          _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shotOne, shotTwo]),
-          OcptOrphanShotSequence(shots: [orphanShot]),
+        shotListSnapshots: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: [
+              _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shotOne, shotTwo]),
+              OcptOrphanShotSequence(shots: [orphanShot]),
+            ],
+          ),
         ],
         placedDayNumbersByShotId: const {
           "shot-2": [3, 5],
@@ -172,13 +183,18 @@ void main() {
 
     await pumpDialog(
       tester,
-      sequences: [
-        _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [kitchenShot]),
-        _buildSequence(
-          sceneId: "scene-2",
-          displaySceneNumber: "5",
-          heading: "EXT. STREET - NIGHT",
-          shots: [streetShot],
+      shotListSnapshots: [
+        OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: [
+            _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [kitchenShot]),
+            _buildSequence(
+              sceneId: "scene-2",
+              displaySceneNumber: "5",
+              heading: "EXT. STREET - NIGHT",
+              shots: [streetShot],
+            ),
+          ],
         ),
       ],
     );
@@ -197,7 +213,12 @@ void main() {
 
     await pumpDialog(
       tester,
-      sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+      shotListSnapshots: [
+        OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+        ),
+      ],
     );
 
     await tester.tap(find.text("4A/1"));
@@ -208,7 +229,7 @@ void main() {
   });
 
   testWidgets("Cancel pops with no value", (tester) async {
-    await pumpDialog(tester, sequences: const []);
+    await pumpDialog(tester, shotListSnapshots: const []);
     final context = tester.element(find.byType(OcptScheduleShotPickerDialog));
     final tr = Tr.of(context);
 
@@ -220,7 +241,15 @@ void main() {
   });
 
   testWidgets("a shot list with no shot at all shows its own hint", (tester) async {
-    await pumpDialog(tester, sequences: const [OcptOrphanShotSequence(shots: [])]);
+    await pumpDialog(
+      tester,
+      shotListSnapshots: [
+        OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: const [OcptOrphanShotSequence(shots: [])],
+        ),
+      ],
+    );
     final context = tester.element(find.byType(OcptScheduleShotPickerDialog));
     final tr = Tr.of(context);
 
@@ -234,7 +263,12 @@ void main() {
 
     await pumpDialog(
       tester,
-      sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+      shotListSnapshots: [
+        OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+        ),
+      ],
     );
 
     await tester.enterText(find.byType(TextField), "nothing matches this");
@@ -245,4 +279,119 @@ void main() {
     expect(find.text(tr.scheduleShotPickerNoResultsHint), findsOneWidget);
     expect(find.text(tr.scheduleShotPickerEmptyHint), findsNothing);
   });
+
+  testWidgets("a single-episode project draws no episode band at all", (tester) async {
+    final shot = _buildShot(id: "shot-1", code: "4A/1");
+
+    await pumpDialog(
+      tester,
+      shotListSnapshots: [
+        OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+        ),
+      ],
+      episodes: const [OcptEpisode(id: "screenplay-1", number: 1, title: "")],
+    );
+
+    expect(find.byType(OcptScheduleEpisodeBand), findsNothing);
+    expect(find.text("Episode 1"), findsNothing);
+  });
+
+  testWidgets(
+    "a two-episode project bands its sections by episode, then sequence, in episode order",
+    (tester) async {
+      final kitchenShot = _buildShot(id: "shot-1", code: "4A/1");
+      final streetShot = _buildShot(id: "shot-2", code: "5/1");
+
+      await pumpDialog(
+        tester,
+        shotListSnapshots: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: [
+              _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [kitchenShot]),
+            ],
+          ),
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-2",
+            sequences: [
+              _buildSequence(
+                sceneId: "scene-2",
+                displaySceneNumber: "5",
+                heading: "EXT. STREET - NIGHT",
+                shots: [streetShot],
+              ),
+            ],
+          ),
+        ],
+        episodes: const [
+          OcptEpisode(id: "screenplay-1", number: 1, title: ""),
+          OcptEpisode(id: "screenplay-2", number: 2, title: ""),
+        ],
+      );
+
+      expect(find.byType(OcptScheduleEpisodeBand), findsNWidgets(2));
+      expect(find.text("Episode 1"), findsOneWidget);
+      expect(find.text("Episode 2"), findsOneWidget);
+
+      final episodeOneBandY = tester.getTopLeft(find.text("Episode 1")).dy;
+      final episodeOneSectionY = tester.getTopLeft(find.text("INT. KITCHEN - DAY")).dy;
+      final episodeTwoBandY = tester.getTopLeft(find.text("Episode 2")).dy;
+      final episodeTwoSectionY = tester.getTopLeft(find.text("EXT. STREET - NIGHT")).dy;
+
+      expect(episodeOneBandY, lessThan(episodeOneSectionY));
+      expect(episodeOneSectionY, lessThan(episodeTwoBandY));
+      expect(episodeTwoBandY, lessThan(episodeTwoSectionY));
+    },
+  );
+
+  testWidgets(
+    "the search narrows across every episode, dropping a band left with nothing matching",
+    (tester) async {
+      final kitchenShot = _buildShot(id: "shot-1", code: "4A/1");
+      final streetShot = _buildShot(id: "shot-2", code: "5/1");
+
+      await pumpDialog(
+        tester,
+        shotListSnapshots: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: [
+              _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [kitchenShot]),
+            ],
+          ),
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-2",
+            sequences: [
+              _buildSequence(
+                sceneId: "scene-2",
+                displaySceneNumber: "5",
+                heading: "EXT. STREET - NIGHT",
+                shots: [streetShot],
+              ),
+            ],
+          ),
+        ],
+        episodes: const [
+          OcptEpisode(id: "screenplay-1", number: 1, title: ""),
+          OcptEpisode(id: "screenplay-2", number: 2, title: ""),
+        ],
+      );
+
+      // Matches only episode 1's own sequence heading.
+      await tester.enterText(find.byType(TextField), "kitchen");
+      await tester.pumpAndSettle();
+
+      expect(find.text("4A/1"), findsOneWidget);
+      expect(find.text("5/1"), findsNothing);
+      expect(find.text("EXT. STREET - NIGHT"), findsNothing);
+
+      // Episode 1's own band survives; episode 2's disappears along with its own (now empty)
+      // section, exactly as a sequence left with no matching shot already does.
+      expect(find.byType(OcptScheduleEpisodeBand), findsOneWidget);
+      expect(find.text("Episode 1"), findsOneWidget);
+      expect(find.text("Episode 2"), findsNothing);
+    },
+  );
 }

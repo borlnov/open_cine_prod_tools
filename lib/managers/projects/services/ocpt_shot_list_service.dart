@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over a screenplay's shot list: its shots, their attached characters, and detaching them
@@ -51,9 +52,17 @@ class OcptShotListService {
   /// [OcptShotCheckReason] (`coveredTextChanged` or `coverageOutOfBounds`), applied to every range
   /// of that shot alike. `OcptShotCoverageService.refreshStaleness` is the one place that decides
   /// staleness precisely, at save time; nothing here second-guesses it.
+  ///
+  /// [episodeNumber] is this screenplay's own episode number, or null when the project holds a
+  /// single episode — passed in rather than looked up: this service has no reason to depend on
+  /// `OcptScreenplayService`, which already depends on this one for the shot list a version restore
+  /// needs (dependencies never reference their dependents). It only prefixes
+  /// [OcptSceneShotSequence.displaySceneNumber]; the orphaned-shot placeholder is never prefixed,
+  /// since an orphan belongs to no scene and so has no number to qualify.
   Future<OcptShotListSnapshot> loadShotList({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required int? episodeNumber,
   }) async {
     final sceneRows =
         await (database.select(database.ocptScenesTable)
@@ -124,7 +133,7 @@ class OcptShotListService {
 
     final sequences = <OcptShotSequence>[
       for (var i = 0; i < sceneRows.length; i++)
-        _buildSceneSequence(sceneRows[i], i, shotRowsBySceneId, buildShot),
+        _buildSceneSequence(sceneRows[i], i, episodeNumber, shotRowsBySceneId, buildShot),
     ];
 
     if (orphanedShotRows.isNotEmpty) {
@@ -148,17 +157,23 @@ class OcptShotListService {
   static const _orphanSceneDisplayNumber = "—";
 
   /// Builds the [OcptSceneShotSequence] for the scene at [sceneRow], whose 0-based index among the
-  /// screenplay's scenes is [sceneIndex].
+  /// screenplay's scenes is [sceneIndex], prefixed with [episodeNumber] through
+  /// `ocptSceneDisplayNumberOf`.
   ///
   /// [shotRowsBySceneId] holds each scene's shots in the order the `sortKey` query returned them,
   /// which is the order they display in and the order their codes are numbered from.
   static OcptSceneShotSequence _buildSceneSequence(
     OcptSceneRow sceneRow,
     int sceneIndex,
+    int? episodeNumber,
     Map<String, List<OcptShotRow>> shotRowsBySceneId,
     OcptShot Function(OcptShotRow row, String sceneDisplayNumber, int rank) buildShot,
   ) {
-    final displayNumber = sceneRow.sceneNumber ?? "${sceneIndex + 1}";
+    final displayNumber = ocptSceneDisplayNumberOf(
+      sceneNumber: sceneRow.sceneNumber,
+      position: sceneIndex,
+      episodeNumber: episodeNumber,
+    );
     final shotRows = shotRowsBySceneId[sceneRow.id] ?? const <OcptShotRow>[];
 
     return OcptSceneShotSequence(
@@ -649,6 +664,44 @@ class OcptShotListService {
         nextPosition++;
       }
     }
+  }
+
+  /// Tombstones every live shot of [screenplayId] — across every scene and the orphan group alike —
+  /// carrying off its `shot_characters` and `shot_coverages` exactly as [deleteShot] does for one
+  /// shot, and returns the ids it tombstoned: `OcptScreenplayService.deleteEpisode`'s cascade, which
+  /// needs those ids to also tombstone whatever a schedule block placed of one of them.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<List<String>> tombstoneShotsOfScreenplay({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
+    if (shotIds.isEmpty) {
+      return const [];
+    }
+
+    await (database.update(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.shotId.isIn(shotIds))).write(
+      const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
+    );
+    await (database.update(
+      database.ocptShotCharactersTable,
+    )..where((table) => table.shotId.isIn(shotIds))).write(
+      const OcptShotCharactersTableCompanion(isDeleted: Value(true)),
+    );
+    await (database.update(
+      database.ocptShotsTable,
+    )..where((table) => table.id.isIn(shotIds))).write(
+      const OcptShotsTableCompanion(isDeleted: Value(true)),
+    );
+
+    return shotIds;
   }
 
   /// Every distinct, non-empty value of `shots.shotSize` across screenplay [screenplayId], for the

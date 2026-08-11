@@ -9,8 +9,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 
-/// The whole schedule of one screenplay, as `OcptScheduleService.loadSchedule` builds it and the
-/// schedule mode's bloc holds it.
+/// The whole shooting schedule of the project, as `OcptScheduleService.loadSchedule` builds it and
+/// the schedule mode's bloc holds it.
+///
+/// The schedule belongs to no one screenplay
+/// (`docs/adr/0019-one-project-several-episodes.md`): a shooting day regularly covers two episodes
+/// at one location, which is the whole point of shooting a series out of order.
 ///
 /// Built the same way `OcptShotListSnapshot.build` is: a pure function of already-loaded, already
 /// ordered lists, with no database access of its own. [days] is in [OcptShootingDay.dayNumber]
@@ -22,9 +26,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// day's [eventsByDayId] entry is ordered by [OcptShootingDayEvent.minute], ties broken by
 /// `sortKey` — an event's own hour, not a chain, being the only thing that orders it.
 class OcptScheduleSnapshot extends Equatable {
-  /// The screenplay this schedule belongs to.
-  final String screenplayId;
-
   /// Every live day, in [OcptShootingDay.dayNumber] order.
   final List<OcptShootingDay> days;
 
@@ -57,7 +58,6 @@ class OcptScheduleSnapshot extends Equatable {
 
   /// Class constructor
   const OcptScheduleSnapshot({
-    required this.screenplayId,
     required this.days,
     required this.daysById,
     required this.slotsByDayId,
@@ -66,11 +66,10 @@ class OcptScheduleSnapshot extends Equatable {
     required this.placedShotIds,
   });
 
-  /// Builds an [OcptScheduleSnapshot] for [screenplayId] from its already-ordered [days],
+  /// Builds an [OcptScheduleSnapshot] of the project from its already-ordered [days],
   /// [slotsByDayId], [blocksByDayId] and [eventsByDayId], deriving [daysById] and [placedShotIds]
   /// from them.
   factory OcptScheduleSnapshot.build({
-    required String screenplayId,
     required List<OcptShootingDay> days,
     required Map<String, List<OcptShootingSlot>> slotsByDayId,
     required Map<String, List<OcptShootingDayBlock>> blocksByDayId,
@@ -83,7 +82,6 @@ class OcptScheduleSnapshot extends Equatable {
     };
 
     return OcptScheduleSnapshot(
-      screenplayId: screenplayId,
       days: days,
       daysById: Map.unmodifiable({for (final day in days) day.id: day}),
       slotsByDayId: Map.unmodifiable(slotsByDayId),
@@ -99,13 +97,11 @@ class OcptScheduleSnapshot extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptScheduleSnapshot(screenplayId: $screenplayId, dayCount: $dayCount, "
-      "placedShotCount: ${placedShotIds.length})";
+      "OcptScheduleSnapshot(dayCount: $dayCount, placedShotCount: ${placedShotIds.length})";
 
   /// Object properties
   @override
   List<Object?> get props => [
-    screenplayId,
     days,
     daysById,
     slotsByDayId,

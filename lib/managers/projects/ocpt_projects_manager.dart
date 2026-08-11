@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
@@ -168,6 +169,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
             elementsService: OcptElementsService(),
             locationsService: OcptLocationsService(),
           ),
+          scheduleService: OcptScheduleService(),
         ),
       ),
       screenplayService = const OcptScreenplayService(
@@ -179,6 +181,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           elementsService: OcptElementsService(),
           locationsService: OcptLocationsService(),
         ),
+        scheduleService: OcptScheduleService(),
       ),
       peopleService = const OcptPeopleService(),
       roleIndexService = const OcptRoleIndexService(),
@@ -219,8 +222,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return projectsDirectory;
   }
 
-  /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay,
-  /// registers it in the recent projects list, and makes it the [currentProject].
+  /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay —
+  /// episode 1 (`number: 1`), given a real first `sortKey` rather than left at the column
+  /// defaults, so a project made today looks exactly like one that came through the schema version
+  /// 18 migration (`docs/adr/0019-one-project-several-episodes.md`) — registers it in the recent
+  /// projects list, and makes it the [currentProject].
   ///
   /// If a project is already open, it's closed first. The project's page format defaults to
   /// [OcptPageFormat.a4] when the platform's locale is French, and to [OcptPageFormat.usLetter]
@@ -267,7 +273,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       await database
           .into(database.ocptScreenplaysTable)
           .insert(
-            OcptScreenplaysTableCompanion.insert(id: screenplayId, title: name, updatedAt: now),
+            OcptScreenplaysTableCompanion.insert(
+              id: screenplayId,
+              title: name,
+              updatedAt: now,
+              number: const Value(1),
+              sortKey: Value(ocptFractionalKeyBetween()),
+            ),
           );
 
       final project = OcptOpenProjectModel(
@@ -279,7 +291,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       _currentProject.value = project;
 
       await _propertiesManager.addRecentProject(
-        OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now),
+        // A fresh project holds exactly one episode — no need to read it back.
+        OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
       );
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
@@ -342,8 +355,15 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         screenplayId: screenplay.id,
       );
 
+      final episodeCount = (await screenplayService.loadEpisodes(database: database)).length;
+
       await _propertiesManager.addRecentProject(
-        OcptRecentProjectModel(path: filePath, name: info.name, lastOpenedAt: DateTime.now()),
+        OcptRecentProjectModel(
+          path: filePath,
+          name: info.name,
+          lastOpenedAt: DateTime.now(),
+          episodeCount: episodeCount,
+        ),
       );
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
@@ -632,6 +652,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     _currentProject.value = project.workingCopy;
 
+    // A restored version may hold a different number of episodes than the working copy did.
+    await recordCurrentProjectEpisodeCount();
+
     return result.status;
   }
 
@@ -769,12 +792,23 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// open.
   ///
   /// A project closed while a version is being previewed disposes both of its connections: the
-  /// in-memory one holding the version, then the project file itself.
+  /// in-memory one holding the version, then the project file itself. Before either goes, the
+  /// recent-projects entry for this project is updated with its live episode count, read through
+  /// [screenplayService]'s own [OcptScreenplayService.loadEpisodes] over
+  /// [OcptOpenProjectModel.fileDatabase] — the working copy, **never**
+  /// [OcptOpenProjectModel.database], which would be the in-memory preview database while a
+  /// version is being previewed — so a session that added or deleted episodes leaves a truthful
+  /// count behind rather than the one it opened with, and previewing a version never overwrites it
+  /// with a count that isn't the project's own.
   Future<void> closeCurrentProject() async {
     final project = currentProject;
     if (project == null) {
       return;
     }
+
+    final episodeCount = (await screenplayService.loadEpisodes(
+      database: project.fileDatabase,
+    )).length;
 
     _currentProject.value = null;
 
@@ -783,6 +817,53 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
 
     await project.fileDatabase.close();
+
+    await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
+  }
+
+  /// Updates the recent-projects entry for the [currentProject] so it carries the episode count
+  /// the project holds right now. Does nothing when no project is open.
+  ///
+  /// [closeCurrentProject] records that count on the way out too, but only a session that *leaves*
+  /// the project ever reaches it: an app closed while the project is still open never runs it, and
+  /// the home card would then go on showing the count the project was opened with until the next
+  /// time it is opened. Whoever adds or removes an episode calls this the moment it happens, so
+  /// that count survives a window closed on the spot.
+  ///
+  /// The live count is read over [OcptOpenProjectModel.fileDatabase] — the working copy, **never**
+  /// [OcptOpenProjectModel.database], which would be the in-memory preview database while a
+  /// version is being previewed.
+  Future<void> recordCurrentProjectEpisodeCount() async {
+    final project = currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final episodeCount = (await screenplayService.loadEpisodes(
+      database: project.fileDatabase,
+    )).length;
+
+    await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
+  }
+
+  /// Updates the recent-projects entry for [path], if it is still in the list, so it carries
+  /// [episodeCount] rather than whichever count was recorded when the project was opened.
+  ///
+  /// Left untouched, rather than created, when [path] isn't in the list at all — e.g. it was
+  /// removed from the recent projects list while the project stayed open.
+  Future<void> _recordEpisodeCount({
+    required String path,
+    required int episodeCount,
+  }) async {
+    final recents = await _propertiesManager.recentProjects.load() ?? const [];
+    final index = recents.indexWhere((entry) => entry.path == path);
+    if (index == -1) {
+      return;
+    }
+
+    final updated = [...recents];
+    updated[index] = updated[index].copyWith(episodeCount: episodeCount);
+    await _propertiesManager.recentProjects.store(updated);
   }
 
   /// Returns the default [OcptPageFormat] for a newly created project, based on the platform's

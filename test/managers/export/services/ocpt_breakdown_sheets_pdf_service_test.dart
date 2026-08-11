@@ -84,6 +84,7 @@ OcptBreakdownScene _buildScene({
   status: status,
   notes: notes,
   tags: const [],
+  episodeNumber: null,
 );
 
 /// Builds a tag pointing scene [sceneId] at ([targetKind], [targetId]); these tests only ever read
@@ -138,7 +139,6 @@ OcptElement _buildElement({
 /// Builds a role named [name].
 OcptRole _buildRole({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,
@@ -146,6 +146,7 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// Builds a person named [firstName] [lastName], the only two fields a printed sheet ever reads.
@@ -439,6 +440,13 @@ void main() {
       expect(
         service.sheetsFileName(projectName: "My Movie", suffix: " breakdown "),
         "My Movie - breakdown.pdf",
+      );
+    });
+
+    test("appends the episode tag last, after the suffix, when there is one", () {
+      expect(
+        service.sheetsFileName(projectName: "My Movie", suffix: "breakdown", episodeTag: "ep. 2"),
+        "My Movie - breakdown - ep. 2.pdf",
       );
     });
   });

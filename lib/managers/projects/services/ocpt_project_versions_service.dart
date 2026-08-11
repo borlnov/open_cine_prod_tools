@@ -52,6 +52,7 @@ class OcptProjectVersionsService {
     'person_skills',
     'person_unavailabilities',
     'roles',
+    'role_episodes',
     'locations',
     'location_availabilities',
     'sets',
@@ -349,6 +350,7 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptPersonSkillsTable, payload.personSkills)
         ..insertAll(database.ocptPersonUnavailabilitiesTable, payload.personUnavailabilities)
         ..insertAll(database.ocptRolesTable, payload.roles)
+        ..insertAll(database.ocptRoleEpisodesTable, payload.roleEpisodes)
         ..insertAll(database.ocptLocationsTable, payload.locations)
         ..insertAll(database.ocptLocationAvailabilitiesTable, payload.locationAvailabilities)
         ..insertAll(database.ocptSetsTable, payload.sets)
@@ -593,6 +595,7 @@ class OcptProjectVersionsService {
       personSkills: await database.select(database.ocptPersonSkillsTable).get(),
       personUnavailabilities: await database.select(database.ocptPersonUnavailabilitiesTable).get(),
       roles: await database.select(database.ocptRolesTable).get(),
+      roleEpisodes: await database.select(database.ocptRoleEpisodesTable).get(),
       locations: await database.select(database.ocptLocationsTable).get(),
       locationAvailabilities: await database
           .select(database.ocptLocationAvailabilitiesTable)
@@ -653,6 +656,12 @@ class OcptProjectVersionsService {
   /// person) before `scene_elements` linking a scene to one and `role_elements` linking a role to
   /// one, and `assets` last, since a person, a
   /// location or an element may name one as its photo or document before that row itself exists.
+  /// `role_episodes` — which episode each role is named in
+  /// (`docs/adr/0019-one-project-several-episodes.md`) — is restored right after `roles`, the table
+  /// it names alongside `screenplays`: both are already restored by this point (`screenplays` at
+  /// the very top, `roles` immediately above), so this is not a forward reference, and — unlike the
+  /// asset trio below — it closes no foreign-key cycle of its own: nothing restored after
+  /// `role_episodes` ever references it back.
   /// That last point is also where the ordering stops being fully satisfiable: `people`,
   /// `locations` and `elements` each reference `assets` (a photo, a permit, a document) while
   /// `assets` references all three back (whose photo or document it is) — a genuine foreign-key
@@ -783,6 +792,15 @@ class OcptProjectVersionsService {
       database: database,
       table: database.ocptRolesTable,
       payloadRows: payload.roles,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptRoleEpisodesTable,
+      payloadRows: payload.roleEpisodes,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -1015,6 +1033,10 @@ class OcptProjectVersionsService {
               : row,
       ],
       roles: payload.roles,
+      // A role_episodes row names a role and a screenplay, never a person: an actor is reached
+      // through `roles.personId`, which the `roles` list above already answers for. Nothing here
+      // to scrub.
+      roleEpisodes: payload.roleEpisodes,
       locations: payload.locations,
       locationAvailabilities: payload.locationAvailabilities,
       sets: payload.sets,

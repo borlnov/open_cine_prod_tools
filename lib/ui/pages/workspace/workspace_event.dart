@@ -52,3 +52,30 @@ class OcptWorkspaceRevealRequestConsumedEvent extends OcptWorkspaceEvent {
   /// Class constructor
   const OcptWorkspaceRevealRequestConsumedEvent();
 }
+
+/// Selects an episode from the toolbar's episode selector, built by `OcptWorkspaceShell` itself so
+/// the gesture can't drift from one mode to the next.
+///
+/// Deliberately not persisted: see `OcptWorkspaceState.selectedEpisodeId`'s own doc comment for
+/// why a reading preference like this one is cheaper to lose than to store.
+class OcptWorkspaceEpisodeSelectedEvent extends OcptWorkspaceEvent {
+  /// The id of the episode the user picked.
+  final String episodeId;
+
+  /// Class constructor
+  const OcptWorkspaceEpisodeSelectedEvent({required this.episodeId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, episodeId];
+}
+
+/// Reloads the project's episodes after `OcptProjectsManager.currentProjectStream` emits.
+///
+/// Dispatched by the bloc's own stream subscription rather than sent by a widget — see
+/// `OcptWorkspaceBloc`'s own doc comment for why entering or leaving a project version preview has
+/// to be watched here.
+class OcptWorkspaceEpisodesReloadRequestedEvent extends OcptWorkspaceEvent {
+  /// Class constructor
+  const OcptWorkspaceEpisodesReloadRequestedEvent();
+}

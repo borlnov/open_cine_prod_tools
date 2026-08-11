@@ -78,7 +78,6 @@ OcptPerson _person({required String id, required String firstName, required Stri
 /// A role carrying nothing but a name, enough for a row of the list.
 OcptRole _role({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,
@@ -86,6 +85,7 @@ OcptRole _role({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// A location carrying nothing but a name, enough for a row of the list.
@@ -171,6 +171,7 @@ void main() {
           selectedPersonId: null,
           roles: [_role(id: "r1", name: "Le Client")],
           selectedRoleId: null,
+          episodes: const [],
           locations: [_location(id: "l1", name: "La maison des Pains")],
           selectedLocationId: null,
           elements: [_element(id: "e1", name: "Vélo de Léa")],
@@ -359,6 +360,7 @@ void main() {
           selectedPersonId: null,
           roles: const [],
           selectedRoleId: null,
+          episodes: const [],
           locations: const [],
           selectedLocationId: null,
           elements: const [],

@@ -27,6 +27,7 @@ OcptBreakdownScene _scene({
   status: OcptBreakdownSceneStatus.toDo,
   notes: "",
   tags: tags,
+  episodeNumber: null,
 );
 
 /// Builds a live tag of [sceneId], pointing at [targetKind]/[targetId], the scene-relative
