@@ -956,7 +956,8 @@ void main() {
       final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
       final sceneId = loaded.scenes.single.id;
 
-      // "lamp" (20, 24) then "desk." (37, 42): the range closes on "lamp sits on the desk.".
+      // "lamp" (20, 24) then "desk." (37, 42): the range closes on "lamp sits on the desk", the
+      // full stop the last word is written against left out of it.
       bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
       await waitForState(bloc, (state) => state.pendingTagAnchor != null);
 
@@ -967,8 +968,8 @@ void main() {
       expect(state.pendingTagRange, (
         sceneId: sceneId,
         startOffset: 20,
-        endOffset: 42,
-        taggedText: "lamp sits on the desk.",
+        endOffset: 41,
+        taggedText: "lamp sits on the desk",
         closingWordStartOffset: 37,
         closingWordEndOffset: 42,
       ));
@@ -993,14 +994,34 @@ void main() {
       final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
 
       expect(state.pendingTagRange?.startOffset, 20);
-      expect(state.pendingTagRange?.endOffset, 42);
-      expect(state.pendingTagRange?.taggedText, "lamp sits on the desk.");
+      expect(state.pendingTagRange?.endOffset, 41);
+      expect(state.pendingTagRange?.taggedText, "lamp sits on the desk");
       // The popover still anchors under the word the second click actually landed on.
       expect(state.pendingTagRange?.closingWordStartOffset, 20);
 
       await bloc.close();
     },
   );
+
+  test("a range closed on a word written against punctuation leaves it out", () async {
+    await writeScreenplay('INT. HOUSE - DAY\n\nA lamp sits on the "desk", waiting.\n');
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    // The same word clicked twice: `"desk",` (37, 44) is tagged as `desk` (38, 42) alone.
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44));
+    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
+
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44));
+    final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
+
+    expect(state.pendingTagRange?.startOffset, 38);
+    expect(state.pendingTagRange?.endOffset, 42);
+    expect(state.pendingTagRange?.taggedText, "desk");
+
+    await bloc.close();
+  });
 
   test(
     "an overlapping second click is refused, keeping the anchor and opening no popover",

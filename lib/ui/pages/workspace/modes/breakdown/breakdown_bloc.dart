@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_tag_span.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the breakdown production mode (dépouillement du scénario).
@@ -823,8 +824,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   ///   stale one, or a direct test) is refused the same way `OcptBreakdownService.createTag` itself
   ///   would refuse it, and the anchor is kept rather than cleared, so the user can try a different
   ///   second click without starting over. Otherwise the range is recorded as
-  ///   [OcptBreakdownState.pendingTagRange] — its passage sliced verbatim out of the scene's own
-  ///   text — which is the script view's cue to open the popover, anchored under this very word.
+  ///   [OcptBreakdownState.pendingTagRange] — narrowed by [ocptBreakdownTaggedSpanOf] to the words
+  ///   themselves, the punctuation a clicked word is written against being the sentence's rather
+  ///   than the tagged thing's, then sliced verbatim out of the scene's own text — which is the
+  ///   script view's cue to open the popover, anchored under this very word.
+  ///
+  /// The overlap above is checked on the clicked words' own bounds rather than on that narrowed
+  /// span, exactly as the script view greys a word out on them: the span can only ever be narrower,
+  /// so a range this refuses is one `OcptBreakdownService.createTag` would refuse too.
   ///
   /// Ignored outright while a version is being previewed (the mode never wires this callback then,
   /// so this only guards a direct call reaching past that) or while a range is already closed and
@@ -891,8 +898,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final sceneStart = scene.charStart.clamp(0, state.screenplayText.length);
     final sceneEnd = scene.charEnd.clamp(sceneStart, state.screenplayText.length);
     final sceneText = state.screenplayText.substring(sceneStart, sceneEnd);
-    final clampedStart = startOffset.clamp(0, sceneText.length);
-    final clampedEnd = endOffset.clamp(clampedStart, sceneText.length);
+    final tagged = ocptBreakdownTaggedSpanOf(
+      sceneText: sceneText,
+      startOffset: startOffset,
+      endOffset: endOffset,
+    );
 
     await _flushPendingFieldEdits(emitter);
     emitter(
@@ -900,9 +910,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         clearPendingTagAnchor: true,
         pendingTagRange: (
           sceneId: event.sceneId,
-          startOffset: startOffset,
-          endOffset: endOffset,
-          taggedText: sceneText.substring(clampedStart, clampedEnd),
+          startOffset: tagged.startOffset,
+          endOffset: tagged.endOffset,
+          taggedText: sceneText.substring(tagged.startOffset, tagged.endOffset),
           closingWordStartOffset: event.wordStartOffset,
           closingWordEndOffset: event.wordEndOffset,
         ),
