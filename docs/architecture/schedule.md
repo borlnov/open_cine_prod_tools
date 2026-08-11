@@ -296,8 +296,11 @@ seven documents a production runs on.
   `project_info.minimumRestMinutes` (nullable) is that same argument at the project's own level —
   the rest a production says it owes between two days — and it is **deliberately not defaulted to
   660**: eleven hours is French law, this app ships in more than one country, and a default would be
-  the app advancing a legal figure nobody here validated. It is typed on `OcptProjectSettingsPage`,
-  in minutes, read back as a formatted duration and **left empty by default**.
+  the app advancing a legal figure nobody here validated. It is typed on `OcptProjectSettingsPage`
+  **in hours** — the unit a production says a turnaround in, half hours included (`11,5`) — through
+  `ocptMinimumRestMinutesOf`, which is what turns it into the minutes the column and every rest
+  computation work in, and is **left empty by default**. The field wears its `h` as a `suffixText`
+  rather than in its own text, so what a commit reads back is always something it accepts again.
   The alerts live in the `Alerts` **dock tab** rather than above the agenda the mock puts them over:
   a plan is broken whichever view is being read, and the count in the status bar is what says so
   from the other three. Each entry names what it concerns and offers the day it concerns — a

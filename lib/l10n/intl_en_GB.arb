@@ -5526,6 +5526,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsMinimumRestFieldHint": "e.g. 11",
+  "@projectSettingsMinimumRestFieldHint": {
+    "description": "Placeholder of the minimum rest field while it is empty",
+    "context": "Displayed in the minimum rest field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMinimumRestSuffix": "h",
+  "@projectSettingsMinimumRestSuffix": {
+    "description": "Unit suffix of the minimum rest field, which is typed in hours",
+    "context": "Displayed at the end of the minimum rest field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsMinimumRestHint": "Leave empty if no minimum has been recorded — that silences the schedule's rest-time alert, it does not mean no rest is owed. Deliberately not pre-filled with the legal eleven hours: this app ships in more than one country.",
   "@projectSettingsMinimumRestHint": {
     "description": "Explanation under the minimum rest field, read what an empty value means",

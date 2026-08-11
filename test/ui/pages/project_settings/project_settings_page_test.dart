@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_proj
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_minimum_rest.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -226,28 +226,43 @@ void main() {
     expect(await projectsManager.loadCurrentProjectPageFormat(), otherFormat);
   });
 
-  testWidgets("shows the project's currently recorded minimum rest", (tester) async {
+  testWidgets("shows the project's currently recorded minimum rest, in hours", (tester) async {
     await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
 
     await pumpView(tester);
 
-    expect(find.text(ocptFormatMinuteDuration(90)), findsOneWidget);
+    expect(find.text(ocptMinimumRestHoursTextOf(90)), findsOneWidget);
   });
 
-  testWidgets("typing a minimum rest writes it to the project and marks the state changed", (
+  testWidgets("typing a minimum rest in hours writes the minutes it makes to the project", (
     tester,
   ) async {
     final bloc = await pumpView(tester);
 
-    await tester.enterText(minimumRestField(), "660");
+    await tester.enterText(minimumRestField(), "11");
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     expect(bloc.state.minimumRestMinutes, 660);
     expect(bloc.state.hasChanged, isTrue);
     expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 660);
-    // Read back as a formatted duration, not the raw digits just typed.
-    expect(find.text(ocptFormatMinuteDuration(660)), findsOneWidget);
+  });
+
+  testWidgets("a committed minimum rest can be typed over again", (tester) async {
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(660);
+    final bloc = await pumpView(tester);
+
+    // What the field shows after a commit is what it accepts back: the digits alone, the unit
+    // being the field's own suffix.
+    expect(find.text("11"), findsOneWidget);
+
+    await tester.enterText(minimumRestField(), "12,5");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.minimumRestMinutes, 750);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 750);
+    expect(find.text("12.5"), findsOneWidget);
   });
 
   testWidgets("clearing the minimum rest writes null to the project", (tester) async {
@@ -276,8 +291,8 @@ void main() {
     expect(bloc.state.minimumRestMinutes, 90);
     expect(bloc.state.hasChanged, isFalse);
     expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 90);
-    // The field reverts to the last committed value's own formatted reading.
-    expect(find.text(ocptFormatMinuteDuration(90)), findsOneWidget);
+    // The field reverts to the last committed value's own reading.
+    expect(find.text(ocptMinimumRestHoursTextOf(90)), findsOneWidget);
   });
 
   testWidgets("tapping the back arrow pops with whether anything changed", (tester) async {

@@ -751,6 +751,8 @@
   "projectSettingsPageFormatLabel": "Format de page",
   "projectSettingsMinimumRestSectionTitle": "Repos minimum entre deux jours de tournage",
   "projectSettingsMinimumRestLabel": "Repos minimum",
+  "projectSettingsMinimumRestFieldHint": "ex. 11",
+  "projectSettingsMinimumRestSuffix": "h",
   "projectSettingsMinimumRestHint": "Laissez vide si aucun minimum n'a été enregistré — cela mettra en veille l'alerte de repos du planning, cela ne signifie pas qu'aucun repos n'est dû. Volontairement non pré-rempli avec les onze heures légales : cette application est utilisée dans plusieurs pays.",
   "projectSettingsEpisodesSectionTitle": "Épisodes",
   "projectSettingsEpisodeTitleHint": "Sans titre",
