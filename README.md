@@ -70,14 +70,50 @@ The shot list mode: one sequence per scene, and a shot table whose columns you c
 
 ![The shot list showing four shots with their characters, shot size, framing and camera move](docs/screenshots/shot-list.png)
 
+The schedule mode, on the day being built: a card per working unit, and the timetable it carries.
+Every hour on it is computed from the durations and the one edge you pinned - here 07:00 - so
+moving a block re-times the rest of the day instead of asking you to retype it.
+
+![The schedule day view, a slot card for the cafe unit above its computed timetable](docs/screenshots/schedule-day.png)
+
+The same shoot read as a strip board: what each day carries, where it is shot, when it starts and
+when it ends.
+
+![The strip agenda, three shooting days tinted by location, each listing the shots placed on it](docs/screenshots/schedule-agenda.png)
+
+Or as an hour grid, one lane per unit and the daylight shaded behind it, so a day running two units
+at once - or a night running past midnight - draws where it belongs.
+
+![The week agenda, three shooting days over an hour grid, two lanes on the days that run two units](docs/screenshots/schedule-week.png)
+
+The day's whole call, in the right dock: arrival, the band between the first and the last shooting
+block, departure - all read off the slots each person is linked to, never typed. Guests get a group
+of their own, and no band: they are on the day, they are not waiting to shoot.
+
+![The convocations panel, one card per person: arrival, band, departure](docs/screenshots/schedule-convocations.png)
+
+Which position is covered by whom, unit by unit: the script supervisor is on the cafe in the
+morning and not on the pier in the afternoon, and that is read here and nowhere else.
+
+![The positions matrix, one column per unit grouped under its day, one row per position held](docs/screenshots/schedule-positions.png)
+
+Who is working which day, computed from the schedule and from the address book. The red mark is
+somebody convoked on a day their own availability says they are away.
+
+![The presence grid, eleven people against three shooting days, one cell flagged in red](docs/screenshots/schedule-presence.png)
+
 ## Features
 
 What the app does today:
 
 - A workspace shell around the open project - toolbar, resizable side docks, status bar - with a
-  bottom mode switcher for the production tools. Screenplay, breakdown, shot list and resources are
-  implemented; schedule and budget are still empty states (see [Roadmap](#roadmap)). Dock sizes and
-  the mode you were last in come back with the project.
+  bottom mode switcher for the production tools. Screenplay, breakdown, shot list, resources and
+  schedule are implemented; the budget is still an empty state (see [Roadmap](#roadmap)). Dock sizes
+  and the mode you were last in come back with the project.
+- One project, several episodes: a series is one `.ocpt` file, with one screenplay per episode and
+  one address book, one set of locations and one schedule shared between them. The modes work on the
+  episode the workspace has selected; the schedule reads them all at once, a shooting day regularly
+  covering two episodes at one location.
 - A styled WYSIWYG screenplay mode with the real page layout: a block-type dropdown, Tab cycling
   between screenplay element types, smart Enter, bold/italic/underline, a title page edited in
   place, and `#N#` scene numbers.
@@ -110,6 +146,21 @@ What the app does today:
   need. Elements and sets carry a code the app mints itself (`PRP-3`, `A`) rather than one you have
   to type and keep unique. Photos and signed documents are referenced by path rather than copied
   into the project file. Exports to XLSX, one sheet per tab.
+- A schedule mode (plan de travail): when the film is shot. Dated shooting days, each split into
+  slots, a slot being a working unit with its own location, set, crew and cast - a real day
+  regularly has two. Each slot carries its own timetable, whose hours are computed rather than
+  stored: the blocks chain from a single pinned edge, so a slot can be planned backwards from the
+  22:00 a studio is booked until, and moving one block re-times the rest of the day. Nobody types a
+  call time either: somebody's arrival, the band they are held for between the first and the last
+  shooting block, and their departure are all read off the slots they are linked to. Sunrise, sunset
+  and the three twilights are computed offline from the day's own coordinates, with no network call
+  ever. The plan then reads four ways: the day being built, an agenda (strip, week or month, tinted
+  by location or by day/night effect), the positions against the slots, and the people against the
+  days. And the app says what it can see coming - somebody convoked while recorded away or booked
+  into two units at once, a role a placed shot needs but nobody called, a day that leaves less rest
+  than the production says it owes, a filming permit that does not cover the date. Exports the seven
+  documents a shoot runs on: the general call sheet and one sheet per recipient, the shooting plan
+  as a PDF and as a workbook, the Day Out of Days, the one-line schedule and the day's sides.
 - Project versions: named, permanent checkpoints of the whole project, previewed read-only before
   you commit to anything and restored as an edit rather than a reset - the state a restore replaces
   is itself kept as a version, so going back is never a one-way door.
@@ -128,8 +179,7 @@ What the app does today:
 
 Planned production tools, in priority order:
 
-- Shooting schedule
-- Call sheets
+- Call sheets beyond the ones the schedule mode already prints
 - Budget
 - Script supervisor reports
 - Storyboard
@@ -234,12 +284,13 @@ actlibs/               ACT Flutter packages (git submodule)
 assets/                Config, fonts, branding and other bundled assets
 test/                  Application test suite
 tool/                  Developer scripts (branding icon generation)
-docs/                  Plans and architecture decision records
+docs/                  Architecture, plans and decision records
 .github/               CI workflows and release pipeline
 ```
 
 ## Documentation
 
+- [Architecture](docs/architecture/) - what the code does, one file per area.
 - [Architecture decision records](docs/adr/) - the reasoning behind structural choices.
 - [CI documentation](.github/ci-doc.md) - build, test and release pipeline.
 - [fountain_kit README](packages/fountain_kit/README.md) - the standalone Fountain package.
