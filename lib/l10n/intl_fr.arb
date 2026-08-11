@@ -1239,5 +1239,7 @@
   "workspaceEpisodeTag": "ép. {number}",
   "workspaceEpisodeTitledLabel": "{number}. {title}",
   "workspaceEpisodeUntitledLabel": "Épisode {number}",
-  "workspaceManageEpisodesAction": "Gérer les épisodes…"
+  "workspaceManageEpisodesAction": "Gérer les épisodes…",
+  "workspaceAddEpisodeAction": "Ajouter un épisode…",
+  "workspaceAddEpisodeTooltip": "Faire de ce projet une série : ses épisodes se gèrent dans les paramètres du projet"
 }

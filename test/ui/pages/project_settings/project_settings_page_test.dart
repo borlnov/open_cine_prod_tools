@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
@@ -138,6 +139,26 @@ void main() {
     await tester.pumpAndSettle();
 
     return bloc;
+  }
+
+  /// Pumps [OcptProjectSettingsView] on a surface deliberately too short for its four cards, so
+  /// the episodes card starts below the fold and a reveal has somewhere to scroll to.
+  Future<void> pumpShortView(WidgetTester tester, {OcptProjectSettingsReveal? reveal}) async {
+    await tester.binding.setSurfaceSize(const Size(800, 500));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final bloc = OcptProjectSettingsBloc(projectsManager: projectsManager);
+    addTearDown(bloc.close);
+
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        BlocProvider<OcptProjectSettingsBloc>.value(
+          value: bloc,
+          child: OcptProjectSettingsView(reveal: reveal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
   }
 
   /// A finder scoped to the minimum rest section's own field, so it can't collide with the
@@ -497,5 +518,23 @@ void main() {
 
     expect(bloc.state.episodes.length, 2);
     expect(bloc.state.hasChanged, isFalse);
+  });
+
+  testWidgets("opened for the episodes card, the page scrolls it into view", (tester) async {
+    await pumpShortView(tester, reveal: OcptProjectSettingsReveal.episodes);
+
+    final card = find.byType(OcptProjectSettingsEpisodesSection);
+    expect(tester.getTopLeft(card).dy, lessThan(500));
+    expect(tester.getBottomLeft(card).dy, greaterThan(0));
+  });
+
+  testWidgets("opened plainly, the page stays at the top", (tester) async {
+    await pumpShortView(tester);
+
+    // The very same card the reveal brings up, left below the fold of the same short surface.
+    expect(
+      tester.getTopLeft(find.byType(OcptProjectSettingsEpisodesSection)).dy,
+      greaterThan(500),
+    );
   });
 }

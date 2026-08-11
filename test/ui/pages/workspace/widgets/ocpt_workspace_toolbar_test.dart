@@ -217,7 +217,7 @@ void main() {
     expect(find.byType(PopupMenuButton<void>), findsNothing);
   });
 
-  testWidgets("the episode selector is rendered only when one is given", (tester) async {
+  testWidgets("the episode control is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
         OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
@@ -225,7 +225,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text("episode selector"), findsNothing);
+    expect(find.text("episode control"), findsNothing);
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -233,17 +233,17 @@ void main() {
           title: "My Movie",
           isDirty: false,
           onBack: () {},
-          episodeSelector: const Text("episode selector"),
+          episodeControl: const Text("episode control"),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text("episode selector"), findsOneWidget);
+    expect(find.text("episode control"), findsOneWidget);
   });
 
   testWidgets(
-    "the episode selector sits in the left group, right after the title, and before the mode "
+    "the episode control sits in the left group, right after the title, and before the mode "
     "actions",
     (tester) async {
       tester.view.physicalSize = const Size(1400, 900);
@@ -257,7 +257,7 @@ void main() {
             title: "My Movie",
             isDirty: true,
             onBack: () {},
-            episodeSelector: const Text("episode selector"),
+            episodeControl: const Text("episode control"),
             actions: const [Text("action")],
           ),
         ),
@@ -275,9 +275,9 @@ void main() {
       );
       expect(
         leftOf(find.byTooltip(tr.editorUnsavedChangesTooltip)),
-        lessThan(leftOf(find.text("episode selector"))),
+        lessThan(leftOf(find.text("episode control"))),
       );
-      expect(leftOf(find.text("episode selector")), lessThan(leftOf(find.text("action"))));
+      expect(leftOf(find.text("episode control")), lessThan(leftOf(find.text("action"))));
     },
   );
 }

@@ -73,7 +73,16 @@ read-only preview.
   disabled one, the budget mode's missing `Export` button being the precedent — for a project with
   a single episode, and for the **schedule mode**, which reads every episode at once and would
   otherwise show a selector that either does nothing or lies. The menu only ever *chooses*; its last
-  entry, `Manage episodes…`, lands on `OcptProjectSettingsPage`. **The selection is not persisted**:
+  entry, `Manage episodes…`, lands on `OcptProjectSettingsPage`.
+  That one toolbar slot holds **either** the selector **or**, for a project with a single episode,
+  the screenplay mode's `Add an episode…` button (`onAddEpisodeRequested`, wired by that mode alone)
+  — the only thing naming an episode on a project that has one, and the answer to a feature nobody
+  could find: the settings page's `Episodes` card was reachable only by someone already looking for
+  it. It is the screenplay mode's because that is where an episode is written, one button in the
+  whole app being a discovery rather than a recurring offer, and it is withheld under a version
+  preview like every other way into the settings. It leads there rather than creating anything: the
+  number and the title are set in the same gesture, and a misclick writes nothing.
+  **The selection is not persisted**:
   opening a project lands on the first episode, a reading preference costing nothing to lose where a
   per-project key would have to live either in `OcptPropertiesManager` (keyed by a path that moves)
   or in `project_info` (which versions capture and hash).
@@ -101,7 +110,11 @@ read-only preview.
   print something other than the screenplay. The episode is named beside the page instead.
   Episodes are managed from the project settings page's own `Episodes` card
   (`OcptProjectSettingsEpisodesSection`) — the list, an add action, inline rename, `▲`/`▼` reorder,
-  and a delete going through `OcptConfirmDialog` like every irreversible action. That dialog says
+  and a delete going through `OcptConfirmDialog` like every irreversible action. A caller that sent
+  the user there **for that card** says so through the route's `extra`
+  (`OcptProjectSettingsReveal`), and the page scrolls to it once its settings have loaded — landing
+  at the top of four stacked cards would break the promise the button that led there just made; a
+  page opened plainly passes null and scrolls nowhere. That dialog says
   what it takes (the screenplay, its snapshots, its scenes, its shots and coverages, its breakdown,
   and the `role_episodes` links naming it) and what it leaves: the people, the locations, the
   elements and **the shooting days**, which were never that episode's — a block that placed one of
@@ -111,8 +124,11 @@ read-only preview.
   `OcptProjectCard` wears a `⟨N episodes⟩` pill for it — **null** (an entry written before the app
   recorded it) and **1** both draw nothing.
   **A single-episode project is exactly what it was before**: one screenplay numbered 1, no
-  selector, no prefix, no episode named anywhere. That is a standing constraint on every surface
-  this feature touches, not a transitional state.
+  selector, no prefix, nothing anywhere reading as an episode of something. That is a standing
+  constraint on every surface this feature touches, not a transitional state. Its one deliberate
+  exception is the screenplay toolbar's `Add an episode…` button above, which names no episode —
+  it offers to *make* the project a series, and is the only door to a feature that otherwise
+  advertises itself nowhere.
 
 - Cross-mode navigation: a mode sending the user to another one *for a reason* (the breakdown's
   `Open in Resources`, meaning "this very element, over there") attaches an

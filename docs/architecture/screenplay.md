@@ -19,7 +19,9 @@ editor's document model, the title page, the docks and the syntax guide.
   scene numbers, the raw preview and the screenplay PDF all print the author's own `#N#`, where the
   shot list, the breakdown and the schedule read `<episode>.<scene>`. The mode's two exports name
   the episode in their **suggested file name** instead, so two episodes saved into one folder cannot
-  overwrite each other.
+  overwrite each other. This mode is also the only one offering `Add an episode…` — the button the
+  workspace toolbar draws in the episode selector's own place while the project holds a single
+  episode, opening the project settings on their card (see `foundations.md`).
 
 - Source provenance (ADR 0012): every printed line `FountainScriptComposer` emits carries a nullable
   `FountainScriptLine.sourceRange` — the union of its runs' own `FountainStyledRun.sourceRange`s,

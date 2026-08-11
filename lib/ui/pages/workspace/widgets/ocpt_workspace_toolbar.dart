@@ -21,7 +21,7 @@ const double _dirtyMarkerSize = 6;
 
 /// The workspace shell's thin, discreet toolbar: the back action leading to the projects list, the
 /// open project's title (with a dot marking unsaved changes, or the `Read only` pill while
-/// [isReadOnly]), the [episodeSelector] right after it, a trailing slot for the active mode's own
+/// [isReadOnly]), the [episodeControl] right after it, a trailing slot for the active mode's own
 /// controls ([actions]), then the shell's own chrome — the active mode's name ([modeLabel]), the
 /// [exportAction], the [dockToggles], the [saveAction], the [projectSettingsAction] and an
 /// overflow `⋮` menu built from [overflowEntries].
@@ -49,10 +49,19 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// Called when the back action is clicked.
   final VoidCallback onBack;
 
-  /// The episode selector, shown right after [title] and its dirty marker / `Read only` pill, or
-  /// null for no control at all — a single-episode project or a mode that withholds it outright,
-  /// built by `OcptWorkspaceShell` itself exactly as [exportAction] is.
-  final Widget? episodeSelector;
+  /// Whatever the shell has to say about *which episode* is on screen, shown right after [title]
+  /// and its dirty marker / `Read only` pill: the episode selector, or the screenplay mode's
+  /// `Add an episode…` button in its place, or null for no control at all.
+  ///
+  /// This toolbar only lays the slot out; which of the two fills it — and when neither does — is
+  /// `OcptWorkspaceShell`'s own call, built there exactly as [exportAction] is.
+  ///
+  /// It is dropped into the row as handed in, **not** wrapped in a [Flexible] here: whether the
+  /// control gives width up on a window too narrow for the whole toolbar is a property of the
+  /// control itself, and only the shell knows it. The selector wraps itself in one, since an
+  /// episode's title is as long as the user made it; the fixed-width `Add an episode…` button does
+  /// not, and the title ellipsizes around it exactly as it does around every other chrome button.
+  final Widget? episodeControl;
 
   /// The active mode's own controls, right-aligned before the chrome slots.
   final List<Widget> actions;
@@ -99,7 +108,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     required this.isDirty,
     this.isReadOnly = false,
     required this.onBack,
-    this.episodeSelector,
+    this.episodeControl,
     this.actions = const [],
     this.modeLabel,
     this.exportAction,
@@ -139,7 +148,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                       _buildReadOnlyPill(context: context, theme: theme, tr: tr)
                     else if (isDirty)
                       _buildDirtyMarker(theme: theme, tr: tr),
-                    if (episodeSelector != null) Flexible(child: episodeSelector!),
+                    if (episodeControl != null) episodeControl!,
                     const Spacer(),
                     ...actions,
                     if (modeLabel != null)

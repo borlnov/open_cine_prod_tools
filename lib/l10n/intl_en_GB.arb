@@ -9279,6 +9279,20 @@
     "context": "Displayed at the bottom of the toolbar's episode selector menu",
     "type": "text",
     "placeholders": {}
+  },
+  "workspaceAddEpisodeAction": "Add an episode…",
+  "@workspaceAddEpisodeAction": {
+    "description": "Label of the toolbar button opening the project settings page's episodes card",
+    "context": "Displayed in the screenplay mode's toolbar, in the episode selector's own place, while the project holds a single episode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceAddEpisodeTooltip": "Turn this project into a series: its episodes are managed in the project settings",
+  "@workspaceAddEpisodeTooltip": {
+    "description": "Tooltip of the toolbar button opening the project settings page's episodes card",
+    "context": "Displayed on hover over the screenplay mode's Add an episode button, next to the project title",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

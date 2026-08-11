@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -196,6 +197,14 @@ class _EditorViewState extends State<_EditorView> {
               onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
                 OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
               ),
+              // Withheld under a preview like every other way into the project settings: a preview
+              // has nothing there that may be written.
+              onAddEpisodeRequested: isReadOnly
+                  ? null
+                  : () => _requestProjectSettings(
+                      context,
+                      reveal: OcptProjectSettingsReveal.episodes,
+                    ),
               toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
               modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
               onExportRequested: () => unawaited(_requestExport(context)),
@@ -609,11 +618,18 @@ class _EditorViewState extends State<_EditorView> {
   /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
   /// card can add or delete one, which the workspace bloc otherwise only learns about from
   /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire.
-  Future<void> _requestProjectSettings(BuildContext context) async {
+  ///
+  /// [reveal] names the card the page opens on, for the toolbar's `Add an episode…` button which
+  /// promised one; the toolbar's plain settings action passes none and lands at the top.
+  Future<void> _requestProjectSettings(
+    BuildContext context, {
+    OcptProjectSettingsReveal? reveal,
+  }) async {
     final bloc = context.read<OcptEditorBloc>();
     final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
+      extra: reveal,
     );
     if (hasChanged != true) {
       return;

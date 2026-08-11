@@ -202,6 +202,21 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
+  /// Pumps [EditorPage] on a desktop-sized surface.
+  ///
+  /// The size is not incidental: the screenplay mode carries the fullest toolbar of any mode — the
+  /// `Add an episode…` button included, this fixture's project holding a single episode — and the
+  /// 800×600 default `flutter_test` surface leaves that band about a pixel of slack, so any test
+  /// pumping at it fails on a toolbar overflow that says nothing about what the test is checking.
+  Future<void> pumpEditorPage(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+  }
+
   /// Swaps the registered `OcptExportManager` for [manager] for the rest of the current test,
   /// restoring the shared real one afterward — `OcptEditorBloc` resolves its export manager from
   /// `globalGetIt()` (it's built by `EditorPage` itself, with no test seam of its own), so this is
@@ -227,7 +242,7 @@ void main() {
   testWidgets('renders the toolbar, the source text, the scene panel and the paper preview', (
     tester,
   ) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptWorkspaceToolbar), findsOneWidget);
@@ -263,7 +278,7 @@ void main() {
   testWidgets('the preview typesets character and dialogue at their screenplay indents', (
     tester,
   ) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     /// Collects the distinct left padding values used inside the preview block showing [text].
@@ -296,7 +311,7 @@ void main() {
   });
 
   testWidgets('clicking a scene in the panel moves the editor caret to that scene', (tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     // The heading also appears in the preview, so the tap is scoped to the panel.
@@ -318,7 +333,7 @@ void main() {
   });
 
   testWidgets('the preview and the scene panel can be hidden from the toolbar', (tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(EditorPage));
@@ -344,7 +359,7 @@ void main() {
     "the toolbar's preview and syntax buttons show as selected only while their own tab is "
     "active, and clicking the other tab switches the dock to it",
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -381,7 +396,7 @@ void main() {
   testWidgets(
     "clicking the active tab's own toolbar button closes the dock, and the dock's own × does too",
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -406,7 +421,7 @@ void main() {
   testWidgets(
     'the syntax guide panel stays available in styled mode, without its toolbar button',
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -436,7 +451,7 @@ void main() {
   testWidgets(
     "the toolbar's right dock toggle closes the dock and reopens it on the tab it showed",
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -459,7 +474,7 @@ void main() {
   testWidgets("the toolbar's dock toggles read as selected only while their dock is open", (
     tester,
   ) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(EditorPage));
@@ -484,7 +499,7 @@ void main() {
   testWidgets(
     'a dock closed by hand in raw mode stays closed across a raw/styled/raw round trip',
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -521,7 +536,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await propertiesManager.editorLeftDockFraction.delete();
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final dockFinder = find.byType(OcptWorkspaceDock).first;
@@ -563,7 +578,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final dockFinder = find.byType(OcptWorkspaceDock).last;
@@ -585,7 +600,7 @@ void main() {
     await propertiesManager.editorLeftDockFraction.store(0.3);
     await propertiesManager.editorRightDockFraction.store(0.6);
 
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(EditorPage));
@@ -610,7 +625,7 @@ void main() {
     "the mode toggle switches from raw to styled editing (no preview panel) and persists the "
     "preference, and back",
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       // Starts in raw mode (forced by this file's setUp): the raw source field and its preview
@@ -646,7 +661,7 @@ void main() {
   );
 
   testWidgets("an edit made in raw mode survives switching to styled mode", (tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final textFieldFinder = find.descendant(
@@ -668,7 +683,7 @@ void main() {
 
   testWidgets("an edit made in styled mode survives switching back to raw mode", (tester) async {
     await propertiesManager.editorMode.store(OcptEditorMode.styled);
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final document = SuperEditorInspector.findDocument()!;
@@ -697,7 +712,7 @@ void main() {
     "flushed by deactivate() the same way the editor route's own back navigation would",
     (tester) async {
       await propertiesManager.editorMode.store(OcptEditorMode.styled);
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final document = SuperEditorInspector.findDocument()!;
@@ -742,7 +757,7 @@ void main() {
   );
 
   testWidgets("Ctrl+Shift+M also toggles the editing mode", (tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
@@ -767,7 +782,7 @@ void main() {
   ) async {
     await propertiesManager.editorMode.store(OcptEditorMode.styled);
 
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
     // Mounting the styled editor auto-numbers every scene heading (see `_syncSceneNumbers`),
     // which reports the corrected text to the bloc and restarts its (real, default-length) parse
@@ -803,7 +818,7 @@ void main() {
   ) async {
     await propertiesManager.editorMode.store(OcptEditorMode.styled);
 
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final document = SuperEditorInspector.findDocument()!;
@@ -832,7 +847,7 @@ void main() {
   ) async {
     await propertiesManager.editorMode.store(OcptEditorMode.styled);
 
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
     expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
 
@@ -854,7 +869,7 @@ void main() {
   testWidgets(
     'the format controls are absent in raw mode and appear once switched to styled mode',
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -881,7 +896,7 @@ void main() {
     (tester) async {
       await propertiesManager.editorMode.store(OcptEditorMode.styled);
 
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final document = SuperEditorInspector.findDocument()!;
@@ -907,7 +922,7 @@ void main() {
   );
 
   testWidgets('the toolbar back button closes the project and navigates back', (tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(EditorPage));
@@ -924,7 +939,7 @@ void main() {
   });
 
   testWidgets('the ⋮ menu opens and shows the import-and-replace action', (tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(EditorPage));
@@ -941,7 +956,7 @@ void main() {
   testWidgets(
     "the toolbar's Export button opens a panel listing the screenplay's two documents",
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final tr = Tr.of(tester.element(find.byType(EditorPage)));
@@ -960,7 +975,7 @@ void main() {
   testWidgets("picking the screenplay PDF card opens its own export options dialog", (
     tester,
   ) async {
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(EditorPage)));
@@ -981,7 +996,7 @@ void main() {
     "picking the Fountain card dispatches the export request directly, with no options dialog "
     "of its own",
     (tester) async {
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final tr = Tr.of(tester.element(find.byType(EditorPage)));
@@ -1007,7 +1022,7 @@ void main() {
       final exportManager = _RecordingExportManager();
       useExportManager(exportManager);
 
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final tr = Tr.of(tester.element(find.byType(EditorPage)));
@@ -1033,7 +1048,7 @@ void main() {
       final exportManager = _RecordingExportManager();
       useExportManager(exportManager);
 
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -1060,7 +1075,7 @@ void main() {
     'toggling page simulation from the ⋮ menu flips it and persists the new value',
     (tester) async {
       await propertiesManager.isPageSimulationEnabled.store(true);
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -1084,7 +1099,7 @@ void main() {
     'toggling scene numbers from the ⋮ menu flips it and persists the new value',
     (tester) async {
       await propertiesManager.styledSceneNumbersVisible.store(true);
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final context = tester.element(find.byType(EditorPage));
@@ -1130,7 +1145,7 @@ void main() {
         snapshotReason: OcptSnapshotReason.manual,
       );
 
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
@@ -1184,7 +1199,7 @@ void main() {
         snapshotReason: OcptSnapshotReason.manual,
       );
 
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
       final tr = Tr.of(tester.element(find.byType(EditorPage)));

@@ -26,7 +26,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart'
 /// rendered only when the mode wired it, so a mode with nothing to print, no dock, nothing to
 /// save, or nothing to open there simply shows fewer of them.
 ///
-/// The episode selector sits at the *other* end of the toolbar, right after the title and its
+/// The episode control sits at the *other* end of the toolbar, right after the title and its
 /// dirty marker / `Read only` pill, since it qualifies *which content* is on screen — exactly what
 /// the title says too. It is built here from [episodes]/[selectedEpisodeId]/[onEpisodeSelected]
 /// rather than handed in as a widget, for the same reason the `Export` control is: so the gesture
@@ -34,6 +34,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart'
 /// [onProjectSettingsRequested] rather than a selector-specific callback — it leads to the very
 /// same destination, and reusing it means the entry is withheld automatically while a project
 /// version is being previewed, exactly like the toolbar's own settings action.
+///
+/// That one slot holds the selector for a project with several episodes, and
+/// [onAddEpisodeRequested]'s `Add an episode…` button for a project that has a single one — the two
+/// are never both drawn, and a mode wiring neither shows nothing at all there.
 ///
 /// This widget knows nothing about any specific mode (the screenplay editor included) beyond the
 /// moved [OcptWorkspaceDock]/[OcptWorkspaceDockDivider]/[OcptWorkspaceDockLayoutController]
@@ -78,6 +82,20 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// one, even when [episodes] holds more than one. This is the schedule mode's own case: it reads
   /// every episode at once, so a selector would either do nothing or lie about what it shows.
   final ValueChanged<String>? onEpisodeSelected;
+
+  /// Called when the toolbar's `Add an episode…` button is clicked, or null when the mode withholds
+  /// it — which every mode but the screenplay one does.
+  ///
+  /// This button takes the episode selector's own place while the project holds a single episode,
+  /// and is the only thing naming an episode on such a project: nothing else would ever say a
+  /// project *can* hold several, the settings page's `Episodes` card being reachable only by
+  /// someone already looking for it. It is the screenplay mode's alone because that is where an
+  /// episode is written — a `screenplays` row *is* one — and because one such button in the whole
+  /// app is what makes it a discovery rather than a recurring offer.
+  ///
+  /// A mode must withhold it while a project version is being previewed, exactly like
+  /// [onProjectSettingsRequested], which is where it leads.
+  final VoidCallback? onAddEpisodeRequested;
 
   /// The active mode's own toolbar controls, right-aligned before the overflow menu.
   final List<Widget> toolbarActions;
@@ -162,6 +180,7 @@ class OcptWorkspaceShell extends StatelessWidget {
     this.episodes = const [],
     this.selectedEpisodeId,
     this.onEpisodeSelected,
+    this.onAddEpisodeRequested,
     this.toolbarActions = const [],
     this.modeLabel,
     this.onExportRequested,
@@ -193,7 +212,7 @@ class OcptWorkspaceShell extends StatelessWidget {
         isDirty: isDirty,
         isReadOnly: isReadOnly,
         onBack: onBack,
-        episodeSelector: _buildEpisodeSelector(context),
+        episodeControl: _buildEpisodeControl(context),
         actions: toolbarActions,
         modeLabel: modeLabel,
         exportAction: _buildExportAction(context),
@@ -251,6 +270,14 @@ class OcptWorkspaceShell extends StatelessWidget {
     );
   }
 
+  /// Builds whatever fills the toolbar's episode slot: the selector for a project holding several
+  /// episodes, the `Add an episode…` button for one holding a single one, or null for neither.
+  ///
+  /// The two guard themselves on [episodes]'s own length, so the order they are tried in never
+  /// decides anything: a project can't be both at once.
+  Widget? _buildEpisodeControl(BuildContext context) =>
+      _buildEpisodeSelector(context) ?? _buildAddEpisodeAction(context);
+
   /// Builds the toolbar's episode selector, or null when [onEpisodeSelected] is null or [episodes]
   /// holds at most one — no control is rendered at all then, rather than a disabled one, exactly
   /// like [_buildExportAction].
@@ -262,6 +289,10 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// null value for an entry that must still be selectable, since it can't tell that apart from the
   /// menu being dismissed without a pick (`OcptResourcesPersonPicker`'s own `_nobodyOption` is the
   /// same workaround, for the same reason).
+  ///
+  /// It wraps itself in a [Flexible] — the toolbar wraps nothing itself — because an episode's
+  /// title is as long as the user made it: on a window too narrow for the whole toolbar, this is
+  /// the control that gives width up, its trigger ellipsizing like the project title beside it.
   Widget? _buildEpisodeSelector(BuildContext context) {
     final onEpisodeSelected = this.onEpisodeSelected;
     if (onEpisodeSelected == null || episodes.length <= 1) {
@@ -273,55 +304,113 @@ class OcptWorkspaceShell extends StatelessWidget {
     final onProjectSettingsRequested = this.onProjectSettingsRequested;
     final selected = _episodeById(selectedEpisodeId);
 
-    return PopupMenuButton<String>(
-      tooltip: tr.workspaceEpisodeSelectorTooltip,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      onSelected: (value) => value == _manageEpisodesOption
-          ? onProjectSettingsRequested?.call()
-          : onEpisodeSelected(value),
-      itemBuilder: (context) => [
-        for (final episode in episodes)
-          PopupMenuItem<String>(
-            value: episode.id,
+    return Flexible(
+      child: PopupMenuButton<String>(
+        tooltip: tr.workspaceEpisodeSelectorTooltip,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        onSelected: (value) => value == _manageEpisodesOption
+            ? onProjectSettingsRequested?.call()
+            : onEpisodeSelected(value),
+        itemBuilder: (context) => [
+          for (final episode in episodes)
+            PopupMenuItem<String>(
+              value: episode.id,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 18,
+                    child: episode.id == selectedEpisodeId
+                        ? const Icon(Icons.check, size: 16)
+                        : null,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(ocptWorkspaceEpisodeLabelOf(tr, episode)),
+                ],
+              ),
+            ),
+          if (onProjectSettingsRequested != null) ...[
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: _manageEpisodesOption,
+              child: Text(tr.workspaceManageEpisodesAction),
+            ),
+          ],
+        ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: SizedBox(
+            height: ocptToolbarChromeButtonSize,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  width: 18,
-                  child: episode.id == selectedEpisodeId
-                      ? const Icon(Icons.check, size: 16)
-                      : null,
+                Flexible(
+                  child: Text(
+                    selected == null ? "" : ocptWorkspaceEpisodeLabelOf(tr, selected),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
-                const SizedBox(width: 6),
-                Text(ocptWorkspaceEpisodeLabelOf(tr, episode)),
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
               ],
             ),
           ),
-        if (onProjectSettingsRequested != null) ...[
-          const PopupMenuDivider(),
-          PopupMenuItem<String>(
-            value: _manageEpisodesOption,
-            child: Text(tr.workspaceManageEpisodesAction),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the toolbar's `Add an episode…` button, or null when [onAddEpisodeRequested] is null
+  /// or [episodes] holds anything other than exactly one.
+  ///
+  /// The empty list is deliberately not the button's case either: it means the project's episodes
+  /// haven't loaded yet, and a button flashing in for one frame before the selector replaces it
+  /// would be a lie about a project that turns out to be a series.
+  ///
+  /// It is dressed as the selector it stands in for rather than as an action: muted foreground,
+  /// [TextTheme.bodySmall], no fill. Sizing it to the toolbar band takes the same two overrides
+  /// [_buildExportAction] documents at length, and neither alone is enough.
+  ///
+  /// It is laid out by hand rather than as a [TextButton.icon] so its label sits in a [Flexible]:
+  /// this control shares the toolbar's flexible width with the project title, and a window too
+  /// narrow for the whole band ellipsizes the label down to the glyph instead of striping the row.
+  Widget? _buildAddEpisodeAction(BuildContext context) {
+    final onAddEpisodeRequested = this.onAddEpisodeRequested;
+    if (onAddEpisodeRequested == null || episodes.length != 1) {
+      return null;
+    }
+
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return Flexible(
+      child: Tooltip(
+        message: tr.workspaceAddEpisodeTooltip,
+        child: TextButton(
+          onPressed: onAddEpisodeRequested,
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.onSurfaceVariant,
+            textStyle: theme.textTheme.bodySmall,
+            minimumSize: const Size(0, ocptToolbarChromeButtonSize),
+            maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.standard,
           ),
-        ],
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: SizedBox(
-          height: ocptToolbarChromeButtonSize,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Icon(Icons.playlist_add, size: 16),
+              const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  selected == null ? "" : ocptWorkspaceEpisodeLabelOf(tr, selected),
+                  tr.workspaceAddEpisodeAction,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
                 ),
               ),
-              const SizedBox(width: 4),
-              Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
             ],
           ),
         ),
