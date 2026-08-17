@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_pag
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
 import 'package:super_editor/super_editor.dart';
@@ -154,6 +156,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   /// The focus node of the styled editor, focused back when applying a scene jump.
   final FocusNode _focusNode = FocusNode();
+
+  /// The controller opening/closing the right-click context menu ([OcptEditorContextMenu]), owned
+  /// here since [build] is also what positions it, at the tap [_onSecondaryTapUp] resolved.
+  final MenuController _contextMenuController = MenuController();
 
   /// The IME-delta interceptor that catches a plain Tab keystroke before it can insert a literal
   /// `\t` character (see `OcptFountainTabInterceptor`'s own doc comment for why this is needed).
@@ -346,9 +352,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             ),
           ),
         // Only wired up while page simulation is on: title-page nodes never exist otherwise (see
-        // `_decode`), so this builder would never match anything, and building its placeholder
-        // map would needlessly require a `Tr` in scope for every fluid-mode editor instance,
-        // including the many tests that pump this widget standalone with no localization set up.
+        // `_decode`), so this builder would never match anything, and resolving its placeholder
+        // map would be work with nothing to show it on.
         if (widget.isPageSimulationEnabled)
           OcptTitlePageComponentBuilder(
             placeholders: _titlePagePlaceholders(context),
@@ -399,13 +404,55 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ),
     );
 
-    if (!widget.isPageSimulationEnabled) {
-      return Scrollbar(
-        controller: _pageScrollController,
-        child: ColoredBox(color: theme.colorScheme.surface, child: editorWithoutImplicitScrollbar),
-      );
-    }
+    final content = !widget.isPageSimulationEnabled
+        ? _buildFluidSurface(theme: theme, editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar)
+        : _buildPageSimulationSurface(theme: theme, layout: layout, editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar);
 
+    // Wrapped once here, rather than once per branch above: a right-click anywhere over the
+    // document — fluid surface or simulated page alike — opens the same context menu. super_editor's
+    // own desktop gesture interactor handles no secondary mouse button at all (verified against the
+    // pinned `0.3.0-dev.52`), so nothing else ever competes for this gesture.
+    //
+    // No entry is ever withheld for a read-only preview here: `editor_page.dart`'s `_buildCentre`
+    // substitutes the read-only `OcptEditorPreview` for both editing modes while a version is being
+    // previewed, so this widget — and the menu it opens — is simply never mounted under one. There is
+    // no `isReadOnly` flag to thread through because there is nothing here that would ever need one.
+    return OcptEditorContextMenu(
+      controller: _contextMenuController,
+      childFocusNode: _focusNode,
+      currentType: _contextMenuBlockType,
+      onCut: _hasExpandedSelection ? _cutSelectionFromContextMenu : null,
+      onCopy: _hasExpandedSelection ? _copySelectionFromContextMenu : null,
+      onPaste: _composer.selection != null ? _pasteFromContextMenu : null,
+      onSelectAll: _composer.selection != null ? _selectAllFromContextMenu : null,
+      onTypeSelected: _contextMenuBlockType != null ? applyBlockType : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onSecondaryTapUp: _onSecondaryTapUp,
+        child: content,
+      ),
+    );
+  }
+
+  /// The fluid, theme-following editing surface [build] shows while
+  /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is off: no sheets, no page numbers, just
+  /// [editorWithoutImplicitScrollbar] on the themed surface colour, scrollable.
+  Widget _buildFluidSurface({required ThemeData theme, required Widget editorWithoutImplicitScrollbar}) => Scrollbar(
+    controller: _pageScrollController,
+    child: ColoredBox(color: theme.colorScheme.surface, child: editorWithoutImplicitScrollbar),
+  );
+
+  /// The paper-simulated editing surface [build] shows while
+  /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is on: real-size white sheets behind
+  /// [editorWithoutImplicitScrollbar], scaled to fit a panel narrower than [layout]'s own page width.
+  /// The inline comments below are the authority on every geometry decision it makes: why the editor
+  /// is only as wide as the content area, why it is shifted back by one padding inset, and why the
+  /// sheets are painted rather than laid out.
+  Widget _buildPageSimulationSurface({
+    required ThemeData theme,
+    required OcptEditorPreviewLayout layout,
+    required Widget editorWithoutImplicitScrollbar,
+  }) {
     // Page simulation: the document is centered at the physical page width, with a themed
     // backdrop (matching the app's theme) on either side, and a white sheet painted behind it per
     // simulated page (see `_OcptPageSheetsPainter`); `OcptFountainEditorStylesheet` already
@@ -883,6 +930,138 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ...ocptParentheticalTemplateRequests(nodeId: node.id, type: type, isNodeEmpty: node.text.isEmpty),
     ]);
     _reportReadStateToController();
+    _focusNode.requestFocus();
+  }
+
+  /// Whether [_composer]'s current selection is expanded, i.e. there is something for the
+  /// right-click context menu's Cut/Copy entries to act on: read fresh on every [build], so it
+  /// always reflects whatever [_onSecondaryTapUp] just resolved before forcing that rebuild (see
+  /// that method's own doc comment).
+  bool get _hasExpandedSelection {
+    final selection = _composer.selection;
+    return selection != null && !selection.isCollapsed;
+  }
+
+  /// The block type the right-click context menu's submenu should show as selected, or null when
+  /// the caret sits on no block that can be retyped — no selection at all, a node that isn't a
+  /// `ParagraphNode`, or a title-page field (mirrors [applyBlockType]'s own guard, since picking a
+  /// type from the submenu ultimately calls it). [OcptEditorContextMenu] also reads this null-ness
+  /// to decide whether the submenu appears at all.
+  FountainLineType? get _contextMenuBlockType {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return null;
+    }
+
+    final node = _document.getNodeById(selection.extent.nodeId);
+    if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
+      return null;
+    }
+
+    return OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+  }
+
+  /// Resolves the document position under a right-click and opens [_contextMenuController] there.
+  ///
+  /// [details]' global position is converted to the document layout's own local coordinates through
+  /// [DocumentLayout.getDocumentOffsetFromAncestorOffset] — a thin wrapper, on the pinned
+  /// `0.3.0-dev.52`, around that exact layout's own `RenderBox.globalToLocal` — never the gesture
+  /// detector's own local offset: that's what keeps this correct under the page-simulation
+  /// `FittedBox` scaling, which the raw local offset would otherwise silently ignore. (The layout's
+  /// box itself isn't reachable through [_documentLayoutKey] directly: `SuperEditor` wraps it in a
+  /// `SliverToBoxAdapter` internally, so walking down from that key's own element lands on the
+  /// sliver's render object, not the box.)
+  ///
+  /// A collapsed caret is placed at that position unless it already sits inside an expanded
+  /// selection — right-clicking inside a selection must never destroy it, which is the whole point
+  /// of the Cut/Copy entries the menu is about to show. Either way, `setState` runs before the menu
+  /// opens: nothing about a selection change (placing this exact caret included) schedules a
+  /// rebuild of this widget on its own (see [_onSelectionChanged]'s own doc comment on why a
+  /// separate read-state channel exists for the toolbar), so without it [build] would hand
+  /// [OcptEditorContextMenu] the *previous* selection's Cut/Copy/submenu availability instead of the
+  /// one this tap just settled on.
+  void _onSecondaryTapUp(TapUpDetails details) {
+    final layout = _documentLayoutKey.currentState as DocumentLayout?;
+    if (layout == null) {
+      return;
+    }
+
+    final documentOffset = layout.getDocumentOffsetFromAncestorOffset(details.globalPosition);
+    final position = layout.getDocumentPositionNearestToOffset(documentOffset);
+    if (position == null) {
+      return;
+    }
+
+    final selection = _composer.selection;
+    final tapIsInsideSelection =
+        selection != null && !selection.isCollapsed && _document.doesSelectionContainPosition(selection, position);
+    if (!tapIsInsideSelection) {
+      _editor.execute([
+        ChangeSelectionRequest(
+          DocumentSelection.collapsed(position: position),
+          SelectionChangeType.placeCaret,
+          SelectionReason.userInteraction,
+        ),
+      ]);
+    }
+
+    setState(() {});
+    _contextMenuController.open(position: details.localPosition);
+  }
+
+  /// The right-click context menu's Copy entry: copies the current selection's Fountain source to
+  /// the clipboard through [ocptCopySelectionToClipboard], the same helper the Ctrl+C key handler
+  /// uses, so the payload is the exact same plain Fountain text whichever gesture asks for it. Hands
+  /// focus back to the editor afterwards, same as [applyBlockType].
+  void _copySelectionFromContextMenu() {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return;
+    }
+
+    ocptCopySelectionToClipboard(document: _document, selection: selection);
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's Cut entry: the same copy as [_copySelectionFromContextMenu],
+  /// followed by deleting the selection, mirroring the Ctrl+X key handler.
+  void _cutSelectionFromContextMenu() {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return;
+    }
+
+    ocptCopySelectionToClipboard(document: _document, selection: selection);
+    _editor.execute(const [DeleteSelectionRequest(TextAffinity.downstream)]);
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's Paste entry: [ocptPasteFountainClipboardContent], the same
+  /// Fountain-aware paste the Ctrl+V key handler uses.
+  void _pasteFromContextMenu() {
+    unawaited(ocptPasteFountainClipboardContent(editor: _editor, document: _document, composer: _composer));
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's Select all entry: expands the selection across the whole
+  /// document, mirroring super_editor's own `CommonEditorOperations.selectAll`. A no-op on an empty
+  /// document (which [_document] never actually is once the menu can open, but this mirrors that
+  /// operation's own defensive guard).
+  void _selectAllFromContextMenu() {
+    if (_document.isEmpty) {
+      return;
+    }
+
+    _editor.execute([
+      ChangeSelectionRequest(
+        DocumentSelection(
+          base: DocumentPosition(nodeId: _document.first.id, nodePosition: _document.first.beginningPosition),
+          extent: DocumentPosition(nodeId: _document.last.id, nodePosition: _document.last.endPosition),
+        ),
+        SelectionChangeType.expandSelection,
+        SelectionReason.userInteraction,
+      ),
+    ]);
     _focusNode.requestFocus();
   }
 

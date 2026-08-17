@@ -331,6 +331,41 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorContextMenuCutAction": "Cut",
+  "@editorContextMenuCutAction": {
+    "description": "Label of the Cut entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuCopyAction": "Copy",
+  "@editorContextMenuCopyAction": {
+    "description": "Label of the Copy entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuPasteAction": "Paste",
+  "@editorContextMenuPasteAction": {
+    "description": "Label of the Paste entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuSelectAllAction": "Select all",
+  "@editorContextMenuSelectAllAction": {
+    "description": "Label of the Select all entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuBlockTypeSubmenu": "Block type",
+  "@editorContextMenuBlockTypeSubmenu": {
+    "description": "Label of the block-type submenu of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorToggleBoldTooltip": "Bold (Ctrl+B)",
   "@editorToggleBoldTooltip": {
     "description": "Tooltip of the toolbar action that toggles bold on the selection",

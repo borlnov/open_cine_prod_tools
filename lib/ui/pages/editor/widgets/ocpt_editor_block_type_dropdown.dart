@@ -8,23 +8,6 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
 
-/// The 11 assignable [FountainLineType]s (every value except [FountainLineType.blank], which has
-/// no manual-choice meaning), in the order [OcptEditorBlockTypeDropdown] lists them: the 6
-/// Tab-cycle types in their cycle order first, then the remaining 5.
-const List<FountainLineType> _ocptDropdownTypes = [
-  FountainLineType.sceneHeading,
-  FountainLineType.action,
-  FountainLineType.character,
-  FountainLineType.parenthetical,
-  FountainLineType.dialogue,
-  FountainLineType.transition,
-  FountainLineType.centeredText,
-  FountainLineType.lyrics,
-  FountainLineType.section,
-  FountainLineType.synopsis,
-  FountainLineType.pageBreak,
-];
-
 /// The compact block-type dropdown of the editor toolbar: shows the caret's current
 /// [FountainLineType] and lets the user pick any of the 11 assignable types manually (the same
 /// "manual override" gesture as the Tab cycle).
@@ -57,7 +40,7 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
             mouseCursor: ocptClickableCursor,
             style: Theme.of(context).textTheme.labelSmall,
             items: [
-              for (final type in _ocptDropdownTypes)
+              for (final type in ocptAssignableFountainLineTypes)
                 DropdownMenuItem(value: type, child: Text(ocptFountainLineTypeLabel(tr, type))),
             ],
             onChanged: (type) {
