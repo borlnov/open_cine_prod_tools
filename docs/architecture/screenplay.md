@@ -51,7 +51,11 @@ editor's document model, the title page, the docks and the syntax guide.
   `FountainLineClassifier`/`FountainLineWriter`/`FountainInlineParser`/`FountainInlineSerializer`.
   `ocpt_fountain_keyboard_actions.dart` handles Tab/Shift+Tab (cycles 6 common types, locks the
   block) and Enter (splits into the type's usual screenplay successor, unlocked; Shift+Enter
-  keeps the same type). `OcptStyledEditorController extends ChangeNotifier`
+  keeps the same type). Whichever gesture sets a block to `parenthetical` opens it on `()` with the
+  caret between them (`ocptParentheticalTemplateRequests`, shared by the Tab cycle, smart Enter and
+  the toolbar dropdown), but **only while the block's text is empty**: Tab cycles *through* the type
+  on its way elsewhere, so an unguarded template would inject a pair per pass.
+  `OcptStyledEditorController extends ChangeNotifier`
   (`lib/ui/pages/editor/ocpt_styled_editor_controller.dart`) bridges the toolbar's block-type
   dropdown and B/I/U toggles to the live editor without a `package:super_editor` import; it is
   attached only while a styled editor is mounted (detached in raw mode). Debounces: parse
@@ -63,6 +67,19 @@ editor's document model, the title page, the docks and the syntax guide.
   (`OcptWysiwygCodec.encodeSelectionToFountain`/`decodeNodesFromFountain`), so block types and
   spacing survive a copy/paste round trip inside the app while text to and from outside the app
   still decodes through ordinary auto-detection.
+
+- Right-click menu: the styled mode alone carries one (`OcptEditorContextMenu`,
+  `lib/ui/pages/editor/widgets/`, a `MenuAnchor` free of any `package:super_editor` import — the raw
+  mode is a plain `TextField` and gets Flutter's native menu for free). Cut, Copy, Paste, Select all
+  and the block type as a submenu; the clipboard entries call the very helpers the Ctrl+C/X/V
+  handlers do, and the submenu the same `applyBlockType` the toolbar dropdown does, so no gesture
+  can behave differently from its keyboard or toolbar twin. The list of assignable types lives once,
+  as `ocptAssignableFountainLineTypes` (`lib/ui/utils/ocpt_fountain_line_type_labels.dart`). An
+  entry with nothing to act on is **withheld, not disabled** (a null callback), which is what hides
+  Cut/Copy over a collapsed caret. The secondary tap resolves the document position under the
+  pointer and places the caret there, unless it lands inside an expanded selection, which it never
+  destroys. Nothing is withheld for a read-only preview: the styled editor is not mounted under one
+  at all, `editor_page.dart` substituting the read-only preview for both editing modes.
 
 - Scene numbers: a heading's `#N#` is a first-class WYSIWYG field
   (`ocptSceneNumberMetadataKey`), kept in sync with the display text by
