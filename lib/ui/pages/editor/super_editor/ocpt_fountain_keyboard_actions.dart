@@ -105,8 +105,10 @@ ExecutionInstruction ocptTabToCycleBlockType({required SuperEditorContext editCo
 /// both ends, entering at [FountainLineType.sceneHeading]/[FountainLineType.transition] from
 /// outside the cycle), and executes the change through [editor] via [ocptManualBlockTypeRequests]
 /// (locking the block and clearing any forcing-marker flag, since this is always a manual type
-/// choice). Returns whether it actually applied a change — false when there's no selection, or the
-/// selected node isn't a [ParagraphNode].
+/// choice), followed by [ocptParentheticalTemplateRequests] (inserts `()` and places the caret
+/// between them, but only when the cycle just landed on `parenthetical` and the node's text was
+/// still empty). Returns whether it actually applied a change — false when there's no selection, or
+/// the selected node isn't a [ParagraphNode].
 ///
 /// Shared by [ocptTabToCycleBlockType] (the hardware-`KeyEvent` path) and
 /// `OcptFountainTabInterceptor` (the IME-delta path a plain Tab actually travels through on
@@ -130,7 +132,10 @@ bool ocptCycleBlockTypeAtSelection({
   final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
   final nextType = _ocptCycleType(currentType, reversed: reversed);
 
-  editor.execute(ocptManualBlockTypeRequests(nodeId: node.id, type: nextType));
+  editor.execute([
+    ...ocptManualBlockTypeRequests(nodeId: node.id, type: nextType),
+    ...ocptParentheticalTemplateRequests(nodeId: node.id, type: nextType, isNodeEmpty: node.text.isEmpty),
+  ]);
   return true;
 }
 
@@ -149,6 +154,51 @@ List<EditRequest> ocptManualBlockTypeRequests({required String nodeId, required 
     metadata: {ocptTypeLockedMetadataKey: true, ocptHadForcingMarkerMetadataKey: false},
   ),
 ];
+
+/// The `()` template a manual switch to [FountainLineType.parenthetical] inserts, but only while
+/// the block being switched is genuinely empty ([isNodeEmpty]): returns `const []` for every other
+/// [type], and for [FountainLineType.parenthetical] itself when [isNodeEmpty] is false, so this is
+/// safe to append unconditionally after the type change itself.
+///
+/// The empty-text guard matters because [type] is not necessarily a one-time switch onto
+/// `parenthetical` — Tab cycles through six types (see [_ocptTabCycleTypes]), so a block can pass
+/// through `parenthetical` repeatedly on the way to somewhere else. Without the guard, every one of
+/// those passes would insert another `()` pair into text a previous pass (or the user) already
+/// filled in, instead of only the first, genuinely-empty one.
+///
+/// When it does apply, returns, in order: [OcptReplaceNodeTextRequest] inserting `"()"` as the
+/// node's whole text, then a `ChangeSelectionRequest` collapsing the caret between the two
+/// parentheses (`TextNodePosition(offset: 1)`). `()` is exactly what an empty parenthetical's
+/// Fountain source already looks like, so this needs no support from [OcptWysiwygCodec] on either
+/// side of the round trip.
+///
+/// Shared by every gesture that sets a block's type — [ocptCycleBlockTypeAtSelection]
+/// (Tab/Shift+Tab, and therefore `OcptFountainTabInterceptor`'s IME-delta plain-Tab path),
+/// [ocptEnterToSmartSplit] (the node an Enter split creates, see its own call site for why that one
+/// can't reach `parenthetical` today), and the toolbar dropdown's
+/// `_OcptStyledScreenplayEditorState.applyBlockType` — each appends this helper's requests to the
+/// end of the request list it already executes, after the type change itself, so all three behave
+/// identically instead of three separate, inevitably-drifting copies of this guard.
+List<EditRequest> ocptParentheticalTemplateRequests({
+  required String nodeId,
+  required FountainLineType type,
+  required bool isNodeEmpty,
+}) {
+  if (type != FountainLineType.parenthetical || !isNodeEmpty) {
+    return const [];
+  }
+
+  return [
+    OcptReplaceNodeTextRequest(nodeId: nodeId, text: AttributedText("()")),
+    ChangeSelectionRequest(
+      DocumentSelection.collapsed(
+        position: DocumentPosition(nodeId: nodeId, nodePosition: const TextNodePosition(offset: 1)),
+      ),
+      SelectionChangeType.insertContent,
+      SelectionReason.userInteraction,
+    ),
+  ];
+}
 
 /// The next (or, when [reversed], previous) type in [_ocptTabCycleTypes] after [current], wrapping
 /// at both ends; entry from a type outside the cycle goes to [FountainLineType.sceneHeading]
@@ -242,6 +292,13 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
         ocptHadForcingMarkerMetadataKey: false,
       },
     ),
+    // `_ocptSmartEnterNextType` maps nothing to `parenthetical` today, so `splitsAtEnd` alone can
+    // never actually make `newType` land on it — this call is currently inert. It stays here (with
+    // `isNodeEmpty: splitsAtEnd`, never true for a mid-text split, which carries the tail text into
+    // the new node and must never be prefixed with `()`) so the three gestures that can set a
+    // block's type can never drift apart if that map ever changes to add such a mapping later. Do
+    // not "simplify" this away, and do not change `_ocptSmartEnterNextType` to fill that gap here.
+    ...ocptParentheticalTemplateRequests(nodeId: newNodeId, type: newType, isNodeEmpty: splitsAtEnd),
   ]);
 
   return ExecutionInstruction.haltExecution;

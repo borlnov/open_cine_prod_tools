@@ -2429,4 +2429,96 @@ void main() {
       expect(await encodedAfterToggling(OcptInlineStyle.underline), "Base _styled_ end");
     });
   });
+
+  group("a parenthetical opens on ()", () {
+    testWidgets("setBlockType(parenthetical) on an empty block inserts () and places the caret between them", (
+      tester,
+    ) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "", styledController: controller);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+
+      controller.setBlockType(FountainLineType.parenthetical);
+      await tester.pump();
+
+      expect(_typeAt(document, 0), FountainLineType.parenthetical);
+      expect(_isLockedAt(document, 0), isTrue);
+      expect(_nodeAt(document, 0).text.toPlainText(), "()");
+
+      final selection = SuperEditorInspector.findDocumentSelection();
+      expect(selection, isNotNull);
+      expect(selection!.isCollapsed, isTrue);
+      expect(selection.extent.nodeId, nodeId);
+      expect((selection.extent.nodePosition as TextNodePosition).offset, 1);
+    });
+
+    testWidgets("setBlockType(parenthetical) on a block that already holds text leaves the text untouched", (
+      tester,
+    ) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "Some action text.", styledController: controller);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+
+      controller.setBlockType(FountainLineType.parenthetical);
+      await tester.pump();
+
+      expect(_typeAt(document, 0), FountainLineType.parenthetical);
+      expect(_nodeAt(document, 0).text.toPlainText(), "Some action text.");
+    });
+
+    testWidgets("Tab-cycling onto parenthetical from an empty block inserts the () pair, and the encoded "
+        "text carries it through the sync debounce", (tester) async {
+      var lastEncoded = "";
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: "",
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            onTextChanged: (value) => lastEncoded = value,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      // An empty block auto-detects as `action`, and `parenthetical` sits two steps further down
+      // the cycle, right after `character`: hence the two Tab presses below.
+      expect(_typeAt(document, 0), FountainLineType.action);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(_typeAt(document, 0), FountainLineType.character);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      expect(_typeAt(document, 0), FountainLineType.parenthetical);
+      expect(_nodeAt(document, 0).text.toPlainText(), "()");
+
+      final selection = SuperEditorInspector.findDocumentSelection();
+      expect(selection, isNotNull);
+      expect(selection!.extent.nodeId, nodeId);
+      expect((selection.extent.nodePosition as TextNodePosition).offset, 1);
+
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      expect(lastEncoded.contains("()"), isTrue);
+    });
+  });
 }

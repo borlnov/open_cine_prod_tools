@@ -860,9 +860,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// Applies a manual block-type change to the current selection's extent node: bails out silently
   /// if there is no selection, or its node isn't a `ParagraphNode` (mirroring
   /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
-  /// like the Tab-cycle gesture does, then reports the fresh read state and hands focus straight
-  /// back to the editor — the toolbar's dropdown must never keep the keyboard focus it briefly took
-  /// to open.
+  /// like the Tab-cycle gesture does — plus, when [type] is [FountainLineType.parenthetical] and
+  /// the node's text is still empty, inserts `()` and places the caret between the two parentheses
+  /// (see `ocptParentheticalTemplateRequests`, the same helper the Tab cycle and smart-Enter use, so
+  /// all three gestures behave identically) — then reports the fresh read state and hands focus
+  /// straight back to the editor — the toolbar's dropdown must never keep the keyboard focus it
+  /// briefly took to open.
   @override
   void applyBlockType(FountainLineType type) {
     final selection = _composer.selection;
@@ -875,7 +878,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       return;
     }
 
-    _editor.execute(ocptManualBlockTypeRequests(nodeId: node.id, type: type));
+    _editor.execute([
+      ...ocptManualBlockTypeRequests(nodeId: node.id, type: type),
+      ...ocptParentheticalTemplateRequests(nodeId: node.id, type: type, isNodeEmpty: node.text.isEmpty),
+    ]);
     _reportReadStateToController();
     _focusNode.requestFocus();
   }
