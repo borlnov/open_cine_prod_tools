@@ -3758,7 +3758,14 @@
   "resourcesRoleNameFromScreenplayNote": "This role comes from the screenplay: its name and its existence follow the character's cues.",
   "@resourcesRoleNameFromScreenplayNote": {
     "description": "Note explaining why a role's name field and delete action are withheld, shown in the name field's place",
-    "context": "Displayed in the resources mode's role sheet, for a role reconciled from the screenplay",
+    "context": "Displayed in the resources mode's role sheet, for a role reconciled from a dialogue cue",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNameFromActionNote": "This role comes from the screenplay: its name follows the character's name written in capitals in the action.",
+  "@resourcesRoleNameFromActionNote": {
+    "description": "Note explaining why a role's name field is withheld, shown in the name field's place",
+    "context": "Displayed in the resources mode's role sheet, for a role reconciled from a name introduced in the action",
     "type": "text",
     "placeholders": {}
   },
@@ -3786,6 +3793,13 @@
   "resourcesRoleDeleteConfirmMessage": "This permanently deletes this role. This can't be undone.",
   "@resourcesRoleDeleteConfirmMessage": {
     "description": "Message of the dialog confirming a role's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleActionDetectedDeleteConfirmMessage": "This permanently deletes this role. Since it was found in the action rather than cued in dialogue, it won't be recreated on the next save even though the name is still written there. This can't be undone.",
+  "@resourcesRoleActionDetectedDeleteConfirmMessage": {
+    "description": "Message of the dialog confirming the deletion of a role reconciled from a name introduced in the action, rather than from a dialogue cue",
     "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}

@@ -213,6 +213,20 @@ void main() {
     expect(find.widgetWithText(TextField, "Le Client"), findsNothing);
   });
 
+  testWidgets("an action-detected role reads its own note, naming the action rather than a cue", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildSheet(role: _role(kind: OcptRoleKind.silent, isFromScreenplay: true)),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    expect(find.text(tr.resourcesRoleNameFromActionNote), findsOneWidget);
+    expect(find.text(tr.resourcesRoleNameFromScreenplayNote), findsNothing);
+    expect(find.widgetWithText(TextField, "Le Client"), findsNothing);
+  });
+
   testWidgets("a hand-added role types its own name", (tester) async {
     final changes = <(OcptRoleField, String)>[];
 
@@ -342,6 +356,26 @@ void main() {
     await tester.pumpAndSettle();
 
     // The sheet only asks: the question itself is the mode's confirmation dialog.
+    expect(deleted, 1);
+  });
+
+  testWidgets("the delete action is offered for an action-detected role too", (tester) async {
+    var deleted = 0;
+
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(kind: OcptRoleKind.silent, isFromScreenplay: true),
+        onDeleteRequested: () => deleted++,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Unlike a cued role, the screenplay still naming this one is not what withholds the
+    // action: reconcile's rejection rule is exactly what a deletion here is meant to reach.
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    await tester.tap(find.text(tr.resourcesRoleDeleteAction));
+    await tester.pumpAndSettle();
+
     expect(deleted, 1);
   });
 

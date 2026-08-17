@@ -249,6 +249,216 @@ Hello.
     });
   });
 
+  group("action-detected characters", () {
+    test("a name only found in the action creates an uncast, silent, from-screenplay role", () async {
+      await reconcile('''
+INT. HOUSE - DAY
+
+MARC enters, followed by CLARA. Nobody speaks.
+''');
+
+      final roles = await roleIndexService.loadRoles(database: database);
+      expect(roles.map((role) => role.name), ["MARC", "CLARA"]);
+      for (final role in roles) {
+        expect(role.kind, OcptRoleKind.silent);
+        expect(role.isFromScreenplay, isTrue);
+        expect(role.personId, isNull);
+        expect(role.episodeIds, [screenplayId]);
+      }
+    });
+
+    test("a first cue promotes an action-detected role without splitting it in two", () async {
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA enters, silent.
+''');
+      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      const personId = "person-1";
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: personId));
+      await roleIndexService.updateRole(
+        database: database,
+        roleId: roleId,
+        personId: const Value(personId),
+        castingNotes: const Value("Cast already"),
+      );
+
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA
+Finally, a line.
+''');
+
+      final roles = await roleIndexService.loadRoles(database: database);
+      expect(roles, hasLength(1));
+      expect(roles.single.id, roleId);
+      expect(roles.single.kind, OcptRoleKind.speaking);
+      expect(roles.single.personId, personId);
+      expect(roles.single.castingNotes, "Cast already");
+    });
+
+    test("cutting the line afterwards does not demote a promoted role", () async {
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA enters, silent.
+''');
+      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA
+Finally, a line.
+''');
+      expect(
+        (await roleIndexService.loadRoles(database: database)).single.kind,
+        OcptRoleKind.speaking,
+      );
+
+      // The line is cut, but the character still stands in the action.
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA enters, silent again.
+''');
+
+      final role = (await roleIndexService.loadRoles(
+        database: database,
+      )).singleWhere((role) => role.id == roleId);
+      expect(role.kind, OcptRoleKind.speaking);
+    });
+
+    test("deleting an action-detected role rejects it on the next reconcile of the same source", () async {
+      await reconcile('''
+INT. HOUSE - DAY
+
+OK enters, silent.
+''');
+      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      expect((await roleIndexService.loadRoles(database: database)).single.name, "OK");
+
+      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      expect(await roleIndexService.loadRoles(database: database), isEmpty);
+
+      // Re-running reconcile against the very same source must not bring "OK" back.
+      await reconcile('''
+INT. HOUSE - DAY
+
+OK enters, silent.
+''');
+      expect(await roleIndexService.loadRoles(database: database), isEmpty);
+    });
+
+    test("a deleted speaking role still comes back: rejection is scoped to action-detected roles", () async {
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA
+Hello.
+''');
+      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      expect(await roleIndexService.loadRoles(database: database), isEmpty);
+
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA
+Hello again.
+''');
+
+      final roles = await roleIndexService.loadRoles(database: database);
+      expect(roles, hasLength(1));
+      expect(roles.single.name, "CLARA");
+      expect(roles.single.kind, OcptRoleKind.speaking);
+      // A fresh row, not the tombstoned one: deleting a speaking role does not stop it coming back.
+      expect(roles.single.id, isNot(roleId));
+    });
+
+    test("a name cued this episode is never rejected, whatever tombstone bears it", () async {
+      // CLARA first stands mute in the action and is rejected as an action-detected role…
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA enters, silent.
+''');
+      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      expect(await roleIndexService.loadRoles(database: database), isEmpty);
+
+      // …but this time the same document also cues her: the cue must win over the tombstone.
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA enters, silent no more.
+
+CLARA
+Hello.
+''');
+
+      final roles = await roleIndexService.loadRoles(database: database);
+      expect(roles, hasLength(1));
+      expect(roles.single.name, "CLARA");
+      expect(roles.single.kind, OcptRoleKind.speaking);
+    });
+
+    test("a name in both an action line and a cue counts once, as speaking", () async {
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA enters the room.
+
+CLARA
+Hello.
+''');
+
+      final roles = await roleIndexService.loadRoles(database: database);
+      expect(roles, hasLength(1));
+      expect(roles.single.name, "CLARA");
+      expect(roles.single.kind, OcptRoleKind.speaking);
+      expect(roles.single.isFromScreenplay, isTrue);
+    });
+
+    test("an action-detected role this episode no longer names loses its link and is orphaned", () async {
+      await reconcile('''
+INT. HOUSE - DAY
+
+CLARA enters, silent.
+''');
+      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      const personId = "person-1";
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: personId));
+      await roleIndexService.updateRole(
+        database: database,
+        roleId: roleId,
+        personId: const Value(personId),
+      );
+
+      await reconcile('''
+INT. HOUSE - DAY
+
+Nobody is there anymore.
+''');
+
+      final roles = await roleIndexService.loadRoles(database: database);
+      expect(roles, hasLength(1));
+      expect(roles.single.id, roleId);
+      expect(roles.single.orphanedName, "CLARA");
+      expect(roles.single.personId, personId);
+      expect(roles.single.episodeIds, isEmpty);
+
+      final alerts = OcptRemovedRoleAlert.buildAll(roles);
+      expect(alerts, hasLength(1));
+      expect(alerts.single.characterName, "CLARA");
+    });
+  });
+
   group("hand CRUD", () {
     test("addRole appends and updateRole only touches the fields it's given a Value for", () async {
       final id = (await roleIndexService.addRole(

@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_elements_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_episodes_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
 
 /// The separator joining the names of the other roles a cast member holds.
 const String _otherRolesSeparator = ", ";
@@ -142,13 +143,26 @@ class OcptRoleSheet extends StatelessWidget {
   /// Whether deleting this role would actually remove it, which is what decides that the delete
   /// action exists at all.
   ///
-  /// False for a role the screenplay still speaks: `OcptRoleIndexService.reconcile` only ever reads
+  /// False for a role a dialogue cue still speaks: `OcptRoleIndexService.reconcile` only ever reads
   /// live rows, so the next save would insert that character right back as a fresh, uncast role —
   /// the deletion would cost the casting and the notes without removing anything. Its existence
   /// belongs to the screenplay, exactly as a scene's does to the scene index, so the way to remove
-  /// it is to remove the character's cues. A hand-added role, and an orphaned one (whose character
-  /// is gone, so nothing will re-insert it), are deleted for good and keep the action.
-  bool get _canBeDeleted => !role.isFromScreenplay || role.orphanedName != null;
+  /// it is to remove the character's cues.
+  ///
+  /// True for an **action-detected** role ([ocptRoleIsActionDetected]) even though the screenplay
+  /// still names it: `OcptRoleIndexService.reconcile`'s own rule 3 refuses to recreate a role from a
+  /// name matching a tombstoned, action-detected one — deliberately, since reading a name out of an
+  /// action line is a convention, not a syntax, and an acronym or a shouted word read as a character
+  /// needs a way out. Without this, that rule would have nothing to be reached by: the sheet would
+  /// offer no gesture at all to reject a false positive.
+  ///
+  /// True as well for a hand-added role, and for an orphaned one (whose character is gone, so
+  /// nothing will re-insert it) — the three cases this getter tells apart all share the one thing
+  /// that matters here: nothing in the app will bring the row back once it is gone.
+  bool get _canBeDeleted =>
+      !role.isFromScreenplay ||
+      role.orphanedName != null ||
+      ocptRoleIsActionDetected(isFromScreenplay: role.isFromScreenplay, kind: role.kind);
 
   /// Whether the sheet shows its own `Delete this role` action at the bottom.
   ///

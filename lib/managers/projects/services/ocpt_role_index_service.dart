@@ -9,10 +9,12 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
 import 'package:uuid/uuid.dart';
 
-/// Reconciles the `roles` table of the project against each episode's speaking characters, and
-/// CRUD over the cast.
+/// Reconciles the `roles` table of the project against each episode's **whole screenplay cast** —
+/// the characters cued in dialogue together with the ones only ever introduced in capitals in the
+/// action — and CRUD over the cast.
 ///
 /// A role belongs to the **production**, not to any one screenplay
 /// (`docs/adr/0019-one-project-several-episodes.md`): `roles` carries no `screenplayId`, and
@@ -27,10 +29,17 @@ import 'package:uuid/uuid.dart';
 /// of it should follow.
 ///
 /// The exactness of the name match matters beyond this service: [reconcile] matches against
-/// `speakingCharactersOf`'s own normalisation (`fountain_kit`, trimmed/collapsed/upper-cased), the
-/// same normalisation `OcptShotListService`'s `attachCharacter` applies to a shot's characters and
-/// `FountainScriptStatistics` applies to its speaking-character count — a role, a shot character
-/// and a statistic must never disagree about whether two cues are the same person.
+/// `screenplayCharactersOf`'s own normalisation (`fountain_kit`, trimmed/collapsed/upper-cased) —
+/// the same normalisation `speakingCharactersOf` applies to a cue and `charactersIntroducedInActionOf`
+/// to a name standing in the action, the same normalisation `OcptShotListService`'s
+/// `attachCharacter` applies to a shot's characters and `FountainScriptStatistics` applies to its
+/// speaking-character count — a role, a shot character and a statistic must never disagree about
+/// whether two cues are the same person.
+///
+/// A live, `isFromScreenplay` role's two origins — cued, or only ever read out of the action — are
+/// told apart by [ocptRoleIsActionDetected] (`lib/utils/`) over its own `isFromScreenplay` and
+/// `kind` rather than by a column of their own: see that function's doc comment for why "not
+/// `speaking`" and not "`silent`" is the right test.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
@@ -52,41 +61,58 @@ class OcptRoleIndexService {
   /// Class constructor
   const OcptRoleIndexService({this.elementsService = const OcptElementsService()});
 
-  /// Reconciles the `roles` table of the project against the speaking characters of [document]
-  /// (`speakingCharactersOf(document.blocks)`, already normalised, deduplicated and in
-  /// first-appearance order), which is [screenplayId]'s own parsed text — but **only ever writes
-  /// [screenplayId]'s own `role_episodes` links**, whatever it finds.
+  /// Reconciles the `roles` table of the project against the whole screenplay cast of [document]
+  /// (`screenplayCharactersOf(document.blocks)`, already normalised, deduplicated and in
+  /// first-appearance order) — every character cued in dialogue, together with every one only ever
+  /// introduced in capitals in the action — which is [screenplayId]'s own parsed text. It also
+  /// reads `speakingCharactersOf(document.blocks)` as a second, narrower pass: [reconcile] needs to
+  /// know which of those names came from a cue rather than infer it, so it asks rather than
+  /// guessing. But it **only ever writes [screenplayId]'s own `role_episodes` links**, whatever it
+  /// finds.
   ///
   /// Only rows with `isFromScreenplay` true are read or written by this method — a row the user
   /// added by hand is never touched, whatever character names later appear or disappear in any
   /// episode. Three rules, matching by exact name across every live, from-screenplay role of the
   /// **whole project**:
   ///
-  /// 1. A speaking character matching such a role: the live link from that role to [screenplayId]
-  ///    is ensured (created, or its tombstone lifted), and `orphanedName` is cleared if it was set
-  ///    — ensuring the link is exactly what means the role now has at least one live link
-  ///    somewhere. Nothing else about the row changes.
-  /// 2. A live, from-screenplay role linked to [screenplayId] that the episode no longer names:
-  ///    that link, and only that one, is **tombstoned**. If the role has no live link left
-  ///    anywhere afterwards, and it is not already orphaned, `orphanedName` is set to its name and
-  ///    the mode shows an `OcptRemovedRoleAlert` banner. A character cut from episode 2 but still
-  ///    speaking in episode 3 therefore loses one link and keeps its casting — it is **not**
-  ///    orphaned, because losing this link is not losing its last one.
-  /// 3. A speaking character matching no live, from-screenplay role at all (new, or renamed into
-  ///    existence): a fresh, project-scoped [OcptRoleKind.speaking] row, uncast, appended after
+  /// 1. A cast member matching such a role: the live link from that role to [screenplayId] is
+  ///    ensured (created, or its tombstone lifted), and `orphanedName` is cleared if it was set —
+  ///    ensuring the link is exactly what means the role now has at least one live link somewhere.
+  ///    A name that is cued this time but had so far only ever stood in the action is
+  ///    **promoted**: its `kind` becomes [OcptRoleKind.speaking]. Writing a mute character's first
+  ///    line must not split them in two. There is **no demotion** the other way: a role that has
+  ///    spoken stays `speaking` even if the line naming it is later cut — it may have been cast in
+  ///    the meantime, and losing every link (rule 2) is what already handles a character leaving
+  ///    the script.
+  /// 2. A live, from-screenplay role linked to [screenplayId] that the episode no longer names,
+  ///    speaking or not: that link, and only that one, is **tombstoned**. If the role has no live
+  ///    link left anywhere afterwards, and it is not already orphaned, `orphanedName` is set to its
+  ///    name and the mode shows an `OcptRemovedRoleAlert` banner. A character cut from episode 2
+  ///    but still speaking in episode 3 therefore loses one link and keeps its casting — it is
+  ///    **not** orphaned, because losing this link is not losing its last one.
+  /// 3. A cast member matching no live, from-screenplay role at all (new, or renamed into
+  ///    existence): a fresh, project-scoped row is due — [OcptRoleKind.speaking] for a name that is
+  ///    cued, [OcptRoleKind.silent] for one only ever found in the action — uncast, appended after
   ///    every live role of the project (hand-added ones included, since the role numbering
   ///    [OcptRole.number] derives is shared across every kind), plus the `role_episodes` row
-  ///    linking it to [screenplayId].
+  ///    linking it to [screenplayId]. **Unless** the name is not cued this episode and matches a
+  ///    **tombstoned** action-detected role ([ocptRoleIsActionDetected] true, `isDeleted` true):
+  ///    reading a name out of an action line is a convention, not a syntax, so an acronym or a
+  ///    shouted word (`OK`, `STOP`, `INTERPOL`) will occasionally be read as a character, and
+  ///    deleting it has to be the last word on it — a fresh row is refused instead. This check
+  ///    never applies to a name that is cued this episode, whatever tombstone bears it: the cue is
+  ///    still in the script, and the script is the source of truth.
   ///
   /// Two live, from-screenplay roles cannot legitimately share a name; when more than one somehow
   /// does, the first in `sortKey` order is matched against deterministically (`putIfAbsent`).
   ///
   /// Renames are still not detected: a rename reads as one disappearance (rule 2) and one
   /// appearance (rule 3), the same trade `OcptSceneIndexService.reconcile` makes for a heading with
-  /// no scene number, and for the same reason — nothing about a screenplay cue is a stable
-  /// identifier a rename could be matched through. What changes with several episodes is only the
-  /// blast radius: a rename in episode 2 reads as one disappearance and one appearance **within
-  /// episode 2's own links**, and a role still speaking elsewhere keeps its casting either way.
+  /// no scene number, and for the same reason — nothing about a screenplay cue, or a name standing
+  /// in the action, is a stable identifier a rename could be matched through. What changes with
+  /// several episodes is only the blast radius: a rename in episode 2 reads as one disappearance
+  /// and one appearance **within episode 2's own links**, and a role still named elsewhere keeps
+  /// its casting either way.
   ///
   /// This runs on every save, so it computes its plan first and **writes nothing at all when
   /// nothing changed** — the transaction below only opens once there is at least one row to touch.
@@ -95,8 +121,9 @@ class OcptRoleIndexService {
     required String screenplayId,
     required FountainDocument document,
   }) async {
-    final speakingCharacters = speakingCharactersOf(document.blocks);
-    final speakingSet = speakingCharacters.toSet();
+    final screenplayCharacters = screenplayCharactersOf(document.blocks);
+    final speakingSet = speakingCharactersOf(document.blocks).toSet();
+    final screenplaySet = screenplayCharacters.toSet();
 
     final projectRolesQuery = database.select(database.ocptRolesTable)
       ..where((table) => table.isFromScreenplay.equals(true) & table.isDeleted.not())
@@ -116,18 +143,38 @@ class OcptRoleIndexService {
       for (final link in await existingLinksQuery.get()) link.roleId: link,
     };
 
-    // Rule 1 and rule 3: every speaking character either matches a live, from-screenplay role of
-    // the project (its link to this episode is ensured, its orphan mark lifted) or matches none
-    // (a fresh role is due).
+    // Rule 3's rejection: every tombstoned, action-detected role's name, matched only when this
+    // episode does not cue it (a cued name is never rejected, see the doc comment above). The
+    // `isFromScreenplay & kind != speaking` pair mirrors [ocptRoleIsActionDetected], expressed as a
+    // query rather than called on a row because the database only has SQL to filter with.
+    final rejectedNamesQuery = database.select(database.ocptRolesTable)
+      ..where(
+        (table) =>
+            table.isDeleted.equals(true) &
+            table.isFromScreenplay.equals(true) &
+            table.kind.equalsValue(OcptRoleKind.speaking).not(),
+      );
+    final rejectedActionNames = {
+      for (final row in await rejectedNamesQuery.get()) row.name,
+    };
+
+    // Rule 1 and rule 3: every cast member either matches a live, from-screenplay role of the
+    // project (its link to this episode is ensured, its orphan mark lifted, and it is promoted to
+    // speaking when it is cued this time) or matches none (a fresh role is due, unless rejected).
     final linkIdsToRevive = <String>[];
     final roleIdsNeedingNewLink = <String>[];
     final roleIdsToClearOrphan = <String>[];
-    final newRoleNames = <String>[];
+    final roleIdsToPromote = <String>[];
+    final newRoleNames = <(String name, bool isSpeaking)>[];
 
-    for (final name in speakingCharacters) {
+    for (final name in screenplayCharacters) {
+      final isSpeaking = speakingSet.contains(name);
       final role = roleByName[name];
       if (role == null) {
-        newRoleNames.add(name);
+        if (!isSpeaking && rejectedActionNames.contains(name)) {
+          continue;
+        }
+        newRoleNames.add((name, isSpeaking));
         continue;
       }
 
@@ -141,15 +188,20 @@ class OcptRoleIndexService {
       if (role.orphanedName != null) {
         roleIdsToClearOrphan.add(role.id);
       }
+
+      if (isSpeaking &&
+          ocptRoleIsActionDetected(isFromScreenplay: role.isFromScreenplay, kind: role.kind)) {
+        roleIdsToPromote.add(role.id);
+      }
     }
 
     // Rule 2: every live, from-screenplay role linked to this episode whose name this document no
-    // longer speaks loses that link.
+    // longer names at all — cue or action — loses that link.
     final linkIdsToDrop = <String>[];
     final droppedRoleIds = <String>[];
     for (final role in projectRoles) {
       final link = linkByRoleId[role.id];
-      if (link != null && !link.isDeleted && !speakingSet.contains(role.name)) {
+      if (link != null && !link.isDeleted && !screenplaySet.contains(role.name)) {
         linkIdsToDrop.add(link.id);
         droppedRoleIds.add(role.id);
       }
@@ -178,6 +230,7 @@ class OcptRoleIndexService {
         linkIdsToRevive.isNotEmpty ||
         roleIdsNeedingNewLink.isNotEmpty ||
         roleIdsToClearOrphan.isNotEmpty ||
+        roleIdsToPromote.isNotEmpty ||
         linkIdsToDrop.isNotEmpty ||
         roleIdsToOrphan.isNotEmpty ||
         newRoleNames.isNotEmpty;
@@ -214,6 +267,14 @@ class OcptRoleIndexService {
         );
       }
 
+      if (roleIdsToPromote.isNotEmpty) {
+        await (database.update(
+          database.ocptRolesTable,
+        )..where((table) => table.id.isIn(roleIdsToPromote))).write(
+          const OcptRolesTableCompanion(kind: Value(OcptRoleKind.speaking)),
+        );
+      }
+
       if (linkIdsToDrop.isNotEmpty) {
         await (database.update(
           database.ocptRoleEpisodesTable,
@@ -234,7 +295,7 @@ class OcptRoleIndexService {
         final liveRoles = await _liveRoleRows(database: database);
         var previousSortKey = liveRoles.isEmpty ? null : liveRoles.last.sortKey;
 
-        for (final name in newRoleNames) {
+        for (final (name, isSpeaking) in newRoleNames) {
           previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
           final roleId = const Uuid().v4();
           await database
@@ -243,7 +304,7 @@ class OcptRoleIndexService {
                 OcptRolesTableCompanion.insert(
                   id: roleId,
                   name: name,
-                  kind: OcptRoleKind.speaking,
+                  kind: isSpeaking ? OcptRoleKind.speaking : OcptRoleKind.silent,
                   isFromScreenplay: const Value(true),
                   sortKey: Value(previousSortKey),
                 ),
