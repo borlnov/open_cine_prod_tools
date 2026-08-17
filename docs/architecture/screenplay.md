@@ -86,7 +86,19 @@ editor's document model, the title page, the docks and the syntax guide.
   being merged into the body or deleted as nodes, while still allowing ordinary text editing
   (typing, Backspace, Delete, replace) inside a field — do not reach for
   `NodeMetadata.isDeletable`, which blocks both. `computeOcptStyledPagination` always reserves the
-  whole of page 1 for the title page when one is present, matching the PDF exporter.
+  whole of page 1 for the title page when one is present, matching the PDF exporter, and reports
+  that as `titlePageSheetCount` — the offset between a painted sheet's index and its 1-based
+  **script** page number.
+
+- Page numbers: every simulated sheet carries the number the printed screenplay would show on it,
+  painted by the same `_OcptPageSheetsPainter` that paints the sheets themselves and gated on page
+  simulation (there is nothing to number on the fluid surface). The rule itself lives once, in
+  `lib/utils/ocpt_script_page_number.dart`: `N.` at the top right,
+  `ocptScriptPageNumberTopInches` (0.5") below the sheet's top edge whatever the configured margin,
+  the title page never counted and the first script page never numbered. `OcptScriptPagePainter`
+  prints that same rule on paper — a number on screen disagreeing with the number on the PDF would
+  be worse than no number at all. Fixed paper colours, like the rest of the page-simulation
+  styling, and a sheet scrolled out of view is skipped rather than laid out on every scroll frame.
 
 - Editor docks: `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`
   (`lib/ui/pages/workspace/widgets/ocpt_workspace_dock.dart`) give the scene panel and the right

@@ -4,6 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -19,12 +20,6 @@ const double ocptScriptBodyFontSizePt = 12;
 /// The vertical distance between two consecutive [FountainScriptLine] rows, in points:
 /// `72pt/in ÷ 6 lines/in`.
 const double ocptScriptLineHeightPt = ocptPdfPointsPerInch / 6;
-
-/// The distance from a script page's top physical edge to its page-number annotation, in inches.
-/// Fixed regardless of the configured top margin (unlike the body text, which starts at the
-/// margin), matching how professional screenwriting software places the page number in the header
-/// band rather than tying it to the body's own margin.
-const double _pageNumberTopInches = 0.5;
 
 /// The title page's title font size, in points.
 const double _titleFontSizePt = 24;
@@ -221,8 +216,8 @@ class OcptScriptPagePainter {
   /// their own row's exact Y coordinate alongside the line itself.
   ///
   /// [pageNumber] is this page's 1-based position among script pages (not counting the title page);
-  /// it is only ever printed from the 2nd script page onward, matching the professional convention
-  /// that the title page and the first script page stay unnumbered.
+  /// whether it is printed at all, and how it reads, is [ocptScriptPageNumberLabelOf]'s to say — the
+  /// styled editor's page-simulation sheets number the very same pages from that same rule.
   ///
   /// [underlays] are drawn beneath the text and [overlays] above it, both in the page's own
   /// coordinate system (points from its top-left corner, which is what every geometry accessor of
@@ -235,16 +230,17 @@ class OcptScriptPagePainter {
     List<pw.Widget> underlays = const [],
     List<pw.Widget> overlays = const [],
   }) {
+    final pageNumberLabel = ocptScriptPageNumberLabelOf(pageNumber);
     final children = <pw.Widget>[
       ...underlays,
-      if (pageNumber >= 2)
+      if (pageNumberLabel != null)
         pw.Positioned(
           left: 0,
-          top: _pageNumberTopInches * ocptPdfPointsPerInch,
+          top: ocptScriptPageNumberTopInches * ocptPdfPointsPerInch,
           child: pw.SizedBox(
             width: pageWidthPt - marginRightPt,
             child: pw.Text(
-              "$pageNumber.",
+              pageNumberLabel,
               textAlign: pw.TextAlign.right,
               style: pw.TextStyle(font: fonts.regular, fontSize: ocptScriptBodyFontSizePt),
             ),

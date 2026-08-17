@@ -40,6 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -420,6 +421,53 @@ void main() {
           ..clipRect()
           ..rrect(color: Colors.white),
       );
+    });
+
+    testWidgets("a screenplay that fits on one sheet is not numbered at all", (tester) async {
+      await _pumpStandaloneEditor(
+        tester,
+        "INT. HOUSE - DAY\n\nSome action text.",
+        isPageSimulationEnabled: true,
+      );
+
+      // Two sheets are painted here (the title page, then the one and only script page), and
+      // neither of them is ever numbered: the printed screenplay numbers nothing before its
+      // second script page, and the styled mode prints that rule and no other.
+      expect(_pageSheetsPainterFinder(), paintsExactlyCountTimes(#drawParagraph, 0));
+    });
+
+    testWidgets("the second script page is numbered, half an inch below its own sheet's top edge and "
+        "right-aligned at the page's right margin", (tester) async {
+      final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+      // Tall enough for the title sheet, the first script page and the second one to be laid out
+      // at once: a sheet scrolled out of view has its number skipped (see `_paintPageNumber`), and
+      // wide enough for a full US Letter page to lay out unscaled.
+      tester.view.physicalSize = Size(1600, 3 * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) + 100);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      // 40 one-line action paragraphs, each preceded by a blank line: 79 lines, which overflows
+      // US Letter's 54 lines per page exactly once — a title sheet plus two script pages.
+      await _pumpStandaloneEditor(
+        tester,
+        List.generate(40, (index) => "Action line $index.").join("\n\n"),
+        isPageSimulationEnabled: true,
+      );
+
+      // "2." is two columns wide in a fixed-pitch font, and the number's right edge lands exactly
+      // where the printed page's own right margin starts.
+      final expectedOffset = Offset(
+        layout.pageWidth - layout.marginRight - 2 * layout.glyphWidth,
+        2 * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) + ocptScriptPageNumberTopInches * layout.pixelsPerInch,
+      );
+
+      expect(
+        _pageSheetsPainterFinder(),
+        paints..paragraph(offset: within(distance: 0.5, from: expectedOffset)),
+      );
+      // Exactly one number on screen: the title sheet and the first script page carry none.
+      expect(_pageSheetsPainterFinder(), paintsExactlyCountTimes(#drawParagraph, 1));
     });
 
     testWidgets("every element still spans its exact preview width, at its exact preview indent from the "

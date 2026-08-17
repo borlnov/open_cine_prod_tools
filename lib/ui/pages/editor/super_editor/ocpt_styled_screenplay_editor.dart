@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_pag
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
@@ -58,6 +59,10 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
 
   /// Whether the document is rendered as distinct, real-size "Word-like" paper sheets (white,
   /// black text, even in dark theme) rather than as a fluid, theme-following editing surface.
+  ///
+  /// Each of those sheets carries the very page number the printed screenplay would show on it
+  /// (`_OcptPageSheetsPainter`, [ocptScriptPageNumberLabelOf]). There is nothing to number while
+  /// this is off: the fluid surface has no sheets at all.
   final bool isPageSimulationEnabled;
 
   /// Whether every scene heading shows its scene number (explicit or computed, see
@@ -186,6 +191,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is on (always 0 while it's off),
   /// recomputed by [_recomputePageSimulation].
   int _pageCount = 0;
+
+  /// How many of those [_pageCount] pages the title page takes up before the script itself starts
+  /// (always 0 while page simulation is off), recomputed by [_recomputePageSimulation]: the offset
+  /// a painted sheet's index needs before it means a **script** page number (see
+  /// [OcptStyledPagination.titlePageSheetCount]).
+  int _titlePageSheetCount = 0;
 
   /// The extra bottom padding the stylesheet's `documentPadding` needs so the document's
   /// scrollable content reaches all the way down to the last simulated page's own bottom margin
@@ -436,8 +447,21 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
                     builder: (context, child) => CustomPaint(
                       painter: _OcptPageSheetsPainter(
                         pageCount: _pageCount,
+                        titlePageSheetCount: _titlePageSheetCount,
                         pageHeight: layout.pageHeight,
                         pageGap: OcptEditorPreviewLayout.pageGap,
+                        pageNumberTop: ocptScriptPageNumberTopInches * layout.pixelsPerInch,
+                        pageNumberRight: layout.pageWidth - layout.marginRight,
+                        // The sheets are white whatever the app's theme is, so the number is painted
+                        // in the same fixed paper colors `OcptFountainEditorStylesheet` switches to
+                        // under page simulation — a theme-derived color could render invisible on
+                        // that white backdrop — and at the body's own size and family, since that is
+                        // what the PDF prints it at.
+                        pageNumberStyle: const TextStyle(
+                          fontFamily: OcptEditorPreviewLayout.fontFamily,
+                          fontSize: OcptEditorPreviewLayout.fontSize,
+                          color: Colors.black,
+                        ),
                         scrollOffset: _pageScrollController.hasClients ? _pageScrollController.offset : 0,
                       ),
                     ),
@@ -703,6 +727,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         _editor.execute(clearRequests);
       }
       _pageCount = 0;
+      _titlePageSheetCount = 0;
       _trailingBottomPadding = 0;
       return;
     }
@@ -723,6 +748,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       _editor.execute(requests);
     }
     _pageCount = pagination.pageCount;
+    _titlePageSheetCount = pagination.titlePageSheetCount;
     _trailingBottomPadding = pagination.trailingBottomPadding;
   }
 
@@ -934,7 +960,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 }
 
 /// Paints one white, lightly rounded rectangle per simulated page behind the styled editor's
-/// document, one call site in [_OcptStyledScreenplayEditorState.build].
+/// document — and, on every sheet the printed screenplay numbers, that page's own number — with one
+/// call site in [_OcptStyledScreenplayEditorState.build].
 ///
 /// Positioned deterministically from [pageCount]/[pageHeight]/[pageGap] alone — page N starts at
 /// `N * (pageHeight + pageGap)` — and shifted by [scrollOffset] to stay behind the actually
@@ -943,23 +970,47 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 /// necessarily sum to exactly `pageHeight + pageGap`, so a page boundary may drift a little from
 /// the painted sheet as the document grows, which is acceptable since nothing here needs to be
 /// pixel-exact (the PDF exporter is the source of truth for print pagination).
+///
+/// Which sheets show a number, and what it reads, is [ocptScriptPageNumberLabelOf]'s to say — the
+/// exact same rule `OcptScriptPagePainter` prints on paper, down to the 0.5" the number sits below
+/// the sheet's top edge: a number on screen that disagreed with the number on paper would be worse
+/// than no number at all. The only thing this painter adds is the mapping from a *sheet* index to a
+/// *script* page number, which is [titlePageSheetCount].
 class _OcptPageSheetsPainter extends CustomPainter {
   /// Creates an [_OcptPageSheetsPainter].
   const _OcptPageSheetsPainter({
     required this.pageCount,
+    required this.titlePageSheetCount,
     required this.pageHeight,
     required this.pageGap,
+    required this.pageNumberTop,
+    required this.pageNumberRight,
+    required this.pageNumberStyle,
     required this.scrollOffset,
   });
 
   /// The number of simulated pages to paint.
   final int pageCount;
 
+  /// How many leading sheets the title page occupies, i.e. how many of them are not script pages
+  /// at all (see [OcptStyledPagination.titlePageSheetCount]).
+  final int titlePageSheetCount;
+
   /// The height of one simulated page, in logical pixels.
   final double pageHeight;
 
   /// The themed gap left between two simulated pages, in logical pixels.
   final double pageGap;
+
+  /// The distance from a sheet's top edge to the top of its page number, in logical pixels.
+  final double pageNumberTop;
+
+  /// The distance from a sheet's left edge to the right edge of its page number, in logical pixels:
+  /// the number is right-aligned there, exactly where the printed page's own right margin starts.
+  final double pageNumberRight;
+
+  /// The text style a page number is painted with.
+  final TextStyle pageNumberStyle;
 
   /// The current scroll offset of the document painted in front of this layer, in logical pixels.
   final double scrollOffset;
@@ -981,14 +1032,50 @@ class _OcptPageSheetsPainter extends CustomPainter {
         RRect.fromRectAndRadius(Rect.fromLTWH(0, top, size.width, pageHeight), const Radius.circular(3)),
         paint,
       );
+      _paintPageNumber(canvas: canvas, size: size, page: page, top: top);
     }
     canvas.restore();
+  }
+
+  /// Paints the number of the sheet at index [page], whose own top edge sits at [top] in the
+  /// canvas' (already scroll-translated) coordinates, or paints nothing when that sheet shows no
+  /// number — the title page and the first script page both do not.
+  ///
+  /// Sheets scrolled out of view are skipped, unlike the sheets themselves: the rectangles above
+  /// are a handful of clipped canvas operations whatever the document's length, where laying a
+  /// number's text out is CPU work this method would otherwise repeat, for every page of a
+  /// hundred-page screenplay, on every single frame of a scroll.
+  void _paintPageNumber({
+    required Canvas canvas,
+    required Size size,
+    required int page,
+    required double top,
+  }) {
+    if (top + pageHeight < scrollOffset || top > scrollOffset + size.height) {
+      return;
+    }
+
+    final label = ocptScriptPageNumberLabelOf(page - titlePageSheetCount + 1);
+    if (label == null) {
+      return;
+    }
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: label, style: pageNumberStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    textPainter.paint(canvas, Offset(pageNumberRight - textPainter.width, top + pageNumberTop));
+    textPainter.dispose();
   }
 
   @override
   bool shouldRepaint(covariant _OcptPageSheetsPainter oldDelegate) =>
       oldDelegate.pageCount != pageCount ||
+      oldDelegate.titlePageSheetCount != titlePageSheetCount ||
       oldDelegate.pageHeight != pageHeight ||
       oldDelegate.pageGap != pageGap ||
+      oldDelegate.pageNumberTop != pageNumberTop ||
+      oldDelegate.pageNumberRight != pageNumberRight ||
+      oldDelegate.pageNumberStyle != pageNumberStyle ||
       oldDelegate.scrollOffset != scrollOffset;
 }
