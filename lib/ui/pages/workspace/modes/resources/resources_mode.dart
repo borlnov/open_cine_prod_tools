@@ -52,6 +52,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
@@ -667,7 +668,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onDeleteRequested: () => _handleDeleteRequested(
         context,
         title: tr.resourcesRoleDeleteConfirmTitle,
-        message: tr.resourcesRoleDeleteConfirmMessage,
+        message:
+            ocptRoleIsActionDetected(
+              isFromScreenplay: selectedRole.isFromScreenplay,
+              kind: selectedRole.kind,
+            )
+            ? tr.resourcesRoleActionDetectedDeleteConfirmMessage
+            : tr.resourcesRoleDeleteConfirmMessage,
         event: OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id),
       ),
       onOrphanedRoleKept: () =>

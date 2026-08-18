@@ -5,7 +5,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:super_editor/super_editor.dart';
@@ -14,8 +16,19 @@ import 'package:super_editor/super_editor_test.dart';
 /// Wraps [child] with a [MaterialApp] and a bounded, sized surface: `SuperEditor` needs a
 /// constrained size to lay its document out. Mirrors `ocpt_styled_screenplay_editor_test.dart`'s
 /// own `_wrap` helper (kept as its own private copy here, rather than shared, per this project's
-/// "inline private test doubles, no shared helpers directory" convention).
-Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: SizedBox.expand(child: child)));
+/// "inline private test doubles, no shared helpers directory" convention) — including the
+/// localization delegates, needed since the styled editor's right-click context menu resolves
+/// `Tr.of(context)` unconditionally while building, in every mode, not just page simulation.
+Widget _wrap(Widget child) => MaterialApp(
+  localizationsDelegates: const [
+    Tr.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: Tr.delegate.supportedLocales,
+  home: Scaffold(body: SizedBox.expand(child: child)),
+);
 
 /// Full-corpus smoke test through the *live* `OcptStyledScreenplayEditor` widget: unlike
 /// `ocpt_wysiwyg_codec_test.dart`'s corpus group (which only calls the pure

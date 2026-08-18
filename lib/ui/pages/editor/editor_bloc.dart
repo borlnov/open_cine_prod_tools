@@ -188,6 +188,17 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorImportRequestedEvent>(_onImportRequested);
     on<OcptEditorIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptEditorTitlePageChangedEvent>(_onTitlePageChanged);
+    on<OcptEditorSearchOpenedEvent>(_onSearchOpened);
+    on<OcptEditorSearchClosedEvent>(_onSearchClosed);
+    on<OcptEditorSearchReplaceRowToggledEvent>(_onSearchReplaceRowToggled);
+    on<OcptEditorSearchQueryChangedEvent>(_onSearchQueryChanged);
+    on<OcptEditorSearchReplacementChangedEvent>(_onSearchReplacementChanged);
+    on<OcptEditorSearchCaseSensitivityToggledEvent>(_onSearchCaseSensitivityToggled);
+    on<OcptEditorSearchWholeWordToggledEvent>(_onSearchWholeWordToggled);
+    on<OcptEditorSearchMatchesReportedEvent>(_onSearchMatchesReported);
+    on<OcptEditorSearchNextRequestedEvent>(_onSearchNextRequested);
+    on<OcptEditorSearchPreviousRequestedEvent>(_onSearchPreviousRequested);
+    on<OcptEditorSearchCurrentMatchSelectedEvent>(_onSearchCurrentMatchSelected);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -1020,6 +1031,159 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
             sourceRange: _placeholderTitlePageEntryRange,
           ),
     ];
+  }
+
+  /// Opens the find/replace bar (see `OcptEditorSearchOpenedEvent`'s own doc comment for exactly
+  /// what folds and what doesn't).
+  Future<void> _onSearchOpened(
+    OcptEditorSearchOpenedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        search: state.search.copyWith(
+          isOpen: true,
+          isReplaceRowOpen: state.search.isReplaceRowOpen || event.withReplaceRow,
+          focusRequestId: state.search.focusRequestId + 1,
+        ),
+      ),
+    );
+  }
+
+  /// Closes the find/replace bar, clearing the highlight but keeping the query, the replacement
+  /// and both options (see `OcptEditorSearchClosedEvent`'s own doc comment).
+  Future<void> _onSearchClosed(
+    OcptEditorSearchClosedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        search: state.search.copyWith(
+          isOpen: false,
+          matchCount: 0,
+          clearCurrentMatchIndex: true,
+        ),
+      ),
+    );
+  }
+
+  /// Folds or unfolds the replace row.
+  Future<void> _onSearchReplaceRowToggled(
+    OcptEditorSearchReplaceRowToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        search: state.search.copyWith(isReplaceRowOpen: !state.search.isReplaceRowOpen),
+      ),
+    );
+  }
+
+  /// Stores the find field's new text and resets the current match index to 0, ready to be
+  /// clamped by the mounted surface's next match count report.
+  Future<void> _onSearchQueryChanged(
+    OcptEditorSearchQueryChangedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(search: state.search.copyWith(query: event.query, currentMatchIndex: 0)),
+    );
+  }
+
+  /// Stores the replace field's new text.
+  Future<void> _onSearchReplacementChanged(
+    OcptEditorSearchReplacementChangedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(search: state.search.copyWith(replacement: event.replacement)),
+    );
+  }
+
+  /// Toggles the "match case" option.
+  Future<void> _onSearchCaseSensitivityToggled(
+    OcptEditorSearchCaseSensitivityToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        search: state.search.copyWith(isCaseSensitive: !state.search.isCaseSensitive),
+      ),
+    );
+  }
+
+  /// Toggles the "whole word" option.
+  Future<void> _onSearchWholeWordToggled(
+    OcptEditorSearchWholeWordToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(search: state.search.copyWith(isWholeWord: !state.search.isWholeWord)),
+    );
+  }
+
+  /// Records the mounted surface's current match count, clamping the current match index into the
+  /// new range (null once [OcptEditorSearchMatchesReportedEvent.matchCount] is 0).
+  Future<void> _onSearchMatchesReported(
+    OcptEditorSearchMatchesReportedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final matchCount = event.matchCount;
+    if (matchCount == 0) {
+      emitter(
+        state.copyWith(
+          search: state.search.copyWith(matchCount: 0, clearCurrentMatchIndex: true),
+        ),
+      );
+      return;
+    }
+
+    final clampedIndex = (state.search.currentMatchIndex ?? 0).clamp(0, matchCount - 1);
+    emitter(
+      state.copyWith(
+        search: state.search.copyWith(matchCount: matchCount, currentMatchIndex: clampedIndex),
+      ),
+    );
+  }
+
+  /// Moves to the next match, wrapping from the last one back to the first. A no-op while there is
+  /// no match.
+  Future<void> _onSearchNextRequested(
+    OcptEditorSearchNextRequestedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final matchCount = state.search.matchCount;
+    if (matchCount == 0) {
+      return;
+    }
+
+    final nextIndex = ((state.search.currentMatchIndex ?? -1) + 1) % matchCount;
+    emitter(state.copyWith(search: state.search.copyWith(currentMatchIndex: nextIndex)));
+  }
+
+  /// Moves to the previous match, wrapping from the first one back to the last. A no-op while
+  /// there is no match.
+  Future<void> _onSearchPreviousRequested(
+    OcptEditorSearchPreviousRequestedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final matchCount = state.search.matchCount;
+    if (matchCount == 0) {
+      return;
+    }
+
+    final previousIndex = ((state.search.currentMatchIndex ?? 0) - 1 + matchCount) % matchCount;
+    emitter(state.copyWith(search: state.search.copyWith(currentMatchIndex: previousIndex)));
+  }
+
+  /// Sets the current match directly to [OcptEditorSearchCurrentMatchSelectedEvent.index], computed
+  /// by whichever editing surface just performed a `Replace` against the text it just wrote (see
+  /// the event's own doc comment for why this can't simply keep the previous index).
+  Future<void> _onSearchCurrentMatchSelected(
+    OcptEditorSearchCurrentMatchSelectedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(state.copyWith(search: state.search.copyWith(currentMatchIndex: event.index)));
   }
 
   /// Leaves the editor: cancels the pending debounce timers, flushes the unsaved change if there

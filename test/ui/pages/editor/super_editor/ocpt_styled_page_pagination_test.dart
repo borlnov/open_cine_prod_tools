@@ -334,6 +334,23 @@ void main() {
       expect(pagination.pageStartNodeIds, isEmpty);
     });
 
+    test("the title page takes one sheet, so a sheet's index is one ahead of its script page", () {
+      final document = documentWithTitlePageFrom(_longSource);
+
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+
+      expect(pagination.titlePageSheetCount, 1);
+      // Which is exactly what the painted sheets need to number themselves like the printed
+      // screenplay does: sheet 1 is script page 1, sheet 2 is script page 2, and so on.
+      expect(pagination.pageCount - pagination.titlePageSheetCount, greaterThan(1));
+    });
+
+    test("a document with no title page has no sheet to skip before its first script page", () {
+      final pagination = computeOcptStyledPagination(document: _documentFrom(_longSource), metrics: metrics);
+
+      expect(pagination.titlePageSheetCount, 0);
+    });
+
     test(
       "a title page long enough to overflow page 1 does not throw and clamps the first body "
       "node's padding to 0 rather than going negative",

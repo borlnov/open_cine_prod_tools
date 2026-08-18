@@ -4,12 +4,13 @@
 
 /// What kind of character a `roles` row is, and where its name comes from.
 enum OcptRoleKind {
-  /// A speaking character: reconciled from the screenplay's own speaking characters
-  /// (`OcptRoleIndexService`), never typed from nothing.
+  /// A speaking character: reconciled from a dialogue cue (`OcptRoleIndexService`), never typed
+  /// from nothing.
   speaking,
 
-  /// A silent (non-speaking) character, added by hand: the screenplay never names it as a cue, so
-  /// reconciliation cannot find it on its own.
+  /// A silent (non-speaking) character: reconciled from a name standing in capitals in the action,
+  /// or added by hand for one the screenplay names no other way — see
+  /// `OcptRolesTable.isFromScreenplay` for how the two are told apart.
   silent,
 
   /// An extra or a group of extras, added by hand.

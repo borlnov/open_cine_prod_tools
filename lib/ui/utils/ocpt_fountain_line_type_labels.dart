@@ -5,6 +5,25 @@
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
+/// The 11 assignable [FountainLineType]s (every value except [FountainLineType.blank], which has
+/// no manual-choice meaning), in the order both the styled editor toolbar's block-type dropdown
+/// (`OcptEditorBlockTypeDropdown`) and the styled editor's right-click context menu
+/// (`OcptEditorContextMenu`) list them: the 6 Tab-cycle types in their cycle order first, then the
+/// remaining 5.
+const List<FountainLineType> ocptAssignableFountainLineTypes = [
+  FountainLineType.sceneHeading,
+  FountainLineType.action,
+  FountainLineType.character,
+  FountainLineType.parenthetical,
+  FountainLineType.dialogue,
+  FountainLineType.transition,
+  FountainLineType.centeredText,
+  FountainLineType.lyrics,
+  FountainLineType.section,
+  FountainLineType.synopsis,
+  FountainLineType.pageBreak,
+];
+
 /// The localized label of the Fountain line type [type], read from [tr].
 ///
 /// Shared by the screenplay editor's block-type dropdown (`OcptEditorBlockTypeDropdown`, which

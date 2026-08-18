@@ -24,6 +24,7 @@ class OcptStyledPagination {
     required this.pageStartNodeIds,
     required this.pageStartTopPaddings,
     required this.pageCount,
+    required this.titlePageSheetCount,
     required this.trailingBottomPadding,
   });
 
@@ -47,6 +48,15 @@ class OcptStyledPagination {
   /// The total number of simulated pages the document currently spans (0 for a document with no
   /// `ParagraphNode`, at least 1 otherwise).
   final int pageCount;
+
+  /// How many leading simulated pages the title page occupies: 1 when the document has one (it
+  /// always takes page 1 in full, see below), 0 otherwise.
+  ///
+  /// This is the offset between a sheet's 0-based index among the painted pages and its 1-based
+  /// number among **script** pages, which is the only number `ocptScriptPageNumberLabelOf` — and
+  /// therefore the printed screenplay — ever counts in: sheet `i` shows script page
+  /// `i - titlePageSheetCount + 1`.
+  final int titlePageSheetCount;
 
   /// The extra padding (in logical pixels) to reserve below the document's last node so its
   /// scrollable content genuinely reaches the bottom edge of the last simulated sheet
@@ -175,6 +185,7 @@ OcptStyledPagination computeOcptStyledPagination({
     pageStartNodeIds: pageStartNodeIds,
     pageStartTopPaddings: pageStartTopPaddings,
     pageCount: pageCount,
+    titlePageSheetCount: hasTitlePage ? 1 : 0,
     trailingBottomPadding: trailingBottomPadding,
   );
 }

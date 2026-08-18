@@ -25,11 +25,12 @@ class OcptRoleKindConverter extends TypeConverter<OcptRoleKind, String> {
 /// A role belongs to the **production**, not to any one screenplay
 /// (`docs/adr/0019-one-project-several-episodes.md`): a character speaking in several episodes is
 /// one casting, not one per episode, and `role_episodes` (`OcptRoleEpisodesTable`) is what records
-/// which episodes name it. A speaking role is **reconciled from the screenplay**, not typed from
-/// nothing (`OcptRoleIndexService`, on the same save path `OcptSceneIndexService` already runs),
-/// mirroring the way `shots.orphanedHeading` survives a scene's disappearance: a role's casting and
-/// notes outlive the character being renamed or cut in any one episode. A role for a non-speaking
-/// part or a group of extras is added by hand instead — see [kind].
+/// which episodes name it. A role is **reconciled from the screenplay**, not typed from nothing
+/// (`OcptRoleIndexService`), on the same save path `OcptSceneIndexService` already runs, whenever a
+/// character is cued in dialogue or only ever named in capitals in the action, mirroring the way
+/// `shots.orphanedHeading` survives a scene's disappearance: a role's casting and notes outlive the
+/// character being renamed or cut in any one episode. A role for a group of extras, or one the user
+/// requalifies by hand, is typed from nothing instead — see [kind] and [isFromScreenplay].
 @DataClassName('OcptRoleRow')
 class OcptRolesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptRolesTable}
@@ -51,14 +52,19 @@ class OcptRolesTable extends Table {
   /// The person cast in this role, or null while it is uncast.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// Whether this is a speaking role (reconciled from the screenplay), a silent role or an extra —
-  /// the two latter kinds are always added by hand, since the screenplay never names them as a cue.
+  /// Whether this is a speaking role, a silent role or an extra. [OcptRoleKind.speaking] is always
+  /// reconciled from a dialogue cue; [OcptRoleKind.silent] is reconciled from a character's name
+  /// standing in capitals in the action **or** added by hand — the two are told apart by
+  /// [isFromScreenplay], not by this column alone (`ocptRoleIsActionDetected`, `lib/utils/`) — and
+  /// [OcptRoleKind.extra] is always added by hand, since the screenplay has no convention naming a
+  /// group of extras.
   TextColumn get kind => text().map(const OcptRoleKindConverter())();
 
-  /// Whether [name] is owned by the screenplay reconciliation (`OcptRoleIndexService`) rather than
-  /// typed by the user: true for a role created from a speaking character, false for one added by
-  /// hand. A row the user created is never touched by reconciliation, whatever character names
-  /// later appear or disappear.
+  /// Whether [name] (and, for a non-speaking [kind], the row's very existence) is owned by the
+  /// screenplay reconciliation (`OcptRoleIndexService`) rather than typed by the user: true for a
+  /// role created from a cue or from a name standing in the action, false for one added by hand. A
+  /// row the user created is never touched by reconciliation, whatever character names later appear
+  /// or disappear.
   BoolColumn get isFromScreenplay => boolean().withDefault(const Constant(false))();
 
   /// The name this character had in the screenplay when it stopped being found there, or null while

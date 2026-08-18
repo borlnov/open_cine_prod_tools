@@ -36,7 +36,7 @@ ExecutionInstruction ocptCopyToFountainClipboard({required SuperEditorContext ed
     return ExecutionInstruction.haltExecution;
   }
 
-  _copySelectionToClipboard(document: editContext.document, selection: selection);
+  ocptCopySelectionToClipboard(document: editContext.document, selection: selection);
   return ExecutionInstruction.haltExecution;
 }
 
@@ -59,7 +59,7 @@ ExecutionInstruction ocptCutToFountainClipboard({required SuperEditorContext edi
     return ExecutionInstruction.haltExecution;
   }
 
-  _copySelectionToClipboard(document: editContext.document, selection: selection);
+  ocptCopySelectionToClipboard(document: editContext.document, selection: selection);
   editContext.editor.execute(const [DeleteSelectionRequest(TextAffinity.downstream)]);
   return ExecutionInstruction.haltExecution;
 }
@@ -100,8 +100,10 @@ ExecutionInstruction ocptPasteFromFountainClipboard({required SuperEditorContext
 
 /// Copies the Fountain source text of [selection] (via
 /// [OcptWysiwygCodec.encodeSelectionToFountain]) to the system clipboard as plain text, shared by
-/// [ocptCopyToFountainClipboard] and [ocptCutToFountainClipboard].
-void _copySelectionToClipboard({required Document document, required DocumentSelection selection}) {
+/// the Ctrl+C/Ctrl+X key handlers ([ocptCopyToFountainClipboard], [ocptCutToFountainClipboard]) and
+/// the styled editor's right-click context menu's Cut/Copy entries — one clipboard path however the
+/// gesture is made.
+void ocptCopySelectionToClipboard({required Document document, required DocumentSelection selection}) {
   final fountainText = OcptWysiwygCodec.encodeSelectionToFountain(document, selection);
   unawaited(Clipboard.setData(ClipboardData(text: fountainText)));
 }

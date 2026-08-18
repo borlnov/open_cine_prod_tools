@@ -52,11 +52,38 @@ their sets, the elements catalogue, and the two documents the mode prints.
   `OcptPersonAvatar`, so referencing one on the sheet shows it in the address book's list and on the
   role avatar too.
   Roles are **reconciled from the screenplay**, not typed from nothing: `OcptRoleIndexService`
-  mirrors `OcptSceneIndexService` on the same save path — a speaking character with no row gets a
-  `speaking` role, a role whose character disappeared keeps its casting and its notes and gains an
-  `orphanedName` (`OcptRemovedRoleAlert`, the sibling of `OcptShotRemovedCharacterAlert`), and a
-  hand-added `silent`/`extra` role is never touched. A rename reads as one disappearance and one
-  appearance, repaired through the banner, exactly as a heading with no scene number is.
+  mirrors `OcptSceneIndexService` on the same save path, reading the **whole screenplay cast** — a
+  character cued in dialogue and one only ever named in capitals in the action alike — since the
+  shot list already offers a silent character and the cast must not disagree about who is in the
+  screenplay. The two origins are told apart by the same two columns rather than a column of their
+  own, `ocptRoleIsActionDetected` (`lib/utils/`, read by this service and by the role sheet alike)
+  being the one place the rule is written:
+
+  | `isFromScreenplay` | `kind` | Means |
+  | --- | --- | --- |
+  | true | `speaking` | Cued in the dialogue of at least one episode |
+  | true | non-speaking (`silent`, or `extra` if requalified) | Introduced in capitals in an action line, never cued |
+  | false | any | Added by hand, or kept through `keepOrphanedRoleAsSilent` |
+
+  The middle row reads **any non-speaking kind**, not `silent` alone, because the role sheet lets
+  the user requalify a detected role's `kind` — a detected `SILHOUETTE` becoming an `extra` is
+  legitimate, and scoping the rule to `silent` would make such a role fall through it. A cast
+  member with no matching row gets a role in the kind its origin implies; one cued after standing
+  mute in the action is **promoted** to `speaking` instead of being split in two, and there is no
+  reverse of that — a role that has spoken stays `speaking` even once the line naming it is cut,
+  since it may have been cast in the meantime and losing every link is what already handles a
+  character leaving the script. A role whose character disappeared keeps its casting and its notes
+  and gains an `orphanedName` (`OcptRemovedRoleAlert`, the sibling of
+  `OcptShotRemovedCharacterAlert`), and a hand-added `silent`/`extra` role is never touched.
+  **Rejecting an action-detected role is final**: reading a name out of an action line is a
+  convention, not a syntax, so an acronym or a shouted word (`OK`, `STOP`, `INTERPOL`) is
+  occasionally read as a character, and `reconcile` refuses to recreate one whose tombstone is
+  action-detected and whose name this episode does not cue — a name that is cued is never refused
+  this way, whatever tombstone bears it, since its cue is still in the script and the script is the
+  source of truth. This is also the one reason the role sheet's delete action exists on such a role
+  at all: a cued role the next save would insert right back offers none. A rename reads as one
+  disappearance and one appearance, repaired through the banner, exactly as a heading with no scene
+  number is.
   **A role belongs to the production, not to a script** (ADR 0019): `roles` carries no
   `screenplayId`, and `role_episodes` records which episodes name it — a synchronised link table
   with **no `sortKey`**, a role's episodes being an unordered set of answers exactly as `scene_sets`

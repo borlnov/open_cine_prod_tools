@@ -331,6 +331,41 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorContextMenuCutAction": "Cut",
+  "@editorContextMenuCutAction": {
+    "description": "Label of the Cut entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuCopyAction": "Copy",
+  "@editorContextMenuCopyAction": {
+    "description": "Label of the Copy entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuPasteAction": "Paste",
+  "@editorContextMenuPasteAction": {
+    "description": "Label of the Paste entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuSelectAllAction": "Select all",
+  "@editorContextMenuSelectAllAction": {
+    "description": "Label of the Select all entry of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuBlockTypeSubmenu": "Block type",
+  "@editorContextMenuBlockTypeSubmenu": {
+    "description": "Label of the block-type submenu of the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorToggleBoldTooltip": "Bold (Ctrl+B)",
   "@editorToggleBoldTooltip": {
     "description": "Tooltip of the toolbar action that toggles bold on the selection",
@@ -405,6 +440,20 @@
   "@editorImportAndReplaceAction": {
     "description": "Label of the action that replaces the screenplay with an imported .fountain file",
     "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindAction": "Find…",
+  "@editorFindAction": {
+    "description": "Label of the action that opens the find/replace bar on its find row alone",
+    "context": "Displayed as an item of the editor toolbar's overflow menu, right after Import and replace…",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindAndReplaceAction": "Find and replace…",
+  "@editorFindAndReplaceAction": {
+    "description": "Label of the action that opens the find/replace bar with its replace row unfolded",
+    "context": "Displayed as an item of the editor toolbar's overflow menu, right after Find…",
     "type": "text",
     "placeholders": {}
   },
@@ -629,6 +678,129 @@
   "@editorImportConfirmReplaceAction": {
     "description": "Label of the action that confirms the import confirmation dialog",
     "context": "Displayed on a button in the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindHint": "Find…",
+  "@editorFindHint": {
+    "description": "Placeholder of the find/replace bar's find field",
+    "context": "Displayed inside the find field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceHint": "Replace…",
+  "@editorReplaceHint": {
+    "description": "Placeholder of the find/replace bar's replace field",
+    "context": "Displayed inside the replace field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindMatchCounter": "{current}/{total}",
+  "@editorFindMatchCounter": {
+    "description": "The find/replace bar's match counter, the current match's 1-based rank among the total",
+    "context": "Displayed inside the find/replace bar, between the find field and the previous/next buttons",
+    "type": "text",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "editorFindNoMatches": "No matches",
+  "@editorFindNoMatches": {
+    "description": "The find/replace bar's counter while the query matches nothing",
+    "context": "Displayed inside the find/replace bar, in place of the match counter",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindMatchCaseTooltip": "Match case",
+  "@editorFindMatchCaseTooltip": {
+    "description": "Tooltip of the find field's case-sensitivity toggle",
+    "context": "Displayed on hover over the Aa toggle inside the find field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindWholeWordTooltip": "Whole word",
+  "@editorFindWholeWordTooltip": {
+    "description": "Tooltip of the find field's whole-word toggle",
+    "context": "Displayed on hover over the ab toggle inside the find field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindPreviousTooltip": "Previous match",
+  "@editorFindPreviousTooltip": {
+    "description": "Tooltip of the find/replace bar's previous-match button",
+    "context": "Displayed on hover over the ‹ button of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindNextTooltip": "Next match",
+  "@editorFindNextTooltip": {
+    "description": "Tooltip of the find/replace bar's next-match button",
+    "context": "Displayed on hover over the › button of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindCloseTooltip": "Close find and replace",
+  "@editorFindCloseTooltip": {
+    "description": "Tooltip of the find/replace bar's own × button",
+    "context": "Displayed on hover over the × button of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindToggleReplaceRowTooltip": "Show or hide replace",
+  "@editorFindToggleReplaceRowTooltip": {
+    "description": "Tooltip of the find/replace bar's leading chevron",
+    "context": "Displayed on hover over the chevron at the far left of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAction": "Replace",
+  "@editorReplaceAction": {
+    "description": "Label of the button that replaces the current match",
+    "context": "Displayed on a button of the find/replace bar's replace row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllAction": "Replace all",
+  "@editorReplaceAllAction": {
+    "description": "Label of the button that replaces every match",
+    "context": "Displayed on a button of the find/replace bar's replace row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllConfirmTitle": "Replace every match?",
+  "@editorReplaceAllConfirmTitle": {
+    "description": "Title of the dialog confirming a replace-all",
+    "context": "Displayed at the top of the replace-all confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllConfirmMessage": "{count, plural, one{{count} match will be replaced.} other{{count} matches will be replaced.}} This cannot be undone.",
+  "@editorReplaceAllConfirmMessage": {
+    "description": "Message of the dialog confirming a replace-all, naming how many matches will be replaced",
+    "context": "Displayed inside the replace-all confirmation dialog, below its title",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorReplaceAllConfirmCancelAction": "Cancel",
+  "@editorReplaceAllConfirmCancelAction": {
+    "description": "Label of the action that dismisses the replace-all confirmation dialog",
+    "context": "Displayed on a button in the replace-all confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllConfirmAction": "Replace all",
+  "@editorReplaceAllConfirmAction": {
+    "description": "Label of the action that confirms the replace-all confirmation dialog",
+    "context": "Displayed on a button in the replace-all confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
@@ -3758,7 +3930,14 @@
   "resourcesRoleNameFromScreenplayNote": "This role comes from the screenplay: its name and its existence follow the character's cues.",
   "@resourcesRoleNameFromScreenplayNote": {
     "description": "Note explaining why a role's name field and delete action are withheld, shown in the name field's place",
-    "context": "Displayed in the resources mode's role sheet, for a role reconciled from the screenplay",
+    "context": "Displayed in the resources mode's role sheet, for a role reconciled from a dialogue cue",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNameFromActionNote": "This role comes from the screenplay: its name follows the character's name written in capitals in the action.",
+  "@resourcesRoleNameFromActionNote": {
+    "description": "Note explaining why a role's name field is withheld, shown in the name field's place",
+    "context": "Displayed in the resources mode's role sheet, for a role reconciled from a name introduced in the action",
     "type": "text",
     "placeholders": {}
   },
@@ -3786,6 +3965,13 @@
   "resourcesRoleDeleteConfirmMessage": "This permanently deletes this role. This can't be undone.",
   "@resourcesRoleDeleteConfirmMessage": {
     "description": "Message of the dialog confirming a role's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleActionDetectedDeleteConfirmMessage": "This permanently deletes this role. Since it was found in the action rather than cued in dialogue, it won't be recreated on the next save even though the name is still written there. This can't be undone.",
+  "@resourcesRoleActionDetectedDeleteConfirmMessage": {
+    "description": "Message of the dialog confirming the deletion of a role reconciled from a name introduced in the action, rather than from a dialogue cue",
     "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}

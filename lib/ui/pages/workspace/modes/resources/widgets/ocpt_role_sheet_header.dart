@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_avatar.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
 
 /// The radius of the header's own avatar, the cast member's colour standing in for the photo slot
 /// the person sheet has (a role has no portrait of its own — the actor does).
@@ -24,8 +25,11 @@ const double _avatarRadius = 26;
 /// The name is a title-styled [OcptResourcesSheetField] for a hand-added role and plain text for a
 /// role reconciled from the screenplay, whose name `OcptRoleIndexService.reconcile` owns and would
 /// write right back on the next save — it is stated as a note under the title rather than offered
-/// as a disabled field, so nothing ever looks editable that isn't. The same reasoning governs the
-/// delete action `OcptRoleSheet` puts at the bottom of the sheet.
+/// as a disabled field, so nothing ever looks editable that isn't. The note itself says which of the
+/// two ways the role was reconciled — cued in dialogue, or only ever named in capitals in the
+/// action ([ocptRoleIsActionDetected]) — since the two are deleted differently (see
+/// `OcptRoleSheet._canBeDeleted`), and a note that read the same for both would hide that. The same
+/// reasoning governs the delete action `OcptRoleSheet` puts at the bottom of the sheet.
 ///
 /// The jump to the cast member lives here rather than beside the casting card's picker: this line
 /// is the "who plays this part" answer, and a jump target next to a dropdown would compete with
@@ -100,7 +104,9 @@ class OcptRoleSheetHeader extends StatelessWidget {
   }
 
   /// Builds the role's name: an editable title for a hand-added role, the name as plain text
-  /// followed by its explanatory note for a role owned by the screenplay.
+  /// followed by its explanatory note for a role owned by the screenplay — the note itself telling
+  /// a cued role from an action-detected one apart, since only the note names the reason the
+  /// field is withheld.
   Widget _buildName(BuildContext context, Tr tr) {
     final theme = Theme.of(context);
     final titleStyle = theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700);
@@ -116,13 +122,20 @@ class OcptRoleSheetHeader extends StatelessWidget {
       );
     }
 
+    final isActionDetected = ocptRoleIsActionDetected(
+      isFromScreenplay: role.isFromScreenplay,
+      kind: role.kind,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name, style: titleStyle),
         const SizedBox(height: 4),
         Text(
-          tr.resourcesRoleNameFromScreenplayNote,
+          isActionDetected
+              ? tr.resourcesRoleNameFromActionNote
+              : tr.resourcesRoleNameFromScreenplayNote,
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,

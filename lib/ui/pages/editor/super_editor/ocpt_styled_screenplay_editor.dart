@@ -4,25 +4,32 @@
 
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_search_match_styler.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_component_builder.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
@@ -58,6 +65,10 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
 
   /// Whether the document is rendered as distinct, real-size "Word-like" paper sheets (white,
   /// black text, even in dark theme) rather than as a fluid, theme-following editing surface.
+  ///
+  /// Each of those sheets carries the very page number the printed screenplay would show on it
+  /// (`_OcptPageSheetsPainter`, [ocptScriptPageNumberLabelOf]). There is nothing to number while
+  /// this is off: the fluid surface has no sheets at all.
   final bool isPageSimulationEnabled;
 
   /// Whether every scene heading shows its scene number (explicit or computed, see
@@ -150,6 +161,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// The focus node of the styled editor, focused back when applying a scene jump.
   final FocusNode _focusNode = FocusNode();
 
+  /// The controller opening/closing the right-click context menu ([OcptEditorContextMenu]), owned
+  /// here since [build] is also what positions it, at the tap [_onSecondaryTapUp] resolved.
+  final MenuController _contextMenuController = MenuController();
+
   /// The IME-delta interceptor that catches a plain Tab keystroke before it can insert a literal
   /// `\t` character (see `OcptFountainTabInterceptor`'s own doc comment for why this is needed).
   /// Built once, not on every [build] — `SuperEditorImeInteractorState` compares `imeOverrides` by
@@ -187,10 +202,30 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// recomputed by [_recomputePageSimulation].
   int _pageCount = 0;
 
+  /// How many of those [_pageCount] pages the title page takes up before the script itself starts
+  /// (always 0 while page simulation is off), recomputed by [_recomputePageSimulation]: the offset
+  /// a painted sheet's index needs before it means a **script** page number (see
+  /// [OcptStyledPagination.titlePageSheetCount]).
+  int _titlePageSheetCount = 0;
+
   /// The extra bottom padding the stylesheet's `documentPadding` needs so the document's
   /// scrollable content reaches all the way down to the last simulated page's own bottom margin
   /// (always 0 while page simulation is off), recomputed by [_recomputePageSimulation].
   double _trailingBottomPadding = 0;
+
+  /// This widget's own half of the find/replace bar's highlight (plan §6), handed to `SuperEditor`
+  /// as a custom style phase in [build]; never rebuilt, so `markDirty()` calls survive across a
+  /// [build] rather than resetting the highlight every frame.
+  final OcptSearchMatchStyler _searchMatchStyler = OcptSearchMatchStyler();
+
+  /// The find/replace query [updateSearch] last set, or null while there is no active search —
+  /// `editor_page.dart` sets this to null whenever the bar is closed, a different mode is active,
+  /// or a version is being previewed.
+  OcptEditorSearchQuery? _searchQuery;
+
+  /// The current-match index [updateSearch] last set, among the matches [_orderedSearchMatches]
+  /// computes for [_searchQuery]; null while there is none.
+  int? _searchCurrentMatchIndex;
 
   @override
   void initState() {
@@ -215,6 +250,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       });
       _syncSceneNumbers();
       _reportReadStateToController();
+      // The document (and every node id it holds) was just rebuilt from scratch: any match this
+      // widget computed against the previous one is stale, and must never keep highlighting/
+      // navigating against node ids that no longer exist.
+      _recomputeSearchMatches(navigateToCurrent: false);
     } else if (widget.isPageSimulationEnabled != oldWidget.isPageSimulationEnabled) {
       // The title sheet's nodes appear/disappear with page simulation itself (see [_decode]'s own
       // doc comment), so toggling it needs a full rebuild from the same text, not just a
@@ -226,6 +265,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       });
       _syncSceneNumbers();
       _reportReadStateToController();
+      _recomputeSearchMatches(navigateToCurrent: false);
     } else if (widget.pageSetup != oldWidget.pageSetup) {
       setState(_recomputePageSimulation);
     }
@@ -335,9 +375,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             ),
           ),
         // Only wired up while page simulation is on: title-page nodes never exist otherwise (see
-        // `_decode`), so this builder would never match anything, and building its placeholder
-        // map would needlessly require a `Tr` in scope for every fluid-mode editor instance,
-        // including the many tests that pump this widget standalone with no localization set up.
+        // `_decode`), so this builder would never match anything, and resolving its placeholder
+        // map would be work with nothing to show it on.
         if (widget.isPageSimulationEnabled)
           OcptTitlePageComponentBuilder(
             placeholders: _titlePagePlaceholders(context),
@@ -347,6 +386,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           ),
         ...defaultComponentBuilders,
       ],
+      customStylePhases: [_searchMatchStyler],
       // Both default policies clear the selection the moment this editor loses focus to any
       // other widget, including a momentary focus steal by the toolbar's block-type dropdown
       // opening its own overlay route: the focus loss directly clears the selection
@@ -388,13 +428,65 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ),
     );
 
-    if (!widget.isPageSimulationEnabled) {
-      return Scrollbar(
-        controller: _pageScrollController,
-        child: ColoredBox(color: theme.colorScheme.surface, child: editorWithoutImplicitScrollbar),
-      );
-    }
+    final content = !widget.isPageSimulationEnabled
+        ? _buildFluidSurface(theme: theme, editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar)
+        : _buildPageSimulationSurface(theme: theme, layout: layout, editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar);
 
+    // Wrapped once here, rather than once per branch above: a right-click anywhere over the
+    // document — fluid surface or simulated page alike — opens the same context menu. super_editor's
+    // own desktop gesture interactor handles no secondary mouse button at all (verified against the
+    // pinned `0.3.0-dev.52`), so nothing else ever competes for this gesture.
+    //
+    // The `Listener` above the gesture detector is what dismisses that menu on a left click landing
+    // back on the document (see `_onPointerDownOverDocument`): `MenuAnchor` closes itself on a tap
+    // outside its own `TapRegion` group, and its anchor child — everything below here — is part of
+    // that group, so the whole editing surface would otherwise be the one place where clicking away
+    // left the menu standing. It observes rather than competes: a `Listener` never enters the
+    // gesture arena, so the click it sees still reaches super_editor and places the caret.
+    //
+    // No entry is ever withheld for a read-only preview here: `editor_page.dart`'s `_buildCentre`
+    // substitutes the read-only `OcptEditorPreview` for both editing modes while a version is being
+    // previewed, so this widget — and the menu it opens — is simply never mounted under one. There is
+    // no `isReadOnly` flag to thread through because there is nothing here that would ever need one.
+    return OcptEditorContextMenu(
+      controller: _contextMenuController,
+      childFocusNode: _focusNode,
+      currentType: _contextMenuBlockType,
+      onCut: _hasExpandedSelection ? _cutSelectionFromContextMenu : null,
+      onCopy: _hasExpandedSelection ? _copySelectionFromContextMenu : null,
+      onPaste: _composer.selection != null ? _pasteFromContextMenu : null,
+      onSelectAll: _composer.selection != null ? _selectAllFromContextMenu : null,
+      onTypeSelected: _contextMenuBlockType != null ? applyBlockType : null,
+      child: Listener(
+        onPointerDown: _onPointerDownOverDocument,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTapUp: _onSecondaryTapUp,
+          child: content,
+        ),
+      ),
+    );
+  }
+
+  /// The fluid, theme-following editing surface [build] shows while
+  /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is off: no sheets, no page numbers, just
+  /// [editorWithoutImplicitScrollbar] on the themed surface colour, scrollable.
+  Widget _buildFluidSurface({required ThemeData theme, required Widget editorWithoutImplicitScrollbar}) => Scrollbar(
+    controller: _pageScrollController,
+    child: ColoredBox(color: theme.colorScheme.surface, child: editorWithoutImplicitScrollbar),
+  );
+
+  /// The paper-simulated editing surface [build] shows while
+  /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is on: real-size white sheets behind
+  /// [editorWithoutImplicitScrollbar], scaled to fit a panel narrower than [layout]'s own page width.
+  /// The inline comments below are the authority on every geometry decision it makes: why the editor
+  /// is only as wide as the content area, why it is shifted back by one padding inset, and why the
+  /// sheets are painted rather than laid out.
+  Widget _buildPageSimulationSurface({
+    required ThemeData theme,
+    required OcptEditorPreviewLayout layout,
+    required Widget editorWithoutImplicitScrollbar,
+  }) {
     // Page simulation: the document is centered at the physical page width, with a themed
     // backdrop (matching the app's theme) on either side, and a white sheet painted behind it per
     // simulated page (see `_OcptPageSheetsPainter`); `OcptFountainEditorStylesheet` already
@@ -436,8 +528,21 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
                     builder: (context, child) => CustomPaint(
                       painter: _OcptPageSheetsPainter(
                         pageCount: _pageCount,
+                        titlePageSheetCount: _titlePageSheetCount,
                         pageHeight: layout.pageHeight,
                         pageGap: OcptEditorPreviewLayout.pageGap,
+                        pageNumberTop: ocptScriptPageNumberTopInches * layout.pixelsPerInch,
+                        pageNumberRight: layout.pageWidth - layout.marginRight,
+                        // The sheets are white whatever the app's theme is, so the number is painted
+                        // in the same fixed paper colors `OcptFountainEditorStylesheet` switches to
+                        // under page simulation — a theme-derived color could render invisible on
+                        // that white backdrop — and at the body's own size and family, since that is
+                        // what the PDF prints it at.
+                        pageNumberStyle: const TextStyle(
+                          fontFamily: OcptEditorPreviewLayout.fontFamily,
+                          fontSize: OcptEditorPreviewLayout.fontSize,
+                          color: Colors.black,
+                        ),
                         scrollOffset: _pageScrollController.hasClients ? _pageScrollController.offset : 0,
                       ),
                     ),
@@ -596,6 +701,30 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _syncTimer?.cancel();
     _syncTimer = Timer(_syncDebounce, _syncAfterEdit);
     _reportReadStateToController();
+
+    if (_searchQuery == null) {
+      return;
+    }
+    // Live, not debounced, for the same reason the toolbar's read state above isn't either: the
+    // raw mode's own highlight tracks every keystroke through its text controller directly (see
+    // `OcptEditorSearchTextController`), and the styled mode must not visibly lag behind it.
+    // `navigateToCurrent: false` is what keeps typing elsewhere in the document from yanking the
+    // caret back onto "the current match" on every keystroke — only an actual navigation
+    // ([updateSearch]) does that, mirroring `_syncRawSearch`'s own split between reporting and
+    // navigating.
+    //
+    // Deferred to a post-frame callback rather than run right here: this listener fires
+    // synchronously from inside `Editor.execute()`'s own transaction (`document.onTransactionEnd`,
+    // called before the composer's selection is necessarily fixed up for a node this same edit
+    // just removed), and `_searchMatchStyler.updateMatches`'s `markDirty()` triggers an immediate
+    // re-style pass — running it this early crashes deep inside super_editor's own selection
+    // styler on a delete/cut whose selection request hasn't landed yet. A post-frame callback runs
+    // well after that same transaction (and its selection fix-up) has fully settled.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _searchQuery != null) {
+        _recomputeSearchMatches(navigateToCurrent: false);
+      }
+    });
   }
 
   /// Rejoins the document into flat text (reporting it upstream if it changed), refreshes
@@ -703,6 +832,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         _editor.execute(clearRequests);
       }
       _pageCount = 0;
+      _titlePageSheetCount = 0;
       _trailingBottomPadding = 0;
       return;
     }
@@ -723,6 +853,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       _editor.execute(requests);
     }
     _pageCount = pagination.pageCount;
+    _titlePageSheetCount = pagination.titlePageSheetCount;
     _trailingBottomPadding = pagination.trailingBottomPadding;
   }
 
@@ -834,9 +965,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// Applies a manual block-type change to the current selection's extent node: bails out silently
   /// if there is no selection, or its node isn't a `ParagraphNode` (mirroring
   /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
-  /// like the Tab-cycle gesture does, then reports the fresh read state and hands focus straight
-  /// back to the editor — the toolbar's dropdown must never keep the keyboard focus it briefly took
-  /// to open.
+  /// like the Tab-cycle gesture does — plus, when [type] is [FountainLineType.parenthetical] and
+  /// the node's text is still empty, inserts `()` and places the caret between the two parentheses
+  /// (see `ocptParentheticalTemplateRequests`, the same helper the Tab cycle and smart-Enter use, so
+  /// all three gestures behave identically) — then reports the fresh read state and hands focus
+  /// straight back to the editor — the toolbar's dropdown must never keep the keyboard focus it
+  /// briefly took to open.
   @override
   void applyBlockType(FountainLineType type) {
     final selection = _composer.selection;
@@ -849,8 +983,159 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       return;
     }
 
-    _editor.execute(ocptManualBlockTypeRequests(nodeId: node.id, type: type));
+    _editor.execute([
+      ...ocptManualBlockTypeRequests(nodeId: node.id, type: type),
+      ...ocptParentheticalTemplateRequests(nodeId: node.id, type: type, isNodeEmpty: node.text.isEmpty),
+    ]);
     _reportReadStateToController();
+    _focusNode.requestFocus();
+  }
+
+  /// Whether [_composer]'s current selection is expanded, i.e. there is something for the
+  /// right-click context menu's Cut/Copy entries to act on: read fresh on every [build], so it
+  /// always reflects whatever [_onSecondaryTapUp] just resolved before forcing that rebuild (see
+  /// that method's own doc comment).
+  bool get _hasExpandedSelection {
+    final selection = _composer.selection;
+    return selection != null && !selection.isCollapsed;
+  }
+
+  /// The block type the right-click context menu's submenu should show as selected, or null when
+  /// the caret sits on no block that can be retyped — no selection at all, a node that isn't a
+  /// `ParagraphNode`, or a title-page field (mirrors [applyBlockType]'s own guard, since picking a
+  /// type from the submenu ultimately calls it). [OcptEditorContextMenu] also reads this null-ness
+  /// to decide whether the submenu appears at all.
+  FountainLineType? get _contextMenuBlockType {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return null;
+    }
+
+    final node = _document.getNodeById(selection.extent.nodeId);
+    if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
+      return null;
+    }
+
+    return OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+  }
+
+  /// Resolves the document position under a right-click and opens [_contextMenuController] there.
+  ///
+  /// [details]' global position is converted to the document layout's own local coordinates through
+  /// [DocumentLayout.getDocumentOffsetFromAncestorOffset] — a thin wrapper, on the pinned
+  /// `0.3.0-dev.52`, around that exact layout's own `RenderBox.globalToLocal` — never the gesture
+  /// detector's own local offset: that's what keeps this correct under the page-simulation
+  /// `FittedBox` scaling, which the raw local offset would otherwise silently ignore. (The layout's
+  /// box itself isn't reachable through [_documentLayoutKey] directly: `SuperEditor` wraps it in a
+  /// `SliverToBoxAdapter` internally, so walking down from that key's own element lands on the
+  /// sliver's render object, not the box.)
+  ///
+  /// A collapsed caret is placed at that position unless it already sits inside an expanded
+  /// selection — right-clicking inside a selection must never destroy it, which is the whole point
+  /// of the Cut/Copy entries the menu is about to show. Either way, `setState` runs before the menu
+  /// opens: nothing about a selection change (placing this exact caret included) schedules a
+  /// rebuild of this widget on its own (see [_onSelectionChanged]'s own doc comment on why a
+  /// separate read-state channel exists for the toolbar), so without it [build] would hand
+  /// [OcptEditorContextMenu] the *previous* selection's Cut/Copy/submenu availability instead of the
+  /// one this tap just settled on.
+  void _onSecondaryTapUp(TapUpDetails details) {
+    final layout = _documentLayoutKey.currentState as DocumentLayout?;
+    if (layout == null) {
+      return;
+    }
+
+    final documentOffset = layout.getDocumentOffsetFromAncestorOffset(details.globalPosition);
+    final position = layout.getDocumentPositionNearestToOffset(documentOffset);
+    if (position == null) {
+      return;
+    }
+
+    final selection = _composer.selection;
+    final tapIsInsideSelection =
+        selection != null && !selection.isCollapsed && _document.doesSelectionContainPosition(selection, position);
+    if (!tapIsInsideSelection) {
+      _editor.execute([
+        ChangeSelectionRequest(
+          DocumentSelection.collapsed(position: position),
+          SelectionChangeType.placeCaret,
+          SelectionReason.userInteraction,
+        ),
+      ]);
+    }
+
+    setState(() {});
+    _contextMenuController.open(position: details.localPosition);
+  }
+
+  /// Closes the right-click context menu when a left click lands anywhere on the document while it
+  /// is open, the way clicking away from a menu closes it everywhere else in the app.
+  ///
+  /// Only the primary button does this: the secondary button is what opens the menu in the first
+  /// place ([_onSecondaryTapUp] runs on its tap *up*, after this very handler has seen its down),
+  /// and closing on it would make a second right-click a toggle rather than a re-position. Clicks
+  /// on the menu itself never reach here — it is an overlay painted above this surface, and it
+  /// absorbs its own pointers.
+  void _onPointerDownOverDocument(PointerDownEvent event) {
+    if (event.buttons != kPrimaryButton || !_contextMenuController.isOpen) {
+      return;
+    }
+
+    _contextMenuController.close();
+  }
+
+  /// The right-click context menu's Copy entry: copies the current selection's Fountain source to
+  /// the clipboard through [ocptCopySelectionToClipboard], the same helper the Ctrl+C key handler
+  /// uses, so the payload is the exact same plain Fountain text whichever gesture asks for it. Hands
+  /// focus back to the editor afterwards, same as [applyBlockType].
+  void _copySelectionFromContextMenu() {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return;
+    }
+
+    ocptCopySelectionToClipboard(document: _document, selection: selection);
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's Cut entry: the same copy as [_copySelectionFromContextMenu],
+  /// followed by deleting the selection, mirroring the Ctrl+X key handler.
+  void _cutSelectionFromContextMenu() {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return;
+    }
+
+    ocptCopySelectionToClipboard(document: _document, selection: selection);
+    _editor.execute(const [DeleteSelectionRequest(TextAffinity.downstream)]);
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's Paste entry: [ocptPasteFountainClipboardContent], the same
+  /// Fountain-aware paste the Ctrl+V key handler uses.
+  void _pasteFromContextMenu() {
+    unawaited(ocptPasteFountainClipboardContent(editor: _editor, document: _document, composer: _composer));
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's Select all entry: expands the selection across the whole
+  /// document, mirroring super_editor's own `CommonEditorOperations.selectAll`. A no-op on an empty
+  /// document (which [_document] never actually is once the menu can open, but this mirrors that
+  /// operation's own defensive guard).
+  void _selectAllFromContextMenu() {
+    if (_document.isEmpty) {
+      return;
+    }
+
+    _editor.execute([
+      ChangeSelectionRequest(
+        DocumentSelection(
+          base: DocumentPosition(nodeId: _document.first.id, nodePosition: _document.first.beginningPosition),
+          extent: DocumentPosition(nodeId: _document.last.id, nodePosition: _document.last.endPosition),
+        ),
+        SelectionChangeType.expandSelection,
+        SelectionReason.userInteraction,
+      ),
+    ]);
     _focusNode.requestFocus();
   }
 
@@ -876,6 +1161,237 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     _reportReadStateToController();
     _focusNode.requestFocus();
+  }
+
+  /// Every current match of [_searchQuery], in document order (node order, then offset within the
+  /// node) — the single computation [_recomputeSearchMatches], [replaceCurrentMatch] and
+  /// [replaceAllMatches] all go through, so none of them can drift from what the highlight
+  /// actually shows.
+  ///
+  /// Only [ParagraphNode]s are searched, which title-page field nodes are too (see
+  /// `OcptWysiwygCodec`): they sit on screen and are ordinarily editable
+  /// (`ocptTitlePageGuardRequestHandler` permits ordinary text edits inside a field, only guarding
+  /// against merging or deleting the node itself), so a search that skipped them would miss text
+  /// the user can plainly see and type into. This is also why the styled mode's own match count
+  /// changes with the page-simulation toggle: the title sheet, and every field on it, only exists
+  /// at all while page simulation is on (see [_decode]'s own doc comment).
+  List<({String nodeId, OcptTextMatch match})> _orderedSearchMatches(OcptEditorSearchQuery query) {
+    final matches = <({String nodeId, OcptTextMatch match})>[];
+    for (final node in _document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+      for (final match in query.matchesIn(node.text.toPlainText())) {
+        matches.add((nodeId: node.id, match: match));
+      }
+    }
+    return matches;
+  }
+
+  /// Recomputes every match of [_searchQuery] over the live document's own display text, feeds
+  /// them to [_searchMatchStyler], reports the total count to
+  /// [OcptStyledScreenplayEditor.styledController], and — only when [navigateToCurrent] is true —
+  /// places the selection on [_searchCurrentMatchIndex]'s match and scrolls it into view (see
+  /// [_navigateToSearchMatch]'s own doc comment on why that never takes keyboard focus).
+  void _recomputeSearchMatches({required bool navigateToCurrent}) {
+    final query = _searchQuery;
+    if (query == null) {
+      _searchMatchStyler.updateMatches(matchesByNodeId: const {}, currentMatchNodeId: null, currentMatch: null);
+      widget.styledController?.reportSearchMatchCount(0);
+      return;
+    }
+
+    final orderedMatches = _orderedSearchMatches(query);
+    final matchesByNodeId = <String, List<OcptTextMatch>>{};
+    for (final entry in orderedMatches) {
+      (matchesByNodeId[entry.nodeId] ??= []).add(entry.match);
+    }
+
+    widget.styledController?.reportSearchMatchCount(orderedMatches.length);
+
+    final currentIndex = _searchCurrentMatchIndex;
+    final current = currentIndex != null && currentIndex >= 0 && currentIndex < orderedMatches.length
+        ? orderedMatches[currentIndex]
+        : null;
+
+    _searchMatchStyler.updateMatches(
+      matchesByNodeId: matchesByNodeId,
+      currentMatchNodeId: current?.nodeId,
+      currentMatch: current?.match,
+    );
+
+    if (navigateToCurrent && current != null) {
+      _navigateToSearchMatch(current.nodeId, current.match);
+    }
+  }
+
+  /// Selects [match] inside the node [nodeId] and scrolls it into view, the styled mode's own
+  /// counterpart to [_applyJumpRequest] — **deliberately never calls `_focusNode.requestFocus()`**:
+  /// the find field must keep the keyboard focus while the user types a query or presses
+  /// Next/Previous. `build`'s `selectionPolicies` already sets
+  /// `clearSelectionWhenEditorLosesFocus: false` on this exact editor for that reason, so the
+  /// selection placed here survives staying unfocused.
+  ///
+  /// The scroll itself runs in a post-frame callback, unlike [_applyJumpRequest]'s own synchronous
+  /// call: unlike a scene jump (always triggered from an already-built frame), this can run from
+  /// [OcptStyledEditorController.attach] inside `initState`, before the document layout — and with
+  /// it, [_documentLayoutKey]'s own component lookup — exists for this build at all.
+  void _navigateToSearchMatch(String nodeId, OcptTextMatch match) {
+    if (!mounted || _document.getNodeById(nodeId) == null) {
+      return;
+    }
+
+    _editor.execute([
+      ChangeSelectionRequest(
+        DocumentSelection(
+          base: DocumentPosition(nodeId: nodeId, nodePosition: TextNodePosition(offset: match.start)),
+          extent: DocumentPosition(nodeId: nodeId, nodePosition: TextNodePosition(offset: match.end)),
+        ),
+        SelectionChangeType.expandSelection,
+        SelectionReason.userInteraction,
+      ),
+    ]);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(nodeId);
+      if (component == null) {
+        return;
+      }
+      final componentState = component as State;
+      if (componentState.mounted) {
+        unawaited(
+          Scrollable.ensureVisible(componentState.context, alignment: 0.3, duration: const Duration(milliseconds: 200)),
+        );
+      }
+    });
+  }
+
+  /// Replaces the find/replace query and current-match index this widget highlights/navigates to,
+  /// then immediately recomputes and (re-)navigates — see [_recomputeSearchMatches]'s own doc
+  /// comment on when it does each.
+  @override
+  void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {
+    _searchQuery = query;
+    _searchCurrentMatchIndex = currentMatchIndex;
+    _recomputeSearchMatches(navigateToCurrent: true);
+  }
+
+  /// Replaces the current match (see `_orderedSearchMatches`) with [replacement] and returns the
+  /// index, among the fresh matches left afterwards, of the first one starting at or past the end
+  /// of what was just written — never simply the match now sitting at the same index, which a
+  /// replacement that itself still matches the query (`MARIE` → `MARIE-JEANNE`) would land back
+  /// inside, compounding on every further `Replace` press (see
+  /// `OcptStyledEditorControllerDelegate.replaceCurrentMatch`'s own doc comment). Returns null,
+  /// doing nothing, while there is no current match, or once none remain after the edit.
+  ///
+  /// The comparison walks the fresh matches in document order (built once as a node-id → node-index
+  /// map, `nodeIndexById`, rather than calling `Document.getNodeIndexById` per candidate): a match
+  /// in a node past the edited one always counts as "after", whatever its own offset.
+  @override
+  int? replaceCurrentMatch(String replacement) {
+    final query = _searchQuery;
+    final currentIndex = _searchCurrentMatchIndex;
+    if (query == null || currentIndex == null) {
+      return null;
+    }
+
+    final matches = _orderedSearchMatches(query);
+    if (currentIndex < 0 || currentIndex >= matches.length) {
+      return null;
+    }
+
+    final current = matches[currentIndex];
+    final node = _document.getNodeById(current.nodeId);
+    if (node is! ParagraphNode) {
+      return null;
+    }
+
+    _editor.execute([
+      OcptReplaceNodeTextRequest(
+        nodeId: node.id,
+        text: _ocptReplaceMatchesInText(node.text, [current.match], replacement),
+      ),
+    ]);
+
+    final writtenEnd = current.match.start + replacement.length;
+    final freshMatches = _orderedSearchMatches(query);
+    if (freshMatches.isEmpty) {
+      return null;
+    }
+
+    final nodeIndexById = <String, int>{
+      for (var i = 0; i < _document.nodeCount; i++) _document.getNodeAt(i)!.id: i,
+    };
+    final currentNodeIndex = nodeIndexById[current.nodeId] ?? 0;
+    final nextIndex = freshMatches.indexWhere((entry) {
+      final entryNodeIndex = nodeIndexById[entry.nodeId] ?? 0;
+      if (entryNodeIndex != currentNodeIndex) {
+        return entryNodeIndex > currentNodeIndex;
+      }
+      return entry.match.start >= writtenEnd;
+    });
+    return nextIndex == -1 ? 0 : nextIndex;
+  }
+
+  /// Replaces every current match of [_searchQuery] with [replacement], one
+  /// [OcptReplaceNodeTextRequest] per node carrying at least one match, grouped into a single
+  /// [Editor.execute] call. A no-op while there is no active search or it matches nothing.
+  @override
+  void replaceAllMatches(String replacement) {
+    final query = _searchQuery;
+    if (query == null) {
+      return;
+    }
+
+    final matchesByNodeId = <String, List<OcptTextMatch>>{};
+    for (final node in _document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+      final nodeMatches = query.matchesIn(node.text.toPlainText());
+      if (nodeMatches.isNotEmpty) {
+        matchesByNodeId[node.id] = nodeMatches;
+      }
+    }
+    if (matchesByNodeId.isEmpty) {
+      return;
+    }
+
+    _editor.execute([
+      for (final entry in matchesByNodeId.entries)
+        OcptReplaceNodeTextRequest(
+          nodeId: entry.key,
+          text: _ocptReplaceMatchesInText(
+            (_document.getNodeById(entry.key)! as ParagraphNode).text,
+            entry.value,
+            replacement,
+          ),
+        ),
+    ]);
+  }
+
+  /// Returns a copy of [original] with every one of [matches] (assumed non-overlapping and in
+  /// left-to-right order, exactly as `OcptEditorSearchQuery.matchesIn` returns them) replaced by
+  /// [replacement], every untouched span keeping its original attributions (`copyText` carries
+  /// them along; only the freshly-inserted [replacement] text itself carries none).
+  static AttributedText _ocptReplaceMatchesInText(
+    AttributedText original,
+    List<OcptTextMatch> matches,
+    String replacement,
+  ) {
+    var result = original.copyText(0, 0);
+    var cursor = 0;
+    for (final match in matches) {
+      result = result.copyAndAppend(original.copyText(cursor, match.start));
+      if (replacement.isNotEmpty) {
+        result = result.copyAndAppend(AttributedText(replacement));
+      }
+      cursor = match.end;
+    }
+    return result.copyAndAppend(original.copyText(cursor));
   }
 
   /// [_imeOverrides]'s callback: applies the same manual block-type cycle a hardware Tab keystroke
@@ -934,7 +1450,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 }
 
 /// Paints one white, lightly rounded rectangle per simulated page behind the styled editor's
-/// document, one call site in [_OcptStyledScreenplayEditorState.build].
+/// document — and, on every sheet the printed screenplay numbers, that page's own number — with one
+/// call site in [_OcptStyledScreenplayEditorState.build].
 ///
 /// Positioned deterministically from [pageCount]/[pageHeight]/[pageGap] alone — page N starts at
 /// `N * (pageHeight + pageGap)` — and shifted by [scrollOffset] to stay behind the actually
@@ -943,23 +1460,47 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 /// necessarily sum to exactly `pageHeight + pageGap`, so a page boundary may drift a little from
 /// the painted sheet as the document grows, which is acceptable since nothing here needs to be
 /// pixel-exact (the PDF exporter is the source of truth for print pagination).
+///
+/// Which sheets show a number, and what it reads, is [ocptScriptPageNumberLabelOf]'s to say — the
+/// exact same rule `OcptScriptPagePainter` prints on paper, down to the 0.5" the number sits below
+/// the sheet's top edge: a number on screen that disagreed with the number on paper would be worse
+/// than no number at all. The only thing this painter adds is the mapping from a *sheet* index to a
+/// *script* page number, which is [titlePageSheetCount].
 class _OcptPageSheetsPainter extends CustomPainter {
   /// Creates an [_OcptPageSheetsPainter].
   const _OcptPageSheetsPainter({
     required this.pageCount,
+    required this.titlePageSheetCount,
     required this.pageHeight,
     required this.pageGap,
+    required this.pageNumberTop,
+    required this.pageNumberRight,
+    required this.pageNumberStyle,
     required this.scrollOffset,
   });
 
   /// The number of simulated pages to paint.
   final int pageCount;
 
+  /// How many leading sheets the title page occupies, i.e. how many of them are not script pages
+  /// at all (see [OcptStyledPagination.titlePageSheetCount]).
+  final int titlePageSheetCount;
+
   /// The height of one simulated page, in logical pixels.
   final double pageHeight;
 
   /// The themed gap left between two simulated pages, in logical pixels.
   final double pageGap;
+
+  /// The distance from a sheet's top edge to the top of its page number, in logical pixels.
+  final double pageNumberTop;
+
+  /// The distance from a sheet's left edge to the right edge of its page number, in logical pixels:
+  /// the number is right-aligned there, exactly where the printed page's own right margin starts.
+  final double pageNumberRight;
+
+  /// The text style a page number is painted with.
+  final TextStyle pageNumberStyle;
 
   /// The current scroll offset of the document painted in front of this layer, in logical pixels.
   final double scrollOffset;
@@ -981,14 +1522,50 @@ class _OcptPageSheetsPainter extends CustomPainter {
         RRect.fromRectAndRadius(Rect.fromLTWH(0, top, size.width, pageHeight), const Radius.circular(3)),
         paint,
       );
+      _paintPageNumber(canvas: canvas, size: size, page: page, top: top);
     }
     canvas.restore();
+  }
+
+  /// Paints the number of the sheet at index [page], whose own top edge sits at [top] in the
+  /// canvas' (already scroll-translated) coordinates, or paints nothing when that sheet shows no
+  /// number — the title page and the first script page both do not.
+  ///
+  /// Sheets scrolled out of view are skipped, unlike the sheets themselves: the rectangles above
+  /// are a handful of clipped canvas operations whatever the document's length, where laying a
+  /// number's text out is CPU work this method would otherwise repeat, for every page of a
+  /// hundred-page screenplay, on every single frame of a scroll.
+  void _paintPageNumber({
+    required Canvas canvas,
+    required Size size,
+    required int page,
+    required double top,
+  }) {
+    if (top + pageHeight < scrollOffset || top > scrollOffset + size.height) {
+      return;
+    }
+
+    final label = ocptScriptPageNumberLabelOf(page - titlePageSheetCount + 1);
+    if (label == null) {
+      return;
+    }
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: label, style: pageNumberStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    textPainter.paint(canvas, Offset(pageNumberRight - textPainter.width, top + pageNumberTop));
+    textPainter.dispose();
   }
 
   @override
   bool shouldRepaint(covariant _OcptPageSheetsPainter oldDelegate) =>
       oldDelegate.pageCount != pageCount ||
+      oldDelegate.titlePageSheetCount != titlePageSheetCount ||
       oldDelegate.pageHeight != pageHeight ||
       oldDelegate.pageGap != pageGap ||
+      oldDelegate.pageNumberTop != pageNumberTop ||
+      oldDelegate.pageNumberRight != pageNumberRight ||
+      oldDelegate.pageNumberStyle != pageNumberStyle ||
       oldDelegate.scrollOffset != scrollOffset;
 }
