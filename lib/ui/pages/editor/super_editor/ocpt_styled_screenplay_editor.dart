@@ -331,8 +331,16 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
     _syncTimer!.cancel();
 
-    final settledDocument = MutableDocument(nodes: _document.map((node) => node as ParagraphNode).toList());
+    // `List<DocumentNode>.of`, never a list narrowed to `ParagraphNode`: see
+    // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `MutableDocument
+    // .reset()`. Moot for this particular document — the `Editor` below keeps history off, so
+    // `reset()` is never reached — but a scratch document built differently from every other one
+    // in this app is a trap for whoever copies this block next.
+    final settledDocument = MutableDocument(nodes: List<DocumentNode>.of(_document));
     final settledComposer = MutableDocumentComposer();
+    // History stays off on this one: it exists for a single synchronous settle-then-encode pass
+    // and is discarded a few lines below, never reaching a keyboard or a writer's Ctrl+Z. This is
+    // not an oversight to align with `_rebuildEditorFrom`'s own `Editor`.
     final settledEditor = Editor(
       editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
       requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
@@ -676,6 +684,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         ..insert(0, ocptTitlePageGuardRequestHandler)
         ..add(ocptChangeNodeMetadataRequestHandler)
         ..add(ocptReplaceNodeTextRequestHandler),
+      // `isHistoryEnabled` defaults to false, which is what used to make every command's own
+      // `HistoryBehavior.undoable` moot: `undo()`/`redo()` returned immediately and `history`/
+      // `future` never grew. `historyGroupingPolicy` defaults to `neverMergePolicy`, which groups
+      // nothing at all, so this is `defaultMergePolicy` (super_editor's own
+      // `mergeRepeatSelectionChangesPolicy` + `mergeRapidTextInputPolicy`) rather than leaving it at
+      // that default.
+      isHistoryEnabled: true,
+      historyGroupingPolicy: defaultMergePolicy,
     );
 
     _document.addListener(_onDocumentChanged);

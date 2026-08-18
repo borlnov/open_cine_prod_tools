@@ -22,15 +22,18 @@ const List<FountainLineType> _ocptTabCycleTypes = [
 ];
 
 /// The `keyboardActions` list for the styled screenplay editor's `SuperEditor`: this app's own
-/// Tab-cycle, smart-Enter, clipboard and Ctrl+U handlers first (each halts, so none of the
+/// Tab-cycle, smart-Enter, clipboard, Ctrl+U and Ctrl+Y handlers first (each halts, so none of the
 /// corresponding default behaviors ever run), then every [defaultImeKeyboardActions] entry except
 /// the ones that would fight this editor's model (see [_ocptExcludedDefaultActions]).
 ///
 /// Ctrl+B/I are deliberately left to the inherited `cmdBToToggleBold`/`cmdIToToggleItalics`
 /// defaults (still present below): they already toggle the right attribution, whether the
 /// selection is collapsed (via `ComposerPreferences`, applied to the next typed character) or
-/// expanded. Ctrl+S / Ctrl+Shift+M match none of these actions, so both bubble up, unhandled, to
-/// the page-level `Shortcuts` in `editor_page.dart`, exactly as before this file existed.
+/// expanded. Ctrl+Z and Ctrl+Shift+Z are likewise left to the inherited
+/// `undoWhenCmdZOrCtrlZIsPressed`/`redoWhenCmdShiftZOrCtrlShiftZIsPressed` defaults; this file only
+/// adds [ocptRedoWhenCtrlYIsPressed] for the Windows habit super_editor has no binding for at all.
+/// Ctrl+S / Ctrl+Shift+M match none of these actions, so both bubble up, unhandled, to the
+/// page-level `Shortcuts` in `editor_page.dart`, exactly as before this file existed.
 final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
   ocptTabToCycleBlockType,
   ocptEnterToSmartSplit,
@@ -38,6 +41,7 @@ final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
   ocptCutToFountainClipboard,
   ocptPasteFromFountainClipboard,
   ocptCmdUToToggleUnderline,
+  ocptRedoWhenCtrlYIsPressed,
   ...defaultImeKeyboardActions.where((action) => !_ocptExcludedDefaultActions.contains(action)),
 ];
 
@@ -374,6 +378,27 @@ ExecutionInstruction ocptCmdUToToggleUnderline({required SuperEditorContext edit
   } else {
     editContext.commonOps.toggleAttributionsOnSelection({underlineAttribution});
   }
+
+  return ExecutionInstruction.haltExecution;
+}
+
+/// Ctrl+Y: redoes the most recently undone change, mirroring super_editor's own
+/// `redoWhenCmdShiftZOrCtrlShiftZIsPressed` (`package:super_editor/src/undo_redo.dart`) exactly,
+/// just for the Windows habit that package binds nothing to at all — it only ever wires up Ctrl+Z
+/// and Ctrl+Shift+Z. Ctrl+Shift+Y is deliberately *not* a redo here, matching how the two inherited
+/// actions each claim one exact modifier combination and let every other one continue on to the
+/// rest of the list: this action must never swallow a combination it wasn't asked for.
+ExecutionInstruction ocptRedoWhenCtrlYIsPressed({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+  if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
+    return ExecutionInstruction.continueExecution;
+  }
+  if (!keyEvent.isPrimaryShortcutKeyPressed ||
+      keyEvent.logicalKey != LogicalKeyboardKey.keyY ||
+      HardwareKeyboard.instance.isShiftPressed) {
+    return ExecutionInstruction.continueExecution;
+  }
+
+  editContext.editor.redo();
 
   return ExecutionInstruction.haltExecution;
 }

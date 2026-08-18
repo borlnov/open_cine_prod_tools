@@ -199,6 +199,16 @@ Future<void> _sendShift(WidgetTester tester, LogicalKeyboardKey key) async {
   await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
 }
 
+/// Sends the hardware key combo for [key] with both Ctrl and Shift held (Ctrl+Shift+Z's redo, which
+/// neither [_sendCtrl] nor [_sendShift] alone can produce).
+Future<void> _sendCtrlShift(WidgetTester tester, LogicalKeyboardKey key) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+}
+
 /// A global offset landing inside the actual glyphs of the node with [nodeId], for a secondary tap
 /// meant to resolve to a document position within its text: [Alignment.center] alone isn't reliable
 /// for that, since a Fountain element's box is typically much wider than a short line of text (its
@@ -3017,6 +3027,71 @@ void main() {
         (selection.extent.nodePosition as TextNodePosition).offset,
         actionNode.text.toPlainText().length,
       );
+    });
+  });
+
+  group("undo and redo", () {
+    // These cases only assert that Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y reach a live, history-enabled
+    // `Editor` and restore the document rather than throwing. How many keystrokes one Ctrl+Z gives
+    // back is a separate question, decided by the `historyGroupingPolicy`
+    // `_rebuildEditorFrom` hands its `Editor`, so every case below types a single character and
+    // asserts nothing about grouping.
+
+    testWidgets("typing a character then Ctrl+Z removes it, with no exception", (tester) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      await tester.typeImeText("A");
+
+      expect(_nodeAt(document, 0).text.toPlainText(), "A");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+
+      expect(document.nodeCount, 1);
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+    });
+
+    testWidgets("Ctrl+Shift+Z redoes what Ctrl+Z just undid", (tester) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      await tester.typeImeText("A");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+      await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+
+      expect(document.nodeCount, 1);
+      expect(_nodeAt(document, 0).text.toPlainText(), "A");
+    });
+
+    testWidgets("Ctrl+Y redoes what Ctrl+Z just undid (the Windows habit Ctrl+Shift+Z coexists with)", (
+      tester,
+    ) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      await tester.typeImeText("A");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyY);
+      await tester.pumpAndSettle();
+
+      expect(document.nodeCount, 1);
+      expect(_nodeAt(document, 0).text.toPlainText(), "A");
     });
   });
 }

@@ -18,11 +18,15 @@ class OcptNoOpCommand extends EditCommand {
   /// Creates an [OcptNoOpCommand].
   const OcptNoOpCommand();
 
-  /// Grouped with other undoable edits, matching every other command in this app; since this
-  /// command never logs a change, a dropped edit attempt never becomes its own undo step either
-  /// way.
+  /// Not `HistoryBehavior.undoable`, on purpose: `Editor.endTransaction` decides whether a
+  /// transaction joins history by checking `_transaction!.commands.isNotEmpty`, never by whether
+  /// any of those commands actually changed anything. A refused title-page edit — Backspace at the
+  /// start of `Credit`, for example — still runs exactly one command, this one, so an `undoable`
+  /// [OcptNoOpCommand] would still push an empty transaction onto history. The writer's very next
+  /// Ctrl+Z would then pop that transaction, replay nothing, and visibly do nothing at all, one
+  /// keystroke away from the edit they actually meant to undo.
   @override
-  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+  HistoryBehavior get historyBehavior => HistoryBehavior.nonHistorical;
 
   /// Does nothing: the request is deliberately dropped.
   @override
