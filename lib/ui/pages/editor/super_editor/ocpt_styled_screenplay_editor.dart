@@ -862,13 +862,27 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   }
 
   /// Runs [historyChange] — `Editor.undo` or `Editor.redo` — with [_isApplyingHistory] raised, so
-  /// the document change it makes is not mistaken for an edit of the writer's, then reports the
-  /// fresh history state to the controller (a no-op when neither [canUndo] nor [canRedo] moved,
+  /// the document change it makes is not mistaken for an edit of the writer's, renumbers the
+  /// scene headings inside that same window, then reports the fresh history state to the
+  /// controller (a no-op when neither [canUndo] nor [canRedo] moved,
   /// `OcptStyledEditorController.updateReadState` only notifying on an actual change).
+  ///
+  /// That renumbering is not a detail: `Editor.undo()`/`redo()` restore every `Editable` to the
+  /// snapshot `MutableDocument` took in its own constructor and replay the historical
+  /// transactions, and [_syncSceneNumbers]' load-time pass is deliberately *not* one of them, so
+  /// every restore drops what it had corrected — on any screenplay whose headings the editor
+  /// numbered when it opened them, which is every screenplay written without `#N#` tags by hand.
+  /// Left to the debounced settle to notice instead, that renumbering would come back as a
+  /// document change of its own: it would mark the redo stack stale (no redo would ever survive
+  /// an undo) and, once the history is empty again, append a transaction whose only content is a
+  /// numbering nobody asked to change — an undo step that un-numbers the screenplay. Re-derived
+  /// here, non-historically and while [_isApplyingHistory] is still raised, it is simply part of
+  /// the state being restored, and the settle that follows finds nothing left to do.
   void _applyHistoryChange(void Function() historyChange) {
     _isApplyingHistory = true;
     try {
       historyChange();
+      _syncSceneNumbers();
     } finally {
       _isApplyingHistory = false;
     }
@@ -923,6 +937,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// text: this is what corrects a badly-ordered `#N#` typed in raw mode (or by any other means)
   /// the moment it's decoded into the styled editor, rather than waiting for the next edit's
   /// [_syncAfterEdit] debounce to happen to touch a scene heading.
+  ///
+  /// [_applyHistoryChange] calls it again after every undo and every redo, and for the very same
+  /// reason: what this pass corrects is part of the document's *base* state rather than of any
+  /// gesture, and a restore brings the document back to a snapshot taken before it ran.
   ///
   /// `isHistorical: false`, unlike [_settleDocument]'s own call to the same function: this pass
   /// runs before the writer has done anything at all, so an undo step here could only ever be a

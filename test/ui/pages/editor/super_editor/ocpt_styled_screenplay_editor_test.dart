@@ -3482,5 +3482,64 @@ void main() {
         expect(_nodeAt(document, 0).text.toPlainText(), "");
       });
     });
+
+    testWidgets(
+      "an undo keeps the numbering the editor gave the screenplay when it opened it, adds no undo "
+      "step of its own, and can still be redone",
+      (tester) async {
+        await withClock(Clock.fixed(frozenNow), () async {
+          final controller = OcptStyledEditorController();
+          addTearDown(controller.dispose);
+
+          // Neither heading carries a `#N#` of its own, so the load-time pass numbers both — and
+          // that numbering is exactly what an undo used to drop, `Editor.undo()` restoring the
+          // document to the snapshot taken before that pass ran. The debounced settle then
+          // re-derived it as a change of its own, which staled the redo stack and, on an emptied
+          // history, left an undo step that un-numbered the screenplay.
+          await _pumpStandaloneEditor(
+            tester,
+            "INT. KITCHEN - DAY\n\nSomething moves.\n\nEXT. GARDEN - NIGHT\n\nMore.\n",
+            styledController: controller,
+          );
+
+          final document = SuperEditorInspector.findDocument()!;
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+          expect(controller.canUndo, isFalse);
+
+          await tester.placeCaretInParagraph(_nodeAt(document, 1).id, "Something moves.".length);
+          await typeRun(tester, " Again.");
+          expect(_nodeAt(document, 1).text.toPlainText(), "Something moves. Again.");
+
+          await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+
+          expect(_nodeAt(document, 1).text.toPlainText(), "Something moves.");
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+          // The numbering survived the restore, so the settle that followed had nothing left to
+          // derive — and the redo it would otherwise have staled is still offered.
+          expect(controller.canRedo, isTrue);
+
+          await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+
+          expect(_nodeAt(document, 1).text.toPlainText(), "Something moves. Again.");
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+
+          // Walking further back than the writer's own gesture never reaches a step that
+          // un-numbers the screenplay: the numbering is part of the state every restore lands on,
+          // not a transaction of its own.
+          await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+          await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+        });
+      },
+    );
   });
 }
