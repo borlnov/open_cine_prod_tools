@@ -436,6 +436,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorUndoAction": "Undo",
+  "@editorUndoAction": {
+    "description": "Label of the action that takes back the writer's last gesture in the editor",
+    "context": "Displayed as the first item of the editor toolbar's overflow menu, and left out entirely when there is nothing left to take back",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRedoAction": "Redo",
+  "@editorRedoAction": {
+    "description": "Label of the action that puts back the gesture the writer last took back in the editor",
+    "context": "Displayed as an item of the editor toolbar's overflow menu, right after Undo, and left out entirely when there is nothing left to put back",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorImportAndReplaceAction": "Import and replace…",
   "@editorImportAndReplaceAction": {
     "description": "Label of the action that replaces the screenplay with an imported .fountain file",

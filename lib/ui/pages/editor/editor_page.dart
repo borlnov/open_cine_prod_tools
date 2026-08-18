@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -150,6 +151,16 @@ class _EditorViewState extends State<_EditorView> {
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
 
+  /// The handle on the undo history Flutter keeps for the raw mode's own `TextField` (every
+  /// `EditableText` carries one), owned here so the `⋮` menu's `Undo`/`Redo` entries can read
+  /// whether that field has anything to take back and drive it — the raw half of what
+  /// [_styledEditorController] answers for the styled editor.
+  ///
+  /// The history belongs to the editing surface, and switching surface starts a fresh one: this
+  /// one only ever answers for raw mode, and is simply not what the entries read while the styled
+  /// editor is the one on screen.
+  final UndoHistoryController _undoHistoryController = UndoHistoryController();
+
   /// The controller of the editor's vertical scroll, used when jumping to a scene.
   final ScrollController _editorScrollController = ScrollController();
 
@@ -202,6 +213,15 @@ class _EditorViewState extends State<_EditorView> {
   /// or inline-style read-state refresh), which must never be mistaken for a fresh match count.
   int? _lastReportedStyledSearchMatchCount;
 
+  /// What [_styledEditorController] last answered about its own history, so
+  /// [_onStyledEditorControllerChanged] only rebuilds the `⋮` menu's entries when the styled
+  /// editor gained or lost something to undo or redo — that controller notifies for the toolbar's
+  /// block-type and inline-style read state too, on caret moves that leave the history untouched.
+  ///
+  /// The raw side needs no counterpart: [UndoHistoryController] is a `ValueNotifier` over an
+  /// `UndoHistoryValue` that compares by value, so it only ever notifies on a genuine change.
+  ({bool canUndo, bool canRedo}) _lastStyledHistoryAvailability = (canUndo: false, canRedo: false);
+
   /// Whether [_onTextControllerChanged] must ignore notifications, used while applying the
   /// loaded text programmatically to [_textController] (so it doesn't loop back into the bloc
   /// as a user edit).
@@ -212,6 +232,7 @@ class _EditorViewState extends State<_EditorView> {
     super.initState();
     _textController.addListener(_onTextControllerChanged);
     _styledEditorController.addListener(_onStyledEditorControllerChanged);
+    _undoHistoryController.addListener(_onRawHistoryChanged);
   }
 
   @override
@@ -219,6 +240,8 @@ class _EditorViewState extends State<_EditorView> {
     _textController.dispose();
     _editorScrollController.dispose();
     _editorFocusNode.dispose();
+    _undoHistoryController.removeListener(_onRawHistoryChanged);
+    _undoHistoryController.dispose();
     _styledEditorController.removeListener(_onStyledEditorControllerChanged);
     _styledEditorController.dispose();
     _dockLayoutController.dispose();
@@ -412,9 +435,16 @@ class _EditorViewState extends State<_EditorView> {
     ];
   }
 
-  /// Builds the screenplay's `⋮` overflow menu entries: import and replace, find, find and
-  /// replace, the page-simulation and scene-numbers toggles, page setup, title page, and resetting
-  /// the panel layout.
+  /// Builds the screenplay's `⋮` overflow menu entries: undo and redo, import and replace, find,
+  /// find and replace, the page-simulation and scene-numbers toggles, page setup, title page, and
+  /// resetting the panel layout.
+  ///
+  /// `Undo` and `Redo` come first, the way an edit menu always states them, and each is *withheld*
+  /// rather than shown disabled when the active editing surface has nothing left to take back or
+  /// put back (see [_historyAvailability]) — the repository rule every read-only affordance
+  /// already follows. They act on whichever surface is showing, never on a mode of their own: a
+  /// menu whose entries answered in only one of the two editing modes would be worse than no menu
+  /// at all.
   ///
   /// Finding and replacing are two entries rather than one, each opening the bar the way its own
   /// shortcut does — on the find row alone, or with the replace row unfolded — since looking
@@ -432,8 +462,26 @@ class _EditorViewState extends State<_EditorView> {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
 
+    final history = _historyAvailability(state);
+
     return [
       if (!isReadOnly) ...[
+        if (history.canUndo)
+          PopupMenuItem<void>(
+            onTap: () => _requestUndo(state),
+            child: OcptToolbarMenuItemLabel(
+              label: tr.editorUndoAction,
+              shortcut: ocptPrimaryShortcutLabel("Z"),
+            ),
+          ),
+        if (history.canRedo)
+          PopupMenuItem<void>(
+            onTap: () => _requestRedo(state),
+            child: OcptToolbarMenuItemLabel(
+              label: tr.editorRedoAction,
+              shortcut: ocptPrimaryShortcutLabel("Z", isShifted: true),
+            ),
+          ),
         PopupMenuItem<void>(
           onTap: () => _requestImportAndReplace(context),
           child: Text(tr.editorImportAndReplaceAction),
@@ -520,6 +568,7 @@ class _EditorViewState extends State<_EditorView> {
             controller: _textController,
             scrollController: _editorScrollController,
             focusNode: _editorFocusNode,
+            undoController: _undoHistoryController,
           )
         : OcptStyledScreenplayEditor(
             text: state.text,
@@ -729,6 +778,65 @@ class _EditorViewState extends State<_EditorView> {
   /// Sends the mode toggle request (toolbar button or Ctrl+Shift+M).
   void _toggleMode() {
     context.read<OcptEditorBloc>().add(const OcptEditorModeToggledEvent());
+  }
+
+  /// What the editing surface [state] currently shows has left to take back and to put back: the
+  /// raw field's own Flutter history in raw mode, the styled editor's `Editor` history in styled
+  /// mode.
+  ///
+  /// Asking the *active* surface is the whole rule here — the undo history belongs to the surface,
+  /// and switching surface starts a fresh one, which is what every editor with two views does.
+  /// Neither branch answers anything while a version is being previewed: there is no editing
+  /// surface at all then, and the entries reading this are withheld before it is even called.
+  ({bool canUndo, bool canRedo}) _historyAvailability(OcptEditorState state) =>
+      state.mode == OcptEditorMode.raw
+      ? (
+          canUndo: _undoHistoryController.value.canUndo,
+          canRedo: _undoHistoryController.value.canRedo,
+        )
+      : (canUndo: _styledEditorController.canUndo, canRedo: _styledEditorController.canRedo);
+
+  /// Takes back the last gesture made in the surface [state] shows (the `⋮` menu's `Undo` entry),
+  /// which is what Ctrl+Z reaches inside that same surface on its own.
+  void _requestUndo(OcptEditorState state) {
+    if (state.mode == OcptEditorMode.raw) {
+      _undoHistoryController.undo();
+    } else {
+      _styledEditorController.undo();
+    }
+  }
+
+  /// Puts back the last gesture taken back in the surface [state] shows (the `⋮` menu's `Redo`
+  /// entry); the styled editor refuses one a later edit has overtaken, exactly as its own
+  /// Ctrl+Shift+Z does.
+  void _requestRedo(OcptEditorState state) {
+    if (state.mode == OcptEditorMode.raw) {
+      _undoHistoryController.redo();
+    } else {
+      _styledEditorController.redo();
+    }
+  }
+
+  /// Rebuilds the page when the raw field's undo history gained or lost something to take back or
+  /// put back, so the `⋮` menu's entries appear and vanish with it.
+  ///
+  /// The rebuild is deferred past the current frame when the notification lands in the middle of
+  /// one: `UndoHistory` refreshes its controller from its own `initState` when the field is
+  /// mounted already focused, which runs synchronously inside this page's build, and `setState`
+  /// there trips Flutter's "called during build" guard. Every other occasion (the push throttle
+  /// firing, an undo, a redo, a focus change) is outside any build phase already.
+  void _onRawHistoryChanged() {
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+
+      return;
+    }
+
+    setState(() {});
   }
 
   /// Opens the find/replace bar (Ctrl+F, Ctrl+H, or the `⋮` menu's `Find…` / `Find and replace…`
@@ -973,14 +1081,27 @@ class _EditorViewState extends State<_EditorView> {
     );
   }
 
-  /// Reports [_styledEditorController]'s own match count to the bloc, exactly once per genuine
-  /// change: the controller notifies its listeners for reasons that have nothing to do with search
-  /// too (a block-type or inline-style read-state refresh), and [_lastReportedStyledSearchMatchCount]
-  /// is what keeps those from being mistaken for a fresh count. Also guards against reporting while
+  /// Rebuilds the `⋮` menu's entries when the styled editor gained or lost something to undo or
+  /// redo, then reports [_styledEditorController]'s own match count to the bloc, exactly once per
+  /// genuine change: the controller notifies its listeners for reasons that have nothing to do
+  /// with search either (a block-type or inline-style read-state refresh), and
+  /// [_lastReportedStyledSearchMatchCount] is what keeps those from being mistaken for a fresh
+  /// count. Also guards against reporting while
   /// the bar isn't actually open in styled mode, which the controller itself can't know (it has no
   /// bloc state of its own) — a stray report right as the mode/bar state changes underneath it must
   /// never reach the bloc.
   void _onStyledEditorControllerChanged() {
+    final historyAvailability = (
+      canUndo: _styledEditorController.canUndo,
+      canRedo: _styledEditorController.canRedo,
+    );
+    if (historyAvailability != _lastStyledHistoryAvailability) {
+      _lastStyledHistoryAvailability = historyAvailability;
+      // `OcptStyledEditorController` never notifies from inside a build phase (see its own
+      // `_notifySafely`), so this one needs none of [_onRawHistoryChanged]'s deferral.
+      setState(() {});
+    }
+
     final bloc = context.read<OcptEditorBloc>();
     final state = bloc.state;
     if (state.mode != OcptEditorMode.styled || state.isPreviewingVersion || !state.search.isOpen) {
