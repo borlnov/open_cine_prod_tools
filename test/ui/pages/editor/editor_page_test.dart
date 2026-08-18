@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_find_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
@@ -1250,4 +1251,427 @@ void main() {
       expect(find.byTooltip(tr.editorSaveTooltip), findsOneWidget);
     },
   );
+
+  group('find/replace (raw mode)', () {
+    /// Whether the single [EditableText] found inside [finder] currently has focus.
+    bool isFocused(WidgetTester tester, Finder finder) => tester
+        .widget<EditableText>(find.descendant(of: finder, matching: find.byType(EditableText)))
+        .focusNode
+        .hasFocus;
+
+    testWidgets('Ctrl+F opens the bar, focuses the find field, and folds the replace row', (
+      tester,
+    ) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(OcptEditorSourceField));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptEditorFindBar), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(OcptEditorFindBar), matching: find.byType(TextField)),
+        findsOneWidget,
+      );
+      expect(isFocused(tester, find.byType(OcptEditorFindBar)), isTrue);
+    });
+
+    testWidgets('Ctrl+H opens the bar with the replace row unfolded', (tester) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(OcptEditorSourceField));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: find.byType(OcptEditorFindBar), matching: find.byType(TextField)),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('the ⋮ menu opens the bar on find alone, stating both shortcuts', (tester) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ctrl+F'), findsOneWidget);
+      expect(find.text('Ctrl+H'), findsOneWidget);
+
+      await tester.tap(find.text(tr.editorFindAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: find.byType(OcptEditorFindBar), matching: find.byType(TextField)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the ⋮ menu opens the bar with the replace row unfolded', (tester) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.editorFindAndReplaceAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: find.byType(OcptEditorFindBar), matching: find.byType(TextField)),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('Escape closes the bar', (tester) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(OcptEditorSourceField));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorFindBar), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptEditorFindBar), findsNothing);
+    });
+
+    testWidgets('typing a query highlights the matches and shows the n/total counter', (
+      tester,
+    ) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(OcptEditorSourceField));
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      final findFieldFinder = find.descendant(
+        of: find.byType(OcptEditorFindBar),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(findFieldFinder, "MOVES");
+      await tester.pumpAndSettle();
+
+      expect(find.text("1/1"), findsOneWidget);
+    });
+
+    testWidgets('Replace changes the matched text and moves to the next match', (tester) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+        "Line one.\n\nLine two.\n\nLine three.\n",
+      );
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      final barTextFields = find.descendant(
+        of: find.byType(OcptEditorFindBar),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(barTextFields.first, "Line");
+      await tester.pumpAndSettle();
+      expect(find.text("1/3"), findsOneWidget);
+
+      await tester.enterText(barTextFields.last, "Scene");
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+      await tester.tap(find.text(tr.editorReplaceAction));
+      await tester.pumpAndSettle();
+
+      final rawText = tester
+          .widget<TextField>(
+            find.descendant(
+              of: find.byType(OcptEditorSourceField),
+              matching: find.byType(TextField),
+            ),
+          )
+          .controller!
+          .text;
+      expect(rawText, contains("Scene one."));
+      expect(rawText, contains("Line two."));
+      expect(rawText, contains("Line three."));
+      // The count shrank from 3 to 2, and the current match moved to the one that took the
+      // replaced one's place.
+      expect(find.text("1/2"), findsOneWidget);
+    });
+
+    testWidgets(
+      'Replace advances past a replacement that itself still matches the query, renaming every '
+      'occurrence exactly once rather than compounding onto the same spot',
+      (tester) async {
+        await pumpEditorPage(tester);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.descendant(
+            of: find.byType(OcptEditorSourceField),
+            matching: find.byType(TextField),
+          ),
+          "MARIE enters.\n\nMARIE speaks.\n",
+        );
+        await tester.pumpAndSettle();
+
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+        await tester.pumpAndSettle();
+
+        final barTextFields = find.descendant(
+          of: find.byType(OcptEditorFindBar),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(barTextFields.first, "MARIE");
+        await tester.pumpAndSettle();
+        // "MARIE" replaced by "MARIE-JEANNE" still matches "MARIE" at that very same offset, so
+        // this is the plan's own headline scenario for putting replace in scope at all.
+        await tester.enterText(barTextFields.last, "MARIE-JEANNE");
+        await tester.pumpAndSettle();
+
+        final context = tester.element(find.byType(EditorPage));
+        final tr = Tr.of(context);
+
+        String rawText() => tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byType(OcptEditorSourceField),
+                matching: find.byType(TextField),
+              ),
+            )
+            .controller!
+            .text;
+
+        await tester.tap(find.text(tr.editorReplaceAction));
+        await tester.pumpAndSettle();
+        // The first occurrence is renamed, the second isn't touched yet, and — the actual
+        // regression this guards — the current match did not stay stuck inside what was just
+        // written (it would otherwise turn the next press into "MARIE-JEANNE-JEANNE").
+        expect(rawText(), contains("MARIE-JEANNE enters."));
+        expect(rawText(), contains("MARIE speaks."));
+        expect(rawText(), isNot(contains("JEANNE-JEANNE")));
+
+        await tester.tap(find.text(tr.editorReplaceAction));
+        await tester.pumpAndSettle();
+
+        expect(rawText(), "MARIE-JEANNE enters.\n\nMARIE-JEANNE speaks.\n");
+      },
+    );
+
+    testWidgets('Replace all goes through the confirm dialog and replaces every match', (
+      tester,
+    ) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+        "Line one.\n\nLine two.\n\nLine three.\n",
+      );
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      final barTextFields = find.descendant(
+        of: find.byType(OcptEditorFindBar),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(barTextFields.first, "Line");
+      await tester.pumpAndSettle();
+      await tester.enterText(barTextFields.last, "Scene");
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+      await tester.tap(find.text(tr.editorReplaceAllAction));
+      await tester.pumpAndSettle();
+
+      // The confirm dialog is on screen, naming the 3 matches, and nothing has been replaced yet.
+      expect(find.text(tr.editorReplaceAllConfirmTitle), findsOneWidget);
+      var rawText = tester
+          .widget<TextField>(
+            find.descendant(
+              of: find.byType(OcptEditorSourceField),
+              matching: find.byType(TextField),
+            ),
+          )
+          .controller!
+          .text;
+      expect(rawText, contains("Line one."));
+
+      // Both the bar's own "Replace all" button and the dialog's confirm button share the same
+      // label; the dialog's is the last one on screen.
+      await tester.tap(find.text(tr.editorReplaceAllConfirmAction).last);
+      await tester.pumpAndSettle();
+
+      rawText = tester
+          .widget<TextField>(
+            find.descendant(
+              of: find.byType(OcptEditorSourceField),
+              matching: find.byType(TextField),
+            ),
+          )
+          .controller!
+          .text;
+      expect(rawText, "Scene one.\n\nScene two.\n\nScene three.\n");
+    });
+
+    testWidgets('withheld entirely under a read-only preview', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "note");
+      expect(version, isNotNull);
+
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      final bloc = BlocProvider.of<OcptEditorBloc>(tester.element(find.byType(OcptWorkspaceShell)));
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      // Ctrl+F does nothing under a preview: there is no editing surface to search.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorFindBar), findsNothing);
+
+      // The ⋮ menu carries neither entry either.
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      expect(find.text(tr.editorFindAction), findsNothing);
+      expect(find.text(tr.editorFindAndReplaceAction), findsNothing);
+    });
+  });
+
+  group('find/replace (styled mode)', () {
+    /// The first node of the current document whose display text contains [substring], re-read
+    /// fresh every call: a text replacement swaps a `ParagraphNode` for a new instance, so a
+    /// reference captured before the edit would go stale.
+    ParagraphNode nodeContaining(String substring) {
+      final document = SuperEditorInspector.findDocument()!;
+      for (var i = 0; i < document.nodeCount; i++) {
+        final node = document.getNodeAt(i)! as ParagraphNode;
+        if (node.text.toPlainText().contains(substring)) {
+          return node;
+        }
+      }
+      fail('no node contains "$substring"');
+    }
+
+    testWidgets('Replace changes the matched text — not gated on raw mode', (tester) async {
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      final firstNodeId = SuperEditorInspector.findDocument()!.getNodeAt(0)!.id;
+      await tester.placeCaretInParagraph(firstNodeId, 0);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      final barTextFields = find.descendant(
+        of: find.byType(OcptEditorFindBar),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(barTextFields.first, "Sunday");
+      await tester.pumpAndSettle();
+      expect(find.text("1/1"), findsOneWidget);
+
+      await tester.enterText(barTextFields.last, "Monday");
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+      await tester.tap(find.text(tr.editorReplaceAction));
+      await tester.pumpAndSettle();
+
+      expect(nodeContaining("Monday").text.toPlainText(), "Smells like Monday.");
+    });
+
+    testWidgets('Replace all goes through the confirm dialog, exactly like raw mode', (tester) async {
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      final firstNodeId = SuperEditorInspector.findDocument()!.getNodeAt(0)!.id;
+      await tester.placeCaretInParagraph(firstNodeId, 0);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      final barTextFields = find.descendant(
+        of: find.byType(OcptEditorFindBar),
+        matching: find.byType(TextField),
+      );
+      // "the" (a standalone word inside "Something moves in the dark.") is the sample script's
+      // only occurrence of that substring — nothing in it reads "the" inside a longer word.
+      await tester.enterText(barTextFields.first, "the");
+      await tester.pumpAndSettle();
+      expect(find.text("1/1"), findsOneWidget);
+      await tester.enterText(barTextFields.last, "a");
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+      await tester.tap(find.text(tr.editorReplaceAllAction));
+      await tester.pumpAndSettle();
+
+      // The confirm dialog is on screen, and nothing has been replaced yet.
+      expect(find.text(tr.editorReplaceAllConfirmTitle), findsOneWidget);
+      expect(nodeContaining("in the dark").text.toPlainText(), "Something moves in the dark.");
+
+      // Both the bar's own "Replace all" button and the dialog's confirm button share the same
+      // label; the dialog's is the last one on screen.
+      await tester.tap(find.text(tr.editorReplaceAllConfirmAction).last);
+      await tester.pumpAndSettle();
+
+      expect(nodeContaining("in a dark").text.toPlainText(), "Something moves in a dark.");
+    });
+  });
 }

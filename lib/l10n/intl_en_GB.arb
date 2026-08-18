@@ -443,6 +443,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorFindAction": "Find…",
+  "@editorFindAction": {
+    "description": "Label of the action that opens the find/replace bar on its find row alone",
+    "context": "Displayed as an item of the editor toolbar's overflow menu, right after Import and replace…",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindAndReplaceAction": "Find and replace…",
+  "@editorFindAndReplaceAction": {
+    "description": "Label of the action that opens the find/replace bar with its replace row unfolded",
+    "context": "Displayed as an item of the editor toolbar's overflow menu, right after Find…",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorTogglePageSimulationAction": "Page simulation",
   "@editorTogglePageSimulationAction": {
     "description": "Label of the action that toggles the \"Word-like\" page simulation on or off",
@@ -664,6 +678,129 @@
   "@editorImportConfirmReplaceAction": {
     "description": "Label of the action that confirms the import confirmation dialog",
     "context": "Displayed on a button in the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindHint": "Find…",
+  "@editorFindHint": {
+    "description": "Placeholder of the find/replace bar's find field",
+    "context": "Displayed inside the find field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceHint": "Replace…",
+  "@editorReplaceHint": {
+    "description": "Placeholder of the find/replace bar's replace field",
+    "context": "Displayed inside the replace field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindMatchCounter": "{current}/{total}",
+  "@editorFindMatchCounter": {
+    "description": "The find/replace bar's match counter, the current match's 1-based rank among the total",
+    "context": "Displayed inside the find/replace bar, between the find field and the previous/next buttons",
+    "type": "text",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "editorFindNoMatches": "No matches",
+  "@editorFindNoMatches": {
+    "description": "The find/replace bar's counter while the query matches nothing",
+    "context": "Displayed inside the find/replace bar, in place of the match counter",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindMatchCaseTooltip": "Match case",
+  "@editorFindMatchCaseTooltip": {
+    "description": "Tooltip of the find field's case-sensitivity toggle",
+    "context": "Displayed on hover over the Aa toggle inside the find field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindWholeWordTooltip": "Whole word",
+  "@editorFindWholeWordTooltip": {
+    "description": "Tooltip of the find field's whole-word toggle",
+    "context": "Displayed on hover over the ab toggle inside the find field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindPreviousTooltip": "Previous match",
+  "@editorFindPreviousTooltip": {
+    "description": "Tooltip of the find/replace bar's previous-match button",
+    "context": "Displayed on hover over the ‹ button of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindNextTooltip": "Next match",
+  "@editorFindNextTooltip": {
+    "description": "Tooltip of the find/replace bar's next-match button",
+    "context": "Displayed on hover over the › button of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindCloseTooltip": "Close find and replace",
+  "@editorFindCloseTooltip": {
+    "description": "Tooltip of the find/replace bar's own × button",
+    "context": "Displayed on hover over the × button of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindToggleReplaceRowTooltip": "Show or hide replace",
+  "@editorFindToggleReplaceRowTooltip": {
+    "description": "Tooltip of the find/replace bar's leading chevron",
+    "context": "Displayed on hover over the chevron at the far left of the find/replace bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAction": "Replace",
+  "@editorReplaceAction": {
+    "description": "Label of the button that replaces the current match",
+    "context": "Displayed on a button of the find/replace bar's replace row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllAction": "Replace all",
+  "@editorReplaceAllAction": {
+    "description": "Label of the button that replaces every match",
+    "context": "Displayed on a button of the find/replace bar's replace row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllConfirmTitle": "Replace every match?",
+  "@editorReplaceAllConfirmTitle": {
+    "description": "Title of the dialog confirming a replace-all",
+    "context": "Displayed at the top of the replace-all confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllConfirmMessage": "{count, plural, one{{count} match will be replaced.} other{{count} matches will be replaced.}} This cannot be undone.",
+  "@editorReplaceAllConfirmMessage": {
+    "description": "Message of the dialog confirming a replace-all, naming how many matches will be replaced",
+    "context": "Displayed inside the replace-all confirmation dialog, below its title",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorReplaceAllConfirmCancelAction": "Cancel",
+  "@editorReplaceAllConfirmCancelAction": {
+    "description": "Label of the action that dismisses the replace-all confirmation dialog",
+    "context": "Displayed on a button in the replace-all confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorReplaceAllConfirmAction": "Replace all",
+  "@editorReplaceAllConfirmAction": {
+    "description": "Label of the action that confirms the replace-all confirmation dialog",
+    "context": "Displayed on a button in the replace-all confirmation dialog",
     "type": "text",
     "placeholders": {}
   },

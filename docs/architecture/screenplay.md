@@ -117,6 +117,49 @@ editor's document model, the title page, the docks and the syntax guide.
   be worse than no number at all. Fixed paper colours, like the rest of the page-simulation
   styling, and a sheet scrolled out of view is skipped rather than laid out on every scroll frame.
 
+- Find and replace: one search, over **the episode the workspace has selected**, in both editing
+  modes. `Ctrl+F` opens the bar on find, `Ctrl+H` on replace, `Escape` closes it — page-level
+  `Shortcuts` in `editor_page.dart`, beside `Ctrl+S`/`Ctrl+Shift+M`, none of the three claimed by
+  `ocptFountainKeyboardActions` or by super_editor's defaults — and the `⋮` menu reaches it without
+  the keyboard, through **two entries rather than one**, `Find…` and `Find and replace…`, each
+  opening the bar the way its own shortcut does and stating that shortcut on the right
+  (`OcptToolbarMenuItemLabel`, the platform's modifier resolved by `ocptPrimaryShortcutLabel`).
+  `OcptEditorFindBar`
+  (`lib/ui/pages/editor/widgets/`) is a docked band at the top of the **centre column only**, two
+  stacked rows whose replace row folds behind a chevron, the match-case and whole-word toggles
+  living inside the find field itself. The search *state* is `OcptEditorSearchState`, in the bloc,
+  which is what makes it survive a raw ⇄ styled toggle; the bar and both surfaces only ever report
+  into it.
+- **Each mode matches what it shows**, and the counter says so: raw mode searches the Fountain
+  source, the very characters its field displays, where the styled mode searches each node's
+  *display* text — no forcing marker, no `#N#`, no `*`/`_` emphasis, and the six title-page fields
+  included, so its count moves with the page-simulation toggle that creates them. The two counts
+  can therefore differ for a query holding markup, which is the rule rather than a defect. The bloc
+  holds the query, the two options and the current index; the **count is reported up by whichever
+  surface is mounted**, which is what keeps `Replace all` consistent with the number the bar just
+  showed. The matcher itself is `ocptFindTextMatches` (`lib/utils/ocpt_text_search.dart`), shared by
+  both: literal — a query is never compiled into a `RegExp`, since `(`, `.` and `*` are ordinary
+  characters to a screenwriter — and its whole-word test counts accented letters as word characters,
+  a screenplay being written in French too.
+- The highlight is painted by each surface in its own way, from the same two fixed colours
+  (`lib/ui/pages/editor/ocpt_editor_search.dart`): fixed, not theme-derived, for the reason the rest
+  of the page-simulation styling already is. Raw mode overrides `buildTextSpan`
+  (`OcptEditorSearchTextController`). Styled mode uses `OcptSearchMatchStyler`, a
+  `SingleColumnLayoutStylePhase` handed to `SuperEditor`'s `customStylePhases`, which adds its two
+  attributions to the **copied** component view model and wraps that copy's `textStyleBuilder` —
+  never the document, where they would be encoded straight back into the Fountain source. Its
+  `markDirty()` is **deferred to a post-frame callback** when it comes from the document-change
+  listener: firing it inside the still-open `Editor.execute` transaction reaches super_editor's own
+  selection styler before the composer's selection has been reconciled, and crashes on any
+  delete or cut.
+- Navigating to a match places the selection **without taking keyboard focus** — the find field is
+  what must keep it — which the styled editor's existing `clearSelectionWhenEditorLosesFocus: false`
+  already allows. `Replace` moves on to the first match starting at or past the end of what it just
+  wrote (wrapping), never simply to whatever now sits at the same index: renaming `MARIE` into
+  `MARIE-JEANNE` writes text that still matches, and keeping the index would compound it on every
+  further press. `Replace all` goes through `OcptConfirmDialog`, opened by the page with the same
+  words in both modes. The whole bar is withheld under a read-only preview, shortcuts included:
+  there is no editing surface to search there at all.
 - Editor docks: `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`
   (`lib/ui/pages/workspace/widgets/ocpt_workspace_dock.dart`) give the scene panel and the right
   dock draggable-divider resizing with a 320 px centre floor (right dock yields width first);

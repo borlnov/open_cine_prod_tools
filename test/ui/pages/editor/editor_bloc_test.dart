@@ -1522,4 +1522,271 @@ void main() {
       await bloc.close();
     },
   );
+
+  group('find/replace', () {
+    test('OcptEditorState.init starts with the bar closed and no search', () {
+      const state = OcptEditorState.init();
+
+      expect(state.search.isOpen, isFalse);
+      expect(state.search.isReplaceRowOpen, isFalse);
+      expect(state.search.query, "");
+      expect(state.search.matchCount, 0);
+      expect(state.search.currentMatchIndex, isNull);
+    });
+
+    test('Ctrl+F opens the bar with the replace row folded and bumps the focus request id',
+        () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final focusRequestIdBefore = bloc.state.search.focusRequestId;
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      final state = await waitForState(bloc, (state) => state.search.isOpen);
+
+      expect(state.search.isReplaceRowOpen, isFalse);
+      expect(state.search.focusRequestId, greaterThan(focusRequestIdBefore));
+
+      await bloc.close();
+    });
+
+    test('Ctrl+H opens the bar with the replace row unfolded', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: true));
+      final state = await waitForState(bloc, (state) => state.search.isOpen);
+
+      expect(state.search.isReplaceRowOpen, isTrue);
+
+      await bloc.close();
+    });
+
+    test('opening an already-open, replace-unfolded bar with Ctrl+F never folds the row back',
+        () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: true));
+      await waitForState(bloc, (state) => state.search.isReplaceRowOpen);
+      final focusRequestIdBefore = bloc.state.search.focusRequestId;
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      final state = await waitForState(
+        bloc,
+        (state) => state.search.focusRequestId > focusRequestIdBefore,
+      );
+
+      expect(state.search.isReplaceRowOpen, isTrue);
+
+      await bloc.close();
+    });
+
+    test('the chevron folds and unfolds the replace row', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchReplaceRowToggledEvent());
+      final openState = await waitForState(bloc, (state) => state.search.isReplaceRowOpen);
+      expect(openState.search.isReplaceRowOpen, isTrue);
+
+      bloc.add(const OcptEditorSearchReplaceRowToggledEvent());
+      final closedState = await waitForState(
+        bloc,
+        (state) => !state.search.isReplaceRowOpen,
+      );
+      expect(closedState.search.isReplaceRowOpen, isFalse);
+
+      await bloc.close();
+    });
+
+    test('closing the bar clears the highlight but keeps the query, the replacement and both '
+        'options, so reopening comes back to the same search', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: true));
+      bloc.add(const OcptEditorSearchQueryChangedEvent(query: "MARIE"));
+      bloc.add(const OcptEditorSearchReplacementChangedEvent(replacement: "JEANNE"));
+      bloc.add(const OcptEditorSearchCaseSensitivityToggledEvent());
+      bloc.add(const OcptEditorSearchWholeWordToggledEvent());
+      bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 3));
+      await waitForState(bloc, (state) => state.search.matchCount == 3);
+
+      bloc.add(const OcptEditorSearchClosedEvent());
+      final closedState = await waitForState(bloc, (state) => !state.search.isOpen);
+
+      expect(closedState.search.matchCount, 0);
+      expect(closedState.search.currentMatchIndex, isNull);
+      expect(closedState.search.query, "MARIE");
+      expect(closedState.search.replacement, "JEANNE");
+      expect(closedState.search.isCaseSensitive, isTrue);
+      expect(closedState.search.isWholeWord, isTrue);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      final reopenedState = await waitForState(bloc, (state) => state.search.isOpen);
+
+      expect(reopenedState.search.query, "MARIE");
+      expect(reopenedState.search.replacement, "JEANNE");
+      expect(reopenedState.search.isCaseSensitive, isTrue);
+      expect(reopenedState.search.isWholeWord, isTrue);
+
+      await bloc.close();
+    });
+
+    test('a query change resets the current match index to 0', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 5));
+      await waitForState(bloc, (state) => state.search.matchCount == 5);
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      await waitForState(bloc, (state) => state.search.currentMatchIndex == 1);
+
+      bloc.add(const OcptEditorSearchQueryChangedEvent(query: "MARIE"));
+      final state = await waitForState(bloc, (state) => state.search.query == "MARIE");
+
+      expect(state.search.currentMatchIndex, 0);
+
+      await bloc.close();
+    });
+
+    test('reporting zero matches clears the current match index back to null', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 2));
+      await waitForState(bloc, (state) => state.search.matchCount == 2);
+
+      bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 0));
+      final state = await waitForState(bloc, (state) => state.search.matchCount == 0);
+
+      expect(state.search.currentMatchIndex, isNull);
+
+      await bloc.close();
+    });
+
+    test('the current match index clamps down when a reported count shrinks', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 5));
+      await waitForState(bloc, (state) => state.search.matchCount == 5);
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      final lastIndexState = await waitForState(bloc, (state) => state.search.currentMatchIndex == 4);
+      expect(lastIndexState.search.currentMatchIndex, 4);
+
+      // The count shrinks to 2 (indices 0 and 1 only): the current index clamps down into range
+      // rather than pointing past the end of the new, shorter match list.
+      bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 2));
+      final clampedState = await waitForState(bloc, (state) => state.search.matchCount == 2);
+
+      expect(clampedState.search.currentMatchIndex, 1);
+
+      await bloc.close();
+    });
+
+    test('next/previous wrap around in both directions', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 3));
+      final firstState = await waitForState(bloc, (state) => state.search.matchCount == 3);
+      expect(firstState.search.currentMatchIndex, 0);
+
+      bloc.add(const OcptEditorSearchPreviousRequestedEvent());
+      final wrappedBackState = await waitForState(
+        bloc,
+        (state) => state.search.currentMatchIndex == 2,
+      );
+      expect(wrappedBackState.search.currentMatchIndex, 2);
+
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      final nextState = await waitForState(
+        bloc,
+        (state) => state.search.currentMatchIndex == 0,
+      );
+      expect(nextState.search.currentMatchIndex, 0);
+
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      await waitForState(bloc, (state) => state.search.currentMatchIndex == 1);
+
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      await waitForState(bloc, (state) => state.search.currentMatchIndex == 2);
+
+      // One more step past the last index wraps back to the first.
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      final wrappedToStartState = await waitForState(
+        bloc,
+        (state) => state.search.currentMatchIndex == 0,
+      );
+      expect(wrappedToStartState.search.currentMatchIndex, 0);
+
+      await bloc.close();
+    });
+
+    test('next/previous are a no-op while there is no match', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+      await waitForState(bloc, (state) => state.search.isOpen);
+
+      bloc.add(const OcptEditorSearchNextRequestedEvent());
+      // No state change to wait for: give the handler a beat to run, then assert nothing moved.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(bloc.state.search.currentMatchIndex, isNull);
+
+      await bloc.close();
+    });
+
+    test('the case-sensitivity and whole-word toggles flip their own flag only', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSearchCaseSensitivityToggledEvent());
+      final caseState = await waitForState(bloc, (state) => state.search.isCaseSensitive);
+      expect(caseState.search.isWholeWord, isFalse);
+
+      bloc.add(const OcptEditorSearchWholeWordToggledEvent());
+      final wholeWordState = await waitForState(bloc, (state) => state.search.isWholeWord);
+      expect(wholeWordState.search.isCaseSensitive, isTrue);
+
+      await bloc.close();
+    });
+
+    test(
+      'a current-match-selected event sets the index directly, not relative to the previous one',
+      () async {
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+
+        bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+        bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 5));
+        await waitForState(bloc, (state) => state.search.matchCount == 5);
+
+        // Sets the index straight to 3, with no relationship to the current one (0): the event
+        // exists precisely because the mounted surface, not the bloc, knows which match a replace
+        // just landed on.
+        bloc.add(const OcptEditorSearchCurrentMatchSelectedEvent(index: 3));
+        final state = await waitForState(bloc, (state) => state.search.currentMatchIndex == 3);
+
+        expect(state.search.currentMatchIndex, 3);
+
+        // The report that follows a replace (a fresh match count) still clamps it, exactly as
+        // any other match count report does.
+        bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 2));
+        final clampedState = await waitForState(bloc, (state) => state.search.matchCount == 2);
+        expect(clampedState.search.currentMatchIndex, 1);
+
+        await bloc.close();
+      },
+    );
+  });
 }

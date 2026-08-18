@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_search_match_styler.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_component_builder.dart';
@@ -26,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_e
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
@@ -209,6 +212,20 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// (always 0 while page simulation is off), recomputed by [_recomputePageSimulation].
   double _trailingBottomPadding = 0;
 
+  /// This widget's own half of the find/replace bar's highlight (plan §6), handed to `SuperEditor`
+  /// as a custom style phase in [build]; never rebuilt, so `markDirty()` calls survive across a
+  /// [build] rather than resetting the highlight every frame.
+  final OcptSearchMatchStyler _searchMatchStyler = OcptSearchMatchStyler();
+
+  /// The find/replace query [updateSearch] last set, or null while there is no active search —
+  /// `editor_page.dart` sets this to null whenever the bar is closed, a different mode is active,
+  /// or a version is being previewed.
+  OcptEditorSearchQuery? _searchQuery;
+
+  /// The current-match index [updateSearch] last set, among the matches [_orderedSearchMatches]
+  /// computes for [_searchQuery]; null while there is none.
+  int? _searchCurrentMatchIndex;
+
   @override
   void initState() {
     super.initState();
@@ -232,6 +249,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       });
       _syncSceneNumbers();
       _reportReadStateToController();
+      // The document (and every node id it holds) was just rebuilt from scratch: any match this
+      // widget computed against the previous one is stale, and must never keep highlighting/
+      // navigating against node ids that no longer exist.
+      _recomputeSearchMatches(navigateToCurrent: false);
     } else if (widget.isPageSimulationEnabled != oldWidget.isPageSimulationEnabled) {
       // The title sheet's nodes appear/disappear with page simulation itself (see [_decode]'s own
       // doc comment), so toggling it needs a full rebuild from the same text, not just a
@@ -243,6 +264,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       });
       _syncSceneNumbers();
       _reportReadStateToController();
+      _recomputeSearchMatches(navigateToCurrent: false);
     } else if (widget.pageSetup != oldWidget.pageSetup) {
       setState(_recomputePageSimulation);
     }
@@ -363,6 +385,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           ),
         ...defaultComponentBuilders,
       ],
+      customStylePhases: [_searchMatchStyler],
       // Both default policies clear the selection the moment this editor loses focus to any
       // other widget, including a momentary focus steal by the toolbar's block-type dropdown
       // opening its own overlay route: the focus loss directly clears the selection
@@ -667,6 +690,30 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _syncTimer?.cancel();
     _syncTimer = Timer(_syncDebounce, _syncAfterEdit);
     _reportReadStateToController();
+
+    if (_searchQuery == null) {
+      return;
+    }
+    // Live, not debounced, for the same reason the toolbar's read state above isn't either: the
+    // raw mode's own highlight tracks every keystroke through its text controller directly (see
+    // `OcptEditorSearchTextController`), and the styled mode must not visibly lag behind it.
+    // `navigateToCurrent: false` is what keeps typing elsewhere in the document from yanking the
+    // caret back onto "the current match" on every keystroke — only an actual navigation
+    // ([updateSearch]) does that, mirroring `_syncRawSearch`'s own split between reporting and
+    // navigating.
+    //
+    // Deferred to a post-frame callback rather than run right here: this listener fires
+    // synchronously from inside `Editor.execute()`'s own transaction (`document.onTransactionEnd`,
+    // called before the composer's selection is necessarily fixed up for a node this same edit
+    // just removed), and `_searchMatchStyler.updateMatches`'s `markDirty()` triggers an immediate
+    // re-style pass — running it this early crashes deep inside super_editor's own selection
+    // styler on a delete/cut whose selection request hasn't landed yet. A post-frame callback runs
+    // well after that same transaction (and its selection fix-up) has fully settled.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _searchQuery != null) {
+        _recomputeSearchMatches(navigateToCurrent: false);
+      }
+    });
   }
 
   /// Rejoins the document into flat text (reporting it upstream if it changed), refreshes
@@ -1087,6 +1134,237 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     _reportReadStateToController();
     _focusNode.requestFocus();
+  }
+
+  /// Every current match of [_searchQuery], in document order (node order, then offset within the
+  /// node) — the single computation [_recomputeSearchMatches], [replaceCurrentMatch] and
+  /// [replaceAllMatches] all go through, so none of them can drift from what the highlight
+  /// actually shows.
+  ///
+  /// Only [ParagraphNode]s are searched, which title-page field nodes are too (see
+  /// `OcptWysiwygCodec`): they sit on screen and are ordinarily editable
+  /// (`ocptTitlePageGuardRequestHandler` permits ordinary text edits inside a field, only guarding
+  /// against merging or deleting the node itself), so a search that skipped them would miss text
+  /// the user can plainly see and type into. This is also why the styled mode's own match count
+  /// changes with the page-simulation toggle: the title sheet, and every field on it, only exists
+  /// at all while page simulation is on (see [_decode]'s own doc comment).
+  List<({String nodeId, OcptTextMatch match})> _orderedSearchMatches(OcptEditorSearchQuery query) {
+    final matches = <({String nodeId, OcptTextMatch match})>[];
+    for (final node in _document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+      for (final match in query.matchesIn(node.text.toPlainText())) {
+        matches.add((nodeId: node.id, match: match));
+      }
+    }
+    return matches;
+  }
+
+  /// Recomputes every match of [_searchQuery] over the live document's own display text, feeds
+  /// them to [_searchMatchStyler], reports the total count to
+  /// [OcptStyledScreenplayEditor.styledController], and — only when [navigateToCurrent] is true —
+  /// places the selection on [_searchCurrentMatchIndex]'s match and scrolls it into view (see
+  /// [_navigateToSearchMatch]'s own doc comment on why that never takes keyboard focus).
+  void _recomputeSearchMatches({required bool navigateToCurrent}) {
+    final query = _searchQuery;
+    if (query == null) {
+      _searchMatchStyler.updateMatches(matchesByNodeId: const {}, currentMatchNodeId: null, currentMatch: null);
+      widget.styledController?.reportSearchMatchCount(0);
+      return;
+    }
+
+    final orderedMatches = _orderedSearchMatches(query);
+    final matchesByNodeId = <String, List<OcptTextMatch>>{};
+    for (final entry in orderedMatches) {
+      (matchesByNodeId[entry.nodeId] ??= []).add(entry.match);
+    }
+
+    widget.styledController?.reportSearchMatchCount(orderedMatches.length);
+
+    final currentIndex = _searchCurrentMatchIndex;
+    final current = currentIndex != null && currentIndex >= 0 && currentIndex < orderedMatches.length
+        ? orderedMatches[currentIndex]
+        : null;
+
+    _searchMatchStyler.updateMatches(
+      matchesByNodeId: matchesByNodeId,
+      currentMatchNodeId: current?.nodeId,
+      currentMatch: current?.match,
+    );
+
+    if (navigateToCurrent && current != null) {
+      _navigateToSearchMatch(current.nodeId, current.match);
+    }
+  }
+
+  /// Selects [match] inside the node [nodeId] and scrolls it into view, the styled mode's own
+  /// counterpart to [_applyJumpRequest] — **deliberately never calls `_focusNode.requestFocus()`**:
+  /// the find field must keep the keyboard focus while the user types a query or presses
+  /// Next/Previous. `build`'s `selectionPolicies` already sets
+  /// `clearSelectionWhenEditorLosesFocus: false` on this exact editor for that reason, so the
+  /// selection placed here survives staying unfocused.
+  ///
+  /// The scroll itself runs in a post-frame callback, unlike [_applyJumpRequest]'s own synchronous
+  /// call: unlike a scene jump (always triggered from an already-built frame), this can run from
+  /// [OcptStyledEditorController.attach] inside `initState`, before the document layout — and with
+  /// it, [_documentLayoutKey]'s own component lookup — exists for this build at all.
+  void _navigateToSearchMatch(String nodeId, OcptTextMatch match) {
+    if (!mounted || _document.getNodeById(nodeId) == null) {
+      return;
+    }
+
+    _editor.execute([
+      ChangeSelectionRequest(
+        DocumentSelection(
+          base: DocumentPosition(nodeId: nodeId, nodePosition: TextNodePosition(offset: match.start)),
+          extent: DocumentPosition(nodeId: nodeId, nodePosition: TextNodePosition(offset: match.end)),
+        ),
+        SelectionChangeType.expandSelection,
+        SelectionReason.userInteraction,
+      ),
+    ]);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(nodeId);
+      if (component == null) {
+        return;
+      }
+      final componentState = component as State;
+      if (componentState.mounted) {
+        unawaited(
+          Scrollable.ensureVisible(componentState.context, alignment: 0.3, duration: const Duration(milliseconds: 200)),
+        );
+      }
+    });
+  }
+
+  /// Replaces the find/replace query and current-match index this widget highlights/navigates to,
+  /// then immediately recomputes and (re-)navigates — see [_recomputeSearchMatches]'s own doc
+  /// comment on when it does each.
+  @override
+  void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {
+    _searchQuery = query;
+    _searchCurrentMatchIndex = currentMatchIndex;
+    _recomputeSearchMatches(navigateToCurrent: true);
+  }
+
+  /// Replaces the current match (see `_orderedSearchMatches`) with [replacement] and returns the
+  /// index, among the fresh matches left afterwards, of the first one starting at or past the end
+  /// of what was just written — never simply the match now sitting at the same index, which a
+  /// replacement that itself still matches the query (`MARIE` → `MARIE-JEANNE`) would land back
+  /// inside, compounding on every further `Replace` press (see
+  /// `OcptStyledEditorControllerDelegate.replaceCurrentMatch`'s own doc comment). Returns null,
+  /// doing nothing, while there is no current match, or once none remain after the edit.
+  ///
+  /// The comparison walks the fresh matches in document order (built once as a node-id → node-index
+  /// map, `nodeIndexById`, rather than calling `Document.getNodeIndexById` per candidate): a match
+  /// in a node past the edited one always counts as "after", whatever its own offset.
+  @override
+  int? replaceCurrentMatch(String replacement) {
+    final query = _searchQuery;
+    final currentIndex = _searchCurrentMatchIndex;
+    if (query == null || currentIndex == null) {
+      return null;
+    }
+
+    final matches = _orderedSearchMatches(query);
+    if (currentIndex < 0 || currentIndex >= matches.length) {
+      return null;
+    }
+
+    final current = matches[currentIndex];
+    final node = _document.getNodeById(current.nodeId);
+    if (node is! ParagraphNode) {
+      return null;
+    }
+
+    _editor.execute([
+      OcptReplaceNodeTextRequest(
+        nodeId: node.id,
+        text: _ocptReplaceMatchesInText(node.text, [current.match], replacement),
+      ),
+    ]);
+
+    final writtenEnd = current.match.start + replacement.length;
+    final freshMatches = _orderedSearchMatches(query);
+    if (freshMatches.isEmpty) {
+      return null;
+    }
+
+    final nodeIndexById = <String, int>{
+      for (var i = 0; i < _document.nodeCount; i++) _document.getNodeAt(i)!.id: i,
+    };
+    final currentNodeIndex = nodeIndexById[current.nodeId] ?? 0;
+    final nextIndex = freshMatches.indexWhere((entry) {
+      final entryNodeIndex = nodeIndexById[entry.nodeId] ?? 0;
+      if (entryNodeIndex != currentNodeIndex) {
+        return entryNodeIndex > currentNodeIndex;
+      }
+      return entry.match.start >= writtenEnd;
+    });
+    return nextIndex == -1 ? 0 : nextIndex;
+  }
+
+  /// Replaces every current match of [_searchQuery] with [replacement], one
+  /// [OcptReplaceNodeTextRequest] per node carrying at least one match, grouped into a single
+  /// [Editor.execute] call. A no-op while there is no active search or it matches nothing.
+  @override
+  void replaceAllMatches(String replacement) {
+    final query = _searchQuery;
+    if (query == null) {
+      return;
+    }
+
+    final matchesByNodeId = <String, List<OcptTextMatch>>{};
+    for (final node in _document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+      final nodeMatches = query.matchesIn(node.text.toPlainText());
+      if (nodeMatches.isNotEmpty) {
+        matchesByNodeId[node.id] = nodeMatches;
+      }
+    }
+    if (matchesByNodeId.isEmpty) {
+      return;
+    }
+
+    _editor.execute([
+      for (final entry in matchesByNodeId.entries)
+        OcptReplaceNodeTextRequest(
+          nodeId: entry.key,
+          text: _ocptReplaceMatchesInText(
+            (_document.getNodeById(entry.key)! as ParagraphNode).text,
+            entry.value,
+            replacement,
+          ),
+        ),
+    ]);
+  }
+
+  /// Returns a copy of [original] with every one of [matches] (assumed non-overlapping and in
+  /// left-to-right order, exactly as `OcptEditorSearchQuery.matchesIn` returns them) replaced by
+  /// [replacement], every untouched span keeping its original attributions (`copyText` carries
+  /// them along; only the freshly-inserted [replacement] text itself carries none).
+  static AttributedText _ocptReplaceMatchesInText(
+    AttributedText original,
+    List<OcptTextMatch> matches,
+    String replacement,
+  ) {
+    var result = original.copyText(0, 0);
+    var cursor = 0;
+    for (final match in matches) {
+      result = result.copyAndAppend(original.copyText(cursor, match.start));
+      if (replacement.isNotEmpty) {
+        result = result.copyAndAppend(AttributedText(replacement));
+      }
+      cursor = match.end;
+    }
+    return result.copyAndAppend(original.copyText(cursor));
   }
 
   /// [_imeOverrides]'s callback: applies the same manual block-type cycle a hardware Tab keystroke

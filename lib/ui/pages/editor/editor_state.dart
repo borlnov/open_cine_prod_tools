@@ -36,6 +36,113 @@ class OcptEditorJumpRequest extends Equatable {
   List<Object?> get props => [charOffset, id];
 }
 
+/// The editor's live find/replace state — one search, kept in the bloc rather than in either
+/// editing surface, which is what lets it survive a raw ⇄ styled mode toggle (the plan's own
+/// M4 decision).
+class OcptEditorSearchState extends Equatable {
+  /// Whether the find/replace bar is open at all.
+  final bool isOpen;
+
+  /// Whether the replace row is unfolded under the find row.
+  final bool isReplaceRowOpen;
+
+  /// The text currently searched for.
+  final String query;
+
+  /// The text a match is replaced by.
+  final String replacement;
+
+  /// Whether the search is case-sensitive.
+  final bool isCaseSensitive;
+
+  /// Whether the search only matches whole words.
+  final bool isWholeWord;
+
+  /// The number of matches the mounted editing surface last reported.
+  ///
+  /// Computed over what that surface actually shows — the raw source text, or a styled node's
+  /// display text — so the count can legitimately differ between the two modes for a query
+  /// holding markup (a forcing marker, a `#N#` tag, `*`/`_` emphasis): a search shows what the
+  /// user can see, not the underlying Fountain source the styled mode never displays.
+  final int matchCount;
+
+  /// The 0-based index, among [matchCount] matches, of the current one; null while there is none.
+  final int? currentMatchIndex;
+
+  /// The id of the last request to (re)focus and select the find field, bumped on every "open".
+  ///
+  /// The same idiom as [OcptEditorJumpRequest.id]: the bar remembers the last one it applied, so
+  /// re-opening an already-open bar (or unfolding its replace row through Ctrl+H) still refocuses
+  /// the find field even though [isOpen] itself doesn't change value.
+  final int focusRequestId;
+
+  /// Class constructor
+  const OcptEditorSearchState({
+    required this.isOpen,
+    required this.isReplaceRowOpen,
+    required this.query,
+    required this.replacement,
+    required this.isCaseSensitive,
+    required this.isWholeWord,
+    required this.matchCount,
+    required this.currentMatchIndex,
+    required this.focusRequestId,
+  });
+
+  /// Init class constructor
+  const OcptEditorSearchState.init()
+    : isOpen = false,
+      isReplaceRowOpen = false,
+      query = "",
+      replacement = "",
+      isCaseSensitive = false,
+      isWholeWord = false,
+      matchCount = 0,
+      currentMatchIndex = null,
+      focusRequestId = 0;
+
+  /// Returns a copy of this state with the given fields replaced.
+  ///
+  /// [currentMatchIndex] only goes back to null through [clearCurrentMatchIndex] — the "there is
+  /// no match" state a plain `int?` field can't tell apart from "leave it as it is" on its own.
+  OcptEditorSearchState copyWith({
+    bool? isOpen,
+    bool? isReplaceRowOpen,
+    String? query,
+    String? replacement,
+    bool? isCaseSensitive,
+    bool? isWholeWord,
+    int? matchCount,
+    int? currentMatchIndex,
+    bool clearCurrentMatchIndex = false,
+    int? focusRequestId,
+  }) => OcptEditorSearchState(
+    isOpen: isOpen ?? this.isOpen,
+    isReplaceRowOpen: isReplaceRowOpen ?? this.isReplaceRowOpen,
+    query: query ?? this.query,
+    replacement: replacement ?? this.replacement,
+    isCaseSensitive: isCaseSensitive ?? this.isCaseSensitive,
+    isWholeWord: isWholeWord ?? this.isWholeWord,
+    matchCount: matchCount ?? this.matchCount,
+    currentMatchIndex: clearCurrentMatchIndex ? null : (currentMatchIndex ?? this.currentMatchIndex),
+    focusRequestId: focusRequestId ?? this.focusRequestId,
+  );
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    isOpen,
+    isReplaceRowOpen,
+    query,
+    replacement,
+    isCaseSensitive,
+    isWholeWord,
+    matchCount,
+    currentMatchIndex,
+    focusRequestId,
+  ];
+}
+
 /// The kind of transient notice `OcptEditorIoNotice` carries, one per export/import outcome.
 enum OcptEditorIoNoticeKind {
   /// The screenplay was successfully exported to a `.fountain` file.
@@ -187,6 +294,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// The transient export/import outcome currently shown as a SnackBar, or null if none is.
   final OcptEditorIoNotice? ioNotice;
 
+  /// The editor's find/replace state — see `OcptEditorSearchState`'s own doc comment for why it
+  /// lives here rather than in either editing surface.
+  final OcptEditorSearchState search;
+
   /// The at-a-glance counters (page/scene/character/word/sign counts) shown in the editor's
   /// status bar, computed from [document] at [pageSetup]'s metrics.
   ///
@@ -280,6 +391,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.areStyledSceneNumbersVisible,
     required this.jumpRequest,
     required this.ioNotice,
+    required this.search,
     required this.statistics,
     required this.sceneStatistics,
     required this.projectVersions,
@@ -314,6 +426,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       areStyledSceneNumbersVisible = true,
       jumpRequest = null,
       ioNotice = null,
+      search = const OcptEditorSearchState.init(),
       statistics = FountainScriptStatistics.empty,
       sceneStatistics = null,
       projectVersions = const [],
@@ -335,7 +448,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// ([clearRightDockTab], [clearAutoClosedRightDockTab], [clearSceneStatistics]): all three
   /// legitimately go back to null during the editor's lifetime (closing the dock, restoring it on
   /// a mode switch, the caret moving back before every scene), so the "never goes back to null"
-  /// shortcut used above doesn't apply to them.
+  /// shortcut used above doesn't apply to them. [search] is replaced wholesale (through its own
+  /// `OcptEditorSearchState.copyWith`), not flattened into this method's own parameter list.
   @override
   OcptEditorState copyWith({
     bool? isLoading,
@@ -362,6 +476,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     OcptEditorJumpRequest? jumpRequest,
     OcptEditorIoNotice? ioNotice,
     bool clearIoNotice = false,
+    OcptEditorSearchState? search,
     FountainScriptStatistics? statistics,
     FountainSceneStatistics? sceneStatistics,
     bool clearSceneStatistics = false,
@@ -402,6 +517,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     areStyledSceneNumbersVisible: areStyledSceneNumbersVisible ?? this.areStyledSceneNumbersVisible,
     jumpRequest: jumpRequest ?? this.jumpRequest,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
+    search: search ?? this.search,
     statistics: statistics ?? this.statistics,
     sceneStatistics: clearSceneStatistics ? null : (sceneStatistics ?? this.sceneStatistics),
     projectVersions: projectVersions ?? this.projectVersions,
@@ -480,6 +596,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     areStyledSceneNumbersVisible,
     jumpRequest,
     ioNotice,
+    search,
     statistics,
     sceneStatistics,
   ];

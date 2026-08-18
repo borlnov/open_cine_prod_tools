@@ -36,6 +36,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
@@ -2469,6 +2470,195 @@ void main() {
       expect(await encodedAfterToggling(OcptInlineStyle.italic), "Base *styled* end");
       expect(await encodedAfterToggling(OcptInlineStyle.underline), "Base _styled_ end");
     });
+  });
+
+  group("OcptStyledEditorController — find/replace", () {
+    /// Reads the [TextStyle] currently painted behind the exact substring [text] inside the
+    /// paragraph [nodeId]'s own rendered [TextSpan] tree — the only way to observe
+    /// `OcptSearchMatchStyler`'s effect from outside its own library, since it never touches the
+    /// live document or exposes anything of its own.
+    TextStyle? styleOfSubstring(String nodeId, String text) {
+      TextStyle? found;
+      SuperEditorInspector.findRichTextInParagraph(nodeId).visitChildren((span) {
+        if (span is TextSpan && span.text == text) {
+          found = span.style;
+          return false;
+        }
+        return true;
+      });
+      return found;
+    }
+
+    testWidgets("matches are highlighted, the current one more strongly than the rest", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "Line one.\n\nLine two.\n", styledController: controller);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final firstNodeId = _nodeAt(document, 0).id;
+      final secondNodeId = _nodeAt(document, 1).id;
+
+      controller.updateSearch(
+        query: const OcptEditorSearchQuery(query: "Line", isCaseSensitive: false, isWholeWord: false),
+        currentMatchIndex: 0,
+      );
+      await tester.pump();
+
+      expect(styleOfSubstring(firstNodeId, "Line")?.backgroundColor, ocptEditorSearchCurrentMatchColor);
+      expect(styleOfSubstring(secondNodeId, "Line")?.backgroundColor, ocptEditorSearchMatchColor);
+    });
+
+    testWidgets("navigation moves the current match without stealing keyboard focus", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+      // Stands in for the real find field's own `FocusNode`, which is what must keep the keyboard
+      // focus across a navigation: this test proves it never loses it, rather than asserting on
+      // Flutter's own ambient "some scope always has *a* primary focus" default, which would be
+      // true even if this widget did nothing at all.
+      final proxyFindFieldFocusNode = FocusNode();
+      addTearDown(proxyFindFieldFocusNode.dispose);
+
+      await tester.pumpWidget(
+        _wrap(
+          Column(
+            children: [
+              SizedBox(height: 40, child: TextField(focusNode: proxyFindFieldFocusNode)),
+              Expanded(
+                child: OcptStyledScreenplayEditor(
+                  text: "Line one.\n\nLine two.\n\nLine three.\n",
+                  pageSetup: const OcptPageSetup.standard(),
+                  isPageSimulationEnabled: false,
+                  areSceneNumbersVisible: false,
+                  onTextChanged: (_) {},
+                  onCaretLineChanged: (_) {},
+                  jumpRequest: null,
+                  styledController: controller,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      proxyFindFieldFocusNode.requestFocus();
+      await tester.pump();
+      expect(proxyFindFieldFocusNode.hasFocus, isTrue);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final firstNodeId = _nodeAt(document, 0).id;
+      final secondNodeId = _nodeAt(document, 1).id;
+      const query = OcptEditorSearchQuery(query: "Line", isCaseSensitive: false, isWholeWord: false);
+
+      controller.updateSearch(query: query, currentMatchIndex: 0);
+      await tester.pump();
+
+      var selection = SuperEditorInspector.findDocumentSelection();
+      expect(selection?.extent.nodeId, firstNodeId);
+      expect((selection!.extent.nodePosition as TextNodePosition).offset, "Line".length);
+      expect(proxyFindFieldFocusNode.hasFocus, isTrue);
+
+      controller.updateSearch(query: query, currentMatchIndex: 1);
+      await tester.pump();
+
+      selection = SuperEditorInspector.findDocumentSelection();
+      expect(selection?.extent.nodeId, secondNodeId);
+      expect(proxyFindFieldFocusNode.hasFocus, isTrue);
+    });
+
+    testWidgets("a replacement reaches the encoded text and reports the next match's index", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+      var lastEncoded = "";
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: "Line one.\n\nLine two.\n",
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            onTextChanged: (value) => lastEncoded = value,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+            styledController: controller,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      controller.updateSearch(
+        query: const OcptEditorSearchQuery(query: "Line", isCaseSensitive: false, isWholeWord: false),
+        currentMatchIndex: 0,
+      );
+      await tester.pump();
+
+      final nextIndex = controller.replaceCurrentMatch("Scene");
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+
+      expect(lastEncoded, contains("Scene one."));
+      expect(lastEncoded, contains("Line two."));
+      // Only "Line two." matches "Line" once "Line one." became "Scene one.", so it's the sole
+      // remaining match, at index 0.
+      expect(nextIndex, 0);
+    });
+
+    testWidgets(
+      "replacing advances past a replacement that itself still matches the query, renaming every "
+      "occurrence exactly once rather than compounding onto the same spot",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        var lastEncoded = "";
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "MARIE enters.\n\nMARIE speaks.\n",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+              styledController: controller,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        const query = OcptEditorSearchQuery(query: "MARIE", isCaseSensitive: false, isWholeWord: false);
+        controller.updateSearch(query: query, currentMatchIndex: 0);
+        await tester.pump();
+
+        // "MARIE" replaced by "MARIE-JEANNE" still matches "MARIE" at that very same offset, so
+        // this is the plan's own headline scenario for putting replace in scope at all.
+        final firstNextIndex = controller.replaceCurrentMatch("MARIE-JEANNE");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        // The first occurrence is renamed, the second isn't touched yet, and — the actual
+        // regression this guards — the current match did not stay stuck inside what was just
+        // written (it would otherwise turn the next replace into "MARIE-JEANNE-JEANNE").
+        expect(lastEncoded, contains("MARIE-JEANNE enters."));
+        expect(lastEncoded, contains("MARIE speaks."));
+        expect(lastEncoded, isNot(contains("JEANNE-JEANNE")));
+        expect(firstNextIndex, isNotNull);
+
+        // The page's own follow-up: dispatching `OcptEditorSearchCurrentMatchSelectedEvent` with
+        // `firstNextIndex` ultimately reaches the delegate through another `updateSearch` call.
+        controller.updateSearch(query: query, currentMatchIndex: firstNextIndex);
+        await tester.pump();
+
+        controller.replaceCurrentMatch("MARIE-JEANNE");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(lastEncoded, "MARIE-JEANNE enters.\n\nMARIE-JEANNE speaks.\n");
+      },
+    );
   });
 
   group("a parenthetical opens on ()", () {
