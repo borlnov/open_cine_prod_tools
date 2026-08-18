@@ -78,7 +78,11 @@ editor's document model, the title page, the docks and the syntax guide.
   entry with nothing to act on is **withheld, not disabled** (a null callback), which is what hides
   Cut/Copy over a collapsed caret. The secondary tap resolves the document position under the
   pointer and places the caret there, unless it lands inside an expanded selection, which it never
-  destroys. Nothing is withheld for a read-only preview: the styled editor is not mounted under one
+  destroys. A left click landing back on the document closes the menu, which a `MenuAnchor` does not
+  do on its own: its anchor child — the whole editing surface here — belongs to the same `TapRegion`
+  group as the menu, so a `Listener` above the gesture detector watches for the primary button and
+  closes it, observing the click rather than competing for it. Nothing is withheld for a read-only
+  preview: the styled editor is not mounted under one
   at all, `editor_page.dart` substituting the read-only preview for both editing modes.
 
 - Scene numbers: a heading's `#N#` is a first-class WYSIWYG field

@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -436,6 +437,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // own desktop gesture interactor handles no secondary mouse button at all (verified against the
     // pinned `0.3.0-dev.52`), so nothing else ever competes for this gesture.
     //
+    // The `Listener` above the gesture detector is what dismisses that menu on a left click landing
+    // back on the document (see `_onPointerDownOverDocument`): `MenuAnchor` closes itself on a tap
+    // outside its own `TapRegion` group, and its anchor child — everything below here — is part of
+    // that group, so the whole editing surface would otherwise be the one place where clicking away
+    // left the menu standing. It observes rather than competes: a `Listener` never enters the
+    // gesture arena, so the click it sees still reaches super_editor and places the caret.
+    //
     // No entry is ever withheld for a read-only preview here: `editor_page.dart`'s `_buildCentre`
     // substitutes the read-only `OcptEditorPreview` for both editing modes while a version is being
     // previewed, so this widget — and the menu it opens — is simply never mounted under one. There is
@@ -449,10 +457,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       onPaste: _composer.selection != null ? _pasteFromContextMenu : null,
       onSelectAll: _composer.selection != null ? _selectAllFromContextMenu : null,
       onTypeSelected: _contextMenuBlockType != null ? applyBlockType : null,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onSecondaryTapUp: _onSecondaryTapUp,
-        child: content,
+      child: Listener(
+        onPointerDown: _onPointerDownOverDocument,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTapUp: _onSecondaryTapUp,
+          child: content,
+        ),
       ),
     );
   }
@@ -1054,6 +1065,22 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     setState(() {});
     _contextMenuController.open(position: details.localPosition);
+  }
+
+  /// Closes the right-click context menu when a left click lands anywhere on the document while it
+  /// is open, the way clicking away from a menu closes it everywhere else in the app.
+  ///
+  /// Only the primary button does this: the secondary button is what opens the menu in the first
+  /// place ([_onSecondaryTapUp] runs on its tap *up*, after this very handler has seen its down),
+  /// and closing on it would make a second right-click a toggle rather than a re-position. Clicks
+  /// on the menu itself never reach here — it is an overlay painted above this surface, and it
+  /// absorbs its own pointers.
+  void _onPointerDownOverDocument(PointerDownEvent event) {
+    if (event.buttons != kPrimaryButton || !_contextMenuController.isOpen) {
+      return;
+    }
+
+    _contextMenuController.close();
   }
 
   /// The right-click context menu's Copy entry: copies the current selection's Fountain source to

@@ -2968,6 +2968,30 @@ void main() {
       expect(_isLockedAt(document, 0), isTrue);
     });
 
+    _testWidgetsAsDesktop("a left click elsewhere on the document closes the menu and still places the "
+        "caret", (tester) async {
+      const text = "INT. HOUSE - DAY\n\nSome action text.";
+      await _pumpStandaloneEditor(tester, text);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final headingNode = _nodeAt(document, 0);
+      final actionNode = _nodeAt(document, 1);
+
+      // Right-clicked on the lower node and left-clicked back on the upper one, so the second click
+      // lands on the document itself rather than on the menu the first one just opened below it.
+      await tester.tapAt(_tapOffsetInsideText(actionNode.id), buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+      expect(find.text(tr.editorContextMenuSelectAllAction), findsOneWidget);
+
+      await tester.tapAt(_tapOffsetInsideText(headingNode.id));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.editorContextMenuSelectAllAction), findsNothing);
+      expect(SuperEditorInspector.findDocumentSelection()?.extent.nodeId, headingNode.id);
+    });
+
     _testWidgetsAsDesktop("Select all expands the selection across the whole document", (tester) async {
       const text = "INT. HOUSE - DAY\n\nSome action text.";
       await _pumpStandaloneEditor(tester, text);
