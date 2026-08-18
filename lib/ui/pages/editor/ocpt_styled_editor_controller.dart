@@ -38,6 +38,20 @@ abstract class OcptStyledEditorControllerDelegate {
 
   /// Replaces every current match with [replacement] in one grouped edit.
   void replaceAllMatches(String replacement);
+
+  /// Whether there is a gesture of the writer's left for [undo] to take back.
+  bool get canUndo;
+
+  /// Whether there is an undone gesture left for [redo] to put back *and* it can still be put
+  /// back — no edit having been made since it was undone.
+  bool get canRedo;
+
+  /// Takes back the writer's last gesture, plus everything the editor derived from it; does
+  /// nothing when [canUndo] is false.
+  void undo();
+
+  /// Puts back the last undone gesture; does nothing when [canRedo] is false.
+  void redo();
 }
 
 /// The app-level bridge between the editor toolbar and the live styled screenplay editor: the
@@ -76,6 +90,14 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// while detached.
   int _searchMatchCount = 0;
 
+  /// Whether the attached delegate had anything left to undo when it last called
+  /// [updateReadState]; false while detached.
+  bool _canUndo = false;
+
+  /// Whether the attached delegate had anything left to redo when it last called
+  /// [updateReadState]; false while detached.
+  bool _canRedo = false;
+
   /// The match count the toolbar/page should currently show for the styled mode's own search.
   int get searchMatchCount => _searchMatchCount;
 
@@ -94,6 +116,29 @@ class OcptStyledEditorController extends ChangeNotifier {
 
   /// The inline styles the toolbar's B/I/U toggles should currently show as selected.
   Set<OcptInlineStyle> get activeInlineStyles => _activeInlineStyles;
+
+  /// Whether the live styled editor currently has anything to undo — what an `Undo` affordance
+  /// reads to decide whether to appear at all. False while detached (raw mode), where the raw
+  /// field's own `UndoHistoryController` is what answers the same question.
+  bool get canUndo => _canUndo;
+
+  /// Whether the live styled editor currently has anything to redo, in the sense that it can
+  /// still be redone *correctly*: the attached delegate refuses a redo whose transactions a later
+  /// edit has overtaken, and this mirrors that same predicate rather than recomputing one of its
+  /// own. False while detached (raw mode).
+  bool get canRedo => _canRedo;
+
+  /// Requests that the writer's last gesture be taken back, forwarded to the attached delegate; a
+  /// no-op while detached (raw mode).
+  void undo() {
+    _delegate?.undo();
+  }
+
+  /// Requests that the last undone gesture be put back, forwarded to the attached delegate (which
+  /// refuses it when [canRedo] is false); a no-op while detached (raw mode).
+  void redo() {
+    _delegate?.redo();
+  }
 
   /// Requests that the caret's current block become [type], forwarded to the attached delegate; a
   /// no-op while detached (raw mode).
@@ -171,22 +216,32 @@ class OcptStyledEditorController extends ChangeNotifier {
     }
     _delegate = null;
     _searchMatchCount = 0;
+    _canUndo = false;
+    _canRedo = false;
     _notifySafely();
   }
 
-  /// Pushes a fresh read-side snapshot from the attached delegate: the caret's current block type
-  /// and the set of inline styles active at the caret/selection. Listeners are only notified when
-  /// [currentBlockType] or [activeInlineStyles] actually changed, avoiding redundant toolbar
-  /// rebuilds on every keystroke that doesn't move the caret across a style boundary.
+  /// Pushes a fresh read-side snapshot from the attached delegate: the caret's current block type,
+  /// the set of inline styles active at the caret/selection, and whether that editor has anything
+  /// left to undo or redo. Listeners are only notified when one of those four actually changed,
+  /// avoiding redundant toolbar rebuilds on every keystroke that doesn't move the caret across a
+  /// style boundary.
   void updateReadState({
     required FountainLineType currentBlockType,
     required Set<OcptInlineStyle> activeInlineStyles,
+    required bool canUndo,
+    required bool canRedo,
   }) {
-    if (_currentBlockType == currentBlockType && setEquals(_activeInlineStyles, activeInlineStyles)) {
+    if (_currentBlockType == currentBlockType &&
+        setEquals(_activeInlineStyles, activeInlineStyles) &&
+        _canUndo == canUndo &&
+        _canRedo == canRedo) {
       return;
     }
     _currentBlockType = currentBlockType;
     _activeInlineStyles = activeInlineStyles;
+    _canUndo = canUndo;
+    _canRedo = canRedo;
     _notifySafely();
   }
 

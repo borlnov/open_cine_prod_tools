@@ -3344,4 +3344,143 @@ void main() {
       expect(lastEncoded, normalizedText);
     });
   });
+  group("a redo that cannot invent text", () {
+    // `Editor` never clears its `future` list when a new edit arrives — its own `future` getter's
+    // doc comment says it should, and nothing in the package does it — so a redo that follows an
+    // undo *and* an edit made after it replays a transaction blind onto a document that has moved
+    // on. Measured on this editor before the guard existed: type `abcdef`, Ctrl+Z, type `XY`,
+    // Ctrl+Shift+Z, and the line read `abcdefXY`. These cases pin down the refusal, and — just as
+    // importantly — that it refuses nothing else.
+
+    /// A fixed instant for [withClock], so a typing run merges into the single undo step
+    /// `OcptTypingRunMergePolicy` promises rather than into one step per keystroke (see the
+    /// "one gesture, one undo step" group's own note).
+    final frozenNow = DateTime(2026, 8, 18, 10);
+
+    /// Types [text] one character at a time into the node holding the caret, settling between
+    /// keystrokes exactly as a real hand slower than the 120 ms debounce does.
+    Future<void> typeRun(WidgetTester tester, String text) async {
+      for (final character in text.split("")) {
+        await tester.typeImeText(character);
+        await _pumpPastSettleDebounce(tester);
+      }
+    }
+
+    testWidgets("a redo asked for after a new edit is refused, and writes nothing at all", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        await typeRun(tester, "abcdef");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+        // The edit that overtakes the undone transaction: from here on, what `Editor.future` still
+        // holds can only ever be replayed onto a document it was never recorded against.
+        await typeRun(tester, "XY");
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        // The Windows habit is the same action and must refuse the same way.
+        await _sendCtrl(tester, LogicalKeyboardKey.keyY);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(document.nodeCount, 1);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+      });
+    });
+
+    testWidgets("a refused redo leaves the history alone: Ctrl+Z still walks back through it", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        await typeRun(tester, "abc");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        await typeRun(tester, "XY");
+
+        await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        // The refusal is a refusal, not a swallowed keystroke that also breaks undo: the writer's
+        // own last gesture is still there to take back.
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+      });
+    });
+
+    testWidgets("an undo left to settle can still be redone: the derived pass does not stale the stack", (
+      tester,
+    ) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        // A line the editor derives from, rather than plain action text: the settle pass that runs
+        // after the undo has reclassification and uppercasing to redo if the undo left it anything
+        // to do at all, which is exactly what must not count as an edit of the writer's.
+        await typeRun(tester, "Ext. garden - night");
+        expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+        await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+      });
+    });
+
+    testWidgets("the controller reports what can be undone and redone, refusal included", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await _pumpStandaloneEditor(tester, "", styledController: controller);
+        expect(controller.canUndo, isFalse);
+        expect(controller.canRedo, isFalse);
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        await typeRun(tester, "abc");
+        expect(controller.canUndo, isTrue);
+        expect(controller.canRedo, isFalse);
+
+        controller.undo();
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+        expect(controller.canRedo, isTrue);
+
+        // The very predicate an `Undo`/`Redo` affordance reads: a fresh edit takes the redo away,
+        // rather than leaving one that would invent text.
+        await typeRun(tester, "XY");
+        expect(controller.canUndo, isTrue);
+        expect(controller.canRedo, isFalse);
+
+        controller.redo();
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        controller.undo();
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+      });
+    });
+  });
 }
