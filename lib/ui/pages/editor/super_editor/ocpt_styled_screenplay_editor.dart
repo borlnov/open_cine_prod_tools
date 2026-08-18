@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_history_policy.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
@@ -153,6 +154,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// list, blockquote, dash and link conversions) rewrite the very raw text this editor must
   /// preserve untouched, so none of them can run here.
   late Editor _editor;
+
+  /// The undo-grouping policy every [_editor] this state builds runs on: what makes one Ctrl+Z
+  /// give back one gesture of the writer's plus everything this widget derived from it, rather
+  /// than one keystroke or one derived pass (see [OcptSettleMergePolicy]).
+  ///
+  /// Owned by the state rather than built per [Editor]: it carries the "a derived pass is running
+  /// right now" flag [_runDerivedPass] raises, which every derived pass below has to reach.
+  final OcptSettleMergePolicy _mergePolicy = OcptSettleMergePolicy();
 
   /// The key bound to the document layout, used to resolve a node's on-screen component when
   /// applying a scene jump.
@@ -687,11 +696,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       // `isHistoryEnabled` defaults to false, which is what used to make every command's own
       // `HistoryBehavior.undoable` moot: `undo()`/`redo()` returned immediately and `history`/
       // `future` never grew. `historyGroupingPolicy` defaults to `neverMergePolicy`, which groups
-      // nothing at all, so this is `defaultMergePolicy` (super_editor's own
-      // `mergeRepeatSelectionChangesPolicy` + `mergeRapidTextInputPolicy`) rather than leaving it at
-      // that default.
+      // nothing at all, and super_editor's own `defaultMergePolicy` groups a typing run only
+      // within 100 ms — see [OcptSettleMergePolicy] for what this one groups instead.
       isHistoryEnabled: true,
-      historyGroupingPolicy: defaultMergePolicy,
+      historyGroupingPolicy: _mergePolicy,
     );
 
     _document.addListener(_onDocumentChanged);
@@ -751,7 +759,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       return;
     }
 
-    _settleDocument(_document, _editor);
+    _runDerivedPass(() => _settleDocument(_document, _editor));
     _encodeAndReportIfChanged();
 
     final previousPageCount = _pageCount;
@@ -761,6 +769,16 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       setState(() {});
     }
   }
+
+  /// Runs [derivedPass] — any pass that writes back to [_document] what this widget *derived* from
+  /// the writer's last gesture, rather than what the writer did — with [_mergePolicy]'s settling
+  /// flag raised, so every transaction it closes merges onto the gesture's own instead of becoming
+  /// an undo step of its own.
+  ///
+  /// The flag has to go around the `execute` calls themselves, never around the debounce that
+  /// schedules them: `Editor.endTransaction` is what consults the policy, and it runs
+  /// synchronously inside `execute`.
+  void _runDerivedPass(void Function() derivedPass) => _mergePolicy.runDerivedPass(derivedPass);
 
   /// Brings every node of [document] (executed through [editor]) to the same settled state
   /// [_syncAfterEdit] and [_flushPendingSync] both need before their text can be safely encoded:
@@ -810,8 +828,16 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// text: this is what corrects a badly-ordered `#N#` typed in raw mode (or by any other means)
   /// the moment it's decoded into the styled editor, rather than waiting for the next edit's
   /// [_syncAfterEdit] debounce to happen to touch a scene heading.
+  ///
+  /// `isHistorical: false`, unlike [_settleDocument]'s own call to the same function: this pass
+  /// runs before the writer has done anything at all, so an undo step here could only ever be a
+  /// Ctrl+Z that un-corrects the numbering. It is refused history at the command level rather than
+  /// through [_mergePolicy], which cannot help here — a merge onto an empty history is an append
+  /// (`Editor.endTransaction`), which is exactly the transaction to avoid. Nothing this executes
+  /// therefore ever reaches the policy, which is why this pass is not wrapped in
+  /// [_runDerivedPass].
   void _syncSceneNumbers() {
-    final requests = sceneNumberNormalizationRequests(_document);
+    final requests = sceneNumberNormalizationRequests(_document, isHistorical: false);
     if (requests.isEmpty) {
       return;
     }
@@ -837,6 +863,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// [_pageCount]/[_trailingBottomPadding] to 0. Only mutates those fields and executes editor
   /// requests, neither of which needs `setState` from [initState]; every other caller wraps this
   /// in its own `setState`.
+  ///
+  /// Its requests go through [_runDerivedPass] for the same reason [_settleDocument]'s do: where a
+  /// page break falls is derived from the document, never typed, so it belongs to the gesture that
+  /// moved it rather than being an undo step of its own. Keeping it *in* history (merged) rather
+  /// than out of it is what makes an undo land on a correctly paginated document straight away:
+  /// `Editor.undo()` rebuilds the document by resetting it to the snapshot `MutableDocument`'s own
+  /// constructor took — which carries no page padding at all — and replaying history, so a
+  /// non-historical padding would simply vanish on every Ctrl+Z until the next debounce put it
+  /// back.
   void _recomputePageSimulation() {
     if (!widget.isPageSimulationEnabled) {
       final clearRequests = <EditRequest>[
@@ -845,7 +880,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptStartsNewPageMetadataKey: 0.0}),
       ];
       if (clearRequests.isNotEmpty) {
-        _editor.execute(clearRequests);
+        _runDerivedPass(() => _editor.execute(clearRequests));
       }
       _pageCount = 0;
       _titlePageSheetCount = 0;
@@ -866,7 +901,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             ),
     ];
     if (requests.isNotEmpty) {
-      _editor.execute(requests);
+      _runDerivedPass(() => _editor.execute(requests));
     }
     _pageCount = pagination.pageCount;
     _titlePageSheetCount = pagination.titlePageSheetCount;

@@ -142,6 +142,11 @@ dev_dependencies:
   # (super_editor's own supereditor_robot.dart only wraps its typeText, not its backspace)
   flutter_test_robots: ^0.0.24
 
+  # Provides withClock, used to freeze the wall clock super_editor's undo-grouping policy reads
+  # (`MergeRapidTextInputPolicy` compares transaction timestamps taken with `clock.now()`), so a
+  # typing-run test measures the grouping rule rather than the test VM's own real-time gaps
+  clock: ^1.1.2
+
   # Generates the drift/*.g.dart companion code (tables, DAOs) from the annotated database classes
   drift_dev: ^2.24.0
 
