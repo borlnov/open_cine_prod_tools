@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -95,6 +96,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The manager owning the spell-check worker isolate this bloc requests raw-mode checks from.
   final OcptSpellCheckManager _spellCheckManager;
 
+  /// The service used to read and grow the open project's own learned-word dictionary
+  /// ("Add to the project's dictionary").
+  final OcptProjectDictionaryService _projectDictionaryService;
+
   /// The delay between the last edit and the re-parse of the source text.
   final Duration _parseDebounce;
 
@@ -141,6 +146,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// [_resetStyledSpellCheckCacheIfStale]'s own doc comment.
   ({OcptScreenplayLanguage? language, bool isVisible, int generation})? _styledSpellCheckCacheKey;
 
+  /// The checkable node texts the styled editor last reported through
+  /// [OcptEditorStyledSpellCheckTextsReportedEvent], remembered so [_onWordIgnored]/
+  /// [_onWordLearned] can re-issue a styled-mode check over them without waiting for the styled
+  /// editor to report anything fresh — nothing about the document changed, only the manager's
+  /// extra-word set did, and the styled editor itself has no reason to notice that on its own.
+  Map<String, String> _lastStyledSpellCheckTexts = const {};
+
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
   late final void Function() _unregisterUnsavedChangesReporter;
 
@@ -160,7 +172,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// [parseDebounce], [autosaveDebounce] and [statisticsDebounce] are only meant to be overridden
   /// by tests, to keep them fast and deterministic. [spellCheckManager] is injectable for the same
   /// reason every other manager here is: a test hands in a fake rather than resolving the real,
-  /// isolate-backed one.
+  /// isolate-backed one. [projectDictionaryService] follows `OcptBreakdownBloc`'s own pattern for
+  /// a service that otherwise lives on [OcptProjectsManager]: it defaults to the manager's own
+  /// instance, but a test can hand in a double without having to fake the whole manager for it.
   OcptEditorBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
@@ -168,6 +182,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptScreenplayService? screenplayService,
     OcptExportManager? exportManager,
     OcptSpellCheckManager? spellCheckManager,
+    OcptProjectDictionaryService? projectDictionaryService,
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
     Duration statisticsDebounce = defaultStatisticsDebounce,
@@ -181,6 +196,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _spellCheckManager = spellCheckManager ?? globalGetIt().get<OcptSpellCheckManager>(),
+       _projectDictionaryService =
+           projectDictionaryService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).projectDictionaryService,
        _parseDebounce = parseDebounce,
        _autosaveDebounce = autosaveDebounce,
        _statisticsDebounce = statisticsDebounce,
@@ -219,6 +237,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorSpellCheckRangesReportedEvent>(_onSpellCheckRangesReported);
     on<OcptEditorStyledSpellCheckTextsReportedEvent>(_onStyledSpellCheckTextsReported);
     on<OcptEditorStyledSpellCheckRangesReportedEvent>(_onStyledSpellCheckRangesReported);
+    on<OcptEditorWordIgnoredEvent>(_onWordIgnored);
+    on<OcptEditorWordLearnedEvent>(_onWordLearned);
     on<OcptEditorPageSetupChangedEvent>(_onPageSetupChanged);
     on<OcptEditorProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
@@ -404,6 +424,15 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         clearSceneStatistics: sceneStats == null,
       ),
     );
+
+    // The open project's own learned words ("Add to the project's dictionary") are pushed into
+    // the manager right here, on every load: an episode switch and a version restore both reach
+    // this same method, and the manager is one process-wide instance holding whichever project's
+    // words were pushed in last. Nothing is read (and nothing pushed) in the project == null
+    // branch above — there is no project database to read a word list from.
+    final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
+    _spellCheckManager.setLearnedWords(learnedWords.toSet());
+
     unawaited(_reconcileSpellCheckLanguage());
   }
 
@@ -934,6 +963,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorStyledSpellCheckTextsReportedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    // Remembered unconditionally, even under a guard below that turns the rest of this handler
+    // into a no-op: [_onWordIgnored]/[_onWordLearned] re-issue a check over exactly what was last
+    // reported, and they must never re-issue one over a stale set left over from before spell-
+    // checking was switched off.
+    _lastStyledSpellCheckTexts = event.textsByNodeId;
+
     if (state.isPreviewingVersion) {
       return;
     }
@@ -941,9 +976,17 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       return;
     }
 
+    _requestStyledSpellCheck(event.textsByNodeId);
+  }
+
+  /// Fires a styled-mode spell-check request over [textsByNodeId], without awaiting the isolate
+  /// round trip — the async tail this handler's callers can't stick around for arrives as its own
+  /// [OcptEditorStyledSpellCheckRangesReportedEvent]. The body [_onStyledSpellCheckTextsReported]
+  /// used to run inline before its own dedup/re-check needs ([_onWordIgnored]/[_onWordLearned])
+  /// made a second caller of the exact same steps worth factoring out.
+  void _requestStyledSpellCheck(Map<String, String> textsByNodeId) {
     _resetStyledSpellCheckCacheIfStale();
 
-    final textsByNodeId = event.textsByNodeId;
     final textsToSend = <String, String>{
       for (final entry in textsByNodeId.entries)
         if (_styledSpellCheckCache[entry.key]?.text != entry.value) entry.key: entry.value,
@@ -984,6 +1027,23 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
   }
 
+  /// Re-issues a styled-mode check over [_lastStyledSpellCheckTexts] — used by [_onWordIgnored]/
+  /// [_onWordLearned], whose own [OcptSpellCheckManager.ignoreWord]/[OcptSpellCheckManager
+  /// .setLearnedWords] call already bumped the manager's generation, which is what makes
+  /// [_requestStyledSpellCheck]'s own [_resetStyledSpellCheckCacheIfStale] treat every one of
+  /// these texts as needing a fresh answer even though none of them actually changed: the styled
+  /// editor itself has nothing to report here, since no text changed either.
+  ///
+  /// A no-op under the same two conditions [_onStyledSpellCheckTextsReported] guards its own call
+  /// on (spell-checking off by either switch); a version preview is guarded by the caller instead,
+  /// since both callers refuse their whole event under one.
+  void _reissueStyledSpellCheck() {
+    if (!state.isSpellCheckVisible || state.screenplayLanguage == null) {
+      return;
+    }
+    _requestStyledSpellCheck(_lastStyledSpellCheckTexts);
+  }
+
   /// Answers [OcptEditorStyledSpellCheckRangesReportedEvent], the async tail of
   /// [_onStyledSpellCheckTextsReported].
   ///
@@ -1006,6 +1066,73 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
 
     emitter(state.copyWith(styledSpellCheckRanges: event.ranges));
+  }
+
+  /// Returns up to five spelling suggestions for [word] — the answer the styled editor's
+  /// right-click context menu awaits before it can show its suggestion entries at all
+  /// (`docs/plans/screenplay-spell-check.md` §4.5). This is a plain method the page `await`s
+  /// rather than a dispatched event, deliberately: an event has no channel back to its caller, and
+  /// a right-click can afford the one isolate round trip this costs (~1 ms once the dictionary is
+  /// warm) far better than every other spell-check path in this bloc could afford waiting on one.
+  ///
+  /// Returns `const []` immediately, with no isolate round trip at all, while spell-checking is
+  /// off (either `OcptEditorState.isSpellCheckVisible` or `OcptEditorState.screenplayLanguage` says
+  /// so) or a version is being previewed — the same three conditions every other spell-check path
+  /// here guards on.
+  Future<List<String>> spellingSuggestionsFor(String word) {
+    if (state.isPreviewingVersion || !state.isSpellCheckVisible || state.screenplayLanguage == null) {
+      return Future.value(const []);
+    }
+    return _spellCheckManager.suggestionsFor(word);
+  }
+
+  /// Answers [OcptEditorWordIgnoredEvent]: tells [OcptSpellCheckManager.ignoreWord] and re-issues a
+  /// check over both editing surfaces — the manager's own generation bump has just invalidated both
+  /// spell-check caches, so [_requestSpellCheck] (raw) and [_reissueStyledSpellCheck] (styled) both
+  /// re-send everything they have rather than skipping it as unchanged, which is what makes the
+  /// ignored word's underline disappear without anything having to be re-typed (the milestone's own
+  /// acceptance criterion).
+  ///
+  /// Refused entirely while a version is being previewed, like every other write this bloc makes.
+  Future<void> _onWordIgnored(
+    OcptEditorWordIgnoredEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    if (state.isPreviewingVersion) {
+      return;
+    }
+
+    _spellCheckManager.ignoreWord(event.word);
+    _requestSpellCheck();
+    _reissueStyledSpellCheck();
+  }
+
+  /// Answers [OcptEditorWordLearnedEvent]: teaches the event's word to the open project's dictionary
+  /// through [_projectDictionaryService], reloads its word list and pushes it into
+  /// [OcptSpellCheckManager.setLearnedWords], then re-issues a check over both editing surfaces for
+  /// the identical reason [_onWordIgnored] does.
+  ///
+  /// A no-op with no project open. Refused entirely while a version is being previewed, like every
+  /// other write this bloc makes.
+  Future<void> _onWordLearned(
+    OcptEditorWordLearnedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    if (state.isPreviewingVersion) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _projectDictionaryService.learnWord(database: project.database, word: event.word);
+    final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
+    _spellCheckManager.setLearnedWords(learnedWords.toSet());
+
+    _requestSpellCheck();
+    _reissueStyledSpellCheck();
   }
 
   /// Loads or unloads `OcptSpellCheckManager`'s dictionary to match

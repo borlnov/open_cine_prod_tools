@@ -301,6 +301,47 @@ class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorEvent {
   List<Object?> get props => [...super.props, generation, ranges];
 }
 
+/// Reports that the styled editor's right-click "Ignore this word" entry was picked for [word].
+///
+/// Session-only (`docs/plans/screenplay-spell-check.md` §4.4): reaches
+/// `OcptSpellCheckManager.ignoreWord` alone, never `OcptProjectDictionaryService` — persisting an
+/// ignored word would silently build a second dictionary nobody can see or edit. The manager's own
+/// generation bump has invalidated both spell-check caches by the time this handler returns, so it
+/// re-issues a check over both editing surfaces right away: the milestone's own acceptance
+/// criterion is that ignoring a word makes its underline disappear without anything having to be
+/// re-typed. Refused while a version is being previewed, like every other write this bloc makes.
+class OcptEditorWordIgnoredEvent extends OcptEditorEvent {
+  /// The word to ignore for the rest of this session.
+  final String word;
+
+  /// Class constructor
+  const OcptEditorWordIgnoredEvent({required this.word});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, word];
+}
+
+/// Reports that the styled editor's right-click "Add to the project's dictionary" entry was
+/// picked for [word].
+///
+/// Persisted through `OcptProjectDictionaryService.learnWord` on the open project's database, the
+/// freshly reloaded word list then pushed into `OcptSpellCheckManager.setLearnedWords` — unlike
+/// [OcptEditorWordIgnoredEvent], this outlives the session, in the project file itself. Re-issues a
+/// check over both editing surfaces afterwards for the identical reason that event does. A no-op
+/// with no project open, and refused while a version is being previewed.
+class OcptEditorWordLearnedEvent extends OcptEditorEvent {
+  /// The word to teach the open project's dictionary.
+  final String word;
+
+  /// Class constructor
+  const OcptEditorWordLearnedEvent({required this.word});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, word];
+}
+
 /// Requests updating the editor's page setup (page size and margins).
 ///
 /// [pageSetup] is persisted (format per-project, margins app-wide) and applied live to the

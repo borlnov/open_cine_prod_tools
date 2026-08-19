@@ -272,10 +272,35 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     return completer.future;
   }
 
-  /// Sets the session's ignored words (never persisted, dropped when the app closes), replacing
-  /// whatever was pushed in before. Bumps [generation] and clears the worker's memo.
+  /// Replaces the session's whole ignored-word set with [words] (never persisted, dropped when the
+  /// app closes). Bumps [generation] and clears the worker's memo.
+  ///
+  /// The wholesale form: a caller that already holds the complete set it wants in force (a test,
+  /// chiefly) uses this. [ignoreWord] is the accumulating form a right-click's "Ignore this word"
+  /// actually drives, one word at a time — see its own doc comment for why the accumulation lives
+  /// here rather than being tracked by whichever bloc calls it.
   void ignoreWords(Set<String> words) {
     _ignoredWords = words;
+    _generation++;
+    final worker = _worker;
+    if (worker != null) {
+      _pushExtraWords(worker);
+    }
+  }
+
+  /// Adds [word] to the session's ignored words, on top of whatever [ignoreWords] or an earlier
+  /// [ignoreWord] call already put there (never persisted, dropped when the app closes). Bumps
+  /// [generation] and clears the worker's memo, so the very next check answers with [word] no
+  /// longer flagged.
+  ///
+  /// The accumulation lives **here**, in the manager, rather than in `OcptEditorBloc`, on purpose:
+  /// a bloc dies with the page it backs — an episode switch or a raw/styled mode toggle rebuilds
+  /// the styled editor, and either can rebuild this bloc too — while "ignored for this session" is
+  /// meant to survive every one of those, exactly as long as the manager's own worker isolate
+  /// already does (`docs/plans/screenplay-spell-check.md` §4.4). A bloc-held set would silently
+  /// forget every word a writer ignored the moment the editor remounted.
+  void ignoreWord(String word) {
+    _ignoredWords = {..._ignoredWords, word};
     _generation++;
     final worker = _worker;
     if (worker != null) {
