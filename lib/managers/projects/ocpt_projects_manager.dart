@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -232,7 +233,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// [OcptPageFormat.a4] when the platform's locale is French, and to [OcptPageFormat.usLetter]
   /// otherwise. Its currency defaults to whatever `intl` names for the platform's current locale
   /// (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
-  /// [ocptDefaultCurrencyCode] when it can't.
+  /// [ocptDefaultCurrencyCode] when it can't. Its screenplay language is seeded the same way, from
+  /// the same locale ([_defaultScreenplayLanguageForPlatformLocale]) — a guess made once, at the
+  /// only moment where getting it wrong costs nothing worse than a dropdown pick in the project
+  /// settings page.
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> createProject({
     required String name,
     required String filePath,
@@ -266,6 +270,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
               appVersionAtCreation: _appVersion,
               pageFormat: _defaultPageFormatForPlatformLocale(),
               currencyCode: Value(_defaultCurrencyCodeForPlatformLocale()),
+              screenplayLanguage: Value(_defaultScreenplayLanguageForPlatformLocale()),
             ),
           );
 
@@ -488,6 +493,46 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await project.database
         .update(project.database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(minimumRestMinutes: Value(minutes)));
+  }
+
+  /// Loads the screenplay language stored in the [currentProject]'s `project_info` table, or null.
+  ///
+  /// The two reasons for a null answer are indistinguishable here, exactly as
+  /// [loadCurrentProjectMinimumRestMinutes]'s are: no project is open, or one is and nobody has
+  /// recorded a language for it — the column's own truthful "nobody has said"
+  /// (`OcptProjectInfoTable.screenplayLanguage`).
+  Future<OcptScreenplayLanguage?> loadCurrentProjectScreenplayLanguage() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.screenplayLanguage;
+  }
+
+  /// Updates the screenplay language stored in the [currentProject]'s `project_info` table, or
+  /// clears it when [language] is null — a writer who decides the checker should stay off this
+  /// screenplay is making as real a choice as picking one of the two bundled languages. Does
+  /// nothing if no project is currently open.
+  ///
+  /// Modelled on [saveCurrentProjectMinimumRestMinutes]: [language] is written whichever it is,
+  /// including null, rather than only ever holding a value the way a page format or a currency
+  /// always does.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage? language) async {
+    final project = currentProject;
+    if (project == null ||
+        project.database.refusesUserWrite("saveCurrentProjectScreenplayLanguage")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(screenplayLanguage: Value(language)));
   }
 
   /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
@@ -881,6 +926,15 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       NumberFormat.simpleCurrency(locale: PlatformDispatcher.instance.locale.toString())
           .currencyName ??
       ocptDefaultCurrencyCode;
+
+  /// Returns the default [OcptScreenplayLanguage] for a newly created project, based on the
+  /// platform's current locale: [OcptScreenplayLanguage.fr] for French,
+  /// [OcptScreenplayLanguage.enGb] otherwise — the same guess, from the same locale,
+  /// [_defaultPageFormatForPlatformLocale] already makes for the page format.
+  static OcptScreenplayLanguage _defaultScreenplayLanguageForPlatformLocale() {
+    final languageCode = PlatformDispatcher.instance.locale.languageCode;
+    return languageCode == "fr" ? OcptScreenplayLanguage.fr : OcptScreenplayLanguage.enGb;
+  }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

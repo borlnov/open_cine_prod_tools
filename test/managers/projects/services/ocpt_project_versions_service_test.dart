@@ -34,6 +34,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
@@ -858,6 +859,7 @@ void main() {
                   settingsJson: payload.settingsJson,
                   currencyCode: payload.currencyCode,
                   minimumRestMinutes: payload.minimumRestMinutes,
+                  screenplayLanguage: payload.screenplayLanguage,
                 ),
               ),
               summaryJson: "{}",
@@ -1530,6 +1532,56 @@ void main() {
         expect(result.status, OcptProjectRestoreStatus.ok);
         final info = await database.select(database.ocptProjectInfoTable).getSingle();
         expect(info.minimumRestMinutes, isNull);
+      },
+    );
+
+    test("restores the screenplay language the version was captured with", () async {
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(
+            const OcptProjectInfoTableCompanion(
+              screenplayLanguage: Value(OcptScreenplayLanguage.fr),
+            ),
+          );
+      final version = await createVersion();
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(
+            const OcptProjectInfoTableCompanion(
+              screenplayLanguage: Value(OcptScreenplayLanguage.enGb),
+            ),
+          );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final info = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(info.screenplayLanguage, OcptScreenplayLanguage.fr);
+    });
+
+    test(
+      "restoring a payload with no screenplay language clears one recorded since — unlike the "
+      "currency",
+      () async {
+        // Unlike currencyCode, which is never null on a live capture, screenplayLanguage is null
+        // right here because nobody has recorded one yet — a truthful value of its own, exactly
+        // the reading minimumRestMinutes' own null carries.
+        final version = await createVersion();
+
+        await database
+            .update(database.ocptProjectInfoTable)
+            .write(
+              const OcptProjectInfoTableCompanion(
+                screenplayLanguage: Value(OcptScreenplayLanguage.enGb),
+              ),
+            );
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+        final info = await database.select(database.ocptProjectInfoTable).getSingle();
+        expect(info.screenplayLanguage, isNull);
       },
     );
 

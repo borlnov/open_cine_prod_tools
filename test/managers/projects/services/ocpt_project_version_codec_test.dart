@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -782,6 +783,7 @@ void main() {
     settingsJson: '{"someSetting":true}',
     currencyCode: "GBP",
     minimumRestMinutes: 660,
+    screenplayLanguage: OcptScreenplayLanguage.fr,
   );
 
   /// [buildRichPayload] serialized and read back.
@@ -1180,6 +1182,10 @@ void main() {
       expect(roundTrip(buildRichPayload()).minimumRestMinutes, 660);
     });
 
+    test('the screenplay language comes back', () {
+      expect(roundTrip(buildRichPayload()).screenplayLanguage, OcptScreenplayLanguage.fr);
+    });
+
     test("a block's crew note comes back", () {
       final block = roundTrip(
         buildRichPayload(),
@@ -1228,6 +1234,7 @@ void main() {
         settingsJson: null,
         currencyCode: null,
         minimumRestMinutes: null,
+        screenplayLanguage: null,
       );
 
       expect(roundTrip(payload), payload);
@@ -1281,6 +1288,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(reordered));
@@ -1330,6 +1338,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
@@ -1379,6 +1388,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
@@ -1423,6 +1433,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
@@ -1464,6 +1475,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1505,6 +1517,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       // Without the resources tables in the digest, an afternoon of typing people, locations and
@@ -1548,6 +1561,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1597,6 +1611,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -1644,6 +1659,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1688,6 +1704,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       // A role recast onto a different episode changes the project even though every row's own id
@@ -1744,6 +1761,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       // Without the breakdown tables in the digest, an afternoon of tagging the script would leave
@@ -1794,6 +1812,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reanchored)));
@@ -1838,6 +1857,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1882,6 +1902,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(marked)));
@@ -1926,6 +1947,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       // elements.status is new too, and it lives inside the digest exactly like every other
@@ -1981,6 +2003,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       // Without the seven schedule tables in the digest, planning a whole shooting day would leave
@@ -2027,6 +2050,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recalled)));
@@ -2071,6 +2095,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2123,6 +2148,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewGuest)));
@@ -2167,6 +2193,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
@@ -2208,6 +2235,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: "USD",
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recurrencied)));
@@ -2249,9 +2277,52 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: 720,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(rerested)));
+    });
+
+    test('changes when the screenplay language changes', () {
+      final payload = buildRichPayload();
+      final relanguaged = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: OcptScreenplayLanguage.enGb,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(relanguaged)));
     });
 
     test("changes when a block's crew note is typed", () {
@@ -2294,6 +2365,7 @@ void main() {
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(renoted)));
@@ -3255,6 +3327,29 @@ void main() {
         // included.
         final reEncoded = codec.decode(codec.encode(payload)).value!;
         expect(reEncoded, payload);
+      },
+    );
+
+    test(
+      'a stored format-13 payload decodes with no screenplay language recorded',
+      () {
+        // Format 13 predates `project_info.screenplayLanguage` entirely, so
+        // [_upgradeFormat13To14] materialises it as **null** — [_upgradeFormat11To12]'s kind, not
+        // the currency's "leave the live value alone" one, since the column is nullable by design
+        // and null is its own truthful state. The fixture is the current encoding with the key
+        // taken back out of `projectSettings` and the format wound back, rather than a second
+        // hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        (encoded["projectSettings"] as Map<String, dynamic>).remove("screenplayLanguage");
+        encoded["payloadFormat"] = 13;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.screenplayLanguage, isNull);
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(result.value!.currencyCode, buildRichPayload().currencyCode);
+        expect(result.value!.minimumRestMinutes, buildRichPayload().minimumRestMinutes);
       },
     );
   });

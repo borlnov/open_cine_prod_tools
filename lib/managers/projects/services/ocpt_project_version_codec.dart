@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -59,7 +60,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 13;
+  static const currentPayloadFormat = 14;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -739,6 +740,10 @@ class OcptProjectVersionCodec {
   /// object
   static const _minimumRestMinutesKey = "minimumRestMinutes";
 
+  /// This is the key used to stringify or parse the project's `screenplayLanguage` from a JSON
+  /// object
+  static const _screenplayLanguageKey = "screenplayLanguage";
+
   /// This is the key used to stringify or parse the left page margin from a JSON object
   static const _marginLeftKey = "leftInches";
 
@@ -770,6 +775,7 @@ class OcptProjectVersionCodec {
     10: _upgradeFormat10To11,
     11: _upgradeFormat11To12,
     12: _upgradeFormat12To13,
+    13: _upgradeFormat13To14,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1199,6 +1205,22 @@ class OcptProjectVersionCodec {
     };
   }
 
+  /// Turns a format-**13** JSON object into a format-**14** one: `project_info.screenplayLanguage`
+  /// didn't exist yet, so [_projectSettingsKey] gains a **null** [_screenplayLanguageKey].
+  ///
+  /// [_upgradeFormat11To12]'s kind, not [_upgradeFormat3To4]'s currency: the column is nullable by
+  /// design, so a version captured in format 13 or earlier truthfully recorded nothing for it, and
+  /// that nothing is written back onto the working copy on restore like any other changed column —
+  /// see [OcptProjectVersionPayload.screenplayLanguage].
+  static Map<String, dynamic> _upgradeFormat13To14(Map<String, dynamic> json) {
+    final projectSettings = {
+      ..._object(json, _projectSettingsKey),
+      _screenplayLanguageKey: null,
+    };
+
+    return {...json, _projectSettingsKey: projectSettings};
+  }
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1288,6 +1310,7 @@ class OcptProjectVersionCodec {
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
       _minimumRestMinutesKey: payload.minimumRestMinutes,
+      _screenplayLanguageKey: payload.screenplayLanguage?.name,
     },
     _pageMarginsKey: {
       _marginLeftKey: payload.pageSetup.margins.leftInches,
@@ -1380,6 +1403,10 @@ class OcptProjectVersionCodec {
   ///   capture as on an old one, since the column is nullable by design — but it stays **in**, not
   ///   out alongside the margins: two projects agreeing on every shooting day but disagreeing on the
   ///   rest they owe between them are not the same project, and leaving it out would hide that;
+  ///   `screenplayLanguage` is the same case again, for the same reason: two projects agreeing on
+  ///   everything else but disagreeing on the language their screenplays are written in are not the
+  ///   same project — one of them would be spell-checked and the other would not — so it stays in,
+  ///   null exactly as legitimately as `minimumRestMinutes`;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -1526,6 +1553,7 @@ class OcptProjectVersionCodec {
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
       _minimumRestMinutesKey: payload.minimumRestMinutes,
+      _screenplayLanguageKey: payload.screenplayLanguage?.name,
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
@@ -1637,6 +1665,11 @@ class OcptProjectVersionCodec {
       settingsJson: _nullableString(projectSettings, _settingsJsonKey),
       currencyCode: _nullableString(projectSettings, _currencyCodeKey),
       minimumRestMinutes: _nullableInt(projectSettings, _minimumRestMinutesKey),
+      screenplayLanguage: _nullableEnum(
+        projectSettings,
+        _screenplayLanguageKey,
+        OcptScreenplayLanguage.values.asNameMap(),
+      ),
     );
   }
 

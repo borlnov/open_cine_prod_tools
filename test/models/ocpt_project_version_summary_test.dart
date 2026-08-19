@@ -56,6 +56,7 @@ void main() {
     settingsJson: null,
     currencyCode: null,
     minimumRestMinutes: null,
+    screenplayLanguage: null,
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].

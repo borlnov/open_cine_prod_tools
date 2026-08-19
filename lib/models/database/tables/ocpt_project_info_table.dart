@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
 /// The currency a project counts in until somebody says otherwise: the column's own SQL default,
 /// what an existing project is migrated to, and the fallback `OcptProjectsManager` seeds a new one
@@ -28,6 +29,21 @@ class OcptPageFormatConverter extends TypeConverter<OcptPageFormat, String> {
   /// {@macro drift.TypeConverter.toSql}
   @override
   String toSql(OcptPageFormat value) => value.name;
+}
+
+/// Converts a [OcptScreenplayLanguage] to and from the text stored in the
+/// `project_info.screenplayLanguage` column.
+class OcptScreenplayLanguageConverter extends TypeConverter<OcptScreenplayLanguage, String> {
+  /// Class constructor
+  const OcptScreenplayLanguageConverter();
+
+  /// {@macro drift.TypeConverter.fromSql}
+  @override
+  OcptScreenplayLanguage fromSql(String fromDb) => OcptScreenplayLanguage.values.byName(fromDb);
+
+  /// {@macro drift.TypeConverter.toSql}
+  @override
+  String toSql(OcptScreenplayLanguage value) => value.name;
 }
 
 /// The single-row table holding the project-wide metadata of an Open Cine Prod Tools project.
@@ -79,6 +95,23 @@ class OcptProjectInfoTable extends Table {
   /// exactly as `people.maxDailyPresenceMinutes` and a location declaring no availability window
   /// already do.
   IntColumn get minimumRestMinutes => integer().nullable()();
+
+  /// The language this project's screenplays are **written** in ([OcptScreenplayLanguage]), or
+  /// null.
+  ///
+  /// A property of the **project**, not of the app — the same reasoning [currencyCode] carries: a
+  /// screenplay written in French stays French on a colleague's machine running the app in
+  /// English, so the fact has to travel inside the `.ocpt` file itself rather than live in
+  /// `OcptPropertiesManager` next to a rendering preference with nothing to do with any one
+  /// project.
+  ///
+  /// **Nullable on purpose.** Null means "nobody has said", exactly the reading
+  /// [minimumRestMinutes]'s own doc comment gives its own null: it is what a project created before
+  /// this column existed reads as, and it is also the honest answer for a screenplay written in a
+  /// language this app carries no dictionary for — there is no guess worth making on its behalf,
+  /// only an off switch worth offering. Nothing is spell-checked while this is null.
+  TextColumn get screenplayLanguage =>
+      text().nullable().map(const OcptScreenplayLanguageConverter())();
 
   /// The project version the working copy descends from, or null in a project which never had one.
   ///
