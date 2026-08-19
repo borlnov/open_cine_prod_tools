@@ -76,6 +76,7 @@ number is a stable identifier other documents and commits can reference.
 | [0017](0017-convocations-computed-from-the-slot-chain.md) | Convocations computed from the slot chain | Superseded by ADR-0018 |
 | [0018](0018-a-convocation-is-the-slot-you-are-linked-to.md) | A convocation is the slot you are linked to | Accepted |
 | [0019](0019-one-project-several-episodes.md) | One project, several episodes | Accepted |
+| [0020](0020-bundled-hunspell-dictionaries-and-our-own-checker.md) | Bundled hunspell dictionaries and our own checker | Accepted |
 
 ## Candidates
 

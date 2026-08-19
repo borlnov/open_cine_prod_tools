@@ -121,6 +121,11 @@ What the app does today:
   syntax guide in the right dock.
 - A scene dock to navigate the screenplay, and live statistics in the status bar: pages, scenes,
   characters, words and signs.
+- Spell-checking as you type, in both screenplay modes, from French and British English
+  dictionaries the app bundles - no internet, no system service. It checks the prose and leaves the
+  form alone: scene headings, character cues and transitions are never underlined. Right-click a
+  misspelling for suggestions, ignore a word for the session, or add it to the project's own
+  dictionary - which you can read, filter and prune from the project settings.
 - A breakdown mode (dépouillement): the script read once, as a page, tagging what the shoot must
   provide. Two clicks mark a passage and a popover links it to an element, a character or a set -
   or creates the element, in its category, in one write. A character is never invented here: it is
@@ -170,7 +175,8 @@ What the app does today:
 - `.fountain` import and export.
 - PDF export with an options dialog, page numbers, optional scene numbers, and embedded Courier
   Prime.
-- Page setup: page format and margins, and a per-project currency.
+- Page setup: page format and margins, a per-project currency, and the language the screenplays
+  are written in.
 - Autosave.
 - English (`en_GB`) and French interfaces.
 - A system-following light/dark theme.
@@ -278,10 +284,11 @@ Code and `gh` auth, git worktrees, GUI forwarding).
 ## Repository layout
 
 ```text
-lib/                  Application source
+lib/                   Application source
 packages/fountain_kit/ Pure-Dart Fountain parser, serializer and layout metrics
+packages/spell_kit/    Pure-Dart hunspell reader, spell checker and suggester
 actlibs/               ACT Flutter packages (git submodule)
-assets/                Config, fonts, branding and other bundled assets
+assets/                Config, fonts, branding, dictionaries and other bundled assets
 test/                  Application test suite
 tool/                  Developer scripts (branding icon generation)
 docs/                  Architecture, plans and decision records
@@ -294,6 +301,7 @@ docs/                  Architecture, plans and decision records
 - [Architecture decision records](docs/adr/) - the reasoning behind structural choices.
 - [CI documentation](.github/ci-doc.md) - build, test and release pipeline.
 - [fountain_kit README](packages/fountain_kit/README.md) - the standalone Fountain package.
+- [spell_kit README](packages/spell_kit/README.md) - the standalone spell-checking package.
 
 ## Contributing
 
@@ -305,4 +313,6 @@ less. `flutter analyze` and `flutter test` must pass, and every file needs an SP
 ## License
 
 This project is licensed under Apache-2.0. See the [LICENSES](LICENSES/) directory for the full
-license text and for the bundled third-party licenses, including OFL-1.1 for Courier Prime.
+license text and for the bundled third-party licenses: OFL-1.1 for Courier Prime, MPL-2.0 for the
+French dictionary and the SCOWL notice for the British English one. Each dictionary also carries
+its upstream licence text next to the files it covers, under `assets/dictionaries/`.

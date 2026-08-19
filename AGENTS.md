@@ -158,8 +158,8 @@ file in `docs/architecture/` says what the code does because of it.
 
 | Read this | Before touching |
 | --- | --- |
-| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the read-only preview |
-| [`screenplay.md`](docs/architecture/screenplay.md) | `packages/fountain_kit/`, `lib/ui/pages/editor/` |
+| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview |
+| [`screenplay.md`](docs/architecture/screenplay.md) | `packages/fountain_kit/`, `packages/spell_kit/`, `lib/ui/pages/editor/` |
 | [`exports.md`](docs/architecture/exports.md) | `lib/managers/export/`, the export panel |
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |
 | [`breakdown.md`](docs/architecture/breakdown.md) | `lib/ui/pages/workspace/modes/breakdown/` |

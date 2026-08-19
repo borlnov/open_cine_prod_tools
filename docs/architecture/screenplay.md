@@ -6,8 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # Architecture — the screenplay
 
-`fountain_kit` and the screenplay mode: the parser and what it guarantees, the styled
-editor's document model, the title page, the docks and the syntax guide.
+`fountain_kit`, `spell_kit` and the screenplay mode: the parser and what it guarantees, the
+styled editor's document model, the title page, the spell-checking, the docks and the syntax
+guide.
 
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
@@ -204,6 +205,79 @@ editor's document model, the title page, the docks and the syntax guide.
   further press. `Replace all` goes through `OcptConfirmDialog`, opened by the page with the same
   words in both modes. The whole bar is withheld under a read-only preview, shortcuts included:
   there is no editing surface to search there at all.
+- Spell-checking as you type, in both editing modes, from dictionaries the app bundles rather than
+  from the platform (ADR 0020): `packages/spell_kit` is the pure-Dart hunspell engine (no Flutter
+  import, no I/O — the caller hands it the `.aff` and `.dic` text), and
+  `OcptSpellCheckManager`'s one worker isolate is where a dictionary is parsed and a text is checked
+  (`foundations.md`). Flutter's own `SpellCheckConfiguration`/`SpellCheckService` is used
+  **nowhere in this app**, and the raw mode is the reason: `EditableText._buildTextSpan` calls
+  `buildTextSpanWithSpellCheckSuggestions` as soon as one spell-check result has arrived and never
+  the controller's own `buildTextSpan` again, which is the raw mode's only way of painting a search
+  match — one configuration and the find bar's highlight is gone forever. That path is also
+  triggered from the IME alone (a version restore, an import, an episode switch or a `Replace all`
+  would leave the underlines describing the previous text) and keyed on the **UI** locale, which is
+  not the language a screenplay is written in.
+- **Two switches, and both must be on**: the project's own `screenplayLanguage`
+  (`project_info`, picked in the project settings page — null means "nobody has said", and nothing
+  is checked) says *what* language is checked, and `OcptPropertiesManager.spellCheckVisible`
+  (the `⋮` menu, below `Show scene numbers`, null reading as `true`) says whether *this machine*
+  wants to see the underlines at all. With either off no request is made, the isolate stays
+  unloaded, and nothing is painted; a **read-only preview** checks nothing either, there being no
+  editing surface to correct.
+- What is checked is the screenplay's **prose and nothing else**, decided once in
+  `lib/utils/ocpt_spell_checked_lines.dart`: `ocptIsSpellCheckedLineType` returns true for action,
+  dialogue, parenthetical and centered text, and false for scene headings (a set name in capitals),
+  character cues (a writer's invented names are exactly what a dictionary does not have),
+  transitions (a fixed vocabulary that is not the language's), sections, synopses and lyrics. Title
+  page fields never reach it at all — they are left out of what a caller hands over, a title being
+  invented on purpose and the six fields existing only under page simulation, so the squiggles
+  would otherwise appear and disappear with a display toggle. `ocptLineTypeOfBlock` expresses the
+  same rule over `FountainDocument.blocks` rather than restating it, and
+  `ocptSpellCheckSkipSpansIn` drops the tokens sitting inside an inline note or boneyard comment.
+  The remaining two rules are the tokenizer's own (`SpellTokenizerOptions`, on by default): a token
+  in all capitals is skipped (a shouted word, the convention that introduces a silent character)
+  and so is one holding a digit.
+- The pass rides the editor's existing **150 ms parse debounce**, never a keystroke, exactly where
+  the inspector and metadata panels recompute: `_onParseRequested` already holds a fresh
+  `FountainDocument`, which is what makes the block-type rules above free. Only *changed* texts are
+  sent — the bloc keeps the last text checked per key and skips the identical ones, so a keystroke
+  in one paragraph costs one paragraph — and each surface's cache is keyed on
+  `(language, visibility, manager generation)`, so learning a word or changing the language throws
+  it away rather than answering from it. An answer whose generation no longer matches the
+  manager's, or whose checked text has since changed, is **dropped**.
+- **Each mode matches what it shows**, the same rule the find bar already obeys. Raw mode is
+  checked over the Fountain **source text**, block by block, the ranges translated back to
+  document-absolute offsets by the block's own start; the styled mode is checked over each node's
+  **display text**, keyed by node id, because that is what `SpellingAndGrammarStyler` addresses.
+  The styled editor reports its checkable texts up through
+  `OcptStyledEditorController.reportSpellCheckTexts` and receives the ranges back through
+  `updateSpellCheckRanges` — the mirror of `reportSearchMatchCount`/`updateSearch` — so the bloc
+  never learns about node ids from anywhere else.
+- The underline is painted by each surface in its own way, from one colour
+  (`ocptEditorSpellCheckErrorColor`, `lib/ui/pages/editor/ocpt_editor_search.dart`). Styled mode
+  hands super_editor's own `SpellingAndGrammarStyler` to `customStylePhases` beside
+  `_searchMatchStyler` and feeds it `TextError`s per node id: `text.dart` turns a component view
+  model's `spellingErrors` into the squiggle, so nothing here paints anything. Raw mode's
+  `OcptEditorSearchTextController.buildTextSpan` segments the text on the boundaries of **both**
+  range sets, so a misspelled word inside a search match wears the wash and the wavy underline at
+  once. Two traps the search styler already paid for once apply here too: the styler's
+  `markDirty()` is deferred to a post-frame callback when it comes from a document-change path, and
+  a range computed against a text that has since changed is **dropped outright** rather than
+  clamped — a spelling range arrives one isolate round trip later than a search match does, so it
+  is more exposed to this, not less.
+- Corrections are offered in the **styled mode alone**, through `OcptEditorContextMenu`: a
+  right-click landing on a misspelling opens the menu with up to five suggestions on top, then
+  `Ignore this word` and `Add to the project's dictionary`, then the existing Cut/Copy/Paste/Select
+  all and the block-type submenu. Suggestions are fetched when the menu opens (a right-click can
+  await one warm isolate round trip; computing them for every misspelling on every debounce tick
+  would be work for a menu that never opens), and picking one rewrites the word through the same
+  `OcptReplaceNodeTextRequest` path a replace uses, so it is **one undo step**. On a correctly
+  spelled word — or with spell-checking off — the whole group is **withheld, not disabled**. The
+  raw mode underlines and offers nothing: it keeps Flutter's native menu, and the `⋮` menu is where
+  a raw-mode writer switches the underlines off. `Ignore this word` is session-only, held by the
+  manager and gone when the app closes; `Add to the project's dictionary` is persisted in the
+  project file and read back — and unlearned — from the project settings page (`foundations.md`).
+
 - Editor docks: `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`
   (`lib/ui/pages/workspace/widgets/ocpt_workspace_dock.dart`) give the scene panel and the right
   dock draggable-divider resizing with a 320 px centre floor (right dock yields width first);

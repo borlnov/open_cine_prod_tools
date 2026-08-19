@@ -7,9 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 # Architecture — the foundations
 
 The layers every task crosses: the managers, the routing, the BLoC pattern, the workspace
-shell and the episode it shows, the app-wide look, the packaging, and the four things every
-mode inherits — the persistence, the project versions, the sync-ready data model and the
-read-only preview.
+shell and the episode it shows, the app-wide look, the spell-checking, the packaging, and the four
+things every mode inherits — the persistence, the project versions, the sync-ready data model and
+the read-only preview.
 
 - `OcptGlobalManager extends AbsUiGlobalManager` owns every manager; managers are
   `AbsWithLifeCycle` classes registered with builder factories (`dependsOn` ordering) and
@@ -146,7 +146,7 @@ read-only preview.
 
 - Config: `OcptConfigManager` (yaml assets in `assets/config/`), properties persisted through
   `OcptPropertiesManager` (recent projects capped at 10, locale, theme, editor mode, page
-  margins).
+  margins, spell-check visibility).
 
 - Licenses: `ActLicensesManager` (`actlibs/act_licenses_manager`) is registered via
   `registerManagerAsync<ActLicensesManager>(ActLicensesBuilder<OcptConfigManager>())` right
@@ -160,6 +160,47 @@ read-only preview.
   `OcptProjectsManager.saveCurrentProjectPageFormat`) with the margins (an app-wide rendering
   preference, `OcptPropertiesManager.pageMargins`). `OcptPageSetup.toMetrics()` is the single
   switch-over-format entry point every call site uses to get a `FountainLayoutMetrics`.
+
+- Spell-checking (ADR 0020, and `screenplay.md` for what the editor does with it):
+  `OcptSpellCheckManager` (`lib/managers/`) owns **one worker isolate for the whole app**, holding
+  a `spell_kit` `SpellChecker` over whichever language's bundled dictionary was last loaded, plus
+  the session's ignored words and the open project's learned ones. One isolate rather than one per
+  editor mount: parsing a dictionary costs ~250-350 ms and ~14 MB retained, and the editor is
+  remounted by an episode switch, a mode toggle, an import and a version restore, none of which
+  changes the language. It is spawned lazily on the first `useLanguage`, killed by
+  `disposeLifeCycle` and by `useLanguage(null)`. The two asset files are read on the **main**
+  isolate (`rootBundle.loadString`, ~1.8 MB) and only their text is sent across, which avoids the
+  `BackgroundIsolateBinaryMessenger` dance entirely; the worker never touches Flutter. Every
+  request carries a **generation**, bumped by `useLanguage`, `ignoreWord(s)` and `setLearnedWords`,
+  and an answer from a stale one is dropped here rather than painted over fresh text. The manager
+  sees no `Tr` and no project row: the bloc resolves both.
+- The language a project is written in is `project_info.screenplayLanguage`
+  (`OcptScreenplayLanguage { fr, enGb }`, stored through a `TypeConverter` like `OcptPageFormat`),
+  beside the page format and the currency and for the same reason: a screenplay written in French
+  stays French on a colleague's machine running the app in English, so the fact travels inside the
+  `.ocpt` file. It is **nullable** — null means "nobody has said", and nothing is checked — seeded
+  at project creation from the UI locale, which is a guess made once at the only moment where a
+  wrong guess costs a dropdown pick, and picked afterwards in the project settings page
+  (`OcptProjectSettingsScreenplayLanguageSection`, whose `None` entry is the honest off switch for
+  a project). It is not per episode: a series is written in one language, and a bilingual one would
+  be an additive nullable column on `screenplays` overriding this one.
+- The project's own dictionary is `project_dictionary_words` (`id`, `word`, `isDeleted`), a
+  **synchronised** table written by `OcptProjectDictionaryService` — a table rather than a key in
+  `project_info.settingsJson` because that is the difference, once sync lands, between two writers
+  merging the two names they each taught the checker and one of them overwriting the other's list.
+  A word is stored **as typed** and matched **case-insensitively**, so re-learning it in another
+  case revives its row instead of adding a second one, and un-learning it is a tombstone like every
+  other delete here. `spell_kit` applies the casing rule that makes that useful: a word with no
+  interior capital (`Marie`) covers every casing, one with an interior capital (`MacGuffin`) covers
+  only itself. The words are read, filtered, added and removed in `OcptProjectDictionaryDialog`,
+  opened from the project settings page's own `OcptProjectSettingsDictionarySection` — the section
+  states the count and carries an `Edit…` button, and the **dialog reports rather than writes**
+  (it returns what was added and removed; the *page* applies it through the service), the same
+  shape the title-page dialog already has. Its per-row `✕` is answered **inside the row itself**
+  (`Remove?` / `Yes` / `No`), which is the **second holder** of the standing exception to the
+  confirm-dialog rule — the `Versions` dock panel below is the first — and for the same reason: a
+  list of rows has no other way of saying *which* row is being talked about, and stacking a modal
+  question on an already-modal dialog to un-learn ten names in a row would be a punishment.
 
 - Theme: `ActThemesManager` with `OcptAppTheme.standard`; theme constants in
   `lib/constants/ocpt_theme.dart`, `OcptSpecificColors` in `lib/models/` — two fields:
@@ -208,11 +249,14 @@ read-only preview.
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v18 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v19 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the fifteen resources tables (`role_elements` and `role_episodes`
-  among them), `breakdown_tags`, `scene_breakdowns`, the seven schedule tables, `row_field_versions`,
-  `project_versions`), `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
-  number → exact heading → relative order). v18 is the multi-episode migration: `screenplays` gains
+  among them), `breakdown_tags`, `scene_breakdowns`, the seven schedule tables,
+  `project_dictionary_words`, `row_field_versions`, `project_versions`),
+  `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
+  number → exact heading → relative order). v19 adds `project_info.screenplayLanguage` (nullable,
+  no backfill: "nobody has said" is as true after the migration as before it) and creates
+  `project_dictionary_words`, both additive. v18 is the multi-episode migration: `screenplays` gains
   `number` and `sortKey`, `role_episodes` is added, and `roles.screenplayId` and
   `shooting_days.screenplayId` are **dropped** — the fifth time ADR 0007's additive-only rule is set
   aside for a column drop, through drift's own `Migrator.alterTable`/`TableMigration` recipe. It
@@ -237,7 +281,7 @@ read-only preview.
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  twenty-eight captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  twenty-nine captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat` — independent of the schema version, upgraded on decode when older, refused when
   newer. It is **a hand-written mirror of the schema**, and a new synchronised table has to be added
@@ -383,7 +427,9 @@ read-only preview.
   and a capture is refused: it would read the project file, i.e. a state the user isn't looking at).
   Underneath, a version card is clicked to enter a version's read-only preview and clicked again to
   leave it. The three answers a card can ask for — `Delete`, `Restore this version` and `Rename` —
-  are given **inline inside the card** rather than through a dialog, one at a time
+  are given **inline inside the card** rather than through a dialog, one at a time (the first of
+  the two holders of that standing exception to the confirm-dialog rule — the project dictionary
+  dialog's own per-row removal above is the second)
   (`versionPendingDeletionId`, `versionPendingRestoreId`, `versionPendingRenameId`); the restore's
   question is the one place saying the page setup comes back too and the replaced state is kept. The
   previewed version's card may be restored (the obvious next move after reading it) but not deleted
