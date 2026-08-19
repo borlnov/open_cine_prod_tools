@@ -21,23 +21,34 @@ const List<FountainLineType> _ocptTabCycleTypes = [
   FountainLineType.transition,
 ];
 
-/// The `keyboardActions` list for the styled screenplay editor's `SuperEditor`: this app's own
-/// Tab-cycle, smart-Enter, clipboard and Ctrl+U handlers first (each halts, so none of the
-/// corresponding default behaviors ever run), then every [defaultImeKeyboardActions] entry except
-/// the ones that would fight this editor's model (see [_ocptExcludedDefaultActions]).
+/// The `keyboardActions` list the styled screenplay editor hands its `SuperEditor`: this app's own
+/// Tab-cycle, smart-Enter, clipboard, Ctrl+U, undo and redo handlers first (each halts, so none of
+/// the corresponding default behaviors ever run), then every [defaultImeKeyboardActions] entry
+/// except the ones that would fight this editor's model (see [_ocptExcludedDefaultActions]).
+///
+/// A function rather than a `const` list, because the undo and redo entries are bound to the
+/// editor state's own [onUndo]/[onRedo] — the guarded path a Ctrl+Z or a Ctrl+Shift+Z has to take
+/// here, for the reasons [ocptUndoAction] and [ocptRedoAction] each give. Both come *before* the
+/// spread on purpose: they shadow super_editor's own undo/redo bindings, which are the one pair
+/// of defaults that cannot be excluded by identity (see [_ocptExcludedDefaultActions]).
 ///
 /// Ctrl+B/I are deliberately left to the inherited `cmdBToToggleBold`/`cmdIToToggleItalics`
 /// defaults (still present below): they already toggle the right attribution, whether the
 /// selection is collapsed (via `ComposerPreferences`, applied to the next typed character) or
 /// expanded. Ctrl+S / Ctrl+Shift+M match none of these actions, so both bubble up, unhandled, to
 /// the page-level `Shortcuts` in `editor_page.dart`, exactly as before this file existed.
-final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
+List<SuperEditorKeyboardAction> ocptFountainKeyboardActions({
+  required VoidCallback onUndo,
+  required VoidCallback onRedo,
+}) => [
   ocptTabToCycleBlockType,
   ocptEnterToSmartSplit,
   ocptCopyToFountainClipboard,
   ocptCutToFountainClipboard,
   ocptPasteFromFountainClipboard,
   ocptCmdUToToggleUnderline,
+  ocptUndoAction(onUndo: onUndo),
+  ocptRedoAction(onRedo: onRedo),
   ...defaultImeKeyboardActions.where((action) => !_ocptExcludedDefaultActions.contains(action)),
 ];
 
@@ -55,6 +66,13 @@ final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
 /// - `copyWhenCmdCIsPressed`/`cutWhenCmdXIsPressed`/`pasteWhenCmdVIsPressed`: plain-text clipboard
 ///   actions with no notion of block types; [ocptCopyToFountainClipboard]/
 ///   [ocptCutToFountainClipboard]/[ocptPasteFromFountainClipboard] replace them.
+///
+/// `undoWhenCmdZOrCtrlZIsPressed` and `redoWhenCmdShiftZOrCtrlShiftZIsPressed` are the two entries
+/// this file replaces without being able to list them here: `package:super_editor` keeps them
+/// inside `src/undo_redo.dart` and exports neither, so there is no identity to filter on. They are
+/// shadowed by position instead — [ocptUndoAction] and [ocptRedoAction] claim the exact same
+/// combinations earlier in the list above and always halt, so neither default is ever reached. Do
+/// not move those two entries after the spread.
 final Set<SuperEditorKeyboardAction> _ocptExcludedDefaultActions = {
   tabToIndentParagraph,
   shiftTabToUnIndentParagraph,
@@ -377,3 +395,65 @@ ExecutionInstruction ocptCmdUToToggleUnderline({required SuperEditorContext edit
 
   return ExecutionInstruction.haltExecution;
 }
+
+/// Ctrl+Z / Cmd+Z (never Ctrl+Shift+Z, which is the redo below): asks [onUndo] to take back the
+/// writer's last gesture.
+///
+/// super_editor's own `undoWhenCmdZOrCtrlZIsPressed` calls `editContext.editor.undo()` and tells
+/// nobody, which is exactly what this editor cannot afford: the state that owns the editor is
+/// what tracks whether the transactions `Editor.future` still holds can be replayed onto the
+/// document on screen, and it can only know an undo just happened if the undo goes through it.
+/// Halts either way, undo having no reason to ever refuse — it always pops a transaction that
+/// genuinely happened, and an empty history simply undoes nothing.
+SuperEditorKeyboardAction ocptUndoAction({required VoidCallback onUndo}) =>
+    ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+      if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
+        return ExecutionInstruction.continueExecution;
+      }
+      if (!keyEvent.isPrimaryShortcutKeyPressed ||
+          keyEvent.logicalKey != LogicalKeyboardKey.keyZ ||
+          HardwareKeyboard.instance.isShiftPressed) {
+        return ExecutionInstruction.continueExecution;
+      }
+
+      onUndo();
+
+      return ExecutionInstruction.haltExecution;
+    };
+
+/// Ctrl+Shift+Z / Cmd+Shift+Z **and** Ctrl+Y: asks [onRedo] to re-apply the last undone gesture.
+///
+/// Two combinations in one action because they are one gesture with two habits — super_editor
+/// binds only the first, and Ctrl+Y is what a Windows hand reaches for. Ctrl+Shift+Y is
+/// deliberately *not* a redo, matching how every inherited action claims one exact modifier
+/// combination and lets every other one continue on to the rest of the list: this action must
+/// never swallow a combination it wasn't asked for.
+///
+/// [onRedo] is asked rather than `editContext.editor.redo()` called, because a redo is the half of
+/// the pair that can be *wrong*: `Editor` never clears its `future` list when a new edit arrives
+/// (its own `future` getter documents that it should, and nothing in the package does it), so a
+/// redo that follows an undo *and an edit made after it* replays a transaction blind onto a
+/// document that has moved on. Measured on this editor before the guard existed: type `abcdef`,
+/// Ctrl+Z, type `XY`, Ctrl+Shift+Z, and the line reads `abcdefXY` — a text the writer never wrote.
+/// The state [onRedo] belongs to is what refuses that (see its `canRedo`), and this action halts
+/// whether it was honoured or refused: the shortcut was handled either way, and letting it
+/// continue would only hand it to a default binding this file already excludes.
+SuperEditorKeyboardAction ocptRedoAction({required VoidCallback onRedo}) =>
+    ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+      if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
+        return ExecutionInstruction.continueExecution;
+      }
+      if (!keyEvent.isPrimaryShortcutKeyPressed) {
+        return ExecutionInstruction.continueExecution;
+      }
+
+      final isShiftZ = keyEvent.logicalKey == LogicalKeyboardKey.keyZ && HardwareKeyboard.instance.isShiftPressed;
+      final isPlainY = keyEvent.logicalKey == LogicalKeyboardKey.keyY && !HardwareKeyboard.instance.isShiftPressed;
+      if (!isShiftZ && !isPlainY) {
+        return ExecutionInstruction.continueExecution;
+      }
+
+      onRedo();
+
+      return ExecutionInstruction.haltExecution;
+    };

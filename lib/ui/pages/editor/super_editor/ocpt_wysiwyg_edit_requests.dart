@@ -17,7 +17,7 @@ import 'package:super_editor/super_editor.dart';
 @immutable
 class OcptChangeNodeMetadataRequest implements EditRequest {
   /// Creates an [OcptChangeNodeMetadataRequest].
-  const OcptChangeNodeMetadataRequest({required this.nodeId, required this.metadata});
+  const OcptChangeNodeMetadataRequest({required this.nodeId, required this.metadata, this.isHistorical = true});
 
   /// The id of the `ParagraphNode` whose metadata is being updated.
   final String nodeId;
@@ -26,6 +26,19 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
   /// other existing entry, including `blockType`, is left untouched).
   final Map<String, dynamic> metadata;
 
+  /// {@template open_cine_prod_tools.OcptChangeNodeMetadataRequest.isHistorical}
+  /// Whether this change may become (part of) an undo step.
+  ///
+  /// True for every change a gesture of the writer's caused, directly or through the passes the
+  /// editor derives from it. False only for a change made *before the writer has touched
+  /// anything* — the scene-number normalization that runs the moment a screenplay is decoded (see
+  /// `sceneNumberNormalizationRequests`) — which would otherwise be the first thing Ctrl+Z popped
+  /// on a freshly opened screenplay, un-correcting a numbering the writer never asked to change.
+  /// `Editor` offers no way to clear history and its `isHistoryEnabled` is final, so the
+  /// command's own `historyBehavior` is the only lever there is.
+  /// {@endtemplate}
+  final bool isHistorical;
+
   /// Object equality
   @override
   bool operator ==(Object other) =>
@@ -33,11 +46,15 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
       other is OcptChangeNodeMetadataRequest &&
           runtimeType == other.runtimeType &&
           nodeId == other.nodeId &&
+          isHistorical == other.isHistorical &&
           _mapsEqual(metadata, other.metadata);
 
   /// Object hash code
   @override
-  int get hashCode => nodeId.hashCode ^ Object.hashAllUnordered(metadata.entries.map((e) => Object.hash(e.key, e.value)));
+  int get hashCode =>
+      nodeId.hashCode ^
+      isHistorical.hashCode ^
+      Object.hashAllUnordered(metadata.entries.map((e) => Object.hash(e.key, e.value)));
 
   /// Whether [a] and [b] hold the same keys mapped to the same values (order-independent).
   static bool _mapsEqual(Map<String, dynamic> a, Map<String, dynamic> b) {
@@ -59,7 +76,7 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
 /// `ChangeParagraphBlockTypeCommand` uses for `blockType` changes).
 class OcptChangeNodeMetadataCommand extends EditCommand {
   /// Creates an [OcptChangeNodeMetadataCommand].
-  const OcptChangeNodeMetadataCommand({required this.nodeId, required this.metadata});
+  const OcptChangeNodeMetadataCommand({required this.nodeId, required this.metadata, this.isHistorical = true});
 
   /// The id of the `ParagraphNode` whose metadata is being updated.
   final String nodeId;
@@ -67,10 +84,14 @@ class OcptChangeNodeMetadataCommand extends EditCommand {
   /// The metadata entries to merge into the node's existing metadata.
   final Map<String, dynamic> metadata;
 
+  /// {@macro open_cine_prod_tools.OcptChangeNodeMetadataRequest.isHistorical}
+  final bool isHistorical;
+
   /// This command's undo/redo behavior: grouped with other undoable edits, matching
-  /// `ChangeParagraphBlockTypeCommand`.
+  /// `ChangeParagraphBlockTypeCommand`, unless [isHistorical] says this change happened before
+  /// the writer could have anything to undo.
   @override
-  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+  HistoryBehavior get historyBehavior => isHistorical ? HistoryBehavior.undoable : HistoryBehavior.nonHistorical;
 
   /// Applies the metadata merge to the document.
   @override
@@ -88,7 +109,11 @@ class OcptChangeNodeMetadataCommand extends EditCommand {
 /// `_OcptStyledScreenplayEditorState._rebuildEditorFrom`).
 EditCommand? ocptChangeNodeMetadataRequestHandler(Editor editor, EditRequest request) =>
     request is OcptChangeNodeMetadataRequest
-        ? OcptChangeNodeMetadataCommand(nodeId: request.nodeId, metadata: request.metadata)
+        ? OcptChangeNodeMetadataCommand(
+            nodeId: request.nodeId,
+            metadata: request.metadata,
+            isHistorical: request.isHistorical,
+          )
         : null;
 
 /// [EditRequest] to replace the entire text of the `ParagraphNode` identified by [nodeId] with

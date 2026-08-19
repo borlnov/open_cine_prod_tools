@@ -1674,4 +1674,185 @@ void main() {
       expect(nodeContaining("in a dark").text.toPlainText(), "Something moves in a dark.");
     });
   });
+
+  group('undo/redo (⋮ menu)', () {
+    /// Lets the raw field's own undo history record what it holds: `UndoHistory` pushes onto its
+    /// stack through a 500 ms throttle, and a `pumpAndSettle` alone only advances the clock while
+    /// frames stay scheduled, which is far less than that.
+    Future<void> settleUndoThrottle(WidgetTester tester) async {
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+    }
+
+    /// Opens the toolbar's `⋮` menu and settles, so a test can read what it currently offers.
+    Future<void> openOverflowMenu(WidgetTester tester) async {
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+    }
+
+    /// The raw source field's current text.
+    String rawText(WidgetTester tester) => tester
+        .widget<TextField>(
+          find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+        )
+        .controller!
+        .text;
+
+    testWidgets('raw mode: withheld until there is an edit, then takes it back and puts it back', (
+      tester,
+    ) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+      // Placing the caret is what makes the loaded text the field's own first history entry;
+      // nothing has been *edited* yet, so neither entry is offered — withheld, not disabled.
+      await tester.tap(find.byType(OcptEditorSourceField));
+      await settleUndoThrottle(tester);
+
+      await openOverflowMenu(tester);
+      expect(find.text(tr.editorUndoAction), findsNothing);
+      expect(find.text(tr.editorRedoAction), findsNothing);
+      await tester.tapAt(const Offset(700, 500));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+        "$_sampleText\nA fresh action line.",
+      );
+      await settleUndoThrottle(tester);
+      expect(rawText(tester), contains("A fresh action line."));
+
+      // `Undo` is offered now, stating its own shortcut, and takes the edit back.
+      await openOverflowMenu(tester);
+      expect(find.text('Ctrl+Z'), findsOneWidget);
+      await tester.tap(find.text(tr.editorUndoAction));
+      await tester.pumpAndSettle();
+
+      expect(rawText(tester), _sampleText);
+
+      // `Redo` is offered in turn, and puts the very same edit back.
+      await openOverflowMenu(tester);
+      expect(find.text('Ctrl+Shift+Z'), findsOneWidget);
+      await tester.tap(find.text(tr.editorRedoAction));
+      await tester.pumpAndSettle();
+
+      expect(rawText(tester), contains("A fresh action line."));
+    });
+
+    testWidgets("raw mode: Ctrl+Z still reaches the field's own history", (tester) async {
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(OcptEditorSourceField));
+      await settleUndoThrottle(tester);
+
+      await tester.enterText(
+        find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+        "$_sampleText\nA fresh action line.",
+      );
+      await settleUndoThrottle(tester);
+
+      // The page's own `Shortcuts` claims neither Ctrl+Z nor Ctrl+Shift+Z, so both keep reaching
+      // `EditableText`'s own `UndoHistory` — this is the regression guard against a future
+      // page-level shortcut silently stealing them.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(rawText(tester), _sampleText);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(rawText(tester), contains("A fresh action line."));
+    });
+
+    testWidgets('styled mode: withheld on a freshly loaded screenplay, then undoes the gesture', (
+      tester,
+    ) async {
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+      // Mounting the styled editor numbers the scene headings on its own; that normalization is
+      // not a gesture of the writer's, so the menu has nothing to offer yet.
+      await openOverflowMenu(tester);
+      expect(find.text(tr.editorUndoAction), findsNothing);
+      expect(find.text(tr.editorRedoAction), findsNothing);
+      await tester.tapAt(const Offset(700, 500));
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final lastNode = document.getNodeAt(document.nodeCount - 1)! as ParagraphNode;
+      final originalText = lastNode.text.toPlainText();
+      await tester.placeCaretInParagraph(lastNode.id, originalText.length);
+      await tester.typeImeText(" Indeed.");
+      await tester.pumpAndSettle();
+
+      /// The current text of the node the edit was made in, re-read fresh: a text edit swaps the
+      /// `ParagraphNode` for a new instance, so the reference above goes stale.
+      String editedNodeText() {
+        final document = SuperEditorInspector.findDocument()!;
+        return (document.getNodeById(lastNode.id)! as ParagraphNode).text.toPlainText();
+      }
+
+      expect(editedNodeText(), "$originalText Indeed.");
+
+      await openOverflowMenu(tester);
+      expect(find.text('Ctrl+Z'), findsOneWidget);
+      await tester.tap(find.text(tr.editorUndoAction));
+      await tester.pumpAndSettle();
+
+      expect(editedNodeText(), originalText);
+
+      await openOverflowMenu(tester);
+      expect(find.text('Ctrl+Shift+Z'), findsOneWidget);
+      await tester.tap(find.text(tr.editorRedoAction));
+      await tester.pumpAndSettle();
+
+      expect(editedNodeText(), "$originalText Indeed.");
+    });
+
+    testWidgets('withheld entirely under a read-only preview', (tester) async {
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "note");
+      expect(version, isNotNull);
+
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
+
+      // Something to take back exists before the preview is entered, so the entries' absence
+      // below is the preview's doing rather than an empty history's.
+      await tester.tap(find.byType(OcptEditorSourceField));
+      await settleUndoThrottle(tester);
+      await tester.enterText(
+        find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+        "$_sampleText\nA fresh action line.",
+      );
+      await settleUndoThrottle(tester);
+
+      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+      await openOverflowMenu(tester);
+      expect(find.text(tr.editorUndoAction), findsOneWidget);
+      await tester.tapAt(const Offset(700, 500));
+      await tester.pumpAndSettle();
+
+      final bloc = BlocProvider.of<OcptEditorBloc>(tester.element(find.byType(OcptWorkspaceShell)));
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+      await tester.pumpAndSettle();
+
+      // There is no editing surface at all under a preview, so there is nothing to undo *into*.
+      await openOverflowMenu(tester);
+      expect(find.text(tr.editorUndoAction), findsNothing);
+      expect(find.text(tr.editorRedoAction), findsNothing);
+    });
+  });
 }

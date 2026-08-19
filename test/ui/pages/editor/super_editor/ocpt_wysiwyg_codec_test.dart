@@ -913,4 +913,65 @@ void main() {
       expect(encoded.text, source);
     });
   });
+
+  group("Editor.undo() survives a document built by decode/decodeWithTitlePage", () {
+    // Regression coverage for a bug invisible to every other test in this file: none of them ever
+    // hand their `MutableDocument` to a live, history-enabled `Editor`. Before
+    // `OcptWysiwygCodec.decode`/`decodeWithTitlePage` were fixed to build that document from a
+    // genuine `List<DocumentNode>`, `Editor.undo()` threw `type 'List<DocumentNode>' is not a
+    // subtype of type 'Iterable<ParagraphNode>'` out of `MutableDocument.reset()`'s own
+    // `_nodes..clear()..addAll(_latestNodesSnapshot)` — *after* the `clear()` had already run — so
+    // the document undo() was called on was left with zero nodes, not "not undone".
+
+    test("decode: undoing an edit restores the document instead of leaving it empty", () {
+      final decoded = OcptWysiwygCodec.decode("Some action text.");
+      final document = decoded.document;
+      final nodeId = document.getNodeAt(0)!.id;
+
+      final editor = Editor(
+        editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)..add(ocptReplaceNodeTextRequestHandler),
+        isHistoryEnabled: true,
+      );
+
+      editor.execute([
+        OcptReplaceNodeTextRequest(nodeId: nodeId, text: AttributedText("Some action text, edited.")),
+      ]);
+      expect((document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "Some action text, edited.");
+
+      expect(editor.undo, returnsNormally);
+
+      expect(document.nodeCount, 1);
+      expect((document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "Some action text.");
+    });
+
+    test("decodeWithTitlePage: undoing an edit restores the document instead of leaving it empty", () {
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage("Title: My Movie\n\nSome action text.");
+      final document = decoded.document;
+      final originalNodeCount = document.nodeCount;
+      final bodyNodeId = document.getNodeAt(originalNodeCount - 1)!.id;
+
+      final editor = Editor(
+        editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)..add(ocptReplaceNodeTextRequestHandler),
+        isHistoryEnabled: true,
+      );
+
+      editor.execute([
+        OcptReplaceNodeTextRequest(nodeId: bodyNodeId, text: AttributedText("Some action text, edited.")),
+      ]);
+      expect(
+        (document.getNodeAt(originalNodeCount - 1)! as ParagraphNode).text.toPlainText(),
+        "Some action text, edited.",
+      );
+
+      expect(editor.undo, returnsNormally);
+
+      expect(document.nodeCount, originalNodeCount);
+      expect(
+        (document.getNodeAt(originalNodeCount - 1)! as ParagraphNode).text.toPlainText(),
+        "Some action text.",
+      );
+    });
+  });
 }

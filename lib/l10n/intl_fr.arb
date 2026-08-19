@@ -59,6 +59,8 @@
   "editorExportFountainDescription": "Le texte source du scénario, exporté au format Fountain.",
   "editorExportPdfTitle": "Scénario",
   "editorExportPdfDescription": "Le scénario mis en page, prêt à imprimer ou à partager.",
+  "editorUndoAction": "Annuler",
+  "editorRedoAction": "Rétablir",
   "editorImportAndReplaceAction": "Importer et remplacer…",
   "editorFindAction": "Rechercher…",
   "editorFindAndReplaceAction": "Rechercher et remplacer…",

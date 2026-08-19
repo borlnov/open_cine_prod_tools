@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -184,6 +185,17 @@ String? _sceneNumberAt(Document document, int index) {
   return value is String ? value : null;
 }
 
+/// Pumps past the styled editor's 120 ms settle debounce (`_syncAfterEdit`) and lets the rebuild
+/// it causes finish, so an assertion that follows sees the document the editor actually settles
+/// on rather than the raw result of the keystroke.
+///
+/// `pumpAndSettle` alone is not enough: a pending `Timer` schedules no frame of its own, so
+/// `pumpAndSettle` can decide the tree is idle and stop before the debounce ever fires.
+Future<void> _pumpPastSettleDebounce(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 150));
+  await tester.pumpAndSettle();
+}
+
 /// Sends the hardware key combo for [key] with Ctrl held (Cmd has no equivalent test helper here;
 /// this app targets Linux/Windows first).
 Future<void> _sendCtrl(WidgetTester tester, LogicalKeyboardKey key) async {
@@ -197,6 +209,16 @@ Future<void> _sendShift(WidgetTester tester, LogicalKeyboardKey key) async {
   await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
   await tester.sendKeyEvent(key);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+}
+
+/// Sends the hardware key combo for [key] with both Ctrl and Shift held (Ctrl+Shift+Z's redo, which
+/// neither [_sendCtrl] nor [_sendShift] alone can produce).
+Future<void> _sendCtrlShift(WidgetTester tester, LogicalKeyboardKey key) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
 }
 
 /// A global offset landing inside the actual glyphs of the node with [nodeId], for a secondary tap
@@ -3018,5 +3040,506 @@ void main() {
         actionNode.text.toPlainText().length,
       );
     });
+  });
+
+  group("undo and redo", () {
+    // These cases only assert that Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y reach a live, history-enabled
+    // `Editor` and restore the document rather than throwing. How many keystrokes one Ctrl+Z gives
+    // back is a separate question, decided by the `historyGroupingPolicy`
+    // `_rebuildEditorFrom` hands its `Editor`, so every case below types a single character and
+    // asserts nothing about grouping.
+
+    testWidgets("typing a character then Ctrl+Z removes it, with no exception", (tester) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      await tester.typeImeText("A");
+
+      expect(_nodeAt(document, 0).text.toPlainText(), "A");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+
+      expect(document.nodeCount, 1);
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+    });
+
+    testWidgets("Ctrl+Shift+Z redoes what Ctrl+Z just undid", (tester) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      await tester.typeImeText("A");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+      await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+
+      expect(document.nodeCount, 1);
+      expect(_nodeAt(document, 0).text.toPlainText(), "A");
+    });
+
+    testWidgets("Ctrl+Y redoes what Ctrl+Z just undid (the Windows habit Ctrl+Shift+Z coexists with)", (
+      tester,
+    ) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      await tester.typeImeText("A");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await tester.pumpAndSettle();
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyY);
+      await tester.pumpAndSettle();
+
+      expect(document.nodeCount, 1);
+      expect(_nodeAt(document, 0).text.toPlainText(), "A");
+    });
+  });
+
+  group("one gesture, one undo step", () {
+    // The rule these cases pin down: one undo step is one gesture of the writer's, plus
+    // everything the editor derived from it 120 ms later on the settle debounce — never one
+    // keystroke of a run, and never a derived pass on its own. Every case that types a run does
+    // so under `withClock`, so what it measures is the grouping rule rather than how long the
+    // test VM happened to take between two simulated keystrokes: `OcptTypingRunMergePolicy`
+    // compares timestamps taken with `clock.now()`, which is real wall-clock time even inside a
+    // widget test's own fake async.
+
+    /// A fixed instant for [withClock]: any value works, only its fixedness matters.
+    final frozenNow = DateTime(2026, 8, 18, 10);
+
+    testWidgets("a whole typing run is given back by a single Ctrl+Z", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        for (final character in "Some action text".split("")) {
+          await tester.typeImeText(character);
+          // Settles between every keystroke, exactly as a real hand slower than the 120 ms
+          // debounce does: this is what used to leave a derived transaction on top of the run.
+          await _pumpPastSettleDebounce(tester);
+        }
+        expect(_nodeAt(document, 0).text.toPlainText(), "Some action text");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+      });
+    });
+
+    testWidgets("a scene heading typed in lowercase is given back whole, its reclassification and "
+        "its uppercasing with it", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        for (final character in "Ext. garden - night".split("")) {
+          await tester.typeImeText(character);
+          await _pumpPastSettleDebounce(tester);
+        }
+        // The settle passes have reclassified and uppercased the line as it was being typed: it is
+        // no longer what the writer's keystrokes alone produced.
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+        expect(_typeAt(document, 0), FountainLineType.action);
+      });
+    });
+
+    testWidgets("Tab is undone in one step — type, lock and text together — and the next Ctrl+Z "
+        "reaches the edit before it", (tester) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+      await tester.typeImeText("Some action text.");
+      await _pumpPastSettleDebounce(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await _pumpPastSettleDebounce(tester);
+      expect(_typeAt(document, 0), FountainLineType.character);
+      expect(_isLockedAt(document, 0), isTrue);
+      expect(_nodeAt(document, 0).text.toPlainText(), "SOME ACTION TEXT.");
+
+      // One Ctrl+Z takes back the manual type choice *and* the lock and the uppercasing the settle
+      // pass derived from it. This is the case that used to be impossible to undo at all: the
+      // settle re-derived what the undo had just taken back, and pushed it as a fresh step.
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+      expect(_typeAt(document, 0), FountainLineType.action);
+      expect(_isLockedAt(document, 0), isFalse);
+      expect(_nodeAt(document, 0).text.toPlainText(), "Some action text.");
+
+      // And the step before it is still reachable, rather than the settle having stacked a new
+      // one in between.
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+    });
+
+    testWidgets("the settle pass that follows an undo writes no history of its own", (tester) async {
+      await _pumpStandaloneEditor(tester, "");
+
+      final document = SuperEditorInspector.findDocument()!;
+      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+      await tester.typeImeText("Some action text.");
+      await _pumpPastSettleDebounce(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await _pumpPastSettleDebounce(tester);
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+      final afterFirstUndo = _nodeAt(document, 0).text.toPlainText();
+
+      // Ctrl+Z twice more: the document keeps walking *backwards*, never returning to the state
+      // the undone settle had derived. A settle that pushed its own transaction would show up
+      // here as an undo that reinstates the uppercased, locked `character` line.
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+      expect(_typeAt(document, 0), FountainLineType.action);
+      expect(_isLockedAt(document, 0), isFalse);
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+      expect(_nodeAt(document, 0).text.toPlainText(), "");
+      expect(afterFirstUndo, "Some action text.");
+    });
+
+    testWidgets("an Enter split is undone in one step, its blankLinesBefore metadata and the caret "
+        "with it", (tester) async {
+      await _pumpStandaloneEditor(tester, "Some action text.");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final originalNodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(originalNodeId, "Some action text.".length);
+
+      await tester.pressEnter();
+      await _pumpPastSettleDebounce(tester);
+      expect(document.nodeCount, 2);
+      expect(_nodeAt(document, 1).getMetadataValue(ocptBlankLinesBeforeMetadataKey), 1);
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+
+      expect(document.nodeCount, 1);
+      expect(_nodeAt(document, 0).text.toPlainText(), "Some action text.");
+      // The caret comes back to where the undone edit was, not to wherever it happened to sit.
+      final selection = SuperEditorInspector.findDocumentSelection();
+      expect(selection, isNotNull);
+      expect(selection!.extent.nodeId, originalNodeId);
+      expect((selection.extent.nodePosition as TextNodePosition).offset, "Some action text.".length);
+    });
+
+    testWidgets("a scene number the editor renumbered comes back with the gesture that shifted it", (
+      tester,
+    ) async {
+      await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nEXT. GARDEN - NIGHT");
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(_sceneNumberAt(document, 0), "1");
+      expect(_sceneNumberAt(document, 1), "2");
+
+      // Tab cycles a scene heading to `action`: the second heading is then the only one left, and
+      // the settle pass renumbers it from 2 to 1.
+      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await _pumpPastSettleDebounce(tester);
+      expect(_typeAt(document, 0), FountainLineType.action);
+      expect(_sceneNumberAt(document, 1), "1");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+
+      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+      expect(_sceneNumberAt(document, 0), "1");
+      expect(_sceneNumberAt(document, 1), "2");
+    });
+
+    testWidgets("Replace all is undone in one step", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(
+        tester,
+        "MARIE enters.\n\nMARIE speaks.\n\nMARIE leaves.",
+        styledController: controller,
+      );
+
+      final document = SuperEditorInspector.findDocument()!;
+      // Ctrl+Z is a `SuperEditor` keyboard action, so it only ever arrives once the editor holds
+      // keyboard focus — which placing a caret is what gives it here.
+      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+
+      controller.updateSearch(
+        query: const OcptEditorSearchQuery(query: "MARIE", isCaseSensitive: false, isWholeWord: false),
+        currentMatchIndex: 0,
+      );
+      await tester.pump();
+
+      controller.replaceAllMatches("CLARA");
+      await _pumpPastSettleDebounce(tester);
+      expect(_nodeAt(document, 0).text.toPlainText(), "CLARA enters.");
+      expect(_nodeAt(document, 1).text.toPlainText(), "CLARA speaks.");
+      expect(_nodeAt(document, 2).text.toPlainText(), "CLARA leaves.");
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+
+      expect(_nodeAt(document, 0).text.toPlainText(), "MARIE enters.");
+      expect(_nodeAt(document, 1).text.toPlainText(), "MARIE speaks.");
+      expect(_nodeAt(document, 2).text.toPlainText(), "MARIE leaves.");
+    });
+
+    testWidgets("the load-time scene-number normalization is not an undo step", (tester) async {
+      var lastEncoded = "";
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            // Numbered out of order in the source (by hand, or in raw mode): decoding corrects
+            // them to 1 and 2 before the writer has done anything at all.
+            text: "INT. HOUSE - DAY #5#\n\nEXT. GARDEN - NIGHT #2#",
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            onTextChanged: (value) => lastEncoded = value,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await _pumpPastSettleDebounce(tester);
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(_sceneNumberAt(document, 0), "1");
+      expect(_sceneNumberAt(document, 1), "2");
+      final normalizedText = lastEncoded;
+
+      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+      await _pumpPastSettleDebounce(tester);
+
+      expect(_sceneNumberAt(document, 0), "1");
+      expect(_sceneNumberAt(document, 1), "2");
+      expect(lastEncoded, normalizedText);
+    });
+  });
+  group("a redo that cannot invent text", () {
+    // `Editor` never clears its `future` list when a new edit arrives — its own `future` getter's
+    // doc comment says it should, and nothing in the package does it — so a redo that follows an
+    // undo *and* an edit made after it replays a transaction blind onto a document that has moved
+    // on. Measured on this editor before the guard existed: type `abcdef`, Ctrl+Z, type `XY`,
+    // Ctrl+Shift+Z, and the line read `abcdefXY`. These cases pin down the refusal, and — just as
+    // importantly — that it refuses nothing else.
+
+    /// A fixed instant for [withClock], so a typing run merges into the single undo step
+    /// `OcptTypingRunMergePolicy` promises rather than into one step per keystroke (see the
+    /// "one gesture, one undo step" group's own note).
+    final frozenNow = DateTime(2026, 8, 18, 10);
+
+    /// Types [text] one character at a time into the node holding the caret, settling between
+    /// keystrokes exactly as a real hand slower than the 120 ms debounce does.
+    Future<void> typeRun(WidgetTester tester, String text) async {
+      for (final character in text.split("")) {
+        await tester.typeImeText(character);
+        await _pumpPastSettleDebounce(tester);
+      }
+    }
+
+    testWidgets("a redo asked for after a new edit is refused, and writes nothing at all", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        await typeRun(tester, "abcdef");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+        // The edit that overtakes the undone transaction: from here on, what `Editor.future` still
+        // holds can only ever be replayed onto a document it was never recorded against.
+        await typeRun(tester, "XY");
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        // The Windows habit is the same action and must refuse the same way.
+        await _sendCtrl(tester, LogicalKeyboardKey.keyY);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(document.nodeCount, 1);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+      });
+    });
+
+    testWidgets("a refused redo leaves the history alone: Ctrl+Z still walks back through it", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        await typeRun(tester, "abc");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        await typeRun(tester, "XY");
+
+        await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        // The refusal is a refusal, not a swallowed keystroke that also breaks undo: the writer's
+        // own last gesture is still there to take back.
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+      });
+    });
+
+    testWidgets("an undo left to settle can still be redone: the derived pass does not stale the stack", (
+      tester,
+    ) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await _pumpStandaloneEditor(tester, "");
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        // A line the editor derives from, rather than plain action text: the settle pass that runs
+        // after the undo has reclassification and uppercasing to redo if the undo left it anything
+        // to do at all, which is exactly what must not count as an edit of the writer's.
+        await typeRun(tester, "Ext. garden - night");
+        expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+        await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+      });
+    });
+
+    testWidgets("the controller reports what can be undone and redone, refusal included", (tester) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await _pumpStandaloneEditor(tester, "", styledController: controller);
+        expect(controller.canUndo, isFalse);
+        expect(controller.canRedo, isFalse);
+
+        final document = SuperEditorInspector.findDocument()!;
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        await typeRun(tester, "abc");
+        expect(controller.canUndo, isTrue);
+        expect(controller.canRedo, isFalse);
+
+        controller.undo();
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+        expect(controller.canRedo, isTrue);
+
+        // The very predicate an `Undo`/`Redo` affordance reads: a fresh edit takes the redo away,
+        // rather than leaving one that would invent text.
+        await typeRun(tester, "XY");
+        expect(controller.canUndo, isTrue);
+        expect(controller.canRedo, isFalse);
+
+        controller.redo();
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "XY");
+
+        controller.undo();
+        await _pumpPastSettleDebounce(tester);
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
+      });
+    });
+
+    testWidgets(
+      "an undo keeps the numbering the editor gave the screenplay when it opened it, adds no undo "
+      "step of its own, and can still be redone",
+      (tester) async {
+        await withClock(Clock.fixed(frozenNow), () async {
+          final controller = OcptStyledEditorController();
+          addTearDown(controller.dispose);
+
+          // Neither heading carries a `#N#` of its own, so the load-time pass numbers both — and
+          // that numbering is exactly what an undo used to drop, `Editor.undo()` restoring the
+          // document to the snapshot taken before that pass ran. The debounced settle then
+          // re-derived it as a change of its own, which staled the redo stack and, on an emptied
+          // history, left an undo step that un-numbered the screenplay.
+          await _pumpStandaloneEditor(
+            tester,
+            "INT. KITCHEN - DAY\n\nSomething moves.\n\nEXT. GARDEN - NIGHT\n\nMore.\n",
+            styledController: controller,
+          );
+
+          final document = SuperEditorInspector.findDocument()!;
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+          expect(controller.canUndo, isFalse);
+
+          await tester.placeCaretInParagraph(_nodeAt(document, 1).id, "Something moves.".length);
+          await typeRun(tester, " Again.");
+          expect(_nodeAt(document, 1).text.toPlainText(), "Something moves. Again.");
+
+          await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+
+          expect(_nodeAt(document, 1).text.toPlainText(), "Something moves.");
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+          // The numbering survived the restore, so the settle that followed had nothing left to
+          // derive — and the redo it would otherwise have staled is still offered.
+          expect(controller.canRedo, isTrue);
+
+          await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+
+          expect(_nodeAt(document, 1).text.toPlainText(), "Something moves. Again.");
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+
+          // Walking further back than the writer's own gesture never reaches a step that
+          // un-numbers the screenplay: the numbering is part of the state every restore lands on,
+          // not a transaction of its own.
+          await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+          await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+
+          expect(_sceneNumberAt(document, 0), "1");
+          expect(_sceneNumberAt(document, 2), "2");
+        });
+      },
+    );
   });
 }

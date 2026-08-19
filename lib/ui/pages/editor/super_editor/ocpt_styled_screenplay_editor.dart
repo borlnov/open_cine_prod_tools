@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_history_policy.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
@@ -153,6 +154,41 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// list, blockquote, dash and link conversions) rewrite the very raw text this editor must
   /// preserve untouched, so none of them can run here.
   late Editor _editor;
+
+  /// The undo-grouping policy every [_editor] this state builds runs on: what makes one Ctrl+Z
+  /// give back one gesture of the writer's plus everything this widget derived from it, rather
+  /// than one keystroke or one derived pass (see [OcptSettleMergePolicy]).
+  ///
+  /// Owned by the state rather than built per [Editor]: it carries the "a derived pass is running
+  /// right now" flag [_runDerivedPass] raises, which every derived pass below has to reach.
+  final OcptSettleMergePolicy _mergePolicy = OcptSettleMergePolicy();
+
+  /// Whether the transactions [_editor]'s `future` list still holds have been overtaken by an
+  /// edit made since they were undone, i.e. whether a redo would replay them onto a document that
+  /// has moved on (see [canRedo]).
+  ///
+  /// `Editor` never clears that list itself — its own `future` getter documents that it should,
+  /// and no code in the package does it — so its emptiness says nothing about whether a redo is
+  /// still meaningful. This flag is what says it instead: raised by [_onDocumentChanged] on every
+  /// change that is neither an undo/redo of ours nor a pass this widget derived, lowered by
+  /// [undo].
+  bool _isRedoStackStale = false;
+
+  /// Whether [undo] or [redo] is currently applying a change to [_document], which is how
+  /// [_onDocumentChanged] tells a restored document apart from an edit of the writer's: an undo
+  /// or a redo must not mark its own document change as one that invalidates the redo stack.
+  bool _isApplyingHistory = false;
+
+  /// The `keyboardActions` handed to every `SuperEditor` this state builds, bound once to [undo]
+  /// and [redo] (see `ocptFountainKeyboardActions`).
+  ///
+  /// Built once, not on every [build], for the same reason [_imeOverrides] is: both tear-offs
+  /// resolve [_editor] at call time through an instance method, so this list keeps working across
+  /// [_rebuildEditorFrom] replacing the editor it acts on.
+  late final List<SuperEditorKeyboardAction> _keyboardActions = ocptFountainKeyboardActions(
+    onUndo: undo,
+    onRedo: redo,
+  );
 
   /// The key bound to the document layout, used to resolve a node's on-screen component when
   /// applying a scene jump.
@@ -331,8 +367,16 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
     _syncTimer!.cancel();
 
-    final settledDocument = MutableDocument(nodes: _document.map((node) => node as ParagraphNode).toList());
+    // `List<DocumentNode>.of`, never a list narrowed to `ParagraphNode`: see
+    // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `MutableDocument
+    // .reset()`. Moot for this particular document — the `Editor` below keeps history off, so
+    // `reset()` is never reached — but a scratch document built differently from every other one
+    // in this app is a trap for whoever copies this block next.
+    final settledDocument = MutableDocument(nodes: List<DocumentNode>.of(_document));
     final settledComposer = MutableDocumentComposer();
+    // History stays off on this one: it exists for a single synchronous settle-then-encode pass
+    // and is discarded a few lines below, never reaching a keyboard or a writer's Ctrl+Z. This is
+    // not an oversight to align with `_rebuildEditorFrom`'s own `Editor`.
     final settledEditor = Editor(
       editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
       requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
@@ -359,7 +403,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       editor: _editor,
       focusNode: _focusNode,
       documentLayoutKey: _documentLayoutKey,
-      keyboardActions: ocptFountainKeyboardActions,
+      keyboardActions: _keyboardActions,
       imeOverrides: _imeOverrides,
       scrollController: _pageScrollController,
       componentBuilders: [
@@ -662,6 +706,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void _rebuildEditorFrom(String text) {
     _lastSyncedText = text;
     _lastReportedLine = 0;
+    // A fresh `Editor` starts with an empty history *and* an empty future, so nothing can be
+    // stale about a redo stack that does not exist yet. Resetting this matters because the
+    // history belongs to the editing surface: a mode toggle, an episode switch, an import or a
+    // version restore all rebuild this editor, and each of them starts a fresh one.
+    _isRedoStackStale = false;
 
     final decoded = _decode(text);
     _document = decoded.document;
@@ -676,6 +725,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         ..insert(0, ocptTitlePageGuardRequestHandler)
         ..add(ocptChangeNodeMetadataRequestHandler)
         ..add(ocptReplaceNodeTextRequestHandler),
+      // `isHistoryEnabled` defaults to false, which is what used to make every command's own
+      // `HistoryBehavior.undoable` moot: `undo()`/`redo()` returned immediately and `history`/
+      // `future` never grew. `historyGroupingPolicy` defaults to `neverMergePolicy`, which groups
+      // nothing at all, and super_editor's own `defaultMergePolicy` groups a typing run only
+      // within 100 ms — see [OcptSettleMergePolicy] for what this one groups instead.
+      isHistoryEnabled: true,
+      historyGroupingPolicy: _mergePolicy,
     );
 
     _document.addListener(_onDocumentChanged);
@@ -700,6 +756,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void _onDocumentChanged(DocumentChangeLog changeLog) {
     _syncTimer?.cancel();
     _syncTimer = Timer(_syncDebounce, _syncAfterEdit);
+    if (!_isApplyingHistory) {
+      // Anything that is not an undo or a redo of ours is an edit the future transactions can no
+      // longer be replayed on top of — including a derived pass of this widget's own, which is
+      // ordinarily a no-op after an undo (the pass's own commands were merged into the very
+      // transaction being restored, so it finds nothing left to derive) and, on the day one of
+      // them is not, has genuinely moved the document past what a redo was recorded against.
+      _isRedoStackStale = true;
+    }
     _reportReadStateToController();
 
     if (_searchQuery == null) {
@@ -735,7 +799,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       return;
     }
 
-    _settleDocument(_document, _editor);
+    _runDerivedPass(() => _settleDocument(_document, _editor));
     _encodeAndReportIfChanged();
 
     final previousPageCount = _pageCount;
@@ -744,6 +808,85 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     if (_pageCount != previousPageCount || _trailingBottomPadding != previousTrailingBottomPadding) {
       setState(() {});
     }
+  }
+
+  /// Runs [derivedPass] — any pass that writes back to [_document] what this widget *derived* from
+  /// the writer's last gesture, rather than what the writer did — with [_mergePolicy]'s settling
+  /// flag raised, so every transaction it closes merges onto the gesture's own instead of becoming
+  /// an undo step of its own.
+  ///
+  /// The flag has to go around the `execute` calls themselves, never around the debounce that
+  /// schedules them: `Editor.endTransaction` is what consults the policy, and it runs
+  /// synchronously inside `execute`.
+  void _runDerivedPass(void Function() derivedPass) => _mergePolicy.runDerivedPass(derivedPass);
+
+  /// Whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
+  /// `Undo` entry has anything to offer.
+  @override
+  bool get canUndo => _editor.history.isNotEmpty;
+
+  /// Whether the last undone gesture can still be put back: there is one to put back, *and* no
+  /// edit has been made since it was undone (see [_isRedoStackStale] for why the second half
+  /// cannot be read off `Editor.future` alone).
+  @override
+  bool get canRedo => !_isRedoStackStale && _editor.future.isNotEmpty;
+
+  /// Takes back the writer's last gesture, plus everything this widget derived from it (see
+  /// [OcptSettleMergePolicy] for what makes those one step).
+  ///
+  /// The staleness flag is lowered *before* the undo runs, not after: [_onDocumentChanged] fires
+  /// synchronously from inside `Editor.undo()`, and it is what reports [canRedo] to the
+  /// controller — reading it a moment too early would report a redo that is available as refused.
+  @override
+  void undo() {
+    if (!canUndo) {
+      return;
+    }
+
+    _isRedoStackStale = false;
+    _applyHistoryChange(_editor.undo);
+  }
+
+  /// Puts back the last undone gesture, or does nothing at all when [canRedo] refuses.
+  ///
+  /// That refusal is the whole point of this method existing rather than `Editor.redo()` being
+  /// bound straight to Ctrl+Shift+Z: replaying a transaction that a later edit has overtaken
+  /// writes text the writer never wrote (see `ocptRedoAction`).
+  @override
+  void redo() {
+    if (!canRedo) {
+      return;
+    }
+
+    _applyHistoryChange(_editor.redo);
+  }
+
+  /// Runs [historyChange] — `Editor.undo` or `Editor.redo` — with [_isApplyingHistory] raised, so
+  /// the document change it makes is not mistaken for an edit of the writer's, renumbers the
+  /// scene headings inside that same window, then reports the fresh history state to the
+  /// controller (a no-op when neither [canUndo] nor [canRedo] moved,
+  /// `OcptStyledEditorController.updateReadState` only notifying on an actual change).
+  ///
+  /// That renumbering is not a detail: `Editor.undo()`/`redo()` restore every `Editable` to the
+  /// snapshot `MutableDocument` took in its own constructor and replay the historical
+  /// transactions, and [_syncSceneNumbers]' load-time pass is deliberately *not* one of them, so
+  /// every restore drops what it had corrected — on any screenplay whose headings the editor
+  /// numbered when it opened them, which is every screenplay written without `#N#` tags by hand.
+  /// Left to the debounced settle to notice instead, that renumbering would come back as a
+  /// document change of its own: it would mark the redo stack stale (no redo would ever survive
+  /// an undo) and, once the history is empty again, append a transaction whose only content is a
+  /// numbering nobody asked to change — an undo step that un-numbers the screenplay. Re-derived
+  /// here, non-historically and while [_isApplyingHistory] is still raised, it is simply part of
+  /// the state being restored, and the settle that follows finds nothing left to do.
+  void _applyHistoryChange(void Function() historyChange) {
+    _isApplyingHistory = true;
+    try {
+      historyChange();
+      _syncSceneNumbers();
+    } finally {
+      _isApplyingHistory = false;
+    }
+    _reportReadStateToController();
   }
 
   /// Brings every node of [document] (executed through [editor]) to the same settled state
@@ -794,8 +937,20 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// text: this is what corrects a badly-ordered `#N#` typed in raw mode (or by any other means)
   /// the moment it's decoded into the styled editor, rather than waiting for the next edit's
   /// [_syncAfterEdit] debounce to happen to touch a scene heading.
+  ///
+  /// [_applyHistoryChange] calls it again after every undo and every redo, and for the very same
+  /// reason: what this pass corrects is part of the document's *base* state rather than of any
+  /// gesture, and a restore brings the document back to a snapshot taken before it ran.
+  ///
+  /// `isHistorical: false`, unlike [_settleDocument]'s own call to the same function: this pass
+  /// runs before the writer has done anything at all, so an undo step here could only ever be a
+  /// Ctrl+Z that un-corrects the numbering. It is refused history at the command level rather than
+  /// through [_mergePolicy], which cannot help here — a merge onto an empty history is an append
+  /// (`Editor.endTransaction`), which is exactly the transaction to avoid. Nothing this executes
+  /// therefore ever reaches the policy, which is why this pass is not wrapped in
+  /// [_runDerivedPass].
   void _syncSceneNumbers() {
-    final requests = sceneNumberNormalizationRequests(_document);
+    final requests = sceneNumberNormalizationRequests(_document, isHistorical: false);
     if (requests.isEmpty) {
       return;
     }
@@ -821,6 +976,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// [_pageCount]/[_trailingBottomPadding] to 0. Only mutates those fields and executes editor
   /// requests, neither of which needs `setState` from [initState]; every other caller wraps this
   /// in its own `setState`.
+  ///
+  /// Its requests go through [_runDerivedPass] for the same reason [_settleDocument]'s do: where a
+  /// page break falls is derived from the document, never typed, so it belongs to the gesture that
+  /// moved it rather than being an undo step of its own. Keeping it *in* history (merged) rather
+  /// than out of it is what makes an undo land on a correctly paginated document straight away:
+  /// `Editor.undo()` rebuilds the document by resetting it to the snapshot `MutableDocument`'s own
+  /// constructor took — which carries no page padding at all — and replaying history, so a
+  /// non-historical padding would simply vanish on every Ctrl+Z until the next debounce put it
+  /// back.
   void _recomputePageSimulation() {
     if (!widget.isPageSimulationEnabled) {
       final clearRequests = <EditRequest>[
@@ -829,7 +993,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptStartsNewPageMetadataKey: 0.0}),
       ];
       if (clearRequests.isNotEmpty) {
-        _editor.execute(clearRequests);
+        _runDerivedPass(() => _editor.execute(clearRequests));
       }
       _pageCount = 0;
       _titlePageSheetCount = 0;
@@ -850,7 +1014,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             ),
     ];
     if (requests.isNotEmpty) {
-      _editor.execute(requests);
+      _runDerivedPass(() => _editor.execute(requests));
     }
     _pageCount = pagination.pageCount;
     _titlePageSheetCount = pagination.titlePageSheetCount;
@@ -910,10 +1074,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _reportReadStateToController();
   }
 
-  /// Refreshes [OcptStyledEditorController]'s read side (the toolbar's dropdown/B-I-U state) from
-  /// the caret's current node type and active inline styles, called after every attach, every
-  /// document rebuild, every selection change and every composer-preferences change (bold/italic/
-  /// underline toggled for the next typed character while the caret is collapsed).
+  /// Refreshes [OcptStyledEditorController]'s read side (the toolbar's dropdown/B-I-U state, and
+  /// whether there is anything left to undo or redo) from the caret's current node type, the
+  /// active inline styles and [_editor]'s own history, called after every attach, every document
+  /// rebuild, every document change, every selection change and every composer-preferences change
+  /// (bold/italic/underline toggled for the next typed character while the caret is collapsed).
   void _reportReadStateToController() {
     final controller = widget.styledController;
     if (controller == null) {
@@ -932,6 +1097,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         for (final style in OcptInlineStyle.values)
           if (_doesSelectionHaveStyle(style)) style,
       },
+      canUndo: canUndo,
+      canRedo: canRedo,
     );
   }
 

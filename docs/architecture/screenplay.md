@@ -68,6 +68,42 @@ editor's document model, the title page, the docks and the syntax guide.
   spacing survive a copy/paste round trip inside the app while text to and from outside the app
   still decodes through ordinary auto-detection.
 
+- Undo and redo: **one undo step is one gesture of the writer's, plus everything the editor derived
+  from it** — a keystroke run, an Enter, a Tab, a dropdown pick, a paste or a replace, together with
+  the reclassification, the uppercasing, the `#N#` renumbering and the metadata the editor computed
+  *because* of it. Never the derived half alone. `Editor` runs with `isHistoryEnabled: true` and
+  `OcptSettleMergePolicy` (`ocpt_fountain_history_policy.dart`) as its `historyGroupingPolicy`:
+  every derived pass goes through `runDerivedPass`, which merges the transactions it closes onto the
+  gesture's own — without it, Ctrl+Z pops the derived transaction, the 120 ms debounce restarts, the
+  pass re-derives exactly what was undone and pushes it back forever, which is a manual Tab that
+  cannot be undone at all. A typing run merges up to `ocptTypingMergeWindow` (**700 ms**, against
+  super_editor's own 100 ms, shorter than a 60 wpm hand's inter-key gap); a caret move, an Enter, a
+  Tab, a paste or a deletion end the run on their own whatever the timing. Every `MutableDocument`
+  is built from a `List<DocumentNode>`, never a typed subclass list: `undo()` restores each
+  `Editable` by `_nodes..clear()..addAll(snapshot)`, and a `List<ParagraphNode>` makes that throw
+  *after* the clear, leaving the document empty.
+- Redo is guarded, undo is not: `Editor` never clears its `future` when a new edit arrives (its own
+  doc comment says it should, and nothing in the package does), so replaying it blind writes text
+  the writer never wrote. `redoWhenCmdShiftZOrCtrlShiftZIsPressed` is therefore excluded from the
+  inherited defaults and replaced by this app's own action (Ctrl+Shift+Z **and** Ctrl+Y, the Windows
+  habit), which refuses a redo the styled editor's `canRedo` calls stale — a flag raised by any
+  document change that is neither an undo/redo nor a derived pass, lowered by an undo. That same
+  predicate is what the `Redo` affordance reads; nothing recomputes one of its own.
+- A restore lands on the document's **base state**, which the load-time scene-number pass is part of
+  but the history is not: `_applyHistoryChange` re-runs `_syncSceneNumbers` inside the same window,
+  non-historically. Left to the settle instead, that renumbering would come back as a change of its
+  own — staling the redo stack, and appending an undo step that un-numbers the screenplay.
+- **The undo history belongs to the editing surface, and switching surface starts a fresh one**
+  (as does an episode switch, an import or a version restore, each of which rebuilds the styled
+  editor): the styled editor owns its `Editor` history, raw mode owns the `UndoHistoryController`
+  the page hands its `TextField`, and a single stack shared across a raw ⇄ styled toggle is
+  deliberately out of scope — it would have to live above both, as Fountain snapshots plus the
+  source-offset ⇄ document-position mapping ADR 0012 only does best effort. The `⋮` menu's `Undo`
+  and `Redo` entries state their shortcut like `Find…` does and act on **whichever surface is
+  showing** (`_historyAvailability` in `editor_page.dart` asks the active one); each is withheld,
+  not disabled, when there is nothing left to take back or put back, and both are withheld entirely
+  under a read-only preview, which carries no editing surface at all.
+
 - Right-click menu: the styled mode alone carries one (`OcptEditorContextMenu`,
   `lib/ui/pages/editor/widgets/`, a `MenuAnchor` free of any `package:super_editor` import — the raw
   mode is a plain `TextField` and gets Flutter's native menu for free). Cut, Copy, Paste, Select all
@@ -92,7 +128,11 @@ editor's document model, the title page, the docks and the syntax guide.
   (`ocpt_styled_scene_numbers.dart`), gated by `OcptPropertiesManager.styledSceneNumbersVisible`
   (`⋮` menu, on by default) — display-only, it never writes into the Fountain source, and an
   explicit `#N#` always wins over a computed number. The raw preview and the PDF are unaffected:
-  they only ever print an explicit number.
+  they only ever print an explicit number. Renumbering runs in two places, and they differ on
+  purpose: `sceneNumberNormalizationRequests` is historical inside the settle pass (the renumbering
+  belongs to the gesture that caused it) and **non-historical** on the load path and inside every
+  undo/redo, where it corrects a badly ordered `#N#` before the writer has touched anything — an
+  undo step there could only ever un-correct it.
 
 - Title page: the styled editor renders it as an editable first sheet, not a dialog-only flow.
   `OcptWysiwygCodec` synthesizes one `ParagraphNode` per `ocptTitlePageFieldKeys` entry (`Title`,

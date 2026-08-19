@@ -31,7 +31,14 @@ final RegExp _sequentialSceneNumberPattern = RegExp(r'^([0-9]+)([A-Za-z]*)$');
 ///
 /// Pure and stateless: it only reads [document]'s current metadata and returns the requests a
 /// caller must still execute against a live `Editor` to actually apply them.
-List<EditRequest> sceneNumberNormalizationRequests(Document document) {
+///
+/// [isHistorical] is what tells the two callers apart. The debounced settle pass that follows an
+/// edit leaves it at true: its renumbering is part of the writer's own gesture and must be undone
+/// with it. The load-time pass that corrects a badly ordered `#N#` the moment a screenplay is
+/// decoded (`_OcptStyledScreenplayEditorState._syncSceneNumbers`) passes false: it runs before the
+/// writer has touched anything, so as an undo step it could only ever be a Ctrl+Z that
+/// un-corrects a numbering nobody asked to change.
+List<EditRequest> sceneNumberNormalizationRequests(Document document, {bool isHistorical = true}) {
   final requests = <EditRequest>[];
   var lastConsumed = 0;
 
@@ -60,7 +67,11 @@ List<EditRequest> sceneNumberNormalizationRequests(Document document) {
     final correctedNumber = "${lastConsumed + 1}";
     if (currentNumber != correctedNumber) {
       requests.add(
-        OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptSceneNumberMetadataKey: correctedNumber}),
+        OcptChangeNodeMetadataRequest(
+          nodeId: node.id,
+          metadata: {ocptSceneNumberMetadataKey: correctedNumber},
+          isHistorical: isHistorical,
+        ),
       );
     }
     lastConsumed++;

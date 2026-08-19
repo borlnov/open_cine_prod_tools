@@ -292,7 +292,18 @@ class OcptWysiwygCodec {
     }
 
     return OcptWysiwygDecodeResult(
-      document: MutableDocument(nodes: nodes),
+      // `List<DocumentNode>.of`, not the `List<ParagraphNode>` `nodes` already is, and this is the
+      // reason every `MutableDocument(nodes: ...)` in this class and in `OcptStyledScreenplayEditor`
+      // states its element type too. `MutableDocument`'s `nodes:` parameter is typed
+      // `List<DocumentNode>?`, but Dart's generics are reified, so a narrower list keeps its own
+      // runtime type on the field the constructor stores it in. `Editor.undo()` replays by resetting
+      // every `Editable`, and `MutableDocument.reset()` does
+      // `_nodes..clear()..addAll(_latestNodesSnapshot)`, where `_latestNodesSnapshot` — built by the
+      // constructor itself — is a genuine `List<DocumentNode>`: that `addAll` throws
+      // `type 'List<DocumentNode>' is not a subtype of type 'Iterable<ParagraphNode>'` *after* the
+      // `clear()` has already run, so the document is left permanently empty rather than merely
+      // un-undone.
+      document: MutableDocument(nodes: List<DocumentNode>.of(nodes)),
       mapping: OcptWysiwygLineMapping._build(
         sourceText: text,
         blankLinesBeforeByNode: blankLinesBeforeByNode,
@@ -331,9 +342,9 @@ class OcptWysiwygCodec {
     final bodyDecoded = decode(bodyText);
 
     return OcptWysiwygDecodeResult(
-      document: MutableDocument(
-        nodes: [...titlePageNodes, ...bodyDecoded.document.map((node) => node as ParagraphNode)],
-      ),
+      // Element type spelled out rather than inferred, like every other `MutableDocument` built in
+      // this class: see [decode] for what a list narrowed to `ParagraphNode` does to `reset()`.
+      document: MutableDocument(nodes: <DocumentNode>[...titlePageNodes, ...bodyDecoded.document]),
       mapping: bodyDecoded.mapping,
       trailingBlankLines: bodyDecoded.trailingBlankLines,
       titlePageNodeCount: titlePageNodes.length,
@@ -531,7 +542,11 @@ class OcptWysiwygCodec {
       (isTitlePageNode(node) ? titlePageNodes : bodyNodes).add(node);
     }
 
-    final bodyEncoded = encode(MutableDocument(nodes: bodyNodes), trailingBlankLines: trailingBlankLines);
+    // `List<DocumentNode>.of`, `bodyNodes` being a `List<ParagraphNode>`: see [decode].
+    final bodyEncoded = encode(
+      MutableDocument(nodes: List<DocumentNode>.of(bodyNodes)),
+      trailingBlankLines: trailingBlankLines,
+    );
     final titlePageEntries = _titlePageEntriesFromNodes(titlePageNodes);
     final text = const FountainTitlePageWriter().apply(
       source: bodyEncoded.text,
@@ -659,7 +674,10 @@ class OcptWysiwygCodec {
       return "";
     }
 
-    final adjustedNodes = [
+    // Element type spelled out: `ParagraphNode.copyWithAddedMetadata` overrides its `TextNode`
+    // parent with a covariant `ParagraphNode` return type, so this literal would otherwise infer as
+    // a `List<ParagraphNode>` — see [decode] for what that costs.
+    final adjustedNodes = <DocumentNode>[
       nodes.first.copyWithAddedMetadata({ocptBlankLinesBeforeMetadataKey: 0}),
       ...nodes.skip(1),
     ];
