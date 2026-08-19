@@ -63,9 +63,10 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
   `OcptConfirmDialog` (`lib/ui/widgets/`), which the *page or mode* opens — a widget only ever asks
   (a nullable `on…Requested` callback), it never carries the question itself. The caller owns every
   word of it and `isDestructive`. A new action that cannot be undone reuses this dialog; a second
-  confirmation widget must not appear. The one standing exception is the `Versions` dock panel,
-  whose `Delete`/`Restore`/`Rename` are answered **inside the card they belong to**, a list of
-  cards having no other way to say *which* one is being talked about.
+  confirmation widget must not appear. The standing exception has two holders: the `Versions`
+  dock panel, whose `Delete`/`Restore`/`Rename` are answered **inside the card they belong to**,
+  and the project dictionary dialog's per-word removal, answered **inside the row it belongs
+  to** — in both, a list of rows has no other way to say *which* one is being talked about.
 - **Before creating any new view/screen, ask Benoit design questions first** (layout, style,
   references). He shapes the UI himself.
 
