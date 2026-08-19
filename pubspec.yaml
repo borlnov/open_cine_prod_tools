@@ -110,6 +110,9 @@ dependencies:
   fountain_kit:
     path: packages/fountain_kit
 
+  spell_kit:
+    path: packages/spell_kit
+
   # Document editing toolkit backing the editor's styled block editing mode. Pinned to an exact
   # version (no caret): its API is still pre-1.0 and moves between dev releases. dev.52 is the
   # first pin that compiles against this repo's Flutter SDK: since 3.44, `TextInputConnection`

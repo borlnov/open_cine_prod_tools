@@ -1396,6 +1396,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.2"
+  spell_kit:
+    dependency: "direct main"
+    description:
+      path: "packages/spell_kit"
+      relative: true
+    source: path
+    version: "0.1.0"
   sqlite3:
     dependency: "direct main"
     description:

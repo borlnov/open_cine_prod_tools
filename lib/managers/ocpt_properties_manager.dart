@@ -34,11 +34,11 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// On top of the [MixinLocaleProperties] wanted locale and the [MixinThemesProperties] theme and
 /// brightness, it stores the list of recently opened projects, the preferred editor mode, the
 /// app-wide page margins preference, the editor's dock width fractions, its scene-number
-/// visibility preference, the last used workspace mode, the shot list mode's own dock
-/// fractions, visible table columns and last right dock tab, the resources mode's own dock
-/// fractions, the breakdown mode's own dock fractions and last right dock tab, the schedule
-/// mode's own dock fractions and last right dock tab, and the id identifying this replica of the
-/// app ([loadOrCreateDeviceId]).
+/// visibility preference, its spell-check visibility preference, the last used workspace mode,
+/// the shot list mode's own dock fractions, visible table columns and last right dock tab, the
+/// resources mode's own dock fractions, the breakdown mode's own dock fractions and last right
+/// dock tab, the schedule mode's own dock fractions and last right dock tab, and the id
+/// identifying this replica of the app ([loadOrCreateDeviceId]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -94,6 +94,12 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// Loading it returns null if nothing has been stored yet, which is equivalent to `true` (scene
   /// numbers are shown by default).
   final styledSceneNumbersVisible = SharedPreferencesItem<bool>("STYLED_SCENE_NUMBERS_VISIBLE");
+
+  /// This is the key used to store whether this machine shows the spell-check underlines, in
+  /// either editing mode.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`.
+  final spellCheckVisible = SharedPreferencesItem<bool>("SPELL_CHECK_VISIBLE");
 
   /// This is the key used to store the left (scenes) dock's width, as a fraction of the editor's
   /// editing row width.
