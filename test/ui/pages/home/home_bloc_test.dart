@@ -106,7 +106,10 @@ void main() {
   setUp(() async {
     await propertiesManager.deleteAll();
     tempDir = await Directory.systemTemp.createTemp("ocpt_home_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
   });
 

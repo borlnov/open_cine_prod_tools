@@ -1520,7 +1520,10 @@ void main() {
     setUp(() async {
       savedTexts = [];
       tempDir = await Directory.systemTemp.createTemp("ocpt_styled_editor_test_");
-      projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+      projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
       await projectsManager.initLifeCycle();
 
       final result = await projectsManager.createProject(

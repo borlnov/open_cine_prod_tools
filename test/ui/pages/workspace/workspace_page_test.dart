@@ -83,7 +83,10 @@ void main() {
     propertiesManager = OcptPropertiesManager();
     await propertiesManager.initLifeCycle();
 
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
 
     routerManager = _RecordingRouterManager();

@@ -97,7 +97,10 @@ void main() {
   setUp(() async {
     await propertiesManager.deleteAll();
     tempDir = await Directory.systemTemp.createTemp("ocpt_project_settings_page_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
     await projectsManager.createProject(
       name: "My Movie",

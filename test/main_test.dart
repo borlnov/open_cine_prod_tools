@@ -66,7 +66,10 @@ void main() {
     // mode: force raw mode so it stays green regardless of the app's default editing mode.
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
 
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
 
     OcptGlobalManager.instance.managers

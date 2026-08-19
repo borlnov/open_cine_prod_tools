@@ -23,6 +23,10 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+/// The app language every projects manager built here is given, so a created project's own
+/// screenplay language never depends on the machine the tests run on.
+String _testAppLanguageCode() => "en";
+
 /// A router manager whose [pop] does nothing: these tests never leave the workspace, and no real
 /// GoRouter is built for it to operate on.
 class _SilentRouterManager extends OcptRouterManager {
@@ -35,7 +39,7 @@ class _SilentRouterManager extends OcptRouterManager {
 class _FailingRenameProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _FailingRenameProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager);
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
   @override
   Future<void> renameProjectVersion({
@@ -51,7 +55,7 @@ class _FailingRenameProjectsManager extends OcptProjectsManager {
 class _CountingProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager);
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
   /// How many times [captureWorkingCopyState] actually ran, as opposed to being skipped by the
   /// mixin's throttle before ever reaching here.
@@ -97,7 +101,10 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp("ocpt_project_versions_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: _testAppLanguageCode,
+    );
     await projectsManager.initLifeCycle();
 
     final result = await projectsManager.createProject(

@@ -44,6 +44,10 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:spell_kit/spell_kit.dart';
 
+/// The app language every projects manager built here is given, so a created project's own
+/// screenplay language never depends on the machine the tests run on.
+String _testAppLanguageCode() => "en";
+
 /// A screenplay service whose saves always fail, to exercise the bloc's save error path. Loads
 /// still go through the real implementation.
 class _FailingScreenplayService extends OcptScreenplayService {
@@ -77,7 +81,7 @@ class _FailingScreenplayService extends OcptScreenplayService {
 class _CountingProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager);
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
   /// How many times [captureWorkingCopyState] actually ran.
   int captureCount = 0;
@@ -357,7 +361,10 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp("ocpt_editor_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: _testAppLanguageCode,
+    );
     await projectsManager.initLifeCycle();
 
     final result = await projectsManager.createProject(

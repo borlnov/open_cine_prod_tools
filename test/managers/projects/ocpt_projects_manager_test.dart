@@ -41,7 +41,10 @@ void main() {
   setUp(() async {
     await propertiesManager.deleteAll();
     tempDir = await Directory.systemTemp.createTemp("ocpt_projects_manager_test_");
-    manager = OcptProjectsManager(propertiesManager: propertiesManager);
+    manager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await manager.initLifeCycle();
   });
 
@@ -327,14 +330,41 @@ void main() {
     expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
   });
 
-  test('createProject seeds a screenplay language, guessed from the platform locale', () async {
-    final filePath = p.join(tempDir.path, "movie.ocpt");
-    await manager.createProject(name: "My Movie", filePath: filePath);
+  test("createProject seeds the screenplay language from the app's own language", () async {
+    final frenchManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "fr",
+    );
+    await frenchManager.initLifeCycle();
+    addTearDown(frenchManager.disposeLifeCycle);
 
-    // Never null: unlike a project created before this column existed, a freshly created one
-    // always has a guess seeded for it — the honest "nobody has said" reading is reserved for an
-    // older file or a deliberate clear, not for a brand new project.
-    expect(await manager.loadCurrentProjectScreenplayLanguage(), isNotNull);
+    await frenchManager.createProject(
+      name: "Mon Film",
+      filePath: p.join(tempDir.path, "mon_film.ocpt"),
+    );
+
+    expect(
+      await frenchManager.loadCurrentProjectScreenplayLanguage(),
+      OcptScreenplayLanguage.fr,
+    );
+  });
+
+  test('createProject leaves the screenplay language unset when no dictionary matches', () async {
+    final germanManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "de",
+    );
+    await germanManager.initLifeCycle();
+    addTearDown(germanManager.disposeLifeCycle);
+
+    await germanManager.createProject(
+      name: "Mein Film",
+      filePath: p.join(tempDir.path, "mein_film.ocpt"),
+    );
+
+    // No dictionary is bundled for German, so nothing is guessed: no language means no
+    // spell-check underlines, rather than every word underlined against the wrong one.
+    expect(await germanManager.loadCurrentProjectScreenplayLanguage(), isNull);
   });
 
   test(

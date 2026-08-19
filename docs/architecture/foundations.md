@@ -179,7 +179,11 @@ the read-only preview.
   beside the page format and the currency and for the same reason: a screenplay written in French
   stays French on a colleague's machine running the app in English, so the fact travels inside the
   `.ocpt` file. It is **nullable** — null means "nobody has said", and nothing is checked — seeded
-  at project creation from the UI locale, which is a guess made once at the only moment where a
+  at project creation from the **app's own UI language** (`LocalesManager.currentLocale`, behind an
+  injectable seam, not the platform locale the page format and the currency read: a paper size
+  belongs to where the production is, a screenplay language to whoever is typing), and **left null
+  when no dictionary is bundled for that language** — no underlines rather than every word
+  underlined against the wrong language. That is a guess made once at the only moment where a
   wrong guess costs a dropdown pick, and picked afterwards in the project settings page
   (`OcptProjectSettingsScreenplayLanguageSection`, whose `None` entry is the honest off switch for
   a project). It is not per episode: a series is written in one language, and a bilingual one would
