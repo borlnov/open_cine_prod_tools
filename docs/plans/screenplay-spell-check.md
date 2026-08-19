@@ -214,6 +214,7 @@ OcptSpellCheckManager (AbsWithLifeCycle, registered in OcptGlobalManager)
         └── SpellChecker (spell_kit) + the project's learned words + the session's ignored words
 OcptProjectDictionaryService (lib/managers/projects/services/)
   └── the learned words of the open project, in a synchronised table
+        └── read and unlearned in OcptProjectDictionaryDialog, opened by the project settings page
 OcptEditorBloc
   ├── asks the manager for ranges on the existing 150 ms parse debounce
   └── holds them in OcptEditorState, per editing surface's own addressing
@@ -343,9 +344,45 @@ is all a writer wants a checker for.
   deletes a synchronised row, and every read filters tombstones). Case: the word is stored as
   typed, and matched case-insensitively unless it was typed with an interior capital, which is what
   makes `Marie` cover `marie`'s absence without `MacGuffin` covering `macguffin`.
-- Both appear in the styled editor's right-click menu (§4.5). Neither has a management screen in
-  this issue — a learned word is removed by no UI yet, which is a deliberate gap worth stating
-  rather than a forgotten one; the resources mode is where such a list would eventually belong.
+- Both appear in the styled editor's right-click menu (§4.5), and what has been learned is read
+  back — and unlearned — through the dialog of §4.6.
+
+### 4.6 Reading the project's dictionary, and taking a word back out
+
+A lexicon one can only fill is a lexicon one stops trusting: a word learned by mistake (a typo
+right-clicked one line too fast) would underline nothing ever again, invisibly. So the learned
+words are read and edited in a modal dialog, reached from the project settings page.
+
+- **The door** is a new `OcptProjectDictionarySection` in the project settings page, right under the
+  screenplay-language section of §4.1 — the setting this lexicon depends on, in the one place that
+  already holds the project's own settings. The section states the count (`4 learned words`, or an
+  empty-state line when there are none) and carries an `Edit…` button, exactly as
+  `OcptEditorMetadataPanel` carries the one opening the title-page dialog.
+- **The dialog** is `OcptProjectDictionaryDialog` (`lib/ui/pages/project_settings/widgets/`), built
+  like every other dialog in this app: a static `show(BuildContext, {required List<String> words})`
+  wrapping `showDialog`, and **every close going through
+  `globalGetIt().get<OcptRouterManager>().pop(…)`**, never `Navigator` (the repository-wide rule).
+  It holds:
+  - the learned words, **sorted case-insensitively**, one per row;
+  - a **filter field** at the top, filtering as one types: a feature film can carry a few hundred
+    invented names, and scrolling is not searching;
+  - an **add field** at the bottom, so a name can be taught before it has ever been typed into the
+    screenplay — today the only way in is a right-click on a word already written and already
+    underlined. It refuses a blank entry and a word the list already holds, case-insensitively;
+  - a `✕` per row, whose removal is **answered inside the row itself** — `Remove?` /
+    `Yes` / `No` in place of the word, the way an `OcptProjectVersionCard` answers its own
+    `Delete`. This is the second use of that standing exception to the confirm-dialog rule, and for
+    the same reason: a list of rows has no other way of saying *which* row is being talked about,
+    and a modal question stacked on a modal dialog to un-learn ten names in a row would be a
+    punishment. `docs/architecture/foundations.md` records the exception's second holder.
+- **The dialog reports, it does not write**: it returns the words added and the words removed, and
+  the *page* applies them through `OcptProjectDictionaryService` — the same shape as the title-page
+  dialog handing its six fields back for the page to apply. A removal is a tombstone like every
+  other delete in this schema; re-learning a removed word revives its row rather than inserting a
+  second one, so a word cannot end up in the table twice.
+- Closing the dialog with changes bumps the manager's generation (§3.1), so the very next debounce
+  tick re-checks the screenplay: the word one has just un-learned is underlined again without
+  anything having to be re-typed, and that is the observable proof the round trip worked.
 
 ### 4.5 Where a correction is offered
 
@@ -447,20 +484,39 @@ whole; a service test proving a learned word is tombstoned rather than deleted a
 out on read; a manager test proving learning a word re-checks the paragraph it was learned from
 (the generation bump).
 
-### M5 — the record
+### M5 — reading and unlearning the project's dictionary
+
+§4.6: `OcptProjectDictionarySection` in the project settings page, `OcptProjectDictionaryDialog`
+with its filter field, its add field and its in-row removal, the page applying what the dialog
+reports through `OcptProjectDictionaryService`, and both ARB files.
+
+Acceptance: a dialog widget test covering the filter, the refusal of a blank and of a duplicate add
+(case-insensitively), and the in-row `Remove?` answer — including that answering `No` leaves the
+word alone; a settings-page test asserting the count line, the empty state, and that the dialog's
+report reaches the service; a service test proving a removed word's row is revived rather than
+duplicated when the same word is learned again; and one test proving the round trip's whole point —
+a word removed here is underlined again on the next check pass.
+
+### M6 — the record
 
 `docs/adr/0020-bundled-hunspell-dictionaries-and-our-own-checker.md` (why not the platforms' own
 services, why not a native hunspell package, why verbatim `.dic`/`.aff`, what the licences oblige),
 a "Spell-checking" section in `docs/architecture/screenplay.md` (including §1.2's finding, which is
-the kind of thing a future session will otherwise re-discover the hard way), the manager and the new
-table in `docs/architecture/foundations.md`, the README's feature list, and **this plan deleted**.
+the kind of thing a future session will otherwise re-discover the hard way), the manager, the new
+table and the dictionary dialog in `docs/architecture/foundations.md`, the README's feature list,
+and **this plan deleted**.
+
+One line of `AGENTS.md` itself moves with M5: its UI-design rule reads "The one standing exception
+is the `Versions` dock panel" about answering a destructive question inside the card it belongs to,
+and §4.6 gives that exception a second holder. The sentence has to name both, with the same
+argument — a list of rows has no other way of saying which row is being talked about — or the next
+session reads the rule as forbidding what this milestone just shipped.
 
 ---
 
 ## 6. What is out of scope, and said so
 
 - Grammar, per the issue.
-- A screen to review or un-learn the project's dictionary (§4.4).
 - Any language beyond the two the UI itself speaks: a third dictionary is two asset files and one
   enum entry, and the plan is shaped so it stays that.
 - Spell-checking anywhere else in the app — a location's notes, a shot's description, a person's
