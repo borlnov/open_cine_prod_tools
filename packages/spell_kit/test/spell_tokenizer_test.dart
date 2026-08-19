@@ -95,6 +95,46 @@ void main() {
     });
   });
 
+  group('punctuation', () {
+    test('punctuation touching a word is left out of the token', () {
+      final tokens = spellTokensIn('Bonjour, il tourne.');
+      expect(tokens, const [
+        SpellToken('Bonjour', SpellRange(0, 7)),
+        SpellToken('il', SpellRange(9, 11)),
+        SpellToken('tourne', SpellRange(12, 18)),
+      ]);
+    });
+
+    test('a standalone punctuation mark yields no token at all', () {
+      final tokens = spellTokensIn('Que fais-tu ? Rien !');
+      expect(tokens.map((t) => t.text), ['Que', 'fais-tu', 'Rien']);
+    });
+
+    test('brackets and guillemets are left out of the token', () {
+      final tokens = spellTokensIn('(il souffle) « attends » [note]');
+      expect(tokens.map((t) => t.text), [
+        'il',
+        'souffle',
+        'attends',
+        'note',
+      ]);
+    });
+
+    test('an extra word character never widens into a range', () {
+      // The default extra set sorts to `'`, `-`, `’`; spliced into a
+      // character class unescaped, its hyphen would declare the range
+      // U+0027–U+2019 and swallow every mark below.
+      final tokens = spellTokensIn("il s'approche; puis: <plus> #encore");
+      expect(tokens.map((t) => t.text), [
+        'il',
+        "s'approche",
+        'puis',
+        'plus',
+        'encore',
+      ]);
+    });
+  });
+
   group('SpellTokenizerOptions.fromAffixFile', () {
     test('drops "." and every digit from WORDCHARS', () {
       final affixFile = HunspellAffixFile.parse(

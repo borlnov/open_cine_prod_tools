@@ -102,10 +102,26 @@ RegExp _wordPatternFor(Set<String> extraWordCharacters) {
   final sorted = extraWordCharacters.toList()..sort();
   final key = sorted.join();
   return _wordPatternCache[key] ??= RegExp(
-    '[\\p{L}\\p{Nd}${sorted.map(RegExp.escape).join()}]+',
+    '[\\p{L}\\p{Nd}${sorted.map(_characterClassEscape).join()}]+',
     unicode: true,
   );
 }
+
+/// [character] written as a `\u{...}` escape, the form it is spliced into
+/// the character class [_wordPatternFor] builds in.
+///
+/// `RegExp.escape` is not enough here, and getting this wrong is not a
+/// near miss: it leaves `-` untouched, and a bare `-` sitting between two
+/// other members of a class reads as a **range** rather than as itself.
+/// The default set sorts to apostrophe, hyphen, right single quote, which
+/// spliced in raw declares the range U+0027 to U+2019 — every ASCII
+/// punctuation mark, every bracket and both guillemets. Every chunk would
+/// then be cut out whole, punctuation included (`Bonjour,`, `souffle)`,
+/// `?`), and reported misspelled. Escaping by code point has no such
+/// second reading, whatever the set holds and whatever order it sorts in.
+String _characterClassEscape(String character) => character.runes
+    .map((rune) => '\\u{${rune.toRadixString(16)}}')
+    .join();
 
 /// Whether [chunk] reads as a URI, an email address or a file path, and so
 /// should never be offered up as word tokens at all.
