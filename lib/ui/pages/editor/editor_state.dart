@@ -11,9 +11,11 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
+import 'package:spell_kit/spell_kit.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
 /// [charOffset].
@@ -285,6 +287,44 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// updated on every toggle; on by default.
   final bool areStyledSceneNumbersVisible;
 
+  /// Whether this machine wants the spell-check underlines shown, in either editing mode.
+  ///
+  /// Persisted through `OcptPropertiesManager.spellCheckVisible`, loaded once on entry and updated
+  /// on every toggle; on by default. This is one of the two independent on/off switches
+  /// (`docs/architecture/screenplay.md`) — the other is [screenplayLanguage] — and
+  /// nothing is checked while either is off: `OcptEditorBloc` only loads a dictionary into
+  /// `OcptSpellCheckManager` and only requests a check when both are satisfied.
+  final bool isSpellCheckVisible;
+
+  /// The language the open project's screenplays are written in, or null if nobody has said (or no
+  /// project is open) — see [OcptScreenplayLanguage]'s own doc comment.
+  ///
+  /// Read from `OcptProjectsManager.loadCurrentProjectScreenplayLanguage` on entry and re-read
+  /// whenever the project settings page might have changed it; this is the second of the two
+  /// on/off switches (see [isSpellCheckVisible]'s own doc comment).
+  final OcptScreenplayLanguage? screenplayLanguage;
+
+  /// The misspelled ranges found in the raw mode's Fountain source text, document-absolute (the
+  /// very offsets its `OcptEditorSearchTextController` paints in), reported by
+  /// `OcptEditorBloc`'s debounced spell-check pass.
+  ///
+  /// Empty while spell-checking is off (either switch), while a project version is being
+  /// previewed, or before the first pass has answered, or while the raw editing surface isn't the
+  /// one mounted (`OcptEditorBloc._requestSpellCheck` only runs in raw mode, so nothing here would
+  /// paint anyway — see that method's own doc comment).
+  final List<SpellRange> rawSpellCheckRanges;
+
+  /// The misspelled ranges found in the styled mode's checkable node texts, keyed by node id, each
+  /// relative to that node's own display text — the exact addressing `SpellingAndGrammarStyler`
+  /// wants, reported by `OcptEditorBloc`'s own debounced pass over whatever
+  /// `OcptStyledEditorController.reportSpellCheckTexts` last handed it.
+  ///
+  /// Empty under the same three conditions [rawSpellCheckRanges] is, mirrored: spell-checking off
+  /// (either switch), a project version being previewed, or before the first pass has answered. A
+  /// node id this holds that no longer exists in the live document (a full rebuild since the ranges
+  /// were computed) is simply ignored by the styled editor rather than reaching the styler.
+  final Map<String, List<SpellRange>> styledSpellCheckRanges;
+
   /// The pending caret jump request, or null if none was ever made.
   ///
   /// The page keeps track of the last [OcptEditorJumpRequest.id] it applied, so this doesn't
@@ -389,6 +429,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.pageSetup,
     required this.isPageSimulationEnabled,
     required this.areStyledSceneNumbersVisible,
+    required this.isSpellCheckVisible,
+    required this.screenplayLanguage,
+    required this.rawSpellCheckRanges,
+    required this.styledSpellCheckRanges,
     required this.jumpRequest,
     required this.ioNotice,
     required this.search,
@@ -424,6 +468,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       pageSetup = const OcptPageSetup.standard(),
       isPageSimulationEnabled = true,
       areStyledSceneNumbersVisible = true,
+      isSpellCheckVisible = true,
+      screenplayLanguage = null,
+      rawSpellCheckRanges = const [],
+      styledSpellCheckRanges = const {},
       jumpRequest = null,
       ioNotice = null,
       search = const OcptEditorSearchState.init(),
@@ -443,13 +491,18 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// is given: they never go back to null (or, for [statistics], to
   /// [FountainScriptStatistics.empty]) once set, so no clear flag is needed for them. [ioNotice]
   /// is only replaced when a new one is given or [clearIoNotice] is true, exactly like
-  /// `OcptHomeState`'s own `error` field. [rightDockTab], [autoClosedRightDockTab] and
-  /// [sceneStatistics] follow the same idiom as [ioNotice], each with its own clear flag
-  /// ([clearRightDockTab], [clearAutoClosedRightDockTab], [clearSceneStatistics]): all three
-  /// legitimately go back to null during the editor's lifetime (closing the dock, restoring it on
-  /// a mode switch, the caret moving back before every scene), so the "never goes back to null"
-  /// shortcut used above doesn't apply to them. [search] is replaced wholesale (through its own
+  /// `OcptHomeState`'s own `error` field. [rightDockTab], [autoClosedRightDockTab],
+  /// [sceneStatistics] and [screenplayLanguage] follow the same idiom as [ioNotice], each with its
+  /// own clear flag ([clearRightDockTab], [clearAutoClosedRightDockTab], [clearSceneStatistics],
+  /// [clearScreenplayLanguage]): all four legitimately go back to null during the editor's
+  /// lifetime (closing the dock, restoring it on a mode switch, the caret moving back before every
+  /// scene, a project's language being unset), so the "never goes back to null" shortcut used
+  /// above doesn't apply to them. [search] is replaced wholesale (through its own
   /// `OcptEditorSearchState.copyWith`), not flattened into this method's own parameter list.
+  /// [rawSpellCheckRanges] and [styledSpellCheckRanges] need no clear flag despite legitimately
+  /// going back to empty (spell-check turning off, a version preview starting): `const []`/`const
+  /// {}` are themselves values, passed explicitly by the caller wanting that, rather than a state a
+  /// plain `?? this.rawSpellCheckRanges` couldn't already distinguish from "leave it as it is".
   @override
   OcptEditorState copyWith({
     bool? isLoading,
@@ -473,6 +526,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     OcptPageSetup? pageSetup,
     bool? isPageSimulationEnabled,
     bool? areStyledSceneNumbersVisible,
+    bool? isSpellCheckVisible,
+    OcptScreenplayLanguage? screenplayLanguage,
+    bool clearScreenplayLanguage = false,
+    List<SpellRange>? rawSpellCheckRanges,
+    Map<String, List<SpellRange>>? styledSpellCheckRanges,
     OcptEditorJumpRequest? jumpRequest,
     OcptEditorIoNotice? ioNotice,
     bool clearIoNotice = false,
@@ -515,6 +573,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     pageSetup: pageSetup ?? this.pageSetup,
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
     areStyledSceneNumbersVisible: areStyledSceneNumbersVisible ?? this.areStyledSceneNumbersVisible,
+    isSpellCheckVisible: isSpellCheckVisible ?? this.isSpellCheckVisible,
+    screenplayLanguage: clearScreenplayLanguage ? null : (screenplayLanguage ?? this.screenplayLanguage),
+    rawSpellCheckRanges: rawSpellCheckRanges ?? this.rawSpellCheckRanges,
+    styledSpellCheckRanges: styledSpellCheckRanges ?? this.styledSpellCheckRanges,
     jumpRequest: jumpRequest ?? this.jumpRequest,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     search: search ?? this.search,
@@ -594,6 +656,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     pageSetup,
     isPageSimulationEnabled,
     areStyledSceneNumbersVisible,
+    isSpellCheckVisible,
+    screenplayLanguage,
+    rawSpellCheckRanges,
+    styledSpellCheckRanges,
     jumpRequest,
     ioNotice,
     search,

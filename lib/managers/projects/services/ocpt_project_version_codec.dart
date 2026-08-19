@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -59,7 +60,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 13;
+  static const currentPayloadFormat = 15;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -739,6 +740,18 @@ class OcptProjectVersionCodec {
   /// object
   static const _minimumRestMinutesKey = "minimumRestMinutes";
 
+  /// This is the key used to stringify or parse the project's `screenplayLanguage` from a JSON
+  /// object
+  static const _screenplayLanguageKey = "screenplayLanguage";
+
+  /// This is the key used to stringify or parse the `project_dictionary_words` rows from a JSON
+  /// object, from payload format 15: the words a writer has taught this project's spell checker.
+  static const _projectDictionaryWordsKey = "projectDictionaryWords";
+
+  /// This is the key used to stringify or parse a `project_dictionary_words.word` column from a
+  /// JSON object
+  static const _wordKey = "word";
+
   /// This is the key used to stringify or parse the left page margin from a JSON object
   static const _marginLeftKey = "leftInches";
 
@@ -770,6 +783,8 @@ class OcptProjectVersionCodec {
     10: _upgradeFormat10To11,
     11: _upgradeFormat11To12,
     12: _upgradeFormat12To13,
+    13: _upgradeFormat13To14,
+    14: _upgradeFormat14To15,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1199,6 +1214,34 @@ class OcptProjectVersionCodec {
     };
   }
 
+  /// Turns a format-**13** JSON object into a format-**14** one: `project_info.screenplayLanguage`
+  /// didn't exist yet, so [_projectSettingsKey] gains a **null** [_screenplayLanguageKey].
+  ///
+  /// [_upgradeFormat11To12]'s kind, not [_upgradeFormat3To4]'s currency: the column is nullable by
+  /// design, so a version captured in format 13 or earlier truthfully recorded nothing for it, and
+  /// that nothing is written back onto the working copy on restore like any other changed column —
+  /// see [OcptProjectVersionPayload.screenplayLanguage].
+  static Map<String, dynamic> _upgradeFormat13To14(Map<String, dynamic> json) {
+    final projectSettings = {
+      ..._object(json, _projectSettingsKey),
+      _screenplayLanguageKey: null,
+    };
+
+    return {...json, _projectSettingsKey: projectSettings};
+  }
+
+  /// Turns a format-**14** JSON object into a format-**15** one: `project_dictionary_words` didn't
+  /// exist yet, so this materialises it as an **empty list** — [_upgradeFormat1To2]'s kind, not
+  /// [_upgradeFormat13To14]'s null: a version captured this early truthfully taught the spell
+  /// checker nothing at all, which is exactly what an empty list says, and
+  /// `OcptProjectVersionsService._restoreTable` already tombstones, on restore, every row the
+  /// payload doesn't hold — so a restore of a format-14 version correctly un-learns whatever the
+  /// working copy had been taught since, with no special case written for it.
+  static Map<String, dynamic> _upgradeFormat14To15(Map<String, dynamic> json) => {
+    ...json,
+    _projectDictionaryWordsKey: const <dynamic>[],
+  };
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1282,12 +1325,16 @@ class OcptProjectVersionCodec {
     _shootingDayEventsKey: [
       for (final row in payload.shootingDayEvents) _shootingDayEventToJson(row),
     ],
+    _projectDictionaryWordsKey: [
+      for (final row in payload.projectDictionaryWords) _projectDictionaryWordToJson(row),
+    ],
     _rowFieldVersionsKey: [for (final row in payload.rowFieldVersions) _rowFieldVersionToJson(row)],
     _projectSettingsKey: {
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
       _minimumRestMinutesKey: payload.minimumRestMinutes,
+      _screenplayLanguageKey: payload.screenplayLanguage?.name,
     },
     _pageMarginsKey: {
       _marginLeftKey: payload.pageSetup.margins.leftInches,
@@ -1352,7 +1399,8 @@ class OcptProjectVersionCodec {
   ///   `sceneSets`, `elements`, `sceneElements`, `roleElements`, `assets`, `breakdownTags`,
   ///   `sceneBreakdowns`,
   ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
-  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingDayEvents` — every
+  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingDayEvents`, `projectDictionaryWords` —
+  ///   every
   ///   column of each — plus `pageSetup.format`,
   ///   `settingsJson` and `currencyCode`. This is
   ///   "the project", as a user would describe it, and the resources tables are not optional here:
@@ -1372,7 +1420,12 @@ class OcptProjectVersionCodec {
   ///   the working-copy card would claim no drift and a restore over that afternoon's work would skip
   ///   the safety version it owes. `shootingSlotGuests` and `shootingDayEvents` are the same case a
   ///   step later still: leave them out and entering the mayor lending a square, or the fireworks
-  ///   nobody controls, would hash identically to a day carrying neither. `currencyCode` is only ever
+  ///   nobody controls, would hash identically to a day carrying neither. `projectDictionaryWords`
+  ///   is the same case once more, from payload format 15 on: leave it out and a word learned, or
+  ///   un-learned, since the version was captured would hash identically to a project whose lexicon
+  ///   never changed — the working-copy card would claim no drift, and a restore that is about to
+  ///   silently un-teach a word would skip the safety version it owes for it. `currencyCode` is only
+  ///   ever
   ///   null on a payload decoded
   ///   from a format predating it (never on one freshly captured from a live database, which always
   ///   reads a real value), so this never makes an old and a current capture of the very same
@@ -1380,6 +1433,10 @@ class OcptProjectVersionCodec {
   ///   capture as on an old one, since the column is nullable by design — but it stays **in**, not
   ///   out alongside the margins: two projects agreeing on every shooting day but disagreeing on the
   ///   rest they owe between them are not the same project, and leaving it out would hide that;
+  ///   `screenplayLanguage` is the same case again, for the same reason: two projects agreeing on
+  ///   everything else but disagreeing on the language their screenplays are written in are not the
+  ///   same project — one of them would be spell-checked and the other would not — so it stays in,
+  ///   null exactly as legitimately as `minimumRestMinutes`;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -1522,10 +1579,16 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _shootingDayEventToJson,
       ),
+      _projectDictionaryWordsKey: _canonicalRows(
+        payload.projectDictionaryWords,
+        primaryKeyOf: (row) => row.id,
+        toJson: _projectDictionaryWordToJson,
+      ),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
       _minimumRestMinutesKey: payload.minimumRestMinutes,
+      _screenplayLanguageKey: payload.screenplayLanguage?.name,
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
@@ -1622,6 +1685,10 @@ class OcptProjectVersionCodec {
       shootingDayEvents: [
         for (final row in _rows(json, _shootingDayEventsKey)) _shootingDayEventFromJson(row),
       ],
+      projectDictionaryWords: [
+        for (final row in _rows(json, _projectDictionaryWordsKey))
+          _projectDictionaryWordFromJson(row),
+      ],
       rowFieldVersions: [
         for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
       ],
@@ -1637,6 +1704,11 @@ class OcptProjectVersionCodec {
       settingsJson: _nullableString(projectSettings, _settingsJsonKey),
       currencyCode: _nullableString(projectSettings, _currencyCodeKey),
       minimumRestMinutes: _nullableInt(projectSettings, _minimumRestMinutesKey),
+      screenplayLanguage: _nullableEnum(
+        projectSettings,
+        _screenplayLanguageKey,
+        OcptScreenplayLanguage.values.asNameMap(),
+      ),
     );
   }
 
@@ -1976,6 +2048,23 @@ class OcptProjectVersionCodec {
     screenplayId: _string(json, _screenplayIdKey),
     isDeleted: _bool(json, _isDeletedKey),
   );
+
+  /// Serializes one `project_dictionary_words` row: id, the word as it was typed, tombstone — no
+  /// `sortKey`, for the reason `OcptProjectDictionaryWordsTable`'s own doc comment gives (an
+  /// unordered set a writer builds up, not a list they arrange).
+  static Map<String, dynamic> _projectDictionaryWordToJson(OcptProjectDictionaryWordRow row) => {
+    _idKey: row.id,
+    _wordKey: row.word,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `project_dictionary_words` row.
+  static OcptProjectDictionaryWordRow _projectDictionaryWordFromJson(Map<String, dynamic> json) =>
+      OcptProjectDictionaryWordRow(
+        id: _string(json, _idKey),
+        word: _string(json, _wordKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `locations` row.
   static Map<String, dynamic> _locationToJson(OcptLocationRow row) => {

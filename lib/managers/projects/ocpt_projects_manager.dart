@@ -8,6 +8,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_intl/act_intl.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart' show Value;
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -38,11 +40,17 @@ import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:uuid/uuid.dart';
+
+/// Returns the language code of the locale the app's own UI is running in (`fr`, `en`…). The
+/// type of [OcptProjectsManager]'s injectable seam over [LocalesManager] — see that class's
+/// constructor for why a test wants to be able to replace it.
+typedef OcptAppLanguageCodeGetter = String Function();
 
 /// Builds the [OcptProjectsManager] instance registered by the global manager.
 class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager> {
@@ -51,7 +59,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [LoggerManager, OcptPropertiesManager];
+  Iterable<Type> dependsOn() => [LoggerManager, OcptPropertiesManager, LocalesManager];
 }
 
 /// Owns the project the user currently has open, and every operation that creates, opens or
@@ -61,12 +69,14 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// only one such file can be open at a time, exposed through [currentProject] and
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
 /// index, its shot list, its named versions, its resources catalogue (the address book, the cast,
-/// locations and elements), the breakdown pass tagging that catalogue against the screenplay, or
-/// the shooting schedule is delegated to [screenplayService], [sceneIndexService],
+/// locations and elements), the breakdown pass tagging that catalogue against the screenplay, the
+/// shooting schedule, or the project's own spell-check lexicon is delegated to [screenplayService],
+/// [sceneIndexService],
 /// [shotListService], [shotCoverageService], [projectVersionsService], [peopleService],
 /// [roleIndexService], [locationsService], [elementsService], [breakdownService],
-/// [scheduleService] and [assetsService], the twelve services this manager owns and wires together
-/// (RFL18): this manager itself is only responsible for the lifecycle of the project file
+/// [scheduleService], [assetsService] and [projectDictionaryService], the thirteen services this
+/// manager owns and wires together (RFL18): this manager itself is only responsible for the
+/// lifecycle of the project file
 /// (create/open/close), for keeping the properties manager's recent-projects list in sync, and for
 /// handing those services the facts only it holds — the open project's database, the app version,
 /// this replica's device id and the app-wide page margins.
@@ -92,6 +102,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// The properties manager used to persist the recently opened projects list.
   final OcptPropertiesManager _propertiesManager;
+
+  /// The seam [_defaultScreenplayLanguageForAppLocale] reads the app's UI language through.
+  final OcptAppLanguageCodeGetter _appLanguageCode;
 
   /// The service used to load/save a screenplay's text and manage its snapshots.
   final OcptScreenplayService screenplayService;
@@ -136,6 +149,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// so "remove this file" has one answer rather than three.
   final OcptAssetsService assetsService;
 
+  /// The service used to learn, unlearn and read back the words this project's writer has taught
+  /// the spell checker.
+  final OcptProjectDictionaryService projectDictionaryService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -153,46 +170,55 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   late final ValueKeeperWithStream<OcptOpenProjectModel?> _currentProject;
 
   /// Class constructor
-  OcptProjectsManager({OcptPropertiesManager? propertiesManager})
-    : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-      sceneIndexService = const OcptSceneIndexService(),
-      shotListService = const OcptShotListService(),
-      shotCoverageService = const OcptShotCoverageService(),
-      projectVersionsService = const OcptProjectVersionsService(
-        codec: OcptProjectVersionCodec(),
-        screenplayService: OcptScreenplayService(
-          sceneIndexService: OcptSceneIndexService(),
-          shotListService: OcptShotListService(),
-          shotCoverageService: OcptShotCoverageService(),
-          roleIndexService: OcptRoleIndexService(),
-          breakdownService: OcptBreakdownService(
-            elementsService: OcptElementsService(),
-            locationsService: OcptLocationsService(),
-          ),
-          scheduleService: OcptScheduleService(),
-        ),
-      ),
-      screenplayService = const OcptScreenplayService(
-        sceneIndexService: OcptSceneIndexService(),
-        shotListService: OcptShotListService(),
-        shotCoverageService: OcptShotCoverageService(),
-        roleIndexService: OcptRoleIndexService(),
-        breakdownService: OcptBreakdownService(
-          elementsService: OcptElementsService(),
-          locationsService: OcptLocationsService(),
-        ),
-        scheduleService: OcptScheduleService(),
-      ),
-      peopleService = const OcptPeopleService(),
-      roleIndexService = const OcptRoleIndexService(),
-      locationsService = const OcptLocationsService(),
-      elementsService = const OcptElementsService(),
-      assetsService = const OcptAssetsService(),
-      breakdownService = const OcptBreakdownService(
-        elementsService: OcptElementsService(),
-        locationsService: OcptLocationsService(),
-      ),
-      scheduleService = const OcptScheduleService();
+  ///
+  /// [appLanguageCode] is the injectable seam over reading the app's own UI language, defaulting
+  /// to [LocalesManager]'s `currentLocale`, and read only when a project is created
+  /// ([_defaultScreenplayLanguageForAppLocale]) — never when this manager is built, so a test only
+  /// needs to hand one in when it creates a project.
+  OcptProjectsManager({
+    OcptPropertiesManager? propertiesManager,
+    OcptAppLanguageCodeGetter? appLanguageCode,
+  }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+       _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
+       sceneIndexService = const OcptSceneIndexService(),
+       shotListService = const OcptShotListService(),
+       shotCoverageService = const OcptShotCoverageService(),
+       projectVersionsService = const OcptProjectVersionsService(
+         codec: OcptProjectVersionCodec(),
+         screenplayService: OcptScreenplayService(
+           sceneIndexService: OcptSceneIndexService(),
+           shotListService: OcptShotListService(),
+           shotCoverageService: OcptShotCoverageService(),
+           roleIndexService: OcptRoleIndexService(),
+           breakdownService: OcptBreakdownService(
+             elementsService: OcptElementsService(),
+             locationsService: OcptLocationsService(),
+           ),
+           scheduleService: OcptScheduleService(),
+         ),
+       ),
+       screenplayService = const OcptScreenplayService(
+         sceneIndexService: OcptSceneIndexService(),
+         shotListService: OcptShotListService(),
+         shotCoverageService: OcptShotCoverageService(),
+         roleIndexService: OcptRoleIndexService(),
+         breakdownService: OcptBreakdownService(
+           elementsService: OcptElementsService(),
+           locationsService: OcptLocationsService(),
+         ),
+         scheduleService: OcptScheduleService(),
+       ),
+       peopleService = const OcptPeopleService(),
+       roleIndexService = const OcptRoleIndexService(),
+       locationsService = const OcptLocationsService(),
+       elementsService = const OcptElementsService(),
+       assetsService = const OcptAssetsService(),
+       projectDictionaryService = const OcptProjectDictionaryService(),
+       breakdownService = const OcptBreakdownService(
+         elementsService: OcptElementsService(),
+         locationsService: OcptLocationsService(),
+       ),
+       scheduleService = const OcptScheduleService();
 
   /// The project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;
@@ -232,7 +258,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// [OcptPageFormat.a4] when the platform's locale is French, and to [OcptPageFormat.usLetter]
   /// otherwise. Its currency defaults to whatever `intl` names for the platform's current locale
   /// (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
-  /// [ocptDefaultCurrencyCode] when it can't.
+  /// [ocptDefaultCurrencyCode] when it can't. Its screenplay language is seeded from the **app's**
+  /// own UI language instead ([_defaultScreenplayLanguageForAppLocale]), and left unset when no
+  /// dictionary is bundled for it.
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> createProject({
     required String name,
     required String filePath,
@@ -266,6 +294,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
               appVersionAtCreation: _appVersion,
               pageFormat: _defaultPageFormatForPlatformLocale(),
               currencyCode: Value(_defaultCurrencyCodeForPlatformLocale()),
+              screenplayLanguage: Value(_defaultScreenplayLanguageForAppLocale()),
             ),
           );
 
@@ -488,6 +517,46 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await project.database
         .update(project.database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(minimumRestMinutes: Value(minutes)));
+  }
+
+  /// Loads the screenplay language stored in the [currentProject]'s `project_info` table, or null.
+  ///
+  /// The two reasons for a null answer are indistinguishable here, exactly as
+  /// [loadCurrentProjectMinimumRestMinutes]'s are: no project is open, or one is and nobody has
+  /// recorded a language for it — the column's own truthful "nobody has said"
+  /// (`OcptProjectInfoTable.screenplayLanguage`).
+  Future<OcptScreenplayLanguage?> loadCurrentProjectScreenplayLanguage() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.screenplayLanguage;
+  }
+
+  /// Updates the screenplay language stored in the [currentProject]'s `project_info` table, or
+  /// clears it when [language] is null — a writer who decides the checker should stay off this
+  /// screenplay is making as real a choice as picking one of the two bundled languages. Does
+  /// nothing if no project is currently open.
+  ///
+  /// Modelled on [saveCurrentProjectMinimumRestMinutes]: [language] is written whichever it is,
+  /// including null, rather than only ever holding a value the way a page format or a currency
+  /// always does.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage? language) async {
+    final project = currentProject;
+    if (project == null ||
+        project.database.refusesUserWrite("saveCurrentProjectScreenplayLanguage")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(screenplayLanguage: Value(language)));
   }
 
   /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
@@ -881,6 +950,41 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       NumberFormat.simpleCurrency(locale: PlatformDispatcher.instance.locale.toString())
           .currencyName ??
       ocptDefaultCurrencyCode;
+
+  /// Returns the default [OcptScreenplayLanguage] for a newly created project: the language the
+  /// **app's own UI** is running in ([_appLanguageCode]), or **null** when no dictionary is bundled for
+  /// it.
+  ///
+  /// The two other defaults a new project is seeded with read the *platform* locale
+  /// ([_defaultPageFormatForPlatformLocale], [_defaultCurrencyCodeForPlatformLocale]) because a
+  /// paper size and a currency belong to where the production is, whichever language its menus are
+  /// in. A screenplay language is not that: it is the language the writer is about to type in, and
+  /// the language they chose to read the app in is the far better guess — a French UI on an
+  /// English system means a French writer.
+  ///
+  /// Returning null rather than falling back to any bundled dictionary is deliberate: with no
+  /// dictionary for the app's language there is no honest guess left to make, and no dictionary
+  /// selected means no spell-check underlines rather than every word underlined against a language
+  /// the screenplay isn't written in. Whichever it is, it is a guess made once, at the only moment
+  /// where getting it wrong costs nothing worse than a dropdown pick in the project settings page.
+  OcptScreenplayLanguage? _defaultScreenplayLanguageForAppLocale() {
+    switch (_appLanguageCode()) {
+      case "fr":
+        return OcptScreenplayLanguage.fr;
+      case "en":
+        return OcptScreenplayLanguage.enGb;
+      default:
+        return null;
+    }
+  }
+
+  /// The default [OcptAppLanguageCodeGetter]: the language of the app's own UI locale, as
+  /// [LocalesManager] holds it.
+  ///
+  /// Resolved through [globalGetIt] at call time rather than when this manager is built, so
+  /// nothing needs that manager registered until a project is actually created.
+  static String _localesManagerLanguageCode() =>
+      globalGetIt().get<LocalesManager>().currentLocale.languageCode;
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

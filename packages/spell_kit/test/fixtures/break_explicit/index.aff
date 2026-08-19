@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Fixture affix file for spell_kit tests: explicit BREAK patterns, including the anchored forms
+# (^p strips a leading occurrence, p$ a trailing one), contrasting with test/fixtures/basic, which
+# declares no BREAK at all and so falls back to hunspell's default.
+SET UTF-8
+TRY box
+
+BREAK 2
+BREAK ^x
+BREAK x$

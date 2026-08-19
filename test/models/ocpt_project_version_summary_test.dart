@@ -51,11 +51,13 @@ void main() {
     shootingDayBlocks: const [],
     shootingSlotGuests: const [],
     shootingDayEvents: const [],
+    projectDictionaryWords: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,
     currencyCode: null,
     minimumRestMinutes: null,
+    screenplayLanguage: null,
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].

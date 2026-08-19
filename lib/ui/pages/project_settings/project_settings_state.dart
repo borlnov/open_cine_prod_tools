@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
 /// The state of `OcptProjectSettingsBloc`.
 class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsState> {
@@ -21,9 +22,19 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// (`project_info.minimumRestMinutes`), or null while nobody has recorded one.
   final int? minimumRestMinutes;
 
+  /// The current project's screenplay language (`project_info.screenplayLanguage`), or null while
+  /// nobody has recorded one.
+  final OcptScreenplayLanguage? screenplayLanguage;
+
   /// The project's live episodes, in `sortKey` order — what the `Episodes` card lists, re-read
   /// after every mutation it makes so the card always shows what the database holds.
   final List<OcptEpisode> episodes;
+
+  /// The project's currently learned words (`project_dictionary_words`, tombstones filtered out),
+  /// sorted case-insensitively — what the dictionary section's count line and
+  /// `OcptProjectDictionaryDialog` both read, re-read after every edit the dialog reports so the
+  /// section always shows what the database holds.
+  final List<String> dictionaryWords;
 
   /// Whether at least one field was changed since the page opened.
   ///
@@ -43,7 +54,9 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.currencyCode,
     required this.pageFormat,
     required this.minimumRestMinutes,
+    required this.screenplayLanguage,
     required this.episodes,
+    required this.dictionaryWords,
     required this.hasChanged,
   });
 
@@ -55,7 +68,9 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       currencyCode = "",
       pageFormat = OcptPageFormat.usLetter,
       minimumRestMinutes = null,
+      screenplayLanguage = null,
       episodes = const [],
+      dictionaryWords = const [],
       hasChanged = false;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -63,6 +78,9 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// [minimumRestMinutes] legitimately goes back to null while the page is open (the field is
   /// cleared), so it has its own [clearMinimumRestMinutes] flag rather than a bare nullable
   /// parameter, which could never tell "leave it alone" apart from "clear it".
+  /// [screenplayLanguage] carries exactly the same problem — picking "None" in the dropdown is as
+  /// real a gesture as clearing the rest field is — so it gets the same treatment,
+  /// [clearScreenplayLanguage].
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,
@@ -70,7 +88,10 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     OcptPageFormat? pageFormat,
     int? minimumRestMinutes,
     bool clearMinimumRestMinutes = false,
+    OcptScreenplayLanguage? screenplayLanguage,
+    bool clearScreenplayLanguage = false,
     List<OcptEpisode>? episodes,
+    List<String>? dictionaryWords,
     bool? hasChanged,
   }) => OcptProjectSettingsState(
     isLoading: isLoading ?? this.isLoading,
@@ -79,7 +100,11 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     minimumRestMinutes: clearMinimumRestMinutes
         ? null
         : (minimumRestMinutes ?? this.minimumRestMinutes),
+    screenplayLanguage: clearScreenplayLanguage
+        ? null
+        : (screenplayLanguage ?? this.screenplayLanguage),
     episodes: episodes ?? this.episodes,
+    dictionaryWords: dictionaryWords ?? this.dictionaryWords,
     hasChanged: hasChanged ?? this.hasChanged,
   );
 
@@ -91,7 +116,9 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     currencyCode,
     pageFormat,
     minimumRestMinutes,
+    screenplayLanguage,
     episodes,
+    dictionaryWords,
     hasChanged,
   ];
 }

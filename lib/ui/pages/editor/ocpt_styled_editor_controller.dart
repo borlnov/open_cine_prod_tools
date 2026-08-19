@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
+import 'package:spell_kit/spell_kit.dart';
 
 /// Internal wiring contract between [OcptStyledEditorController] and whichever widget state
 /// currently owns a live styled editor: **not** a public extension point, just the interface that
@@ -38,6 +39,13 @@ abstract class OcptStyledEditorControllerDelegate {
 
   /// Replaces every current match with [replacement] in one grouped edit.
   void replaceAllMatches(String replacement);
+
+  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to this delegate's own
+  /// spelling styler, mirroring [updateSearch]'s own direction of travel. Ranges for a node id this
+  /// delegate's live document no longer holds, or that no longer fit that node's *current* text
+  /// length, are dropped rather than fed to the styler
+  /// (`docs/architecture/screenplay.md`).
+  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId);
 
   /// Whether there is a gesture of the writer's left for [undo] to take back.
   bool get canUndo;
@@ -90,6 +98,17 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// while detached.
   int _searchMatchCount = 0;
 
+  /// The misspelled ranges by node id [updateSpellCheckRanges] last set, remembered here for the
+  /// same reason [_searchQuery] is: a delegate attaching after this was set (a raw → styled mode
+  /// switch while the ranges are already known) must receive them immediately at [attach] time,
+  /// rather than waiting for the page's next reactive sync.
+  Map<String, List<SpellRange>> _spellCheckRangesByNodeId = const {};
+
+  /// The checkable node texts the attached delegate last reported through [reportSpellCheckTexts];
+  /// empty while detached, since there is nothing to check without a live document to read them
+  /// from.
+  Map<String, String> _spellCheckTextsByNodeId = const {};
+
   /// Whether the attached delegate had anything left to undo when it last called
   /// [updateReadState]; false while detached.
   bool _canUndo = false;
@@ -100,6 +119,12 @@ class OcptStyledEditorController extends ChangeNotifier {
 
   /// The match count the toolbar/page should currently show for the styled mode's own search.
   int get searchMatchCount => _searchMatchCount;
+
+  /// The checkable node texts the page should currently forward into a fresh spell-check request —
+  /// `editor_page.dart` reads this from its own controller-listener wiring (the equivalent of
+  /// `_onStyledEditorControllerChanged`) and dispatches a fresh bloc event whenever it actually
+  /// changed, mirroring [searchMatchCount]'s own pattern.
+  Map<String, String> get spellCheckTextsByNodeId => _spellCheckTextsByNodeId;
 
   /// Whether [dispose] was already called, checked by a pending [_notifySafely] deferral before it
   /// finally calls `notifyListeners()`: a post-frame callback can otherwise easily outlive this
@@ -180,6 +205,32 @@ class OcptStyledEditorController extends ChangeNotifier {
     _delegate?.replaceAllMatches(replacement);
   }
 
+  /// Records the misspelled ranges [rangesByNodeId] (keyed by node id) and forwards them to the
+  /// attached delegate, or simply remembers them while detached (raw mode) for the next [attach] to
+  /// pick up — the styled mode's own counterpart to [updateSearch], for the identical reason: a raw
+  /// → styled mode switch while the ranges are already known must not wait for the page's next
+  /// reactive sync.
+  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
+    _spellCheckRangesByNodeId = rangesByNodeId;
+    _delegate?.updateSpellCheckRanges(rangesByNodeId);
+  }
+
+  /// Pushes a fresh set of checkable node texts from the attached delegate — the styled mode's own
+  /// half of "each mode matches what it shows" (`docs/architecture/screenplay.md`), and
+  /// the mirror image of [updateSpellCheckRanges]'s direction of travel.
+  ///
+  /// Notifies listeners only when the set actually changed from what was last reported, mirroring
+  /// [reportSearchMatchCount]'s own dedup: the delegate calls this after every settle pass
+  /// regardless of whether the checkable subset actually moved, and a stray notification for an
+  /// unchanged set must never be mistaken by the page for a fresh one worth re-checking.
+  void reportSpellCheckTexts(Map<String, String> textsByNodeId) {
+    if (mapEquals(_spellCheckTextsByNodeId, textsByNodeId)) {
+      return;
+    }
+    _spellCheckTextsByNodeId = textsByNodeId;
+    _notifySafely();
+  }
+
   /// Pushes a fresh match count from the attached delegate, the search half of [updateReadState]:
   /// called every time the delegate recomputes its matches (an explicit navigation, or a live
   /// document edit while the bar is open), listened to directly by the page (not routed through a
@@ -196,14 +247,18 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// Attaches [delegate] as the live styled editor backing this controller, making [isAttached]
   /// true and letting the toolbar's format controls appear.
   ///
-  /// Immediately pushes whatever [_searchQuery]/[_searchCurrentMatchIndex] this controller
-  /// already held onto the fresh delegate: a mode switch into styled mode while the find/replace
-  /// bar is already open must show its highlight and navigate to its current match right away,
-  /// rather than waiting for the page's own next reactive sync (see [updateSearch]'s own doc
-  /// comment on why that sync doesn't fire on every possible occasion).
+  /// Immediately pushes whatever [_searchQuery]/[_searchCurrentMatchIndex] and
+  /// [_spellCheckRangesByNodeId] this controller already held onto the fresh delegate: a mode
+  /// switch into styled mode while the find/replace bar is already open, or while the previous
+  /// styled editor already had misspellings underlined, must show them right away rather than
+  /// waiting for the page's own next reactive sync (see [updateSearch]'s own doc comment on why
+  /// that sync doesn't fire on every possible occasion). The fresh delegate reports its own
+  /// checkable node texts back on its own, in its `initState`, so nothing needs pushing the other
+  /// way here.
   void attach(OcptStyledEditorControllerDelegate delegate) {
     _delegate = delegate;
     delegate.updateSearch(query: _searchQuery, currentMatchIndex: _searchCurrentMatchIndex);
+    delegate.updateSpellCheckRanges(_spellCheckRangesByNodeId);
     _notifySafely();
   }
 
@@ -216,6 +271,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     }
     _delegate = null;
     _searchMatchCount = 0;
+    _spellCheckTextsByNodeId = const {};
     _canUndo = false;
     _canRedo = false;
     _notifySafely();

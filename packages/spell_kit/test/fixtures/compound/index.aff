@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Fixture affix file for spell_kit tests: COMPOUNDRULE and COMPOUNDMIN, at a fixture scale of the
+# mechanism en_GB's real dictionary uses for ordinal numbers (21st, 1234th).
+SET UTF-8
+TRY adnorstuw
+
+COMPOUNDMIN 2
+ONLYINCOMPOUND Z
+
+# Pattern: zero or more pieces flagged n, then one piece flagged o, then one piece flagged t.
+COMPOUNDRULE 1
+COMPOUNDRULE n*ot

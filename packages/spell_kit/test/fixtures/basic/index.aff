@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Fixture affix file for spell_kit tests: single-character flags (the default width). Covers a
+# suffix rule, a prefix rule, their cross product (direct dictionary flags on the stem), a
+# continuation class (a flag satisfied through another rule rather than the stem's own flags),
+# NEEDAFFIX and FORBIDDENWORD. No BREAK directive is declared here, so the hunspell default
+# (-, ^-, -$) must apply — see test/fixtures/break_explicit for the explicit form.
+SET UTF-8
+TRY aehnoprstuw
+
+FORBIDDENWORD !
+NEEDAFFIX ~
+
+PFX U Y 1
+PFX U 0 un .
+
+SFX S Y 1
+SFX S 0 s .
+
+PFX R Y 1
+PFX R 0 re .
+
+SFX X Y 1
+SFX X 0 0/R .

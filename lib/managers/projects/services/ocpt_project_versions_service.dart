@@ -70,6 +70,7 @@ class OcptProjectVersionsService {
     'shooting_day_blocks',
     'shooting_slot_guests',
     'shooting_day_events',
+    'project_dictionary_words',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -335,6 +336,9 @@ class OcptProjectVersionsService {
             // exactly as truthful on a live capture as on an old one — so it previews verbatim,
             // null included.
             minimumRestMinutes: Value(payload.minimumRestMinutes),
+            // The same `minimumRestMinutes` reading, not the currency's: see
+            // `OcptProjectVersionPayload.screenplayLanguage`.
+            screenplayLanguage: Value(payload.screenplayLanguage),
           ),
         );
 
@@ -378,6 +382,7 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptShootingSlotGuestsTable, payload.shootingSlotGuests)
         ..insertAll(database.ocptShootingDayBlocksTable, payload.shootingDayBlocks)
         ..insertAll(database.ocptShootingDayEventsTable, payload.shootingDayEvents)
+        ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -445,10 +450,11 @@ class OcptProjectVersionsService {
   ///
   /// The currency is written here too, **except when the payload doesn't carry one** — a version
   /// captured before currencies existed — in which case the project's own currency is left exactly
-  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest is written
-  /// **unconditionally**, null included: unlike the currency, a null here is never "this payload
-  /// predates the column" — the column is nullable by design and null is one of its truthful
-  /// values on a live capture too — so there is no live value to leave alone.
+  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest, and the
+  /// screenplay language with it, are written **unconditionally**, null included: unlike the
+  /// currency, a null here is never "this payload predates the column" — both columns are nullable
+  /// by design and null is one of their truthful values on a live capture too — so there is no live
+  /// value to leave alone.
   ///
   /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
   /// **A restore is an edit, not a reset**, and that distinction is what the whole of
@@ -531,6 +537,7 @@ class OcptProjectVersionsService {
                   null => const Value.absent(),
                 },
                 minimumRestMinutes: Value(payload.minimumRestMinutes),
+                screenplayLanguage: Value(payload.screenplayLanguage),
                 currentVersionId: Value(id),
               ),
             );
@@ -615,11 +622,15 @@ class OcptProjectVersionsService {
       shootingDayBlocks: await database.select(database.ocptShootingDayBlocksTable).get(),
       shootingSlotGuests: await database.select(database.ocptShootingSlotGuestsTable).get(),
       shootingDayEvents: await database.select(database.ocptShootingDayEventsTable).get(),
+      projectDictionaryWords: await database
+          .select(database.ocptProjectDictionaryWordsTable)
+          .get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
       currencyCode: info.currencyCode,
       minimumRestMinutes: info.minimumRestMinutes,
+      screenplayLanguage: info.screenplayLanguage,
     );
   }
 
@@ -688,6 +699,10 @@ class OcptProjectVersionsService {
   /// could possibly reference is restored by this point, so this is not a forward reference and
   /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
   /// needs, not this group.
+  ///
+  /// `project_dictionary_words` is restored last of all, and could just as well go anywhere else:
+  /// it references nothing, and nothing else in the schema references it back, so there is no
+  /// dependency order for it to respect.
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
   /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
@@ -959,6 +974,17 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    // `project_dictionary_words` references nothing, and nothing references it back, so it needs
+    // no particular place in this dependency order: last is as good as any.
+    await _restoreTable(
+      database: database,
+      table: database.ocptProjectDictionaryWordsTable,
+      payloadRows: payload.projectDictionaryWords,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await stamps.flush(database);
   }
 
@@ -1078,11 +1104,15 @@ class OcptProjectVersionsService {
       shootingDayBlocks: payload.shootingDayBlocks,
       shootingSlotGuests: payload.shootingSlotGuests,
       shootingDayEvents: payload.shootingDayEvents,
+      // A dictionary word names no person — only the word itself and its tombstone — so there is
+      // nothing here for this scrub to reach either.
+      projectDictionaryWords: payload.projectDictionaryWords,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,
       currencyCode: payload.currencyCode,
       minimumRestMinutes: payload.minimumRestMinutes,
+      screenplayLanguage: payload.screenplayLanguage,
     );
   }
 

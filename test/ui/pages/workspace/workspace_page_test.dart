@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
@@ -53,6 +54,13 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// The miniature hunspell pair this file's spell-check manager stands the two ~1 MB bundled
+/// dictionaries up with — the screenplay mode's `OcptEditorBloc` resolves that manager and asks it
+/// to load the open project's language, and parsing a real dictionary in an isolate would cost far
+/// more than anything this file actually asserts on.
+Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
+    assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
+
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle; this file never gives the styled editor
@@ -75,7 +83,10 @@ void main() {
     propertiesManager = OcptPropertiesManager();
     await propertiesManager.initLifeCycle();
 
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
 
     routerManager = _RecordingRouterManager();
@@ -86,8 +97,15 @@ void main() {
       ..registerSingleton<OcptRouterManager>(routerManager)
       ..registerSingleton<OcptExportManager>(
         OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+      )
+      ..registerSingleton<OcptSpellCheckManager>(
+        OcptSpellCheckManager(loadAsset: _loadMiniatureDictionaryAsset),
       );
   });
+
+  tearDownAll(
+    () => OcptGlobalManager.instance.managers.get<OcptSpellCheckManager>().disposeLifeCycle(),
+  );
 
   setUp(() async {
     await propertiesManager.deleteAll();

@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -212,6 +213,14 @@ class _EditorViewState extends State<_EditorView> {
   /// a genuine change — the controller notifies its listeners for other reasons too (a block-type
   /// or inline-style read-state refresh), which must never be mistaken for a fresh match count.
   int? _lastReportedStyledSearchMatchCount;
+
+  /// The `OcptStyledEditorController.spellCheckTextsByNodeId` last reported to the bloc, so
+  /// [_onStyledEditorControllerChanged] only dispatches
+  /// `OcptEditorStyledSpellCheckTextsReportedEvent` on a genuine change — the controller notifies
+  /// its listeners for reasons that have nothing to do with spell-checking either (a block-type or
+  /// history read-state refresh, or the search match count), the same reason
+  /// [_lastReportedStyledSearchMatchCount] exists for the search count.
+  Map<String, String> _lastReportedStyledSpellCheckTexts = const {};
 
   /// What [_styledEditorController] last answered about its own history, so
   /// [_onStyledEditorControllerChanged] only rebuilds the `⋮` menu's entries when the styled
@@ -456,8 +465,8 @@ class _EditorViewState extends State<_EditorView> {
   /// [_requestExport]) — this menu keeps everything else. While a version is being previewed, the
   /// entries that rewrite the screenplay — import and replace, find and replace, page setup, title
   /// page — are left out, and so is plain find: the centre is then the read-only preview, which
-  /// carries no bar to open. The rest stays: the page-simulation, scene-numbers and panel-layout
-  /// entries are app-wide display preferences that never touch a project.
+  /// carries no bar to open. The rest stays: the page-simulation, scene-numbers, spell-check and
+  /// panel-layout entries are app-wide display preferences that never touch a project.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptEditorState state) {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
@@ -514,6 +523,13 @@ class _EditorViewState extends State<_EditorView> {
           const OcptEditorStyledSceneNumbersToggledEvent(),
         ),
         child: Text(tr.editorToggleSceneNumbersAction),
+      ),
+      CheckedPopupMenuItem<void>(
+        checked: state.isSpellCheckVisible,
+        onTap: () => context.read<OcptEditorBloc>().add(
+          const OcptEditorSpellCheckToggledEvent(),
+        ),
+        child: Text(tr.editorToggleSpellCheckAction),
       ),
       if (!isReadOnly) ...[
         PopupMenuItem<void>(
@@ -575,6 +591,7 @@ class _EditorViewState extends State<_EditorView> {
             pageSetup: state.pageSetup,
             isPageSimulationEnabled: state.isPageSimulationEnabled,
             areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
+            isSpellCheckVisible: state.isSpellCheckVisible,
             onTextChanged: (text) => context.read<OcptEditorBloc>().add(
               OcptEditorTextChangedEvent(text: text),
             ),
@@ -583,6 +600,14 @@ class _EditorViewState extends State<_EditorView> {
             ),
             jumpRequest: state.jumpRequest,
             styledController: _styledEditorController,
+            onSpellingSuggestionsRequested: (word) =>
+                context.read<OcptEditorBloc>().spellingSuggestionsFor(word),
+            onWordIgnored: (word) => context.read<OcptEditorBloc>().add(
+              OcptEditorWordIgnoredEvent(word: word),
+            ),
+            onWordLearned: (word) => context.read<OcptEditorBloc>().add(
+              OcptEditorWordLearnedEvent(word: word),
+            ),
           );
 
     // The find/replace bar is a *slot* that is always there — an empty box while it is closed —
@@ -930,6 +955,43 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
+  /// Pushes [OcptEditorState.rawSpellCheckRanges] onto [_textController]'s own
+  /// [OcptEditorSearchTextController.updateSpellCheckRanges], the raw mode's half of the rule
+  /// that each editing surface paints what it shows.
+  ///
+  /// Guarded exactly the way [_syncRawSearch] opens (raw mode, not previewing a version): the
+  /// styled mode is a later slice that addresses each node by id instead, and there is no editing
+  /// surface at all under a read-only preview to underline anything in. Both cases clear the
+  /// controller's ranges rather than leaving a raw field the user can no longer see holding a stale
+  /// set — harmless on its own since nothing repaints it, but exactly the kind of state a mode
+  /// switch back to raw should never resurrect uninvited.
+  void _syncRawSpellCheck(OcptEditorState state) {
+    if (state.mode != OcptEditorMode.raw || state.isPreviewingVersion) {
+      _textController.updateSpellCheckRanges(const []);
+      return;
+    }
+
+    _textController.updateSpellCheckRanges(state.rawSpellCheckRanges);
+  }
+
+  /// Pushes [OcptEditorState.styledSpellCheckRanges] onto [_styledEditorController]'s own
+  /// [OcptStyledEditorController.updateSpellCheckRanges], the styled mode's own half of the rule
+  /// that each editing surface paints what it shows — the raw mode's own counterpart is
+  /// [_syncRawSpellCheck].
+  ///
+  /// Guarded exactly the way [_syncRawSpellCheck] is (styled mode, not previewing a version): there
+  /// is no live styled editor to push anything onto otherwise, and a version preview has no editing
+  /// surface at all to underline anything in. Both cases clear the controller's ranges, for the
+  /// identical reason [_syncRawSpellCheck]'s own doc comment gives.
+  void _syncStyledSpellCheck(OcptEditorState state) {
+    if (state.mode != OcptEditorMode.styled || state.isPreviewingVersion) {
+      _styledEditorController.updateSpellCheckRanges(const {});
+      return;
+    }
+
+    _styledEditorController.updateSpellCheckRanges(state.styledSpellCheckRanges);
+  }
+
   /// Places the raw controller's selection on [match] and scrolls its line into view, the same
   /// estimate [_applyJumpRequest] uses — deliberately does not focus [_editorFocusNode]: the find
   /// field must keep the keyboard focus while the user types a query or presses Next/Previous.
@@ -1082,14 +1144,19 @@ class _EditorViewState extends State<_EditorView> {
   }
 
   /// Rebuilds the `⋮` menu's entries when the styled editor gained or lost something to undo or
-  /// redo, then reports [_styledEditorController]'s own match count to the bloc, exactly once per
-  /// genuine change: the controller notifies its listeners for reasons that have nothing to do
-  /// with search either (a block-type or inline-style read-state refresh), and
-  /// [_lastReportedStyledSearchMatchCount] is what keeps those from being mistaken for a fresh
-  /// count. Also guards against reporting while
-  /// the bar isn't actually open in styled mode, which the controller itself can't know (it has no
-  /// bloc state of its own) — a stray report right as the mode/bar state changes underneath it must
-  /// never reach the bloc.
+  /// redo, reports [_styledEditorController]'s own checkable spell-check texts to the bloc whenever
+  /// the styled editing surface is actually the live one, then reports its search match count too
+  /// — each exactly once per genuine change: the controller notifies its listeners for several
+  /// unrelated reasons (a block-type or inline-style read-state refresh, either of the other two),
+  /// and [_lastReportedStyledSpellCheckTexts]/[_lastReportedStyledSearchMatchCount] are what keep
+  /// those from being mistaken for a fresh report of their own kind.
+  ///
+  /// Spell-check reporting is gated on the styled surface actually being live (styled mode, not
+  /// previewing) but, unlike the search-match report below it, **not** on the find bar being open:
+  /// spell-checking runs whether or not the bar is showing. Search reporting keeps its own,
+  /// narrower gate (also requiring `state.search.isOpen`) since the bloc has nothing useful to do
+  /// with a match count while there's no bar to show it in — a stray report right as the mode/bar
+  /// state changes underneath either must never reach the bloc.
   void _onStyledEditorControllerChanged() {
     final historyAvailability = (
       canUndo: _styledEditorController.canUndo,
@@ -1104,7 +1171,17 @@ class _EditorViewState extends State<_EditorView> {
 
     final bloc = context.read<OcptEditorBloc>();
     final state = bloc.state;
-    if (state.mode != OcptEditorMode.styled || state.isPreviewingVersion || !state.search.isOpen) {
+    final isStyledSurfaceLive = state.mode == OcptEditorMode.styled && !state.isPreviewingVersion;
+
+    if (isStyledSurfaceLive) {
+      final spellCheckTexts = _styledEditorController.spellCheckTextsByNodeId;
+      if (!mapEquals(spellCheckTexts, _lastReportedStyledSpellCheckTexts)) {
+        _lastReportedStyledSpellCheckTexts = spellCheckTexts;
+        bloc.add(OcptEditorStyledSpellCheckTextsReportedEvent(textsByNodeId: spellCheckTexts));
+      }
+    }
+
+    if (!isStyledSurfaceLive || !state.search.isOpen) {
       return;
     }
 
@@ -1412,6 +1489,8 @@ class _EditorViewState extends State<_EditorView> {
 
     _syncRawSearch(state);
     _syncStyledSearch(state);
+    _syncRawSpellCheck(state);
+    _syncStyledSpellCheck(state);
 
     if (state.hasSaveError) {
       ScaffoldMessenger.of(context)

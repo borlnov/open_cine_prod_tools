@@ -5,6 +5,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
 /// The whole state of a project at the moment a version was created: what
 /// `OcptProjectVersionsService` captures, what `OcptProjectVersionCodec` serializes into
@@ -126,6 +127,11 @@ class OcptProjectVersionPayload extends Equatable {
   /// hour.
   final List<OcptShootingDayEventRow> shootingDayEvents;
 
+  /// The `project_dictionary_words` rows of the project: the words a writer has taught this
+  /// project's spell checker, tombstones included — a word removed since this version was captured
+  /// must come back un-learned on restore, exactly as any other deleted row does.
+  final List<OcptProjectDictionaryWordRow> projectDictionaryWords;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -167,6 +173,16 @@ class OcptProjectVersionPayload extends Equatable {
   /// the reading `people.maxDailyPresenceMinutes` gets on restore, not the currency's.
   final int? minimumRestMinutes;
 
+  /// The `project_info.screenplayLanguage` of the project, or null.
+  ///
+  /// **Unlike [currencyCode], and like [minimumRestMinutes], a null here is a truthful "this
+  /// version recorded none"** — the column is nullable by design, not something every payload from
+  /// a certain format on always carries a real value for, so there is no format boundary to read
+  /// the null against. `OcptProjectVersionsService.restoreVersion` writes it back onto the working
+  /// copy like any other changed column, including when it is null, rather than leaving the live
+  /// value alone — the reading [minimumRestMinutes] gets on restore, not the currency's.
+  final OcptScreenplayLanguage? screenplayLanguage;
+
   /// Class constructor
   const OcptProjectVersionPayload({
     required this.screenplays,
@@ -197,11 +213,13 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingDayBlocks,
     required this.shootingSlotGuests,
     required this.shootingDayEvents,
+    required this.projectDictionaryWords,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
     required this.currencyCode,
     required this.minimumRestMinutes,
+    required this.screenplayLanguage,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -223,9 +241,10 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingDayBlocks: ${shootingDayBlocks.length}, "
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
+      "projectDictionaryWords: ${projectDictionaryWords.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
-      "minimumRestMinutes: $minimumRestMinutes)";
+      "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage)";
 
   /// Object properties
   @override
@@ -258,10 +277,12 @@ class OcptProjectVersionPayload extends Equatable {
     shootingDayBlocks,
     shootingSlotGuests,
     shootingDayEvents,
+    projectDictionaryWords,
     rowFieldVersions,
     pageSetup,
     settingsJson,
     currencyCode,
     minimumRestMinutes,
+    screenplayLanguage,
   ];
 }

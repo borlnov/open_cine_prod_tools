@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Fixture affix file for spell_kit tests: two-character flags (FLAG long). Covers KEEPCASE,
+# FULLSTRIP and CIRCUMFIX.
+SET UTF-8
+FLAG long
+TRY acdefinorstw
+
+KEEPCASE K1
+FULLSTRIP
+CIRCUMFIX C1
+
+# FULLSTRIP: "an" is built entirely from the append text (its own 2 letters), leaving nothing of
+# the surface form before it; reconstructing the stem "a" therefore needs the whole word consumed,
+# which only FULLSTRIP allows.
+SFX F1 Y 1
+SFX F1 a an .
+
+# CIRCUMFIX: PFX P1 and SFX S1 both carry the circumfix flag C1 as a continuation, so neither may
+# apply on its own — only together, on a stem carrying both P1 and S1 directly.
+PFX P1 Y 1
+PFX P1 0 pre/C1 .
+
+SFX S1 Y 1
+SFX S1 0 fix/C1 .

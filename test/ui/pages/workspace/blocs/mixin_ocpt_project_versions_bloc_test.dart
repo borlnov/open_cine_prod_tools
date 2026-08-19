@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
@@ -21,6 +22,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+/// The app language every projects manager built here is given, so a created project's own
+/// screenplay language never depends on the machine the tests run on.
+String _testAppLanguageCode() => "en";
 
 /// A router manager whose [pop] does nothing: these tests never leave the workspace, and no real
 /// GoRouter is built for it to operate on.
@@ -34,7 +39,7 @@ class _SilentRouterManager extends OcptRouterManager {
 class _FailingRenameProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _FailingRenameProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager);
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
   @override
   Future<void> renameProjectVersion({
@@ -50,7 +55,7 @@ class _FailingRenameProjectsManager extends OcptProjectsManager {
 class _CountingProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager);
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
   /// How many times [captureWorkingCopyState] actually ran, as opposed to being skipped by the
   /// mixin's throttle before ever reaching here.
@@ -69,6 +74,13 @@ class _CountingProjectsManager extends OcptProjectsManager {
 /// The screenplay mode is the one used here because it is the mode that holds unsaved text between
 /// two writes, which is what makes the "flush before previewing" hook of the mixin observable: the
 /// mixin's behaviour itself is the same in every mode.
+/// The miniature hunspell pair this file's spell-check manager stands the two ~1 MB bundled
+/// dictionaries up with — `OcptEditorBloc` resolves that manager and asks it to load the open
+/// project's language, and parsing a real dictionary in an isolate would cost far more than
+/// anything this file actually asserts on.
+Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
+    assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
+
 void main() {
   const firstText = "INT. HOUSE - DAY\n\nAction one.\n";
   const secondText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
@@ -89,7 +101,10 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp("ocpt_project_versions_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: _testAppLanguageCode,
+    );
     await projectsManager.initLifeCycle();
 
     final result = await projectsManager.createProject(
@@ -112,6 +127,7 @@ void main() {
     propertiesManager: propertiesManager,
     routerManager: _SilentRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+    spellCheckManager: OcptSpellCheckManager(loadAsset: _loadMiniatureDictionaryAsset),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(seconds: 30),
     statisticsDebounce: const Duration(milliseconds: 30),

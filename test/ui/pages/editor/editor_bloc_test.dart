@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
@@ -31,14 +32,21 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:spell_kit/spell_kit.dart';
+
+/// The app language every projects manager built here is given, so a created project's own
+/// screenplay language never depends on the machine the tests run on.
+String _testAppLanguageCode() => "en";
 
 /// A screenplay service whose saves always fail, to exercise the bloc's save error path. Loads
 /// still go through the real implementation.
@@ -73,7 +81,7 @@ class _FailingScreenplayService extends OcptScreenplayService {
 class _CountingProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager);
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
   /// How many times [captureWorkingCopyState] actually ran.
   int captureCount = 0;
@@ -220,6 +228,116 @@ class _ThrowingPdfExportManager extends OcptExportManager {
   }) async => throw StateError("PDF export intentionally failed for the test");
 }
 
+/// A spell-check manager the bloc's own debounced pass can be driven and observed through, with no
+/// real dictionary, worker isolate or asset bundle behind it.
+///
+/// [checkCalls] records every [check] call's requested texts, in call order — what a test reads to
+/// assert "only changed texts are sent". [answerFor] computes what [check] resolves to for a
+/// request; it defaults to marking every requested text entirely misspelled (one range spanning it
+/// whole), which is enough for a test to tell whether a block was checked at all without needing
+/// real dictionary behaviour. [useLanguage] mirrors the real manager's own contract just enough for
+/// the bloc: a no-op when the language given is already loaded, bumping [generation] otherwise.
+///
+/// [check]'s own generic key type `K` is `Object` here rather than `int`: the raw path addresses a
+/// request by its own positional block index, the styled path by node id (a `String`), and this
+/// one fake serves both — every value it hands back or records is typed as `Object` and cast back
+/// by the caller (`Map<Object, V>.[]` accepts any `Object?` key regardless, so a test indexing it
+/// with an `int` or a `String` literal works either way).
+class _FakeSpellCheckManager extends OcptSpellCheckManager {
+  OcptScreenplayLanguage? _loadedLanguage;
+  int _generation = 0;
+
+  /// Every [check] call's requested texts, keyed the same way the bloc addresses them (a raw-mode
+  /// block index, or a styled-mode node id), in call order.
+  final List<Map<Object, String>> checkCalls = [];
+
+  /// Computes [check]'s answer for a request; overridable per test.
+  Map<Object, List<SpellRange>> Function(Map<Object, String> requested) answerFor =
+      (requested) => {
+        for (final entry in requested.entries) entry.key: [SpellRange(0, entry.value.length)],
+      };
+
+  /// When set, [check] awaits this before resolving — a test's way of holding an isolate round
+  /// trip open long enough to change something (the language, most plainly) out from under it, to
+  /// exercise the "a stale generation's answer is dropped" path.
+  Completer<void>? gate;
+
+  @override
+  OcptScreenplayLanguage? get loadedLanguage => _loadedLanguage;
+
+  @override
+  int get generation => _generation;
+
+  @override
+  Future<void> useLanguage(OcptScreenplayLanguage? language) async {
+    if (language == _loadedLanguage) {
+      return;
+    }
+    _loadedLanguage = language;
+    _generation++;
+  }
+
+  @override
+  Future<Map<K, List<SpellRange>>> check<K>(Map<K, String> textsByKey) async {
+    final requested = <Object, String>{
+      for (final entry in textsByKey.entries) entry.key as Object: entry.value,
+    };
+    checkCalls.add(requested);
+
+    final pendingGate = gate;
+    if (pendingGate != null) {
+      await pendingGate.future;
+    }
+
+    final answer = answerFor(requested);
+    return {
+      for (final entry in textsByKey.entries)
+        if (answer[entry.key as Object] != null) entry.key: answer[entry.key as Object]!,
+    };
+  }
+
+  /// Every [suggestionsFor] call's requested word, in call order.
+  final List<String> suggestionsForCalls = [];
+
+  /// Computes [suggestionsFor]'s answer for a word; overridable per test.
+  List<String> Function(String word) suggestionsAnswer = (word) => const [];
+
+  @override
+  Future<List<String>> suggestionsFor(String word) async {
+    suggestionsForCalls.add(word);
+    return suggestionsAnswer(word);
+  }
+
+  /// Every [ignoreWords] call's whole replacement set, in call order.
+  final List<Set<String>> ignoreWordsCalls = [];
+
+  @override
+  void ignoreWords(Set<String> words) {
+    ignoreWordsCalls.add(words);
+    _generation++;
+  }
+
+  /// Every word [ignoreWord] was called with, in call order — this fake's own accumulation, mirroring
+  /// the real manager's (`docs/architecture/screenplay.md`), so a test can assert both
+  /// that the manager was reached and that the accumulation actually happened.
+  final List<String> ignoredWords = [];
+
+  @override
+  void ignoreWord(String word) {
+    ignoredWords.add(word);
+    _generation++;
+  }
+
+  /// Every [setLearnedWords] call's whole replacement set, in call order.
+  final List<Set<String>> setLearnedWordsCalls = [];
+
+  @override
+  void setLearnedWords(Set<String> words) {
+    setLearnedWordsCalls.add(words);
+    _generation++;
+  }
+}
+
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
   // Scene headings start at line 0 and line 4; the two scenes are deliberately given different
@@ -243,7 +361,10 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp("ocpt_editor_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: _testAppLanguageCode,
+    );
     await projectsManager.initLifeCycle();
 
     final result = await projectsManager.createProject(
@@ -264,10 +385,17 @@ void main() {
   /// (return null): every test not exercising the export/import paths gets a bloc that never
   /// touches a real file dialog. [overrideProjectsManager] lets a test swap in a manager of its
   /// own (already holding an open project), for the one that needs to observe its calls.
+  ///
+  /// [spellCheckManager] defaults to a fresh [_FakeSpellCheckManager], the same way [exportManager]
+  /// defaults to a fake: every test not exercising the spell-check path gets a bloc that never
+  /// touches a real dictionary or worker isolate, since every freshly created project's screenplay
+  /// language is seeded non-null (see `OcptProjectsManager.createProject`'s own doc comment) and
+  /// would otherwise drive a real [OcptSpellCheckManager.useLanguage] on every single test here.
   OcptEditorBloc buildBloc({
     OcptScreenplayService? screenplayService,
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
+    OcptSpellCheckManager? spellCheckManager,
     OcptProjectsManager? overrideProjectsManager,
     String? selectedEpisodeId,
   }) => OcptEditorBloc(
@@ -276,6 +404,7 @@ void main() {
     routerManager: routerManager ?? _RecordingRouterManager(),
     screenplayService: screenplayService,
     exportManager: exportManager ?? _FakeExportManager(),
+    spellCheckManager: spellCheckManager ?? _FakeSpellCheckManager(),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
     statisticsDebounce: const Duration(milliseconds: 30),
@@ -1784,6 +1913,783 @@ void main() {
         bloc.add(const OcptEditorSearchMatchesReportedEvent(matchCount: 2));
         final clampedState = await waitForState(bloc, (state) => state.search.matchCount == 2);
         expect(clampedState.search.currentMatchIndex, 1);
+
+        await bloc.close();
+      },
+    );
+  });
+
+  group('spell check', () {
+    test('defaults to spell check visible when nothing was ever persisted', () async {
+      await propertiesManager.spellCheckVisible.delete();
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.isSpellCheckVisible, isTrue);
+
+      await bloc.close();
+    });
+
+    test('loads the persisted spell check visibility flag on entry', () async {
+      await propertiesManager.spellCheckVisible.store(false);
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.isSpellCheckVisible, isFalse);
+
+      await bloc.close();
+    });
+
+    test("loads the project's screenplay language on entry", () async {
+      await propertiesManager.spellCheckVisible.store(true);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr);
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.screenplayLanguage, OcptScreenplayLanguage.fr);
+
+      await bloc.close();
+    });
+
+    test(
+      'toggling spell check flips it, persists the new value, and clears the raw ranges at once',
+      () async {
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+
+        bloc.add(
+          const OcptEditorTextChangedEvent(
+            text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
+          ),
+        );
+        final checkedState = await waitForState(
+          bloc,
+          (state) => state.rawSpellCheckRanges.isNotEmpty,
+        );
+        expect(checkedState.rawSpellCheckRanges, isNotEmpty);
+
+        bloc.add(const OcptEditorSpellCheckToggledEvent());
+        final disabledState = await waitForState(bloc, (state) => !state.isSpellCheckVisible);
+        expect(disabledState.isSpellCheckVisible, isFalse);
+        expect(disabledState.rawSpellCheckRanges, isEmpty);
+        expect(await propertiesManager.spellCheckVisible.load(), isFalse);
+
+        bloc.add(const OcptEditorSpellCheckToggledEvent());
+        final enabledState = await waitForState(bloc, (state) => state.isSpellCheckVisible);
+        expect(enabledState.isSpellCheckVisible, isTrue);
+        expect(await propertiesManager.spellCheckVisible.load(), isTrue);
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      'a scene heading, a character cue, a transition and a lyrics line produce no range, an '
+      'action line and a dialogue line do',
+      () async {
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+
+        const text =
+            "INT. HOUSE - DAY\n\n"
+            "She walks across the room slowly.\n\n"
+            "MARIE\n"
+            "Bonjour tout le monde.\n\n"
+            "CUT TO:\n\n"
+            "~La la la la\n";
+        bloc.add(const OcptEditorTextChangedEvent(text: text));
+
+        final state = await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+
+        // Only the action line and the dialogue line were ever sent to the manager for checking —
+        // never the scene heading, the character cue, the transition or the lyrics line.
+        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+        expect(sentTexts, {"She walks across the room slowly.", "Bonjour tout le monde."});
+
+        // And the reported ranges land exactly on those two blocks (the fake's default answer
+        // marks a requested text entirely misspelled).
+        const actionText = "She walks across the room slowly.";
+        const dialogueText = "Bonjour tout le monde.";
+        final actionStart = text.indexOf(actionText);
+        final dialogueStart = text.indexOf(dialogueText);
+        expect(state.rawSpellCheckRanges, unorderedEquals([
+          SpellRange(actionStart, actionStart + actionText.length),
+          SpellRange(dialogueStart, dialogueStart + dialogueText.length),
+        ]));
+
+        await bloc.close();
+      },
+    );
+
+    test('only changed texts are sent to the manager between two ticks', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      // The load itself already runs an (empty, nothing to check yet) pass on its own, async tail
+      // — wait for it to actually have happened before clearing, rather than racing it: only what
+      // the two ticks below send is under test.
+      while (manager.checkCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      manager.checkCalls.clear();
+
+      const firstText =
+          "INT. HOUSE - DAY\n\n"
+          "First paragraph here.\n\n"
+          "Second paragraph here.\n";
+      bloc.add(const OcptEditorTextChangedEvent(text: firstText));
+      await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+
+      expect(manager.checkCalls, hasLength(1));
+      expect(manager.checkCalls.single.values.toSet(), {
+        "First paragraph here.",
+        "Second paragraph here.",
+      });
+
+      manager.checkCalls.clear();
+
+      const secondText =
+          "INT. HOUSE - DAY\n\n"
+          "First paragraph here.\n\n"
+          "Second paragraph changed.\n";
+      bloc.add(const OcptEditorTextChangedEvent(text: secondText));
+      await waitForState(bloc, (state) => state.document?.sourceText == secondText);
+
+      expect(manager.checkCalls, hasLength(1));
+      // Only the second, changed, paragraph was resent; the first, unchanged, was skipped.
+      expect(manager.checkCalls.single.values.toSet(), {"Second paragraph changed."});
+
+      await bloc.close();
+    });
+
+    test('nothing is checked while both switches are off', () async {
+      final manager = _FakeSpellCheckManager();
+      await projectsManager.saveCurrentProjectScreenplayLanguage(null);
+      await propertiesManager.spellCheckVisible.store(false);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n"),
+      );
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      // Nothing more will ever be emitted for this text (no check request is even sent), so give
+      // any pending async work one microtask to prove that, rather than asserting on an emission
+      // that will never come.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(manager.checkCalls, isEmpty);
+      expect(bloc.state.rawSpellCheckRanges, isEmpty);
+
+      await bloc.close();
+      // Restores the shared properties manager's value: every other test in this group expects
+      // spell-check visible by default, and this is the only one in the file that turns it off.
+      await propertiesManager.spellCheckVisible.store(true);
+    });
+
+    test('nothing is checked while a project version is being previewed', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      // Confirm checking happens normally outside of a preview first.
+      await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+      manager.checkCalls.clear();
+
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+      final previewState = await waitForState(bloc, (state) => state.isPreviewingVersion);
+      expect(previewState.rawSpellCheckRanges, isEmpty);
+
+      // Give any pending async work a chance to run: no check request is sent at all while
+      // previewing, so there's no state to wait for here either.
+      await Future<void>.delayed(Duration.zero);
+      expect(manager.checkCalls, isEmpty);
+
+      await bloc.close();
+    });
+
+    test("a stale generation's answer is dropped", () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      manager.gate = Completer<void>();
+      bloc.add(
+        const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n"),
+      );
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      expect(manager.checkCalls, isNotEmpty);
+
+      // The dictionary changes while the check is still in flight: the manager's generation moves
+      // on before the answer comes back.
+      await manager.useLanguage(OcptScreenplayLanguage.fr);
+      manager.gate!.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.rawSpellCheckRanges, isEmpty);
+
+      await bloc.close();
+    });
+  });
+
+  group('styled spell check', () {
+    test('only changed node texts are sent to the manager, keyed by node id', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      // The load's own learned-words push (a real database read) is still settling in the
+      // background right after `isLoading` flips — wait for it, so its own generation bump can't
+      // land in the middle of the check this test is about to issue and drop its answer as stale.
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      // Unlike the raw pass, nothing here ever fires on its own: the styled bloc event only ever
+      // comes from the styled editor's own controller, which this test never mounts.
+      expect(manager.checkCalls, isEmpty);
+
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "First paragraph here.", "node-2": "Second paragraph here."},
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.styledSpellCheckRanges.isNotEmpty);
+
+      expect(manager.checkCalls, hasLength(1));
+      expect(manager.checkCalls.single.values.toSet(), {
+        "First paragraph here.",
+        "Second paragraph here.",
+      });
+      expect(state.styledSpellCheckRanges.keys, unorderedEquals(["node-1", "node-2"]));
+
+      manager.checkCalls.clear();
+
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "First paragraph here.", "node-2": "Second paragraph changed."},
+        ),
+      );
+      while (manager.checkCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(manager.checkCalls, hasLength(1));
+      // Only the second, changed, node was resent; the first, unchanged, was skipped.
+      expect(manager.checkCalls.single.values.toSet(), {"Second paragraph changed."});
+
+      await bloc.close();
+    });
+
+    test('nothing is sent while spell-checking is off', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(false);
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "Somethign is wrong here."},
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(manager.checkCalls, isEmpty);
+      expect(bloc.state.styledSpellCheckRanges, isEmpty);
+
+      await bloc.close();
+      // Restores the shared properties manager's value: every other test in this file expects
+      // spell-check visible by default.
+      await propertiesManager.spellCheckVisible.store(true);
+    });
+
+    test('nothing is sent while the screenplay has no language', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(null);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "Somethign is wrong here."},
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(manager.checkCalls, isEmpty);
+      expect(bloc.state.styledSpellCheckRanges, isEmpty);
+
+      await bloc.close();
+    });
+
+    test('nothing is sent under a read-only preview', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+      final previewState = await waitForState(bloc, (state) => state.isPreviewingVersion);
+      expect(previewState.styledSpellCheckRanges, isEmpty);
+
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "Somethign is wrong here."},
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(manager.checkCalls, isEmpty);
+
+      await bloc.close();
+    });
+
+    test("a stale generation's answer is dropped", () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      manager.gate = Completer<void>();
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "Somethign is wrong here."},
+        ),
+      );
+      while (manager.checkCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      // The dictionary changes while the check is still in flight: the manager's generation moves
+      // on before the answer comes back.
+      await manager.useLanguage(OcptScreenplayLanguage.fr);
+      manager.gate!.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.styledSpellCheckRanges, isEmpty);
+
+      await bloc.close();
+    });
+  });
+
+  group('learned words on load', () {
+    test("pushes the open project's already-learned words into the manager on load", () async {
+      final manager = _FakeSpellCheckManager();
+      await projectsManager.projectDictionaryService.learnWord(
+        database: projectsManager.currentProject!.database,
+        word: 'Zorglurbe',
+      );
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(manager.setLearnedWordsCalls.last, {'Zorglurbe'});
+
+      await bloc.close();
+    });
+
+    test('pushes an empty set when the project has no learned words yet', () async {
+      final manager = _FakeSpellCheckManager();
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(manager.setLearnedWordsCalls.last, isEmpty);
+
+      await bloc.close();
+    });
+  });
+
+  group('spellingSuggestionsFor', () {
+    test('forwards to the manager when both switches are on and nothing is being previewed', () async {
+      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+      await propertiesManager.spellCheckVisible.store(true);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final suggestions = await bloc.spellingSuggestionsFor('wrold');
+
+      expect(suggestions, ['world']);
+      expect(manager.suggestionsForCalls, ['wrold']);
+
+      await bloc.close();
+    });
+
+    test('returns nothing, with no manager call at all, while isSpellCheckVisible is off', () async {
+      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+      await propertiesManager.spellCheckVisible.store(false);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
+      expect(manager.suggestionsForCalls, isEmpty);
+
+      await bloc.close();
+      // Restores the shared properties manager's value: every other test in this file expects
+      // spell-check visible by default.
+      await propertiesManager.spellCheckVisible.store(true);
+    });
+
+    test('returns nothing, with no manager call at all, while the screenplay has no language', () async {
+      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+      await propertiesManager.spellCheckVisible.store(true);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(null);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
+      expect(manager.suggestionsForCalls, isEmpty);
+
+      await bloc.close();
+    });
+
+    test('returns nothing, with no manager call at all, while a version is being previewed', () async {
+      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+      await propertiesManager.spellCheckVisible.store(true);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "Some text.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+      await waitForState(bloc, (state) => state.isPreviewingVersion);
+
+      expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
+      expect(manager.suggestionsForCalls, isEmpty);
+
+      await bloc.close();
+    });
+  });
+
+  group('ignoring and learning words', () {
+    test(
+      'ignoring a word reaches the manager and re-issues a check over both the raw document and '
+      'the last reported styled texts',
+      () async {
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        bloc.add(
+          const OcptEditorTextChangedEvent(
+            text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
+          ),
+        );
+        await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+
+        bloc.add(
+          const OcptEditorStyledSpellCheckTextsReportedEvent(
+            textsByNodeId: {"node-1": "Somethign is wrong here."},
+          ),
+        );
+        await waitForState(bloc, (state) => state.styledSpellCheckRanges.isNotEmpty);
+
+        manager.checkCalls.clear();
+
+        bloc.add(const OcptEditorWordIgnoredEvent(word: "Somethign"));
+        while (manager.checkCalls.length < 2) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        expect(manager.ignoredWords, ["Somethign"]);
+        // Neither the raw block nor the styled node was skipped as "unchanged" — the manager's own
+        // generation bump (from ignoreWord) is what forces both caches to treat everything as
+        // needing a fresh answer even though no text actually changed.
+        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+        expect(sentTexts, contains("Somethign is wrong here."));
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      "learning a word reaches the service and the manager, and re-issues a check over both the "
+      "raw document and the last reported styled texts",
+      () async {
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        bloc.add(
+          const OcptEditorTextChangedEvent(
+            text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
+          ),
+        );
+        await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+
+        bloc.add(
+          const OcptEditorStyledSpellCheckTextsReportedEvent(
+            textsByNodeId: {"node-1": "Somethign is wrong here."},
+          ),
+        );
+        await waitForState(bloc, (state) => state.styledSpellCheckRanges.isNotEmpty);
+
+        manager.checkCalls.clear();
+        manager.setLearnedWordsCalls.clear();
+
+        bloc.add(const OcptEditorWordLearnedEvent(word: "Somethign"));
+        while (manager.setLearnedWordsCalls.isEmpty || manager.checkCalls.length < 2) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        final persisted = await projectsManager.projectDictionaryService.loadWords(
+          database: projectsManager.currentProject!.database,
+        );
+        expect(persisted, contains("Somethign"));
+        expect(manager.setLearnedWordsCalls.last, contains("Somethign"));
+
+        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+        expect(sentTexts, contains("Somethign is wrong here."));
+
+        await bloc.close();
+      },
+    );
+
+    test('learning a word with no project open is a no-op', () async {
+      final manager = _FakeSpellCheckManager();
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager, spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorBackRequestedEvent());
+      await routerManager.onPop.timeout(const Duration(seconds: 5));
+      expect(projectsManager.currentProject, isNull);
+
+      manager.setLearnedWordsCalls.clear();
+      bloc.add(const OcptEditorWordLearnedEvent(word: "anything"));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(manager.setLearnedWordsCalls, isEmpty);
+
+      await bloc.close();
+    });
+
+    test('both ignoring and learning a word are refused while a version is being previewed', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "Some text.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+      await waitForState(bloc, (state) => state.isPreviewingVersion);
+      // Entering a preview reloads from the previewed version's own database, which pushes that
+      // version's own learned words too (correctly) — wait for that second, legitimate push to
+      // land before clearing below, so it can't be mistaken for the ignore/learn events this test
+      // is actually about.
+      while (manager.setLearnedWordsCalls.length < 2) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      manager.ignoredWords.clear();
+      manager.setLearnedWordsCalls.clear();
+
+      bloc.add(const OcptEditorWordIgnoredEvent(word: "anything"));
+      bloc.add(const OcptEditorWordLearnedEvent(word: "anything"));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(manager.ignoredWords, isEmpty);
+      expect(manager.setLearnedWordsCalls, isEmpty);
+
+      await bloc.close();
+    });
+  });
+
+  group('the project settings changed event and the dictionary', () {
+    test(
+      "un-learning a word directly through the service, then reporting the project settings "
+      "changed event, pushes the new set into the manager and re-checks the text again — the "
+      "round trip's whole point: a word removed in the settings page's dictionary dialog is "
+      "underlined again on the next check pass, with nothing re-typed",
+      () async {
+        final database = projectsManager.currentProject!.database;
+        await projectsManager.projectDictionaryService.learnWord(
+          database: database,
+          word: "Zorglurbe",
+        );
+
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(manager.setLearnedWordsCalls.last, contains("Zorglurbe"));
+
+        bloc.add(
+          const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nZorglurbe is here.\n"),
+        );
+        await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+
+        manager.checkCalls.clear();
+        manager.setLearnedWordsCalls.clear();
+
+        // The dictionary dialog itself never runs in this bloc; the project settings page
+        // applies its report directly through the service, exactly as reproduced here — this
+        // bloc only ever learns about it through the settings-changed event below.
+        await projectsManager.projectDictionaryService.unlearnWord(
+          database: database,
+          word: "Zorglurbe",
+        );
+
+        bloc.add(const OcptEditorProjectSettingsChangedEvent());
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        expect(manager.setLearnedWordsCalls.last, isNot(contains("Zorglurbe")));
+        expect(manager.checkCalls, isNotEmpty);
+        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+        expect(sentTexts, contains("Zorglurbe is here."));
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      "the project settings changed event pushes nothing into the manager when the dictionary "
+      "was not touched",
+      () async {
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        manager.checkCalls.clear();
+        manager.setLearnedWordsCalls.clear();
+
+        // A real settings-page change that has nothing to do with the dictionary — the page
+        // format, which this same handler does act on. Waiting for the state it emits for that is
+        // what makes the assertions below mean something: without it, an assertion made one
+        // microtask after the dispatch would pass just as happily against a handler that pushes
+        // unconditionally, having simply not reached its dictionary read yet.
+        final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
+            ? OcptPageFormat.a4
+            : OcptPageFormat.usLetter;
+        await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+
+        bloc.add(const OcptEditorProjectSettingsChangedEvent());
+        await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
+        // The dictionary read is the last thing that handler does, one await past the state just
+        // waited for: let those remaining microtasks drain before reading the manager's calls.
+        for (var turn = 0; turn < 10; turn++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        expect(manager.setLearnedWordsCalls, isEmpty);
+        expect(manager.checkCalls, isEmpty);
 
         await bloc.close();
       },

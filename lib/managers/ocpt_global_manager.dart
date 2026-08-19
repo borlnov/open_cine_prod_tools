@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 import 'package:open_cine_prod_tools/ui/pages/fatal_error_page.dart';
@@ -51,6 +52,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
     registerManagerAsync<FileSelectorManager>(const FileSelectorBuilder());
     registerManagerAsync<OcptProjectsManager>(const OcptProjectsManagerBuilder());
     registerManagerAsync<OcptExportManager>(const OcptExportManagerBuilder());
+    registerManagerAsync<OcptSpellCheckManager>(const OcptSpellCheckManagerBuilder());
     registerManagerAsync<OcptRouterManager>(const OcptRouterManagerBuilder());
   }
 

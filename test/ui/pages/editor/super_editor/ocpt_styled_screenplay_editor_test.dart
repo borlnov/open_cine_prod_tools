@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
@@ -49,8 +50,52 @@ import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+
+/// A bare [OcptStyledEditorControllerDelegate] recording every [updateSpellCheckRanges] call it
+/// receives, in call order, so a controller test can assert the pending value `attach` pushes at
+/// attach time without needing a live styled editor (whose own node ids are freshly generated on
+/// every decode, and so cannot be reused across a genuine detach/re-attach — see the "spell check"
+/// group's own doc comment for why this test double exists instead). Every other delegate method
+/// is a bare no-op: nothing under test here ever calls them.
+class _RecordingStyledEditorControllerDelegate implements OcptStyledEditorControllerDelegate {
+  /// Every [updateSpellCheckRanges] call this delegate received, in call order.
+  final List<Map<String, List<SpellRange>>> rangesReceived = [];
+
+  @override
+  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
+    rangesReceived.add(rangesByNodeId);
+  }
+
+  @override
+  void applyBlockType(FountainLineType type) {}
+
+  @override
+  void applyToggleInlineStyle(OcptInlineStyle style) {}
+
+  @override
+  void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {}
+
+  @override
+  int? replaceCurrentMatch(String replacement) => null;
+
+  @override
+  void replaceAllMatches(String replacement) {}
+
+  @override
+  bool get canUndo => false;
+
+  @override
+  bool get canRedo => false;
+
+  @override
+  void undo() {}
+
+  @override
+  void redo() {}
+}
 
 /// A screenplay service that records every [saveScreenplayText] call instead of touching the
 /// database, so a test can assert a save happened (and with which text) without depending on real
@@ -116,6 +161,10 @@ Future<void> _pumpStandaloneEditor(
   OcptStyledEditorController? styledController,
   bool isPageSimulationEnabled = false,
   bool areSceneNumbersVisible = false,
+  bool isSpellCheckVisible = false,
+  Future<List<String>> Function(String word)? onSpellingSuggestionsRequested,
+  ValueChanged<String>? onWordIgnored,
+  ValueChanged<String>? onWordLearned,
 }) async {
   await tester.pumpWidget(
     _wrap(
@@ -125,10 +174,14 @@ Future<void> _pumpStandaloneEditor(
         pageSetup: const OcptPageSetup.standard(),
         isPageSimulationEnabled: isPageSimulationEnabled,
         areSceneNumbersVisible: areSceneNumbersVisible,
+        isSpellCheckVisible: isSpellCheckVisible,
         onTextChanged: (_) {},
         onCaretLineChanged: (_) {},
         jumpRequest: null,
         styledController: styledController,
+        onSpellingSuggestionsRequested: onSpellingSuggestionsRequested,
+        onWordIgnored: onWordIgnored,
+        onWordLearned: onWordLearned,
       ),
     ),
   );
@@ -259,6 +312,13 @@ void _testWidgetsAsDesktop(String description, Future<void> Function(WidgetTeste
   });
 }
 
+/// The miniature hunspell pair this file's spell-check manager stands the two ~1 MB bundled
+/// dictionaries up with — `OcptEditorBloc` resolves that manager and asks it to load the open
+/// project's language, and parsing a real dictionary in an isolate would cost far more than
+/// anything this file actually asserts on.
+Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
+    assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
+
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check
@@ -277,6 +337,7 @@ void main() {
           pageSetup: const OcptPageSetup.standard(),
           isPageSimulationEnabled: false,
           areSceneNumbersVisible: false,
+          isSpellCheckVisible: false,
           onTextChanged: (_) {},
           onCaretLineChanged: (_) {},
           jumpRequest: null,
@@ -335,6 +396,7 @@ void main() {
           pageSetup: const OcptPageSetup.standard(),
           isPageSimulationEnabled: false,
           areSceneNumbersVisible: false,
+          isSpellCheckVisible: false,
           onTextChanged: (_) {},
           onCaretLineChanged: (_) {},
           jumpRequest: null,
@@ -409,6 +471,7 @@ void main() {
           pageSetup: const OcptPageSetup.standard(),
           isPageSimulationEnabled: false,
           areSceneNumbersVisible: false,
+          isSpellCheckVisible: false,
           onTextChanged: (_) {},
           onCaretLineChanged: (line) => reportedLine = line,
           jumpRequest: null,
@@ -596,6 +659,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: true,
             areSceneNumbersVisible: true,
+            isSpellCheckVisible: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -613,6 +677,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -826,6 +891,7 @@ void main() {
                 pageSetup: const OcptPageSetup.standard(),
                 isPageSimulationEnabled: true,
                 areSceneNumbersVisible: sceneNumbersVisible,
+                isSpellCheckVisible: false,
                 onTextChanged: (text) => encodedText = text,
                 onCaretLineChanged: (_) {},
                 jumpRequest: null,
@@ -865,6 +931,7 @@ void main() {
                 pageSetup: const OcptPageSetup.standard(),
                 isPageSimulationEnabled: true,
                 areSceneNumbersVisible: sceneNumbersVisible,
+                isSpellCheckVisible: false,
                 onTextChanged: (text) => encodedText = text,
                 onCaretLineChanged: (_) {},
                 jumpRequest: null,
@@ -1044,6 +1111,7 @@ void main() {
                 pageSetup: const OcptPageSetup.standard(),
                 isPageSimulationEnabled: true,
                 areSceneNumbersVisible: sceneNumbersVisible,
+                isSpellCheckVisible: false,
                 onTextChanged: (text) => encodedText = text,
                 onCaretLineChanged: (_) {},
                 jumpRequest: null,
@@ -1087,6 +1155,7 @@ void main() {
                 pageSetup: const OcptPageSetup.standard(),
                 isPageSimulationEnabled: true,
                 areSceneNumbersVisible: sceneNumbersVisible,
+                isSpellCheckVisible: false,
                 onTextChanged: (text) => encodedText = text,
                 onCaretLineChanged: (_) {},
                 jumpRequest: null,
@@ -1137,6 +1206,7 @@ void main() {
                 pageSetup: const OcptPageSetup.standard(),
                 isPageSimulationEnabled: true,
                 areSceneNumbersVisible: sceneNumbersVisible,
+                isSpellCheckVisible: false,
                 onTextChanged: (text) => encodedText = text,
                 onCaretLineChanged: (_) {},
                 jumpRequest: null,
@@ -1331,6 +1401,7 @@ void main() {
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: true,
               areSceneNumbersVisible: sceneNumbersVisible,
+              isSpellCheckVisible: false,
               onTextChanged: (text) => encodedText = text,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -1449,7 +1520,10 @@ void main() {
     setUp(() async {
       savedTexts = [];
       tempDir = await Directory.systemTemp.createTemp("ocpt_styled_editor_test_");
-      projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+      projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
       await projectsManager.initLifeCycle();
 
       final result = await projectsManager.createProject(
@@ -1477,6 +1551,7 @@ void main() {
         routerManager: OcptRouterManager(),
         screenplayService: _RecordingScreenplayService(savedTexts: savedTexts),
         exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+        spellCheckManager: OcptSpellCheckManager(loadAsset: _loadMiniatureDictionaryAsset),
         parseDebounce: const Duration(milliseconds: 10),
         autosaveDebounce: const Duration(milliseconds: 30),
         statisticsDebounce: const Duration(milliseconds: 30),
@@ -1495,6 +1570,7 @@ void main() {
                       pageSetup: state.pageSetup,
                       isPageSimulationEnabled: state.isPageSimulationEnabled,
                       areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
+                      isSpellCheckVisible: state.isSpellCheckVisible,
                       onTextChanged: (text) =>
                           context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
                       onCaretLineChanged: (line) =>
@@ -1610,6 +1686,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -1738,6 +1815,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -1773,6 +1851,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -1810,6 +1889,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -1901,6 +1981,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -1946,6 +2027,7 @@ void main() {
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
               onTextChanged: (_) {},
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -2013,6 +2095,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2051,6 +2134,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2133,6 +2217,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (text) => lastEncoded = text,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2155,6 +2240,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (text) => lastEncoded = text,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2208,6 +2294,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2277,6 +2364,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2466,6 +2554,7 @@ void main() {
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -2552,6 +2641,7 @@ void main() {
                   pageSetup: const OcptPageSetup.standard(),
                   isPageSimulationEnabled: false,
                   areSceneNumbersVisible: false,
+                  isSpellCheckVisible: false,
                   onTextChanged: (_) {},
                   onCaretLineChanged: (_) {},
                   jumpRequest: null,
@@ -2601,6 +2691,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2642,6 +2733,7 @@ void main() {
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -2681,6 +2773,183 @@ void main() {
         expect(lastEncoded, "MARIE-JEANNE enters.\n\nMARIE-JEANNE speaks.\n");
       },
     );
+  });
+
+  group("OcptStyledEditorController — spell check", () {
+    // The fixture `editor_bloc_test.dart`'s own "a scene heading, a character cue, a transition
+    // and a lyrics line produce no range, an action line and a dialogue line do" test uses,
+    // reused here so both the bloc's and this widget's own halves of the prose-only rule are
+    // proven against the exact same shape of screenplay: scene heading (0), action (1), character
+    // cue (2), dialogue (3), transition (4), lyrics (5).
+    const text =
+        "INT. HOUSE - DAY\n\n"
+        "She walks across the room slowly.\n\n"
+        "MARIE\n"
+        "Bonjour tout le monde.\n\n"
+        "CUT TO:\n\n"
+        "~La la la la\n";
+
+    testWidgets(
+      "only the action and dialogue lines are reported as checkable, never the scene heading, "
+      "the character cue, the transition or the lyrics line",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await _pumpStandaloneEditor(tester, text, styledController: controller, isSpellCheckVisible: true);
+
+        final document = SuperEditorInspector.findDocument()!;
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(_typeAt(document, 1), FountainLineType.action);
+        expect(_typeAt(document, 2), FountainLineType.character);
+        expect(_typeAt(document, 3), FountainLineType.dialogue);
+        expect(_typeAt(document, 4), FountainLineType.transition);
+        expect(_typeAt(document, 5), FountainLineType.lyrics);
+
+        final reported = controller.spellCheckTextsByNodeId;
+        expect(reported.keys, unorderedEquals([_nodeAt(document, 1).id, _nodeAt(document, 3).id]));
+        expect(reported[_nodeAt(document, 1).id], "She walks across the room slowly.");
+        expect(reported[_nodeAt(document, 3).id], "Bonjour tout le monde.");
+      },
+    );
+
+    testWidgets("nothing at all is reported while OcptStyledScreenplayEditor.isSpellCheckVisible is false", (
+      tester,
+    ) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, text, styledController: controller);
+
+      expect(controller.spellCheckTextsByNodeId, isEmpty);
+    });
+
+    testWidgets("a title-page field node is never reported as checkable", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(
+        tester,
+        "Some action.",
+        isPageSimulationEnabled: true,
+        styledController: controller,
+        isSpellCheckVisible: true,
+      );
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(document.nodeCount, _titlePageFieldCount + 1);
+
+      final titlePageNodeIds = [
+        for (var index = 0; index < _titlePageFieldCount; index++) _nodeAt(document, index).id,
+      ];
+      final reported = controller.spellCheckTextsByNodeId;
+      for (final titlePageNodeId in titlePageNodeIds) {
+        expect(reported.containsKey(titlePageNodeId), isFalse);
+      }
+      expect(reported.keys, [_nodeAt(document, _titlePageFieldCount).id]);
+    });
+
+    testWidgets(
+      "spellingErrors covers a misspelled word on an action line, and a character cue and a "
+      "scene heading carry none",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await _pumpStandaloneEditor(tester, text, styledController: controller, isSpellCheckVisible: true);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final headingNodeId = _nodeAt(document, 0).id;
+        final actionNodeId = _nodeAt(document, 1).id;
+        final cueNodeId = _nodeAt(document, 2).id;
+
+        // "walks" sits at offset 4 in "She walks across the room slowly." — the exact range this
+        // widget is handed is not itself asserted on (that round trip is the bloc's own job); what
+        // matters here is only that a range handed in for the action node's own id reaches that
+        // node's component view model, and never a node this widget never reported.
+        controller.updateSpellCheckRanges({
+          actionNodeId: [const SpellRange(4, 9)],
+        });
+        await tester.pump();
+
+        final actionViewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
+          actionNodeId,
+        ).viewModel;
+        expect(actionViewModel.spellingErrors, [const TextRange(start: 4, end: 9)]);
+
+        final cueViewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(cueNodeId).viewModel;
+        expect(cueViewModel.spellingErrors, isEmpty);
+
+        final headingViewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
+          headingNodeId,
+        ).viewModel;
+        expect(headingViewModel.spellingErrors, isEmpty);
+      },
+    );
+
+    testWidgets("a range that no longer fits the node's current text length is dropped rather than painted", (
+      tester,
+    ) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "Some action.", styledController: controller, isSpellCheckVisible: true);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+
+      // "Some action." is 12 characters long: a range reaching past that must be dropped, not
+      // handed to `TextError.spelling`, which would otherwise build a `TextRange` past the end of
+      // the text it addresses.
+      controller.updateSpellCheckRanges({
+        nodeId: [const SpellRange(0, 100)],
+      });
+      await tester.pump();
+
+      final viewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(nodeId).viewModel;
+      expect(viewModel.spellingErrors, isEmpty);
+    });
+
+    testWidgets("a range for a node id the live document no longer holds is ignored rather than crashing", (
+      tester,
+    ) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "Some action.", styledController: controller, isSpellCheckVisible: true);
+
+      controller.updateSpellCheckRanges({
+        "not-a-real-node-id": [const SpellRange(0, 3)],
+      });
+      await tester.pump();
+
+      // No exception thrown reaching here is the assertion itself; the fresh document still shows
+      // no error, matching the case above.
+      final document = SuperEditorInspector.findDocument()!;
+      final viewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
+        _nodeAt(document, 0).id,
+      ).viewModel;
+      expect(viewModel.spellingErrors, isEmpty);
+    });
+
+    test("updateSpellCheckRanges is re-pushed to a delegate attaching afterwards", () {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+      final delegate = _RecordingStyledEditorControllerDelegate();
+
+      // Set while detached (no delegate attached at all yet, mirroring a raw → styled mode switch
+      // where the ranges were already known): remembered by the controller rather than lost,
+      // exactly like `updateSearch`'s own find/replace query.
+      const ranges = {
+        "some-node-id": [SpellRange(0, 3)],
+      };
+      controller.updateSpellCheckRanges(ranges);
+      expect(delegate.rangesReceived, isEmpty);
+
+      controller.attach(delegate);
+
+      expect(delegate.rangesReceived, [ranges]);
+    });
   });
 
   group("a parenthetical opens on ()", () {
@@ -2739,6 +3008,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -2871,6 +3141,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -3040,6 +3311,163 @@ void main() {
         actionNode.text.toPlainText().length,
       );
     });
+  });
+
+  group("right-click spelling suggestions", () {
+    _testWidgetsAsDesktop(
+      "right-clicking a misspelled word offers the suggestions the callback returns, and picking "
+      "one rewrites exactly that word, undone whole by a single Ctrl+Z",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        final requestedWords = <String>[];
+
+        // The whole action line is the misspelled word itself, so `_tapOffsetInsideText` (which
+        // taps near the node's own left edge) is guaranteed to land inside the range below,
+        // without needing to resolve a pixel offset for one particular word inside a longer line.
+        await _pumpStandaloneEditor(
+          tester,
+          "wrold",
+          styledController: controller,
+          isSpellCheckVisible: true,
+          onSpellingSuggestionsRequested: (word) async {
+            requestedWords.add(word);
+            return ["world", "word", "wold"];
+          },
+          // Both actions are wired only so this test can assert they are *offered* beside the
+          // suggestions; each is withheld when its own callback is null, and the two tests below
+          // are what exercise what picking one actually reports.
+          onWordIgnored: (_) {},
+          onWordLearned: (_) {},
+        );
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        controller.updateSpellCheckRanges({
+          nodeId: [const SpellRange(0, 5)],
+        });
+        await tester.pump();
+
+        await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        expect(requestedWords, ["wrold"]);
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        expect(find.text("world"), findsOneWidget);
+        expect(find.text("word"), findsOneWidget);
+        expect(find.text("wold"), findsOneWidget);
+        expect(find.text(tr.editorContextMenuIgnoreWordAction), findsOneWidget);
+        expect(find.text(tr.editorContextMenuAddToDictionaryAction), findsOneWidget);
+
+        await tester.tap(find.text("world"));
+        await tester.pumpAndSettle();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "world");
+
+        await _pumpPastSettleDebounce(tester);
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await tester.pumpAndSettle();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "wrold");
+      },
+    );
+
+    _testWidgetsAsDesktop("right-clicking a word that isn't misspelled shows no suggestions and no "
+        "spelling actions", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(
+        tester,
+        "Some correct action.",
+        styledController: controller,
+        isSpellCheckVisible: true,
+        onSpellingSuggestionsRequested: (word) async => ["should not be offered"],
+      );
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      // No ranges at all reported for this node: nothing under the tap is flagged.
+      await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+      expect(find.text("should not be offered"), findsNothing);
+      expect(find.text(tr.editorContextMenuIgnoreWordAction), findsNothing);
+      expect(find.text(tr.editorContextMenuAddToDictionaryAction), findsNothing);
+      // The ordinary entries are still there, untouched by the withheld spelling group.
+      expect(find.text(tr.editorContextMenuSelectAllAction), findsOneWidget);
+    });
+
+    _testWidgetsAsDesktop(
+      "picking Ignore this word reports the word up without touching the document",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        String? ignoredWord;
+
+        await _pumpStandaloneEditor(
+          tester,
+          "wrold",
+          styledController: controller,
+          isSpellCheckVisible: true,
+          onSpellingSuggestionsRequested: (word) async => const [],
+          onWordIgnored: (word) => ignoredWord = word,
+        );
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        controller.updateSpellCheckRanges({
+          nodeId: [const SpellRange(0, 5)],
+        });
+        await tester.pump();
+
+        await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        await tester.tap(find.text(tr.editorContextMenuIgnoreWordAction));
+        await tester.pumpAndSettle();
+
+        expect(ignoredWord, "wrold");
+        expect(_nodeAt(document, 0).text.toPlainText(), "wrold");
+      },
+    );
+
+    _testWidgetsAsDesktop(
+      "picking Add to the project's dictionary reports the word up without touching the document",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        String? learnedWord;
+
+        await _pumpStandaloneEditor(
+          tester,
+          "wrold",
+          styledController: controller,
+          isSpellCheckVisible: true,
+          onSpellingSuggestionsRequested: (word) async => const [],
+          onWordLearned: (word) => learnedWord = word,
+        );
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        controller.updateSpellCheckRanges({
+          nodeId: [const SpellRange(0, 5)],
+        });
+        await tester.pump();
+
+        await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        await tester.tap(find.text(tr.editorContextMenuAddToDictionaryAction));
+        await tester.pumpAndSettle();
+
+        expect(learnedWord, "wrold");
+        expect(_nodeAt(document, 0).text.toPlainText(), "wrold");
+      },
+    );
   });
 
   group("undo and redo", () {
@@ -3320,6 +3748,7 @@ void main() {
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,

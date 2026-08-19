@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_positions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_skills_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_unavailabilities_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_dictionary_words_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_elements_table.dart';
@@ -48,7 +49,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptElementStatusConverter, OcptAssetKindConverter, OcptDayPartSlotConverter,
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
 // OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
-// OcptShootingSlotAnchorEdgeConverter), but
+// OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -64,6 +65,7 @@ import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -124,7 +126,13 @@ part 'ocpt_project_database.g.dart';
 /// `sortKey` (what actually orders the episodes), a role stops belonging to any one screenplay and
 /// [OcptRoleEpisodesTable] takes over saying which episodes name it, and `shooting_days` stops
 /// naming a screenplay at all — a day regularly covers two episodes at one location, which is the
-/// whole point of a shared schedule. `OcptProjectsManager` owns the single instance open at a time.
+/// whole point of a shared schedule. Schema version 19 adds
+/// `project_info.screenplayLanguage`, the language a project's screenplays are written in
+/// ([OcptScreenplayLanguage]) — nullable, since "nobody has said" is as true after the migration as
+/// it was before it, exactly the reading [OcptProjectInfoTable.minimumRestMinutes] already carries
+/// — and, alongside it, [OcptProjectDictionaryWordsTable], the words a writer has taught this
+/// project's spell checker.
+/// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -160,6 +168,7 @@ part 'ocpt_project_database.g.dart';
     OcptShootingDayBlocksTable,
     OcptShootingSlotGuestsTable,
     OcptShootingDayEventsTable,
+    OcptProjectDictionaryWordsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -230,7 +239,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   /// The database options used by this database.
   ///
@@ -345,7 +354,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// (guarded `from >= 6`) and `shooting_days.screenplayId` (guarded `from >= 11`) through
   /// [_alterRoleAndShootingDayTablesToV18] — a role belongs to the production now, and a day never
   /// named one episode more truthfully than it names all of them, a shooting day regularly covering
-  /// two at once. Every step is additive, as
+  /// two at once. From 18 to 19 it adds `project_info.screenplayLanguage`
+  /// **unconditionally** (`project_info` has existed, and been alterable, since version 1, exactly
+  /// the reason `project_info.minimumRestMinutes` above needed no guard) and gets no backfill: the
+  /// column is nullable by design, and null after this migration is exactly as true a reading —
+  /// "nobody has said" — as it was the moment before it, the same reading
+  /// `people.maxDailyPresenceMinutes` and `project_info.minimumRestMinutes` itself already carry.
+  /// The same step also creates [OcptProjectDictionaryWordsTable], the words a writer has taught
+  /// this project's spell checker — a plain `createTable` on a file coming from any version, since
+  /// nothing a project already held needs migrating into it. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -544,6 +561,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         }
 
         await _alterRoleAndShootingDayTablesToV18(m, from: from);
+      }
+
+      if (from < 19) {
+        // `project_info` has existed, and been alterable, since version 1: no guard needed,
+        // exactly as `project_info.minimumRestMinutes` above needed none.
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.screenplayLanguage);
+
+        // The table a project's learned words live in didn't exist before this version, on any
+        // file: a plain `createTable`, exactly as `OcptRoleElementsTable` (version 14 to 15) got
+        // one, with nothing to backfill — a project migrating onto this version has taught its
+        // spell checker nothing yet.
+        await m.createTable(ocptProjectDictionaryWordsTable);
       }
     },
     beforeOpen: (details) async {

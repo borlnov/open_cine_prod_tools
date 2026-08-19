@@ -63,9 +63,10 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
   `OcptConfirmDialog` (`lib/ui/widgets/`), which the *page or mode* opens — a widget only ever asks
   (a nullable `on…Requested` callback), it never carries the question itself. The caller owns every
   word of it and `isDestructive`. A new action that cannot be undone reuses this dialog; a second
-  confirmation widget must not appear. The one standing exception is the `Versions` dock panel,
-  whose `Delete`/`Restore`/`Rename` are answered **inside the card they belong to**, a list of
-  cards having no other way to say *which* one is being talked about.
+  confirmation widget must not appear. The standing exception has two holders: the `Versions`
+  dock panel, whose `Delete`/`Restore`/`Rename` are answered **inside the card they belong to**,
+  and the project dictionary dialog's per-word removal, answered **inside the row it belongs
+  to** — in both, a list of rows has no other way to say *which* one is being talked about.
 - **Before creating any new view/screen, ask Benoit design questions first** (layout, style,
   references). He shapes the UI himself.
 
@@ -157,8 +158,8 @@ file in `docs/architecture/` says what the code does because of it.
 
 | Read this | Before touching |
 | --- | --- |
-| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the read-only preview |
-| [`screenplay.md`](docs/architecture/screenplay.md) | `packages/fountain_kit/`, `lib/ui/pages/editor/` |
+| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview |
+| [`screenplay.md`](docs/architecture/screenplay.md) | `packages/fountain_kit/`, `packages/spell_kit/`, `lib/ui/pages/editor/` |
 | [`exports.md`](docs/architecture/exports.md) | `lib/managers/export/`, the export panel |
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |
 | [`breakdown.md`](docs/architecture/breakdown.md) | `lib/ui/pages/workspace/modes/breakdown/` |

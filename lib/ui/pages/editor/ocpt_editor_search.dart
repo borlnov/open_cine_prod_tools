@@ -19,6 +19,13 @@ const Color ocptEditorSearchMatchColor = Color(0x406C5CE7);
 /// stronger so the current occurrence reads apart from the rest.
 const Color ocptEditorSearchCurrentMatchColor = Color(0x996C5CE7);
 
+/// The wavy underline colour a misspelling is painted with in raw mode, in both editing modes'
+/// spirit: a fixed, error-toned colour rather than a theme-derived one, so it reads the same
+/// whether the surrounding text sits on the studio's dark background or the page-simulation's
+/// white sheet — the same reasoning [ocptEditorSearchMatchColor]'s own doc comment gives for
+/// staying fixed rather than theme-derived.
+const Color ocptEditorSpellCheckErrorColor = Color(0xFFE05252);
+
 /// One editor find/replace query: the text searched for, plus its two options.
 ///
 /// Equatable so `OcptEditorSearchState`'s own equality (and therefore the bloc's emit-skip on an

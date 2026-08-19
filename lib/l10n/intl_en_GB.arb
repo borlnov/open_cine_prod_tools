@@ -366,6 +366,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorContextMenuIgnoreWordAction": "Ignore this word",
+  "@editorContextMenuIgnoreWordAction": {
+    "description": "Label of the entry that ignores a misspelled word for the rest of the session",
+    "context": "Displayed in the styled screenplay editor's context menu, over a misspelled word",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuAddToDictionaryAction": "Add to the project's dictionary",
+  "@editorContextMenuAddToDictionaryAction": {
+    "description": "Label of the entry that teaches a misspelled word to the project's own dictionary",
+    "context": "Displayed in the styled screenplay editor's context menu, over a misspelled word",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorToggleBoldTooltip": "Bold (Ctrl+B)",
   "@editorToggleBoldTooltip": {
     "description": "Tooltip of the toolbar action that toggles bold on the selection",
@@ -482,6 +496,13 @@
   "@editorToggleSceneNumbersAction": {
     "description": "Label of the action that toggles the styled editor's scene numbers on or off",
     "context": "Displayed as a checkable item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleSpellCheckAction": "Spell check",
+  "@editorToggleSpellCheckAction": {
+    "description": "Label of the action that toggles the spell-check underlines on or off, in either editing mode",
+    "context": "Displayed as a checkable item of the editor toolbar's overflow menu, right after Scene numbers",
     "type": "text",
     "placeholders": {}
   },
@@ -5712,6 +5733,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsScreenplayLanguageSectionTitle": "Screenplay language",
+  "@projectSettingsScreenplayLanguageSectionTitle": {
+    "description": "Title of the project settings page's screenplay language section",
+    "context": "Displayed at the top of the screenplay language section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageLabel": "Language",
+  "@projectSettingsScreenplayLanguageLabel": {
+    "description": "Label of the screenplay language dropdown",
+    "context": "Displayed next to the screenplay language dropdown in the screenplay language section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageHint": "Drives the spell-checker and travels with the project file, so a colleague opening it sees the same language, whatever theirs is set to.",
+  "@projectSettingsScreenplayLanguageHint": {
+    "description": "Explanation under the screenplay language dropdown, what the setting is for",
+    "context": "Displayed under the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageNoneOption": "None",
+  "@projectSettingsScreenplayLanguageNoneOption": {
+    "description": "Label of the \"no screenplay language recorded\" dropdown entry",
+    "context": "Displayed as an entry of the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageFrenchOption": "French",
+  "@projectSettingsScreenplayLanguageFrenchOption": {
+    "description": "Label of the French screenplay language option",
+    "context": "Displayed as an entry of the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageEnglishOption": "English (UK)",
+  "@projectSettingsScreenplayLanguageEnglishOption": {
+    "description": "Label of the English (UK) screenplay language option",
+    "context": "Displayed as an entry of the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsMinimumRestSectionTitle": "Minimum rest between two shooting days",
   "@projectSettingsMinimumRestSectionTitle": {
     "description": "Title of the project settings page's minimum rest section",
@@ -5818,6 +5881,129 @@
   "@projectSettingsDeleteEpisodeConfirmDeleteAction": {
     "description": "Label of the confirmation dialog's confirm button before deleting an episode",
     "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDictionarySectionTitle": "Project dictionary",
+  "@projectSettingsDictionarySectionTitle": {
+    "description": "Title of the project settings page's dictionary section",
+    "context": "Displayed above the learned-word count in the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDictionaryHint": "Words the writer has taught the spell checker to accept, project-wide — right-clicking a misspelling in the styled editor and choosing “Add to the project's dictionary”, or adding one directly in the dialog the Edit… button opens.",
+  "@projectSettingsDictionaryHint": {
+    "description": "Short explanation of what the project's learned words are",
+    "context": "Displayed under the dictionary section's title in the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDictionaryWordCount": "{count, plural, one{{count} learned word} other{{count} learned words}}",
+  "@projectSettingsDictionaryWordCount": {
+    "description": "Number of words currently learned by the project's dictionary",
+    "context": "Displayed in the dictionary section of the project settings page, next to the Edit… button",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "projectSettingsDictionaryEmpty": "No word has been added yet.",
+  "@projectSettingsDictionaryEmpty": {
+    "description": "Replaces the word count when the project's dictionary holds no word",
+    "context": "Displayed in the dictionary section of the project settings page, next to the Edit… button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDictionaryEditAction": "Edit…",
+  "@projectSettingsDictionaryEditAction": {
+    "description": "Label of the button opening the project dictionary dialog",
+    "context": "Displayed in the dictionary section of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryDialogTitle": "Project dictionary",
+  "@projectDictionaryDialogTitle": {
+    "description": "Title of the dialog listing, filtering, adding to and removing from the project's learned words",
+    "context": "Displayed at the top of the project dictionary dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryFilterHint": "Filter",
+  "@projectDictionaryFilterHint": {
+    "description": "Placeholder of the field filtering the learned-word list as one types",
+    "context": "Displayed in the project dictionary dialog's filter field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryEmptyMessage": "No word has been added yet.",
+  "@projectDictionaryEmptyMessage": {
+    "description": "Shown in place of the list when the project's dictionary holds no word at all",
+    "context": "Displayed in the project dictionary dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryNoFilterMatchMessage": "No word matches this filter.",
+  "@projectDictionaryNoFilterMatchMessage": {
+    "description": "Shown in place of the list when the current filter matches none of the learned words",
+    "context": "Displayed in the project dictionary dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveTooltip": "Remove this word",
+  "@projectDictionaryRemoveTooltip": {
+    "description": "Tooltip of a word row's ✕ button, opening its inline removal question",
+    "context": "Displayed in the project dictionary dialog, on a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveConfirmQuestion": "Remove?",
+  "@projectDictionaryRemoveConfirmQuestion": {
+    "description": "Question replacing a word row once its ✕ button was clicked",
+    "context": "Displayed in the project dictionary dialog, in place of a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveConfirmYesAction": "Yes",
+  "@projectDictionaryRemoveConfirmYesAction": {
+    "description": "Confirms a word row's inline removal question, dropping it from the working copy",
+    "context": "Displayed in the project dictionary dialog, in place of a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveConfirmNoAction": "No",
+  "@projectDictionaryRemoveConfirmNoAction": {
+    "description": "Cancels a word row's inline removal question, restoring the row untouched",
+    "context": "Displayed in the project dictionary dialog, in place of a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryAddFieldHint": "Add a word",
+  "@projectDictionaryAddFieldHint": {
+    "description": "Placeholder of the field teaching a new word to the dictionary before it is even typed into the screenplay",
+    "context": "Displayed in the project dictionary dialog's add field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryAddAction": "Add",
+  "@projectDictionaryAddAction": {
+    "description": "Label of the button committing the add field's current word",
+    "context": "Displayed in the project dictionary dialog, next to the add field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryDuplicateError": "This word is already in the dictionary.",
+  "@projectDictionaryDuplicateError": {
+    "description": "Error shown under the add field when its word is already held, case-insensitively, by the working copy",
+    "context": "Displayed in the project dictionary dialog's add field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryCloseAction": "Close",
+  "@projectDictionaryCloseAction": {
+    "description": "Label of the button closing the dialog and reporting its diff",
+    "context": "Displayed at the bottom of the project dictionary dialog",
     "type": "text",
     "placeholders": {}
   },

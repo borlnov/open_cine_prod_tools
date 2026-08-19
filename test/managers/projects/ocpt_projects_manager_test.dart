@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -40,7 +41,10 @@ void main() {
   setUp(() async {
     await propertiesManager.deleteAll();
     tempDir = await Directory.systemTemp.createTemp("ocpt_projects_manager_test_");
-    manager = OcptProjectsManager(propertiesManager: propertiesManager);
+    manager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await manager.initLifeCycle();
   });
 
@@ -324,6 +328,82 @@ void main() {
 
   test('loadCurrentProjectMinimumRestMinutes returns null when no project is open', () async {
     expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+  });
+
+  test("createProject seeds the screenplay language from the app's own language", () async {
+    final frenchManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "fr",
+    );
+    await frenchManager.initLifeCycle();
+    addTearDown(frenchManager.disposeLifeCycle);
+
+    await frenchManager.createProject(
+      name: "Mon Film",
+      filePath: p.join(tempDir.path, "mon_film.ocpt"),
+    );
+
+    expect(
+      await frenchManager.loadCurrentProjectScreenplayLanguage(),
+      OcptScreenplayLanguage.fr,
+    );
+  });
+
+  test('createProject leaves the screenplay language unset when no dictionary matches', () async {
+    final germanManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "de",
+    );
+    await germanManager.initLifeCycle();
+    addTearDown(germanManager.disposeLifeCycle);
+
+    await germanManager.createProject(
+      name: "Mein Film",
+      filePath: p.join(tempDir.path, "mein_film.ocpt"),
+    );
+
+    // No dictionary is bundled for German, so nothing is guessed: no language means no
+    // spell-check underlines, rather than every word underlined against the wrong one.
+    expect(await germanManager.loadCurrentProjectScreenplayLanguage(), isNull);
+  });
+
+  test(
+    'saveCurrentProjectScreenplayLanguage writes the language, '
+    'loadCurrentProjectScreenplayLanguage reads it back',
+    () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+
+      final initialLanguage = await manager.loadCurrentProjectScreenplayLanguage();
+      final otherLanguage = initialLanguage == OcptScreenplayLanguage.fr
+          ? OcptScreenplayLanguage.enGb
+          : OcptScreenplayLanguage.fr;
+
+      await manager.saveCurrentProjectScreenplayLanguage(otherLanguage);
+
+      expect(await manager.loadCurrentProjectScreenplayLanguage(), otherLanguage);
+    },
+  );
+
+  test('saveCurrentProjectScreenplayLanguage can clear a language already recorded', () async {
+    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+    await manager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr);
+
+    await manager.saveCurrentProjectScreenplayLanguage(null);
+
+    expect(await manager.loadCurrentProjectScreenplayLanguage(), isNull);
+  });
+
+  test('saveCurrentProjectScreenplayLanguage is a no-op when no project is open', () async {
+    await expectLater(
+      manager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr),
+      completes,
+    );
+    expect(manager.currentProject, isNull);
+  });
+
+  test('loadCurrentProjectScreenplayLanguage returns null when no project is open', () async {
+    expect(await manager.loadCurrentProjectScreenplayLanguage(), isNull);
   });
 
   test('createProjectVersion captures the open project, listProjectVersions reads it back', () async {

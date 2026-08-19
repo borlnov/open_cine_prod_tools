@@ -30,7 +30,9 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_e
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_spell_checked_lines.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
+import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
@@ -76,6 +78,14 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// `computeOcptStyledSceneNumbers`) in its left gutter.
   final bool areSceneNumbersVisible;
 
+  /// Whether this machine wants the spell-check underlines shown at all — the machine's own on/off
+  /// switch (`docs/architecture/screenplay.md`), travelling down the same way
+  /// [areSceneNumbersVisible] does rather than through the bloc directly: this widget knows nothing
+  /// about `OcptEditorState`. While false, no checkable node texts are ever reported (see the
+  /// state's own `_reportSpellCheckTexts`), so nothing is ever requested and nothing is ever
+  /// painted.
+  final bool isSpellCheckVisible;
+
   /// Called with the new full source text whenever the user edits the document.
   final ValueChanged<String> onTextChanged;
 
@@ -91,6 +101,23 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// nothing to attach to, exactly like being in raw mode.
   final OcptStyledEditorController? styledController;
 
+  /// Awaited by [_OcptStyledScreenplayEditorState._onSecondaryTapUp] when a right-click lands on a
+  /// misspelled word, before the context menu opens (`docs/architecture/screenplay.md`).
+  /// Null (in a test with nothing to wire it to, chiefly) simply means no suggestion is ever
+  /// fetched, and [OcptEditorContextMenu]'s own nullable-callback rule then withholds the whole
+  /// spelling group regardless of whether the tap actually landed on a misspelling.
+  final Future<List<String>> Function(String word)? onSpellingSuggestionsRequested;
+
+  /// Called with a misspelled word the context menu's "Ignore this word" entry was picked for;
+  /// null withholds that entry. Never touches the document itself — the bloc's own re-check is
+  /// what makes the underline disappear.
+  final ValueChanged<String>? onWordIgnored;
+
+  /// Called with a misspelled word the context menu's "Add to the project's dictionary" entry was
+  /// picked for; null withholds that entry. Never touches the document itself, for the same reason
+  /// [onWordIgnored] doesn't.
+  final ValueChanged<String>? onWordLearned;
+
   /// Class constructor
   const OcptStyledScreenplayEditor({
     super.key,
@@ -98,10 +125,14 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.pageSetup,
     required this.isPageSimulationEnabled,
     required this.areSceneNumbersVisible,
+    required this.isSpellCheckVisible,
     required this.onTextChanged,
     required this.onCaretLineChanged,
     required this.jumpRequest,
     this.styledController,
+    this.onSpellingSuggestionsRequested,
+    this.onWordIgnored,
+    this.onWordLearned,
   });
 
   @override
@@ -201,6 +232,23 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// here since [build] is also what positions it, at the tap [_onSecondaryTapUp] resolved.
   final MenuController _contextMenuController = MenuController();
 
+  /// The node id [_contextMenuMisspelledRange]/[_contextMenuMisspelledWord] belong to, or null when
+  /// the last right-click didn't land on a misspelling. Set by [_onSecondaryTapUp], read back by
+  /// [_applySuggestionFromContextMenu] to know which node to rewrite.
+  String? _contextMenuMisspelledNodeId;
+
+  /// The range (relative to [_contextMenuMisspelledNodeId]'s own text at the moment of the tap)
+  /// [_contextMenuMisspelledWord] was found at.
+  SpellRange? _contextMenuMisspelledRange;
+
+  /// The misspelled word the last right-click landed on, or null when it didn't — read by [build]
+  /// to gate [OcptEditorContextMenu]'s spelling group (its own `misspelledWord` parameter).
+  String? _contextMenuMisspelledWord;
+
+  /// Up to five spelling suggestions for [_contextMenuMisspelledWord], fetched once by
+  /// [_onSecondaryTapUp] when the menu opened — never refetched on every rebuild.
+  List<String> _contextMenuSuggestions = const [];
+
   /// The IME-delta interceptor that catches a plain Tab keystroke before it can insert a literal
   /// `\t` character (see `OcptFountainTabInterceptor`'s own doc comment for why this is needed).
   /// Built once, not on every [build] — `SuperEditorImeInteractorState` compares `imeOverrides` by
@@ -249,10 +297,28 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// (always 0 while page simulation is off), recomputed by [_recomputePageSimulation].
   double _trailingBottomPadding = 0;
 
-  /// This widget's own half of the find/replace bar's highlight (plan §6), handed to `SuperEditor`
+  /// This widget's own half of the find/replace bar's highlight, handed to `SuperEditor`
   /// as a custom style phase in [build]; never rebuilt, so `markDirty()` calls survive across a
   /// [build] rather than resetting the highlight every frame.
   final OcptSearchMatchStyler _searchMatchStyler = OcptSearchMatchStyler();
+
+  /// The styled mode's own half of the spell-check underline
+  /// (`docs/architecture/screenplay.md`): super_editor's own `SpellingAndGrammarStyler`, since
+  /// `text.dart` already
+  /// turns a component's `TextComponentViewModel.spellingErrors` into the squiggle super_editor
+  /// paints — no styler of our own is needed here, unlike [_searchMatchStyler]. The underline
+  /// colour is [ocptEditorSpellCheckErrorColor], the exact colour the raw mode's own controller
+  /// underlines with, so both surfaces read as the same feature. Never rebuilt, for the same reason
+  /// [_searchMatchStyler] isn't: `addErrors`/`clearErrorsForNode`/`clearAllErrors` calls must
+  /// survive across a [build].
+  final SpellingAndGrammarStyler _spellingAndGrammarStyler = SpellingAndGrammarStyler(
+    spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(color: ocptEditorSpellCheckErrorColor),
+  );
+
+  /// The misspelled ranges [updateSpellCheckRanges] last applied to [_spellingAndGrammarStyler],
+  /// keyed by node id and remembered here too so [_onSecondaryTapUp] can tell whether a right-click
+  /// landed inside one — [SpellingAndGrammarStyler] itself exposes no getter to ask that of.
+  Map<String, List<SpellRange>> _lastSpellCheckRangesByNodeId = const {};
 
   /// The find/replace query [updateSearch] last set, or null while there is no active search —
   /// `editor_page.dart` sets this to null whenever the bar is closed, a different mode is active,
@@ -271,6 +337,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _recomputePageSimulation();
     widget.styledController?.attach(this);
     _reportReadStateToController();
+    _reportSpellCheckTexts();
     _maybeApplyPendingJumpRequest();
   }
 
@@ -290,6 +357,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       // widget computed against the previous one is stale, and must never keep highlighting/
       // navigating against node ids that no longer exist.
       _recomputeSearchMatches(navigateToCurrent: false);
+      // The same is true of every spelling error this widget was holding: none of them addresses a
+      // node id the fresh document still has, so they are dropped outright rather than left to
+      // linger unreachable in `_spellingAndGrammarStyler`'s own internal map, and a fresh report
+      // over the new document's own node ids is sent right away — this is what makes the raw ⇄
+      // styled mode switch (and an import, and a version restore) leave the styled surface correct
+      // rather than showing stale squiggles or none at all until the next edit.
+      _spellingAndGrammarStyler.clearAllErrors();
+      _reportSpellCheckTexts();
     } else if (widget.isPageSimulationEnabled != oldWidget.isPageSimulationEnabled) {
       // The title sheet's nodes appear/disappear with page simulation itself (see [_decode]'s own
       // doc comment), so toggling it needs a full rebuild from the same text, not just a
@@ -302,8 +377,23 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       _syncSceneNumbers();
       _reportReadStateToController();
       _recomputeSearchMatches(navigateToCurrent: false);
+      // See the identical comment in the branch above: a full rebuild means every node id (and with
+      // it, every title-page field's own presence/absence) is fresh.
+      _spellingAndGrammarStyler.clearAllErrors();
+      _reportSpellCheckTexts();
     } else if (widget.pageSetup != oldWidget.pageSetup) {
       setState(_recomputePageSimulation);
+    }
+
+    // The visibility switch itself (`docs/architecture/screenplay.md`) touches no text
+    // and rebuilds no document, so it needs its own, independent trigger rather than falling out of
+    // one of the branches above: turning it back on must re-report the very same node texts that
+    // were last reported (and get a fresh answer under whatever dictionary is now loaded), which
+    // `OcptStyledEditorController.reportSpellCheckTexts`'s own dedup would otherwise silently
+    // swallow as "nothing changed" — this method's own doc comment on why that dedup exists holds
+    // just as true for a false→true flip as it does for the reverse.
+    if (widget.isSpellCheckVisible != oldWidget.isSpellCheckVisible) {
+      _reportSpellCheckTexts();
     }
 
     if (widget.styledController != oldWidget.styledController) {
@@ -430,7 +520,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           ),
         ...defaultComponentBuilders,
       ],
-      customStylePhases: [_searchMatchStyler],
+      customStylePhases: [_searchMatchStyler, _spellingAndGrammarStyler],
       // Both default policies clear the selection the moment this editor loses focus to any
       // other widget, including a momentary focus steal by the toolbar's block-type dropdown
       // opening its own overlay route: the focus loss directly clears the selection
@@ -495,6 +585,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     return OcptEditorContextMenu(
       controller: _contextMenuController,
       childFocusNode: _focusNode,
+      misspelledWord: _contextMenuMisspelledWord,
+      suggestions: _contextMenuSuggestions,
+      onSuggestionSelected: _contextMenuMisspelledWord != null ? _applySuggestionFromContextMenu : null,
+      // Each of the two actions is additionally gated on the callback that would carry it out: a
+      // caller that wired none of them (a test, chiefly) must see the entry withheld rather than
+      // shown and inert, the repository-wide rule this menu already follows everywhere else.
+      onIgnoreWord: _contextMenuMisspelledWord != null && widget.onWordIgnored != null
+          ? _ignoreWordFromContextMenu
+          : null,
+      onLearnWord: _contextMenuMisspelledWord != null && widget.onWordLearned != null
+          ? _learnWordFromContextMenu
+          : null,
       currentType: _contextMenuBlockType,
       onCut: _hasExpandedSelection ? _cutSelectionFromContextMenu : null,
       onCopy: _hasExpandedSelection ? _copySelectionFromContextMenu : null,
@@ -794,6 +896,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// Rejoins the document into flat text (reporting it upstream if it changed), refreshes
   /// [_mapping] for that freshly encoded text, and re-classifies every line plus every note's
   /// attribution span, only touching the metadata of the nodes that actually need it.
+  ///
+  /// Also reports a fresh set of checkable spell-check texts ([_reportSpellCheckTexts]), right here
+  /// rather than from [_onDocumentChanged] itself: `_settleDocument`'s own reclassify pass, just
+  /// above, is what makes a node's `blockType` metadata authoritative again after an edit (a line
+  /// that just became a scene heading, say), and [_checkableSpellCheckTexts] reads exactly that
+  /// metadata — reporting any earlier would report a node still classified under its *previous*
+  /// type.
   void _syncAfterEdit() {
     if (!mounted) {
       return;
@@ -801,6 +910,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     _runDerivedPass(() => _settleDocument(_document, _editor));
     _encodeAndReportIfChanged();
+    _reportSpellCheckTexts();
 
     final previousPageCount = _pageCount;
     final previousTrailingBottomPadding = _trailingBottomPadding;
@@ -1199,13 +1309,27 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   ///
   /// A collapsed caret is placed at that position unless it already sits inside an expanded
   /// selection — right-clicking inside a selection must never destroy it, which is the whole point
-  /// of the Cut/Copy entries the menu is about to show. Either way, `setState` runs before the menu
-  /// opens: nothing about a selection change (placing this exact caret included) schedules a
-  /// rebuild of this widget on its own (see [_onSelectionChanged]'s own doc comment on why a
-  /// separate read-state channel exists for the toolbar), so without it [build] would hand
-  /// [OcptEditorContextMenu] the *previous* selection's Cut/Copy/submenu availability instead of the
-  /// one this tap just settled on.
-  void _onSecondaryTapUp(TapUpDetails details) {
+  /// of the Cut/Copy entries the menu is about to show.
+  ///
+  /// Also resolves the styled spelling group (`docs/architecture/screenplay.md`): if the
+  /// resolved document position falls inside one of [_lastSpellCheckRangesByNodeId]'s own ranges
+  /// (see [_misspellingAt]), the misspelled word is read out of that node's **current** display
+  /// text (never the text the range was computed against, which may be stale) and
+  /// [OcptStyledScreenplayEditor.onSpellingSuggestionsRequested] is awaited for up to five
+  /// suggestions before the menu opens — the one isolate round trip a right-click accepts
+  /// paying only when a right-click actually asks for it. `details.localPosition` is captured
+  /// before that await (an [Offset] the widget tree could otherwise recycle from under a stale
+  /// reference), `mounted` is checked after it, and the answer is dropped outright if the caret has
+  /// moved on in the meantime — a suggestion list for a word the writer already clicked away from
+  /// would be worse than none.
+  ///
+  /// Either way, `setState` runs right before the menu opens: nothing about a selection change
+  /// (placing this exact caret included) schedules a rebuild of this widget on its own (see
+  /// [_onSelectionChanged]'s own doc comment on why a separate read-state channel exists for the
+  /// toolbar), so without it [build] would hand [OcptEditorContextMenu] the *previous* selection's
+  /// Cut/Copy/submenu availability — and the *previous* right-click's spelling group — instead of
+  /// the one this tap just settled on.
+  Future<void> _onSecondaryTapUp(TapUpDetails details) async {
     final layout = _documentLayoutKey.currentState as DocumentLayout?;
     if (layout == null) {
       return;
@@ -1230,8 +1354,131 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ]);
     }
 
-    setState(() {});
-    _contextMenuController.open(position: details.localPosition);
+    final localPosition = details.localPosition;
+    final selectionAfterTap = _composer.selection;
+    final misspelling = _misspellingAt(position);
+
+    final nodeId = misspelling?.nodeId;
+    final range = misspelling?.range;
+    final word = misspelling?.word;
+    var suggestions = const <String>[];
+
+    final onSpellingSuggestionsRequested = widget.onSpellingSuggestionsRequested;
+    if (word != null && onSpellingSuggestionsRequested != null) {
+      final fetched = await onSpellingSuggestionsRequested(word);
+      if (!mounted || _composer.selection != selectionAfterTap) {
+        return;
+      }
+      suggestions = fetched.take(5).toList(growable: false);
+    }
+
+    setState(() {
+      _contextMenuMisspelledNodeId = nodeId;
+      _contextMenuMisspelledRange = range;
+      _contextMenuMisspelledWord = word;
+      _contextMenuSuggestions = suggestions;
+    });
+    _contextMenuController.open(position: localPosition);
+  }
+
+  /// The misspelled range and word [position] falls inside, according to
+  /// [_lastSpellCheckRangesByNodeId], or null when it falls inside none of them — no misspelling
+  /// under the tap, or spell-checking is off altogether (in which case that map is empty).
+  ///
+  /// Checked against the node's own **current** [ParagraphNode.text], not the text the range was
+  /// computed against: a range answered by one isolate round trip is already the most exposed
+  /// spell-check data in this widget (`docs/architecture/screenplay.md` says why), so a range that
+  /// no longer fits the node's current length is treated as no match rather
+  /// than read out of bounds.
+  ({String nodeId, SpellRange range, String word})? _misspellingAt(DocumentPosition position) {
+    final ranges = _lastSpellCheckRangesByNodeId[position.nodeId];
+    if (ranges == null || ranges.isEmpty) {
+      return null;
+    }
+
+    final nodePosition = position.nodePosition;
+    if (nodePosition is! TextNodePosition) {
+      return null;
+    }
+
+    final node = _document.getNodeById(position.nodeId);
+    if (node is! ParagraphNode) {
+      return null;
+    }
+
+    final text = node.text.toPlainText();
+    final offset = nodePosition.offset;
+
+    for (final range in ranges) {
+      if (range.end > text.length) {
+        continue;
+      }
+      if (offset >= range.start && offset <= range.end) {
+        return (nodeId: position.nodeId, range: range, word: text.substring(range.start, range.end));
+      }
+    }
+    return null;
+  }
+
+  /// The right-click context menu's suggestion entries: replaces
+  /// [_contextMenuMisspelledNodeId]/[_contextMenuMisspelledRange] with [suggestion], through the
+  /// very same [OcptReplaceNodeTextRequest] + [_ocptReplaceMatchesInText] path [replaceCurrentMatch]
+  /// already uses — a single [Editor.execute] call, so the edit and the reclassification pass it
+  /// triggers merge into **one** undo step (`docs/architecture/screenplay.md`, "Undo and redo").
+  ///
+  /// The node is re-read and the range re-clamped against its *current* text length right here,
+  /// rather than trusting what [_onSecondaryTapUp] resolved: an edit made elsewhere while the menu
+  /// was open (the suggestion fetch's own await gap, chiefly) could have moved that node's text out
+  /// from under the range. A range that no longer fits is dropped — nothing is written — rather
+  /// than handed to [_ocptReplaceMatchesInText], which would otherwise slice past the text's end.
+  void _applySuggestionFromContextMenu(String suggestion) {
+    final nodeId = _contextMenuMisspelledNodeId;
+    final range = _contextMenuMisspelledRange;
+    if (nodeId == null || range == null) {
+      _focusNode.requestFocus();
+      return;
+    }
+
+    final node = _document.getNodeById(nodeId);
+    if (node is! ParagraphNode || range.end > node.text.toPlainText().length) {
+      _focusNode.requestFocus();
+      return;
+    }
+
+    _editor.execute([
+      OcptReplaceNodeTextRequest(
+        nodeId: nodeId,
+        text: _ocptReplaceMatchesInText(
+          node.text,
+          [OcptTextMatch(start: range.start, end: range.end)],
+          suggestion,
+        ),
+      ),
+    ]);
+
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's "Ignore this word" entry: reports
+  /// [_contextMenuMisspelledWord] up through [OcptStyledScreenplayEditor.onWordIgnored] and hands
+  /// focus back to the editor, same as every other menu entry. Never touches the document itself —
+  /// the bloc's own re-check is what makes the underline disappear, once it answers.
+  void _ignoreWordFromContextMenu() {
+    final word = _contextMenuMisspelledWord;
+    if (word != null) {
+      widget.onWordIgnored?.call(word);
+    }
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's "Add to the project's dictionary" entry, the mirror of
+  /// [_ignoreWordFromContextMenu] for [OcptStyledScreenplayEditor.onWordLearned].
+  void _learnWordFromContextMenu() {
+    final word = _contextMenuMisspelledWord;
+    if (word != null) {
+      widget.onWordLearned?.call(word);
+    }
+    _focusNode.requestFocus();
   }
 
   /// Closes the right-click context menu when a left click lands anywhere on the document while it
@@ -1538,6 +1785,94 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           ),
         ),
     ]);
+  }
+
+  /// Every checkable node text currently in [_document]: a [ParagraphNode] whose classified line
+  /// type [ocptIsSpellCheckedLineType] accepts, and never a title-page field node
+  /// ([OcptWysiwygCodec.isTitlePageNode]) — the prose-only rule of
+  /// `docs/architecture/screenplay.md`, applied here in terms of the
+  /// same node metadata [_sceneNumbersFromMetadata]/[_reportReadStateToController] already read,
+  /// and its title-page exclusion (a title is invented on purpose, and the six fields
+  /// only exist under page simulation, so underlining them would make squiggles appear and
+  /// disappear with a display toggle).
+  ///
+  /// Empty while [OcptStyledScreenplayEditor.isSpellCheckVisible] is off — nothing is ever reported
+  /// to check with the switch off — and reports the node's
+  /// **display** text (`node.text.toPlainText()`), never the Fountain source: that is what
+  /// `SpellingAndGrammarStyler` addresses.
+  Map<String, String> _checkableSpellCheckTexts() {
+    if (!widget.isSpellCheckVisible) {
+      return const {};
+    }
+
+    final texts = <String, String>{};
+    for (final node in _document) {
+      if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
+        continue;
+      }
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      if (!ocptIsSpellCheckedLineType(type)) {
+        continue;
+      }
+      texts[node.id] = node.text.toPlainText();
+    }
+    return texts;
+  }
+
+  /// Reports [_checkableSpellCheckTexts] up through [OcptStyledScreenplayEditor.styledController]
+  /// (`OcptStyledEditorController.reportSpellCheckTexts`, which dedupes against what was last
+  /// reported on its own — this method itself is called unconditionally, exactly like
+  /// [_recomputeSearchMatches] reports its own match count every time it runs).
+  void _reportSpellCheckTexts() {
+    widget.styledController?.reportSpellCheckTexts(_checkableSpellCheckTexts());
+  }
+
+  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to
+  /// [_spellingAndGrammarStyler], replacing whatever it held before: every node this widget could
+  /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
+  /// added only for a node id [rangesByNodeId] actually names.
+  ///
+  /// Two guards `docs/architecture/screenplay.md` is explicit about, applied to every range
+  /// before it becomes a
+  /// `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
+  /// computed — an edit elsewhere, an import, a version restore, a page-simulation toggle) is
+  /// ignored outright, and a range that no longer fits that node's own *current* text length is
+  /// dropped rather than handed to `TextError.spelling`, which would otherwise build a `TextRange`
+  /// past the end of the text it addresses.
+  ///
+  /// Called both by [OcptStyledEditorController.attach] (a raw → styled mode switch while ranges
+  /// are already known) and, reactively, whenever `editor_page.dart` pushes a fresh
+  /// `OcptEditorState.styledSpellCheckRanges` down — neither call happens from inside
+  /// [_onDocumentChanged]'s own document-change listener, so this never needs the post-frame
+  /// deferral [_onDocumentChanged]'s own search recompute does (see that method's long comment):
+  /// the crash it guards against is specific to `markDirty()` firing synchronously inside
+  /// `Editor.execute()`'s still-open transaction, which is not where this method is ever reached
+  /// from.
+  @override
+  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
+    _lastSpellCheckRangesByNodeId = rangesByNodeId;
+    _spellingAndGrammarStyler.clearAllErrors();
+
+    for (final entry in rangesByNodeId.entries) {
+      final node = _document.getNodeById(entry.key);
+      if (node is! ParagraphNode) {
+        continue;
+      }
+
+      final textLength = node.text.toPlainText().length;
+      final errors = <TextError>{
+        for (final range in entry.value)
+          if (range.end <= textLength)
+            TextError.spelling(
+              nodeId: entry.key,
+              range: TextRange(start: range.start, end: range.end),
+              value: node.text.toPlainText().substring(range.start, range.end),
+            ),
+      };
+      if (errors.isNotEmpty) {
+        _spellingAndGrammarStyler.addErrors(entry.key, errors);
+      }
+    }
   }
 
   /// Returns a copy of [original] with every one of [matches] (assumed non-overlapping and in

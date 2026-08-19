@@ -35,7 +35,10 @@ void main() {
     await propertiesManager.deleteAll();
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_workspace_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
 
     final result = await projectsManager.createProject(

@@ -66,7 +66,10 @@ void main() {
     propertiesManager = OcptPropertiesManager();
     await propertiesManager.initLifeCycle();
 
-    final projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
+    final projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
 
     OcptGlobalManager.instance.managers
