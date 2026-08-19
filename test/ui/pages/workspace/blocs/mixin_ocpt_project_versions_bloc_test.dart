@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
@@ -69,6 +70,13 @@ class _CountingProjectsManager extends OcptProjectsManager {
 /// The screenplay mode is the one used here because it is the mode that holds unsaved text between
 /// two writes, which is what makes the "flush before previewing" hook of the mixin observable: the
 /// mixin's behaviour itself is the same in every mode.
+/// The miniature hunspell pair this file's spell-check manager stands the two ~1 MB bundled
+/// dictionaries up with — `OcptEditorBloc` resolves that manager and asks it to load the open
+/// project's language, and parsing a real dictionary in an isolate would cost far more than
+/// anything this file actually asserts on.
+Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
+    assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
+
 void main() {
   const firstText = "INT. HOUSE - DAY\n\nAction one.\n";
   const secondText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
@@ -112,6 +120,7 @@ void main() {
     propertiesManager: propertiesManager,
     routerManager: _SilentRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+    spellCheckManager: OcptSpellCheckManager(loadAsset: _loadMiniatureDictionaryAsset),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(seconds: 30),
     statisticsDebounce: const Duration(milliseconds: 30),

@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
@@ -258,6 +259,13 @@ void _testWidgetsAsDesktop(String description, Future<void> Function(WidgetTeste
     }
   });
 }
+
+/// The miniature hunspell pair this file's spell-check manager stands the two ~1 MB bundled
+/// dictionaries up with — `OcptEditorBloc` resolves that manager and asks it to load the open
+/// project's language, and parsing a real dictionary in an isolate would cost far more than
+/// anything this file actually asserts on.
+Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
+    assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
 
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
@@ -1477,6 +1485,7 @@ void main() {
         routerManager: OcptRouterManager(),
         screenplayService: _RecordingScreenplayService(savedTexts: savedTexts),
         exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+        spellCheckManager: OcptSpellCheckManager(loadAsset: _loadMiniatureDictionaryAsset),
         parseDebounce: const Duration(milliseconds: 10),
         autosaveDebounce: const Duration(milliseconds: 30),
         statisticsDebounce: const Duration(milliseconds: 30),
