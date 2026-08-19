@@ -66,6 +66,7 @@
   "editorFindAndReplaceAction": "Rechercher et remplacer…",
   "editorTogglePageSimulationAction": "Simulation de pages",
   "editorToggleSceneNumbersAction": "Numéros de séquence",
+  "editorToggleSpellCheckAction": "Vérification orthographique",
   "editorPageSetupAction": "Mise en page…",
   "editorPageSetupDialogTitle": "Mise en page",
   "editorPageSetupPageSizeLabel": "Format de page",

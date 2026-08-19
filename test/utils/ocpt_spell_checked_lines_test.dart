@@ -7,7 +7,108 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_spell_checked_lines.dart';
 import 'package:spell_kit/spell_kit.dart';
 
+/// A placeholder [FountainSourceRange]: none of these tests care where in a source string a block
+/// was parsed from, only what [FountainBlock] subclass it is.
+const _placeholderRange = FountainSourceRange(startLine: 0, endLine: 0, startOffset: 0, endOffset: 0);
+
 void main() {
+  group('ocptLineTypeOfBlock', () {
+    test("maps each of the screenplay's own prose blocks to its line type", () {
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainActionBlock(sourceRange: _placeholderRange, lines: ['She walks in.'], forced: false),
+        ),
+        FountainLineType.action,
+      );
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainDialogueLine(sourceRange: _placeholderRange, text: 'Hello.'),
+        ),
+        FountainLineType.dialogue,
+      );
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainParenthetical(sourceRange: _placeholderRange, text: 'beat'),
+        ),
+        FountainLineType.parenthetical,
+      );
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainCenteredText(sourceRange: _placeholderRange, text: 'THE END'),
+        ),
+        FountainLineType.centeredText,
+      );
+    });
+
+    test('maps each scaffolding and fixed-vocabulary block to its line type', () {
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainSceneHeading(
+            sourceRange: _placeholderRange,
+            rawText: 'INT. KITCHEN - DAY',
+            headingText: 'INT. KITCHEN - DAY',
+            forcedMarker: false,
+          ),
+        ),
+        FountainLineType.sceneHeading,
+      );
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainCharacter(sourceRange: _placeholderRange, name: 'MARIE', isDualDialogue: false),
+        ),
+        FountainLineType.character,
+      );
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainTransition(sourceRange: _placeholderRange, text: 'CUT TO:', forced: false),
+        ),
+        FountainLineType.transition,
+      );
+      expect(
+        ocptLineTypeOfBlock(const FountainLyrics(sourceRange: _placeholderRange, lines: ['La la la'])),
+        FountainLineType.lyrics,
+      );
+      expect(
+        ocptLineTypeOfBlock(const FountainSection(sourceRange: _placeholderRange, level: 1, text: 'Act one')),
+        FountainLineType.section,
+      );
+      expect(
+        ocptLineTypeOfBlock(const FountainSynopsis(sourceRange: _placeholderRange, text: 'She arrives.')),
+        FountainLineType.synopsis,
+      );
+      expect(
+        ocptLineTypeOfBlock(const FountainPageBreak(sourceRange: _placeholderRange)),
+        FountainLineType.pageBreak,
+      );
+    });
+
+    test('returns null for the block kinds with no line type of their own', () {
+      expect(
+        ocptLineTypeOfBlock(const FountainNoteBlock(sourceRange: _placeholderRange, text: 'maybe cut')),
+        isNull,
+      );
+      expect(
+        ocptLineTypeOfBlock(const FountainBoneyard(sourceRange: _placeholderRange, text: 'old draft')),
+        isNull,
+      );
+      expect(
+        ocptLineTypeOfBlock(
+          const FountainDialogueGroup(
+            sourceRange: _placeholderRange,
+            character: FountainCharacter(
+              sourceRange: _placeholderRange,
+              name: 'MARIE',
+              isDualDialogue: false,
+            ),
+            children: [FountainDialogueLine(sourceRange: _placeholderRange, text: 'Hello.')],
+            isDualDialogue: false,
+          ),
+        ),
+        isNull,
+      );
+    });
+  });
+
   group('ocptIsSpellCheckedLineType', () {
     test("is true for the screenplay's own prose", () {
       expect(ocptIsSpellCheckedLineType(FountainLineType.action), isTrue);

@@ -456,8 +456,8 @@ class _EditorViewState extends State<_EditorView> {
   /// [_requestExport]) — this menu keeps everything else. While a version is being previewed, the
   /// entries that rewrite the screenplay — import and replace, find and replace, page setup, title
   /// page — are left out, and so is plain find: the centre is then the read-only preview, which
-  /// carries no bar to open. The rest stays: the page-simulation, scene-numbers and panel-layout
-  /// entries are app-wide display preferences that never touch a project.
+  /// carries no bar to open. The rest stays: the page-simulation, scene-numbers, spell-check and
+  /// panel-layout entries are app-wide display preferences that never touch a project.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptEditorState state) {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
@@ -514,6 +514,13 @@ class _EditorViewState extends State<_EditorView> {
           const OcptEditorStyledSceneNumbersToggledEvent(),
         ),
         child: Text(tr.editorToggleSceneNumbersAction),
+      ),
+      CheckedPopupMenuItem<void>(
+        checked: state.isSpellCheckVisible,
+        onTap: () => context.read<OcptEditorBloc>().add(
+          const OcptEditorSpellCheckToggledEvent(),
+        ),
+        child: Text(tr.editorToggleSpellCheckAction),
       ),
       if (!isReadOnly) ...[
         PopupMenuItem<void>(
@@ -928,6 +935,25 @@ class _EditorViewState extends State<_EditorView> {
         _navigateToMatch(matches[currentIndex]);
       }
     }
+  }
+
+  /// Pushes [OcptEditorState.rawSpellCheckRanges] onto [_textController]'s own
+  /// [OcptEditorSearchTextController.updateSpellCheckRanges], the raw mode's half of the plan's
+  /// decision that each editing surface paints what it shows.
+  ///
+  /// Guarded exactly the way [_syncRawSearch] opens (raw mode, not previewing a version): the
+  /// styled mode is a later slice that addresses each node by id instead, and there is no editing
+  /// surface at all under a read-only preview to underline anything in. Both cases clear the
+  /// controller's ranges rather than leaving a raw field the user can no longer see holding a stale
+  /// set — harmless on its own since nothing repaints it, but exactly the kind of state a mode
+  /// switch back to raw should never resurrect uninvited.
+  void _syncRawSpellCheck(OcptEditorState state) {
+    if (state.mode != OcptEditorMode.raw || state.isPreviewingVersion) {
+      _textController.updateSpellCheckRanges(const []);
+      return;
+    }
+
+    _textController.updateSpellCheckRanges(state.rawSpellCheckRanges);
   }
 
   /// Places the raw controller's selection on [match] and scrolls its line into view, the same
@@ -1412,6 +1438,7 @@ class _EditorViewState extends State<_EditorView> {
 
     _syncRawSearch(state);
     _syncStyledSearch(state);
+    _syncRawSpellCheck(state);
 
     if (state.hasSaveError) {
       ScaffoldMessenger.of(context)

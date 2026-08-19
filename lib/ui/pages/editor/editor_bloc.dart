@@ -12,6 +12,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
@@ -26,6 +28,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_spell_checked_lines.dart';
+import 'package:spell_kit/spell_kit.dart';
 
 /// This is the bloc class for the editor page.
 ///
@@ -88,6 +92,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The manager used to export the screenplay to, and import it from, a `.fountain` file.
   final OcptExportManager _exportManager;
 
+  /// The manager owning the spell-check worker isolate this bloc requests raw-mode checks from.
+  final OcptSpellCheckManager _spellCheckManager;
+
   /// The delay between the last edit and the re-parse of the source text.
   final Duration _parseDebounce;
 
@@ -109,6 +116,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The id given to the next [OcptEditorJumpRequest], increased after each one.
   int _nextJumpRequestId = 0;
 
+  /// The (text, ranges) last checked per raw-mode block index — see [_rawSpellCheckBlocksOf]'s own
+  /// doc comment for what an index addresses. `ranges` are relative to that block's own source
+  /// substring, not document-absolute: [_requestSpellCheck] re-translates by the block's *current*
+  /// `startOffset` on every pass regardless of whether this entry's text changed, which is what
+  /// lets an edit to an *earlier*, unrelated block shift a later one's absolute offset without
+  /// invalidating this cache entry — only the block's own text does that.
+  final Map<int, ({String text, List<SpellRange> ranges})> _rawSpellCheckCache = {};
+
+  /// The (language, visibility, manager generation) combination [_rawSpellCheckCache] was last
+  /// built under — see [_resetSpellCheckCacheIfStale]'s own doc comment.
+  ({OcptScreenplayLanguage? language, bool isVisible, int generation})? _rawSpellCheckCacheKey;
+
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
   late final void Function() _unregisterUnsavedChangesReporter;
 
@@ -126,13 +145,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Class constructor
   ///
   /// [parseDebounce], [autosaveDebounce] and [statisticsDebounce] are only meant to be overridden
-  /// by tests, to keep them fast and deterministic.
+  /// by tests, to keep them fast and deterministic. [spellCheckManager] is injectable for the same
+  /// reason every other manager here is: a test hands in a fake rather than resolving the real,
+  /// isolate-backed one.
   OcptEditorBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
     OcptScreenplayService? screenplayService,
     OcptExportManager? exportManager,
+    OcptSpellCheckManager? spellCheckManager,
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
     Duration statisticsDebounce = defaultStatisticsDebounce,
@@ -145,6 +167,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
            screenplayService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
+       _spellCheckManager = spellCheckManager ?? globalGetIt().get<OcptSpellCheckManager>(),
        _parseDebounce = parseDebounce,
        _autosaveDebounce = autosaveDebounce,
        _statisticsDebounce = statisticsDebounce,
@@ -179,6 +202,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorPageSimulationToggledEvent>(_onPageSimulationToggled);
     on<OcptEditorStyledSceneNumbersToggledEvent>(_onStyledSceneNumbersToggled);
+    on<OcptEditorSpellCheckToggledEvent>(_onSpellCheckToggled);
+    on<OcptEditorSpellCheckRangesReportedEvent>(_onSpellCheckRangesReported);
     on<OcptEditorPageSetupChangedEvent>(_onPageSetupChanged);
     on<OcptEditorProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
@@ -248,6 +273,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorLoadRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    // A (re)load always starts the raw-mode spell-check cache fresh: an episode switch, a version
+    // preview entering or leaving, and the very first load all hand `_requestSpellCheck` a document
+    // built from a different Fountain source than whatever the cache's walk indices last described,
+    // and keeping it around risks a stale index coincidentally matching a new block's text.
+    _rawSpellCheckCache.clear();
+    _rawSpellCheckCacheKey = null;
+
     final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
     final isPageSimulationEnabled = await _propertiesManager.isPageSimulationEnabled.load() ?? true;
     final areStyledSceneNumbersVisible =
@@ -256,6 +288,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         await _propertiesManager.editorLeftDockFraction.load() ?? OcptWorkspaceDock.leftDefaultFraction;
     final rightDockFraction =
         await _propertiesManager.editorRightDockFraction.load() ?? OcptWorkspaceDock.rightDefaultFraction;
+    final isSpellCheckVisible = await _propertiesManager.spellCheckVisible.load() ?? true;
+    final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
 
     final project = _projectsManager.currentProject;
     final previewedVersion = project?.previewedVersion;
@@ -282,6 +316,15 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           clearPreviewedVersionId: true,
           isPageSimulationEnabled: isPageSimulationEnabled,
           areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+          isSpellCheckVisible: isSpellCheckVisible,
+          screenplayLanguage: screenplayLanguage,
+          clearScreenplayLanguage: screenplayLanguage == null,
+          // A fresh load's document is never the one the previous rawSpellCheckRanges was
+          // computed against (a different project, episode, or preview state entirely) — cleared
+          // here so a stale underline never survives the swap, exactly as _rawSpellCheckCache is
+          // cleared just above. _requestSpellCheck (fired by _reconcileSpellCheckLanguage, right
+          // below) repopulates it fresh when the new state actually wants a check.
+          rawSpellCheckRanges: const [],
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           rightDockTab: dockTabTransition.rightDockTab,
@@ -292,6 +335,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           clearSceneStatistics: true,
         ),
       );
+      unawaited(_reconcileSpellCheckLanguage());
       return;
     }
 
@@ -319,6 +363,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         pageSetup: pageSetup,
         isPageSimulationEnabled: isPageSimulationEnabled,
         areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+        isSpellCheckVisible: isSpellCheckVisible,
+        screenplayLanguage: screenplayLanguage,
+        clearScreenplayLanguage: screenplayLanguage == null,
+        // See the same field in the project == null branch above for why a fresh load always
+        // clears this rather than carrying over a previous document's ranges.
+        rawSpellCheckRanges: const [],
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         rightDockTab: dockTabTransition.rightDockTab,
@@ -330,6 +380,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         clearSceneStatistics: sceneStats == null,
       ),
     );
+    unawaited(_reconcileSpellCheckLanguage());
   }
 
   /// Reads the page setup [project] is typeset with: the version's own while one is being
@@ -440,6 +491,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// right away (cheap relative to [_scheduleStatisticsRecompute]'s script-wide pagination, and
   /// tied to this same 150 ms parse debounce rather than typing itself), then (re)starts the
   /// script-wide statistics debounce.
+  ///
+  /// Also fires the raw mode's spell-check pass ([_requestSpellCheck]) right after the fresh
+  /// document is emitted, exactly where `docs/plans/screenplay-spell-check.md` §3.2 puts it: on
+  /// this same parse debounce, never a keystroke. This is what makes an import
+  /// (`_onImportRequested`) and a title-page rewrite (`_onTitlePageChanged`) — the two other
+  /// callers of this method — request a fresh check too, alongside every ordinary edit.
   Future<void> _onParseRequested(
     OcptEditorParseRequestedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -458,6 +515,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       ),
     );
     _scheduleStatisticsRecompute();
+    _requestSpellCheck();
   }
 
   /// (Re)starts the statistics debounce timer: while the user keeps typing, each parse tick
@@ -761,6 +819,219 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _propertiesManager.styledSceneNumbersVisible.store(newValue);
   }
 
+  /// Toggles whether this machine shows the spell-check underlines, persists the new value, and
+  /// re-drives [_reconcileSpellCheckLanguage] (loading or unloading the dictionary as the two
+  /// switches of `docs/plans/screenplay-spell-check.md` §4.2 now dictate).
+  ///
+  /// Switching off also clears [OcptEditorState.rawSpellCheckRanges] right here, synchronously,
+  /// rather than waiting for [_reconcileSpellCheckLanguage]'s own async tail: with the switch off,
+  /// [_requestSpellCheck] never runs again, so nothing would otherwise clear a stale underline
+  /// still on screen. Switching on leaves the (already empty, from the last time it was off) ranges
+  /// alone — the very next check answers them for real.
+  Future<void> _onSpellCheckToggled(
+    OcptEditorSpellCheckToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final newValue = !state.isSpellCheckVisible;
+    emitter(
+      state.copyWith(
+        isSpellCheckVisible: newValue,
+        rawSpellCheckRanges: newValue ? null : const [],
+      ),
+    );
+    await _propertiesManager.spellCheckVisible.store(newValue);
+    unawaited(_reconcileSpellCheckLanguage());
+  }
+
+  /// Answers [OcptEditorSpellCheckRangesReportedEvent], the async tail of [_requestSpellCheck].
+  ///
+  /// Drops the answer (per `docs/plans/screenplay-spell-check.md` §5, M3's "a stale generation's
+  /// answer is dropped") when: [OcptEditorSpellCheckRangesReportedEvent.generation] no longer
+  /// matches [OcptSpellCheckManager.generation] (a language change, or a word learned or ignored,
+  /// happened while the isolate round trip was in flight); spell-checking is now off (either
+  /// switch) or a version is now being previewed (both can have flipped mid-flight too); or
+  /// [OcptEditorSpellCheckRangesReportedEvent.checkedText] no longer matches
+  /// `OcptEditorState.document`'s own `sourceText` — the document has moved on to a newer parse
+  /// since this request was issued, and painting these ranges over it would misplace every one of
+  /// them.
+  Future<void> _onSpellCheckRangesReported(
+    OcptEditorSpellCheckRangesReportedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    if (event.generation != _spellCheckManager.generation) {
+      return;
+    }
+    if (state.isPreviewingVersion || !state.isSpellCheckVisible || state.screenplayLanguage == null) {
+      return;
+    }
+    final document = state.document;
+    if (document == null || document.sourceText != event.checkedText) {
+      return;
+    }
+
+    emitter(state.copyWith(rawSpellCheckRanges: event.ranges));
+  }
+
+  /// Loads or unloads `OcptSpellCheckManager`'s dictionary to match
+  /// `OcptEditorState.screenplayLanguage`/[OcptEditorState.isSpellCheckVisible] (the plan's two
+  /// independent on/off switches, §4.2: with either off, the isolate stays unloaded and nothing is
+  /// checked), then requests a fresh raw-mode pass so the underlines catch up once a dictionary
+  /// that needed loading has actually finished doing so.
+  ///
+  /// Never awaited by its own callers ([_onLoadRequested], [_onSpellCheckToggled],
+  /// [_onProjectSettingsChanged]): `OcptSpellCheckManager.useLanguage` can take ~300 ms the first
+  /// time a language loads, and none of them should hold the editor's own state update back for
+  /// it.
+  Future<void> _reconcileSpellCheckLanguage() async {
+    final wantsSpellCheck = state.isSpellCheckVisible && state.screenplayLanguage != null;
+    await _spellCheckManager.useLanguage(wantsSpellCheck ? state.screenplayLanguage : null);
+    if (isClosed) {
+      return;
+    }
+    _requestSpellCheck();
+  }
+
+  /// Clears [_rawSpellCheckCache] the first time it is asked to work under a different (language,
+  /// visibility, manager generation) combination than the one it was last built under: a cached
+  /// entry was found by a dictionary, ignore list or learned-word set that has since changed
+  /// (`OcptSpellCheckManager.generation` bumps on every one of those), and keeping it around would
+  /// answer with a checker that no longer exists.
+  void _resetSpellCheckCacheIfStale() {
+    final key = (
+      language: state.screenplayLanguage,
+      isVisible: state.isSpellCheckVisible,
+      generation: _spellCheckManager.generation,
+    );
+    if (key == _rawSpellCheckCacheKey) {
+      return;
+    }
+    _rawSpellCheckCache.clear();
+    _rawSpellCheckCacheKey = key;
+  }
+
+  /// Fires a raw-mode spell-check request over `state.document`'s prose blocks, without awaiting
+  /// the isolate round trip: the answer arrives later as its own
+  /// [OcptEditorSpellCheckRangesReportedEvent], since an [Emitter] can't be used once the handler
+  /// that called this has already returned (true of every caller: [_onParseRequested]'s own parse
+  /// debounce tick, and [_reconcileSpellCheckLanguage]'s async tail).
+  ///
+  /// A no-op while a version is being previewed, or while spell-checking is off (either switch) —
+  /// in both cases nothing is sent here, and [OcptEditorState.rawSpellCheckRanges] is left exactly
+  /// as it is: [_onSpellCheckToggled] already clears it synchronously the moment the switch flips
+  /// off, so there is nothing stale left for this method to clear.
+  ///
+  /// Only *changed* texts are sent to [OcptSpellCheckManager.check] (`docs/plans/screenplay-spell-
+  /// check.md` §3.2): [_rawSpellCheckBlocksOf] keys every checked block by its index in the walk
+  /// order, and [_rawSpellCheckCache] is compared against by that same index, so a block whose own
+  /// source text hasn't changed since the index last held it is skipped. `OcptSpellCheckManager
+  /// .check` itself fast-paths an empty request map to an empty answer with no isolate round trip
+  /// at all (its own doc comment), so calling it unconditionally here — even when nothing changed —
+  /// costs nothing extra while still re-assembling and re-reporting the full, current set of
+  /// absolute ranges: a block's cached *relative* ranges are re-translated by its *current*
+  /// `startOffset` on every pass, which is what keeps an edit to an earlier, unrelated block from
+  /// leaving every later misspelling underlined in the wrong place.
+  void _requestSpellCheck() {
+    final document = state.document;
+    if (document == null || state.isPreviewingVersion) {
+      return;
+    }
+    if (!state.isSpellCheckVisible || state.screenplayLanguage == null) {
+      return;
+    }
+
+    _resetSpellCheckCacheIfStale();
+
+    final blocks = _rawSpellCheckBlocksOf(document);
+    final textsToSend = <int, String>{
+      for (final block in blocks)
+        if (_rawSpellCheckCache[block.index]?.text != block.text) block.index: block.text,
+    };
+    final liveIndices = blocks.map((block) => block.index).toSet();
+    _rawSpellCheckCache.removeWhere((index, _) => !liveIndices.contains(index));
+
+    final requestGeneration = _spellCheckManager.generation;
+    final checkedText = document.sourceText;
+
+    unawaited(
+      _spellCheckManager.check(textsToSend).then((rangesByIndex) {
+        if (isClosed) {
+          return;
+        }
+
+        for (final entry in rangesByIndex.entries) {
+          final blockText = textsToSend[entry.key];
+          if (blockText == null) {
+            continue;
+          }
+          _rawSpellCheckCache[entry.key] = (
+            text: blockText,
+            ranges: _dropSkippedSpellRanges(entry.value, blockText),
+          );
+        }
+
+        final absoluteRanges = <SpellRange>[
+          for (final block in blocks)
+            for (final relative in _rawSpellCheckCache[block.index]?.ranges ?? const <SpellRange>[])
+              SpellRange(relative.start + block.startOffset, relative.end + block.startOffset),
+        ];
+
+        add(
+          OcptEditorSpellCheckRangesReportedEvent(
+            generation: requestGeneration,
+            checkedText: checkedText,
+            ranges: absoluteRanges,
+          ),
+        );
+      }),
+    );
+  }
+
+  /// The screenplay's own prose blocks of [document], walked in source order and addressed by a
+  /// dense 0-based index over just those blocks (a `FountainSceneHeading`, unchecked, is simply
+  /// never given one — [_requestSpellCheck]'s cache is bounded by how many *checked* blocks the
+  /// screenplay holds, not by its block count as a whole).
+  ///
+  /// Recurses into a `FountainDialogueGroup`'s `children` rather than ever handing the group itself
+  /// to [ocptLineTypeOfBlock] (which answers null for it, per that function's own doc comment): the
+  /// group is a container, and its cue and its dialogue lines each carry their own line type.
+  /// A [_RawSpellCheckBlock]'s own `text` is a block's own substring of [FountainDocument.sourceText] — the
+  /// exact text raw mode displays and its `OcptEditorSearchTextController` paints offsets into,
+  /// which is not necessarily [OcptEditorState.text]: the parser may have normalized the source's
+  /// line endings, so the two can disagree on length and offsets even when they read the same.
+  List<_RawSpellCheckBlock> _rawSpellCheckBlocksOf(FountainDocument document) {
+    final result = <_RawSpellCheckBlock>[];
+    var index = 0;
+
+    void visit(FountainBlock block) {
+      if (block is FountainDialogueGroup) {
+        for (final child in block.children) {
+          visit(child);
+        }
+        return;
+      }
+
+      final lineType = ocptLineTypeOfBlock(block);
+      if (lineType == null || !ocptIsSpellCheckedLineType(lineType)) {
+        return;
+      }
+
+      final range = block.sourceRange;
+      result.add(
+        (
+          index: index++,
+          text: document.sourceText.substring(range.startOffset, range.endOffset),
+          startOffset: range.startOffset,
+        ),
+      );
+    }
+
+    for (final block in document.blocks) {
+      visit(block);
+    }
+
+    return result;
+  }
+
   /// Persists the new page setup (format per-project, margins app-wide), applies it live, and
   /// recomputes statistics immediately since [FountainScriptStatistics.pageCount] depends on the
   /// page format.
@@ -778,28 +1049,38 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Re-reads the project's page format after the project settings page changed something, and
-  /// repaginates against it.
+  /// Re-reads the project's page format and screenplay language after the project settings page
+  /// changed something, repaginating against the former and re-driving
+  /// [_reconcileSpellCheckLanguage] against the latter.
   ///
-  /// The format is the only field of the project settings page this bloc's own layout depends on:
-  /// the currency has nothing to do with a screenplay's pagination. Re-reading it rather than
-  /// carrying it on the event is what lets the project settings page own the write without this
-  /// bloc having to learn its shape.
+  /// These are the only two fields of the project settings page this bloc's own state depends on:
+  /// the currency has nothing to do with a screenplay's pagination or its spell-checking. Re-reading
+  /// them rather than carrying them on the event is what lets the project settings page own the
+  /// write without this bloc having to learn its shape.
   Future<void> _onProjectSettingsChanged(
     OcptEditorProjectSettingsChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
-    if (pageFormat == null || pageFormat == state.pageSetup.format) {
-      return;
+    if (pageFormat != null && pageFormat != state.pageSetup.format) {
+      final pageSetup = state.pageSetup.copyWith(format: pageFormat);
+      emitter(state.copyWith(pageSetup: pageSetup));
+
+      final document = state.document;
+      if (document != null) {
+        _recomputeStatisticsNow(document: document, pageSetup: pageSetup, emitter: emitter);
+      }
     }
 
-    final pageSetup = state.pageSetup.copyWith(format: pageFormat);
-    emitter(state.copyWith(pageSetup: pageSetup));
-
-    final document = state.document;
-    if (document != null) {
-      _recomputeStatisticsNow(document: document, pageSetup: pageSetup, emitter: emitter);
+    final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    if (screenplayLanguage != state.screenplayLanguage) {
+      emitter(
+        state.copyWith(
+          screenplayLanguage: screenplayLanguage,
+          clearScreenplayLanguage: screenplayLanguage == null,
+        ),
+      );
+      unawaited(_reconcileSpellCheckLanguage());
     }
   }
 
@@ -1238,4 +1519,28 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     return super.disposeLifeCycle();
   }
+}
+
+/// One block `OcptEditorBloc._rawSpellCheckBlocksOf` hands back: `index` is this block's position
+/// among only the checked blocks (its `OcptEditorBloc._rawSpellCheckCache` key), `text` is its own
+/// substring of [FountainDocument.sourceText], and `startOffset` is where that substring begins in
+/// the document, used to translate the manager's block-relative [SpellRange]s back into
+/// document-absolute ones.
+typedef _RawSpellCheckBlock = ({int index, String text, int startOffset});
+
+/// Drops every range of [misspellings] that falls inside one of [text]'s own
+/// [ocptSpellCheckSkipSpansIn] spans — an inline authoring note or boneyard comment sitting inside
+/// a line of action or dialogue is scaffolding, not the script, per that function's own doc
+/// comment. [misspellings] and the spans it's tested against are both relative to the very same
+/// [text], so no offset translation is needed here.
+List<SpellRange> _dropSkippedSpellRanges(List<SpellRange> misspellings, String text) {
+  final skipSpans = ocptSpellCheckSkipSpansIn(text);
+  if (skipSpans.isEmpty) {
+    return misspellings;
+  }
+
+  return [
+    for (final range in misspellings)
+      if (!skipSpans.any((span) => range.start >= span.start && range.end <= span.end)) range,
+  ];
 }

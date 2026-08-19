@@ -63,6 +63,52 @@ bool ocptIsSpellCheckedLineType(FountainLineType type) {
 /// already on by default.
 const SpellTokenizerOptions ocptScreenplaySpellTokenizerOptions = SpellTokenizerOptions();
 
+/// The [FountainLineType] a parsed [block] corresponds to, or null for the three block kinds that
+/// have none of their own.
+///
+/// `FountainDocument.blocks` is a sealed [FountainBlock] hierarchy, not a list of typed lines, so
+/// a caller walking it (the editor bloc's raw-mode spell check pass) needs this block-level form
+/// of the very same rule [ocptIsSpellCheckedLineType] applies — expressed in terms of it, on
+/// purpose, so the two can never drift apart: a caller checks `ocptLineTypeOfBlock(block)` against
+/// [ocptIsSpellCheckedLineType] rather than re-deciding which kinds are prose on its own. The
+/// `switch` is exhaustive over [FountainBlock], so a future block kind added to the package is a
+/// compile error here rather than a silent omission.
+///
+/// Returns null for [FountainNoteBlock] and [FountainBoneyard] (authoring scaffolding with no
+/// line type of their own, never checked regardless) and for [FountainDialogueGroup] (a
+/// container: its cue and its children each have their own type, so a caller recurses into
+/// [FountainDialogueGroup.children] rather than ever asking this function about the group itself).
+FountainLineType? ocptLineTypeOfBlock(FountainBlock block) {
+  switch (block) {
+    case FountainActionBlock():
+      return FountainLineType.action;
+    case FountainDialogueLine():
+      return FountainLineType.dialogue;
+    case FountainParenthetical():
+      return FountainLineType.parenthetical;
+    case FountainCenteredText():
+      return FountainLineType.centeredText;
+    case FountainSceneHeading():
+      return FountainLineType.sceneHeading;
+    case FountainCharacter():
+      return FountainLineType.character;
+    case FountainTransition():
+      return FountainLineType.transition;
+    case FountainLyrics():
+      return FountainLineType.lyrics;
+    case FountainSection():
+      return FountainLineType.section;
+    case FountainSynopsis():
+      return FountainLineType.synopsis;
+    case FountainPageBreak():
+      return FountainLineType.pageBreak;
+    case FountainNoteBlock():
+    case FountainBoneyard():
+    case FountainDialogueGroup():
+      return null;
+  }
+}
+
 /// The spans of every inline authoring note (`[[ ... ]]`) and boneyard comment (`/* ... */`)
 /// found inside a block's own [source] text, in ascending order.
 ///

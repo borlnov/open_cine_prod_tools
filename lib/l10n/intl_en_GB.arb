@@ -485,6 +485,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorToggleSpellCheckAction": "Spell check",
+  "@editorToggleSpellCheckAction": {
+    "description": "Label of the action that toggles the spell-check underlines on or off, in either editing mode",
+    "context": "Displayed as a checkable item of the editor toolbar's overflow menu, right after Scene numbers",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorPageSetupAction": "Page setup…",
   "@editorPageSetupAction": {
     "description": "Label of the action that opens the page setup dialog",

@@ -6,6 +6,7 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:spell_kit/spell_kit.dart';
 
 /// The events handled by `OcptEditorBloc`.
 sealed class OcptEditorEvent extends BlocEventForMixin {
@@ -203,6 +204,52 @@ class OcptEditorPageSimulationToggledEvent extends OcptEditorEvent {
 class OcptEditorStyledSceneNumbersToggledEvent extends OcptEditorEvent {
   /// Class constructor
   const OcptEditorStyledSceneNumbersToggledEvent();
+}
+
+/// Toggles whether this machine shows the spell-check underlines, in either editing mode (the `⋮`
+/// menu's "Spell check" entry, directly below "Scene numbers").
+///
+/// The new value is persisted through `OcptPropertiesManager.spellCheckVisible`, so it's restored
+/// the next time the editor opens, and re-drives `OcptSpellCheckManager.useLanguage` (this is one
+/// of the plan's two on/off switches, `docs/plans/screenplay-spell-check.md` §4.2 — the other is
+/// the project's own screenplay language). Switching off also clears
+/// `OcptEditorState.rawSpellCheckRanges` at once, rather than waiting for a debounce tick that
+/// isn't coming: with the switch off, nothing is ever checked again until it flips back on.
+class OcptEditorSpellCheckToggledEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorSpellCheckToggledEvent();
+}
+
+/// Reports the misspelled ranges found in the raw mode's Fountain source text, dispatched once
+/// `OcptSpellCheckManager.check`'s isolate round trip resolves.
+///
+/// `OcptEditorBloc._onParseRequested` fires the check request without awaiting it (an `Emitter`
+/// can't be used once a handler has returned), so the answer comes back as this event instead.
+/// [generation] is the manager's own generation the request was issued under, and [checkedText] is
+/// the exact `FountainDocument.sourceText` the request was computed against: the handler drops
+/// this answer when either has moved on by the time it arrives (the manager's generation bumped by
+/// a language change, or a newer parse having produced a different source text since) — the plan's
+/// "a stale generation's answer is dropped" (§5, M3).
+class OcptEditorSpellCheckRangesReportedEvent extends OcptEditorEvent {
+  /// The manager's generation the request answered by [ranges] was issued under.
+  final int generation;
+
+  /// The exact `FountainDocument.sourceText` [ranges] were computed against.
+  final String checkedText;
+
+  /// The misspelled ranges found, document-absolute.
+  final List<SpellRange> ranges;
+
+  /// Class constructor
+  const OcptEditorSpellCheckRangesReportedEvent({
+    required this.generation,
+    required this.checkedText,
+    required this.ranges,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, generation, checkedText, ranges];
 }
 
 /// Requests updating the editor's page setup (page size and margins).
