@@ -1205,6 +1205,103 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeErrorMigrationRequired": "This project is in an older format and wasn't brought up to date, so it stays closed.",
+  "@homeErrorMigrationRequired": {
+    "description": "Error shown when an older-format project file was left unopened because its migration wasn't confirmed",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorNewerFormat": "This project was saved by a newer version of the app and can't be opened here.",
+  "@homeErrorNewerFormat": {
+    "description": "Error shown when the project file was written by a newer build of the app",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMigrateProjectTitle": "Bring this project up to date?",
+  "@homeMigrateProjectTitle": {
+    "description": "Title of the dialog asking to migrate a project file saved in an older format",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMigrateProjectMessage": "This project is saved in format {fileFormat}, and this version of the app uses format {appFormat}. Opening it updates the file for good. A copy in its current format is kept at {backupPath}.",
+  "@homeMigrateProjectMessage": {
+    "description": "Message stating which format the file is in, which one it is brought to, that it cannot be undone, and where the copy is kept",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {
+      "fileFormat": {
+        "type": "int"
+      },
+      "appFormat": {
+        "type": "int"
+      },
+      "backupPath": {
+        "type": "String"
+      }
+    }
+  },
+  "homeMigrateProjectCancelAction": "Cancel",
+  "@homeMigrateProjectCancelAction": {
+    "description": "Label of the button leaving the project file untouched and unopened",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMigrateProjectConfirmAction": "Update and open",
+  "@homeMigrateProjectConfirmAction": {
+    "description": "Label of the button migrating the project file and opening it",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeProjectFileNewerTitle": "This project needs a newer version of the app",
+  "@homeProjectFileNewerTitle": {
+    "description": "Title of the dialog refusing a project file written by a newer build of the app",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeProjectFileNewerMessage": "This project is saved in format {fileFormat}, and this version of the app reads up to format {appFormat}. Nothing has been opened or changed. Install a newer version of the app to open it.",
+  "@homeProjectFileNewerMessage": {
+    "description": "Message naming both formats when the app version the file was created with is unknown",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {
+      "fileFormat": {
+        "type": "int"
+      },
+      "appFormat": {
+        "type": "int"
+      }
+    }
+  },
+  "homeProjectFileNewerWithAppVersionMessage": "This project is saved in format {fileFormat}, and this version of the app reads up to format {appFormat}. It was created with Open Cine Prod Tools {appVersion}. Nothing has been opened or changed. Install that version, or a later one, to open it.",
+  "@homeProjectFileNewerWithAppVersionMessage": {
+    "description": "Message naming both formats and the app version the file was created with",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {
+      "fileFormat": {
+        "type": "int"
+      },
+      "appFormat": {
+        "type": "int"
+      },
+      "appVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "homeProjectFileNewerCloseAction": "Close",
+  "@homeProjectFileNewerCloseAction": {
+    "description": "Label of the button dismissing the refusal dialog",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeRelativeTimeJustNow": "Just now",
   "@homeRelativeTimeJustNow": {
     "description": "Relative time shown for a project opened less than a minute ago",

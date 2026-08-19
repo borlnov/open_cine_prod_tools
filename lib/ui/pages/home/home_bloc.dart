@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -28,6 +29,10 @@ import 'package:path/path.dart' as p;
 /// [FileSelectorManager], delegating the actual create/open work to [OcptProjectsManager], and
 /// navigating to the workspace through [OcptRouterManager] (RFL31: navigation only via the router
 /// manager) once it succeeds.
+///
+/// It is also where the app's **compatibility gate** stands: every path that opens a project file
+/// runs through here, so every one of them is probed before it is opened, and a file from another
+/// build is raised as a question or a refusal rather than migrated behind the user's back.
 class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
   /// The properties manager used to read/update the recent projects list.
   final OcptPropertiesManager _propertiesManager;
@@ -73,6 +78,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     on<OcptHomeCreateProjectRequestedEvent>(_onCreateProjectRequested);
     on<OcptHomeOpenProjectRequestedEvent>(_onOpenProjectRequested);
     on<OcptHomeRemoveRecentProjectRequestedEvent>(_onRemoveRecentProjectRequested);
+    on<OcptHomeFileCompatibilityStatedEvent>(_onFileCompatibilityStated);
     on<OcptHomeErrorDismissedEvent>(_onErrorDismissed);
     on<OcptHomeImportScreenplayRequestedEvent>(_onImportScreenplayRequested);
   }
@@ -143,6 +149,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
   /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
   /// it's null, then navigates to the editor.
+  ///
+  /// Every project file this page opens goes through the compatibility gate first, the picked one
+  /// and the tapped card alike: a file from another build stops here, and what the probe found is
+  /// raised through the state for the page to state — the migration to confirm, or the refusal to
+  /// report. The open itself is only reached for a file this build can take as it is, or for one
+  /// the user has just answered the migration question for.
   Future<void> _onOpenProjectRequested(
     OcptHomeOpenProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -167,7 +179,14 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
       filePath = selectedFile.path;
     }
 
-    final result = await _projectsManager.openProject(filePath: filePath);
+    if (!event.allowMigration && _stopsOnFileFormat(filePath, emitter)) {
+      return;
+    }
+
+    final result = await _projectsManager.openProject(
+      filePath: filePath,
+      allowMigration: event.allowMigration,
+    );
     if (!result.status.isSuccess) {
       emitter(state.copyWith(isBusy: false, error: result.status));
       return;
@@ -176,6 +195,35 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushWorkspaceAndRefreshOnReturn(emitter);
+  }
+
+  /// Whether opening [filePath] has to stop and be stated to the user first, raising what the
+  /// probe found through the state when it does.
+  ///
+  /// The manager refuses these two verdicts on its own as well, and would report them as statuses:
+  /// asking here rather than reacting there is what gets the *numbers* to the dialog — which format
+  /// the file is in, which one this build writes, and which build made it — instead of a status
+  /// that could only say that something is wrong.
+  bool _stopsOnFileFormat(String filePath, Emitter<OcptHomeState> emitter) {
+    final compatibility = _projectsManager.probeProjectFile(filePath: filePath);
+
+    switch (compatibility.verdict) {
+      case OcptProjectFileVerdict.older:
+      case OcptProjectFileVerdict.newer:
+        emitter(state.copyWith(isBusy: false, pendingFileCompatibility: compatibility));
+        return true;
+      case OcptProjectFileVerdict.current:
+      case OcptProjectFileVerdict.unreadable:
+        return false;
+    }
+  }
+
+  /// Clears the compatibility verdict the page has just stated, if any.
+  Future<void> _onFileCompatibilityStated(
+    OcptHomeFileCompatibilityStatedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(clearPendingFileCompatibility: true));
   }
 
   /// Removes a recent project from the list and refreshes it.

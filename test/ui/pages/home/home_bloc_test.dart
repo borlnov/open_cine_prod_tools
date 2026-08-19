@@ -13,7 +13,9 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
@@ -22,6 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 /// An export manager whose [pickAndReadFountain] is stubbed, to exercise the bloc's import flow
 /// without any real file dialog. [fountainIoService] is left as the real, pure implementation.
@@ -276,5 +279,128 @@ void main() {
     expect(projectsManager.currentProject, isNull);
 
     await bloc.close();
+  });
+
+  group("a project file from another build", () {
+    /// The format a file one step behind this build states.
+    final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
+
+    /// Creates a project at [filePath] and hands it back as the previous build would have left
+    /// it: the version 19 step's two additions taken back out, and the format number with them.
+    ///
+    /// The additions really are undone rather than the number merely relabelled, so the migration
+    /// the user is about to confirm is one that actually runs.
+    Future<void> createProjectAtPreviousFormat(String filePath) async {
+      await projectsManager.createProject(name: "My Movie", filePath: filePath);
+      await projectsManager.closeCurrentProject();
+
+      final database = sqlite3.open(filePath);
+      database
+        ..execute("DROP TABLE project_dictionary_words")
+        ..execute("ALTER TABLE project_info DROP COLUMN screenplay_language")
+        ..execute("PRAGMA user_version = $previousSchemaVersion")
+        ..dispose();
+    }
+
+    /// Creates a project at [filePath] and stamps a format no build of this app writes yet onto
+    /// it, which is all a file from the future has to state to be refused.
+    Future<void> createProjectFromTheFuture(String filePath) async {
+      await projectsManager.createProject(name: "My Movie", filePath: filePath);
+      await projectsManager.closeCurrentProject();
+
+      final database = sqlite3.open(filePath);
+      database
+        ..execute("PRAGMA user_version = ${OcptProjectDatabase.currentSchemaVersion + 1}")
+        ..dispose();
+    }
+
+    test("an older one raises the migration question instead of opening", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectAtPreviousFormat(filePath);
+      final bloc = buildBloc();
+
+      bloc.add(
+        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
+      );
+      final state = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
+
+      final compatibility = state.pendingFileCompatibility!;
+      expect(compatibility.verdict, OcptProjectFileVerdict.older);
+      expect(compatibility.filePath, filePath);
+      expect(compatibility.suggestedBackupPath, isNotNull);
+      expect(state.isBusy, isFalse);
+      expect(state.error, isNull);
+      expect(projectsManager.currentProject, isNull);
+
+      await bloc.close();
+    });
+
+    test("answering the question opens it, and the copy is where it was promised", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectAtPreviousFormat(filePath);
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(
+        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
+      );
+      final asked = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
+      final backupPath = asked.pendingFileCompatibility!.suggestedBackupPath!;
+
+      // What the page dispatches once the user has confirmed the dialog.
+      bloc.add(
+        OcptHomeOpenProjectRequestedEvent(
+          filePath: filePath,
+          fileTypeLabel: "Project",
+          allowMigration: true,
+        ),
+      );
+      await waitForState(bloc, (state) => state.isBusy);
+      await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(projectsManager.currentProject?.path, filePath);
+      expect(routerManager.pushedRoute, OcptRoute.workspace);
+      expect(File(backupPath).existsSync(), isTrue);
+
+      await bloc.close();
+    });
+
+    test("a newer one is raised as a refusal, and nothing is opened", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectFromTheFuture(filePath);
+      await propertiesManager.deleteAll();
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(
+        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
+      );
+      final state = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
+
+      expect(state.pendingFileCompatibility!.verdict, OcptProjectFileVerdict.newer);
+      expect(state.error, isNull, reason: "a refusal is stated by the dialog, not by a SnackBar");
+      expect(projectsManager.currentProject, isNull);
+      expect(routerManager.pushedRoute, isNull);
+
+      await bloc.close();
+    });
+
+    test("the question is cleared once the page has stated it", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectFromTheFuture(filePath);
+      final bloc = buildBloc();
+
+      bloc.add(
+        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
+      );
+      await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
+
+      bloc.add(const OcptHomeFileCompatibilityStatedEvent());
+      final state = await waitForState(bloc, (state) => state.pendingFileCompatibility == null);
+
+      expect(state.pendingFileCompatibility, isNull);
+
+      await bloc.close();
+    });
   });
 }

@@ -15,14 +15,18 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_empty_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_file_newer_dialog.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, and with
 /// [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the project
@@ -57,6 +61,7 @@ void main() {
   // instances of those managers in the app's actual GetIt instance once, matching how
   // OcptPropertiesManager's own test backs it with an in-memory store instead of mocking it.
   late OcptPropertiesManager propertiesManager;
+  late OcptProjectsManager projectsManager;
   late Directory tempDir;
 
   setUpAll(() async {
@@ -66,7 +71,7 @@ void main() {
     propertiesManager = OcptPropertiesManager();
     await propertiesManager.initLifeCycle();
 
-    final projectsManager = OcptProjectsManager(
+    projectsManager = OcptProjectsManager(
       propertiesManager: propertiesManager,
       appLanguageCode: () => "en",
     );
@@ -171,5 +176,81 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tapped, isTrue);
+  });
+
+  group("opening a project file from another build", () {
+    /// Writes a project file at [filePath] stating [userVersion], and puts it on the home page as
+    /// a recent project.
+    ///
+    /// Written through raw `sqlite3` rather than by creating a real project: everything the probe
+    /// reads is the format number and `project_info`, and drift's own asynchronous work has no
+    /// place inside a widget test's clock. What these tests are about is the sentence the user
+    /// reads before anything happens to their file; the migration itself is covered where it runs.
+    Future<void> addRecentProjectStatingFormat(String filePath, int userVersion) async {
+      final database = sqlite3.open(filePath);
+      database
+        ..execute("CREATE TABLE project_info (name TEXT, app_version_at_creation TEXT)")
+        ..execute("INSERT INTO project_info (name, app_version_at_creation) VALUES (?, ?)", [
+          "My Movie",
+          "9.9.9",
+        ])
+        ..execute("PRAGMA user_version = $userVersion")
+        ..dispose();
+
+      await propertiesManager.addRecentProject(
+        OcptRecentProjectModel(path: filePath, name: "My Movie", lastOpenedAt: DateTime.now()),
+      );
+    }
+
+    testWidgets("an older one is answered for, the copy named where it will be kept", (
+      tester,
+    ) async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await addRecentProjectStatingFormat(
+        filePath,
+        OcptProjectDatabase.currentSchemaVersion - 1,
+      );
+
+      await _pumpHome(tester, const HomePage());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(ValueKey(filePath)));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(HomePage));
+      expect(find.byType(OcptConfirmDialog), findsOneWidget);
+      expect(find.text(Tr.of(context).homeMigrateProjectTitle), findsOneWidget);
+      expect(
+        find.textContaining(
+          projectsManager.probeProjectFile(filePath: filePath).suggestedBackupPath!,
+        ),
+        findsOneWidget,
+        reason: "the promise the dialog makes is the very path the open then writes to",
+      );
+      expect(find.text(Tr.of(context).homeMigrateProjectConfirmAction), findsOneWidget);
+    });
+
+    testWidgets("a newer one is refused, naming the build that wrote it", (tester) async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await addRecentProjectStatingFormat(
+        filePath,
+        OcptProjectDatabase.currentSchemaVersion + 1,
+      );
+
+      await _pumpHome(tester, const HomePage());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(ValueKey(filePath)));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(HomePage));
+      expect(find.byType(OcptProjectFileNewerDialog), findsOneWidget);
+      expect(find.text(Tr.of(context).homeProjectFileNewerTitle), findsOneWidget);
+      expect(
+        find.byType(OcptConfirmDialog),
+        findsNothing,
+        reason: "there is nothing to confirm: this build cannot open that file at all",
+      );
+    });
   });
 }

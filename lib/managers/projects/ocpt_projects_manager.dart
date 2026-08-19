@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_file_compatibility_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
@@ -33,11 +34,13 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
@@ -73,16 +76,22 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
 /// index, its shot list, its named versions, its resources catalogue (the address book, the cast,
 /// locations and elements), the breakdown pass tagging that catalogue against the screenplay, the
-/// shooting schedule, or the project's own spell-check lexicon is delegated to [screenplayService],
-/// [sceneIndexService],
-/// [shotListService], [shotCoverageService], [projectVersionsService], [peopleService],
-/// [roleIndexService], [locationsService], [elementsService], [breakdownService],
-/// [scheduleService], [assetsService], [projectDictionaryService] and [projectPackageService], the
-/// fourteen services this manager owns and wires together (RFL18): this manager itself is only responsible for the
-/// lifecycle of the project file
-/// (create/open/close), for keeping the properties manager's recent-projects list in sync, and for
-/// handing those services the facts only it holds — the open project's database, the app version,
-/// this replica's device id and the app-wide page margins.
+/// shooting schedule, or the project's own spell-check lexicon is delegated to
+/// [screenplayService], [sceneIndexService], [shotListService], [shotCoverageService],
+/// [projectVersionsService], [peopleService], [roleIndexService], [locationsService],
+/// [elementsService], [breakdownService], [scheduleService], [assetsService],
+/// [projectDictionaryService], [projectPackageService] and [projectFileCompatibilityService], the
+/// fifteen services this manager owns and wires together (RFL18): this manager itself is only
+/// responsible for the lifecycle of the project file (create/open/close), for keeping the
+/// properties manager's recent-projects list in sync, and for handing those services the facts
+/// only it holds — the open project's database, the app version, this replica's device id and the
+/// app-wide page margins.
+///
+/// **No project file reaches drift before [probeProjectFile] has read it.** A file written by
+/// another build never opens as it comes: an older one is migrated in place only once the user has
+/// answered for it and a copy has been kept ([openProject]'s `allowMigration`), and a newer one is
+/// refused outright — see [OcptProjectFileCompatibilityService] for what drift does with a file
+/// from the future, which is worse than failing.
 ///
 /// It also owns the read-only **preview** of a version ([previewVersion] / [exitPreview]), which is
 /// a state of the open project rather than of the database and so belongs here rather than in
@@ -163,6 +172,14 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// and a project card on the home page, and why exporting never migrates what it copies.
   final OcptProjectPackageService projectPackageService;
 
+  /// The service reading a project file's own format before anything opens it, and keeping the
+  /// copy a migration is answered with.
+  ///
+  /// Like [projectPackageService] it takes **paths** rather than an open database, and for a
+  /// sharper reason: what it exists to prevent is precisely a project file being opened before its
+  /// format is known.
+  final OcptProjectFileCompatibilityService projectFileCompatibilityService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -225,6 +242,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
        assetsService = const OcptAssetsService(),
        projectDictionaryService = const OcptProjectDictionaryService(),
        projectPackageService = const OcptProjectPackageService(),
+       projectFileCompatibilityService = const OcptProjectFileCompatibilityService(),
        breakdownService = const OcptBreakdownService(
          elementsService: OcptElementsService(),
          locationsService: OcptLocationsService(),
@@ -348,12 +366,40 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
   }
 
+  /// Reads which format the project file at [filePath] is in, and what that means for this build,
+  /// without opening it as a project.
+  ///
+  /// What every door into a project file asks before it goes through: the home page's `Open…`, a
+  /// recent project card, and the import of a package built by another build. It writes nothing and
+  /// migrates nothing, which is the whole point — the answer is what the user is shown *before*
+  /// their file is touched, and [OcptProjectFileCompatibility.suggestedBackupPath] is the very path
+  /// [openProject] then writes the copy to.
+  OcptProjectFileCompatibility probeProjectFile({required String filePath}) =>
+      projectFileCompatibilityService.probe(
+        filePath: filePath,
+        appSchemaVersion: OcptProjectDatabase.currentSchemaVersion,
+      );
+
   /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
   /// it the [currentProject].
   ///
-  /// If a project is already open, it's closed first.
+  /// If a project is already open, it's closed first — but only once the file's own format has been
+  /// read and accepted, so a refusal never costs the user the project they already had open.
+  ///
+  /// **A file written by another build never opens silently.** It is probed first
+  /// ([probeProjectFile]), and:
+  /// - a **newer** format is refused with [OcptProjectStatus.newerFormat]: it isn't opened, isn't
+  ///   touched and doesn't reach the recent projects list. Handing it to drift would stamp its
+  ///   `user_version` back down to this build's number while leaving the newer build's tables in
+  ///   place, which is not a failure the user could ever undo;
+  /// - an **older** format returns [OcptProjectStatus.migrationRequired] unless [allowMigration] is
+  ///   true, which is the caller saying the user has been told what is about to happen. Only then is
+  ///   the copy written — at the path the probe named, so the promise and the write cannot drift
+  ///   apart — and the file handed to drift, whose `onUpgrade` migrates it as it always has;
+  /// - anything else opens exactly as it did before this gate existed.
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> openProject({
     required String filePath,
+    bool allowMigration = false,
   }) async {
     if (_isBusy) {
       return const ResultWithStatus(status: OcptProjectStatus.alreadyOpen);
@@ -364,6 +410,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     try {
       if (!File(filePath).existsSync()) {
         return const ResultWithStatus(status: OcptProjectStatus.fileNotFound);
+      }
+
+      final formatGate = _gateOnFileFormat(filePath: filePath, allowMigration: allowMigration);
+      if (formatGate != null) {
+        return ResultWithStatus(status: formatGate);
       }
 
       if (currentProject != null) {
@@ -421,6 +472,50 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return const ResultWithStatus(status: OcptProjectStatus.ioError);
     } finally {
       _isBusy = false;
+    }
+  }
+
+  /// Answers whether the file at [filePath] may be handed to drift, and takes the backup when a
+  /// migration is going ahead: null to go on, or the status to report back instead.
+  ///
+  /// Split out of [openProject] because it is the one part of opening a project that must happen
+  /// **before anything else does** — before the currently open project is closed, and before drift
+  /// ever sees the file.
+  OcptProjectStatus? _gateOnFileFormat({required String filePath, required bool allowMigration}) {
+    final compatibility = probeProjectFile(filePath: filePath);
+
+    switch (compatibility.verdict) {
+      case OcptProjectFileVerdict.newer:
+        appLogger().w(
+          "The project file at $filePath is in format ${compatibility.fileSchemaVersion}, which "
+          "this build (format ${compatibility.appSchemaVersion}) can't read: it's refused, not "
+          "opened",
+        );
+        return OcptProjectStatus.newerFormat;
+      case OcptProjectFileVerdict.older:
+        final backupPath = compatibility.suggestedBackupPath;
+        if (!allowMigration || backupPath == null) {
+          return OcptProjectStatus.migrationRequired;
+        }
+
+        if (!projectFileCompatibilityService.writeBackup(
+          filePath: filePath,
+          backupPath: backupPath,
+        )) {
+          // The migration is irreversible, and it was allowed on the promise that a copy would be
+          // kept: no copy, no migration.
+          return OcptProjectStatus.ioError;
+        }
+
+        appLogger().i(
+          "The project file at $filePath is being migrated from format "
+          "${compatibility.fileSchemaVersion} to ${compatibility.appSchemaVersion}; a copy of it "
+          "was kept at $backupPath",
+        );
+        return null;
+      case OcptProjectFileVerdict.current:
+      case OcptProjectFileVerdict.unreadable:
+        return null;
     }
   }
 

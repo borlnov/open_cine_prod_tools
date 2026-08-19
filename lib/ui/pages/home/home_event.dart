@@ -38,6 +38,9 @@ class OcptHomeCreateProjectRequestedEvent extends OcptHomeEvent {
 /// If [filePath] is null, an open-file dialog filtered to project files is shown first to let the
 /// user pick one (the "Open…" action); otherwise [filePath] is opened directly, without a dialog
 /// (a recent project card was tapped).
+///
+/// Whichever way the file was named, its own format is read before it is opened: a file from
+/// another build stops here and is stated through the page's state rather than opened.
 class OcptHomeOpenProjectRequestedEvent extends OcptHomeEvent {
   /// The path of the project to open, or null to let the user pick one from a dialog.
   final String? filePath;
@@ -45,12 +48,35 @@ class OcptHomeOpenProjectRequestedEvent extends OcptHomeEvent {
   /// The label of the file type shown in the open-file dialog, localized by the caller.
   final String fileTypeLabel;
 
+  /// Whether the user has answered for the migration of a file at an older format, and so wants it
+  /// brought up to date — a copy of it being kept on the way.
+  ///
+  /// False for every open the user starts, true only for the one the page dispatches back after
+  /// they confirmed the question `pendingFileCompatibility` raised. The default is what makes an
+  /// unanswered file stop rather than migrate.
+  final bool allowMigration;
+
   /// Class constructor
-  const OcptHomeOpenProjectRequestedEvent({this.filePath, required this.fileTypeLabel});
+  const OcptHomeOpenProjectRequestedEvent({
+    this.filePath,
+    required this.fileTypeLabel,
+    this.allowMigration = false,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, filePath, fileTypeLabel];
+  List<Object?> get props => [...super.props, filePath, fileTypeLabel, allowMigration];
+}
+
+/// Reports that the home page has stated what the probe found about a project file, which clears
+/// it from the state.
+///
+/// The one-shot field is consumed the moment it has been acted on, exactly as every transient
+/// question of this app is: the user still has that dialog in front of them, and a later state
+/// emission must not open a second one behind it.
+class OcptHomeFileCompatibilityStatedEvent extends OcptHomeEvent {
+  /// Class constructor
+  const OcptHomeFileCompatibilityStatedEvent();
 }
 
 /// Requests removing the recent project at [path] from the recent projects list.

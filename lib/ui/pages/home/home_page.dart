@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
@@ -18,6 +20,8 @@ import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_empty_state
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_new_project_name_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_file_newer_dialog.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// Displays the project card grid: the app's real landing page.
 ///
@@ -95,8 +99,16 @@ class _HomeView extends StatelessWidget {
     ),
   );
 
-  /// Shows the SnackBar for [state]'s transient error, if any, then dismisses it from the state.
+  /// States whatever [state] is holding for the user: the verdict on a project file whose format
+  /// isn't this build's, and the transient error of a failed create/open — each dismissed from the
+  /// state as soon as it has been put on screen.
   void _onStateChanged(BuildContext context, OcptHomeState state) {
+    final compatibility = state.pendingFileCompatibility;
+    if (compatibility != null) {
+      context.read<OcptHomeBloc>().add(const OcptHomeFileCompatibilityStatedEvent());
+      unawaited(_stateFileCompatibility(context, compatibility));
+    }
+
     final error = state.error;
     if (error == null) {
       return;
@@ -109,6 +121,60 @@ class _HomeView extends StatelessWidget {
     context.read<OcptHomeBloc>().add(const OcptHomeErrorDismissedEvent());
   }
 
+  /// Puts [compatibility] in front of the user: the migration to answer for an older file, the
+  /// refusal for a newer one.
+  ///
+  /// The migration is confirmed through [OcptConfirmDialog] like every other irreversible action of
+  /// this app, and it is the *page* that opens it — the bloc raised the question, it never words
+  /// it.
+  /// Confirming re-dispatches the very open that stopped here, this time allowed to migrate; the
+  /// file's own path travels with the verdict, so the file that is updated is the one that was
+  /// asked about.
+  ///
+  /// Not marked destructive: the project is brought forward rather than lost, and the copy the
+  /// message names is kept precisely so nothing is.
+  Future<void> _stateFileCompatibility(
+    BuildContext context,
+    OcptProjectFileCompatibility compatibility,
+  ) async {
+    switch (compatibility.verdict) {
+      case OcptProjectFileVerdict.older:
+        final tr = Tr.of(context);
+        final bloc = context.read<OcptHomeBloc>();
+        final fileTypeLabel = tr.homeOpenFileTypeLabel;
+
+        final confirmed = await OcptConfirmDialog.show(
+          context,
+          title: tr.homeMigrateProjectTitle,
+          message: tr.homeMigrateProjectMessage(
+            compatibility.fileSchemaVersion,
+            compatibility.appSchemaVersion,
+            compatibility.suggestedBackupPath ?? "",
+          ),
+          cancelLabel: tr.homeMigrateProjectCancelAction,
+          confirmLabel: tr.homeMigrateProjectConfirmAction,
+          isDestructive: false,
+        );
+        if (confirmed != true) {
+          return;
+        }
+
+        bloc.add(
+          OcptHomeOpenProjectRequestedEvent(
+            filePath: compatibility.filePath,
+            fileTypeLabel: fileTypeLabel,
+            allowMigration: true,
+          ),
+        );
+      case OcptProjectFileVerdict.newer:
+        await OcptProjectFileNewerDialog.show(context, compatibility: compatibility);
+      case OcptProjectFileVerdict.current:
+      case OcptProjectFileVerdict.unreadable:
+        // Never raised: a file this build opens as it is has nothing to state.
+        break;
+    }
+  }
+
   /// Maps [status] to its localized, user-facing message.
   String _errorMessage(BuildContext context, OcptProjectStatus status) {
     final tr = Tr.of(context);
@@ -117,6 +183,8 @@ class _HomeView extends StatelessWidget {
       OcptProjectStatus.ok => "",
       OcptProjectStatus.fileNotFound => tr.homeErrorFileNotFound,
       OcptProjectStatus.corruptedFile => tr.homeErrorCorruptedFile,
+      OcptProjectStatus.migrationRequired => tr.homeErrorMigrationRequired,
+      OcptProjectStatus.newerFormat => tr.homeErrorNewerFormat,
       OcptProjectStatus.alreadyOpen => tr.homeErrorAlreadyOpen,
       OcptProjectStatus.ioError => tr.homeErrorIoError,
     };
