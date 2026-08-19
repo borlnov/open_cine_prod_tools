@@ -67,6 +67,7 @@ void main() {
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               areSceneNumbersVisible: true,
+              isSpellCheckVisible: false,
               onTextChanged: (_) {},
               onCaretLineChanged: (_) {},
               jumpRequest: null,

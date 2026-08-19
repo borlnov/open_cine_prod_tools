@@ -30,7 +30,9 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_e
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_spell_checked_lines.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
+import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
@@ -76,6 +78,14 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// `computeOcptStyledSceneNumbers`) in its left gutter.
   final bool areSceneNumbersVisible;
 
+  /// Whether this machine wants the spell-check underlines shown at all — the plan's own on/off
+  /// switch (`docs/plans/screenplay-spell-check.md` §4.2), travelling down the same way
+  /// [areSceneNumbersVisible] does rather than through the bloc directly: this widget knows nothing
+  /// about `OcptEditorState`. While false, no checkable node texts are ever reported (see the
+  /// state's own `_reportSpellCheckTexts`), so nothing is ever requested and nothing is ever
+  /// painted.
+  final bool isSpellCheckVisible;
+
   /// Called with the new full source text whenever the user edits the document.
   final ValueChanged<String> onTextChanged;
 
@@ -98,6 +108,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.pageSetup,
     required this.isPageSimulationEnabled,
     required this.areSceneNumbersVisible,
+    required this.isSpellCheckVisible,
     required this.onTextChanged,
     required this.onCaretLineChanged,
     required this.jumpRequest,
@@ -254,6 +265,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// [build] rather than resetting the highlight every frame.
   final OcptSearchMatchStyler _searchMatchStyler = OcptSearchMatchStyler();
 
+  /// The styled mode's own half of the spell-check underline (`docs/plans/screenplay-spell-
+  /// check.md` §1.1): super_editor's own `SpellingAndGrammarStyler`, since `text.dart` already
+  /// turns a component's `TextComponentViewModel.spellingErrors` into the squiggle super_editor
+  /// paints — no styler of our own is needed here, unlike [_searchMatchStyler]. The underline
+  /// colour is [ocptEditorSpellCheckErrorColor], the exact colour the raw mode's own controller
+  /// underlines with, so both surfaces read as the same feature. Never rebuilt, for the same reason
+  /// [_searchMatchStyler] isn't: `addErrors`/`clearErrorsForNode`/`clearAllErrors` calls must
+  /// survive across a [build].
+  final SpellingAndGrammarStyler _spellingAndGrammarStyler = SpellingAndGrammarStyler(
+    spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(color: ocptEditorSpellCheckErrorColor),
+  );
+
   /// The find/replace query [updateSearch] last set, or null while there is no active search —
   /// `editor_page.dart` sets this to null whenever the bar is closed, a different mode is active,
   /// or a version is being previewed.
@@ -271,6 +294,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _recomputePageSimulation();
     widget.styledController?.attach(this);
     _reportReadStateToController();
+    _reportSpellCheckTexts();
     _maybeApplyPendingJumpRequest();
   }
 
@@ -290,6 +314,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       // widget computed against the previous one is stale, and must never keep highlighting/
       // navigating against node ids that no longer exist.
       _recomputeSearchMatches(navigateToCurrent: false);
+      // The same is true of every spelling error this widget was holding: none of them addresses a
+      // node id the fresh document still has, so they are dropped outright rather than left to
+      // linger unreachable in `_spellingAndGrammarStyler`'s own internal map, and a fresh report
+      // over the new document's own node ids is sent right away — this is what makes the raw ⇄
+      // styled mode switch (and an import, and a version restore) leave the styled surface correct
+      // rather than showing stale squiggles or none at all until the next edit.
+      _spellingAndGrammarStyler.clearAllErrors();
+      _reportSpellCheckTexts();
     } else if (widget.isPageSimulationEnabled != oldWidget.isPageSimulationEnabled) {
       // The title sheet's nodes appear/disappear with page simulation itself (see [_decode]'s own
       // doc comment), so toggling it needs a full rebuild from the same text, not just a
@@ -302,8 +334,23 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       _syncSceneNumbers();
       _reportReadStateToController();
       _recomputeSearchMatches(navigateToCurrent: false);
+      // See the identical comment in the branch above: a full rebuild means every node id (and with
+      // it, every title-page field's own presence/absence) is fresh.
+      _spellingAndGrammarStyler.clearAllErrors();
+      _reportSpellCheckTexts();
     } else if (widget.pageSetup != oldWidget.pageSetup) {
       setState(_recomputePageSimulation);
+    }
+
+    // The visibility switch itself (`docs/plans/screenplay-spell-check.md` §4.2) touches no text
+    // and rebuilds no document, so it needs its own, independent trigger rather than falling out of
+    // one of the branches above: turning it back on must re-report the very same node texts that
+    // were last reported (and get a fresh answer under whatever dictionary is now loaded), which
+    // `OcptStyledEditorController.reportSpellCheckTexts`'s own dedup would otherwise silently
+    // swallow as "nothing changed" — this method's own doc comment on why that dedup exists holds
+    // just as true for a false→true flip as it does for the reverse.
+    if (widget.isSpellCheckVisible != oldWidget.isSpellCheckVisible) {
+      _reportSpellCheckTexts();
     }
 
     if (widget.styledController != oldWidget.styledController) {
@@ -430,7 +477,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           ),
         ...defaultComponentBuilders,
       ],
-      customStylePhases: [_searchMatchStyler],
+      customStylePhases: [_searchMatchStyler, _spellingAndGrammarStyler],
       // Both default policies clear the selection the moment this editor loses focus to any
       // other widget, including a momentary focus steal by the toolbar's block-type dropdown
       // opening its own overlay route: the focus loss directly clears the selection
@@ -794,6 +841,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// Rejoins the document into flat text (reporting it upstream if it changed), refreshes
   /// [_mapping] for that freshly encoded text, and re-classifies every line plus every note's
   /// attribution span, only touching the metadata of the nodes that actually need it.
+  ///
+  /// Also reports a fresh set of checkable spell-check texts ([_reportSpellCheckTexts]), right here
+  /// rather than from [_onDocumentChanged] itself: `_settleDocument`'s own reclassify pass, just
+  /// above, is what makes a node's `blockType` metadata authoritative again after an edit (a line
+  /// that just became a scene heading, say), and [_checkableSpellCheckTexts] reads exactly that
+  /// metadata — reporting any earlier would report a node still classified under its *previous*
+  /// type.
   void _syncAfterEdit() {
     if (!mounted) {
       return;
@@ -801,6 +855,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     _runDerivedPass(() => _settleDocument(_document, _editor));
     _encodeAndReportIfChanged();
+    _reportSpellCheckTexts();
 
     final previousPageCount = _pageCount;
     final previousTrailingBottomPadding = _trailingBottomPadding;
@@ -1538,6 +1593,91 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           ),
         ),
     ]);
+  }
+
+  /// Every checkable node text currently in [_document]: a [ParagraphNode] whose classified line
+  /// type [ocptIsSpellCheckedLineType] accepts, and never a title-page field node
+  /// ([OcptWysiwygCodec.isTitlePageNode]) — the plan's own §4.3 rule, applied here in terms of the
+  /// same node metadata [_sceneNumbersFromMetadata]/[_reportReadStateToController] already read,
+  /// and the plan's §4.3 title-page exclusion (a title is invented on purpose, and the six fields
+  /// only exist under page simulation, so underlining them would make squiggles appear and
+  /// disappear with a display toggle).
+  ///
+  /// Empty while [OcptStyledScreenplayEditor.isSpellCheckVisible] is off — nothing is ever reported
+  /// to check with the switch off, per the plan's own §4.2 on/off rule — and reports the node's
+  /// **display** text (`node.text.toPlainText()`), never the Fountain source: that is what
+  /// `SpellingAndGrammarStyler` addresses.
+  Map<String, String> _checkableSpellCheckTexts() {
+    if (!widget.isSpellCheckVisible) {
+      return const {};
+    }
+
+    final texts = <String, String>{};
+    for (final node in _document) {
+      if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
+        continue;
+      }
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      if (!ocptIsSpellCheckedLineType(type)) {
+        continue;
+      }
+      texts[node.id] = node.text.toPlainText();
+    }
+    return texts;
+  }
+
+  /// Reports [_checkableSpellCheckTexts] up through [OcptStyledScreenplayEditor.styledController]
+  /// (`OcptStyledEditorController.reportSpellCheckTexts`, which dedupes against what was last
+  /// reported on its own — this method itself is called unconditionally, exactly like
+  /// [_recomputeSearchMatches] reports its own match count every time it runs).
+  void _reportSpellCheckTexts() {
+    widget.styledController?.reportSpellCheckTexts(_checkableSpellCheckTexts());
+  }
+
+  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to
+  /// [_spellingAndGrammarStyler], replacing whatever it held before: every node this widget could
+  /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
+  /// added only for a node id [rangesByNodeId] actually names.
+  ///
+  /// Two guards the plan's §5 (M3) is explicit about, applied to every range before it becomes a
+  /// `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
+  /// computed — an edit elsewhere, an import, a version restore, a page-simulation toggle) is
+  /// ignored outright, and a range that no longer fits that node's own *current* text length is
+  /// dropped rather than handed to `TextError.spelling`, which would otherwise build a `TextRange`
+  /// past the end of the text it addresses.
+  ///
+  /// Called both by [OcptStyledEditorController.attach] (a raw → styled mode switch while ranges
+  /// are already known) and, reactively, whenever `editor_page.dart` pushes a fresh
+  /// `OcptEditorState.styledSpellCheckRanges` down — neither call happens from inside
+  /// [_onDocumentChanged]'s own document-change listener, so this never needs the post-frame
+  /// deferral [_onDocumentChanged]'s own search recompute does (see that method's long comment):
+  /// the crash it guards against is specific to `markDirty()` firing synchronously inside
+  /// `Editor.execute()`'s still-open transaction, which is not where this method is ever reached
+  /// from.
+  @override
+  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
+    _spellingAndGrammarStyler.clearAllErrors();
+
+    for (final entry in rangesByNodeId.entries) {
+      final node = _document.getNodeById(entry.key);
+      if (node is! ParagraphNode) {
+        continue;
+      }
+
+      final textLength = node.text.toPlainText().length;
+      final errors = <TextError>{
+        for (final range in entry.value)
+          if (range.end <= textLength)
+            TextError.spelling(
+              nodeId: entry.key,
+              range: TextRange(start: range.start, end: range.end),
+              value: node.text.toPlainText().substring(range.start, range.end),
+            ),
+      };
+      if (errors.isNotEmpty) {
+        _spellingAndGrammarStyler.addErrors(entry.key, errors);
+      }
+    }
   }
 
   /// Returns a copy of [original] with every one of [matches] (assumed non-overlapping and in

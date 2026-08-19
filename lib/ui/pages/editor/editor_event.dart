@@ -252,6 +252,55 @@ class OcptEditorSpellCheckRangesReportedEvent extends OcptEditorEvent {
   List<Object?> get props => [...super.props, generation, checkedText, ranges];
 }
 
+/// Reports the styled mode's current set of checkable node texts, the styled counterpart to the
+/// raw mode's own parse-tick trigger.
+///
+/// Dispatched by `editor_page.dart` whenever `OcptStyledEditorController
+/// .spellCheckTextsByNodeId` actually changes (a document edit that touched a checked block, a
+/// full document rebuild, or the visibility switch flipping back on) — the bloc has no document of
+/// its own for the styled mode's addressing, since a node's own display text (what
+/// `SpellingAndGrammarStyler` addresses) only ever lives in the live super_editor document
+/// (`docs/plans/screenplay-spell-check.md` §3.2).
+class OcptEditorStyledSpellCheckTextsReportedEvent extends OcptEditorEvent {
+  /// The checkable node texts to check, keyed by node id.
+  final Map<String, String> textsByNodeId;
+
+  /// Class constructor
+  const OcptEditorStyledSpellCheckTextsReportedEvent({required this.textsByNodeId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, textsByNodeId];
+}
+
+/// Reports the misspelled ranges found in the styled mode's checkable node texts, dispatched once
+/// `OcptSpellCheckManager.check`'s isolate round trip resolves — the styled counterpart to
+/// [OcptEditorSpellCheckRangesReportedEvent].
+///
+/// [generation] is the manager's own generation the request was issued under; the handler drops
+/// this answer when it has since moved on (a language change, or a word learned or ignored, while
+/// the isolate round trip was in flight), the same "a stale generation's answer is dropped" rule
+/// [OcptEditorSpellCheckRangesReportedEvent] follows. Unlike that event, there is no whole-document
+/// `checkedText` to compare against: [ranges] are keyed by node id rather than by document-absolute
+/// offset, so a range computed against a node's text that has since changed is instead clamped and
+/// dropped at the point it's turned into a `TextError`, by the styled editor itself
+/// (`docs/plans/screenplay-spell-check.md` §5, M3) — and a node id that no longer exists in the
+/// document by the time this arrives is simply ignored there too.
+class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorEvent {
+  /// The manager's generation the request answered by [ranges] was issued under.
+  final int generation;
+
+  /// The misspelled ranges found, keyed by node id, each relative to that node's own display text.
+  final Map<String, List<SpellRange>> ranges;
+
+  /// Class constructor
+  const OcptEditorStyledSpellCheckRangesReportedEvent({required this.generation, required this.ranges});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, generation, ranges];
+}
+
 /// Requests updating the editor's page setup (page size and margins).
 ///
 /// [pageSetup] is persisted (format per-project, margins app-wide) and applied live to the
