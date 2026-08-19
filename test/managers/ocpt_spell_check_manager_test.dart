@@ -129,6 +129,24 @@ void main() {
     });
   });
 
+  test('two overlapping useLanguage calls both settle, on the later language', () async {
+    final manager = OcptSpellCheckManager(loadAsset: _readDictionaryAssetFromDisk);
+    addTearDown(manager.disposeLifeCycle);
+
+    // Deliberately not awaited one after the other: the second call starts inside one of the
+    // first's own await gaps (an asset read, the isolate handshake, the worker's parse), which is
+    // exactly the interleaving the superseding guard exists for. Neither future may hang, and the
+    // worker must end up holding the language the *later* call asked for.
+    final first = manager.useLanguage(OcptScreenplayLanguage.fr);
+    final second = manager.useLanguage(OcptScreenplayLanguage.enGb);
+    await Future.wait([first, second]);
+
+    expect(manager.loadedLanguage, OcptScreenplayLanguage.enGb);
+    // `screenplay` is English and absent from the French dictionary, so a clean result here is
+    // proof the worker parsed `en_GB` rather than whichever `_LoadRequest` happened to land last.
+    expect((await manager.check({'a': 'screenplay'}))['a'], isEmpty);
+  });
+
   test('check returns empty with no dictionary ever loaded', () async {
     final manager = OcptSpellCheckManager(loadAsset: _readDictionaryAssetFromDisk);
     addTearDown(manager.disposeLifeCycle);

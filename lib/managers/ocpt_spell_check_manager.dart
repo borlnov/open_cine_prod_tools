@@ -93,6 +93,10 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
   /// what it guards against.
   int _generation = 0;
 
+  /// Bumped by every [useLanguage] call, so one that is overtaken by a later one while awaiting
+  /// can tell and stand down — see [_isSupersededLanguageRequest].
+  int _languageRequestSerial = 0;
+
   /// The [check] requests still awaiting a `_CheckResponse`, keyed by request id.
   final Map<int, _PendingCheck> _pendingChecks = {};
 
@@ -126,6 +130,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
 
     _generation++;
     _loadedLanguage = language;
+    final serial = ++_languageRequestSerial;
 
     if (language == null) {
       await _killWorker();
@@ -135,29 +140,62 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     final assetDirectory = _assetDirectoryFor(language);
     final affix = await _loadAsset("assets/dictionaries/$assetDirectory/index.aff");
     final dictionary = await _loadAsset("assets/dictionaries/$assetDirectory/index.dic");
+    if (_isSupersededLanguageRequest(serial)) {
+      return;
+    }
 
     final worker = await _ensureWorker();
+    if (_isSupersededLanguageRequest(serial)) {
+      return;
+    }
     if (worker == null) {
-      // The isolate failed to spawn; already logged by _ensureWorker. Leave _loadedLanguage as
-      // recorded above (it's the truthful "what was asked for"), but there is nothing more to do:
-      // every check/suggestionsFor call already returns empty with no worker to talk to.
+      // The isolate failed to spawn, and _ensureWorker has already logged why. Put
+      // [_loadedLanguage] back to null rather than leaving it reading as the language that was
+      // asked for: nothing is loaded, every check/suggestionsFor call returns empty, and a
+      // truthful null is also what lets the very next call for the same language try again
+      // instead of being turned away by this method's own no-op guard.
+      _loadedLanguage = null;
       return;
     }
 
     final requestId = _nextRequestId();
     final loadCompleter = Completer<void>();
-    _pendingLoad = _PendingLoad(
-      requestId: requestId,
-      complete: () {
-        if (!loadCompleter.isCompleted) {
-          loadCompleter.complete();
-        }
-      },
+    _replacePendingLoad(
+      _PendingLoad(
+        requestId: requestId,
+        complete: () {
+          if (!loadCompleter.isCompleted) {
+            loadCompleter.complete();
+          }
+        },
+      ),
     );
     worker.sendPort.send(_LoadRequest(requestId: requestId, affix: affix, dictionary: dictionary));
     await loadCompleter.future;
+    if (_isSupersededLanguageRequest(serial)) {
+      return;
+    }
 
     _pushExtraWords(worker);
+  }
+
+  /// Whether a [useLanguage] call that started at [serial] has since been overtaken by a later
+  /// one, in which case it must abandon what is left of its own work.
+  ///
+  /// [useLanguage] awaits four times — two asset reads, the isolate handshake and the worker's
+  /// own parse — and nothing stops a second call from starting inside any of those gaps (a
+  /// project opening while the settings page writes a different language, most plainly). Without
+  /// this guard the two interleave: whichever call happens to send its `_LoadRequest` last is the
+  /// dictionary the worker ends up holding, which is not necessarily the one [_loadedLanguage]
+  /// records, and the checker would then be quietly answering in the wrong language.
+  bool _isSupersededLanguageRequest(int serial) => serial != _languageRequestSerial;
+
+  /// Installs [pendingLoad] as the single in-flight load, completing whatever was there before it
+  /// rather than dropping it on the floor — an abandoned [_PendingLoad] is a [useLanguage] future
+  /// that never resolves, and its caller (a bloc event handler) would hang with it.
+  void _replacePendingLoad(_PendingLoad pendingLoad) {
+    _pendingLoad?.complete();
+    _pendingLoad = pendingLoad;
   }
 
   /// Checks every text of [textsByKey] for misspellings in one isolate round trip, returning the
