@@ -9679,6 +9679,108 @@
     "context": "Displayed on hover over the screenplay mode's Add an episode button, next to the project title",
     "type": "text",
     "placeholders": {}
+  },
+  "workspaceExportProjectSectionHeading": "The project itself",
+  "@workspaceExportProjectSectionHeading": {
+    "description": "Heading of the export panel's last section, holding the project package card",
+    "context": "Displayed in every production mode's Export panel, under the documents grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportProjectPackageTitle": "Project package",
+  "@workspaceExportProjectPackageTitle": {
+    "description": "Name of the portable project package, on the export panel's standing card",
+    "context": "Displayed on the project package card of every production mode's Export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportProjectPackageDescription": "The whole project as one archive to send: the project file, and every photo, permit and document it references.",
+  "@workspaceExportProjectPackageDescription": {
+    "description": "Line saying what the portable project package holds",
+    "context": "Displayed under the project package card's title, in every production mode's Export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportProjectPackagePreviewReason": "A package is written from the working copy, not from the version being previewed. Leave the preview to export it.",
+  "@workspaceExportProjectPackagePreviewReason": {
+    "description": "Reason greying the project package card while a project version is being previewed",
+    "context": "Displayed in place of the project package card's description, in every production mode's Export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageFileTypeLabel": "Project package",
+  "@projectPackageFileTypeLabel": {
+    "description": "Label of the native save dialog's type filter when writing a project package",
+    "context": "Displayed by the operating system's own save dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageMissingFilesConfirmTitle": "Some referenced files are missing",
+  "@projectPackageMissingFilesConfirmTitle": {
+    "description": "Title of the dialog asking whether to write a package that cannot carry every referenced file",
+    "context": "Displayed after picking the project package card, when the pre-flight found missing files",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageMissingFilesConfirmMessage": "{count, plural, one{{count} file the project references is no longer there, and will not travel in the package:} other{{count} files the project references are no longer there, and will not travel in the package:}} {labels}",
+  "@projectPackageMissingFilesConfirmMessage": {
+    "description": "Message naming how many referenced files are missing, and which ones",
+    "context": "Displayed in the dialog asking whether to write a package that cannot carry every referenced file",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "labels": {
+        "type": "String"
+      }
+    }
+  },
+  "projectPackageMissingFilesConfirmCancelAction": "Cancel",
+  "@projectPackageMissingFilesConfirmCancelAction": {
+    "description": "Label of the button leaving the package unwritten",
+    "context": "Displayed in the dialog asking whether to write a package that cannot carry every referenced file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageMissingFilesConfirmContinueAction": "Export anyway",
+  "@projectPackageMissingFilesConfirmContinueAction": {
+    "description": "Label of the button writing the package without the missing files",
+    "context": "Displayed in the dialog asking whether to write a package that cannot carry every referenced file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageExportSuccessMessage": "Project package written to {path}",
+  "@projectPackageExportSuccessMessage": {
+    "description": "Message shown when the project was successfully written out as a portable package",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "projectPackageExportSuccessWithSkippedMessage": "Project package written to {path}. {count, plural, one{{count} missing file could not be included.} other{{count} missing files could not be included.}}",
+  "@projectPackageExportSuccessWithSkippedMessage": {
+    "description": "Message shown when the package was written but some referenced files were missing",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "projectPackageExportError": "The project package could not be written.",
+  "@projectPackageExportError": {
+    "description": "Error shown when writing the project out as a portable package failed",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

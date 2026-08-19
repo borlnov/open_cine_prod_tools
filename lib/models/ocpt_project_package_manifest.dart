@@ -24,6 +24,12 @@ const ocptPackageAssetsDirectory = "assets";
 /// The name of the manifest entry inside a package.
 const ocptPackageManifestEntry = "manifest.json";
 
+/// The extension a package file carries, and the one the save dialog restricts itself to.
+///
+/// The project file's own extension plus a `z`: what it holds is a project, zipped with everything
+/// that project points at.
+const ocptPackageFileExtension = "ocptz";
+
 /// One file that travelled inside the package, and the `assets` row it belongs to.
 class OcptPackagedAsset extends Equatable {
   /// The id of the `assets` row this file is referenced by.

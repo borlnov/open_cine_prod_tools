@@ -6,12 +6,15 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
@@ -190,7 +193,9 @@ class OcptEditorIoNotice extends Equatable {
 /// versions belong to the project, not to the screenplay, so the fields the `Versions` dock tab
 /// reads come from there rather than being declared here.
 class OcptEditorState extends BlocStateForMixin<OcptEditorState>
-    with MixinOcptProjectVersionsState<OcptEditorState> {
+    with
+        MixinOcptProjectVersionsState<OcptEditorState>,
+        MixinOcptProjectPackageState<OcptEditorState> {
   /// Whether the screenplay is still being loaded from the project database.
   final bool isLoading;
 
@@ -383,6 +388,14 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExport}
+  @override
+  final OcptProjectPackagePreflight? projectPackagePendingExport;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
+  @override
+  final OcptProjectPackageNotice? projectPackageNotice;
+
   /// Whether the right dock's formatted-preview tab exists at all right now.
   ///
   /// Two states have no use for it, for the same reason: what the centre already shows *is* the
@@ -445,6 +458,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.versionPendingRestoreId,
     required this.versionPendingRenameId,
     required this.projectVersionNotice,
+    required this.projectPackagePendingExport,
+    required this.projectPackageNotice,
   });
 
   /// Init class constructor
@@ -483,7 +498,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       versionPendingDeletionId = null,
       versionPendingRestoreId = null,
       versionPendingRenameId = null,
-      projectVersionNotice = null;
+      projectVersionNotice = null,
+      projectPackagePendingExport = null,
+      projectPackageNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -551,6 +568,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -599,6 +620,12 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     projectVersionNotice: clearProjectVersionNotice
         ? null
         : (projectVersionNotice ?? this.projectVersionNotice),
+    projectPackagePendingExport: clearProjectPackagePendingExport
+        ? null
+        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
+    projectPackageNotice: clearProjectPackageNotice
+        ? null
+        : (projectPackageNotice ?? this.projectPackageNotice),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -631,6 +658,20 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     clearVersionPendingRenameId: clearVersionPendingRenameId,
     projectVersionNotice: projectVersionNotice,
     clearProjectVersionNotice: clearProjectVersionNotice,
+  );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
+  @override
+  OcptEditorState copyProjectPackageState({
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
+  }) => copyWith(
+    projectPackagePendingExport: projectPackagePendingExport,
+    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    projectPackageNotice: projectPackageNotice,
+    clearProjectPackageNotice: clearProjectPackageNotice,
   );
 
   /// Object properties

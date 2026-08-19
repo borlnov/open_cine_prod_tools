@@ -1294,5 +1294,17 @@
   "workspaceEpisodeUntitledLabel": "Épisode {number}",
   "workspaceManageEpisodesAction": "Gérer les épisodes…",
   "workspaceAddEpisodeAction": "Ajouter un épisode…",
-  "workspaceAddEpisodeTooltip": "Faire de ce projet une série : ses épisodes se gèrent dans les paramètres du projet"
+  "workspaceAddEpisodeTooltip": "Faire de ce projet une série : ses épisodes se gèrent dans les paramètres du projet",
+  "workspaceExportProjectSectionHeading": "Le projet lui-même",
+  "workspaceExportProjectPackageTitle": "Paquet du projet",
+  "workspaceExportProjectPackageDescription": "Tout le projet en une seule archive à envoyer : le fichier du projet, et chaque photo, autorisation et document qu'il référence.",
+  "workspaceExportProjectPackagePreviewReason": "Un paquet s'écrit à partir de la copie de travail, pas de la version prévisualisée. Quittez la prévisualisation pour l'exporter.",
+  "projectPackageFileTypeLabel": "Paquet de projet",
+  "projectPackageMissingFilesConfirmTitle": "Des fichiers référencés sont introuvables",
+  "projectPackageMissingFilesConfirmMessage": "{count, plural, one{{count} fichier référencé par le projet n'est plus là et ne voyagera pas dans le paquet :} other{{count} fichiers référencés par le projet ne sont plus là et ne voyageront pas dans le paquet :}} {labels}",
+  "projectPackageMissingFilesConfirmCancelAction": "Annuler",
+  "projectPackageMissingFilesConfirmContinueAction": "Exporter quand même",
+  "projectPackageExportSuccessMessage": "Paquet du projet écrit vers {path}",
+  "projectPackageExportSuccessWithSkippedMessage": "Paquet du projet écrit vers {path}. {count, plural, one{{count} fichier manquant n'a pas pu être inclus.} other{{count} fichiers manquants n'ont pas pu être inclus.}}",
+  "projectPackageExportError": "Le paquet du projet n'a pas pu être écrit."
 }

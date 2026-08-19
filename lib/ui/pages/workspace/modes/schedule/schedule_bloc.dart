@@ -34,6 +34,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
@@ -66,8 +67,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// trusted to still mean something) and, while the `Versions` tab is open, asks
 /// [MixinOcptProjectVersionsBloc] for a fresh working-copy capture — the mode's own stand-in for
 /// "a save landing while it is open", since nothing here is a single save.
+///
+/// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
+/// package from the `Export` panel's own standing card. That mixin reuses
+/// [flushPendingProjectWrites] — what a colleague receives is the project *file*, so a debounced
+/// edit has to reach it first — and asks [exportManager] where to write, exactly as this mode's
+/// own exports do.
 class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
-    with MixinOcptProjectVersionsBloc<OcptScheduleState> {
+    with
+        MixinOcptProjectVersionsBloc<OcptScheduleState>,
+        MixinOcptProjectPackageBloc<OcptScheduleState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -223,6 +232,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   @protected
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
   /// about to swap the database can't send it into the previewed version instead, then clears the

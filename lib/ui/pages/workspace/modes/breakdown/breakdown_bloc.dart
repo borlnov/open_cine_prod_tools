@@ -31,6 +31,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
@@ -79,8 +80,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// [OcptProjectWorkingCopyRefreshRequestedEvent] on opening the `Versions` tab, exactly as the other
 /// two modes do, and so does [_flushPendingFieldEdits] when a field edit lands while that tab
 /// is already open — the two moments the mixin's working-copy card is worth a fresh, throttled read.
+///
+/// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
+/// package from the `Export` panel's own standing card. That mixin reuses
+/// [flushPendingProjectWrites] — what a colleague receives is the project *file*, so a debounced
+/// edit has to reach it first — and asks [exportManager] where to write, exactly as this mode's
+/// own exports do.
 class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
-    with MixinOcptProjectVersionsBloc<OcptBreakdownState> {
+    with
+        MixinOcptProjectVersionsBloc<OcptBreakdownState>,
+        MixinOcptProjectPackageBloc<OcptBreakdownState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -225,6 +234,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   @protected
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none

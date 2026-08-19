@@ -12,7 +12,9 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_export_document.dart';
@@ -21,6 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
@@ -44,6 +47,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -248,6 +253,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
       title: tr.breakdownExportPanelTitle,
       message: tr.breakdownExportPanelMessage,
       entries: _buildExportEntries(context, state),
+      isPreviewingVersion: state.isPreviewingVersion,
     );
     if (picked == null) {
       return;
@@ -257,10 +263,15 @@ class _BreakdownViewState extends State<_BreakdownView> {
     }
 
     switch (picked) {
-      case OcptBreakdownExportDocument.sheets:
-        await _requestSheetsExport(context, state);
-      case OcptBreakdownExportDocument.xlsx:
-        _requestXlsxExport(context);
+      case OcptWorkspaceExportDocumentPick<OcptBreakdownExportDocument>(:final document):
+        switch (document) {
+          case OcptBreakdownExportDocument.sheets:
+            await _requestSheetsExport(context, state);
+          case OcptBreakdownExportDocument.xlsx:
+            _requestXlsxExport(context);
+        }
+      case OcptWorkspaceExportProjectPackagePick<OcptBreakdownExportDocument>():
+        _requestProjectPackageExport(context);
     }
   }
 
@@ -856,6 +867,64 @@ class _BreakdownViewState extends State<_BreakdownView> {
         );
       context.read<OcptBreakdownBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
+
+    final packagePendingExport = state.projectPackagePendingExport;
+    if (packagePendingExport != null) {
+      context.read<OcptBreakdownBloc>().add(
+        const OcptProjectPackageMissingFilesAskDismissedEvent(),
+      );
+      unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
+    }
+
+    final packageNotice = state.projectPackageNotice;
+    if (packageNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
+        );
+      context.read<OcptBreakdownBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
+    }
+  }
+
+  /// Dispatches the project package export, resolving here — the last place with a
+  /// [BuildContext] — the label the native save dialog carries.
+  ///
+  /// What happens next depends on what the project references: everything being there, the save
+  /// dialog opens straight away; anything missing, the bloc asks back through its own state and
+  /// [_askAboutMissingPackagedFiles] is what puts that question on screen.
+  void _requestProjectPackageExport(BuildContext context) {
+    context.read<OcptBreakdownBloc>().add(
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// the export if the user said to go on.
+  ///
+  /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can
+  /// read the project file the pre-flight scanned. The question is cleared from that state the
+  /// moment this opens, so a later emission never stacks a second dialog behind this one.
+  Future<void> _askAboutMissingPackagedFiles(
+    BuildContext context,
+    OcptProjectPackagePreflight preflight,
+  ) async {
+    final bloc = context.read<OcptBreakdownBloc>();
+    final confirmed = await ocptAskAboutMissingPackagedFiles(context, preflight);
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptProjectPackageExportConfirmedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
+    );
   }
 
   /// Maps [notice] to its localized, user-facing message, mirroring

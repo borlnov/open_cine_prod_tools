@@ -6,6 +6,8 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
@@ -20,6 +22,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
@@ -68,7 +71,9 @@ class OcptShotListIoNotice extends Equatable {
 /// free-text fields go through a 2 s autosave debounce of their own, so a field can be "dirty" in
 /// that narrow sense while nothing else in this state is.
 class OcptShotListState extends BlocStateForMixin<OcptShotListState>
-    with MixinOcptProjectVersionsState<OcptShotListState> {
+    with
+        MixinOcptProjectVersionsState<OcptShotListState>,
+        MixinOcptProjectPackageState<OcptShotListState> {
   /// Whether the shot list is still being loaded from the project database.
   final bool isLoading;
 
@@ -203,6 +208,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExport}
+  @override
+  final OcptProjectPackagePreflight? projectPackagePendingExport;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
+  @override
+  final OcptProjectPackageNotice? projectPackageNotice;
 
   /// Every sequence of [snapshot], in display order (empty while nothing is loaded).
   List<OcptShotSequence> get sequences => snapshot?.sequences ?? const [];
@@ -358,6 +371,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.versionPendingRestoreId,
     required this.versionPendingRenameId,
     required this.projectVersionNotice,
+    required this.projectPackagePendingExport,
+    required this.projectPackageNotice,
   });
 
   /// Init class constructor
@@ -387,7 +402,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       versionPendingDeletionId = null,
       versionPendingRestoreId = null,
       versionPendingRenameId = null,
-      projectVersionNotice = null;
+      projectVersionNotice = null,
+      projectPackagePendingExport = null,
+      projectPackageNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -435,6 +452,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
   }) => OcptShotListState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -476,6 +497,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     projectVersionNotice: clearProjectVersionNotice
         ? null
         : (projectVersionNotice ?? this.projectVersionNotice),
+    projectPackagePendingExport: clearProjectPackagePendingExport
+        ? null
+        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
+    projectPackageNotice: clearProjectPackageNotice
+        ? null
+        : (projectPackageNotice ?? this.projectPackageNotice),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -508,6 +535,20 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     clearVersionPendingRenameId: clearVersionPendingRenameId,
     projectVersionNotice: projectVersionNotice,
     clearProjectVersionNotice: clearProjectVersionNotice,
+  );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
+  @override
+  OcptShotListState copyProjectPackageState({
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
+  }) => copyWith(
+    projectPackagePendingExport: projectPackagePendingExport,
+    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    projectPackageNotice: projectPackageNotice,
+    clearProjectPackageNotice: clearProjectPackageNotice,
   );
 
   /// Object properties
