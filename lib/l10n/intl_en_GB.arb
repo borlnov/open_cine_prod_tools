@@ -5884,6 +5884,129 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsDictionarySectionTitle": "Project dictionary",
+  "@projectSettingsDictionarySectionTitle": {
+    "description": "Title of the project settings page's dictionary section",
+    "context": "Displayed above the learned-word count in the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDictionaryHint": "Words the writer has taught the spell checker to accept, project-wide — right-clicking a misspelling in the styled editor and choosing “Add to the project's dictionary”, or adding one directly in the dialog the Edit… button opens.",
+  "@projectSettingsDictionaryHint": {
+    "description": "Short explanation of what the project's learned words are",
+    "context": "Displayed under the dictionary section's title in the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDictionaryWordCount": "{count, plural, one{{count} learned word} other{{count} learned words}}",
+  "@projectSettingsDictionaryWordCount": {
+    "description": "Number of words currently learned by the project's dictionary",
+    "context": "Displayed in the dictionary section of the project settings page, next to the Edit… button",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "projectSettingsDictionaryEmpty": "No word has been added yet.",
+  "@projectSettingsDictionaryEmpty": {
+    "description": "Replaces the word count when the project's dictionary holds no word",
+    "context": "Displayed in the dictionary section of the project settings page, next to the Edit… button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDictionaryEditAction": "Edit…",
+  "@projectSettingsDictionaryEditAction": {
+    "description": "Label of the button opening the project dictionary dialog",
+    "context": "Displayed in the dictionary section of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryDialogTitle": "Project dictionary",
+  "@projectDictionaryDialogTitle": {
+    "description": "Title of the dialog listing, filtering, adding to and removing from the project's learned words",
+    "context": "Displayed at the top of the project dictionary dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryFilterHint": "Filter",
+  "@projectDictionaryFilterHint": {
+    "description": "Placeholder of the field filtering the learned-word list as one types",
+    "context": "Displayed in the project dictionary dialog's filter field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryEmptyMessage": "No word has been added yet.",
+  "@projectDictionaryEmptyMessage": {
+    "description": "Shown in place of the list when the project's dictionary holds no word at all",
+    "context": "Displayed in the project dictionary dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryNoFilterMatchMessage": "No word matches this filter.",
+  "@projectDictionaryNoFilterMatchMessage": {
+    "description": "Shown in place of the list when the current filter matches none of the learned words",
+    "context": "Displayed in the project dictionary dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveTooltip": "Remove this word",
+  "@projectDictionaryRemoveTooltip": {
+    "description": "Tooltip of a word row's ✕ button, opening its inline removal question",
+    "context": "Displayed in the project dictionary dialog, on a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveConfirmQuestion": "Remove?",
+  "@projectDictionaryRemoveConfirmQuestion": {
+    "description": "Question replacing a word row once its ✕ button was clicked",
+    "context": "Displayed in the project dictionary dialog, in place of a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveConfirmYesAction": "Yes",
+  "@projectDictionaryRemoveConfirmYesAction": {
+    "description": "Confirms a word row's inline removal question, dropping it from the working copy",
+    "context": "Displayed in the project dictionary dialog, in place of a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryRemoveConfirmNoAction": "No",
+  "@projectDictionaryRemoveConfirmNoAction": {
+    "description": "Cancels a word row's inline removal question, restoring the row untouched",
+    "context": "Displayed in the project dictionary dialog, in place of a word row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryAddFieldHint": "Add a word",
+  "@projectDictionaryAddFieldHint": {
+    "description": "Placeholder of the field teaching a new word to the dictionary before it is even typed into the screenplay",
+    "context": "Displayed in the project dictionary dialog's add field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryAddAction": "Add",
+  "@projectDictionaryAddAction": {
+    "description": "Label of the button committing the add field's current word",
+    "context": "Displayed in the project dictionary dialog, next to the add field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryDuplicateError": "This word is already in the dictionary.",
+  "@projectDictionaryDuplicateError": {
+    "description": "Error shown under the add field when its word is already held, case-insensitively, by the working copy",
+    "context": "Displayed in the project dictionary dialog's add field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectDictionaryCloseAction": "Close",
+  "@projectDictionaryCloseAction": {
+    "description": "Label of the button closing the dialog and reporting its diff",
+    "context": "Displayed at the bottom of the project dictionary dialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "workspaceModeBreakdown": "Breakdown",
   "@workspaceModeBreakdown": {
     "description": "Short label of the breakdown production mode",

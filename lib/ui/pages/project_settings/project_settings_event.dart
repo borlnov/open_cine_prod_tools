@@ -75,6 +75,29 @@ class OcptProjectSettingsScreenplayLanguageChangedEvent extends OcptProjectSetti
   List<Object?> get props => [...super.props, screenplayLanguage];
 }
 
+/// Reports the words `OcptProjectDictionaryDialog` added and removed from its working copy —
+/// that dialog only reports, so this event is what actually applies the diff to the project's
+/// dictionary, through `OcptProjectDictionaryService` (`docs/plans/screenplay-spell-check.md`
+/// §4.6).
+class OcptProjectSettingsDictionaryEditedEvent extends OcptProjectSettingsEvent {
+  /// The words the dialog's working copy gained that the project's dictionary didn't already
+  /// hold.
+  final List<String> addedWords;
+
+  /// The words the project's dictionary held that the dialog's working copy no longer does.
+  final List<String> removedWords;
+
+  /// Class constructor
+  const OcptProjectSettingsDictionaryEditedEvent({
+    required this.addedWords,
+    required this.removedWords,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, addedWords, removedWords];
+}
+
 /// Reports that the `Episodes` card's `+ Add` action was tapped, appending a new episode.
 class OcptProjectSettingsEpisodeAddedEvent extends OcptProjectSettingsEvent {
   /// Class constructor

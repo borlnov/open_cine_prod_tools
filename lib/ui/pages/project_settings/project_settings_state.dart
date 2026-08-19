@@ -30,6 +30,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// after every mutation it makes so the card always shows what the database holds.
   final List<OcptEpisode> episodes;
 
+  /// The project's currently learned words (`project_dictionary_words`, tombstones filtered out),
+  /// sorted case-insensitively — what the dictionary section's count line and
+  /// `OcptProjectDictionaryDialog` both read, re-read after every edit the dialog reports so the
+  /// section always shows what the database holds.
+  final List<String> dictionaryWords;
+
   /// Whether at least one field was changed since the page opened.
   ///
   /// This is what the page hands back to whichever mode pushed it, through
@@ -50,6 +56,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.minimumRestMinutes,
     required this.screenplayLanguage,
     required this.episodes,
+    required this.dictionaryWords,
     required this.hasChanged,
   });
 
@@ -63,6 +70,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       minimumRestMinutes = null,
       screenplayLanguage = null,
       episodes = const [],
+      dictionaryWords = const [],
       hasChanged = false;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -83,6 +91,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     OcptScreenplayLanguage? screenplayLanguage,
     bool clearScreenplayLanguage = false,
     List<OcptEpisode>? episodes,
+    List<String>? dictionaryWords,
     bool? hasChanged,
   }) => OcptProjectSettingsState(
     isLoading: isLoading ?? this.isLoading,
@@ -95,6 +104,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
         ? null
         : (screenplayLanguage ?? this.screenplayLanguage),
     episodes: episodes ?? this.episodes,
+    dictionaryWords: dictionaryWords ?? this.dictionaryWords,
     hasChanged: hasChanged ?? this.hasChanged,
   );
 
@@ -108,6 +118,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     minimumRestMinutes,
     screenplayLanguage,
     episodes,
+    dictionaryWords,
     hasChanged,
   ];
 }

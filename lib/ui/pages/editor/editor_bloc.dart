@@ -153,6 +153,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// extra-word set did, and the styled editor itself has no reason to notice that on its own.
   Map<String, String> _lastStyledSpellCheckTexts = const {};
 
+  /// The learned-word set last pushed into [_spellCheckManager] through
+  /// [OcptSpellCheckManager.setLearnedWords], assigned alongside every one of that method's own
+  /// (unconditional) call sites — [_onLoadRequested] and [_onWordLearned]. [_onProjectSettingsChanged]
+  /// is the one caller that pushes conditionally, comparing its freshly re-read set against this
+  /// field with `setEquals` rather than pushing unconditionally like the other two: it runs on
+  /// *every* settings-page change, including a currency edit that has nothing to do with the
+  /// dictionary, and re-checking the whole screenplay on every one of those would be exactly the
+  /// wasted debounce tick §3.2 exists to avoid.
+  Set<String> _pushedLearnedWords = const {};
+
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
   late final void Function() _unregisterUnsavedChangesReporter;
 
@@ -431,7 +441,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     // words were pushed in last. Nothing is read (and nothing pushed) in the project == null
     // branch above — there is no project database to read a word list from.
     final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
-    _spellCheckManager.setLearnedWords(learnedWords.toSet());
+    _pushedLearnedWords = learnedWords.toSet();
+    _spellCheckManager.setLearnedWords(_pushedLearnedWords);
 
     unawaited(_reconcileSpellCheckLanguage());
   }
@@ -1129,7 +1140,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     await _projectDictionaryService.learnWord(database: project.database, word: event.word);
     final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
-    _spellCheckManager.setLearnedWords(learnedWords.toSet());
+    _pushedLearnedWords = learnedWords.toSet();
+    _spellCheckManager.setLearnedWords(_pushedLearnedWords);
 
     _requestSpellCheck();
     _reissueStyledSpellCheck();
@@ -1333,14 +1345,25 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Re-reads the project's page format and screenplay language after the project settings page
-  /// changed something, repaginating against the former and re-driving
-  /// [_reconcileSpellCheckLanguage] against the latter.
+  /// Re-reads the project's page format, screenplay language and learned dictionary words after
+  /// the project settings page changed something, repaginating against the first, re-driving
+  /// [_reconcileSpellCheckLanguage] against the second, and pushing the third into
+  /// [_spellCheckManager] when it actually changed.
   ///
-  /// These are the only two fields of the project settings page this bloc's own state depends on:
-  /// the currency has nothing to do with a screenplay's pagination or its spell-checking. Re-reading
-  /// them rather than carrying them on the event is what lets the project settings page own the
-  /// write without this bloc having to learn its shape.
+  /// These are the only fields of the project settings page this bloc's own state, or its
+  /// spell-checking, depends on: the currency has nothing to do with a screenplay's pagination or
+  /// its spell-checking. Re-reading them rather than carrying them on the event is what lets the
+  /// project settings page own the write without this bloc having to learn its shape.
+  ///
+  /// The dictionary re-read is compared against [_pushedLearnedWords] with `setEquals` before
+  /// pushing anything: this event fires on *every* settings-page change, including one that never
+  /// touched the dictionary at all, and pushing unconditionally would re-check the whole
+  /// screenplay on a currency edit. When the set genuinely differs — a word un-learned, or learned,
+  /// in `OcptProjectDictionaryDialog` since this bloc last loaded — [OcptSpellCheckManager
+  /// .setLearnedWords] bumps the manager's generation and both [_requestSpellCheck] and
+  /// [_reissueStyledSpellCheck] re-send everything they have, which is what makes a word un-learned
+  /// there underlined again here without anything having to be re-typed
+  /// (`docs/plans/screenplay-spell-check.md` §4.6's own round-trip acceptance criterion).
   Future<void> _onProjectSettingsChanged(
     OcptEditorProjectSettingsChangedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -1365,6 +1388,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         ),
       );
       unawaited(_reconcileSpellCheckLanguage());
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project != null) {
+      final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
+      final learnedWordsSet = learnedWords.toSet();
+      if (!setEquals(learnedWordsSet, _pushedLearnedWords)) {
+        _pushedLearnedWords = learnedWordsSet;
+        _spellCheckManager.setLearnedWords(_pushedLearnedWords);
+        _requestSpellCheck();
+        _reissueStyledSpellCheck();
+      }
     }
   }
 

@@ -16,7 +16,9 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_dictionary_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_dictionary_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
@@ -132,6 +134,12 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
                             _onScreenplayLanguageChanged(context, language),
                       ),
                       const SizedBox(height: 16),
+                      OcptProjectSettingsDictionarySection(
+                        words: state.dictionaryWords,
+                        onEditRequested: () =>
+                            unawaited(_onDictionaryEditRequested(context, state.dictionaryWords)),
+                      ),
+                      const SizedBox(height: 16),
                       OcptProjectSettingsMinimumRestSection(
                         minimumRestMinutes: state.minimumRestMinutes,
                         onMinimumRestMinutesChanged: (minutes) =>
@@ -219,6 +227,35 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   void _onScreenplayLanguageChanged(BuildContext context, OcptScreenplayLanguage? language) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsScreenplayLanguageChangedEvent(screenplayLanguage: language),
+    );
+  }
+
+  /// Opens `OcptProjectDictionaryDialog` over [words], then dispatches whatever diff it reports —
+  /// the dialog only asks, this page applies it (`docs/plans/screenplay-spell-check.md` §4.6),
+  /// exactly the shape [_onEpisodeDeletionRequested] already follows for `OcptConfirmDialog`.
+  ///
+  /// The bloc is read before the `await`, and `context.mounted` is checked after it, for the same
+  /// reason [_onEpisodeDeletionRequested] does both: a `BuildContext` is not safe to reach for
+  /// once an asynchronous gap — the dialog itself, here — has had a chance to unmount the page.
+  ///
+  /// A null report should never happen (the dialog's own `PopScope` routes every exit through its
+  /// diff-reporting close), but dispatches nothing rather than risk a phantom edit if it ever did.
+  Future<void> _onDictionaryEditRequested(BuildContext context, List<String> words) async {
+    final bloc = context.read<OcptProjectSettingsBloc>();
+
+    final report = await OcptProjectDictionaryDialog.show(context, words: words);
+    if (report == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptProjectSettingsDictionaryEditedEvent(
+        addedWords: report.added,
+        removedWords: report.removed,
+      ),
     );
   }
 

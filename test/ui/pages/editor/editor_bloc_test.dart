@@ -2589,4 +2589,103 @@ void main() {
       await bloc.close();
     });
   });
+
+  group('the project settings changed event and the dictionary', () {
+    test(
+      "un-learning a word directly through the service, then reporting the project settings "
+      "changed event, pushes the new set into the manager and re-checks the text again — the "
+      "round trip's whole point: a word removed in the settings page's dictionary dialog is "
+      "underlined again on the next check pass, with nothing re-typed",
+      () async {
+        final database = projectsManager.currentProject!.database;
+        await projectsManager.projectDictionaryService.learnWord(
+          database: database,
+          word: "Zorglurbe",
+        );
+
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(manager.setLearnedWordsCalls.last, contains("Zorglurbe"));
+
+        bloc.add(
+          const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nZorglurbe is here.\n"),
+        );
+        await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+
+        manager.checkCalls.clear();
+        manager.setLearnedWordsCalls.clear();
+
+        // The dictionary dialog itself never runs in this bloc; the project settings page
+        // applies its report directly through the service, exactly as reproduced here — this
+        // bloc only ever learns about it through the settings-changed event below.
+        await projectsManager.projectDictionaryService.unlearnWord(
+          database: database,
+          word: "Zorglurbe",
+        );
+
+        bloc.add(const OcptEditorProjectSettingsChangedEvent());
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        expect(manager.setLearnedWordsCalls.last, isNot(contains("Zorglurbe")));
+        expect(manager.checkCalls, isNotEmpty);
+        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+        expect(sentTexts, contains("Zorglurbe is here."));
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      "the project settings changed event pushes nothing into the manager when the dictionary "
+      "was not touched",
+      () async {
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await propertiesManager.editorMode.store(OcptEditorMode.raw);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        manager.checkCalls.clear();
+        manager.setLearnedWordsCalls.clear();
+
+        // A real settings-page change that has nothing to do with the dictionary — the page
+        // format, which this same handler does act on. Waiting for the state it emits for that is
+        // what makes the assertions below mean something: without it, an assertion made one
+        // microtask after the dispatch would pass just as happily against a handler that pushes
+        // unconditionally, having simply not reached its dictionary read yet.
+        final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
+            ? OcptPageFormat.a4
+            : OcptPageFormat.usLetter;
+        await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+
+        bloc.add(const OcptEditorProjectSettingsChangedEvent());
+        await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
+        // The dictionary read is the last thing that handler does, one await past the state just
+        // waited for: let those remaining microtasks drain before reading the manager's calls.
+        for (var turn = 0; turn < 10; turn++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        expect(manager.setLearnedWordsCalls, isEmpty);
+        expect(manager.checkCalls, isEmpty);
+
+        await bloc.close();
+      },
+    );
+  });
 }

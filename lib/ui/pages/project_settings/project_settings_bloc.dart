@@ -15,16 +15,20 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 
 /// This is the bloc class for the project settings page.
 ///
-/// It loads the current project's currency, page format, minimum rest, screenplay language and
-/// episodes from [OcptProjectsManager] on entry, and writes each field back to the project the
-/// moment it changes — there is no
+/// It loads the current project's currency, page format, minimum rest, screenplay language,
+/// episodes and learned dictionary words from [OcptProjectsManager] on entry, and writes each
+/// field back to the project the moment it changes — there is no
 /// separate save step, exactly like the appearance and language sections of the app-wide settings
 /// page. The page format is written through the very same
 /// `OcptProjectsManager.saveCurrentProjectPageFormat` the screenplay editor's own page-setup
 /// dialog uses, so the two can never disagree. The episode CRUD is reached through
 /// `OcptProjectsManager.screenplayService` — there is no twelfth service
 /// (`docs/adr/0019-one-project-several-episodes.md`) — passing [_database] exactly as
-/// `OcptResourcesBloc._loadSnapshot` already does.
+/// `OcptResourcesBloc._loadSnapshot` already does. The dictionary's own CRUD is reached through
+/// `OcptProjectsManager.projectDictionaryService` the identical way, but only ever from
+/// [_onDictionaryEdited]: unlike every other field here, the dictionary is *read* by
+/// `OcptProjectSettingsDictionarySection` but *edited* in `OcptProjectDictionaryDialog`, which
+/// only reports its diff back for this bloc to apply.
 class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// The manager used to read and write the current project's settings.
   final OcptProjectsManager _projectsManager;
@@ -49,6 +53,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsPageFormatChangedEvent>(_onPageFormatChanged);
     on<OcptProjectSettingsMinimumRestMinutesChangedEvent>(_onMinimumRestMinutesChanged);
     on<OcptProjectSettingsScreenplayLanguageChangedEvent>(_onScreenplayLanguageChanged);
+    on<OcptProjectSettingsDictionaryEditedEvent>(_onDictionaryEdited);
     on<OcptProjectSettingsEpisodeAddedEvent>(_onEpisodeAdded);
     on<OcptProjectSettingsEpisodeTitleChangedEvent>(_onEpisodeTitleChanged);
     on<OcptProjectSettingsEpisodeNumberChangedEvent>(_onEpisodeNumberChanged);
@@ -56,8 +61,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsEpisodeDeletionConfirmedEvent>(_onEpisodeDeletionConfirmed);
   }
 
-  /// Loads the current project's currency, page format, minimum rest, screenplay language and
-  /// episodes.
+  /// Loads the current project's currency, page format, minimum rest, screenplay language,
+  /// episodes and learned dictionary words.
   ///
   /// The route that reaches this page is guarded exactly like the workspace's own: a project is
   /// always open by the time this runs. The fallbacks below only ever matter if that guard were
@@ -71,6 +76,9 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
+      database: _database,
+    );
 
     emitter(
       state.copyWith(
@@ -82,6 +90,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         screenplayLanguage: screenplayLanguage,
         clearScreenplayLanguage: screenplayLanguage == null,
         episodes: episodes,
+        dictionaryWords: dictionaryWords,
       ),
     );
   }
@@ -140,6 +149,38 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         hasChanged: true,
       ),
     );
+  }
+
+  /// Applies `OcptProjectDictionaryDialog`'s reported diff to the project's dictionary, then
+  /// re-reads the live word list so the section's count reflects what the database now holds.
+  ///
+  /// Every removed word is unlearned **before** any added word is learned — the ordering
+  /// `OcptProjectDictionaryDialog._close`'s own doc comment relies on: it is what turns a
+  /// case-only re-spelling (`marie` removed, `Marie` added) into
+  /// `OcptProjectDictionaryService.learnWord` reviving the very row `unlearnWord` just
+  /// tombstoned, rather than leaving a duplicate.
+  ///
+  /// A no-op, emitting nothing, when the dialog reported no change at all: closing it without
+  /// touching anything must not mark the page changed.
+  Future<void> _onDictionaryEdited(
+    OcptProjectSettingsDictionaryEditedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    if (event.addedWords.isEmpty && event.removedWords.isEmpty) {
+      return;
+    }
+
+    for (final word in event.removedWords) {
+      await _projectsManager.projectDictionaryService.unlearnWord(database: _database, word: word);
+    }
+    for (final word in event.addedWords) {
+      await _projectsManager.projectDictionaryService.learnWord(database: _database, word: word);
+    }
+
+    final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
+      database: _database,
+    );
+    emitter(state.copyWith(dictionaryWords: dictionaryWords, hasChanged: true));
   }
 
   /// Appends a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,
