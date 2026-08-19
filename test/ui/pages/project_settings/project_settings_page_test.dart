@@ -17,12 +17,14 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_screenplay_language_section.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_minimum_rest.dart';
@@ -191,6 +193,7 @@ void main() {
 
     expect(find.byType(OcptProjectSettingsCurrencySection), findsOneWidget);
     expect(find.byType(OcptProjectSettingsPageFormatSection), findsOneWidget);
+    expect(find.byType(OcptProjectSettingsScreenplayLanguageSection), findsOneWidget);
     expect(find.byType(OcptProjectSettingsMinimumRestSection), findsOneWidget);
     expect(find.byType(OcptProjectSettingsEpisodesSection), findsOneWidget);
 
@@ -245,6 +248,60 @@ void main() {
     expect(bloc.state.pageFormat, otherFormat);
     expect(bloc.state.hasChanged, isTrue);
     expect(await projectsManager.loadCurrentProjectPageFormat(), otherFormat);
+  });
+
+  testWidgets("shows the project's currently seeded screenplay language", (tester) async {
+    await pumpView(tester);
+
+    final language = await projectsManager.loadCurrentProjectScreenplayLanguage();
+    final context = tester.element(find.byType(OcptProjectSettingsView));
+    final tr = Tr.of(context);
+    final label = switch (language) {
+      OcptScreenplayLanguage.fr => tr.projectSettingsScreenplayLanguageFrenchOption,
+      OcptScreenplayLanguage.enGb => tr.projectSettingsScreenplayLanguageEnglishOption,
+      null => tr.projectSettingsScreenplayLanguageNoneOption,
+    };
+    expect(find.text(label), findsOneWidget);
+  });
+
+  testWidgets(
+    "picking a screenplay language writes it to the project and marks the state changed",
+    (tester) async {
+      final bloc = await pumpView(tester);
+      final initialLanguage = await projectsManager.loadCurrentProjectScreenplayLanguage();
+      final otherLanguage = initialLanguage == OcptScreenplayLanguage.fr
+          ? OcptScreenplayLanguage.enGb
+          : OcptScreenplayLanguage.fr;
+
+      await tester.tap(find.byType(DropdownButton<OcptScreenplayLanguage?>));
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(OcptProjectSettingsView));
+      final tr = Tr.of(context);
+      final otherLabel = otherLanguage == OcptScreenplayLanguage.fr
+          ? tr.projectSettingsScreenplayLanguageFrenchOption
+          : tr.projectSettingsScreenplayLanguageEnglishOption;
+      await tester.tap(find.text(otherLabel).last);
+      await tester.pumpAndSettle();
+
+      expect(bloc.state.screenplayLanguage, otherLanguage);
+      expect(bloc.state.hasChanged, isTrue);
+      expect(await projectsManager.loadCurrentProjectScreenplayLanguage(), otherLanguage);
+    },
+  );
+
+  testWidgets("picking None writes null to the project", (tester) async {
+    final bloc = await pumpView(tester);
+
+    await tester.tap(find.byType(DropdownButton<OcptScreenplayLanguage?>));
+    await tester.pumpAndSettle();
+    final context = tester.element(find.byType(OcptProjectSettingsView));
+    final tr = Tr.of(context);
+    await tester.tap(find.text(tr.projectSettingsScreenplayLanguageNoneOption).last);
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.screenplayLanguage, isNull);
+    expect(bloc.state.hasChanged, isTrue);
+    expect(await projectsManager.loadCurrentProjectScreenplayLanguage(), isNull);
   });
 
   testWidgets("shows the project's currently recorded minimum rest, in hours", (tester) async {

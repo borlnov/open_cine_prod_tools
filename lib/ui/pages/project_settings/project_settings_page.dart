@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
@@ -19,14 +20,15 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_proj
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_screenplay_language_section.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The maximum width of the project settings page's content, matching the app-wide settings page.
 const _maxContentWidth = 720.0;
 
-/// Displays the settings of the currently open project: its currency and its screenplay page
-/// format.
+/// Displays the settings of the currently open project: its currency, its screenplay page format
+/// and the language its screenplays are written in.
 ///
 /// Reached from every production mode's own toolbar (`OcptWorkspaceShell.onProjectSettingsRequested`)
 /// rather than a dialog: each field writes to the project the moment it changes, exactly like the
@@ -124,6 +126,12 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
                         onPageFormatChanged: (format) => _onPageFormatChanged(context, format),
                       ),
                       const SizedBox(height: 16),
+                      OcptProjectSettingsScreenplayLanguageSection(
+                        screenplayLanguage: state.screenplayLanguage,
+                        onScreenplayLanguageChanged: (language) =>
+                            _onScreenplayLanguageChanged(context, language),
+                      ),
+                      const SizedBox(height: 16),
                       OcptProjectSettingsMinimumRestSection(
                         minimumRestMinutes: state.minimumRestMinutes,
                         onMinimumRestMinutesChanged: (minutes) =>
@@ -203,6 +211,14 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   void _onPageFormatChanged(BuildContext context, OcptPageFormat pageFormat) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsPageFormatChangedEvent(pageFormat: pageFormat),
+    );
+  }
+
+  /// Dispatches the event that writes the newly picked screenplay language to the project,
+  /// including "None" (null).
+  void _onScreenplayLanguageChanged(BuildContext context, OcptScreenplayLanguage? language) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsScreenplayLanguageChangedEvent(screenplayLanguage: language),
     );
   }
 

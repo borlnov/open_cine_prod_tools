@@ -4,6 +4,7 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
 /// The events handled by `OcptProjectSettingsBloc`.
 sealed class OcptProjectSettingsEvent extends BlocEventForMixin {
@@ -57,6 +58,21 @@ class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSetti
   /// Object properties
   @override
   List<Object?> get props => [...super.props, minutes];
+}
+
+/// Reports that the user picked a different screenplay language in the dropdown, including "None"
+/// (null) — a real gesture, turning the checker off for this screenplay, as much as picking one of
+/// the two bundled languages is.
+class OcptProjectSettingsScreenplayLanguageChangedEvent extends OcptProjectSettingsEvent {
+  /// The screenplay language the user picked, or null for "None".
+  final OcptScreenplayLanguage? screenplayLanguage;
+
+  /// Class constructor
+  const OcptProjectSettingsScreenplayLanguageChangedEvent({required this.screenplayLanguage});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, screenplayLanguage];
 }
 
 /// Reports that the `Episodes` card's `+ Add` action was tapped, appending a new episode.

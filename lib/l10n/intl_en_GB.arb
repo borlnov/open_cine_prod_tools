@@ -5712,6 +5712,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsScreenplayLanguageSectionTitle": "Screenplay language",
+  "@projectSettingsScreenplayLanguageSectionTitle": {
+    "description": "Title of the project settings page's screenplay language section",
+    "context": "Displayed at the top of the screenplay language section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageLabel": "Language",
+  "@projectSettingsScreenplayLanguageLabel": {
+    "description": "Label of the screenplay language dropdown",
+    "context": "Displayed next to the screenplay language dropdown in the screenplay language section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageHint": "Drives the spell-checker and travels with the project file, so a colleague opening it sees the same language, whatever theirs is set to.",
+  "@projectSettingsScreenplayLanguageHint": {
+    "description": "Explanation under the screenplay language dropdown, what the setting is for",
+    "context": "Displayed under the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageNoneOption": "None",
+  "@projectSettingsScreenplayLanguageNoneOption": {
+    "description": "Label of the \"no screenplay language recorded\" dropdown entry",
+    "context": "Displayed as an entry of the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageFrenchOption": "French",
+  "@projectSettingsScreenplayLanguageFrenchOption": {
+    "description": "Label of the French screenplay language option",
+    "context": "Displayed as an entry of the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsScreenplayLanguageEnglishOption": "English (UK)",
+  "@projectSettingsScreenplayLanguageEnglishOption": {
+    "description": "Label of the English (UK) screenplay language option",
+    "context": "Displayed as an entry of the screenplay language dropdown on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsMinimumRestSectionTitle": "Minimum rest between two shooting days",
   "@projectSettingsMinimumRestSectionTitle": {
     "description": "Title of the project settings page's minimum rest section",

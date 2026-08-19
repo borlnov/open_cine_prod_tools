@@ -15,8 +15,9 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 
 /// This is the bloc class for the project settings page.
 ///
-/// It loads the current project's currency, page format and episodes from [OcptProjectsManager]
-/// on entry, and writes each field back to the project the moment it changes — there is no
+/// It loads the current project's currency, page format, minimum rest, screenplay language and
+/// episodes from [OcptProjectsManager] on entry, and writes each field back to the project the
+/// moment it changes — there is no
 /// separate save step, exactly like the appearance and language sections of the app-wide settings
 /// page. The page format is written through the very same
 /// `OcptProjectsManager.saveCurrentProjectPageFormat` the screenplay editor's own page-setup
@@ -47,6 +48,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsCurrencyChangedEvent>(_onCurrencyChanged);
     on<OcptProjectSettingsPageFormatChangedEvent>(_onPageFormatChanged);
     on<OcptProjectSettingsMinimumRestMinutesChangedEvent>(_onMinimumRestMinutesChanged);
+    on<OcptProjectSettingsScreenplayLanguageChangedEvent>(_onScreenplayLanguageChanged);
     on<OcptProjectSettingsEpisodeAddedEvent>(_onEpisodeAdded);
     on<OcptProjectSettingsEpisodeTitleChangedEvent>(_onEpisodeTitleChanged);
     on<OcptProjectSettingsEpisodeNumberChangedEvent>(_onEpisodeNumberChanged);
@@ -54,7 +56,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsEpisodeDeletionConfirmedEvent>(_onEpisodeDeletionConfirmed);
   }
 
-  /// Loads the current project's currency, page format and episodes.
+  /// Loads the current project's currency, page format, minimum rest, screenplay language and
+  /// episodes.
   ///
   /// The route that reaches this page is guarded exactly like the workspace's own: a project is
   /// always open by the time this runs. The fallbacks below only ever matter if that guard were
@@ -66,6 +69,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
     final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+    final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
 
     emitter(
@@ -75,6 +79,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
         minimumRestMinutes: minimumRestMinutes,
         clearMinimumRestMinutes: minimumRestMinutes == null,
+        screenplayLanguage: screenplayLanguage,
+        clearScreenplayLanguage: screenplayLanguage == null,
         episodes: episodes,
       ),
     );
@@ -112,6 +118,25 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       state.copyWith(
         minimumRestMinutes: event.minutes,
         clearMinimumRestMinutes: event.minutes == null,
+        hasChanged: true,
+      ),
+    );
+  }
+
+  /// Writes the newly picked screenplay language to the project, then reflects it in the state.
+  ///
+  /// `event.screenplayLanguage` is written whichever it is, "None" (null) included: it is what
+  /// makes the checker's off switch for this screenplay actually reach the project file, the same
+  /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field.
+  Future<void> _onScreenplayLanguageChanged(
+    OcptProjectSettingsScreenplayLanguageChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectScreenplayLanguage(event.screenplayLanguage);
+    emitter(
+      state.copyWith(
+        screenplayLanguage: event.screenplayLanguage,
+        clearScreenplayLanguage: event.screenplayLanguage == null,
         hasChanged: true,
       ),
     );
