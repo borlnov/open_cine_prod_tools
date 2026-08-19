@@ -460,6 +460,7 @@ void main() {
       'shooting_day_blocks',
       'shooting_slot_guests',
       'shooting_day_events',
+      'project_dictionary_words',
     });
 
     // And every file an earlier version could have left behind, brought up by `onUpgrade`: each
@@ -2002,6 +2003,11 @@ void main() {
       // as truthfully null after the migration as "nobody has said" was before it.
       final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
       expect(projectInfo.screenplayLanguage, isNull);
+
+      // (j) `project_dictionary_words` didn't exist before this version either: the migration
+      // creates it fresh, empty — a project migrating onto this version has taught its spell
+      // checker nothing yet.
+      expect(await database.select(database.ocptProjectDictionaryWordsTable).get(), isEmpty);
 
       await database.close();
     },

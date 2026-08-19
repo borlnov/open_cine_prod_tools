@@ -70,6 +70,7 @@ class OcptProjectVersionsService {
     'shooting_day_blocks',
     'shooting_slot_guests',
     'shooting_day_events',
+    'project_dictionary_words',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -381,6 +382,7 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptShootingSlotGuestsTable, payload.shootingSlotGuests)
         ..insertAll(database.ocptShootingDayBlocksTable, payload.shootingDayBlocks)
         ..insertAll(database.ocptShootingDayEventsTable, payload.shootingDayEvents)
+        ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -620,6 +622,9 @@ class OcptProjectVersionsService {
       shootingDayBlocks: await database.select(database.ocptShootingDayBlocksTable).get(),
       shootingSlotGuests: await database.select(database.ocptShootingSlotGuestsTable).get(),
       shootingDayEvents: await database.select(database.ocptShootingDayEventsTable).get(),
+      projectDictionaryWords: await database
+          .select(database.ocptProjectDictionaryWordsTable)
+          .get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
@@ -694,6 +699,10 @@ class OcptProjectVersionsService {
   /// could possibly reference is restored by this point, so this is not a forward reference and
   /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
   /// needs, not this group.
+  ///
+  /// `project_dictionary_words` is restored last of all, and could just as well go anywhere else:
+  /// it references nothing, and nothing else in the schema references it back, so there is no
+  /// dependency order for it to respect.
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
   /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
@@ -965,6 +974,17 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    // `project_dictionary_words` references nothing, and nothing references it back, so it needs
+    // no particular place in this dependency order: last is as good as any.
+    await _restoreTable(
+      database: database,
+      table: database.ocptProjectDictionaryWordsTable,
+      payloadRows: payload.projectDictionaryWords,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await stamps.flush(database);
   }
 
@@ -1084,6 +1104,9 @@ class OcptProjectVersionsService {
       shootingDayBlocks: payload.shootingDayBlocks,
       shootingSlotGuests: payload.shootingSlotGuests,
       shootingDayEvents: payload.shootingDayEvents,
+      // A dictionary word names no person — only the word itself and its tombstone — so there is
+      // nothing here for this scrub to reach either.
+      projectDictionaryWords: payload.projectDictionaryWords,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,

@@ -51,6 +51,7 @@ void main() {
     shootingDayBlocks: const [],
     shootingSlotGuests: const [],
     shootingDayEvents: const [],
+    projectDictionaryWords: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,

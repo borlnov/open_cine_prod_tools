@@ -755,6 +755,10 @@ void main() {
         isDeleted: true,
       ),
     ],
+    projectDictionaryWords: const [
+      OcptProjectDictionaryWordRow(id: "word-1", word: "Séquence", isDeleted: false),
+      OcptProjectDictionaryWordRow(id: "word-2", word: "Marc", isDeleted: true),
+    ],
     rowFieldVersions: const [
       OcptRowFieldVersionRow(
         targetTableName: "shots",
@@ -1186,6 +1190,19 @@ void main() {
       expect(roundTrip(buildRichPayload()).screenplayLanguage, OcptScreenplayLanguage.fr);
     });
 
+    test('the learned words come back, exactly as typed, tombstones included', () {
+      final roundTripped = roundTrip(buildRichPayload());
+
+      expect(
+        roundTripped.projectDictionaryWords.map((row) => row.word),
+        ["Séquence", "Marc"],
+      );
+      expect(
+        roundTripped.projectDictionaryWords.map((row) => row.isDeleted),
+        [false, true],
+      );
+    });
+
     test("a block's crew note comes back", () {
       final block = roundTrip(
         buildRichPayload(),
@@ -1229,6 +1246,7 @@ void main() {
         shootingDayBlocks: [],
         shootingSlotGuests: [],
         shootingDayEvents: [],
+        projectDictionaryWords: [],
         rowFieldVersions: [],
         pageSetup: OcptPageSetup.standard(),
         settingsJson: null,
@@ -1283,6 +1301,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks.reversed.toList(),
         shootingSlotGuests: payload.shootingSlotGuests.reversed.toList(),
         shootingDayEvents: payload.shootingDayEvents.reversed.toList(),
+        projectDictionaryWords: payload.projectDictionaryWords.reversed.toList(),
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1325,6 +1344,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: const [
           OcptRowFieldVersionRow(
             targetTableName: "shots",
@@ -1375,6 +1395,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: payload.pageSetup.format,
@@ -1428,6 +1449,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1470,6 +1492,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1512,6 +1535,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1556,6 +1580,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1606,6 +1631,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1654,6 +1680,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1699,6 +1726,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1756,6 +1784,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1807,6 +1836,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1852,6 +1882,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1897,6 +1928,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1942,6 +1974,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1998,6 +2031,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2045,6 +2079,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2090,6 +2125,7 @@ void main() {
         ],
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2143,6 +2179,7 @@ void main() {
           ),
         ],
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2185,6 +2222,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: OcptPageFormat.usLetter,
@@ -2230,6 +2268,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2272,6 +2311,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2314,6 +2354,7 @@ void main() {
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2323,6 +2364,55 @@ void main() {
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(relanguaged)));
+    });
+
+    test('changes when the learned words differ', () {
+      final payload = buildRichPayload();
+      final relearned = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: [
+          ...payload.projectDictionaryWords,
+          const OcptProjectDictionaryWordRow(id: "word-3", word: "Julien", isDeleted: false),
+        ],
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+      );
+
+      // Two projects agreeing on everything else but disagreeing on what the checker has been
+      // taught are not the same project: a digest that left the lexicon out would let the
+      // working-copy card claim no drift after a whole afternoon of teaching it names.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(relearned)));
     });
 
     test("changes when a block's crew note is typed", () {
@@ -2360,6 +2450,7 @@ void main() {
         shootingDayBlocks: blocks,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -3350,6 +3441,28 @@ void main() {
         // And nothing else was disturbed on the way through: the rest of the project came back.
         expect(result.value!.currencyCode, buildRichPayload().currencyCode);
         expect(result.value!.minimumRestMinutes, buildRichPayload().minimumRestMinutes);
+      },
+    );
+
+    test(
+      'a stored format-14 payload decodes with no learned words at all',
+      () {
+        // Format 14 predates `project_dictionary_words` entirely, so [_upgradeFormat14To15]
+        // materialises it as an **empty list** — [_upgradeFormat1To2]'s kind, not
+        // [_upgradeFormat13To14]'s null: a version captured this early truthfully taught the spell
+        // checker nothing at all. The fixture is the current encoding with the key taken back out
+        // and the format wound back, rather than a second hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("projectDictionaryWords");
+        encoded["payloadFormat"] = 14;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.projectDictionaryWords, isEmpty);
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(result.value!.roleEpisodes, buildRichPayload().roleEpisodes);
+        expect(result.value!.screenplayLanguage, buildRichPayload().screenplayLanguage);
       },
     );
   });

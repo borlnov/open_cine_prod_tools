@@ -337,6 +337,35 @@ void main() {
       expect(payload.settingsJson, '{"someSetting":true}');
     });
 
+    test("captures the project's learned words, tombstones included", () async {
+      await database
+          .into(database.ocptProjectDictionaryWordsTable)
+          .insert(
+            OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Séquence"),
+          );
+      await database
+          .into(database.ocptProjectDictionaryWordsTable)
+          .insert(
+            OcptProjectDictionaryWordsTableCompanion.insert(
+              id: "word-2",
+              word: "Marc",
+              isDeleted: const Value(true),
+            ),
+          );
+
+      final payload = await readPayload((await createVersion()).id);
+
+      expect(payload.projectDictionaryWords.map((row) => row.id), containsAll(["word-1", "word-2"]));
+      expect(
+        payload.projectDictionaryWords.firstWhere((row) => row.id == "word-1").isDeleted,
+        isFalse,
+      );
+      expect(
+        payload.projectDictionaryWords.firstWhere((row) => row.id == "word-2").isDeleted,
+        isTrue,
+      );
+    });
+
     test("stamps the row with the content digest of the payload it just captured", () async {
       await insertScene(id: "scene-1");
       await insertShot(id: "shot-1", sceneId: "scene-1");
@@ -854,6 +883,7 @@ void main() {
                   shootingDayBlocks: payload.shootingDayBlocks,
                   shootingSlotGuests: payload.shootingSlotGuests,
                   shootingDayEvents: payload.shootingDayEvents,
+                  projectDictionaryWords: payload.projectDictionaryWords,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -1080,6 +1110,50 @@ void main() {
           database.ocptRoleEpisodesTable,
         )..where((table) => table.id.equals("link-2"))).getSingle();
         expect(later.isDeleted, isTrue);
+      },
+    );
+
+    test(
+      "tombstones a word learned since the capture, and revives one removed since",
+      () async {
+        await database
+            .into(database.ocptProjectDictionaryWordsTable)
+            .insert(
+              OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Clara"),
+            );
+
+        final version = await createVersion();
+
+        // Diverge: the word is un-learned since — as if the writer had removed it after the
+        // capture — and a fresh one is learned.
+        await (database.update(
+          database.ocptProjectDictionaryWordsTable,
+        )..where((table) => table.id.equals("word-1"))).write(
+          const OcptProjectDictionaryWordsTableCompanion(isDeleted: Value(true)),
+        );
+        await database
+            .into(database.ocptProjectDictionaryWordsTable)
+            .insert(
+              OcptProjectDictionaryWordsTableCompanion.insert(id: "word-2", word: "Julien"),
+            );
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        // "word-1" was live in the captured version: restoring revives it.
+        final revived = await (database.select(
+          database.ocptProjectDictionaryWordsTable,
+        )..where((table) => table.id.equals("word-1"))).getSingle();
+        expect(revived.word, "Clara");
+        expect(revived.isDeleted, isFalse);
+
+        // "word-2" was learned after the capture: the version never held it, so it is
+        // tombstoned, not deleted, exactly like every other row a payload doesn't carry.
+        final tombstoned = await (database.select(
+          database.ocptProjectDictionaryWordsTable,
+        )..where((table) => table.id.equals("word-2"))).getSingle();
+        expect(tombstoned.isDeleted, isTrue);
       },
     );
 

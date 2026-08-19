@@ -127,6 +127,11 @@ class OcptProjectVersionPayload extends Equatable {
   /// hour.
   final List<OcptShootingDayEventRow> shootingDayEvents;
 
+  /// The `project_dictionary_words` rows of the project: the words a writer has taught this
+  /// project's spell checker, tombstones included — a word removed since this version was captured
+  /// must come back un-learned on restore, exactly as any other deleted row does.
+  final List<OcptProjectDictionaryWordRow> projectDictionaryWords;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -208,6 +213,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingDayBlocks,
     required this.shootingSlotGuests,
     required this.shootingDayEvents,
+    required this.projectDictionaryWords,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -235,6 +241,7 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingDayBlocks: ${shootingDayBlocks.length}, "
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
+      "projectDictionaryWords: ${projectDictionaryWords.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
       "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage)";
@@ -270,6 +277,7 @@ class OcptProjectVersionPayload extends Equatable {
     shootingDayBlocks,
     shootingSlotGuests,
     shootingDayEvents,
+    projectDictionaryWords,
     rowFieldVersions,
     pageSetup,
     settingsJson,

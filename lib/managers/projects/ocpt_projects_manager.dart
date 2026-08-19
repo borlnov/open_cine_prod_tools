@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -62,12 +63,14 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// only one such file can be open at a time, exposed through [currentProject] and
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
 /// index, its shot list, its named versions, its resources catalogue (the address book, the cast,
-/// locations and elements), the breakdown pass tagging that catalogue against the screenplay, or
-/// the shooting schedule is delegated to [screenplayService], [sceneIndexService],
+/// locations and elements), the breakdown pass tagging that catalogue against the screenplay, the
+/// shooting schedule, or the project's own spell-check lexicon is delegated to [screenplayService],
+/// [sceneIndexService],
 /// [shotListService], [shotCoverageService], [projectVersionsService], [peopleService],
 /// [roleIndexService], [locationsService], [elementsService], [breakdownService],
-/// [scheduleService] and [assetsService], the twelve services this manager owns and wires together
-/// (RFL18): this manager itself is only responsible for the lifecycle of the project file
+/// [scheduleService], [assetsService] and [projectDictionaryService], the thirteen services this
+/// manager owns and wires together (RFL18): this manager itself is only responsible for the
+/// lifecycle of the project file
 /// (create/open/close), for keeping the properties manager's recent-projects list in sync, and for
 /// handing those services the facts only it holds — the open project's database, the app version,
 /// this replica's device id and the app-wide page margins.
@@ -137,6 +140,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// so "remove this file" has one answer rather than three.
   final OcptAssetsService assetsService;
 
+  /// The service used to learn, unlearn and read back the words this project's writer has taught
+  /// the spell checker.
+  final OcptProjectDictionaryService projectDictionaryService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -189,6 +196,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       locationsService = const OcptLocationsService(),
       elementsService = const OcptElementsService(),
       assetsService = const OcptAssetsService(),
+      projectDictionaryService = const OcptProjectDictionaryService(),
       breakdownService = const OcptBreakdownService(
         elementsService: OcptElementsService(),
         locationsService: OcptLocationsService(),

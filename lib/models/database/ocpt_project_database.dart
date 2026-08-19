@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_positions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_skills_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_unavailabilities_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_dictionary_words_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_elements_table.dart';
@@ -128,7 +129,9 @@ part 'ocpt_project_database.g.dart';
 /// whole point of a shared schedule. Schema version 19 adds
 /// `project_info.screenplayLanguage`, the language a project's screenplays are written in
 /// ([OcptScreenplayLanguage]) — nullable, since "nobody has said" is as true after the migration as
-/// it was before it, exactly the reading [OcptProjectInfoTable.minimumRestMinutes] already carries.
+/// it was before it, exactly the reading [OcptProjectInfoTable.minimumRestMinutes] already carries
+/// — and, alongside it, [OcptProjectDictionaryWordsTable], the words a writer has taught this
+/// project's spell checker.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -165,6 +168,7 @@ part 'ocpt_project_database.g.dart';
     OcptShootingDayBlocksTable,
     OcptShootingSlotGuestsTable,
     OcptShootingDayEventsTable,
+    OcptProjectDictionaryWordsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -356,7 +360,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// column is nullable by design, and null after this migration is exactly as true a reading —
   /// "nobody has said" — as it was the moment before it, the same reading
   /// `people.maxDailyPresenceMinutes` and `project_info.minimumRestMinutes` itself already carry.
-  /// Every step is additive, as
+  /// The same step also creates [OcptProjectDictionaryWordsTable], the words a writer has taught
+  /// this project's spell checker — a plain `createTable` on a file coming from any version, since
+  /// nothing a project already held needs migrating into it. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -561,6 +567,12 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // `project_info` has existed, and been alterable, since version 1: no guard needed,
         // exactly as `project_info.minimumRestMinutes` above needed none.
         await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.screenplayLanguage);
+
+        // The table a project's learned words live in didn't exist before this version, on any
+        // file: a plain `createTable`, exactly as `OcptRoleElementsTable` (version 14 to 15) got
+        // one, with nothing to backfill — a project migrating onto this version has taught its
+        // spell checker nothing yet.
+        await m.createTable(ocptProjectDictionaryWordsTable);
       }
     },
     beforeOpen: (details) async {
