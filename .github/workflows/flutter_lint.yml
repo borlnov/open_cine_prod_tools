@@ -5,7 +5,8 @@
 name: Dart Checks
 
 # Paths cover everything the analyzer and the tests read: the app and package sources, the
-# dependency and lint configuration, the actlibs submodule pointer, and the CI definition itself.
+# bundled dictionaries spell_kit's tests check themselves against, the dependency and lint
+# configuration, the actlibs submodule pointer, and the CI definition itself.
 # The two lists are identical and have to be repeated: GitHub Actions does not resolve YAML anchors.
 on:
   pull_request:
@@ -13,6 +14,7 @@ on:
       - "lib/**"
       - "test/**"
       - "packages/**"
+      - "assets/dictionaries/**"
       - "actlibs"
       - "pubspec.yaml"
       - "pubspec.lock"
@@ -25,6 +27,7 @@ on:
       - "lib/**"
       - "test/**"
       - "packages/**"
+      - "assets/dictionaries/**"
       - "actlibs"
       - "pubspec.yaml"
       - "pubspec.lock"
@@ -51,6 +54,7 @@ jobs:
         package:
           - { name: app, path: . }
           - { name: fountain_kit, path: packages/fountain_kit }
+          - { name: spell_kit, path: packages/spell_kit }
     steps:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -67,7 +71,7 @@ jobs:
       - name: Generate drift database code
         if: matrix.package.path == '.'
         run: dart run build_runner build
-      - name: Get fountain_kit dependencies
+      - name: Get package dependencies
         if: matrix.package.path != '.'
         working-directory: ${{ matrix.package.path }}
         run: dart pub get
@@ -75,7 +79,7 @@ jobs:
         if: matrix.package.path == '.'
         working-directory: ${{ matrix.package.path }}
         run: flutter analyze
-      - name: Analyze (fountain_kit)
+      - name: Analyze (package)
         if: matrix.package.path != '.'
         working-directory: ${{ matrix.package.path }}
         run: dart analyze
@@ -83,7 +87,7 @@ jobs:
         if: matrix.package.path == '.'
         working-directory: ${{ matrix.package.path }}
         run: flutter test
-      - name: Test (fountain_kit)
+      - name: Test (package)
         if: matrix.package.path != '.'
         working-directory: ${{ matrix.package.path }}
         run: dart test
