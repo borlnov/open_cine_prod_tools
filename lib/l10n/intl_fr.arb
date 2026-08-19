@@ -49,6 +49,8 @@
   "editorContextMenuPasteAction": "Coller",
   "editorContextMenuSelectAllAction": "Tout sélectionner",
   "editorContextMenuBlockTypeSubmenu": "Type de bloc",
+  "editorContextMenuIgnoreWordAction": "Ignorer ce mot",
+  "editorContextMenuAddToDictionaryAction": "Ajouter au dictionnaire du projet",
   "editorToggleBoldTooltip": "Gras (Ctrl+B)",
   "editorToggleItalicTooltip": "Italique (Ctrl+I)",
   "editorToggleUnderlineTooltip": "Souligné (Ctrl+U)",

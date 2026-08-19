@@ -600,6 +600,14 @@ class _EditorViewState extends State<_EditorView> {
             ),
             jumpRequest: state.jumpRequest,
             styledController: _styledEditorController,
+            onSpellingSuggestionsRequested: (word) =>
+                context.read<OcptEditorBloc>().spellingSuggestionsFor(word),
+            onWordIgnored: (word) => context.read<OcptEditorBloc>().add(
+              OcptEditorWordIgnoredEvent(word: word),
+            ),
+            onWordLearned: (word) => context.read<OcptEditorBloc>().add(
+              OcptEditorWordLearnedEvent(word: word),
+            ),
           );
 
     // The find/replace bar is a *slot* that is always there — an empty box while it is closed —

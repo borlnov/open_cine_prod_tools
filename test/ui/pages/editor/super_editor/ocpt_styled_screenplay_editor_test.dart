@@ -162,6 +162,9 @@ Future<void> _pumpStandaloneEditor(
   bool isPageSimulationEnabled = false,
   bool areSceneNumbersVisible = false,
   bool isSpellCheckVisible = false,
+  Future<List<String>> Function(String word)? onSpellingSuggestionsRequested,
+  ValueChanged<String>? onWordIgnored,
+  ValueChanged<String>? onWordLearned,
 }) async {
   await tester.pumpWidget(
     _wrap(
@@ -176,6 +179,9 @@ Future<void> _pumpStandaloneEditor(
         onCaretLineChanged: (_) {},
         jumpRequest: null,
         styledController: styledController,
+        onSpellingSuggestionsRequested: onSpellingSuggestionsRequested,
+        onWordIgnored: onWordIgnored,
+        onWordLearned: onWordLearned,
       ),
     ),
   );
@@ -3302,6 +3308,163 @@ void main() {
         actionNode.text.toPlainText().length,
       );
     });
+  });
+
+  group("right-click spelling suggestions", () {
+    _testWidgetsAsDesktop(
+      "right-clicking a misspelled word offers the suggestions the callback returns, and picking "
+      "one rewrites exactly that word, undone whole by a single Ctrl+Z",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        final requestedWords = <String>[];
+
+        // The whole action line is the misspelled word itself, so `_tapOffsetInsideText` (which
+        // taps near the node's own left edge) is guaranteed to land inside the range below,
+        // without needing to resolve a pixel offset for one particular word inside a longer line.
+        await _pumpStandaloneEditor(
+          tester,
+          "wrold",
+          styledController: controller,
+          isSpellCheckVisible: true,
+          onSpellingSuggestionsRequested: (word) async {
+            requestedWords.add(word);
+            return ["world", "word", "wold"];
+          },
+          // Both actions are wired only so this test can assert they are *offered* beside the
+          // suggestions; each is withheld when its own callback is null, and the two tests below
+          // are what exercise what picking one actually reports.
+          onWordIgnored: (_) {},
+          onWordLearned: (_) {},
+        );
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        controller.updateSpellCheckRanges({
+          nodeId: [const SpellRange(0, 5)],
+        });
+        await tester.pump();
+
+        await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        expect(requestedWords, ["wrold"]);
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        expect(find.text("world"), findsOneWidget);
+        expect(find.text("word"), findsOneWidget);
+        expect(find.text("wold"), findsOneWidget);
+        expect(find.text(tr.editorContextMenuIgnoreWordAction), findsOneWidget);
+        expect(find.text(tr.editorContextMenuAddToDictionaryAction), findsOneWidget);
+
+        await tester.tap(find.text("world"));
+        await tester.pumpAndSettle();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "world");
+
+        await _pumpPastSettleDebounce(tester);
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await tester.pumpAndSettle();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "wrold");
+      },
+    );
+
+    _testWidgetsAsDesktop("right-clicking a word that isn't misspelled shows no suggestions and no "
+        "spelling actions", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(
+        tester,
+        "Some correct action.",
+        styledController: controller,
+        isSpellCheckVisible: true,
+        onSpellingSuggestionsRequested: (word) async => ["should not be offered"],
+      );
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      // No ranges at all reported for this node: nothing under the tap is flagged.
+      await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+      expect(find.text("should not be offered"), findsNothing);
+      expect(find.text(tr.editorContextMenuIgnoreWordAction), findsNothing);
+      expect(find.text(tr.editorContextMenuAddToDictionaryAction), findsNothing);
+      // The ordinary entries are still there, untouched by the withheld spelling group.
+      expect(find.text(tr.editorContextMenuSelectAllAction), findsOneWidget);
+    });
+
+    _testWidgetsAsDesktop(
+      "picking Ignore this word reports the word up without touching the document",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        String? ignoredWord;
+
+        await _pumpStandaloneEditor(
+          tester,
+          "wrold",
+          styledController: controller,
+          isSpellCheckVisible: true,
+          onSpellingSuggestionsRequested: (word) async => const [],
+          onWordIgnored: (word) => ignoredWord = word,
+        );
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        controller.updateSpellCheckRanges({
+          nodeId: [const SpellRange(0, 5)],
+        });
+        await tester.pump();
+
+        await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        await tester.tap(find.text(tr.editorContextMenuIgnoreWordAction));
+        await tester.pumpAndSettle();
+
+        expect(ignoredWord, "wrold");
+        expect(_nodeAt(document, 0).text.toPlainText(), "wrold");
+      },
+    );
+
+    _testWidgetsAsDesktop(
+      "picking Add to the project's dictionary reports the word up without touching the document",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        String? learnedWord;
+
+        await _pumpStandaloneEditor(
+          tester,
+          "wrold",
+          styledController: controller,
+          isSpellCheckVisible: true,
+          onSpellingSuggestionsRequested: (word) async => const [],
+          onWordLearned: (word) => learnedWord = word,
+        );
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        controller.updateSpellCheckRanges({
+          nodeId: [const SpellRange(0, 5)],
+        });
+        await tester.pump();
+
+        await tester.tapAt(_tapOffsetInsideText(nodeId), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        await tester.tap(find.text(tr.editorContextMenuAddToDictionaryAction));
+        await tester.pumpAndSettle();
+
+        expect(learnedWord, "wrold");
+        expect(_nodeAt(document, 0).text.toPlainText(), "wrold");
+      },
+    );
   });
 
   group("undo and redo", () {

@@ -366,6 +366,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorContextMenuIgnoreWordAction": "Ignore this word",
+  "@editorContextMenuIgnoreWordAction": {
+    "description": "Label of the entry that ignores a misspelled word for the rest of the session",
+    "context": "Displayed in the styled screenplay editor's context menu, over a misspelled word",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuAddToDictionaryAction": "Add to the project's dictionary",
+  "@editorContextMenuAddToDictionaryAction": {
+    "description": "Label of the entry that teaches a misspelled word to the project's own dictionary",
+    "context": "Displayed in the styled screenplay editor's context menu, over a misspelled word",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorToggleBoldTooltip": "Bold (Ctrl+B)",
   "@editorToggleBoldTooltip": {
     "description": "Tooltip of the toolbar action that toggles bold on the selection",

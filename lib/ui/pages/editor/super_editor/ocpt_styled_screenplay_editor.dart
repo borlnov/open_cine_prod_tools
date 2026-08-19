@@ -101,6 +101,23 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// nothing to attach to, exactly like being in raw mode.
   final OcptStyledEditorController? styledController;
 
+  /// Awaited by [_OcptStyledScreenplayEditorState._onSecondaryTapUp] when a right-click lands on a
+  /// misspelled word, before the context menu opens (`docs/plans/screenplay-spell-check.md` §4.5).
+  /// Null (in a test with nothing to wire it to, chiefly) simply means no suggestion is ever
+  /// fetched, and [OcptEditorContextMenu]'s own nullable-callback rule then withholds the whole
+  /// spelling group regardless of whether the tap actually landed on a misspelling.
+  final Future<List<String>> Function(String word)? onSpellingSuggestionsRequested;
+
+  /// Called with a misspelled word the context menu's "Ignore this word" entry was picked for;
+  /// null withholds that entry. Never touches the document itself — the bloc's own re-check is
+  /// what makes the underline disappear.
+  final ValueChanged<String>? onWordIgnored;
+
+  /// Called with a misspelled word the context menu's "Add to the project's dictionary" entry was
+  /// picked for; null withholds that entry. Never touches the document itself, for the same reason
+  /// [onWordIgnored] doesn't.
+  final ValueChanged<String>? onWordLearned;
+
   /// Class constructor
   const OcptStyledScreenplayEditor({
     super.key,
@@ -113,6 +130,9 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.onCaretLineChanged,
     required this.jumpRequest,
     this.styledController,
+    this.onSpellingSuggestionsRequested,
+    this.onWordIgnored,
+    this.onWordLearned,
   });
 
   @override
@@ -212,6 +232,23 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// here since [build] is also what positions it, at the tap [_onSecondaryTapUp] resolved.
   final MenuController _contextMenuController = MenuController();
 
+  /// The node id [_contextMenuMisspelledRange]/[_contextMenuMisspelledWord] belong to, or null when
+  /// the last right-click didn't land on a misspelling. Set by [_onSecondaryTapUp], read back by
+  /// [_applySuggestionFromContextMenu] to know which node to rewrite.
+  String? _contextMenuMisspelledNodeId;
+
+  /// The range (relative to [_contextMenuMisspelledNodeId]'s own text at the moment of the tap)
+  /// [_contextMenuMisspelledWord] was found at.
+  SpellRange? _contextMenuMisspelledRange;
+
+  /// The misspelled word the last right-click landed on, or null when it didn't — read by [build]
+  /// to gate [OcptEditorContextMenu]'s spelling group (its own `misspelledWord` parameter).
+  String? _contextMenuMisspelledWord;
+
+  /// Up to five spelling suggestions for [_contextMenuMisspelledWord], fetched once by
+  /// [_onSecondaryTapUp] when the menu opened — never refetched on every rebuild.
+  List<String> _contextMenuSuggestions = const [];
+
   /// The IME-delta interceptor that catches a plain Tab keystroke before it can insert a literal
   /// `\t` character (see `OcptFountainTabInterceptor`'s own doc comment for why this is needed).
   /// Built once, not on every [build] — `SuperEditorImeInteractorState` compares `imeOverrides` by
@@ -276,6 +313,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   final SpellingAndGrammarStyler _spellingAndGrammarStyler = SpellingAndGrammarStyler(
     spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(color: ocptEditorSpellCheckErrorColor),
   );
+
+  /// The misspelled ranges [updateSpellCheckRanges] last applied to [_spellingAndGrammarStyler],
+  /// keyed by node id and remembered here too so [_onSecondaryTapUp] can tell whether a right-click
+  /// landed inside one — [SpellingAndGrammarStyler] itself exposes no getter to ask that of.
+  Map<String, List<SpellRange>> _lastSpellCheckRangesByNodeId = const {};
 
   /// The find/replace query [updateSearch] last set, or null while there is no active search —
   /// `editor_page.dart` sets this to null whenever the bar is closed, a different mode is active,
@@ -542,6 +584,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     return OcptEditorContextMenu(
       controller: _contextMenuController,
       childFocusNode: _focusNode,
+      misspelledWord: _contextMenuMisspelledWord,
+      suggestions: _contextMenuSuggestions,
+      onSuggestionSelected: _contextMenuMisspelledWord != null ? _applySuggestionFromContextMenu : null,
+      // Each of the two actions is additionally gated on the callback that would carry it out: a
+      // caller that wired none of them (a test, chiefly) must see the entry withheld rather than
+      // shown and inert, the repository-wide rule this menu already follows everywhere else.
+      onIgnoreWord: _contextMenuMisspelledWord != null && widget.onWordIgnored != null
+          ? _ignoreWordFromContextMenu
+          : null,
+      onLearnWord: _contextMenuMisspelledWord != null && widget.onWordLearned != null
+          ? _learnWordFromContextMenu
+          : null,
       currentType: _contextMenuBlockType,
       onCut: _hasExpandedSelection ? _cutSelectionFromContextMenu : null,
       onCopy: _hasExpandedSelection ? _copySelectionFromContextMenu : null,
@@ -1254,13 +1308,27 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   ///
   /// A collapsed caret is placed at that position unless it already sits inside an expanded
   /// selection — right-clicking inside a selection must never destroy it, which is the whole point
-  /// of the Cut/Copy entries the menu is about to show. Either way, `setState` runs before the menu
-  /// opens: nothing about a selection change (placing this exact caret included) schedules a
-  /// rebuild of this widget on its own (see [_onSelectionChanged]'s own doc comment on why a
-  /// separate read-state channel exists for the toolbar), so without it [build] would hand
-  /// [OcptEditorContextMenu] the *previous* selection's Cut/Copy/submenu availability instead of the
-  /// one this tap just settled on.
-  void _onSecondaryTapUp(TapUpDetails details) {
+  /// of the Cut/Copy entries the menu is about to show.
+  ///
+  /// Also resolves the styled spelling group (`docs/plans/screenplay-spell-check.md` §4.5): if the
+  /// resolved document position falls inside one of [_lastSpellCheckRangesByNodeId]'s own ranges
+  /// (see [_misspellingAt]), the misspelled word is read out of that node's **current** display
+  /// text (never the text the range was computed against, which may be stale) and
+  /// [OcptStyledScreenplayEditor.onSpellingSuggestionsRequested] is awaited for up to five
+  /// suggestions before the menu opens — the one isolate round trip the plan's own §4.5 accepts
+  /// paying only when a right-click actually asks for it. `details.localPosition` is captured
+  /// before that await (an [Offset] the widget tree could otherwise recycle from under a stale
+  /// reference), `mounted` is checked after it, and the answer is dropped outright if the caret has
+  /// moved on in the meantime — a suggestion list for a word the writer already clicked away from
+  /// would be worse than none.
+  ///
+  /// Either way, `setState` runs right before the menu opens: nothing about a selection change
+  /// (placing this exact caret included) schedules a rebuild of this widget on its own (see
+  /// [_onSelectionChanged]'s own doc comment on why a separate read-state channel exists for the
+  /// toolbar), so without it [build] would hand [OcptEditorContextMenu] the *previous* selection's
+  /// Cut/Copy/submenu availability — and the *previous* right-click's spelling group — instead of
+  /// the one this tap just settled on.
+  Future<void> _onSecondaryTapUp(TapUpDetails details) async {
     final layout = _documentLayoutKey.currentState as DocumentLayout?;
     if (layout == null) {
       return;
@@ -1285,8 +1353,132 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ]);
     }
 
-    setState(() {});
-    _contextMenuController.open(position: details.localPosition);
+    final localPosition = details.localPosition;
+    final selectionAfterTap = _composer.selection;
+    final misspelling = _misspellingAt(position);
+
+    final nodeId = misspelling?.nodeId;
+    final range = misspelling?.range;
+    final word = misspelling?.word;
+    var suggestions = const <String>[];
+
+    final onSpellingSuggestionsRequested = widget.onSpellingSuggestionsRequested;
+    if (word != null && onSpellingSuggestionsRequested != null) {
+      final fetched = await onSpellingSuggestionsRequested(word);
+      if (!mounted || _composer.selection != selectionAfterTap) {
+        return;
+      }
+      suggestions = fetched.take(5).toList(growable: false);
+    }
+
+    setState(() {
+      _contextMenuMisspelledNodeId = nodeId;
+      _contextMenuMisspelledRange = range;
+      _contextMenuMisspelledWord = word;
+      _contextMenuSuggestions = suggestions;
+    });
+    _contextMenuController.open(position: localPosition);
+  }
+
+  /// The misspelled range and word [position] falls inside, according to
+  /// [_lastSpellCheckRangesByNodeId], or null when it falls inside none of them — no misspelling
+  /// under the tap, or spell-checking is off altogether (in which case that map is empty).
+  ///
+  /// Checked against the node's own **current** [ParagraphNode.text], not the text the range was
+  /// computed against: a range answered by one isolate round trip is already the most exposed
+  /// spell-check data in this widget (`docs/plans/screenplay-spell-check.md` §5, M3's own note on
+  /// why), so a range that no longer fits the node's current length is treated as no match rather
+  /// than read out of bounds.
+  ({String nodeId, SpellRange range, String word})? _misspellingAt(DocumentPosition position) {
+    final ranges = _lastSpellCheckRangesByNodeId[position.nodeId];
+    if (ranges == null || ranges.isEmpty) {
+      return null;
+    }
+
+    final nodePosition = position.nodePosition;
+    if (nodePosition is! TextNodePosition) {
+      return null;
+    }
+
+    final node = _document.getNodeById(position.nodeId);
+    if (node is! ParagraphNode) {
+      return null;
+    }
+
+    final text = node.text.toPlainText();
+    final offset = nodePosition.offset;
+
+    for (final range in ranges) {
+      if (range.end > text.length) {
+        continue;
+      }
+      if (offset >= range.start && offset <= range.end) {
+        return (nodeId: position.nodeId, range: range, word: text.substring(range.start, range.end));
+      }
+    }
+    return null;
+  }
+
+  /// The right-click context menu's suggestion entries: replaces
+  /// [_contextMenuMisspelledNodeId]/[_contextMenuMisspelledRange] with [suggestion], through the
+  /// very same [OcptReplaceNodeTextRequest] + [_ocptReplaceMatchesInText] path [replaceCurrentMatch]
+  /// already uses — a single [Editor.execute] call, so the edit and the reclassification pass it
+  /// triggers merge into **one** undo step (`docs/architecture/screenplay.md`, "Undo and redo").
+  ///
+  /// The node is re-read and the range re-clamped against its *current* text length right here,
+  /// rather than trusting what [_onSecondaryTapUp] resolved: an edit made elsewhere while the menu
+  /// was open (the suggestion fetch's own await gap, chiefly) could have moved that node's text out
+  /// from under the range. A range that no longer fits is dropped — nothing is written — rather
+  /// than handed to [_ocptReplaceMatchesInText], which would otherwise slice past the text's end.
+  void _applySuggestionFromContextMenu(String suggestion) {
+    final nodeId = _contextMenuMisspelledNodeId;
+    final range = _contextMenuMisspelledRange;
+    if (nodeId == null || range == null) {
+      _focusNode.requestFocus();
+      return;
+    }
+
+    final node = _document.getNodeById(nodeId);
+    if (node is! ParagraphNode || range.end > node.text.toPlainText().length) {
+      _focusNode.requestFocus();
+      return;
+    }
+
+    _editor.execute([
+      OcptReplaceNodeTextRequest(
+        nodeId: nodeId,
+        text: _ocptReplaceMatchesInText(
+          node.text,
+          [OcptTextMatch(start: range.start, end: range.end)],
+          suggestion,
+        ),
+      ),
+    ]);
+
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's "Ignore this word" entry: reports
+  /// [_contextMenuMisspelledWord] up through [OcptStyledScreenplayEditor.onWordIgnored] and hands
+  /// focus back to the editor, same as every other menu entry. Never touches the document itself —
+  /// the bloc's own re-check (`docs/plans/screenplay-spell-check.md` §5, M4) is what makes the
+  /// underline disappear, once it answers.
+  void _ignoreWordFromContextMenu() {
+    final word = _contextMenuMisspelledWord;
+    if (word != null) {
+      widget.onWordIgnored?.call(word);
+    }
+    _focusNode.requestFocus();
+  }
+
+  /// The right-click context menu's "Add to the project's dictionary" entry, the mirror of
+  /// [_ignoreWordFromContextMenu] for [OcptStyledScreenplayEditor.onWordLearned].
+  void _learnWordFromContextMenu() {
+    final word = _contextMenuMisspelledWord;
+    if (word != null) {
+      widget.onWordLearned?.call(word);
+    }
+    _focusNode.requestFocus();
   }
 
   /// Closes the right-click context menu when a left click lands anywhere on the document while it
@@ -1656,6 +1848,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// from.
   @override
   void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
+    _lastSpellCheckRangesByNodeId = rangesByNodeId;
     _spellingAndGrammarStyler.clearAllErrors();
 
     for (final entry in rangesByNodeId.entries) {
