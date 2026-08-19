@@ -129,6 +129,12 @@ dependencies:
   # docs/adr/0008-excel-community-for-the-shot-list-export.md
   excel_community: ^2.2.0
 
+  # Reads and writes the portable project package: the `.ocpt` plus every file it references, as
+  # one zip somebody can send. Streamed to and from disk rather than held in memory — a project
+  # carrying two hundred scouting photos is an ordinary case. Already an indirect dependency
+  # through `excel_community`, named here because the app now uses it in its own right.
+  archive: ^4.0.9
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

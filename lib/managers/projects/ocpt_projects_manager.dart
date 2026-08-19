@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -32,10 +33,12 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -74,8 +77,8 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [sceneIndexService],
 /// [shotListService], [shotCoverageService], [projectVersionsService], [peopleService],
 /// [roleIndexService], [locationsService], [elementsService], [breakdownService],
-/// [scheduleService], [assetsService] and [projectDictionaryService], the thirteen services this
-/// manager owns and wires together (RFL18): this manager itself is only responsible for the
+/// [scheduleService], [assetsService], [projectDictionaryService] and [projectPackageService], the
+/// fourteen services this manager owns and wires together (RFL18): this manager itself is only responsible for the
 /// lifecycle of the project file
 /// (create/open/close), for keeping the properties manager's recent-projects list in sync, and for
 /// handing those services the facts only it holds — the open project's database, the app version,
@@ -153,6 +156,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// the spell checker.
   final OcptProjectDictionaryService projectDictionaryService;
 
+  /// The service used to write the project out as a portable package, and to read one back.
+  ///
+  /// Unlike every other service here it takes **paths** rather than an open database: a package is
+  /// written from a project file, which is how the same code serves a project open in the workspace
+  /// and a project card on the home page, and why exporting never migrates what it copies.
+  final OcptProjectPackageService projectPackageService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -214,6 +224,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
        elementsService = const OcptElementsService(),
        assetsService = const OcptAssetsService(),
        projectDictionaryService = const OcptProjectDictionaryService(),
+       projectPackageService = const OcptProjectPackageService(),
        breakdownService = const OcptBreakdownService(
          elementsService: OcptElementsService(),
          locationsService: OcptLocationsService(),
@@ -326,8 +337,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } catch (error) {
-      appLogger().e("A problem occurred when tried to create the project '$name' at $filePath: "
-          "$error");
+      appLogger().e(
+        "A problem occurred when tried to create the project '$name' at $filePath: "
+        "$error",
+      );
       await database?.close();
       return const ResultWithStatus(status: OcptProjectStatus.ioError);
     } finally {
@@ -365,8 +378,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       )..limit(1)).getSingleOrNull();
 
       if (info == null || screenplay == null) {
-        appLogger().w("The project file at $filePath is missing its project info or its "
-            "screenplay, it's considered corrupted");
+        appLogger().w(
+          "The project file at $filePath is missing its project info or its "
+          "screenplay, it's considered corrupted",
+        );
         await database.close();
         return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
       }
@@ -666,8 +681,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
 
     if (project.previewedVersion?.id == versionId) {
-      appLogger().w("The project version $versionId can't be deleted while it's the one being "
-          "previewed: leave the preview first");
+      appLogger().w(
+        "The project version $versionId can't be deleted while it's the one being "
+        "previewed: leave the preview first",
+      );
       return;
     }
 
@@ -776,8 +793,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
 
     if (hasUnsavedChanges) {
-      appLogger().w("The project version $versionId can't be previewed while a mode still holds "
-          "unsaved changes: they must be saved first, or they would be written into the preview");
+      appLogger().w(
+        "The project version $versionId can't be previewed while a mode still holds "
+        "unsaved changes: they must be saved first, or they would be written into the preview",
+      );
       return const ResultWithStatus(status: OcptProjectPreviewStatus.unsavedChanges);
     }
 
@@ -787,8 +806,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
 
     if (version == null) {
-      appLogger().w("The project version $versionId can't be previewed: no such version in this "
-          "project");
+      appLogger().w(
+        "The project version $versionId can't be previewed: no such version in this "
+        "project",
+      );
       return const ResultWithStatus(status: OcptProjectPreviewStatus.versionNotFound);
     }
 
@@ -818,8 +839,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         payload: payload,
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to hydrate the preview of the project version "
-          "$versionId: $error");
+      appLogger().e(
+        "A problem occurred when tried to hydrate the preview of the project version "
+        "$versionId: $error",
+      );
       await previewDatabase.close();
       return const ResultWithStatus(status: OcptProjectPreviewStatus.hydrationFailed);
     }
@@ -856,6 +879,42 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     await previewDatabase.close();
   }
+
+  /// Stats every file the project stored at [projectFilePath] references, without writing
+  /// anything.
+  ///
+  /// The question a package export asks before it writes: a referenced file that is gone does not
+  /// block the export, but it is never skipped silently. Returns null when that file cannot be read
+  /// as a project at all.
+  ///
+  /// Takes a path rather than reading [currentProject] because both doors into this share it: a
+  /// project open in the workspace passes its own path, a project card on the home page passes the
+  /// path it lists, and neither needs the project to be open.
+  OcptProjectPackagePreflight? scanProjectPackageAssets({required String projectFilePath}) =>
+      projectPackageService.scanAssets(projectFilePath: projectFilePath);
+
+  /// Writes the project stored at [projectFilePath] out as a portable package at
+  /// [packageFilePath], and reports what travelled.
+  ///
+  /// [projectName] is the display name the package carries, resolved by the caller — from
+  /// [currentProject] for an open project, from the recent entry for a card on the home page.
+  ///
+  /// **The project file is only ever read**, and it is never migrated on the way out: a package
+  /// carries the database at whatever schema version it is in, and it is the importing build's own
+  /// gate that states a migration. Nothing here needs a project to be open, and nothing here
+  /// touches the one that is.
+  Future<ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageExportReport>>
+  exportProjectPackage({
+    required String projectFilePath,
+    required String projectName,
+    required String packageFilePath,
+  }) => projectPackageService.writePackage(
+    projectFilePath: projectFilePath,
+    packageFilePath: packageFilePath,
+    projectName: projectName,
+    appVersion: _appVersion,
+    exportedAt: DateTime.now(),
+  );
 
   /// Closes the [currentProject], disposing its database handle. Does nothing if no project is
   /// open.
@@ -920,10 +979,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   ///
   /// Left untouched, rather than created, when [path] isn't in the list at all — e.g. it was
   /// removed from the recent projects list while the project stayed open.
-  Future<void> _recordEpisodeCount({
-    required String path,
-    required int episodeCount,
-  }) async {
+  Future<void> _recordEpisodeCount({required String path, required int episodeCount}) async {
     final recents = await _propertiesManager.recentProjects.load() ?? const [];
     final index = recents.indexWhere((entry) => entry.path == path);
     if (index == -1) {
@@ -947,8 +1003,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// locale-to-currency table, falling back to the schema's own default (`EUR`) when `intl` can't
   /// name one for the locale — a Dart platform locale that carries no region at all, say.
   static String _defaultCurrencyCodeForPlatformLocale() =>
-      NumberFormat.simpleCurrency(locale: PlatformDispatcher.instance.locale.toString())
-          .currencyName ??
+      NumberFormat.simpleCurrency(
+        locale: PlatformDispatcher.instance.locale.toString(),
+      ).currencyName ??
       ocptDefaultCurrencyCode;
 
   /// Returns the default [OcptScreenplayLanguage] for a newly created project: the language the
