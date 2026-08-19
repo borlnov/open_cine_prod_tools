@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 /// taught the spell checker so far — through "Add to the project's dictionary" in the styled
 /// editor's right-click menu, or through `OcptProjectDictionaryDialog`'s own add field — and an
 /// `Edit…` button opening that dialog to read, filter, add to and unlearn them
-/// (`docs/plans/screenplay-spell-check.md` §4.6).
+/// (`docs/architecture/foundations.md`).
 ///
 /// Placed right after `OcptProjectSettingsScreenplayLanguageSection`: this lexicon exists only
 /// because a screenplay language is checked against it, so it sits directly under the section that

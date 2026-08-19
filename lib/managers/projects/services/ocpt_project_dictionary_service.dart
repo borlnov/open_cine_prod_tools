@@ -39,7 +39,7 @@ class OcptProjectDictionaryService {
 
   /// Teaches [word] to this project's dictionary, on a user's own "Add to the project's
   /// dictionary" gesture — never on an "Ignore this word" one, which is session-only and reaches
-  /// `OcptSpellCheckManager` alone (`docs/plans/screenplay-spell-check.md` §4.4).
+  /// `OcptSpellCheckManager` alone (`docs/architecture/screenplay.md`).
   ///
   /// [word] is trimmed first; a blank result is a no-op — there is nothing worth learning. The
   /// existing rows, tombstoned ones included, are then matched **case-insensitively**:

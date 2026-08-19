@@ -2775,7 +2775,7 @@ void main() {
   group("OcptStyledEditorController — spell check", () {
     // The fixture `editor_bloc_test.dart`'s own "a scene heading, a character cue, a transition
     // and a lyrics line produce no range, an action line and a dialogue line do" test uses,
-    // reused here so both the bloc's and this widget's own halves of the plan's §4.3 rule are
+    // reused here so both the bloc's and this widget's own halves of the prose-only rule are
     // proven against the exact same shape of screenplay: scene heading (0), action (1), character
     // cue (2), dialogue (3), transition (4), lyrics (5).
     const text =

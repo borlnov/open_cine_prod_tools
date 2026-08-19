@@ -314,7 +314,7 @@ class _FakeSpellCheckManager extends OcptSpellCheckManager {
   }
 
   /// Every word [ignoreWord] was called with, in call order — this fake's own accumulation, mirroring
-  /// the real manager's (`docs/plans/screenplay-spell-check.md` §4.4), so a test can assert both
+  /// the real manager's (`docs/architecture/screenplay.md`), so a test can assert both
   /// that the manager was reached and that the accumulation actually happened.
   final List<String> ignoredWords = [];
 

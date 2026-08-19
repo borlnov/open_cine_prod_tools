@@ -44,7 +44,7 @@ abstract class OcptStyledEditorControllerDelegate {
   /// spelling styler, mirroring [updateSearch]'s own direction of travel. Ranges for a node id this
   /// delegate's live document no longer holds, or that no longer fit that node's *current* text
   /// length, are dropped rather than fed to the styler
-  /// (`docs/plans/screenplay-spell-check.md` §5, M3).
+  /// (`docs/architecture/screenplay.md`).
   void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId);
 
   /// Whether there is a gesture of the writer's left for [undo] to take back.
@@ -216,7 +216,7 @@ class OcptStyledEditorController extends ChangeNotifier {
   }
 
   /// Pushes a fresh set of checkable node texts from the attached delegate — the styled mode's own
-  /// half of `docs/plans/screenplay-spell-check.md` §3.2's "each mode matches what it shows", and
+  /// half of "each mode matches what it shows" (`docs/architecture/screenplay.md`), and
   /// the mirror image of [updateSpellCheckRanges]'s direction of travel.
   ///
   /// Notifies listeners only when the set actually changed from what was last reported, mirroring

@@ -39,7 +39,8 @@ class OcptSpellCheckManagerBuilder extends AbsLifeCycleFactory<OcptSpellCheckMan
 }
 
 /// Owns the one long-lived worker isolate this app's spell-checking runs on
-/// (`docs/plans/screenplay-spell-check.md` §3.1).
+/// (`docs/architecture/foundations.md`, and `docs/adr/0020-bundled-hunspell-dictionaries-and-our-own-checker.md`
+/// for why this app checks spelling itself at all).
 ///
 /// The isolate holds a `spell_kit` `SpellChecker` built over whichever language's dictionary
 /// [useLanguage] last loaded, plus the session's ignored words and the open project's learned
@@ -297,7 +298,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
   /// a bloc dies with the page it backs — an episode switch or a raw/styled mode toggle rebuilds
   /// the styled editor, and either can rebuild this bloc too — while "ignored for this session" is
   /// meant to survive every one of those, exactly as long as the manager's own worker isolate
-  /// already does (`docs/plans/screenplay-spell-check.md` §4.4). A bloc-held set would silently
+  /// already does (`docs/architecture/screenplay.md`). A bloc-held set would silently
   /// forget every word a writer ignored the moment the editor remounted.
   void ignoreWord(String word) {
     _ignoredWords = {..._ignoredWords, word};

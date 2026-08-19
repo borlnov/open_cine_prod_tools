@@ -53,7 +53,7 @@ bool ocptIsSpellCheckedLineType(FountainLineType type) {
 
 /// The tokenizer options a screenplay spell check applies by default: the all-caps rule (a scene
 /// heading fragment, a character cue or a shouted word) and the digit rule (a page number, a
-/// measurement, a code) of `docs/plans/screenplay-spell-check.md` §4.3, both on.
+/// measurement, a code) of `docs/architecture/screenplay.md`, both on.
 ///
 /// [SpellTokenizerOptions.fromAffixFile] is the richer form the spell-check worker isolate builds
 /// once it has parsed a language's `.aff` file, since it also honours that language's own
@@ -114,7 +114,7 @@ FountainLineType? ocptLineTypeOfBlock(FountainBlock block) {
 ///
 /// A block's displayed text and its raw Fountain source agree almost everywhere, but a note or a
 /// boneyard comment sitting inside a line of action or dialogue is authoring scaffolding, not the
-/// script (§4.3) — the very same argument that already keeps a whole note/boneyard *block* out of
+/// script — the very same argument that already keeps a whole note/boneyard *block* out of
 /// the checked set entirely. A caller checking raw Fountain source uses these spans to drop the
 /// tokens that fall inside them before handing the rest off to be checked.
 List<SpellRange> ocptSpellCheckSkipSpansIn(String source) {

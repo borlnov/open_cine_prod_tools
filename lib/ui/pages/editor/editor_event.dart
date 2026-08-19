@@ -211,7 +211,7 @@ class OcptEditorStyledSceneNumbersToggledEvent extends OcptEditorEvent {
 ///
 /// The new value is persisted through `OcptPropertiesManager.spellCheckVisible`, so it's restored
 /// the next time the editor opens, and re-drives `OcptSpellCheckManager.useLanguage` (this is one
-/// of the plan's two on/off switches, `docs/plans/screenplay-spell-check.md` §4.2 — the other is
+/// of the two on/off switches of `docs/architecture/screenplay.md` — the other is
 /// the project's own screenplay language). Switching off also clears
 /// `OcptEditorState.rawSpellCheckRanges` at once, rather than waiting for a debounce tick that
 /// isn't coming: with the switch off, nothing is ever checked again until it flips back on.
@@ -228,8 +228,8 @@ class OcptEditorSpellCheckToggledEvent extends OcptEditorEvent {
 /// [generation] is the manager's own generation the request was issued under, and [checkedText] is
 /// the exact `FountainDocument.sourceText` the request was computed against: the handler drops
 /// this answer when either has moved on by the time it arrives (the manager's generation bumped by
-/// a language change, or a newer parse having produced a different source text since) — the plan's
-/// "a stale generation's answer is dropped" (§5, M3).
+/// a language change, or a newer parse having produced a different source text since): a stale
+/// generation's answer is never painted (`docs/architecture/screenplay.md`).
 class OcptEditorSpellCheckRangesReportedEvent extends OcptEditorEvent {
   /// The manager's generation the request answered by [ranges] was issued under.
   final int generation;
@@ -260,7 +260,7 @@ class OcptEditorSpellCheckRangesReportedEvent extends OcptEditorEvent {
 /// full document rebuild, or the visibility switch flipping back on) — the bloc has no document of
 /// its own for the styled mode's addressing, since a node's own display text (what
 /// `SpellingAndGrammarStyler` addresses) only ever lives in the live super_editor document
-/// (`docs/plans/screenplay-spell-check.md` §3.2).
+/// (`docs/architecture/screenplay.md`).
 class OcptEditorStyledSpellCheckTextsReportedEvent extends OcptEditorEvent {
   /// The checkable node texts to check, keyed by node id.
   final Map<String, String> textsByNodeId;
@@ -284,7 +284,7 @@ class OcptEditorStyledSpellCheckTextsReportedEvent extends OcptEditorEvent {
 /// `checkedText` to compare against: [ranges] are keyed by node id rather than by document-absolute
 /// offset, so a range computed against a node's text that has since changed is instead clamped and
 /// dropped at the point it's turned into a `TextError`, by the styled editor itself
-/// (`docs/plans/screenplay-spell-check.md` §5, M3) — and a node id that no longer exists in the
+/// (`docs/architecture/screenplay.md`) — and a node id that no longer exists in the
 /// document by the time this arrives is simply ignored there too.
 class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorEvent {
   /// The manager's generation the request answered by [ranges] was issued under.
@@ -303,7 +303,7 @@ class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorEvent {
 
 /// Reports that the styled editor's right-click "Ignore this word" entry was picked for [word].
 ///
-/// Session-only (`docs/plans/screenplay-spell-check.md` §4.4): reaches
+/// Session-only (`docs/architecture/screenplay.md`): reaches
 /// `OcptSpellCheckManager.ignoreWord` alone, never `OcptProjectDictionaryService` — persisting an
 /// ignored word would silently build a second dictionary nobody can see or edit. The manager's own
 /// generation bump has invalidated both spell-check caches by the time this handler returns, so it

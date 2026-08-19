@@ -160,7 +160,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// field with `setEquals` rather than pushing unconditionally like the other two: it runs on
   /// *every* settings-page change, including a currency edit that has nothing to do with the
   /// dictionary, and re-checking the whole screenplay on every one of those would be exactly the
-  /// wasted debounce tick §3.2 exists to avoid.
+  /// wasted debounce tick the incremental pass exists to avoid.
   Set<String> _pushedLearnedWords = const {};
 
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
@@ -557,7 +557,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// script-wide statistics debounce.
   ///
   /// Also fires the raw mode's spell-check pass ([_requestSpellCheck]) right after the fresh
-  /// document is emitted, exactly where `docs/plans/screenplay-spell-check.md` §3.2 puts it: on
+  /// document is emitted, exactly where `docs/architecture/screenplay.md` puts it: on
   /// this same parse debounce, never a keystroke. This is what makes an import
   /// (`_onImportRequested`) and a title-page rewrite (`_onTitlePageChanged`) — the two other
   /// callers of this method — request a fresh check too, alongside every ordinary edit.
@@ -898,7 +898,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Toggles whether this machine shows the spell-check underlines, persists the new value, and
   /// re-drives [_reconcileSpellCheckLanguage] (loading or unloading the dictionary as the two
-  /// switches of `docs/plans/screenplay-spell-check.md` §4.2 now dictate).
+  /// switches of `docs/architecture/screenplay.md` now dictate).
   ///
   /// Switching off also clears [OcptEditorState.rawSpellCheckRanges] and
   /// [OcptEditorState.styledSpellCheckRanges] right here, synchronously, rather than waiting for
@@ -925,8 +925,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Answers [OcptEditorSpellCheckRangesReportedEvent], the async tail of [_requestSpellCheck].
   ///
-  /// Drops the answer (per `docs/plans/screenplay-spell-check.md` §5, M3's "a stale generation's
-  /// answer is dropped") when: [OcptEditorSpellCheckRangesReportedEvent.generation] no longer
+  /// Drops the answer (a stale generation's answer is never painted,
+  /// `docs/architecture/screenplay.md`) when: [OcptEditorSpellCheckRangesReportedEvent.generation] no longer
   /// matches [OcptSpellCheckManager.generation] (a language change, or a word learned or ignored,
   /// happened while the isolate round trip was in flight); spell-checking is now off (either
   /// switch) or a version is now being previewed (both can have flipped mid-flight too); or
@@ -1063,7 +1063,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// rather than by document-absolute offset, so a range computed against a node's text that has
   /// since changed is instead clamped and dropped by the styled editor itself, at the point it's
   /// turned into a `TextError` (see [OcptEditorStyledSpellCheckRangesReportedEvent]'s own doc
-  /// comment) — the very last of the plan's own §5, M3 guards, and the one place left that can
+  /// comment) — the very last of those guards, and the one place left that can
   /// actually tell a node's *current* text length from here.
   Future<void> _onStyledSpellCheckRangesReported(
     OcptEditorStyledSpellCheckRangesReportedEvent event,
@@ -1081,7 +1081,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Returns up to five spelling suggestions for [word] — the answer the styled editor's
   /// right-click context menu awaits before it can show its suggestion entries at all
-  /// (`docs/plans/screenplay-spell-check.md` §4.5). This is a plain method the page `await`s
+  /// (`docs/architecture/screenplay.md`). This is a plain method the page `await`s
   /// rather than a dispatched event, deliberately: an event has no channel back to its caller, and
   /// a right-click can afford the one isolate round trip this costs (~1 ms once the dictionary is
   /// warm) far better than every other spell-check path in this bloc could afford waiting on one.
@@ -1148,10 +1148,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   }
 
   /// Loads or unloads `OcptSpellCheckManager`'s dictionary to match
-  /// `OcptEditorState.screenplayLanguage`/[OcptEditorState.isSpellCheckVisible] (the plan's two
-  /// independent on/off switches, §4.2: with either off, the isolate stays unloaded and nothing is
-  /// checked), then requests a fresh raw-mode pass so the underlines catch up once a dictionary
-  /// that needed loading has actually finished doing so.
+  /// `OcptEditorState.screenplayLanguage`/[OcptEditorState.isSpellCheckVisible] (the two
+  /// independent on/off switches of `docs/architecture/screenplay.md`: with either off, the
+  /// isolate stays unloaded and nothing is checked), then requests a fresh raw-mode pass so the
+  /// underlines catch up once a dictionary that needed loading has actually finished doing so.
   ///
   /// Never awaited by its own callers ([_onLoadRequested], [_onSpellCheckToggled],
   /// [_onProjectSettingsChanged]): `OcptSpellCheckManager.useLanguage` can take ~300 ms the first
@@ -1216,10 +1216,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// what calls this again the moment raw mode becomes the mounted one, so the field never answers
   /// with a document version older than whatever raw mode is about to show.
   ///
-  /// Only *changed* texts are sent to [OcptSpellCheckManager.check] (`docs/plans/screenplay-spell-
-  /// check.md` §3.2): [_rawSpellCheckBlocksOf] keys every checked block by its index in the walk
-  /// order, and [_rawSpellCheckCache] is compared against by that same index, so a block whose own
-  /// source text hasn't changed since the index last held it is skipped. `OcptSpellCheckManager
+  /// Only *changed* texts are sent to [OcptSpellCheckManager.check]
+  /// (`docs/architecture/screenplay.md`): [_rawSpellCheckBlocksOf] keys every checked block by its
+  /// index in the walk order, and [_rawSpellCheckCache] is compared against by that same index, so
+  /// a block whose own source text hasn't changed since the index last held it is skipped. `OcptSpellCheckManager
   /// .check` itself fast-paths an empty request map to an empty answer with no isolate round trip
   /// at all (its own doc comment), so calling it unconditionally here — even when nothing changed —
   /// costs nothing extra while still re-assembling and re-reporting the full, current set of
@@ -1363,7 +1363,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// .setLearnedWords] bumps the manager's generation and both [_requestSpellCheck] and
   /// [_reissueStyledSpellCheck] re-send everything they have, which is what makes a word un-learned
   /// there underlined again here without anything having to be re-typed
-  /// (`docs/plans/screenplay-spell-check.md` §4.6's own round-trip acceptance criterion).
+  /// (`docs/architecture/foundations.md`, the project dictionary's own round trip).
   Future<void> _onProjectSettingsChanged(
     OcptEditorProjectSettingsChangedEvent event,
     Emitter<OcptEditorState> emitter,

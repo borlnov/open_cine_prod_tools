@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dar
 /// copy), the block-type submenu disappear when the caret sits on no retypeable block, and the
 /// whole spelling group — suggestions and both actions alike — disappear when [misspelledWord] is
 /// null: the right-click didn't land on a flagged word, or spell-checking is off altogether
-/// (`docs/plans/screenplay-spell-check.md` §4.5). [misspelledWord] itself gates the whole group
+/// (`docs/architecture/screenplay.md`). [misspelledWord] itself gates the whole group
 /// rather than each entry gating on its own callback, since a caller offering suggestions/ignore/
 /// learn for one word but not another inside the same menu isn't a state this app ever has.
 class OcptEditorContextMenu extends StatelessWidget {

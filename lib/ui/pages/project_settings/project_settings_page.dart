@@ -231,7 +231,7 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   }
 
   /// Opens `OcptProjectDictionaryDialog` over [words], then dispatches whatever diff it reports —
-  /// the dialog only asks, this page applies it (`docs/plans/screenplay-spell-check.md` §4.6),
+  /// the dialog only asks, this page applies it (`docs/architecture/foundations.md`),
   /// exactly the shape [_onEpisodeDeletionRequested] already follows for `OcptConfirmDialog`.
   ///
   /// The bloc is read before the `await`, and `context.mounted` is checked after it, for the same

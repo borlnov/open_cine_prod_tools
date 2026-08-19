@@ -10,9 +10,9 @@ import 'package:spell_kit/spell_kit.dart';
 
 /// The raw mode's source text controller, extended to paint the find/replace bar's highlight and
 /// the spell-check underline directly into the field it searches — the raw mode's own half of the
-/// plan's decision that each editing surface highlights what it shows, the way
-/// `SpellingAndGrammarStyler` does for the styled editor's own highlight and
-/// `docs/plans/screenplay-spell-check.md` §1.2 explains why the raw mode can't instead take
+/// rule that each editing surface highlights what it shows, the way
+/// `SpellingAndGrammarStyler` does for the styled editor's own highlight.
+/// `docs/architecture/screenplay.md` explains why the raw mode can't instead take
 /// Flutter's own `SpellCheckConfiguration`: the moment `EditableText` receives one spell-check
 /// result, it stops calling this controller's [buildTextSpan] at all, and the find bar's highlight
 /// would silently disappear forever.
@@ -88,7 +88,7 @@ class OcptEditorSearchTextController extends TextEditingController {
     // A misspelling is dropped *outright* the moment either of its own offsets no longer fits,
     // rather than clamped to the text's end the way a match's end still is just below: it arrives
     // one isolate round trip later than a search match does, so it is *more* exposed to this, not
-    // less (`docs/plans/screenplay-spell-check.md` §5, M3's own named trap), and clamping it would
+    // less (`docs/architecture/screenplay.md` names that trap), and clamping it would
     // risk painting a wavy underline over a word it was never actually computed against.
     final matches = <_RangeSpan>[
       for (var i = 0; i < _matches.length; i++)

@@ -956,8 +956,8 @@ class _EditorViewState extends State<_EditorView> {
   }
 
   /// Pushes [OcptEditorState.rawSpellCheckRanges] onto [_textController]'s own
-  /// [OcptEditorSearchTextController.updateSpellCheckRanges], the raw mode's half of the plan's
-  /// decision that each editing surface paints what it shows.
+  /// [OcptEditorSearchTextController.updateSpellCheckRanges], the raw mode's half of the rule
+  /// that each editing surface paints what it shows.
   ///
   /// Guarded exactly the way [_syncRawSearch] opens (raw mode, not previewing a version): the
   /// styled mode is a later slice that addresses each node by id instead, and there is no editing
@@ -975,8 +975,8 @@ class _EditorViewState extends State<_EditorView> {
   }
 
   /// Pushes [OcptEditorState.styledSpellCheckRanges] onto [_styledEditorController]'s own
-  /// [OcptStyledEditorController.updateSpellCheckRanges], the styled mode's own half of the plan's
-  /// decision that each editing surface paints what it shows — the raw mode's own counterpart is
+  /// [OcptStyledEditorController.updateSpellCheckRanges], the styled mode's own half of the rule
+  /// that each editing surface paints what it shows — the raw mode's own counterpart is
   /// [_syncRawSpellCheck].
   ///
   /// Guarded exactly the way [_syncRawSpellCheck] is (styled mode, not previewing a version): there

@@ -78,8 +78,8 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// `computeOcptStyledSceneNumbers`) in its left gutter.
   final bool areSceneNumbersVisible;
 
-  /// Whether this machine wants the spell-check underlines shown at all — the plan's own on/off
-  /// switch (`docs/plans/screenplay-spell-check.md` §4.2), travelling down the same way
+  /// Whether this machine wants the spell-check underlines shown at all — the machine's own on/off
+  /// switch (`docs/architecture/screenplay.md`), travelling down the same way
   /// [areSceneNumbersVisible] does rather than through the bloc directly: this widget knows nothing
   /// about `OcptEditorState`. While false, no checkable node texts are ever reported (see the
   /// state's own `_reportSpellCheckTexts`), so nothing is ever requested and nothing is ever
@@ -102,7 +102,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   final OcptStyledEditorController? styledController;
 
   /// Awaited by [_OcptStyledScreenplayEditorState._onSecondaryTapUp] when a right-click lands on a
-  /// misspelled word, before the context menu opens (`docs/plans/screenplay-spell-check.md` §4.5).
+  /// misspelled word, before the context menu opens (`docs/architecture/screenplay.md`).
   /// Null (in a test with nothing to wire it to, chiefly) simply means no suggestion is ever
   /// fetched, and [OcptEditorContextMenu]'s own nullable-callback rule then withholds the whole
   /// spelling group regardless of whether the tap actually landed on a misspelling.
@@ -297,13 +297,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// (always 0 while page simulation is off), recomputed by [_recomputePageSimulation].
   double _trailingBottomPadding = 0;
 
-  /// This widget's own half of the find/replace bar's highlight (plan §6), handed to `SuperEditor`
+  /// This widget's own half of the find/replace bar's highlight, handed to `SuperEditor`
   /// as a custom style phase in [build]; never rebuilt, so `markDirty()` calls survive across a
   /// [build] rather than resetting the highlight every frame.
   final OcptSearchMatchStyler _searchMatchStyler = OcptSearchMatchStyler();
 
-  /// The styled mode's own half of the spell-check underline (`docs/plans/screenplay-spell-
-  /// check.md` §1.1): super_editor's own `SpellingAndGrammarStyler`, since `text.dart` already
+  /// The styled mode's own half of the spell-check underline
+  /// (`docs/architecture/screenplay.md`): super_editor's own `SpellingAndGrammarStyler`, since
+  /// `text.dart` already
   /// turns a component's `TextComponentViewModel.spellingErrors` into the squiggle super_editor
   /// paints — no styler of our own is needed here, unlike [_searchMatchStyler]. The underline
   /// colour is [ocptEditorSpellCheckErrorColor], the exact colour the raw mode's own controller
@@ -384,7 +385,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       setState(_recomputePageSimulation);
     }
 
-    // The visibility switch itself (`docs/plans/screenplay-spell-check.md` §4.2) touches no text
+    // The visibility switch itself (`docs/architecture/screenplay.md`) touches no text
     // and rebuilds no document, so it needs its own, independent trigger rather than falling out of
     // one of the branches above: turning it back on must re-report the very same node texts that
     // were last reported (and get a fresh answer under whatever dictionary is now loaded), which
@@ -1310,12 +1311,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// selection — right-clicking inside a selection must never destroy it, which is the whole point
   /// of the Cut/Copy entries the menu is about to show.
   ///
-  /// Also resolves the styled spelling group (`docs/plans/screenplay-spell-check.md` §4.5): if the
+  /// Also resolves the styled spelling group (`docs/architecture/screenplay.md`): if the
   /// resolved document position falls inside one of [_lastSpellCheckRangesByNodeId]'s own ranges
   /// (see [_misspellingAt]), the misspelled word is read out of that node's **current** display
   /// text (never the text the range was computed against, which may be stale) and
   /// [OcptStyledScreenplayEditor.onSpellingSuggestionsRequested] is awaited for up to five
-  /// suggestions before the menu opens — the one isolate round trip the plan's own §4.5 accepts
+  /// suggestions before the menu opens — the one isolate round trip a right-click accepts
   /// paying only when a right-click actually asks for it. `details.localPosition` is captured
   /// before that await (an [Offset] the widget tree could otherwise recycle from under a stale
   /// reference), `mounted` is checked after it, and the answer is dropped outright if the caret has
@@ -1386,8 +1387,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   ///
   /// Checked against the node's own **current** [ParagraphNode.text], not the text the range was
   /// computed against: a range answered by one isolate round trip is already the most exposed
-  /// spell-check data in this widget (`docs/plans/screenplay-spell-check.md` §5, M3's own note on
-  /// why), so a range that no longer fits the node's current length is treated as no match rather
+  /// spell-check data in this widget (`docs/architecture/screenplay.md` says why), so a range that
+  /// no longer fits the node's current length is treated as no match rather
   /// than read out of bounds.
   ({String nodeId, SpellRange range, String word})? _misspellingAt(DocumentPosition position) {
     final ranges = _lastSpellCheckRangesByNodeId[position.nodeId];
@@ -1461,8 +1462,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// The right-click context menu's "Ignore this word" entry: reports
   /// [_contextMenuMisspelledWord] up through [OcptStyledScreenplayEditor.onWordIgnored] and hands
   /// focus back to the editor, same as every other menu entry. Never touches the document itself —
-  /// the bloc's own re-check (`docs/plans/screenplay-spell-check.md` §5, M4) is what makes the
-  /// underline disappear, once it answers.
+  /// the bloc's own re-check is what makes the underline disappear, once it answers.
   void _ignoreWordFromContextMenu() {
     final word = _contextMenuMisspelledWord;
     if (word != null) {
@@ -1789,14 +1789,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   /// Every checkable node text currently in [_document]: a [ParagraphNode] whose classified line
   /// type [ocptIsSpellCheckedLineType] accepts, and never a title-page field node
-  /// ([OcptWysiwygCodec.isTitlePageNode]) — the plan's own §4.3 rule, applied here in terms of the
+  /// ([OcptWysiwygCodec.isTitlePageNode]) — the prose-only rule of
+  /// `docs/architecture/screenplay.md`, applied here in terms of the
   /// same node metadata [_sceneNumbersFromMetadata]/[_reportReadStateToController] already read,
-  /// and the plan's §4.3 title-page exclusion (a title is invented on purpose, and the six fields
+  /// and its title-page exclusion (a title is invented on purpose, and the six fields
   /// only exist under page simulation, so underlining them would make squiggles appear and
   /// disappear with a display toggle).
   ///
   /// Empty while [OcptStyledScreenplayEditor.isSpellCheckVisible] is off — nothing is ever reported
-  /// to check with the switch off, per the plan's own §4.2 on/off rule — and reports the node's
+  /// to check with the switch off — and reports the node's
   /// **display** text (`node.text.toPlainText()`), never the Fountain source: that is what
   /// `SpellingAndGrammarStyler` addresses.
   Map<String, String> _checkableSpellCheckTexts() {
@@ -1831,7 +1832,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
   /// added only for a node id [rangesByNodeId] actually names.
   ///
-  /// Two guards the plan's §5 (M3) is explicit about, applied to every range before it becomes a
+  /// Two guards `docs/architecture/screenplay.md` is explicit about, applied to every range
+  /// before it becomes a
   /// `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
   /// computed — an edit elsewhere, an import, a version restore, a page-simulation toggle) is
   /// ignored outright, and a range that no longer fits that node's own *current* text length is

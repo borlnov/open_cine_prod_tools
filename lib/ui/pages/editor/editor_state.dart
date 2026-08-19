@@ -290,8 +290,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// Whether this machine wants the spell-check underlines shown, in either editing mode.
   ///
   /// Persisted through `OcptPropertiesManager.spellCheckVisible`, loaded once on entry and updated
-  /// on every toggle; on by default. This is one of the plan's two independent on/off switches
-  /// (`docs/plans/screenplay-spell-check.md` §4.2) — the other is [screenplayLanguage] — and
+  /// on every toggle; on by default. This is one of the two independent on/off switches
+  /// (`docs/architecture/screenplay.md`) — the other is [screenplayLanguage] — and
   /// nothing is checked while either is off: `OcptEditorBloc` only loads a dictionary into
   /// `OcptSpellCheckManager` and only requests a check when both are satisfied.
   final bool isSpellCheckVisible;
@@ -300,7 +300,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// project is open) — see [OcptScreenplayLanguage]'s own doc comment.
   ///
   /// Read from `OcptProjectsManager.loadCurrentProjectScreenplayLanguage` on entry and re-read
-  /// whenever the project settings page might have changed it; this is the second of the plan's two
+  /// whenever the project settings page might have changed it; this is the second of the two
   /// on/off switches (see [isSpellCheckVisible]'s own doc comment).
   final OcptScreenplayLanguage? screenplayLanguage;
 

@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 
 /// The dialog reached from the project settings page's dictionary section `Edit…` button: reads,
 /// filters, adds to and removes from the project's learned-word dictionary
-/// (`docs/plans/screenplay-spell-check.md` §4.6) — the words a writer has taught the spell checker
+/// (`docs/architecture/foundations.md`) — the words a writer has taught the spell checker
 /// through "Add to the project's dictionary", or through this dialog's own add field.
 ///
 /// Like `OcptEditorTitlePageDialog`, this dialog **reports rather than writes**: [show] returns the

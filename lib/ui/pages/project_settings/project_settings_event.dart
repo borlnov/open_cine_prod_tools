@@ -77,8 +77,7 @@ class OcptProjectSettingsScreenplayLanguageChangedEvent extends OcptProjectSetti
 
 /// Reports the words `OcptProjectDictionaryDialog` added and removed from its working copy —
 /// that dialog only reports, so this event is what actually applies the diff to the project's
-/// dictionary, through `OcptProjectDictionaryService` (`docs/plans/screenplay-spell-check.md`
-/// §4.6).
+/// dictionary, through `OcptProjectDictionaryService` (`docs/architecture/foundations.md`).
 class OcptProjectSettingsDictionaryEditedEvent extends OcptProjectSettingsEvent {
   /// The words the dialog's working copy gained that the project's dictionary didn't already
   /// hold.
