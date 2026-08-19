@@ -173,6 +173,11 @@ flutter:
     - assets/branding/ocpt_logo_glyph.svg
     - assets/fonts/courier_prime/
     - assets/fonts/roboto/
+    # One directory per language: each holds the verbatim upstream `.dic`/`.aff` pair the
+    # spell checker parses, plus the licence notice both upstream projects require to travel
+    # next to the files it covers.
+    - assets/dictionaries/fr/
+    - assets/dictionaries/en_GB/
     - LICENSES/
     - actlibs/LICENSES/
 

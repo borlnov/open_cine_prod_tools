@@ -69,3 +69,24 @@ SPDX-License-Identifier = "OFL-1.1"
 path = ["assets/fonts/roboto/**"]
 SPDX-FileCopyrightText = "2011 The Roboto Project Authors (https://github.com/googlefonts/roboto-classic)"
 SPDX-License-Identifier = "OFL-1.1"
+
+[[annotations]]
+# The French hunspell dictionary is taken verbatim from https://github.com/wooorm/dictionaries,
+# which republishes the “Dictionnaires orthographiques français” 7.5 unmodified. Keeping the pair
+# byte for byte is what makes this licensing statement true and what lets a later version bump be a
+# file swap; `.dic` files have no comment syntax reuse recognizes, so the licensing information of
+# the whole language directory is declared here instead of inline.
+path = ["assets/dictionaries/fr/**"]
+SPDX-FileCopyrightText = "2020 Olivier R. and the Dictionnaires orthographiques français contributors (https://grammalecte.net/)"
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+# The British English hunspell dictionary is taken verbatim from
+# https://github.com/wooorm/dictionaries, which republishes the `en_GB-ise` dictionary derived from
+# SCOWL 2020.12.07 unmodified. Its notice is a bespoke permissive grant carrying the Ispell BSD
+# licence and several public-domain notices inside it, and no SPDX identifier names that
+# collection, hence the `LicenseRef-`. `.dic` files have no comment syntax reuse recognizes, so the
+# licensing information of the whole language directory is declared here instead of inline.
+path = ["assets/dictionaries/en_GB/**"]
+SPDX-FileCopyrightText = "2000-2018 Kevin Atkinson <kevina@gnu.org> and the SCOWL contributors"
+SPDX-License-Identifier = "LicenseRef-SCOWL"
