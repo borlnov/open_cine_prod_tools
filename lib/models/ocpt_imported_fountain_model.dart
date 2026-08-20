@@ -4,7 +4,12 @@
 
 import 'package:equatable/equatable.dart';
 
-/// A `.fountain` file picked and decoded by `OcptExportManager.pickAndReadFountain`.
+/// A screenplay file picked and read as Fountain text by
+/// `OcptExportManager.pickAndReadScreenplay`.
+///
+/// Named after Fountain rather than after the file it came from on purpose: whether the picked
+/// file was a `.fountain`, an `.fdx` or a `.celtx`, [fountainText] is Fountain by the time it
+/// lands here — the conversion happens as the file is read.
 class OcptImportedFountainModel extends Equatable {
   /// The decoded source text of the picked file.
   final String fountainText;

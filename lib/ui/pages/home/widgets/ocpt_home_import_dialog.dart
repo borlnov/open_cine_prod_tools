@@ -4,19 +4,31 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_import_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_card_choice_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_home_import_kind.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_card_choice_dialog.dart';
 
 /// The modal the home header's `Import…` action opens: two cards, `A project` (`.ocptz`) and
-/// `A screenplay` (`.fountain`), named side by side where somebody comparing the two gestures can
-/// see them together.
+/// `A screenplay` (a `.fountain`, an `.fdx` or a `.celtx`), named side by side where somebody
+/// comparing the two gestures can see them together.
 ///
 /// The import flavour of [OcptCardChoiceDialog], exactly as `OcptWorkspaceExportDialog` is its
 /// export flavour: it owns the wording of its own two cards and nothing else, in one section with
 /// no heading — the dialog's own message already says what the two cards are for.
 class OcptHomeImportDialog extends StatelessWidget {
+  /// The screenplay card's own format line, naming every extension the open dialog accepts.
+  ///
+  /// Read from [OcptScriptImportService.importableExtensions] rather than spelled out, so the card
+  /// cannot come to promise a format the selector filters out, or the other way round. Enumerated
+  /// with plain commas rather than the middle dot the app's other lists use: three extensions is
+  /// the longest this slot has ever had to hold, and the separator is what has to give for them to
+  /// sit on the card's one line next to its title.
+  static final _screenplayFormatLabel = OcptScriptImportService.importableExtensions
+      .map((extension) => ".$extension")
+      .join(", ");
+
   /// Class constructor
   const OcptHomeImportDialog({super.key});
 
@@ -47,7 +59,7 @@ class OcptHomeImportDialog extends StatelessWidget {
               value: OcptHomeImportKind.screenplay,
               title: tr.homeImportScreenplayTitle,
               description: tr.homeImportScreenplayDescription,
-              formatLabel: ".fountain",
+              formatLabel: _screenplayFormatLabel,
             ),
           ],
         ),

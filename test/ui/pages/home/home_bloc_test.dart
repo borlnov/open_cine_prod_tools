@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
@@ -35,23 +36,36 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-/// An export manager whose [pickAndReadFountain] is stubbed, to exercise the bloc's import flow
+/// An export manager whose [pickAndReadScreenplay] is stubbed, to exercise the bloc's import flow
 /// without any real file dialog. [fountainIoService] is left as the real, pure implementation.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
-  _FakeExportManager({this.importResult})
-    : super(fileSelectorManager: const FileSelectorManager());
+  _FakeExportManager({
+    this.importResult,
+    this.importStatus = OcptScreenplayImportStatus.cancelled,
+  }) : super(fileSelectorManager: const FileSelectorManager());
 
-  /// The model [pickAndReadFountain] returns, or null to simulate a cancelled open dialog.
+  /// The model [pickAndReadScreenplay] returns, or null to return no value at all.
   final OcptImportedFountainModel? importResult;
 
-  /// The file type label of the last [pickAndReadFountain] call.
+  /// The status [pickAndReadScreenplay] returns when [importResult] is null, defaulting to a
+  /// cancelled open dialog.
+  final OcptScreenplayImportStatus importStatus;
+
+  /// The file type label of the last [pickAndReadScreenplay] call.
   String? lastFileTypeLabel;
 
   @override
-  Future<OcptImportedFountainModel?> pickAndReadFountain({required String fileTypeLabel}) async {
+  Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
+  pickAndReadScreenplay({required String fileTypeLabel}) async {
     lastFileTypeLabel = fileTypeLabel;
-    return importResult;
+
+    final result = importResult;
+    if (result == null) {
+      return ResultWithStatus(status: importStatus);
+    }
+
+    return ResultWithStatus(status: OcptScreenplayImportStatus.ok, value: result);
   }
 }
 
@@ -281,15 +295,13 @@ void main() {
       );
 
       bloc.add(
-        const OcptHomeImportScreenplayRequestedEvent(
-          fountainFileTypeLabel: "Fountain screenplay",
-        ),
+        const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
       );
       await waitForState(bloc, (state) => state.isBusy);
       final state = await waitForState(bloc, (state) => !state.isBusy);
 
       expect(state.error, isNull);
-      expect(exportManager.lastFileTypeLabel, "Fountain screenplay");
+      expect(exportManager.lastFileTypeLabel, "Screenplay");
       // The suggested file name comes from the imported file's title page.
       expect(fileSaverManager.lastFileName, "My Movie.ocpt");
       expect(routerManager.pushedRoute, OcptRoute.workspace);
@@ -314,13 +326,13 @@ void main() {
     },
   );
 
-  test('a cancelled fountain file picker leaves the bloc idle and creates no project', () async {
+  test('a cancelled screenplay file picker leaves the bloc idle and creates no project', () async {
     final exportManager = _FakeExportManager();
     final fileSaverManager = _FakeFileSaverManager();
     final bloc = buildBloc(exportManager: exportManager, fileSaverManager: fileSaverManager);
 
     bloc.add(
-      const OcptHomeImportScreenplayRequestedEvent(fountainFileTypeLabel: "Fountain screenplay"),
+      const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
     );
     await waitForState(bloc, (state) => state.isBusy);
     final state = await waitForState(bloc, (state) => !state.isBusy);
@@ -328,6 +340,32 @@ void main() {
     expect(state.error, isNull);
     expect(fileSaverManager.lastFileName, isNull);
     expect(projectsManager.currentProject, isNull);
+
+    await bloc.close();
+  });
+
+  test('an unreadable screenplay file is stated and creates no project', () async {
+    final exportManager = _FakeExportManager(
+      importStatus: OcptScreenplayImportStatus.unreadableFile,
+    );
+    final fileSaverManager = _FakeFileSaverManager();
+    final bloc = buildBloc(exportManager: exportManager, fileSaverManager: fileSaverManager);
+
+    bloc.add(
+      const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
+    );
+    await waitForState(bloc, (state) => state.isBusy);
+    final state = await waitForState(bloc, (state) => !state.isBusy);
+
+    expect(state.screenplayImportError, OcptScreenplayImportStatus.unreadableFile);
+    expect(state.error, isNull);
+    // The save dialog is never reached: nothing was read to seed a project with.
+    expect(fileSaverManager.lastFileName, isNull);
+    expect(projectsManager.currentProject, isNull);
+
+    bloc.add(const OcptHomeScreenplayImportErrorDismissedEvent());
+    final dismissed = await waitForState(bloc, (state) => state.screenplayImportError == null);
+    expect(dismissed.screenplayImportError, isNull);
 
     await bloc.close();
   });
@@ -344,7 +382,7 @@ void main() {
     final bloc = buildBloc(exportManager: exportManager, fileSaverManager: fileSaverManager);
 
     bloc.add(
-      const OcptHomeImportScreenplayRequestedEvent(fountainFileTypeLabel: "Fountain screenplay"),
+      const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
     );
     await waitForState(bloc, (state) => state.isBusy);
     final state = await waitForState(bloc, (state) => !state.isBusy);

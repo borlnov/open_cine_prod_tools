@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: script_import_kit
+description: >-
+  Pure Dart reader turning the screenplay files a production is sent into Fountain text.
+publish_to: none
+
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  # Opens the zip container a legacy Celtx project is.
+  archive: ^4.0.9
+
+  collection: ^1.19.1
+  equatable: ^2.0.7
+
+  # The Fountain the conversion targets: this package writes nothing by hand, it drives
+  # fountain_kit's own line writer, inline serializer and title page writer.
+  fountain_kit:
+    path: ../fountain_kit
+
+  # Parses a Celtx script document, which is the HTML 4.01 a browser engine wrote rather than
+  # anything well-formed enough for an XML parser.
+  html: ^0.15.6
+
+  meta: ^1.16.0
+
+  # Parses a Final Draft document and a Celtx project's RDF manifest, both of which are
+  # well-formed XML.
+  xml: ^7.0.1
+
+dev_dependencies:
+  lints: ^5.1.1
+  test: ^1.25.15

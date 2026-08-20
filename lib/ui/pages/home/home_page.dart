@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
@@ -161,6 +162,17 @@ class _HomeView extends StatelessWidget {
         ..showSnackBar(SnackBar(content: Text(_importErrorMessage(context, packageImportError))));
 
       context.read<OcptHomeBloc>().add(const OcptHomeProjectPackageImportErrorDismissedEvent());
+    }
+
+    final screenplayImportError = state.screenplayImportError;
+    if (screenplayImportError != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(_screenplayImportErrorMessage(context, screenplayImportError))),
+        );
+
+      context.read<OcptHomeBloc>().add(const OcptHomeScreenplayImportErrorDismissedEvent());
     }
 
     final packageImportReport = state.projectPackageImportReport;
@@ -314,6 +326,24 @@ class _HomeView extends StatelessWidget {
     };
   }
 
+  /// Maps [status] to its localized, user-facing message.
+  ///
+  /// [OcptScreenplayImportStatus.ok] and [OcptScreenplayImportStatus.cancelled] never reach the
+  /// state at all — the first is a created project, the second a silent no-op — but still need a
+  /// branch for the switch to be exhaustive. [OcptScreenplayImportStatus.ioError] shares the one
+  /// sentence [OcptScreenplayImportStatus.unreadableFile] gets: whether the bytes never came back
+  /// or came back as something that is not a screenplay, what the user is told is the same, and
+  /// nothing they could do differs.
+  String _screenplayImportErrorMessage(BuildContext context, OcptScreenplayImportStatus status) {
+    final tr = Tr.of(context);
+
+    return switch (status) {
+      OcptScreenplayImportStatus.ok || OcptScreenplayImportStatus.cancelled => "",
+      OcptScreenplayImportStatus.unreadableFile ||
+      OcptScreenplayImportStatus.ioError => tr.homeImportScreenplayUnreadableError,
+    };
+  }
+
   /// Asks the user for a new project's name, then dispatches the creation request.
   Future<void> _requestNewProject(BuildContext context) async {
     final bloc = context.read<OcptHomeBloc>();
@@ -352,11 +382,11 @@ class _HomeView extends StatelessWidget {
     }
   }
 
-  /// Dispatches the import-screenplay request that shows the `.fountain` open-file dialog.
+  /// Dispatches the import-screenplay request that shows the screenplay open-file dialog.
   void _requestImportScreenplay(BuildContext context) {
     context.read<OcptHomeBloc>().add(
       OcptHomeImportScreenplayRequestedEvent(
-        fountainFileTypeLabel: Tr.of(context).homeImportFileTypeLabel,
+        screenplayFileTypeLabel: Tr.of(context).homeImportFileTypeLabel,
       ),
     );
   }

@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
@@ -63,7 +64,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// The manager used to show the "Open…" open-file dialog.
   final FileSelectorManager _fileSelectorManager;
 
-  /// The manager used to pick and read a `.fountain` file when importing a screenplay, to show
+  /// The manager used to pick and read a screenplay file when importing one, to show
   /// the native save dialog for a project card's own `Export…`
   /// ([MixinOcptProjectPackageBloc.exportManager]), and to show the native folder picker for a
   /// project package import's destination folder.
@@ -101,6 +102,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     on<OcptHomeImportProjectPackageRequestedEvent>(_onImportProjectPackageRequested);
     on<OcptHomeProjectPackageImportErrorDismissedEvent>(_onProjectPackageImportErrorDismissed);
     on<OcptHomeProjectPackageImportReportDismissedEvent>(_onProjectPackageImportReportDismissed);
+    on<OcptHomeScreenplayImportErrorDismissedEvent>(_onScreenplayImportErrorDismissed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
@@ -279,26 +281,39 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     emitter(state.copyWith(clearError: true));
   }
 
-  /// Picks a `.fountain` file, creates a new project for it, imports its text, then navigates to
+  /// Picks a screenplay file, creates a new project for it, imports its text, then navigates to
   /// the editor.
   ///
   /// Mirrors [_onCreateProjectRequested] step for step, with two differences: the save-file
-  /// dialog is preceded by an open-file dialog picking the `.fountain` file (its name suggesting
-  /// the new project's file name), and the new project's screenplay is seeded with the picked
-  /// file's text instead of staying empty.
+  /// dialog is preceded by an open-file dialog picking the screenplay (its name suggesting the
+  /// new project's file name), and the new project's screenplay is seeded with the picked file's
+  /// text instead of staying empty. The picked file may be a `.fountain`, an `.fdx` or a
+  /// `.celtx`; the conversion happens as it is read, so what is seeded is Fountain either way.
+  ///
+  /// A file that cannot be read as a screenplay stops the flow right there — no project is
+  /// created — and lands in [OcptHomeState.screenplayImportError] for the page to word.
   Future<void> _onImportScreenplayRequested(
     OcptHomeImportScreenplayRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true));
+    emitter(state.copyWith(isBusy: true, clearError: true, clearScreenplayImportError: true));
 
-    final imported = await _exportManager.pickAndReadFountain(
-      fileTypeLabel: event.fountainFileTypeLabel,
+    final read = await _exportManager.pickAndReadScreenplay(
+      fileTypeLabel: event.screenplayFileTypeLabel,
     );
-    if (imported == null) {
-      // The user cancelled the dialog, or the selection failed; the latter is a soft failure
-      // deliberately not surfaced as an error, since the OS dialog itself already reported it.
-      emitter(state.copyWith(isBusy: false));
+    final imported = read.value;
+    if (!read.status.isSuccess || imported == null) {
+      // A cancelled dialog, or a selection that failed, is a silent no-op: the OS dialog itself
+      // already reported the latter. A file that could not be read as a screenplay is the one
+      // outcome worth stating.
+      emitter(
+        state.copyWith(
+          isBusy: false,
+          screenplayImportError: read.status == OcptScreenplayImportStatus.cancelled
+              ? null
+              : read.status,
+        ),
+      );
       return;
     }
 
@@ -409,5 +424,13 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     Emitter<OcptHomeState> emitter,
   ) async {
     emitter(state.copyWith(clearProjectPackageImportReport: true));
+  }
+
+  /// Clears the transient screenplay import error currently shown, if any.
+  Future<void> _onScreenplayImportErrorDismissed(
+    OcptHomeScreenplayImportErrorDismissedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(clearScreenplayImportError: true));
   }
 }

@@ -6,12 +6,68 @@ SPDX-License-Identifier: Apache-2.0
 
 # Architecture — the screenplay
 
-`fountain_kit`, `spell_kit` and the screenplay mode: the parser and what it guarantees, the
-styled editor's document model, the title page, the spell-checking, the docks and the syntax
-guide.
+`fountain_kit`, `script_import_kit`, `spell_kit` and the screenplay mode: the parser and what it
+guarantees, the readers turning a foreign screenplay into Fountain, the styled editor's document
+model, the title page, the spell-checking, the docks and the syntax guide.
 
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
+
+- `packages/script_import_kit`: pure-Dart readers turning the screenplay files a production is
+  actually sent — a Final Draft `.fdx`, a legacy Celtx `.celtx` — into Fountain text (ADR 0023).
+  A sibling of `fountain_kit` rather than a subdirectory of it, so that package keeps knowing no
+  format but Fountain, and **`fountain_kit` never references this one**. Free of Flutter imports
+  and of I/O alike: it takes the file's bytes in and hands a `String` back, which is what lets
+  every one of its tests build its document inline. One door, `ScriptImporter.read({bytes,
+  fileName})`, dispatching on the extension; a file it cannot read raises a
+  `ScriptImportException` carrying a `ScriptImportFailure` (`unsupportedFormat`, `malformedFile`,
+  `noScriptDocument`, `emptyScript`) rather than returning the half of it that parsed. `.fountain`
+  is deliberately not handled there — it needs no conversion, and reading it stays
+  `OcptFountainIoService`'s business (`exports.md`).
+- **A reader never writes one character of Fountain by hand**, and that is the package's whole
+  shape: it produces a list of typed `ScriptLine`s — *this is a scene heading*, *this is a
+  character cue*, plus a scene number, a dual-dialogue flag and the runs of inline emphasis — and
+  one `ScriptFountainEmitter` renders them through `fountain_kit`'s own `FountainLineWriter`,
+  `FountainInlineSerializer` and `FountainTitlePageWriter`, exactly as `OcptWysiwygCodec` does.
+  Each line is written with the type of the one before it and the raw text of the one after it, the
+  same context `FountainLineClassifier` reads, which is what makes the forcing markers land: an
+  all-caps line of dialogue stays dialogue instead of becoming a cue, an action paragraph opening
+  on `INT.` stays action. The emitter decides the layout and nothing else — a blank line between
+  two blocks, never inside a dialogue block, an empty line dropped — and it restates one rule of
+  the parser's, the title-page-key regex, because a screenplay with no title page opening on
+  `FADE IN:` would otherwise have that first line swallowed as an empty title-page entry. **The
+  round-trip test is the load-bearing one**: the emitted text is re-parsed by `FountainParser.parse`
+  and the blocks compared to what the reader meant. Adding a third format is a third reader behind
+  that same emitter and no new Fountain rule at all.
+- `FdxScriptReader` reads the XML (`package:xml`): `<FinalDraft DocumentType="Script">`, then
+  `<Content>`'s `<Paragraph Type="…">`, its text concatenated from the `<Text>` children whose
+  `Style` becomes the emphasis runs. `Scene Heading` (its `Number` attribute becoming the `#N#`
+  concatenated onto the heading text before the writer sees it), `Action`/`General`, `Character`
+  (a `(V.O.)` extension staying in the text), `Parenthetical`, `Dialogue`, `Transition`, `Shot` as
+  action, `New Act`/`End of Act` as centered text, and `Cast List` or any unknown type as action.
+  A `<DualDialogue>` group's second cue takes the `^`. The `<TitlePage>` is free-form prose rather
+  than named fields, so it is read the way a person reads it — first line the title, a "written
+  by"/"scénario de" line the credit and the next one the author, a "based on"/"d'après" line the
+  source, a "draft"/"version" line the draft date, everything left over the contact block — which
+  is what keeps every line of it.
+- `CeltxScriptReader` reads the legacy container: a zip decoded in memory (`package:archive` — a
+  `.celtx` is small, unlike the streamed `.ocptz` of `foundations.md`), its `project.rdf` giving
+  the `dc:title` and `dc:creator` that become the title page and naming the **first**
+  `ScriptDocument`'s HTML file. That file is parsed as HTML, not XML (`package:html`: unclosed
+  `<br>`, entities), each `<p class="…">` yielding a line — `sceneheading` (its `scenenumber`
+  attribute becoming the `#N#`), `action`, `character`, `dialog`, `parenthetical`, `transition`,
+  `shot` as action, `act`/`actbreak` as centered text, and `text`, an unknown class or no class at
+  all as action — an inner `<br>` splitting the paragraph into several lines of one same block, and
+  `<b>`/`<i>`/`<u>` with their `<strong>`/`<em>` spellings becoming the emphasis runs.
+- **What a conversion loses is written down, in each reader's own documentation and in the
+  package's `README.md`**, since a lossy conversion nobody documented is one whose losses are
+  discovered on set: an `.fdx` leaves behind its `<ScriptNote>` margin notes, its revision marks,
+  its locked pages and every style Fountain has no marker for; a `.celtx` leaves behind every
+  document but the first script — the catalogue, the storyboard, the schedule, the scratch files
+  and any further script — along with the project's media, index cards and notes. Bytes are decoded
+  as UTF-8 with malformed sequences replaced rather than thrown on, the BOM dropped and every line
+  ending normalised, so a file saved in a legacy encoding still opens with a handful of wrong
+  accents instead of not opening at all.
 
 - One screenplay at a time, and it is **the episode the workspace has selected** (ADR 0019): the
   mode reads and writes that screenplay where it reached for `primaryScreenplayId` before, and

@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 
 /// A recent project enriched with whether its file can still be found on disk.
@@ -77,6 +78,15 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
   /// only ever hold one of them truthfully.
   final OcptProjectPackageStatus? projectPackageImportError;
 
+  /// The status of the last screenplay import that failed to read the picked file, or null if
+  /// none did (or it was already dismissed).
+  ///
+  /// A field of its own rather than reusing [error], for the very same reason
+  /// [projectPackageImportError] is one: that field is an [OcptProjectStatus], and picking a file
+  /// that cannot be read as a screenplay fails with an [OcptScreenplayImportStatus] instead. Only
+  /// the failures worth stating land here — a cancelled dialog is a silent no-op.
+  final OcptScreenplayImportStatus? screenplayImportError;
+
   /// What the last project package import landed the user with, while the page still has to state
   /// the skipped files (if any) and open the project itself; null the rest of the time.
   ///
@@ -96,6 +106,7 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     this.projectPackageNotice,
     this.projectPackageImportError,
     this.projectPackageImportReport,
+    this.screenplayImportError,
   });
 
   /// Init class constructor
@@ -107,7 +118,8 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
       projectPackagePendingExport = null,
       projectPackageNotice = null,
       projectPackageImportError = null,
-      projectPackageImportReport = null;
+      projectPackageImportReport = null,
+      screenplayImportError = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -115,7 +127,7 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
   /// clear flag is true; otherwise the current one is kept, since null is a legitimate "nothing to
   /// report" value that a plain `?? this.error` couldn't distinguish from "not provided". The
   /// project package's own pairs — the export one through [copyProjectPackageState] below, the
-  /// import one right here — follow the very same rule.
+  /// import one right here — and [screenplayImportError] follow the very same rule.
   @override
   OcptHomeState copyWith({
     List<OcptHomeRecentProjectEntry>? recentProjects,
@@ -132,6 +144,8 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     bool clearProjectPackageImportError = false,
     OcptProjectPackageImportReport? projectPackageImportReport,
     bool clearProjectPackageImportReport = false,
+    OcptScreenplayImportStatus? screenplayImportError,
+    bool clearScreenplayImportError = false,
   }) => OcptHomeState(
     recentProjects: recentProjects ?? this.recentProjects,
     isBusy: isBusy ?? this.isBusy,
@@ -151,6 +165,9 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     projectPackageImportReport: clearProjectPackageImportReport
         ? null
         : (projectPackageImportReport ?? this.projectPackageImportReport),
+    screenplayImportError: clearScreenplayImportError
+        ? null
+        : (screenplayImportError ?? this.screenplayImportError),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
@@ -177,5 +194,6 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     pendingFileCompatibility,
     projectPackageImportError,
     projectPackageImportReport,
+    screenplayImportError,
   ];
 }

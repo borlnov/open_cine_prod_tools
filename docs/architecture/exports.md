@@ -8,9 +8,10 @@ SPDX-License-Identifier: Apache-2.0
 
 How a document leaves the app — and how the project itself does: the panel every mode reaches its
 exports from, the card grid that panel and the home page's `Import…` modal are both built on, the
-manager owning the fifteen services, and the scenario coverage PDF. Each mode's own documents are
-described in that mode's file; the package a whole project travels as is `foundations.md`'s, this
-file covering only where the two gestures sit.
+manager owning the sixteen services, the door a foreign screenplay comes in through, and the
+scenario coverage PDF. Each mode's own documents are described in that mode's file; the package a
+whole project travels as is `foundations.md`'s, this file covering only where the two gestures
+sit.
 
 - **Every export in the app is reached from one place**: the toolbar's own `Export` control, in
   every mode that prints something, opening `OcptWorkspaceExportDialog<T>`
@@ -74,14 +75,48 @@ file covering only where the two gestures sit.
   greyed-and-inert unavailability semantics and the standing project card above.
   `OcptWorkspaceExportEntry<T>` is expressed in terms of `OcptCardChoiceEntry`. The other caller is
   the home header's single **`Import…`** button, opening a modal of two cards, `A project`
-  (`.ocptz`) and `A screenplay` (`.fountain`): the two gestures are named side by side where
-  somebody compares them, laid out the same way, and the header keeps four controls instead of
-  growing to five, two of which would have started with the same word. Picking `A project` runs pick
-  the `.ocptz` (`FileSelectorManager`), pick a **parent folder**
+  (`.ocptz`) and `A screenplay` (`.fountain, .fdx, .celtx`, joined from
+  `OcptScriptImportService.importableExtensions` rather than written out, so a fourth format
+  cannot be added without the card saying so): the two gestures are named side by side where
+  somebody compares them, laid out the same way, and the header keeps four controls
+  instead of growing to five, two of which would have started with the same word. Picking
+  `A project` runs pick the `.ocptz` (`FileSelectorManager`), pick a **parent folder**
   (`OcptSaveLocationService.pickDirectory`), unpack into `<project name>/` inside it — a folder of
   that name already there is a clear refusal, never an overwrite — then state the skipped files and
   open the project **through the compatibility gate** (`foundations.md`, ADR 0022), exactly as
   tapping a recent project card would.
+
+- **A screenplay enters the app through one door, and it takes three formats**:
+  `OcptExportManager.pickAndReadScreenplay` — the home modal's `A screenplay` card, which turns the
+  file into a new project, and the screenplay mode's own `⋮ Import and replace…`, which replaces
+  the selected episode's text behind a pre-import snapshot (`screenplay.md`). The native selector
+  filters on `OcptScriptImportService.importableExtensions` (`.fountain` first, it being the app's
+  source of truth, then `.fdx` and `.celtx`), and what comes back is Fountain text whichever was
+  picked: an `.fdx` and a `.celtx` are converted as they are read, by `script_import_kit`
+  (ADR 0023, and `screenplay.md` for what each conversion carries and loses). The conversion is
+  **one way** — nothing in the app writes either format — and `OcptImportedFountainModel` keeps its
+  name because its text *is* Fountain by the time anyone sees it, its `sourceFileName` still
+  feeding `OcptFountainIoService.suggestedProjectName` so that the converted title page's `Title`
+  names the new project by itself, for all three formats.
+- The result is a `ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>`
+  (`lib/types/`) rather than a nullable model, because once a file can be **refused for not being a
+  screenplay**, "nothing came back" no longer tells that apart from a cancelled dialog: `ok`,
+  `cancelled`, `unreadableFile`, `ioError`. `cancelled` is a silent no-op everywhere — the OS
+  dialog already reported a selection that failed, and a cancellation is not something to state
+  back. The other two share one sentence to the user, whether the bytes never came back or came
+  back as something that is not a screenplay: the home page raises it as a transient
+  `OcptHomeState.screenplayImportError` (cleared by its own `copyWith` flag, exactly as
+  `projectPackageImportError` is) and the editor as an `OcptEditorIoNoticeKind.importUnreadable`
+  notice, distinct from the `importFailed` that stays the *write* failure — and an import that
+  could not be read **replaces nothing**, leaving the screenplay on screen as it was.
+- The kit knows neither ACT nor `Tr`, so **`OcptScriptImportService` is where a
+  `ScriptImportException` becomes an app-side status**: it hands `.fountain` bytes to
+  `OcptFountainIoService.decodeFountainBytes` and everything else to `ScriptImporter`, returning
+  the refusal with the exception as the result's `extraInfo` for the manager to log. It holds no
+  dialog, no file system access and not even a logger, which is what makes it a `const` service
+  testable on its bytes alone. An extension the app does not import reaching it is that same
+  refusal: the native dialog filters those out, so one arriving here is a file somebody renamed by
+  hand.
 
 - A suggested file name is built in one place, `ocptExportFileNameOf`
   (`lib/managers/export/services/ocpt_export_file_name.dart`):
@@ -94,8 +129,9 @@ file covering only where the two gestures sit.
   same reason.
 
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and fifteen services it owns (RFL18) — `OcptFountainIoService`
-  (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
+  app: the native open dialog, and sixteen services it owns (RFL18) — `OcptFountainIoService`
+  (bytes ↔ text, suggested file names), `OcptScriptImportService` (the three importable formats in
+  and Fountain text out, above), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService`, `OcptScenarioCoveragePdfService`,
   `OcptResourcesXlsxExportService`, `OcptContactListPdfService`, `OcptBreakdownSheetsPdfService`,
   `OcptBreakdownXlsxExportService`, `OcptCallSheetPdfService`, `OcptShootingPlanPdfService`,

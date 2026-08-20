@@ -1271,6 +1271,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
+  script_import_kit:
+    dependency: "direct main"
+    description:
+      path: "packages/script_import_kit"
+      relative: true
+    source: path
+    version: "0.1.0"
   shared_preferences:
     dependency: transitive
     description:
