@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -84,6 +85,15 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// named call sheet's own "to bring" section ([elementsToBringOnDay]) is read off.
   final List<OcptElement> elements;
 
+  /// Every live candidacy of the project — who was seen for which part — in no particular order,
+  /// as passed to [OcptSchedulePlanSnapshot.build]. What a `shooting_slot_candidates` link and an
+  /// `audition` block are both resolved to a name and a part through ([roleCandidateById]).
+  ///
+  /// Empty on a project that has auditioned nobody, which is most of them: the schedule reads this
+  /// catalogue for the same reason it reads the elements one — one surface needs it — and a
+  /// project with no casting simply joins nothing.
+  final List<OcptRoleCandidate> roleCandidates;
+
   /// `project_info.minimumRestMinutes` verbatim, as passed to [OcptSchedulePlanSnapshot.build] —
   /// null while nobody has recorded one, which [alerts]' own rest-time rule never fires on. Every
   /// call site states it explicitly (a required parameter, not a default) so a forgotten one can
@@ -101,6 +111,12 @@ class OcptSchedulePlanSnapshot extends Equatable {
 
   /// The whole address book, keyed by id.
   final Map<String, OcptPerson> personById;
+
+  /// [roleCandidates], keyed by id — what a candidate's convocation and an `audition` block resolve
+  /// their `roleCandidateId` through. A row this map no longer holds reads as nothing at all: the
+  /// candidacy has been removed since, and no cascade drops the schedule rows naming it (see
+  /// `OcptShootingSlotCandidatesTable`).
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// [episodes], keyed by id — the same derivation [locationById]/[setById]/[roleById]/[personById]
   /// already make, for the same reason.
@@ -127,18 +143,26 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required this.roles,
     required this.people,
     required this.elements,
+    required this.roleCandidates,
     required this.minimumRestMinutes,
     required this.locationById,
     required this.setById,
     required this.roleById,
     required this.personById,
+    required this.roleCandidateById,
     required this.episodeById,
     required this.shotsById,
   });
 
   /// Builds an [OcptSchedulePlanSnapshot] from [schedule], every live episode's own [shotLists], the
   /// four catalogues and [minimumRestMinutes], deriving [locationById]/[setById]/[roleById]/
-  /// [personById]/[episodeById]/[shotsById] from them once.
+  /// [personById]/[roleCandidateById]/[episodeById]/[shotsById] from them once.
+  ///
+  /// [roleCandidates] is the one parameter carrying a default, and deliberately: every other
+  /// catalogue here is read by something the mode draws on every day of every project, while a
+  /// candidacy is only ever resolved on a day that sees people for a part. A caller with none to
+  /// hand — every export test over an ordinary shoot — passes nothing and joins nothing, and a
+  /// forgotten one costs a candidate's name on a casting day rather than silently disabling a rule.
   ///
   /// [episodes] is a **required** parameter with no default, exactly as [minimumRestMinutes] is and
   /// for the same reason: an empty list is a truthful state (a project whose episodes have not been
@@ -155,6 +179,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required List<OcptPerson> people,
     required List<OcptElement> elements,
     required int? minimumRestMinutes,
+    List<OcptRoleCandidate> roleCandidates = const [],
   }) => OcptSchedulePlanSnapshot(
     schedule: schedule,
     shotLists: shotLists,
@@ -163,6 +188,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     roles: roles,
     people: people,
     elements: elements,
+    roleCandidates: roleCandidates,
     minimumRestMinutes: minimumRestMinutes,
     locationById: Map.unmodifiable({for (final location in locations) location.id: location}),
     setById: Map.unmodifiable({
@@ -171,6 +197,9 @@ class OcptSchedulePlanSnapshot extends Equatable {
     }),
     roleById: Map.unmodifiable({for (final role in roles) role.id: role}),
     personById: Map.unmodifiable({for (final person in people) person.id: person}),
+    roleCandidateById: Map.unmodifiable({
+      for (final candidate in roleCandidates) candidate.id: candidate,
+    }),
     episodeById: Map.unmodifiable({for (final episode in episodes) episode.id: episode}),
     shotsById: Map.unmodifiable({
       for (final shotList in shotLists) ...shotList.shotsById,
@@ -228,8 +257,9 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per uncast
-  /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at all.
+  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person, per uncast role,
+  /// per guest and per candidate linked to any of its live slots, empty while [dayId] names no day
+  /// with a live slot at all.
   ///
   /// Built by [ocptComputeDayConvocations] over one [OcptConvocationSlot] per live slot
   /// ([_convocationSlotOf]) — that pure function knows nothing of `shots`, `roles` or the timeline,
@@ -260,13 +290,18 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// Builds [slot]'s own [OcptConvocationSlot]: [OcptConvocationSlot.shootingStartMinute]/
   /// [OcptConvocationSlot.shootingEndMinute] are the minimum start and the maximum end, over
   /// [timeline]'s own entries whose [blocksById] row is a [OcptShootingBlockKind.shot] or a
-  /// [OcptShootingBlockKind.hold] — a minimum and a maximum rather than "the first and last entry",
+  /// shooting block (`OcptShootingBlockKind.isShootingTime` — a shot, a hold, an audition or a
+  /// rehearsal) — a minimum and a maximum rather than "the first and last entry",
   /// since a pinned anchor can put a block earlier than the one before it in chain order —
   /// [OcptConvocationSlot.personIds]/[OcptConvocationSlot.uncastRoleIds] come from [slot]'s own live
-  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`, and
+  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`,
   /// [OcptConvocationSlot.guestPersonIds]/[OcptConvocationSlot.guestFreeNames] come straight off
   /// [slot]'s own live [OcptShootingSlot.guests] — a guest's `personId`/`freeName` already being the
-  /// discriminator [ocptComputeDayConvocations] itself groups on, there is no join left to do here.
+  /// discriminator [ocptComputeDayConvocations] itself groups on, there is no join left to do here —
+  /// and [OcptConvocationSlot.roleCandidateIds] comes off its own live
+  /// [OcptShootingSlot.candidates], **filtered through [roleCandidateById]**: a link onto a
+  /// candidacy that has since been removed convokes nobody, and dropping it here is what keeps a
+  /// stale row from drawing a nameless card.
   ///
   /// [OcptConvocationSlot.startMinute] is [timeline]'s own **resolved** start, never a stored
   /// column: a slot pinned by its end starts wherever its blocks put it, and a convocation is what
@@ -280,7 +315,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     int? shootingEndMinute;
     for (final entry in timeline.entries) {
       final kind = blocksById[entry.blockId]?.kind;
-      if (kind != OcptShootingBlockKind.shot && kind != OcptShootingBlockKind.hold) {
+      if (kind == null || !kind.isShootingTime) {
         continue;
       }
       if (shootingStartMinute == null || entry.startMinute < shootingStartMinute) {
@@ -313,6 +348,11 @@ class OcptSchedulePlanSnapshot extends Equatable {
       }
     }
 
+    final roleCandidateIds = <String>{
+      for (final candidate in slot.candidates)
+        if (roleCandidateById.containsKey(candidate.roleCandidateId)) candidate.roleCandidateId,
+    };
+
     return OcptConvocationSlot(
       id: slot.id,
       startMinute: timeline.startMinute,
@@ -323,6 +363,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
       uncastRoleIds: uncastRoleIds,
       guestPersonIds: guestPersonIds,
       guestFreeNames: guestFreeNames,
+      roleCandidateIds: roleCandidateIds,
     );
   }
 
@@ -767,11 +808,13 @@ class OcptSchedulePlanSnapshot extends Equatable {
     roles,
     people,
     elements,
+    roleCandidates,
     minimumRestMinutes,
     locationById,
     setById,
     roleById,
     personById,
+    roleCandidateById,
     episodeById,
     shotsById,
   ];

@@ -97,6 +97,7 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   crew: const [],
   cast: const [],
   guests: const [],
+  candidates: const [],
 );
 
 /// Pumps [OcptScheduleConvocationsPanel] with the given lookups, everything else defaulting to
@@ -142,6 +143,7 @@ void main() {
           patEndMinute: 1155,
           departureMinute: 1200,
           slotIds: ["slot-1"],
+          roleCandidateId: null,
         ),
       ],
       personById: {"person-1": person},
@@ -172,6 +174,7 @@ void main() {
           patEndMinute: null,
           departureMinute: 1200,
           slotIds: ["slot-1"],
+          roleCandidateId: null,
         ),
       ],
       personById: {"person-1": person},
@@ -198,6 +201,7 @@ void main() {
           patEndMinute: null,
           departureMinute: 1200,
           slotIds: ["slot-1"],
+          roleCandidateId: null,
         ),
       ],
       roleById: {"role-1": role},
@@ -225,6 +229,7 @@ void main() {
           patEndMinute: 1200,
           departureMinute: 1260,
           slotIds: ["slot-1", "slot-2"],
+          roleCandidateId: null,
         ),
       ],
       personById: {"person-1": person},
@@ -256,6 +261,7 @@ void main() {
           patEndMinute: null,
           departureMinute: 600,
           slotIds: const ["slot-1"],
+          roleCandidateId: null,
         ),
         OcptDayConvocation(
           personId: early.id,
@@ -267,6 +273,7 @@ void main() {
           patEndMinute: null,
           departureMinute: 600,
           slotIds: const ["slot-1"],
+          roleCandidateId: null,
         ),
         OcptDayConvocation(
           personId: tiedTwo.id,
@@ -278,6 +285,7 @@ void main() {
           patEndMinute: null,
           departureMinute: 600,
           slotIds: const ["slot-1"],
+          roleCandidateId: null,
         ),
       ],
       personById: {early.id: early, tiedOne.id: tiedOne, tiedTwo.id: tiedTwo},
@@ -315,6 +323,7 @@ void main() {
           patEndMinute: null,
           departureMinute: 360,
           slotIds: const ["slot-1"],
+          roleCandidateId: null,
         ),
         OcptDayConvocation(
           personId: crewPerson.id,
@@ -326,6 +335,7 @@ void main() {
           patEndMinute: null,
           departureMinute: 600,
           slotIds: const ["slot-1"],
+          roleCandidateId: null,
         ),
       ],
       personById: {crewPerson.id: crewPerson, guestPerson.id: guestPerson},

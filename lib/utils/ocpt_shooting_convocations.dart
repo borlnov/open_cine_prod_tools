@@ -9,9 +9,9 @@
 ///
 /// A person is convoked by being **linked to a slot** (ADR 0018) — there is no lead time, no group
 /// and no per-block role resolution left in this file: whoever [personIds]/[uncastRoleIds]/
-/// [guestPersonIds]/[guestFreeNames] names is convoked by this slot, for the whole of it, and every
-/// clock a convocation carries is read off [startMinute]/[endMinute]/[shootingStartMinute]/
-/// [shootingEndMinute] alone.
+/// [guestPersonIds]/[guestFreeNames]/[roleCandidateIds] names is convoked by this slot, for the
+/// whole of it, and every clock a convocation carries is read off [startMinute]/[endMinute]/
+/// [shootingStartMinute]/[shootingEndMinute] alone.
 class OcptConvocationSlot {
   /// Builds a slot to feed to [ocptComputeDayConvocations].
   const OcptConvocationSlot({
@@ -24,6 +24,7 @@ class OcptConvocationSlot {
     required this.uncastRoleIds,
     required this.guestPersonIds,
     required this.guestFreeNames,
+    required this.roleCandidateIds,
   });
 
   /// The slot's own id (`shooting_slots.id`), echoed back on every [OcptDayConvocation.slotIds] that
@@ -39,9 +40,10 @@ class OcptConvocationSlot {
   /// just with nothing to say "the end" of (see [ocptComputeDayConvocations]'s own doc comment).
   final int? endMinute;
 
-  /// The earliest start over this slot's own `shot` and `hold` blocks — the two kinds that count as
-  /// shooting time (ADR 0018) — or null when it has neither. Null exactly when [shootingEndMinute]
-  /// is: both are built from the same walk over the same blocks.
+  /// The earliest start over this slot's own **shooting** blocks — `shot`, `hold`, `audition` and
+  /// `rehearsal`, `OcptShootingBlockKind.isShootingTime`'s own answer (ADR 0018) — or null when it
+  /// carries none of them. Null exactly when [shootingEndMinute] is: both are built from the same
+  /// walk over the same blocks.
   final int? shootingStartMinute;
 
   /// The latest end over the same blocks, or null under the same condition as [shootingStartMinute].
@@ -64,18 +66,27 @@ class OcptConvocationSlot {
   /// The free-named guests attending this slot — the discriminator's other half, each entry the
   /// guest's own verbatim `freeName`.
   final Set<String> guestFreeNames;
+
+  /// The candidacies convoked on this slot (`shooting_slot_candidates.roleCandidateId`) — somebody
+  /// seen **for a part**, which is why the id is a candidacy's and not a person's: two candidacies
+  /// of one person on one day are two convocations, each about a different twenty minutes.
+  /// Resolving one to a name and a part is the caller's job, this file knowing nothing of
+  /// `role_candidates`.
+  final Set<String> roleCandidateIds;
 }
 
-/// One person's, one uncast role's or one guest's whole call for a day, joined across every slot
+/// One person's, one uncast role's, one guest's or one candidate's whole call for a day, joined
+/// across every slot
 /// they are linked to (ADR 0018) — the app's one answer to "when does this human arrive, when are
 /// they ready to shoot, and when are they done" (a guest excepted from the middle question, see
 /// [patStartMinute]).
 ///
-/// **Exactly one of [personId]/[roleId]/[guestPersonId]/[guestFreeName] is non-null**, the same
-/// discriminator `breakdown_tags` uses (ADR 0014): a cast role with nobody cast in it is still a
-/// convocation the production has to honour, named by the role rather than by nobody, and a guest
-/// is named by the address book or by a free name exactly as `shooting_slot_guests` itself
-/// discriminates one.
+/// **Exactly one of [personId]/[roleId]/[guestPersonId]/[guestFreeName]/[roleCandidateId] is
+/// non-null**, the same discriminator `breakdown_tags` uses (ADR 0014): a cast role with nobody cast
+/// in it is still a convocation the production has to honour, named by the role rather than by
+/// nobody; a guest is named by the address book or by a free name exactly as `shooting_slot_guests`
+/// itself discriminates one; and a candidate is named by their **candidacy**, which is what says
+/// which part they are coming to be seen for.
 class OcptDayConvocation {
   /// Builds a computed day convocation.
   const OcptDayConvocation({
@@ -83,6 +94,7 @@ class OcptDayConvocation {
     required this.roleId,
     required this.guestPersonId,
     required this.guestFreeName,
+    required this.roleCandidateId,
     required this.arrivalMinute,
     required this.patStartMinute,
     required this.patEndMinute,
@@ -94,21 +106,34 @@ class OcptDayConvocation {
   /// names it instead.
   final String? personId;
 
-  /// The uncast role this convocation is for, or null when another of the four fields names it
+  /// The uncast role this convocation is for, or null when another of the five fields names it
   /// instead.
   final String? roleId;
 
-  /// The address-book guest this convocation is for, or null when another of the four fields names
+  /// The address-book guest this convocation is for, or null when another of the five fields names
   /// it instead.
   final String? guestPersonId;
 
-  /// The free-named guest this convocation is for, or null when another of the four fields names it
+  /// The free-named guest this convocation is for, or null when another of the five fields names it
   /// instead.
   final String? guestFreeName;
+
+  /// The candidacy this convocation is for — somebody seen for a part — or null when another of the
+  /// five fields names it instead.
+  final String? roleCandidateId;
 
   /// Whether this convocation is a guest's — either half of the discriminator, [guestPersonId] or
   /// [guestFreeName].
   bool get isGuest => guestPersonId != null || guestFreeName != null;
+
+  /// Whether this convocation is a candidate's — [roleCandidateId] being the arm of the
+  /// discriminator that says so.
+  ///
+  /// Unlike [isGuest], this changes **nothing** about the figures below: a candidate arrives, is
+  /// ready to be seen and leaves exactly as everybody else does, and their band is read off the
+  /// slot's shooting blocks — auditions included — like any other. It only ever says which group of
+  /// the convocations panel the card belongs in.
+  bool get isCandidate => roleCandidateId != null;
 
   /// The earliest minute this person or role is expected — the minimum
   /// [OcptConvocationSlot.startMinute] over every slot they are linked to.
@@ -135,8 +160,8 @@ class OcptDayConvocation {
   /// instant it begins, for someone linked to nothing more than that.
   final int departureMinute;
 
-  /// The ids of every slot this person or role is linked to, in the order [ocptComputeDayConvocations]
-  /// was given [OcptConvocationSlot]s.
+  /// The ids of every slot this person, role or candidacy is linked to, in the order
+  /// [ocptComputeDayConvocations] was given [OcptConvocationSlot]s.
   final List<String> slotIds;
 }
 
@@ -144,8 +169,9 @@ class OcptDayConvocation {
 /// exactly once, here.
 ///
 /// **Nothing is offset from anything, and nobody types a call time, a wrap time or a PAT band.** A
-/// person (or an uncast role, or a guest) is convoked by being linked to one or more of [slots]
-/// (`OcptConvocationSlot.personIds`/`.uncastRoleIds`/`.guestPersonIds`/`.guestFreeNames`), and every
+/// person (or an uncast role, or a guest, or a candidate seen for a part) is convoked by being
+/// linked to one or more of [slots] (`OcptConvocationSlot.personIds`/`.uncastRoleIds`/
+/// `.guestPersonIds`/`.guestFreeNames`/`.roleCandidateIds`), and every
 /// clock this function returns for them is read off the slots they are linked to — `S`, the subset
 /// of [slots] listing them — and nothing else:
 ///
@@ -161,10 +187,11 @@ class OcptDayConvocation {
 ///   that.
 /// - [OcptDayConvocation.slotIds] is the ids of `S`, in the order [slots] was given.
 ///
-/// The result is one [OcptDayConvocation] per person, per uncast role and per guest (address-book or
-/// free-named) named anywhere in [slots], sorted by [OcptDayConvocation.arrivalMinute], ties broken
-/// by [OcptDayConvocation.personId] `??` [OcptDayConvocation.roleId] `??`
-/// [OcptDayConvocation.guestPersonId] `??` [OcptDayConvocation.guestFreeName] — deterministic, but
+/// The result is one [OcptDayConvocation] per person, per uncast role, per guest (address-book or
+/// free-named) and per candidacy named anywhere in [slots], sorted by
+/// [OcptDayConvocation.arrivalMinute], ties broken by [OcptDayConvocation.personId] `??`
+/// [OcptDayConvocation.roleId] `??` [OcptDayConvocation.guestPersonId] `??`
+/// [OcptDayConvocation.guestFreeName] `??` [OcptDayConvocation.roleCandidateId] — deterministic, but
 /// not "arrival then **name**": nothing here knows a person's, a role's or a guest's own display
 /// name, so a caller wanting that ordering re-sorts on top of this one. A free-named guest is
 /// grouped by that name **verbatim**: nothing here normalises it, since nothing in this app says two
@@ -184,6 +211,7 @@ List<OcptDayConvocation> ocptComputeDayConvocations({required List<OcptConvocati
   final slotsByRoleId = <String, List<OcptConvocationSlot>>{};
   final slotsByGuestPersonId = <String, List<OcptConvocationSlot>>{};
   final slotsByGuestFreeName = <String, List<OcptConvocationSlot>>{};
+  final slotsByRoleCandidateId = <String, List<OcptConvocationSlot>>{};
 
   for (final slot in slots) {
     for (final personId in slot.personIds) {
@@ -198,6 +226,9 @@ List<OcptDayConvocation> ocptComputeDayConvocations({required List<OcptConvocati
     for (final guestFreeName in slot.guestFreeNames) {
       (slotsByGuestFreeName[guestFreeName] ??= <OcptConvocationSlot>[]).add(slot);
     }
+    for (final roleCandidateId in slot.roleCandidateIds) {
+      (slotsByRoleCandidateId[roleCandidateId] ??= <OcptConvocationSlot>[]).add(slot);
+    }
   }
 
   final convocations = <OcptDayConvocation>[
@@ -207,6 +238,8 @@ List<OcptDayConvocation> ocptComputeDayConvocations({required List<OcptConvocati
       _convocationOf(guestPersonId: entry.key, ownSlots: entry.value),
     for (final entry in slotsByGuestFreeName.entries)
       _convocationOf(guestFreeName: entry.key, ownSlots: entry.value),
+    for (final entry in slotsByRoleCandidateId.entries)
+      _convocationOf(roleCandidateId: entry.key, ownSlots: entry.value),
   ];
 
   convocations.sort((left, right) {
@@ -214,16 +247,28 @@ List<OcptDayConvocation> ocptComputeDayConvocations({required List<OcptConvocati
     if (byArrival != 0) {
       return byArrival;
     }
-    return (left.personId ?? left.roleId ?? left.guestPersonId ?? left.guestFreeName ?? "").compareTo(
-      right.personId ?? right.roleId ?? right.guestPersonId ?? right.guestFreeName ?? "",
-    );
+    return (left.personId ??
+            left.roleId ??
+            left.guestPersonId ??
+            left.guestFreeName ??
+            left.roleCandidateId ??
+            "")
+        .compareTo(
+          right.personId ??
+              right.roleId ??
+              right.guestPersonId ??
+              right.guestFreeName ??
+              right.roleCandidateId ??
+              "",
+        );
   });
 
   return convocations;
 }
 
 /// Builds the [OcptDayConvocation] of [personId] (or [roleId], or [guestPersonId], or
-/// [guestFreeName] — exactly one of the four is ever passed) over the slots naming them, [ownSlots]
+/// [guestFreeName], or [roleCandidateId] — exactly one of the five is ever passed) over the slots
+/// naming them, [ownSlots]
 /// — see [ocptComputeDayConvocations]'s own doc comment for what each figure is read from.
 ///
 /// `isGuest` (computed locally, true exactly when [guestPersonId]/[guestFreeName] is the one passed)
@@ -235,6 +280,7 @@ OcptDayConvocation _convocationOf({
   String? roleId,
   String? guestPersonId,
   String? guestFreeName,
+  String? roleCandidateId,
   required List<OcptConvocationSlot> ownSlots,
 }) {
   final isGuest = guestPersonId != null || guestFreeName != null;
@@ -274,6 +320,7 @@ OcptDayConvocation _convocationOf({
     roleId: roleId,
     guestPersonId: guestPersonId,
     guestFreeName: guestFreeName,
+    roleCandidateId: roleCandidateId,
     arrivalMinute: arrivalMinute!,
     patStartMinute: patStartMinute,
     patEndMinute: patEndMinute,

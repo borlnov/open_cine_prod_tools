@@ -123,6 +123,7 @@ void main() {
       currencyCode: "EUR",
       minimumRestMinutes: null,
       screenplayLanguage: null,
+      shootingSlotCandidates: const [],
     ),
   );
 

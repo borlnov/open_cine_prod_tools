@@ -135,6 +135,7 @@ OcptDayConvocation _buildConvocation({String? personId, String? roleId}) => Ocpt
   patEndMinute: 1020,
   departureMinute: 1080,
   slotIds: const ["slot-1"],
+  roleCandidateId: null,
 );
 
 void main() {

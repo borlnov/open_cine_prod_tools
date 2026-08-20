@@ -7557,6 +7557,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleBlockKindAudition": "Audition",
+  "@scheduleBlockKindAudition": {
+    "description": "Label of an audition block: one candidate seen for one part",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindRehearsal": "Rehearsal",
+  "@scheduleBlockKindRehearsal": {
+    "description": "Label of a rehearsal block: a sequence worked with the cast",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleDaysPanelTitle": "Shooting days",
   "@scheduleDaysPanelTitle": {
     "description": "Title of the schedule mode's left dock day list",
@@ -8614,6 +8628,100 @@
   "@scheduleConvocationsGuestsSectionTitle": {
     "description": "Heading of the convocations panel's own trailing group of guest cards",
     "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleConvocationsCandidatesSectionTitle": "Candidates",
+  "@scheduleConvocationsCandidatesSectionTitle": {
+    "description": "Heading of the convocations panel's own trailing group of candidates convoked on the day",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCandidatePickerDialogTitle": "Plan an audition",
+  "@scheduleCandidatePickerDialogTitle": {
+    "description": "Title of the dialog opened by a slot card's own `+ Block` menu's `Audition` entry",
+    "context": "Displayed in the candidate picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCandidatePickerSearchHint": "Search a part or a candidate…",
+  "@scheduleCandidatePickerSearchHint": {
+    "description": "Hint of the candidate picker dialog's own search field",
+    "context": "Displayed in the candidate picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCandidatePickerNoResultsHint": "No candidate matches the search.",
+  "@scheduleCandidatePickerNoResultsHint": {
+    "description": "Shown in the candidate picker dialog when the search matches no candidate at all",
+    "context": "Displayed in the candidate picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCandidatePickerEmptyHint": "No part has any candidate yet.",
+  "@scheduleCandidatePickerEmptyHint": {
+    "description": "Shown in the candidate picker dialog when the project holds no candidacy at all",
+    "context": "Displayed in the candidate picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCandidatePickerAlreadyPlannedTooltip": "Already planned on this day",
+  "@scheduleCandidatePickerAlreadyPlannedTooltip": {
+    "description": "Tooltip of a candidate picker row's own mark, shown for a candidacy already auditioned somewhere on the selected day",
+    "context": "Displayed in the candidate picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCandidatePickerCancelAction": "Cancel",
+  "@scheduleCandidatePickerCancelAction": {
+    "description": "Label of the candidate picker dialog's own cancel button",
+    "context": "Displayed in the candidate picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAuditionBlockLabel": "{candidateName} — {roleName}",
+  "@scheduleAuditionBlockLabel": {
+    "description": "Title of an audition block's own timetable row: who is seen, and for which part",
+    "context": "Displayed in the schedule mode's day view",
+    "type": "text",
+    "placeholders": {
+      "candidateName": {"type": "String", "example": "Camille Renard"},
+      "roleName": {"type": "String", "example": "MARIE"}
+    }
+  },
+  "scheduleSlotCandidatesColumnTitle": "Candidates",
+  "@scheduleSlotCandidatesColumnTitle": {
+    "description": "Title of a slot card's own candidates band, drawn on a casting day alone",
+    "context": "Displayed in the schedule mode's day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCandidatesEmptyHint": "No candidate yet.",
+  "@scheduleSlotCandidatesEmptyHint": {
+    "description": "Shown in a slot card's own candidates band while nobody is convoked on it",
+    "context": "Displayed in the schedule mode's day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddCandidateAction": "Candidate",
+  "@scheduleAddCandidateAction": {
+    "description": "Label of the `+ Candidate` footer of a slot card's own candidates band",
+    "context": "Displayed in the schedule mode's day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveCandidateTooltip": "Remove this convocation",
+  "@scheduleRemoveCandidateTooltip": {
+    "description": "Tooltip of the remove control of a candidate convoked on a slot",
+    "context": "Displayed in the schedule mode's day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCandidateAlreadyConvokedHint": "Every candidate of this project is already convoked on this unit.",
+  "@scheduleCandidateAlreadyConvokedHint": {
+    "description": "Shown instead of the `+ Candidate` menu when the project's candidacies are all already convoked on the slot",
+    "context": "Displayed in the schedule mode's day view",
     "type": "text",
     "placeholders": {}
   },

@@ -104,6 +104,8 @@ OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Pre
       anchorMinute: null,
       notes: "",
       crewNote: crewNote,
+      roleCandidateId: null,
+      roleId: null,
     );
 
 /// Pumps [OcptScheduleInspector] with [day]/[shot]/[block] selected as given — mirrors the widget's

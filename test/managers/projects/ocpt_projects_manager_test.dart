@@ -837,16 +837,19 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Turns the project file at [filePath] back into the file the previous build would have
-    /// written: the version 21 step's own addition — `shooting_days.kind` — taken back out, and the
-    /// format number with it.
+    /// written: the version 22 step's own additions — `shooting_slot_candidates` and the two links
+    /// an audition block names — taken back out, and the format number with it.
     ///
     /// Undoing the step rather than only stamping the number down is what makes this a real
-    /// migration to run — `addColumn` on a column that is already there throws, which is exactly
-    /// what a file merely relabelled would have hidden.
+    /// migration to run — `addColumn` on a column that is already there throws, and `createTable`
+    /// on a table that already exists does too, which is exactly what a file merely relabelled
+    /// would have hidden.
     void demoteToPreviousFormat(String filePath) {
       final database = sqlite3.open(filePath);
       database
-        ..execute("ALTER TABLE shooting_days DROP COLUMN kind")
+        ..execute("DROP TABLE shooting_slot_candidates")
+        ..execute("ALTER TABLE shooting_day_blocks DROP COLUMN role_id")
+        ..execute("ALTER TABLE shooting_day_blocks DROP COLUMN role_candidate_id")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

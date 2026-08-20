@@ -33,6 +33,8 @@ String _blockKindLabelOf(OcptShootingBlockKind kind) => switch (kind) {
   OcptShootingBlockKind.travel => "Travel",
   OcptShootingBlockKind.wrap => "Wrap",
   OcptShootingBlockKind.hold => "Reserved",
+  OcptShootingBlockKind.audition => "Audition",
+  OcptShootingBlockKind.rehearsal => "Rehearsal",
 };
 
 /// Builds a slot with the few fields these tests read, everything else neutral.
@@ -54,6 +56,7 @@ OcptShootingSlot _buildSlot({
   crew: const [],
   cast: cast,
   guests: guests,
+  candidates: const [],
 );
 
 /// Builds a cast member linking [roleId] to the fixture's own slot.
@@ -170,6 +173,8 @@ OcptShootingDayBlock _buildBlock({
   anchorMinute: null,
   notes: "",
   crewNote: "",
+  roleCandidateId: null,
+  roleId: null,
 );
 
 /// Builds a role with the few fields these tests read, everything else neutral.

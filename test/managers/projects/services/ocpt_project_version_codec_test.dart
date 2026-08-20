@@ -738,6 +738,20 @@ void main() {
         crewNote: "",
         isDeleted: true,
       ),
+      OcptShootingDayBlockRow(
+        id: "block-3",
+        shootingDayId: "day-2",
+        sortKey: "t",
+        slotId: "slot-3",
+        kind: OcptShootingBlockKind.audition,
+        roleId: "role-1",
+        roleCandidateId: "role-candidate-1",
+        label: "",
+        durationMinutes: 20,
+        notes: "",
+        crewNote: "",
+        isDeleted: false,
+      ),
     ],
     shootingSlotGuests: const [
       OcptShootingSlotGuestRow(
@@ -813,6 +827,24 @@ void main() {
     currencyCode: "GBP",
     minimumRestMinutes: 660,
     screenplayLanguage: OcptScreenplayLanguage.fr,
+    shootingSlotCandidates: const [
+      OcptShootingSlotCandidateRow(
+        id: "slot-candidate-1",
+        slotId: "slot-3",
+        roleCandidateId: "role-candidate-1",
+        sortKey: "V",
+        notes: "Vient avec sa bande démo",
+        isDeleted: false,
+      ),
+      OcptShootingSlotCandidateRow(
+        id: "slot-candidate-2",
+        slotId: "slot-3",
+        roleCandidateId: "role-candidate-2",
+        sortKey: "k",
+        notes: "",
+        isDeleted: true,
+      ),
+    ],
   );
 
   /// [buildRichPayload] serialized and read back.
@@ -1327,6 +1359,7 @@ void main() {
         currencyCode: null,
         minimumRestMinutes: null,
         screenplayLanguage: null,
+        shootingSlotCandidates: [],
       );
 
       expect(roundTrip(payload), payload);
@@ -1383,6 +1416,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(reordered));
@@ -1435,6 +1469,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
@@ -1487,6 +1522,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
@@ -1534,6 +1570,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
@@ -1578,6 +1615,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1622,6 +1660,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // Without the resources tables in the digest, an afternoon of typing people, locations and
@@ -1668,6 +1707,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1720,6 +1760,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -1781,6 +1822,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -1831,6 +1873,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -1881,6 +1924,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1928,6 +1972,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // A role recast onto a different episode changes the project even though every row's own id
@@ -1987,6 +2032,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // Without the breakdown tables in the digest, an afternoon of tagging the script would leave
@@ -2040,6 +2086,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reanchored)));
@@ -2087,6 +2134,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2134,6 +2182,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(marked)));
@@ -2181,6 +2230,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // elements.status is new too, and it lives inside the digest exactly like every other
@@ -2240,6 +2290,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // Without the seven schedule tables in the digest, planning a whole shooting day would leave
@@ -2289,6 +2340,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recalled)));
@@ -2336,6 +2388,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2391,9 +2444,67 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewGuest)));
+    });
+
+    // A whole casting day is planned by writing rows of this one table: a payload that left it
+    // out would let the working-copy card claim no drift after exactly the work it holds.
+    test('changes when a candidate is convoked on a slot', () {
+      final payload = buildRichPayload();
+      final withNewCandidate = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: [
+          ...payload.shootingSlotCandidates,
+          const OcptShootingSlotCandidateRow(
+            id: "slot-candidate-3",
+            slotId: "slot-3",
+            roleCandidateId: "role-candidate-2",
+            sortKey: "p",
+            notes: "",
+            isDeleted: false,
+          ),
+        ],
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewCandidate)));
     });
 
     test('changes when the page format changes', () {
@@ -2438,6 +2549,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
@@ -2482,6 +2594,7 @@ void main() {
         currencyCode: "USD",
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recurrencied)));
@@ -2526,6 +2639,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: 720,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(rerested)));
@@ -2570,6 +2684,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: OcptScreenplayLanguage.enGb,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(relanguaged)));
@@ -2617,6 +2732,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       // Two projects agreeing on everything else but disagreeing on what the checker has been
@@ -2668,6 +2784,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingSlotCandidates: payload.shootingSlotCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(renoted)));
@@ -3743,7 +3860,62 @@ void main() {
           ],
         );
         expect(result.value!.shootingSlots, buildRichPayload().shootingSlots);
-        expect(result.value!.shootingDayBlocks, buildRichPayload().shootingDayBlocks);
+        // The blocks come back with both audition links empty: a format-16 payload walks the
+        // 17 → 18 step below on its way here too, and a version captured before this app could
+        // plan an audition held none. Everything else about them is untouched.
+        expect(
+          result.value!.shootingDayBlocks,
+          [
+            for (final row in buildRichPayload().shootingDayBlocks)
+              row.copyWith(
+                roleId: const drift.Value(null),
+                roleCandidateId: const drift.Value(null),
+              ),
+          ],
+        );
+      },
+    );
+
+    test(
+      'a stored format-17 payload decodes with no audition planned anywhere',
+      () {
+        // Format 17 predates `shooting_slot_candidates` and the two links an audition block names,
+        // so [_upgradeFormat17To18] materialises the table as an **empty list** and writes a
+        // **null** into each of the two columns: both halves are the truthful reading of a version
+        // captured when this app could plan no audition at all. The fixture is the current encoding
+        // with the key taken back out, the two columns taken back off each block, and the format
+        // wound back.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("shootingSlotCandidates");
+        encoded["shootingDayBlocks"] = [
+          for (final block in encoded["shootingDayBlocks"] as List)
+            {...block as Map<String, dynamic>}
+              ..remove("roleId")
+              ..remove("roleCandidateId"),
+        ];
+        encoded["payloadFormat"] = 17;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.shootingSlotCandidates, isEmpty);
+        expect(
+          result.value!.shootingDayBlocks.map((row) => row.roleId),
+          everyElement(isNull),
+          reason: "including block-3, which the current fixture calls an audition",
+        );
+        expect(
+          result.value!.shootingDayBlocks.map((row) => row.roleCandidateId),
+          everyElement(isNull),
+        );
+        // And nothing else was disturbed on the way through: the people seen for a part came back,
+        // and so did every other column of the blocks — nothing is deduced from what a block was
+        // called.
+        expect(result.value!.roleCandidates, buildRichPayload().roleCandidates);
+        expect(
+          result.value!.shootingDayBlocks.map((row) => row.kind),
+          buildRichPayload().shootingDayBlocks.map((row) => row.kind),
+        );
       },
     );
   });

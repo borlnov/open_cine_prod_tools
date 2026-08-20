@@ -18,6 +18,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -45,6 +46,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
       const evening = OcptConvocationSlot(
         id: "slot-evening",
@@ -56,6 +58,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [morning, evening]);
@@ -83,6 +86,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -107,6 +111,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -129,6 +134,7 @@ void main() {
         uncastRoleIds: {"role-1"},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -152,6 +158,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -176,6 +183,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
       const tiedOne = OcptConvocationSlot(
         id: "slot-tied-1",
@@ -187,6 +195,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
       const tiedTwo = OcptConvocationSlot(
         id: "slot-tied-2",
@@ -198,6 +207,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [tiedOne, early, tiedTwo]);
@@ -228,6 +238,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -258,6 +269,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
       const evening = OcptConvocationSlot(
         id: "slot-evening",
@@ -269,6 +281,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [morning, evening]);
@@ -295,6 +308,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {"person-1"},
         guestFreeNames: {},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -321,6 +335,7 @@ void main() {
         uncastRoleIds: {},
         guestPersonIds: {},
         guestFreeNames: {"Jean Dupont"},
+        roleCandidateIds: {},
       );
 
       final result = ocptComputeDayConvocations(slots: const [slot]);
@@ -329,6 +344,97 @@ void main() {
       expect(convocation.isGuest, isTrue);
       expect(convocation.guestFreeName, "Jean Dupont");
       expect(convocation.guestPersonId, isNull);
+    });
+  });
+
+  group("a candidate seen for a part", () {
+    test("reads a band like everybody else, and never a guest's em dash", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 540, // 09:00
+        endMinute: 720, // 12:00
+        shootingStartMinute: 555, // 09:15 — the first audition of the session
+        shootingEndMinute: 700,
+        personIds: {},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+        roleCandidateIds: {"candidacy-1"},
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [slot]);
+
+      final convocation = result.single;
+      expect(convocation.isCandidate, isTrue);
+      expect(convocation.isGuest, isFalse);
+      expect(convocation.roleCandidateId, "candidacy-1");
+      expect(convocation.personId, isNull);
+      expect(convocation.arrivalMinute, 540);
+      expect(convocation.patStartMinute, 555);
+      expect(convocation.patEndMinute, 700);
+      expect(convocation.departureMinute, 720);
+    });
+
+    test("two candidacies of one person on one day are two convocations", () {
+      // The whole reason this arm names a candidacy rather than a person: somebody seen for two
+      // parts is coming twice, at two different hours, about two different things.
+      const morning = OcptConvocationSlot(
+        id: "slot-morning",
+        startMinute: 540,
+        endMinute: 600,
+        shootingStartMinute: 540,
+        shootingEndMinute: 600,
+        personIds: {},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+        roleCandidateIds: {"candidacy-marie"},
+      );
+      const afternoon = OcptConvocationSlot(
+        id: "slot-afternoon",
+        startMinute: 900,
+        endMinute: 960,
+        shootingStartMinute: 900,
+        shootingEndMinute: 960,
+        personIds: {},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+        roleCandidateIds: {"candidacy-julie"},
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [morning, afternoon]);
+
+      expect(result, hasLength(2));
+      expect(result.map((convocation) => convocation.roleCandidateId), [
+        "candidacy-marie",
+        "candidacy-julie",
+      ]);
+      expect(result.first.slotIds, ["slot-morning"]);
+      expect(result.last.slotIds, ["slot-afternoon"]);
+    });
+
+    test("a candidate convoked on a slot carrying no audition has no band at all", () {
+      // The truthful reading the whole file already practises: they are there, and nothing has
+      // been planned to see them yet.
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 540,
+        endMinute: 600,
+        shootingStartMinute: null,
+        shootingEndMinute: null,
+        personIds: {},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+        roleCandidateIds: {"candidacy-1"},
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [slot]);
+
+      expect(result.single.patStartMinute, isNull);
+      expect(result.single.patEndMinute, isNull);
+      expect(result.single.departureMinute, 600);
     });
   });
 }

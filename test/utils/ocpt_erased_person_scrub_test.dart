@@ -212,6 +212,7 @@ void main() {
     currencyCode: "EUR",
     minimumRestMinutes: null,
     screenplayLanguage: null,
+    shootingSlotCandidates: const [],
   );
 
   /// [payload] as the stored JSON of a version, which is what the scrub actually reads.

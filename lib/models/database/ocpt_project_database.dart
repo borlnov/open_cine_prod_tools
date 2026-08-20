@@ -36,6 +36,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_events_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_candidates_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_cast_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_crew_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_guests_table.dart';
@@ -140,7 +141,12 @@ part 'ocpt_project_database.g.dart';
 /// status, the audition date and the notes a casting decision is made on. Schema version 21 adds
 /// `shooting_days.kind` ([OcptShootingDayKind]), which is what lets a day audition or rehearse
 /// rather than shoot; every day a project already held is a day that shoots, which the column's own
-/// default answers.
+/// default answers. Schema version 22 is what a day that does not shoot puts *in* its timetable:
+/// [OcptShootingSlotCandidatesTable], the fourth kind of link a slot carries — the candidate
+/// convoked on it — plus [OcptShootingDayBlocksTable.roleId]/
+/// [OcptShootingDayBlocksTable.roleCandidateId], the pair an `audition` block names *who, for which
+/// part* through. Both are additive and neither is backfilled: a project reaching this version has
+/// no audition planned anywhere, this app having had no way to plan one.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -177,6 +183,7 @@ part 'ocpt_project_database.g.dart';
     OcptShootingSlotCastTable,
     OcptShootingDayBlocksTable,
     OcptShootingSlotGuestsTable,
+    OcptShootingSlotCandidatesTable,
     OcptShootingDayEventsTable,
     OcptProjectDictionaryWordsTable,
   ],
@@ -252,7 +259,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 21;
+  static const currentSchemaVersion = 22;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -384,8 +391,12 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// coming from any version, both tables it references (`roles` and `people`) existing by version
   /// 6 and being created fresh above for a file older than that — and nothing to backfill either, a
   /// project migrating onto this version having kept its casting somewhere this app has never been
-  /// able to read. From 20 to 21 it adds `shooting_days.kind`, the column that lets a day audition
-  /// or rehearse rather than shoot — guarded by `from >= 18` for the reason its own comment gives,
+  /// able to read. From 21 to 22 it creates `shooting_slot_candidates`, the fourth kind of link a
+  /// slot carries, and adds `shooting_day_blocks.roleId`/`.roleCandidateId`, the pair an `audition`
+  /// block names who and for which part through — the two columns guarded by `from >= 12` for the
+  /// reason `crewNote` above states, and nothing to backfill on either, a project reaching this
+  /// version having had no way to plan an audition. From 20 to 21 it adds `shooting_days.kind`, the
+  /// column that lets a day audition or rehearse rather than shoot — guarded by `from >= 18` for the reason its own comment gives,
   /// the version-18 rewrite of that table already landing every older file on a shape carrying it.
   /// Nothing is backfilled and nothing needs to be: every day a project already held
   /// is a day that shoots, which the column's own default says without a statement being written
@@ -620,6 +631,29 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // the truthful reading of every day a project already held, this app having had no way to
         // say a day did anything else.
         await m.addColumn(ocptShootingDaysTable, ocptShootingDaysTable.kind);
+      }
+
+      if (from < 22) {
+        // Follows every table it references: `shooting_slots` exists by version 11 (or was created
+        // fresh above for a file older than that), and `role_candidates` by version 20 — created
+        // by the `from < 20` step just above for every file that had not reached it. Nothing to
+        // backfill: a project migrating onto this version has convoked no candidate anywhere, this
+        // app having had no way to convoke one.
+        await m.createTable(ocptShootingSlotCandidatesTable);
+
+        // Guarded by `from >= 12` for exactly the reason `shooting_day_blocks.crew_note` above is:
+        // a file from below 11 has just had `shooting_day_blocks` created fresh from the current
+        // declaration, and one coming from version 11 has just been reshaped onto that same
+        // declaration by [_alterScheduleTablesToV12] — both already carry these two columns, and
+        // only a file that genuinely reached version 12 still lacks them. Both are nullable with
+        // no default, which is what lets SQLite add a column carrying a foreign key at all.
+        if (from >= 12) {
+          await m.addColumn(ocptShootingDayBlocksTable, ocptShootingDayBlocksTable.roleId);
+          await m.addColumn(
+            ocptShootingDayBlocksTable,
+            ocptShootingDayBlocksTable.roleCandidateId,
+          );
+        }
       }
     },
     beforeOpen: (details) async {

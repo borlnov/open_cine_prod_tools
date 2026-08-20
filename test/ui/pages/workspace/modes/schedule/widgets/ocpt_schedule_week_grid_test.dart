@@ -62,6 +62,8 @@ OcptShootingDayBlock _buildBlock({required String id, String slotId = "slot-1", 
       anchorMinute: null,
       notes: "",
       crewNote: "",
+      roleCandidateId: null,
+      roleId: null,
     );
 
 /// Builds a day event with the few fields these tests read, everything else neutral.
@@ -87,6 +89,7 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   crew: const [],
   cast: const [],
   guests: const [],
+  candidates: const [],
 );
 
 /// The [Positioned] the grid places block [label]'s own band inside — the single ancestor of that

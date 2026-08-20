@@ -90,6 +90,8 @@ OcptShootingDayBlock _buildShotBlock({
   anchorMinute: null,
   notes: "",
   crewNote: "",
+  roleCandidateId: null,
+  roleId: null,
 );
 
 void main() {

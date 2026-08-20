@@ -891,6 +891,7 @@ void main() {
                   currencyCode: payload.currencyCode,
                   minimumRestMinutes: payload.minimumRestMinutes,
                   screenplayLanguage: payload.screenplayLanguage,
+                  shootingSlotCandidates: const [],
                 ),
               ),
               summaryJson: "{}",

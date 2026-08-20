@@ -62,6 +62,7 @@ OcptShootingSlot _buildSlot({
   crew: crew,
   cast: cast,
   guests: guests,
+  candidates: const [],
 );
 
 /// Builds a person with the few fields these tests read, everything else neutral.
@@ -137,6 +138,8 @@ OcptShootingDayBlock _buildBlock({required String id, required String slotId, St
       anchorMinute: null,
       notes: "",
       crewNote: "",
+      roleCandidateId: null,
+      roleId: null,
     );
 
 /// A neutral `shotOf` resolving nothing, for tests that never place a shot block.

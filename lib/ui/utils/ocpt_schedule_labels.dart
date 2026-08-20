@@ -80,6 +80,8 @@ String ocptShootingBlockKindLabel(Tr tr, OcptShootingBlockKind kind) => switch (
   OcptShootingBlockKind.travel => tr.scheduleBlockKindTravel,
   OcptShootingBlockKind.wrap => tr.scheduleBlockKindWrap,
   OcptShootingBlockKind.hold => tr.scheduleBlockKindHold,
+  OcptShootingBlockKind.audition => tr.scheduleBlockKindAudition,
+  OcptShootingBlockKind.rehearsal => tr.scheduleBlockKindRehearsal,
 };
 
 /// The full display label of presence code [code], read by the presence grid's own cell tooltip.
@@ -225,6 +227,8 @@ IconData ocptShootingBlockKindIcon(OcptShootingBlockKind kind) => switch (kind) 
   OcptShootingBlockKind.travel => Icons.directions_car_outlined,
   OcptShootingBlockKind.wrap => Icons.inventory_2_outlined,
   OcptShootingBlockKind.hold => Icons.hourglass_empty_outlined,
+  OcptShootingBlockKind.audition => Icons.record_voice_over_outlined,
+  OcptShootingBlockKind.rehearsal => Icons.groups_outlined,
 };
 
 /// The sun/twilight summary line the day inspector and the day view's own summary band share:

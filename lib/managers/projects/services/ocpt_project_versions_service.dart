@@ -70,6 +70,7 @@ class OcptProjectVersionsService {
     'shooting_slot_cast',
     'shooting_day_blocks',
     'shooting_slot_guests',
+    'shooting_slot_candidates',
     'shooting_day_events',
     'project_dictionary_words',
   ];
@@ -624,6 +625,9 @@ class OcptProjectVersionsService {
       shootingSlotCast: await database.select(database.ocptShootingSlotCastTable).get(),
       shootingDayBlocks: await database.select(database.ocptShootingDayBlocksTable).get(),
       shootingSlotGuests: await database.select(database.ocptShootingSlotGuestsTable).get(),
+      shootingSlotCandidates: await database
+          .select(database.ocptShootingSlotCandidatesTable)
+          .get(),
       shootingDayEvents: await database.select(database.ocptShootingDayEventsTable).get(),
       projectDictionaryWords: await database
           .select(database.ocptProjectDictionaryWordsTable)
@@ -697,10 +701,13 @@ class OcptProjectVersionsService {
   /// (schema v17) slotted in beside the sibling each one follows: `shooting_days` (which may
   /// reference a screenplay already restored
   /// above) before `shooting_slots` (which may name a location or a set), before
-  /// `shooting_slot_crew`/`shooting_slot_cast`/`shooting_slot_guests` (which each point at a slot,
-  /// and at a person, a role, or — nullable — a person respectively) and `shooting_day_blocks`
+  /// `shooting_slot_crew`/`shooting_slot_cast`/`shooting_slot_guests`/`shooting_slot_candidates`
+  /// (which each point at a slot, and at a person, a role, — nullable — a person, or a candidacy
+  /// respectively, that last one restored back among the resources tables long before this group
+  /// runs) and `shooting_day_blocks`
   /// (which points at a slot and, for a shot block, at
-  /// a shot), and `shooting_day_events` last, referencing only a day. Every table it
+  /// a shot, or, for an audition block, at a role and a candidacy), and `shooting_day_events` last,
+  /// referencing only a day. Every table it
   /// could possibly reference is restored by this point, so this is not a forward reference and
   /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
   /// needs, not this group.
@@ -973,6 +980,15 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
+      table: database.ocptShootingSlotCandidatesTable,
+      payloadRows: payload.shootingSlotCandidates,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
       table: database.ocptShootingDayBlocksTable,
       payloadRows: payload.shootingDayBlocks,
       rowIdOf: (row) => row.id,
@@ -1130,6 +1146,7 @@ class OcptProjectVersionsService {
       shootingSlotCast: payload.shootingSlotCast,
       shootingDayBlocks: payload.shootingDayBlocks,
       shootingSlotGuests: payload.shootingSlotGuests,
+      shootingSlotCandidates: payload.shootingSlotCandidates,
       shootingDayEvents: payload.shootingDayEvents,
       // A dictionary word names no person — only the word itself and its tombstone — so there is
       // nothing here for this scrub to reach either.

@@ -93,6 +93,7 @@ OcptShootingSlot _buildSlot({
       OcptShootingSlotCastMember(id: "cast-$id-$roleId", slotId: id, roleId: roleId, notes: ""),
   ],
   guests: const [],
+  candidates: const [],
 );
 
 /// Builds a role with the few fields these tests read, everything else neutral.
@@ -127,6 +128,8 @@ OcptShootingDayBlock _buildBlock({
   anchorMinute: null,
   notes: "",
   crewNote: "",
+  roleCandidateId: null,
+  roleId: null,
 );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.

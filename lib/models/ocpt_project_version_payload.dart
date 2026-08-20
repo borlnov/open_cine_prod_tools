@@ -124,6 +124,10 @@ class OcptProjectVersionPayload extends Equatable {
   /// schedule mode.
   final List<OcptShootingDayBlockRow> shootingDayBlocks;
 
+  /// The `shooting_slot_candidates` rows of the project: which candidate each slot convokes — the
+  /// fourth kind of link a slot carries, and the one a casting day is planned with.
+  final List<OcptShootingSlotCandidateRow> shootingSlotCandidates;
+
   /// The `shooting_slot_guests` rows of the project: who attends a slot without being crew or cast.
   final List<OcptShootingSlotGuestRow> shootingSlotGuests;
 
@@ -216,6 +220,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingSlotCrew,
     required this.shootingSlotCast,
     required this.shootingDayBlocks,
+    required this.shootingSlotCandidates,
     required this.shootingSlotGuests,
     required this.shootingDayEvents,
     required this.projectDictionaryWords,
@@ -245,6 +250,7 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingSlots: ${shootingSlots.length}, shootingSlotCrew: ${shootingSlotCrew.length}, "
       "shootingSlotCast: ${shootingSlotCast.length}, "
       "shootingDayBlocks: ${shootingDayBlocks.length}, "
+      "shootingSlotCandidates: ${shootingSlotCandidates.length}, "
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
       "projectDictionaryWords: ${projectDictionaryWords.length}, "
@@ -282,6 +288,7 @@ class OcptProjectVersionPayload extends Equatable {
     shootingSlotCrew,
     shootingSlotCast,
     shootingDayBlocks,
+    shootingSlotCandidates,
     shootingSlotGuests,
     shootingDayEvents,
     projectDictionaryWords,
