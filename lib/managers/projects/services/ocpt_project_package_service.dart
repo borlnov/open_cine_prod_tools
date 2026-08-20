@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:archive/archive_io.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
@@ -260,6 +261,32 @@ class OcptProjectPackageService {
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     }
 
+    try {
+      return await _unpackDecodedPackage(
+        archive: archive,
+        packageFilePath: packageFilePath,
+        parentDirectoryPath: parentDirectoryPath,
+      );
+    } finally {
+      // Decoding a zip does not read it: every entry keeps the `.ocptz` open so its bytes can be
+      // streamed out later, and nothing closes those handles on its own. Left open, the package the
+      // user just imported stays held by the app — which on Windows means a file they cannot move,
+      // rename or delete until they quit it.
+      await archive.clear();
+    }
+  }
+
+  /// Unpacks [archive], already decoded out of the package at [packageFilePath], into a new folder
+  /// inside [parentDirectoryPath].
+  ///
+  /// Split out of [readPackage] so that every way out of the unpacking — the four refusals, the
+  /// failures and the success alike — passes through the one place that closes the archive again.
+  Future<ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageImportReport>>
+  _unpackDecodedPackage({
+    required Archive archive,
+    required String packageFilePath,
+    required String parentDirectoryPath,
+  }) async {
     final entriesByName = {
       for (final entry in archive.files)
         if (entry.isFile) entry.name: entry,
@@ -310,7 +337,10 @@ class OcptProjectPackageService {
     try {
       destinationDirectory.createSync(recursive: true);
 
-      final projectFilePath = p.join(destinationDirectory.path, "$folderName.ocpt");
+      final projectFilePath = p.join(
+        destinationDirectory.path,
+        "$folderName.$ocptProjectFileExtension",
+      );
       await _unpackEntries(
         archive: archive,
         destinationDirectory: destinationDirectory,
@@ -380,10 +410,7 @@ class OcptProjectPackageService {
   /// step for stops the loop rather than guessing at one, and whatever [OcptProjectPackageManifest.
   /// fromJson] then makes of the result is the same tolerant reading it already gives a field an
   /// older format never wrote.
-  Map<String, dynamic> _upgradedManifest(
-    Map<String, dynamic> json, {
-    required int packageFormat,
-  }) {
+  Map<String, dynamic> _upgradedManifest(Map<String, dynamic> json, {required int packageFormat}) {
     var upgraded = json;
     for (var format = packageFormat; format < ocptCurrentPackageFormat; format++) {
       final step = _packageManifestUpgrades[format];
@@ -462,10 +489,7 @@ class OcptProjectPackageService {
         final absolutePath = p.absolute(
           _nativePathForEntry(destinationDirectory.path, asset.entry),
         );
-        database.execute("UPDATE assets SET path = ? WHERE id = ?", [
-          absolutePath,
-          asset.assetId,
-        ]);
+        database.execute("UPDATE assets SET path = ? WHERE id = ?", [absolutePath, asset.assetId]);
       }
     } finally {
       database.dispose();

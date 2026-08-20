@@ -14,6 +14,7 @@ import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:intl/intl.dart' show NumberFormat;
+import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
@@ -103,7 +104,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   static const _defaultProjectsDirectoryName = "OpenCineProdTools";
 
   /// The extension used by project files, without the leading dot.
-  static const projectFileExtension = "ocpt";
+  ///
+  /// The one definition lives in [ocptProjectFileExtension], which the package service reads too:
+  /// a service may not import this manager, and the extension restated on the way down is one that
+  /// could drift from the file this manager actually writes.
+  static const projectFileExtension = ocptProjectFileExtension;
 
   /// The app version stored in newly created projects' `project_info.appVersionAtCreation`.
   ///
