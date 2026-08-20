@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -19,6 +20,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_tab_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_roles_list.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_role_casting_progress.dart';
+
+/// The separator joining the roles tab header's two counts, `N roles · M cast`.
+const _rolesHeaderStatsSeparator = " · ";
 
 /// The resources mode's left dock body: the tab bar, a header row (the active tab's title on the
 /// left, its count on the right), the scrolling list, and a full-width footer action, contextual to
@@ -46,6 +51,10 @@ class OcptResourcesListPanel extends StatelessWidget {
   /// The whole cast, in display order — read regardless of [activeTab] for the same reason
   /// [people] is.
   final List<OcptRole> roles;
+
+  /// Every live candidacy of the project, grouped by `roleId` — read regardless of [activeTab] for
+  /// the same reason [people] is: the roles tab's own header count and each row's pill both read it.
+  final Map<String, List<OcptRoleCandidate>> candidatesByRoleId;
 
   /// The id of the selected role, or null if none is.
   final String? selectedRoleId;
@@ -117,6 +126,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     required this.people,
     required this.selectedPersonId,
     required this.roles,
+    required this.candidatesByRoleId,
     required this.selectedRoleId,
     required this.episodes,
     required this.locations,
@@ -170,14 +180,7 @@ class OcptResourcesListPanel extends StatelessWidget {
                 )
               else if (isRolesTab)
                 Text(
-                  tr.resourcesStatsRoles(
-                    ocptFilteredRolesOf(
-                      roles: roles,
-                      people: people,
-                      query: searchQuery,
-                      tr: tr,
-                    ).length,
-                  ),
+                  _rolesHeaderStats(tr),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -243,6 +246,22 @@ class OcptResourcesListPanel extends StatelessWidget {
     );
   }
 
+  /// The roles tab header's own two counts, `N roles · M cast`: both read off the **filtered**
+  /// list, so the header always reports what [OcptRolesList] shows under it, rather than the whole
+  /// cast.
+  String _rolesHeaderStats(Tr tr) {
+    final filteredRoles = ocptFilteredRolesOf(
+      roles: roles,
+      people: people,
+      query: searchQuery,
+      tr: tr,
+    );
+
+    return tr.resourcesStatsRoles(filteredRoles.length) +
+        _rolesHeaderStatsSeparator +
+        tr.resourcesStatsRolesCast(ocptCastRoleCount(filteredRoles));
+  }
+
   /// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab,
   /// [OcptLocationsList] on the locations tab and [OcptElementsList] on the elements tab.
   Widget _buildBody(Tr tr) {
@@ -259,6 +278,7 @@ class OcptResourcesListPanel extends StatelessWidget {
       return OcptRolesList(
         roles: roles,
         people: people,
+        candidatesByRoleId: candidatesByRoleId,
         episodes: episodes,
         selectedRoleId: selectedRoleId,
         searchQuery: searchQuery,

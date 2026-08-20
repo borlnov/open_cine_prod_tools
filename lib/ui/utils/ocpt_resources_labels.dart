@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/types/ocpt_locations_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_people_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
@@ -118,6 +119,15 @@ String ocptImageRightsStatusLabel(Tr tr, OcptImageRightsStatus status) => switch
   OcptImageRightsStatus.toGenerate => tr.resourcesImageRightsToGenerate,
   OcptImageRightsStatus.generated => tr.resourcesImageRightsGenerated,
   OcptImageRightsStatus.signed => tr.resourcesImageRightsSigned,
+};
+
+/// The display label of [status], where one person stands in the casting of one part.
+String ocptRoleCandidateStatusLabel(Tr tr, OcptRoleCandidateStatus status) => switch (status) {
+  OcptRoleCandidateStatus.seen => tr.resourcesRoleCandidateStatusSeen,
+  OcptRoleCandidateStatus.shortlisted => tr.resourcesRoleCandidateStatusShortlisted,
+  OcptRoleCandidateStatus.retained => tr.resourcesRoleCandidateStatusRetained,
+  OcptRoleCandidateStatus.declined => tr.resourcesRoleCandidateStatusDeclined,
+  OcptRoleCandidateStatus.unavailable => tr.resourcesRoleCandidateStatusUnavailable,
 };
 
 /// The display label of [status], where a location's filming permit stands.

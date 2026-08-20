@@ -76,10 +76,10 @@ OcptPerson _person({required String id, required String firstName, required Stri
     );
 
 /// A role carrying nothing but a name, enough for a row of the list.
-OcptRole _role({required String id, required String name}) => OcptRole(
+OcptRole _role({required String id, required String name, String? personId}) => OcptRole(
   id: id,
   name: name,
-  personId: null,
+  personId: personId,
   kind: OcptRoleKind.speaking,
   isFromScreenplay: true,
   orphanedName: null,
@@ -155,6 +155,7 @@ void main() {
     OcptResourcesTab activeTab = OcptResourcesTab.people,
     bool isSearchVisible = false,
     String searchQuery = "",
+    List<OcptRole>? roles,
     VoidCallback? onAddPersonRequested,
     ValueChanged<OcptRoleKind>? onAddRoleRequested,
     VoidCallback? onAddLocationRequested,
@@ -169,7 +170,8 @@ void main() {
           activeTab: activeTab,
           people: [_person(id: "p1", firstName: "Sofia", lastName: "Berger")],
           selectedPersonId: null,
-          roles: [_role(id: "r1", name: "Le Client")],
+          roles: roles ?? [_role(id: "r1", name: "Le Client")],
+          candidatesByRoleId: const {},
           selectedRoleId: null,
           episodes: const [],
           locations: [_location(id: "l1", name: "La maison des Pains")],
@@ -245,6 +247,35 @@ void main() {
 
     expect(find.widgetWithText(FilledButton, "+ Add a role"), findsNothing);
     expect(find.text("Le Client"), findsOneWidget);
+  });
+
+  testWidgets("the roles tab header counts both the roles and how many are cast", (tester) async {
+    await pumpPanel(
+      tester,
+      activeTab: OcptResourcesTab.roles,
+      roles: [
+        _role(id: "r1", name: "Le Client", personId: "p1"),
+        _role(id: "r2", name: "Le Voisin"),
+      ],
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptResourcesListPanel)));
+    expect(find.text("${tr.resourcesStatsRoles(2)} · ${tr.resourcesStatsRolesCast(1)}"), findsOneWidget);
+  });
+
+  testWidgets("the roles tab header only counts the filtered roles", (tester) async {
+    await pumpPanel(
+      tester,
+      activeTab: OcptResourcesTab.roles,
+      searchQuery: "client",
+      roles: [
+        _role(id: "r1", name: "Le Client", personId: "p1"),
+        _role(id: "r2", name: "Le Voisin", personId: "p1"),
+      ],
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptResourcesListPanel)));
+    expect(find.text("${tr.resourcesStatsRoles(1)} · ${tr.resourcesStatsRolesCast(1)}"), findsOneWidget);
   });
 
   testWidgets("the locations tab lists its locations and offers the creation button", (
@@ -359,6 +390,7 @@ void main() {
           ],
           selectedPersonId: null,
           roles: const [],
+          candidatesByRoleId: const {},
           selectedRoleId: null,
           episodes: const [],
           locations: const [],

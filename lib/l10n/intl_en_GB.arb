@@ -4259,6 +4259,154 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesRoleCandidatesCardTitle": "Candidates",
+  "@resourcesRoleCandidatesCardTitle": {
+    "description": "Title of the card holding the people seen for a role",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNoCandidateHint": "Nobody seen yet.",
+  "@resourcesRoleNoCandidateHint": {
+    "description": "Hint shown in the candidates card while a role has no candidate yet",
+    "context": "Displayed in the resources mode's role sheet, on the candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddCandidateToRoleAction": "+ Candidate",
+  "@resourcesAddCandidateToRoleAction": {
+    "description": "Action opening the person picker adding a candidate to a role",
+    "context": "Displayed in the resources mode's role sheet, on the candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusSeen": "Seen",
+  "@resourcesRoleCandidateStatusSeen": {
+    "description": "Label of the seen candidate status: this person was seen for the part, nothing more has been said yet",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusShortlisted": "Shortlisted",
+  "@resourcesRoleCandidateStatusShortlisted": {
+    "description": "Label of the shortlisted candidate status: this person is still being thought about for the part",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusRetained": "Retained",
+  "@resourcesRoleCandidateStatusRetained": {
+    "description": "Label of the retained candidate status: this person is the one cast in the part",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusDeclined": "Declined",
+  "@resourcesRoleCandidateStatusDeclined": {
+    "description": "Label of the declined candidate status: this person turned the part down",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusUnavailable": "Unavailable",
+  "@resourcesRoleCandidateStatusUnavailable": {
+    "description": "Label of the unavailable candidate status: this person cannot take the part",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusMenuLabel": "Status",
+  "@resourcesRoleCandidateStatusMenuLabel": {
+    "description": "Label of the menu picking a candidate's status",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateAuditionDateLabel": "Seen on",
+  "@resourcesRoleCandidateAuditionDateLabel": {
+    "description": "Label of a candidate's audition date picker",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateNotesLabel": "Note",
+  "@resourcesRoleCandidateNotesLabel": {
+    "description": "Label of a candidate's free-text note field",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateActionsTooltip": "Candidate actions",
+  "@resourcesRoleCandidateActionsTooltip": {
+    "description": "Tooltip of a candidate row's ⋮ menu button",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRetainCandidateAction": "Retain",
+  "@resourcesRetainCandidateAction": {
+    "description": "Action retaining a candidate: this person is the one cast in the part",
+    "context": "Displayed in a candidate row's ⋮ menu of the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDropCandidateAction": "Drop",
+  "@resourcesDropCandidateAction": {
+    "description": "Action dropping the retained candidate back to seen, clearing the part's casting with it",
+    "context": "Displayed in a candidate row's ⋮ menu of the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveCandidateAction": "Remove this candidate",
+  "@resourcesRemoveCandidateAction": {
+    "description": "Action opening the candidate removal confirmation dialog",
+    "context": "Displayed in a candidate row's ⋮ menu of the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveCandidateConfirmTitle": "Remove this candidate?",
+  "@resourcesRemoveCandidateConfirmTitle": {
+    "description": "Title of the dialog confirming a candidate's removal",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveCandidateConfirmMessage": "What was written about them for this part is removed with them. Their own record stays in the address book.",
+  "@resourcesRemoveCandidateConfirmMessage": {
+    "description": "Message of the dialog confirming a candidate's removal",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesListCastPill": "Cast",
+  "@resourcesRolesListCastPill": {
+    "description": "Pill shown on a cast role's row",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesListCandidatesPill": "{count, plural, one{{count} seen} other{{count} seen}}",
+  "@resourcesRolesListCandidatesPill": {
+    "description": "Pill shown on an uncast role's row while candidates are in progress, naming how many people have been seen",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsRolesCast": "{count, plural, one{{count} cast} other{{count} cast}}",
+  "@resourcesStatsRolesCast": {
+    "description": "Number of cast roles, the second half of the roles tab header's `N roles · M cast`",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resourcesLocationsEmptyHint": "No location yet. Add the first place the film is shot in.",
   "@resourcesLocationsEmptyHint": {
     "description": "Hint shown in place of the locations list while the project has none",

@@ -395,6 +395,7 @@ void main() {
       roles: const [],
       locations: const [],
       elements: const [],
+      candidatesByRoleId: const {},
       scenes: const [],
     );
     const labels = OcptResourcesXlsxLabels(
@@ -493,6 +494,7 @@ void main() {
       roles: const [],
       locations: const [],
       elements: const [],
+      candidatesByRoleId: const {},
       scenes: const [],
     );
     const labels = OcptContactListLabels(
