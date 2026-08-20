@@ -28,7 +28,9 @@ import 'package:script_import_kit/src/emitter/script_title_page.dart';
 /// - a line the source split off the one before it
 ///   ([ScriptLine.continuesBlock]) stays in the same block;
 /// - a line with no text at all is dropped: blank source lines are how
-///   blocks are separated here, never content of their own.
+///   blocks are separated here, never content of their own;
+/// - the very first line of a screenplay that has no title page is forced
+///   whenever it would otherwise open one — see [_looksLikeTitlePageKey].
 ///
 /// Every line then goes through [FountainLineWriter.writeLine] with the
 /// type of the line already written before it and the raw text of the one
@@ -49,6 +51,16 @@ class ScriptFountainEmitter {
   static const FountainTitlePageWriter _titlePageWriter =
       FountainTitlePageWriter();
 
+  /// Matches a line a Fountain parser would read as the first key of a
+  /// title page, mirroring `FountainParser`'s own rule.
+  ///
+  /// It is restated here rather than imported because the parser keeps it
+  /// to itself, and the emitter cannot do without it: the rule only looks
+  /// at the document's very first line, so an imported screenplay that
+  /// carries no title page and opens on `FADE IN:` — as a great many do —
+  /// would have that line swallowed as an empty title page entry and lost.
+  static final RegExp _titlePageKey = RegExp('^([A-Za-z][A-Za-z0-9 ]*):');
+
   /// Renders [lines], under [titlePage], as one Fountain source string.
   ///
   /// The result ends with a newline whenever it holds anything at all, the
@@ -64,6 +76,8 @@ class ScriptFountainEmitter {
 
     final rawTexts = [for (final line in kept) _rawTextOf(line)];
     final blankLinesBefore = _blankLinesBefore(kept);
+
+    final entries = titlePage.toEntries();
 
     final outputLines = <String>[];
     for (var index = 0; index < kept.length; index++) {
@@ -83,7 +97,10 @@ class ScriptFountainEmitter {
         _lineWriter.writeLine(
           text: rawTexts[index],
           type: kept[index].type,
-          hadForcingMarker: false,
+          hadForcingMarker:
+              index == 0 &&
+              entries.isEmpty &&
+              _looksLikeTitlePageKey(rawTexts[index]),
           previousType: previousType,
           nextRawLine: nextRawLine,
         ),
@@ -94,7 +111,7 @@ class ScriptFountainEmitter {
     return _titlePageWriter.apply(
       source: body,
       existingRange: null,
-      entries: titlePage.toEntries(),
+      entries: entries,
     );
   }
 
@@ -118,6 +135,22 @@ class ScriptFountainEmitter {
 
     return text;
   }
+
+  /// Whether [rawText], written as the first line of a screenplay with no
+  /// title page, would be read back as a title page entry rather than as
+  /// the line it is.
+  ///
+  /// The answer only ever matters for the first line, and only when there
+  /// is no title page to push it down: a `FADE IN:` or a `CUT TO:` opening
+  /// the screenplay is what this catches, and forcing its marker is what
+  /// keeps it. The four line types with no forcing marker of their own —
+  /// dialogue and a parenthetical, which Fountain gives none, and centered
+  /// text and a page break, which are written wrapped and cannot match this
+  /// rule anyway — are unaffected: a screenplay whose very first line is a
+  /// bare line of dialogue holding a colon cannot be written in Fountain at
+  /// all.
+  bool _looksLikeTitlePageKey(String rawText) =>
+      _titlePageKey.hasMatch(rawText);
 
   /// How many blank source lines each of [lines] is preceded by: one, to
   /// separate it from the block before, unless it continues that block.

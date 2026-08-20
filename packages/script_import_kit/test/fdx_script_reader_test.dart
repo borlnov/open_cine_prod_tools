@@ -131,7 +131,19 @@ Smells like Sunday.
     });
 
     test('a transition becomes a transition', () {
-      expect(_readBody(_paragraph('Transition', 'CUT TO:')), 'CUT TO:\n');
+      expect(
+        _readBody(
+          [
+            _paragraph('Action', 'She puts the kettle down.'),
+            _paragraph('Transition', 'CUT TO:'),
+          ].join('\n'),
+        ),
+        '''
+She puts the kettle down.
+
+CUT TO:
+''',
+      );
     });
 
     test('an act break becomes centered text', () {

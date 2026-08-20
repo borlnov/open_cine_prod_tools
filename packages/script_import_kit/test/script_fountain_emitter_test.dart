@@ -254,4 +254,57 @@ void main() {
       expect(document.blocks, hasLength(1));
     });
   });
+
+  group('a first line that would open a title page', () {
+    test('a screenplay opening on "FADE IN:" keeps it as its own line', () {
+      final text = _write([
+        _line(FountainLineType.action, 'FADE IN:'),
+        _line(FountainLineType.action, 'She waits.'),
+      ]);
+
+      expect(text, '!FADE IN:\n\nShe waits.\n');
+      final document = const FountainParser().parse(text);
+      expect(document.titlePage, isNull);
+      expect(
+        (document.blocks.first as FountainActionBlock).lines.single,
+        'FADE IN:',
+      );
+    });
+
+    test('a transition opening the screenplay is forced too', () {
+      final text = _write([_line(FountainLineType.transition, 'CUT TO:')]);
+
+      expect(text, '>CUT TO:\n');
+      expect(
+        const FountainParser().parse(text).blocks.single,
+        isA<FountainTransition>(),
+      );
+    });
+
+    test('a title page pushes the first line down, so nothing is forced', () {
+      expect(
+        _write([
+          _line(FountainLineType.action, 'FADE IN:'),
+        ], titlePage: const ScriptTitlePage(title: 'THE LAST KETTLE')),
+        'Title: THE LAST KETTLE\n\nFADE IN:\n',
+      );
+    });
+
+    test('a line further down the screenplay is left alone', () {
+      expect(
+        _write([
+          _line(FountainLineType.action, 'She waits.'),
+          _line(FountainLineType.action, 'FADE IN:'),
+        ]),
+        'She waits.\n\nFADE IN:\n',
+      );
+    });
+
+    test('a first line no title page rule would claim is left alone', () {
+      expect(
+        _write([_line(FountainLineType.sceneHeading, 'INT. KITCHEN - DAY')]),
+        'INT. KITCHEN - DAY\n',
+      );
+    });
+  });
 }
