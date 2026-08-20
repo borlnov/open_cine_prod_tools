@@ -273,13 +273,79 @@ void main() {
       expect(await readCasting("role-1"), "person-1");
     });
 
-    test("retaining a second candidate demotes the first and recasts the part", () async {
+    test("retaining a candidate turns every other one still in the running down", () async {
+      // The part is cast: the people who were still possibilities did not get it, and the row
+      // says so rather than leaving them at the status they happened to hold when it was decided.
+      await candidatesService.setStatus(
+        database: database,
+        candidateId: secondCandidateId,
+        status: OcptRoleCandidateStatus.shortlisted,
+      );
+
+      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+
+      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.retained);
+      expect((await readCandidate(secondCandidateId)).status, OcptRoleCandidateStatus.notRetained);
+    });
+
+    test("every status still in the running is turned down by a retaining", () async {
+      for (final status in OcptRoleCandidateStatus.values.where(
+        (status) => status.isStillALead && status != OcptRoleCandidateStatus.retained,
+      )) {
+        await candidatesService.setStatus(
+          database: database,
+          candidateId: secondCandidateId,
+          status: status,
+        );
+
+        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+
+        expect(
+          (await readCandidate(secondCandidateId)).status,
+          OcptRoleCandidateStatus.notRetained,
+          reason: "for $status",
+        );
+      }
+    });
+
+    test("a candidate already out of the running keeps the status that says how", () async {
+      // The three closed statuses are three different facts, and none of them is "we turned them
+      // down": somebody who declined did not lose the part to this casting, they were out of it
+      // before it was decided.
+      for (final status in OcptRoleCandidateStatus.values.where(
+        (status) => !status.isStillALead,
+      )) {
+        await candidatesService.setStatus(
+          database: database,
+          candidateId: secondCandidateId,
+          status: status,
+        );
+
+        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+
+        expect((await readCandidate(secondCandidateId)).status, status, reason: "for $status");
+      }
+    });
+
+    test("retaining a second candidate turns the first down and recasts the part", () async {
       await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
       await candidatesService.retainCandidate(database: database, candidateId: secondCandidateId);
 
-      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.seen);
+      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.notRetained);
       expect((await readCandidate(secondCandidateId)).status, OcptRoleCandidateStatus.retained);
       expect(await readCasting("role-1"), "person-2");
+    });
+
+    test("dropping the retained candidate does not bring the turned-down ones back", () async {
+      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      expect((await readCandidate(secondCandidateId)).status, OcptRoleCandidateStatus.notRetained);
+
+      await candidatesService.unretainCandidate(database: database, candidateId: firstCandidateId);
+
+      // The cast column comes back, the other rows do not: what each of them held before the
+      // retaining is recorded nowhere, and this service guesses nothing.
+      expect(await readCasting("role-1"), isNull);
+      expect((await readCandidate(secondCandidateId)).status, OcptRoleCandidateStatus.notRetained);
     });
 
     test("dropping the retained candidate leaves the part uncast", () async {

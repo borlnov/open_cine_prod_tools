@@ -16,10 +16,11 @@ import 'package:uuid/uuid.dart';
 /// `OcptRoleIndexService`'s companion on the casting side, owned by `OcptProjectsManager` beside
 /// it. It exists as a service of its own, rather than as more methods on that one, for the reason
 /// this whole table exists: **the retained rule is about two tables agreeing**, and it has to
-/// answer the same way whoever asks. [retainCandidate] demotes the role's previous retained
-/// candidate, marks this one and writes `roles.personId`, all in one transaction; [setStatus] is
-/// the single door every status change comes through, so no caller can move a candidate off
-/// [OcptRoleCandidateStatus.retained] and leave the cast column pointing at them.
+/// answer the same way whoever asks. [retainCandidate] marks this candidate, turns every other
+/// candidate still in the running down to [OcptRoleCandidateStatus.notRetained] and writes
+/// `roles.personId`, all in one transaction; [setStatus] is the single door every status change
+/// comes through, so no caller can move a candidate off [OcptRoleCandidateStatus.retained] and
+/// leave the cast column pointing at them.
 ///
 /// **The role header's own cast picker stays editable beside all of this**, and writes
 /// `roles.personId` alone (`OcptRoleIndexService.updateRole`): a production that ran no auditions
@@ -29,6 +30,15 @@ import 'package:uuid/uuid.dart';
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 class OcptRoleCandidatesService {
+  /// The statuses that leave a candidacy in the running — the rows retaining somebody turns down.
+  ///
+  /// Resolved off `OcptRoleCandidateStatus.isStillALead` rather than listed here, so the one place
+  /// that reading is written stays the one place: a ninth status joins this set, or stays out of
+  /// it, by answering that getter and nothing else.
+  static final _leadStatuses = OcptRoleCandidateStatus.values
+      .where((status) => status.isStillALead)
+      .toList(growable: false);
+
   /// Class constructor
   const OcptRoleCandidatesService();
 
@@ -189,9 +199,12 @@ class OcptRoleCandidatesService {
   /// **The one door every status change comes through**, [retainCandidate] and [unretainCandidate]
   /// included, so the two tables cannot end up disagreeing whichever gesture the user made:
   ///
-  /// - to [OcptRoleCandidateStatus.retained]: the role's other retained candidacy, if any, is
-  ///   demoted to [OcptRoleCandidateStatus.seen] — a role has one retained candidate at a time —
-  ///   and `roles.personId` becomes this candidacy's own person;
+  /// - to [OcptRoleCandidateStatus.retained]: every **other** candidacy of the role still in the
+  ///   running is turned down to [OcptRoleCandidateStatus.notRetained] — the part is cast, and they
+  ///   did not get it — and `roles.personId` becomes this candidacy's own person. The ones already
+  ///   closed keep the status that says how they closed, and a second retained row, if a file
+  ///   somehow holds one, is turned down with the rest: see [_turnDownOtherLeadsOfRole], which owns
+  ///   both halves of that;
   /// - **away** from [OcptRoleCandidateStatus.retained]: `roles.personId` goes back to null, the
   ///   cast column having been written by exactly the status now being taken away;
   /// - between two other statuses: nothing but this row is touched. A role cast **by hand** through
@@ -221,7 +234,7 @@ class OcptRoleCandidatesService {
       }
 
       if (status == OcptRoleCandidateStatus.retained) {
-        await _demoteRetainedCandidatesOfRole(
+        await _turnDownOtherLeadsOfRole(
           database: database,
           roleId: candidacy.roleId,
           exceptCandidateId: candidateId,
@@ -244,8 +257,9 @@ class OcptRoleCandidatesService {
     });
   }
 
-  /// Retains candidacy [candidateId]: this person is the one cast in the part. [setStatus]'s
-  /// retaining half, named for the gesture the card offers.
+  /// Retains candidacy [candidateId]: this person is the one cast in the part, and every other
+  /// candidate still in the running is turned down with the same gesture. [setStatus]'s retaining
+  /// half, named for the decision the card's own status list makes.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> retainCandidate({
@@ -258,10 +272,16 @@ class OcptRoleCandidatesService {
   );
 
   /// Drops candidacy [candidateId] back to [OcptRoleCandidateStatus.seen] and clears the part's
-  /// casting with it. [retainCandidate]'s mirror, and the card's `Drop`.
+  /// casting with it. [retainCandidate]'s mirror on the cast column, and only there.
   ///
   /// The candidacy itself stays exactly where it was in the list, with its date and its notes: the
   /// person was still seen, and the record of it is the whole point of this table.
+  ///
+  /// **The other candidates are not brought back.** Retaining turned down everybody still in the
+  /// running; un-retaining leaves them turned down, because what each of them held beforehand is
+  /// recorded nowhere and guessing it is what this codebase refuses everywhere else. Changing one's
+  /// mind about a casting therefore means saying so, row by row — which is the honest cost of the
+  /// gesture, and the reason the card's status list is the only place a status ever moves.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> unretainCandidate({
@@ -353,14 +373,26 @@ class OcptRoleCandidatesService {
             ..where((table) => table.personId.equals(personId)))
           .write(const OcptRoleCandidatesTableCompanion(isDeleted: Value(true), notes: Value('')));
 
-  /// Demotes every live retained candidacy of role [roleId] other than [exceptCandidateId] back to
-  /// [OcptRoleCandidateStatus.seen] — the "one retained candidate at a time" half of [setStatus].
+  /// Turns down every live candidacy of role [roleId] other than [exceptCandidateId] that was still
+  /// a lead — the "the part is cast, and the others did not get it" half of [setStatus].
   ///
-  /// Written as a query over every such row rather than as a read of "the" retained one: nothing in
-  /// the schema refuses a second, so a file that somehow holds two (a merge, a hand-edited
-  /// database) is repaired by the next retaining rather than left to disagree with the cast column
-  /// for ever.
-  Future<void> _demoteRetainedCandidatesOfRole({
+  /// **The closed ones are left exactly as they are.** Somebody who declined, or who was
+  /// unavailable, or who had already been turned down, keeps the status that says so: they did not
+  /// lose the part to this casting, they were out of it before. Overwriting them with
+  /// [OcptRoleCandidateStatus.notRetained] would be the app inventing a decision nobody made, and
+  /// would lose the one distinction the three closed statuses exist for.
+  ///
+  /// **It subsumes the "one retained candidate at a time" rule** rather than sitting beside it: a
+  /// second retained row is a lead like any other and is turned down here too. Written as a query
+  /// over every matching row rather than as a read of "the" retained one, for that reason —
+  /// nothing in the schema refuses a second, so a file that somehow holds two (a merge, a
+  /// hand-edited database) is repaired by the next retaining rather than left to disagree with the
+  /// cast column for ever.
+  ///
+  /// **Nothing undoes this.** Un-retaining ([unretainCandidate]) clears the cast column and leaves
+  /// the turned-down rows turned down: what each of them held before is not recorded anywhere, and
+  /// reconstructing it is exactly the guess this codebase refuses everywhere else.
+  Future<void> _turnDownOtherLeadsOfRole({
     required OcptProjectDatabase database,
     required String roleId,
     required String exceptCandidateId,
@@ -370,10 +402,12 @@ class OcptRoleCandidatesService {
                 table.roleId.equals(roleId) &
                 table.id.equals(exceptCandidateId).not() &
                 table.isDeleted.not() &
-                table.status.equalsValue(OcptRoleCandidateStatus.retained),
+                table.status.isInValues(_leadStatuses),
           ))
           .write(
-            const OcptRoleCandidatesTableCompanion(status: Value(OcptRoleCandidateStatus.seen)),
+            const OcptRoleCandidatesTableCompanion(
+              status: Value(OcptRoleCandidateStatus.notRetained),
+            ),
           );
 
   /// Writes [personId] — a person, or null to leave the part uncast — into role [roleId]'s own
