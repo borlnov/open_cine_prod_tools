@@ -407,10 +407,14 @@ String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
 /// point is to be read at a glance pinned to a wall. [people] is read for
 /// [ocptScheduleDirectorLineOf] alone.
 ///
-/// [OcptCallSheetLabels.eventsSectionTitle] and [OcptCallSheetLabels.guestsSectionTitle] reuse the
-/// very `Tr` keys the day view and the `Convocations` dock panel already print those two words
-/// under (`scheduleDayEventsSectionTitle`, `scheduleConvocationsGuestsSectionTitle`): a printed
-/// sheet must not name a thing differently from the screen it was planned on.
+/// [OcptCallSheetLabels.eventsSectionTitle], [OcptCallSheetLabels.candidatesSectionTitle] and
+/// [OcptCallSheetLabels.guestsSectionTitle] reuse the very `Tr` keys the day view and the
+/// `Convocations` dock panel already print those three words under
+/// (`scheduleDayEventsSectionTitle`, `scheduleConvocationsCandidatesSectionTitle`,
+/// `scheduleConvocationsGuestsSectionTitle`): a printed sheet must not name a thing differently
+/// from the screen it was planned on. [OcptCallSheetLabels.auditionsSectionTitle] gets a key of its
+/// own because no screen carries that word in the plural: the timetable names one block at a time
+/// (`scheduleBlockKindAudition`), where the printed table heads a list of them.
 OcptCallSheetLabels ocptCallSheetLabelsOf(
   BuildContext context, {
   required List<OcptShootingDay> days,
@@ -474,6 +478,8 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     emptyDayNote: tr.scheduleExportEmptyDayNote,
     unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
     eventsSectionTitle: tr.scheduleDayEventsSectionTitle,
+    auditionsSectionTitle: tr.scheduleExportAuditionsSectionTitle,
+    candidatesSectionTitle: tr.scheduleConvocationsCandidatesSectionTitle,
     guestsSectionTitle: tr.scheduleConvocationsGuestsSectionTitle,
     guestReasonHeader: tr.scheduleExportGuestReasonHeader,
   );

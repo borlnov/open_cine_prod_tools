@@ -9391,6 +9391,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportAuditionsSectionTitle": "Auditions",
+  "@scheduleExportAuditionsSectionTitle": {
+    "description": "Heading of a call sheet's own audition table, printed on a day whose blocks hold an audition",
+    "context": "Printed on every exported call sheet whose day auditions somebody",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportToBringSectionTitle": "To bring",
   "@scheduleExportToBringSectionTitle": {
     "description": "Heading of a named call sheet's own \"to bring\" section, listing the elements its recipient is due to bring to the scenes the day plays",

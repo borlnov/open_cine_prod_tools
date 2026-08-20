@@ -1262,6 +1262,7 @@
   "scheduleExportEmptyDayNote": "Rien de prévu ce jour-là.",
   "scheduleExportUnnamedPersonLabel": "Sans nom",
   "scheduleExportGuestReasonHeader": "Motif",
+  "scheduleExportAuditionsSectionTitle": "Auditions",
   "scheduleExportToBringSectionTitle": "À apporter",
   "scheduleExportShootingPlanFileNameSuffix": "plan de travail",
   "scheduleExportShootingPlanDocumentTitle": "Plan de travail",

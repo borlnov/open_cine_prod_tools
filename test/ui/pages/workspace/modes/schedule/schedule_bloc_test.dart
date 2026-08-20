@@ -104,6 +104,8 @@ const _callSheetLabels = OcptCallSheetLabels(
   emptyDayNote: "Nothing planned.",
   unnamedPersonLabel: "Unnamed",
   eventsSectionTitle: "Events",
+  auditionsSectionTitle: "Auditions",
+  candidatesSectionTitle: "Candidates",
   guestsSectionTitle: "Guests",
   guestReasonHeader: "Reason",
 );

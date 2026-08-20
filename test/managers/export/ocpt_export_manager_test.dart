@@ -686,6 +686,8 @@ void main() {
       emptyDayNote: "Nothing planned.",
       unnamedPersonLabel: "No name",
       eventsSectionTitle: "Events",
+      auditionsSectionTitle: "Auditions",
+      candidatesSectionTitle: "Candidates",
       guestsSectionTitle: "Guests",
       guestReasonHeader: "Reason",
     );
