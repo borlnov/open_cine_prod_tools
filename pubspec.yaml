@@ -110,6 +110,9 @@ dependencies:
   fountain_kit:
     path: packages/fountain_kit
 
+  script_import_kit:
+    path: packages/script_import_kit
+
   spell_kit:
     path: packages/spell_kit
 
