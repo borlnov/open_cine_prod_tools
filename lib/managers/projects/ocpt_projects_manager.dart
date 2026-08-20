@@ -1011,6 +1011,22 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     exportedAt: DateTime.now(),
   );
 
+  /// Unpacks the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
+  /// reports what landed.
+  ///
+  /// **It does not open the project it just unpacked.** The `.ocpt` this writes may be at any
+  /// schema version — a package carries the database exactly as it was exported, unmigrated (see
+  /// [exportProjectPackage]) — so the caller goes through the same gate every other door into a
+  /// project file does: [probeProjectFile] then [openProject], which is what states a migration
+  /// for a package built by an older build rather than one silently happening as a side effect of
+  /// importing it.
+  Future<ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageImportReport>>
+  importProjectPackage({required String packageFilePath, required String parentDirectoryPath}) =>
+      projectPackageService.readPackage(
+        packageFilePath: packageFilePath,
+        parentDirectoryPath: parentDirectoryPath,
+      );
+
   /// Closes the [currentProject], disposing its database handle. Does nothing if no project is
   /// open.
   ///

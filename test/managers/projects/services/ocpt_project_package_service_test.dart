@@ -468,4 +468,242 @@ void main() {
       expect(row["payload"] as String, contains("Clara"));
     });
   });
+
+  group("reading a package back", () {
+    late Directory importsParent;
+
+    setUp(() {
+      importsParent = Directory(p.join(workspace.path, "imports"))
+        ..createSync(recursive: true);
+    });
+
+    /// Rewrites the entry [name] of the package at [sourcePath] with [bytes], keeping every other
+    /// entry untouched, and returns the path of the package this produces.
+    ///
+    /// Used to build the malformed packages `readPackage` has to refuse: `ZipFileEncoder` writes a
+    /// package from scratch rather than editing one in place, which is exactly what lets a test
+    /// swap out one entry (a rewritten manifest, say) without touching the rest.
+    Future<String> repackagedWith(
+      String sourcePath, {
+      required String name,
+      List<int>? bytes,
+      List<String> dropping = const [],
+    }) async {
+      final archive = ZipDecoder().decodeStream(InputFileStream(sourcePath));
+      final targetPath = p.join(p.dirname(sourcePath), "repackaged-${p.basename(sourcePath)}");
+
+      final encoder = ZipFileEncoder();
+      encoder.create(targetPath);
+      try {
+        for (final entry in archive.files) {
+          if (!entry.isFile || dropping.contains(entry.name)) {
+            continue;
+          }
+          final replacement = entry.name == name ? bytes : null;
+          encoder.addArchiveFile(
+            ArchiveFile.bytes(entry.name, replacement ?? entry.readBytes()!),
+          );
+        }
+        if (bytes != null && !archive.files.any((entry) => entry.name == name)) {
+          encoder.addArchiveFile(ArchiveFile.bytes(name, bytes));
+        }
+      } finally {
+        await encoder.close();
+      }
+
+      return targetPath;
+    }
+
+    /// The manifest bytes of [packagePath], with [transform] applied to it.
+    List<int> transformedManifestBytes(
+      String packagePath,
+      Map<String, dynamic> Function(Map<String, dynamic> manifest) transform,
+    ) {
+      final archive = ZipDecoder().decodeStream(InputFileStream(packagePath));
+      final manifest = jsonDecode(
+        utf8.decode(archive.files.firstWhere((f) => f.name == "manifest.json").readBytes()!),
+      );
+      return utf8.encode(jsonEncode(transform(manifest as Map<String, dynamic>)));
+    }
+
+    test(
+      "a package exported by the write half imports into an empty parent, every asset row "
+      "pointing at a file that exists",
+      () async {
+        await addAsset(id: "asset-1", path: writeReferencedFile("headshot.jpg", "photo bytes"));
+        await addAsset(id: "asset-2", path: writeReferencedFile("permit.pdf", "permit bytes"));
+        await export();
+
+        final imported = await service.readPackage(
+          packageFilePath: packagePath,
+          parentDirectoryPath: importsParent.path,
+        );
+
+        expect(imported.status, OcptProjectPackageStatus.ok);
+        final report = imported.value!;
+        expect(report.projectName, "Les Vagues");
+        expect(report.importedAssetCount, 2);
+        expect(report.skippedAssets, isEmpty);
+        expect(File(report.projectFilePath).existsSync(), isTrue);
+        expect(report.projectFilePath, p.join(importsParent.path, "Les Vagues", "Les Vagues.ocpt"));
+
+        final importedDatabase = sqlite3.open(report.projectFilePath, mode: OpenMode.readOnly);
+        addTearDown(importedDatabase.dispose);
+        for (final row in importedDatabase.select("SELECT path FROM assets ORDER BY id")) {
+          final assetPath = row["path"] as String;
+          expect(p.isAbsolute(assetPath), isTrue, reason: assetPath);
+          expect(File(assetPath).existsSync(), isTrue, reason: assetPath);
+        }
+      },
+    );
+
+    test("keeps every row and PRAGMA user_version", () async {
+      await addPerson("person-1");
+      await export();
+
+      final imported = await service.readPackage(
+        packageFilePath: packagePath,
+        parentDirectoryPath: importsParent.path,
+      );
+
+      final source = sqlite3.open(projectPath, mode: OpenMode.readOnly);
+      addTearDown(source.dispose);
+      final target = sqlite3.open(imported.value!.projectFilePath, mode: OpenMode.readOnly);
+      addTearDown(target.dispose);
+
+      expect(
+        target.select("PRAGMA user_version").first.values.first,
+        source.select("PRAGMA user_version").first.values.first,
+      );
+      expect(
+        target.select("SELECT name FROM project_info").first["name"],
+        source.select("SELECT name FROM project_info").first["name"],
+      );
+      expect(
+        target.select("SELECT id FROM people").map((row) => row["id"]).toList(),
+        source.select("SELECT id FROM people").map((row) => row["id"]).toList(),
+      );
+    });
+
+    test(
+      "refuses an existing folder of the same name with destinationExists, leaving it untouched",
+      () async {
+        await export();
+
+        final clashingFolder = Directory(p.join(importsParent.path, "Les Vagues"))
+          ..createSync(recursive: true);
+        File(
+          p.join(clashingFolder.path, "already-here.txt"),
+        ).writeAsStringSync("somebody else's project");
+
+        final imported = await service.readPackage(
+          packageFilePath: packagePath,
+          parentDirectoryPath: importsParent.path,
+        );
+
+        expect(imported.status, OcptProjectPackageStatus.destinationExists);
+        expect(
+          File(p.join(clashingFolder.path, "already-here.txt")).readAsStringSync(),
+          "somebody else's project",
+        );
+        expect(clashingFolder.listSync().map((entry) => p.basename(entry.path)), [
+          "already-here.txt",
+        ]);
+      },
+    );
+
+    test(
+      "refuses a packageFormat newer than this build's with unsupportedPackageFormat, writing "
+      "nothing",
+      () async {
+        await export();
+
+        final futurePackagePath = await repackagedWith(
+          packagePath,
+          name: "manifest.json",
+          bytes: transformedManifestBytes(
+            packagePath,
+            (manifest) => {...manifest, "packageFormat": 999},
+          ),
+        );
+
+        final imported = await service.readPackage(
+          packageFilePath: futurePackagePath,
+          parentDirectoryPath: importsParent.path,
+        );
+
+        expect(imported.status, OcptProjectPackageStatus.unsupportedPackageFormat);
+        expect(importsParent.listSync(), isEmpty);
+      },
+    );
+
+    test("refuses something that isn't a zip at all with unreadableArchive", () async {
+      final notAZip = p.join(workspace.path, "junk.ocptz");
+      File(notAZip).writeAsStringSync("this is not a zip archive");
+
+      final imported = await service.readPackage(
+        packageFilePath: notAZip,
+        parentDirectoryPath: importsParent.path,
+      );
+
+      expect(imported.status, OcptProjectPackageStatus.unreadableArchive);
+      expect(importsParent.listSync(), isEmpty);
+    });
+
+    test("refuses a zip with no manifest at all with unreadableArchive", () async {
+      await export();
+
+      final withoutManifest = await repackagedWith(
+        packagePath,
+        name: "manifest.json",
+        dropping: const ["manifest.json"],
+      );
+
+      final imported = await service.readPackage(
+        packageFilePath: withoutManifest,
+        parentDirectoryPath: importsParent.path,
+      );
+
+      expect(imported.status, OcptProjectPackageStatus.unreadableArchive);
+      expect(importsParent.listSync(), isEmpty);
+    });
+
+    test("carries the skipped assets the manifest recorded into the import report", () async {
+      await addAsset(id: "asset-1", path: writeReferencedFile("headshot.jpg", "photo"));
+      await addAsset(
+        id: "asset-2",
+        path: p.join(workspace.path, "files", "gone.pdf"),
+        label: "Autorisation mairie",
+      );
+      await export();
+
+      final imported = await service.readPackage(
+        packageFilePath: packagePath,
+        parentDirectoryPath: importsParent.path,
+      );
+
+      expect(imported.value!.skippedAssets, hasLength(1));
+      expect(imported.value!.skippedAssets.single.assetId, "asset-2");
+      expect(imported.value!.skippedAssets.single.label, "Autorisation mairie");
+    });
+
+    test("a zip-slip entry writes nothing outside the destination folder", () async {
+      await export();
+
+      final malicious = await repackagedWith(
+        packagePath,
+        name: "../evil.txt",
+        bytes: utf8.encode("this must never land outside the destination folder"),
+      );
+
+      final imported = await service.readPackage(
+        packageFilePath: malicious,
+        parentDirectoryPath: importsParent.path,
+      );
+
+      expect(imported.status, OcptProjectPackageStatus.unreadableArchive);
+      expect(File(p.join(importsParent.path, "evil.txt")).existsSync(), isFalse);
+      expect(Directory(p.join(importsParent.path, "Les Vagues")).existsSync(), isFalse);
+    });
+  });
 }

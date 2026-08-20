@@ -12,8 +12,27 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_erased_person_scrub.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_safe_file_name.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
+
+/// Thrown from inside [OcptProjectPackageService.readPackage]'s unpacking loop the moment an entry
+/// would land outside the destination folder, and caught by the very method that throws it.
+///
+/// A dedicated type rather than reusing a generic exception: the outer `catch` needs to tell this
+/// apart from an ordinary I/O failure so it can report
+/// [OcptProjectPackageStatus.unreadableArchive] (the archive itself is the problem) rather than
+/// [OcptProjectPackageStatus.ioError] (reading or writing failed for a reason outside the app).
+class _OcptZipSlipException implements Exception {
+  /// Class constructor
+  const _OcptZipSlipException(this.entryName);
+
+  /// The archive entry whose path resolved outside the destination folder.
+  final String entryName;
+
+  @override
+  String toString() => "the entry '$entryName' resolves outside the destination folder";
+}
 
 /// Reads and writes the **portable project package**: the project database plus every file it
 /// references, as one archive somebody can send.
@@ -54,6 +73,24 @@ class OcptProjectPackageService {
   /// Every statement here is in the first world and every payload key in the second, and mixing
   /// them up fails loudly at the query rather than quietly at the read.
   static const _assetColumns = "id, path, label";
+
+  /// The folder name a package unpacks into when [OcptProjectPackageManifest.projectName] leaves
+  /// [ocptSafeFileNameOf] nothing usable — every character was one Windows forbids, or the name was
+  /// only dots and whitespace. Rare (the export reads the very same `project_info.name` the create
+  /// dialog already required to be non-empty), but a colleague sending a package built by a much
+  /// older version, or one hand-edited before being sent, is not something this side controls.
+  static const _fallbackImportedProjectFolderName = "Imported project";
+
+  /// The upgrade steps [_upgradedManifest] replays, keyed by the format each one upgrades **from**
+  /// — the entry at `n` turns a format-`n` manifest JSON object into a format-`n + 1` one, on the
+  /// model of `OcptProjectVersionCodec._payloadUpgrades`.
+  ///
+  /// Empty today, because [ocptCurrentPackageFormat] is `1`, the only format this service has ever
+  /// written: there is nothing older to upgrade from yet. The seam exists so that the day a
+  /// `packageFormat` `2` ships, its upgrade step has exactly one place to be added — this map is
+  /// not here because it does anything now, but so nothing has to be restructured when it does.
+  static const _packageManifestUpgrades =
+      <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{};
 
   /// Class constructor
   const OcptProjectPackageService();
@@ -194,6 +231,265 @@ class OcptProjectPackageService {
       await encoder.close();
     }
   }
+
+  /// Unpacks the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
+  /// says what landed.
+  ///
+  /// This never opens the unpacked `.ocpt` through drift — see this class's own doc comment for
+  /// why — so it never migrates the file it just wrote either. The caller opens it afterwards
+  /// through `OcptProjectsManager.probeProjectFile`/`openProject`, which is what states a migration
+  /// for a package built by an older build; this method's whole job stops at "a project file now
+  /// exists on disk, at whatever schema it travelled in, every reference inside it pointing at a
+  /// real file beside it".
+  ///
+  /// The destination folder is created only once every check that can fail *before* touching disk
+  /// has passed (the archive reads, the manifest parses, the format is one this build knows, the
+  /// folder isn't already there) — and if anything goes wrong once it exists, that folder is
+  /// deleted before this returns [OcptProjectPackageStatus.ioError]: a half-unpacked folder looks
+  /// like a project and is not one, and leaving it behind would be a worse failure than the one
+  /// that caused it.
+  Future<ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageImportReport>> readPackage({
+    required String packageFilePath,
+    required String parentDirectoryPath,
+  }) async {
+    final Archive archive;
+    try {
+      archive = ZipDecoder().decodeStream(InputFileStream(packageFilePath));
+    } catch (error) {
+      appLogger().e("The package at $packageFilePath can't be read as a zip archive: $error");
+      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+    }
+
+    final entriesByName = {
+      for (final entry in archive.files)
+        if (entry.isFile) entry.name: entry,
+    };
+
+    final manifest = _readManifest(entriesByName[ocptPackageManifestEntry]);
+    if (manifest == null) {
+      appLogger().e("The package at $packageFilePath carries no readable manifest");
+      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+    }
+
+    // An archive without the project database is not a package, whatever else it holds — the
+    // manifest alone describes one without being one.
+    if (!entriesByName.containsKey(ocptPackageDatabaseEntry)) {
+      appLogger().e("The package at $packageFilePath carries no $ocptPackageDatabaseEntry");
+      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+    }
+
+    if (manifest.packageFormat <= 0) {
+      appLogger().e(
+        "The package at $packageFilePath states no readable packageFormat: refused rather than "
+        "guessed",
+      );
+      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+    }
+
+    if (manifest.packageFormat > ocptCurrentPackageFormat) {
+      appLogger().w(
+        "The package at $packageFilePath is in format ${manifest.packageFormat}, which this "
+        "build (format $ocptCurrentPackageFormat) doesn't know how to read: refused, nothing "
+        "written",
+      );
+      return const ResultWithStatus(status: OcptProjectPackageStatus.unsupportedPackageFormat);
+    }
+
+    final folderName = ocptSafeFileNameOf(
+      manifest.projectName,
+      fallback: _fallbackImportedProjectFolderName,
+    );
+    final destinationDirectory = Directory(p.join(parentDirectoryPath, folderName));
+    if (destinationDirectory.existsSync()) {
+      appLogger().w(
+        "The import of $packageFilePath is refused: ${destinationDirectory.path} already exists",
+      );
+      return const ResultWithStatus(status: OcptProjectPackageStatus.destinationExists);
+    }
+
+    try {
+      destinationDirectory.createSync(recursive: true);
+
+      final projectFilePath = p.join(destinationDirectory.path, "$folderName.ocpt");
+      await _unpackEntries(
+        archive: archive,
+        destinationDirectory: destinationDirectory,
+        projectFilePath: projectFilePath,
+      );
+      _rewireUnpackedAssetPaths(
+        projectFilePath: projectFilePath,
+        destinationDirectory: destinationDirectory,
+        assets: manifest.assets,
+      );
+
+      return ResultWithStatus(
+        status: OcptProjectPackageStatus.ok,
+        value: OcptProjectPackageImportReport(
+          projectFilePath: projectFilePath,
+          projectName: manifest.projectName,
+          importedAssetCount: manifest.assets.length,
+          skippedAssets: manifest.skippedAssets,
+        ),
+      );
+    } on _OcptZipSlipException catch (error) {
+      appLogger().e("The package at $packageFilePath can't be trusted: $error");
+      await _deleteQuietly(destinationDirectory);
+      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+    } catch (error) {
+      appLogger().e("The package at $packageFilePath can't be unpacked: $error");
+      await _deleteQuietly(destinationDirectory);
+      return const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
+    }
+  }
+
+  /// Reads and parses [entry] as [OcptProjectPackageManifest], or null when it is missing or is not
+  /// the JSON object the manifest is always written as.
+  ///
+  /// [OcptProjectPackageManifest.fromJson] is tolerant of a missing field (it may be reading an
+  /// older format), which is exactly why the shape is checked here first: a manifest that isn't
+  /// even a JSON object is not an older format of anything, it is not a manifest.
+  OcptProjectPackageManifest? _readManifest(ArchiveFile? entry) {
+    if (entry == null) {
+      return null;
+    }
+
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(utf8.decode(entry.readBytes() ?? const []));
+    } catch (_) {
+      return null;
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final packageFormat = decoded["packageFormat"];
+    final upgraded = packageFormat is int
+        ? _upgradedManifest(decoded, packageFormat: packageFormat)
+        : decoded;
+
+    return OcptProjectPackageManifest.fromJson(upgraded);
+  }
+
+  /// [json], a manifest read at [packageFormat], upgraded step by step up to
+  /// [ocptCurrentPackageFormat] through [_packageManifestUpgrades] — a no-op today, since that map
+  /// is still empty (see its own doc comment).
+  ///
+  /// Mirrors `OcptProjectVersionCodec.decode`'s own loop: a format this build has no documented
+  /// step for stops the loop rather than guessing at one, and whatever [OcptProjectPackageManifest.
+  /// fromJson] then makes of the result is the same tolerant reading it already gives a field an
+  /// older format never wrote.
+  Map<String, dynamic> _upgradedManifest(
+    Map<String, dynamic> json, {
+    required int packageFormat,
+  }) {
+    var upgraded = json;
+    for (var format = packageFormat; format < ocptCurrentPackageFormat; format++) {
+      final step = _packageManifestUpgrades[format];
+      if (step == null) {
+        break;
+      }
+      upgraded = step(upgraded);
+    }
+    return upgraded;
+  }
+
+  /// Streams every file [archive] holds — except its manifest — onto disk under
+  /// [destinationDirectory], `project.ocpt` landing at [projectFilePath] and every other entry at
+  /// its own relative path underneath.
+  ///
+  /// Each entry's path is checked against [destinationDirectory] **before** anything is written for
+  /// it: the archive may come from anywhere, and an entry engineered as `../../../etc/something`
+  /// must never be allowed to resolve outside the folder the user picked. `project.ocpt` itself
+  /// never goes through that check against its own name — it always lands at [projectFilePath],
+  /// which this method computes, never at whatever [ocptPackageDatabaseEntry] states.
+  Future<void> _unpackEntries({
+    required Archive archive,
+    required Directory destinationDirectory,
+    required String projectFilePath,
+  }) async {
+    for (final entry in archive.files) {
+      if (!entry.isFile || entry.name == ocptPackageManifestEntry) {
+        continue;
+      }
+
+      final targetPath = entry.name == ocptPackageDatabaseEntry
+          ? projectFilePath
+          : _nativePathForEntry(destinationDirectory.path, entry.name);
+
+      if (!_isWithinDestination(destinationDirectory.path, targetPath)) {
+        throw _OcptZipSlipException(entry.name);
+      }
+
+      Directory(p.dirname(targetPath)).createSync(recursive: true);
+      final output = OutputFileStream(targetPath);
+      try {
+        entry.writeContent(output);
+      } finally {
+        await output.close();
+      }
+    }
+  }
+
+  /// Rewrites the unpacked `.ocpt` at [projectFilePath] so every `assets` row [assets] names points
+  /// at the absolute path the file now sits at under [destinationDirectory], keyed off `assetId` —
+  /// never off a drift schema, exactly as [_planAndRewriteAssets] rewrites the staged copy on the
+  /// way out.
+  ///
+  /// Opened through raw `sqlite3`, read-write this time: the file may be at any schema version,
+  /// including one this build would migrate, and opening it through drift here would migrate it as
+  /// a side effect of importing it — the compatibility gate the caller runs afterwards is what
+  /// states that instead. [_hasTable] is reused for the same reason it exists on the write side: a
+  /// package built before the `assets` table existed has nothing to rewrite, and a manifest entry
+  /// naming a row this database doesn't hold is not a failure — the `UPDATE` simply matches nothing.
+  void _rewireUnpackedAssetPaths({
+    required String projectFilePath,
+    required Directory destinationDirectory,
+    required List<OcptPackagedAsset> assets,
+  }) {
+    if (assets.isEmpty) {
+      return;
+    }
+
+    final database = sqlite3.open(projectFilePath);
+    try {
+      if (!_hasTable(database, "assets")) {
+        return;
+      }
+
+      for (final asset in assets) {
+        final absolutePath = p.absolute(
+          _nativePathForEntry(destinationDirectory.path, asset.entry),
+        );
+        database.execute("UPDATE assets SET path = ? WHERE id = ?", [
+          absolutePath,
+          asset.assetId,
+        ]);
+      }
+    } finally {
+      database.dispose();
+    }
+  }
+
+  /// [entryName] — a `/`-separated path as a zip entry always names one — turned into a path built
+  /// with the platform's own separator, under [destinationDirectoryPath].
+  ///
+  /// A zip entry is `/`-separated on every platform that wrote it, Windows included; joining it
+  /// onto a native path as a single segment would leave the two mixed on Windows, which is why
+  /// this splits on the archive's own separator and rejoins with [p.joinAll] instead of a plain
+  /// [p.join].
+  String _nativePathForEntry(String destinationDirectoryPath, String entryName) =>
+      p.joinAll([destinationDirectoryPath, ...p.posix.split(entryName)]);
+
+  /// Whether [candidatePath] resolves to somewhere inside [destinationPath] once both are
+  /// canonicalised — the zip-slip guard [_unpackEntries] checks before writing a single byte of
+  /// any entry.
+  ///
+  /// [p.canonicalize] only normalises `..`/`.` segments and makes the path absolute; it never
+  /// touches the filesystem, so this is safe to call before [candidatePath] exists.
+  bool _isWithinDestination(String destinationPath, String candidatePath) =>
+      p.isWithin(p.canonicalize(destinationPath), p.canonicalize(candidatePath));
 
   /// Takes every erased person back out of the staged copy's version payloads, and empties
   /// `local_erasures`.
