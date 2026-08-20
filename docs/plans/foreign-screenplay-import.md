@@ -197,41 +197,64 @@ The French rule holds: a screenplay's scene is « une séquence ».
   export would mean maintaining a Final Draft pagination nothing here can check. Listed in
   `docs/adr/README.md`.
 
-Once this ships and its outcome is folded into `docs/architecture/`, this plan file is deleted.
+## 7. Milestones
 
-## 7. Tests
+Each milestone ends with the full verification gate of `CLAUDE.md` §*Verification gates*, one commit
+per logical change, and a user checkpoint before the next one starts. Every milestone's fixtures are
+written **inline** in its tests (XML/HTML strings, a Celtx zip built on the fly with `ZipEncoder`):
+no binary file, therefore no `.license` sidecar, and the house style wants local test doubles rather
+than a shared helpers directory.
 
-`packages/script_import_kit/test/` — fixtures written **inline** in the tests (XML/HTML strings, a
-Celtx zip built on the fly with `ZipEncoder`): no binary file, therefore no `.license` sidecar, and
-the house style wants local test doubles rather than a shared helpers directory.
+**M1 is what everything else stands on**; M2 only adds a second reader behind the same emitter, and
+M3 is the only milestone that touches the app.
 
-- `fdx_reader_test.dart`: every paragraph type, the scene number, dual dialogue, inline styles, the
-  title-page heuristics, a refused `DocumentType`, malformed XML.
-- `celtx_reader_test.dart`: the whole zip, an inner `<br>`, `scenenumber`, an unknown class, a zip
-  with no `project.rdf`, a script with no recognised paragraph.
-- `script_importer_test.dart`: the dispatch by extension, an unknown extension.
-- **The round-trip test, which matters most**: the produced text is re-parsed by
-  `FountainParser.parse` and the resulting `FountainBlock`s are compared to what the reader meant —
-  that is what proves the forcing markers did their job.
+### M1 — The package and the Final Draft reader
 
-Application side:
+`packages/script_import_kit` as described in §3: its plumbing, its public API, the shared
+typed-lines-to-Fountain emitter, and `FdxScriptReader`. The root `pubspec.yaml` gains the path
+dependency, so the package is wired into the app's resolution from the start even though nothing
+calls it yet.
 
-- `test/managers/export/services/ocpt_script_import_service_test.dart`: the three extensions, and a
-  `ScriptImportException` turning into `unreadableFile`.
-- `test/ui/pages/home/home_bloc_test.dart` and `test/ui/pages/editor/editor_bloc_test.dart`: the
-  existing test doubles follow the new signature, plus one "unreadable file" case per bloc.
+Tests: every paragraph type of §3.3, the scene number, dual dialogue, inline styles, the title-page
+heuristics, a refused `DocumentType`, malformed XML. Plus **the round-trip test, which matters
+most** — the produced text is re-parsed by `FountainParser.parse` and the resulting `FountainBlock`s
+are compared to what the reader meant, which is what proves the forcing markers did their job.
 
-## 8. Commits
+No app code, no UI, nothing localized: at the end of M1 an `.fdx` can be turned into Fountain text
+by a test and by nothing else.
 
-1. `feat: read a Final Draft screenplay` — the package, the shared emitter, `FdxScriptReader`.
-2. `feat: read a Celtx project's screenplay` — `CeltxScriptReader`.
-3. `feat: import a Final Draft or Celtx screenplay` — service, manager, status, home, editor,
-   dialog, l10n.
-4. `docs: record the foreign screenplay import` — architecture and ADR.
+### M2 — The Celtx reader
 
-Branch `53-import-fdx-and-celtx-screenplays`, merged into `main` through a pull request.
+`CeltxScriptReader` (§3.4) behind the very same emitter: the zip, `project.rdf`, the script HTML and
+its class mapping. `ScriptImporter`'s dispatch gains its second branch.
 
-## 9. Verification
+Tests: the whole zip, an inner `<br>`, `scenenumber`, an unknown class, a zip with no
+`project.rdf`, a script with no recognised paragraph, and the dispatch by extension including an
+unknown one. The round-trip check of M1 is run for this reader too.
+
+Still no app code. M1 and M2 are each worth shipping on their own.
+
+### M3 — The two import gestures
+
+The application side of §4 and the localization of §5: `OcptScriptImportService`,
+`pickAndReadScreenplay` with its `ResultWithStatus`, `OcptScreenplayImportStatus`, the home page's
+transient `screenplayImportError`, the editor's `importUnreadable` notice, and the `A screenplay`
+card's format label.
+
+Tests: `ocpt_script_import_service_test.dart` (the three extensions, a `ScriptImportException`
+turning into `unreadableFile`), and the two bloc tests following the new signature with one
+"unreadable file" case each.
+
+This is the milestone the end-to-end verification of §8 belongs to: it is the first point at which
+an `.fdx` or a `.celtx` can be opened by a person rather than by a test.
+
+### M4 — The record
+
+The documentation of §6: `docs/architecture/screenplay.md`, `docs/architecture/exports.md` and
+ADR 0023, listed in `docs/adr/README.md`. This plan file is deleted in the same commit — from then
+on the code, the architecture files and the ADR are the record.
+
+## 8. Verification
 
 The full gates before each commit, plus `dart run tool/check_markdown.dart` for the documentation
 commit. The package has its own tests, run from its own root as `fountain_kit`'s are.
