@@ -5,6 +5,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_se
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_import_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
@@ -47,6 +49,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:path/path.dart' as p;
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
@@ -70,18 +73,22 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// and its crew and cast as a standalone, whole-production contact list.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
-/// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
+/// [fountainIoService], [scriptImportService], [pdfExportService], [shotListXlsxExportService],
 /// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
 /// [breakdownXlsxExportService], [callSheetPdfService], [shootingPlanPdfService],
 /// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService],
 /// [sidesPdfService] and [contactListPdfService], and the "save as"/"choose a folder" location
-/// picking to [saveLocationService] — the fifteen services this manager owns (RFL18).
+/// picking to [saveLocationService] — the sixteen services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
 
   /// The service converting Fountain files to and from text.
   final OcptFountainIoService fountainIoService;
+
+  /// The service reading a picked screenplay file — a `.fountain`, an `.fdx` or a `.celtx` — as
+  /// the Fountain text the app stores.
+  final OcptScriptImportService scriptImportService;
 
   /// The service rendering a screenplay PDF.
   final OcptPdfExportService pdfExportService;
@@ -147,6 +154,7 @@ class OcptExportManager extends AbsWithLifeCycle {
   }) : _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
        saveLocationService = saveLocationService ?? const OcptSaveLocationService(),
        fountainIoService = const OcptFountainIoService(),
+       scriptImportService = const OcptScriptImportService(),
        pdfExportService = OcptPdfExportService(fontsLoader: fontsLoader),
        scenarioCoveragePdfService = OcptScenarioCoveragePdfService(fontsLoader: fontsLoader),
        breakdownSheetsPdfService = OcptBreakdownSheetsPdfService(fontsLoader: fontsLoader),
@@ -859,12 +867,21 @@ class OcptExportManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Shows the native open dialog, reads the picked `.fountain` file and decodes it.
+  /// Shows the native open dialog, reads the picked screenplay file and returns it as Fountain
+  /// text.
   ///
-  /// Returns null if the user cancelled or the selection failed.
-  Future<OcptImportedFountainModel?> pickAndReadFountain({required String fileTypeLabel}) async {
+  /// The dialog accepts the three formats of [OcptScriptImportService.importableExtensions]: a
+  /// `.fountain` file is decoded as it is, an `.fdx` and a `.celtx` are converted by
+  /// [scriptImportService] — one-way and knowingly lossy. Whichever door it came through, what
+  /// comes back **is** Fountain, which is why the returned model keeps its name.
+  ///
+  /// The outcome is a status rather than a nullable model: a file that is not the screenplay its
+  /// name claims has to be told apart from a cancelled dialog, and only the first of the two is
+  /// worth stating to the user.
+  Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
+  pickAndReadScreenplay({required String fileTypeLabel}) async {
     final selection = await _fileSelectorManager.openSelector(
-      allowedExtensions: [OcptFountainIoService.fountainFileExtension],
+      allowedExtensions: OcptScriptImportService.importableExtensions,
       label: fileTypeLabel,
     );
 
@@ -872,18 +889,29 @@ class OcptExportManager extends AbsWithLifeCycle {
     if (!selection.status.isSuccess || selectedFile == null) {
       // The user cancelled the dialog, or the selection failed; the latter is a soft failure
       // deliberately not surfaced as an error, since the OS dialog itself already reported it.
-      return null;
+      return const ResultWithStatus(status: OcptScreenplayImportStatus.cancelled);
     }
 
     final bytes = await XFileUtilities.getBinaryFileContent(xFile: selectedFile);
     if (bytes == null) {
       appLogger().e("A problem occurred when tried to read the picked file: ${selectedFile.name}");
-      return null;
+      return const ResultWithStatus(status: OcptScreenplayImportStatus.ioError);
     }
 
-    return OcptImportedFountainModel(
-      fountainText: fountainIoService.decodeFountainBytes(bytes),
-      sourceFileName: selectedFile.name,
+    final read = scriptImportService.readScreenplay(bytes: bytes, fileName: selectedFile.name);
+    final fountainText = read.value;
+    if (!read.status.isSuccess || fountainText == null) {
+      appLogger().w("The picked file ${selectedFile.name} could not be read as a screenplay: "
+          "${read.extraInfo}");
+      return ResultWithStatus(status: read.status);
+    }
+
+    return ResultWithStatus(
+      status: OcptScreenplayImportStatus.ok,
+      value: OcptImportedFountainModel(
+        fountainText: fountainText,
+        sourceFileName: selectedFile.name,
+      ),
     );
   }
 }

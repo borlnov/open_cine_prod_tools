@@ -1596,6 +1596,7 @@ class _EditorViewState extends State<_EditorView> {
       OcptEditorIoNoticeKind.exportFailed => tr.editorExportError,
       OcptEditorIoNoticeKind.importSucceeded => tr.editorImportSuccessMessage,
       OcptEditorIoNoticeKind.importFailed => tr.editorImportError,
+      OcptEditorIoNoticeKind.importUnreadable => tr.editorImportUnreadableError,
       OcptEditorIoNoticeKind.pdfExportSucceeded => tr.editorExportPdfSuccessMessage(
         notice.path ?? "",
       ),

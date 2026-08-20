@@ -98,21 +98,32 @@ class OcptHomeErrorDismissedEvent extends OcptHomeEvent {
   const OcptHomeErrorDismissedEvent();
 }
 
-/// Requests creating a new project seeded with the content of a picked `.fountain` file.
+/// Requests creating a new project seeded with the content of a picked screenplay file.
 ///
-/// This shows an open-file dialog to pick the `.fountain` file, then a save-file dialog to let
-/// the user pick where to save the new project, creates it, imports the picked file's text into
-/// it, and navigates to the editor.
+/// This shows an open-file dialog to pick the screenplay — a `.fountain`, an `.fdx` or a
+/// `.celtx`, the last two being converted to Fountain as they are read —, then a save-file dialog
+/// to let the user pick where to save the new project, creates it, imports the picked file's text
+/// into it, and navigates to the editor.
+///
+/// A picked file that cannot be read as a screenplay creates nothing at all: it lands in
+/// `OcptHomeState.screenplayImportError` for the page to word, the save dialog never being
+/// reached.
 class OcptHomeImportScreenplayRequestedEvent extends OcptHomeEvent {
-  /// The label of the `.fountain` file type shown in the native open-file dialog.
-  final String fountainFileTypeLabel;
+  /// The label of the screenplay file types shown in the native open-file dialog.
+  final String screenplayFileTypeLabel;
 
   /// Class constructor
-  const OcptHomeImportScreenplayRequestedEvent({required this.fountainFileTypeLabel});
+  const OcptHomeImportScreenplayRequestedEvent({required this.screenplayFileTypeLabel});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, fountainFileTypeLabel];
+  List<Object?> get props => [...super.props, screenplayFileTypeLabel];
+}
+
+/// Dismisses the transient screenplay import error currently shown, if any.
+class OcptHomeScreenplayImportErrorDismissedEvent extends OcptHomeEvent {
+  /// Class constructor
+  const OcptHomeScreenplayImportErrorDismissedEvent();
 }
 
 /// Requests unpacking a picked portable project package (`.ocptz`) into a project of its own.

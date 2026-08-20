@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -1522,21 +1523,35 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Replaces the current screenplay text with the content of a picked `.fountain` file.
+  /// Replaces the current screenplay text with the content of a picked screenplay file.
+  ///
+  /// The picked file may be a `.fountain`, an `.fdx` or a `.celtx`, the last two being converted
+  /// to Fountain as they are read, so what replaces the text is Fountain either way.
   ///
   /// If the editor is dirty, the current text is saved first (tagged
   /// [OcptSnapshotReason.manual]) so the pre-import snapshot holds the user's latest keystrokes
   /// rather than a stale database copy; the imported text is then saved, tagged
   /// [OcptSnapshotReason.import], which snapshots the pre-import text. A cancelled file dialog is
-  /// a silent no-op; a failure raises the transient import-failed notice.
+  /// a silent no-op; a file that cannot be read as a screenplay raises the transient
+  /// import-unreadable notice and replaces nothing, and a write failure raises the import-failed
+  /// one.
   Future<void> _onImportRequested(
     OcptEditorImportRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    final imported = await _exportManager.pickAndReadFountain(fileTypeLabel: event.fileTypeLabel);
-    if (imported == null) {
-      // The user cancelled the dialog, or the selection failed; the latter is a soft failure
-      // deliberately not surfaced as an error, since the OS dialog itself already reported it.
+    final result = await _exportManager.pickAndReadScreenplay(fileTypeLabel: event.fileTypeLabel);
+    final imported = result.value;
+    if (!result.status.isSuccess || imported == null) {
+      // A cancelled dialog, or a selection that failed, is a silent no-op: the OS dialog itself
+      // already reported the latter. A file that could not be read is the one outcome worth
+      // stating, and it leaves the screenplay on screen exactly as it was.
+      if (result.status != OcptScreenplayImportStatus.cancelled) {
+        emitter(
+          state.copyWith(
+            ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importUnreadable),
+          ),
+        );
+      }
       return;
     }
 

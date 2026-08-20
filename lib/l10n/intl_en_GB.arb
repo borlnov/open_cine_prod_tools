@@ -681,10 +681,10 @@
     "type": "text",
     "placeholders": {}
   },
-  "editorImportFileTypeLabel": "Fountain screenplay",
+  "editorImportFileTypeLabel": "Screenplay",
   "@editorImportFileTypeLabel": {
-    "description": "Label of the .fountain file type shown in the native open/save-file dialog",
-    "context": "Passed to the OS file picker when the user imports, or exports to .fountain",
+    "description": "Label of the screenplay file types shown in the native open/save-file dialog",
+    "context": "Passed to the OS file picker when the user imports a .fountain, .fdx or .celtx screenplay, or exports to .fountain",
     "type": "text",
     "placeholders": {}
   },
@@ -919,8 +919,15 @@
   },
   "editorImportError": "The screenplay could not be imported.",
   "@editorImportError": {
-    "description": "Error shown when importing a .fountain file to replace the screenplay failed",
+    "description": "Error shown when writing an imported screenplay over the current one failed",
     "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportUnreadableError": "This file could not be read as a screenplay.",
+  "@editorImportUnreadableError": {
+    "description": "Error shown when the picked file is not a screenplay the app can read",
+    "context": "Displayed in a SnackBar on the editor page, after Import and replace picked a .fountain, .fdx or .celtx file that could not be read",
     "type": "text",
     "placeholders": {}
   },
@@ -1119,15 +1126,22 @@
   },
   "homeImportScreenplayTitle": "A screenplay",
   "@homeImportScreenplayTitle": {
-    "description": "Name of a Fountain screenplay, on the Import modal's own card",
+    "description": "Name of a screenplay file, on the Import modal's own card",
     "context": "Displayed on a card of the Import modal",
     "type": "text",
     "placeholders": {}
   },
-  "homeImportScreenplayDescription": "A Fountain file, which becomes a new project holding its text.",
+  "homeImportScreenplayDescription": "A Fountain, Final Draft or Celtx file, which becomes a new project holding its text.",
   "@homeImportScreenplayDescription": {
     "description": "Line saying what importing a screenplay does",
     "context": "Displayed under the screenplay card's title, in the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportScreenplayUnreadableError": "This file could not be read as a screenplay.",
+  "@homeImportScreenplayUnreadableError": {
+    "description": "Error shown when the picked file is not a screenplay the app can read",
+    "context": "Displayed in a SnackBar on the home page, after the Import modal's screenplay card picked a .fountain, .fdx or .celtx file that could not be read",
     "type": "text",
     "placeholders": {}
   },
@@ -1282,9 +1296,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "homeImportFileTypeLabel": "Fountain screenplay",
+  "homeImportFileTypeLabel": "Screenplay",
   "@homeImportFileTypeLabel": {
-    "description": "Label of the .fountain file type shown in the native open-file dialog",
+    "description": "Label of the screenplay file types shown in the native open-file dialog",
     "context": "Passed to the OS file picker when the user chooses to import a screenplay",
     "type": "text",
     "placeholders": {}

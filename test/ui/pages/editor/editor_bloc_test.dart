@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +33,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
@@ -121,14 +123,22 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// export and import-and-replace paths without any real file dialog.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
-  _FakeExportManager({this.exportResult, this.importResult, this.exportPdfResult})
-    : super(fileSelectorManager: const FileSelectorManager());
+  _FakeExportManager({
+    this.exportResult,
+    this.importResult,
+    this.exportPdfResult,
+    this.importStatus = OcptScreenplayImportStatus.cancelled,
+  }) : super(fileSelectorManager: const FileSelectorManager());
 
   /// The path [exportFountain] returns, or null to simulate a cancelled save dialog.
   final String? exportResult;
 
-  /// The model [pickAndReadFountain] returns, or null to simulate a cancelled open dialog.
+  /// The model [pickAndReadScreenplay] returns, or null to return no value at all.
   final OcptImportedFountainModel? importResult;
+
+  /// The status [pickAndReadScreenplay] returns when [importResult] is null, defaulting to a
+  /// cancelled open dialog.
+  final OcptScreenplayImportStatus importStatus;
 
   /// The path [exportPdf] returns, or null to simulate a cancelled save dialog.
   final String? exportPdfResult;
@@ -145,7 +155,7 @@ class _FakeExportManager extends OcptExportManager {
   /// The episode tag of the last [exportFountain] call.
   String? lastExportedEpisodeTag;
 
-  /// The file type label of the last [pickAndReadFountain] call.
+  /// The file type label of the last [pickAndReadScreenplay] call.
   String? lastImportFileTypeLabel;
 
   /// The document of the last [exportPdf] call.
@@ -204,9 +214,16 @@ class _FakeExportManager extends OcptExportManager {
   }
 
   @override
-  Future<OcptImportedFountainModel?> pickAndReadFountain({required String fileTypeLabel}) async {
+  Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
+  pickAndReadScreenplay({required String fileTypeLabel}) async {
     lastImportFileTypeLabel = fileTypeLabel;
-    return importResult;
+
+    final result = importResult;
+    if (result == null) {
+      return ResultWithStatus(status: importStatus);
+    }
+
+    return ResultWithStatus(status: OcptScreenplayImportStatus.ok, value: result);
   }
 }
 
@@ -1339,7 +1356,7 @@ void main() {
 
       bloc.add(
         const OcptEditorExportRequestedEvent(
-          fileTypeLabel: "Fountain screenplay",
+          fileTypeLabel: "Screenplay",
           episodeTag: "ep. 2",
         ),
       );
@@ -1352,7 +1369,7 @@ void main() {
       expect(state.ioNotice?.path, "/tmp/My Movie.fountain");
       expect(exportManager.lastExportedText, editedText);
       expect(exportManager.lastExportedProjectName, "My Movie");
-      expect(exportManager.lastExportedFileTypeLabel, "Fountain screenplay");
+      expect(exportManager.lastExportedFileTypeLabel, "Screenplay");
       expect(exportManager.lastExportedEpisodeTag, "ep. 2");
 
       final snapshots = await readSnapshots();
@@ -1367,7 +1384,7 @@ void main() {
     final bloc = buildBloc(exportManager: exportManager);
     await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptEditorExportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
+    bloc.add(const OcptEditorExportRequestedEvent(fileTypeLabel: "Screenplay"));
     // No state change to wait for on a cancelled dialog: give the handler a beat to run.
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
@@ -1504,7 +1521,7 @@ void main() {
       final bloc = buildBloc(exportManager: exportManager);
       await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
+      bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Screenplay"));
       // The text/dirty/notice change, the re-parse and the statistics recompute are three
       // separate emissions (the notice arrives with the first one and survives into the next
       // two, since re-parsing only replaces `document`): wait for the statistics recompute, the
@@ -1517,7 +1534,7 @@ void main() {
       expect(state.ioNotice?.kind, OcptEditorIoNoticeKind.importSucceeded);
       expect(state.scenes, hasLength(1));
       expect(state.scenes.single.headingText, "INT. OFFICE - DAY");
-      expect(exportManager.lastImportFileTypeLabel, "Fountain screenplay");
+      expect(exportManager.lastImportFileTypeLabel, "Screenplay");
       expect(state.statistics.sceneCount, 1);
       expect(state.statistics.pageCount, 1);
 
@@ -1536,13 +1553,37 @@ void main() {
     bloc.add(const OcptEditorTextChangedEvent(text: editedText));
     await waitForState(bloc, (state) => state.isDirty);
 
-    bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
+    bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Screenplay"));
     // No state change to wait for on a cancelled dialog: give the handler a beat to run.
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     expect(bloc.state.text, editedText);
     expect(bloc.state.isDirty, isTrue);
     expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('an unreadable imported file is stated and replaces nothing', () async {
+    final exportManager = _FakeExportManager(
+      importStatus: OcptScreenplayImportStatus.unreadableFile,
+    );
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.isDirty);
+
+    bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Screenplay"));
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice?.kind, OcptEditorIoNoticeKind.importUnreadable);
+    // The screenplay on screen is untouched, and its unsaved edits are still unsaved.
+    expect(state.text, editedText);
+    expect(state.isDirty, isTrue);
+
+    final snapshots = await readSnapshots();
+    expect(snapshots.where((row) => row.reason == OcptSnapshotReason.import), isEmpty);
 
     await bloc.close();
   });

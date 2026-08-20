@@ -433,7 +433,8 @@ class OcptEditorExportPdfRequestedEvent extends OcptEditorEvent {
   List<Object?> get props => [...super.props, options, fileTypeLabel, episodeTag];
 }
 
-/// Requests replacing the current screenplay text with the content of a picked `.fountain` file.
+/// Requests replacing the current screenplay text with the content of a picked screenplay file —
+/// a `.fountain`, an `.fdx` or a `.celtx`.
 ///
 /// Dispatched only once the user confirmed the replacement in the import confirmation dialog.
 class OcptEditorImportRequestedEvent extends OcptEditorEvent {
