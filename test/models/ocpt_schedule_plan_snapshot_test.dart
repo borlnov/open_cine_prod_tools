@@ -959,6 +959,116 @@ void main() {
       expect(alert.shotId, "shot-1");
     });
 
+    test("a rehearsal day double-books a person exactly as a shooting day does", () {
+      // Every alert about people is blind to what a day is for, and deliberately: a rehearsal eats
+      // a person's day like a shoot does, and the plan is just as broken either way.
+      final slotA = _buildSlot(
+        id: "slot-a",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-a", personId: "person-1")],
+      );
+      final slotB = _buildSlot(
+        id: "slot-b",
+        anchorMinute: 550,
+        crew: [_buildCrewMember(id: "crew-2", slotId: "slot-b", personId: "person-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.rehearsal);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slotA, slotB],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-a",
+              slotId: "slot-a",
+              kind: OcptShootingBlockKind.rehearsal,
+              durationMinutes: 200,
+            ),
+            _buildBlock(
+              id: "block-b",
+              slotId: "slot-b",
+              kind: OcptShootingBlockKind.rehearsal,
+              durationMinutes: 200,
+            ),
+          ],
+        },
+      );
+
+      final alert = snapshot.alerts.whereType<OcptSchedulePersonDoubleBookedAlert>().single;
+      expect(alert.dayId, "day-1");
+      expect(alert.personId, "person-1");
+    });
+
+    test("a casting day raises no role-not-convoked alert, carrying no shot to call one", () {
+      // The rule is about a role a **placed shot** plays, so it cannot fire on a day whose
+      // timetable holds auditions: it needs no scoping of its own, and gets none.
+      final role = _buildRole(id: "role-1", name: "Alice");
+      final shot = _buildShot(id: "shot-1", characters: const ["ALICE"]);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 540);
+      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.casting);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+            ),
+          ],
+        },
+        shotLists: [_buildShotList(shots: [shot])],
+        roles: [role],
+      );
+
+      expect(snapshot.alerts.whereType<OcptScheduleRoleNotConvokedAlert>(), isEmpty);
+    });
+
+    test("a candidate's own convocation raises nothing at all", () {
+      // Deliberately, and on the guests' own argument: a candidate holds no position to lose, has
+      // no daily maximum of the production's making and is not cast. Their convocation is read
+      // everywhere it is owed an hour, and nowhere a rule is about somebody's work.
+      final person = _buildPerson(id: "person-1", firstName: "Camille");
+      final candidacy = _buildCandidacy(id: "candidacy-1", roleId: "role-1", person: person);
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 540,
+        candidates: [
+          _buildSlotCandidate(id: "convocation-1", slotId: "slot-1", roleCandidateId: "candidacy-1"),
+        ],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.casting);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+            ),
+          ],
+        },
+        people: [person],
+        roleCandidates: [candidacy],
+      );
+
+      expect(snapshot.alerts, isEmpty);
+      // And they are convoked all the same: the reading the `Convocations` tab gives is untouched
+      // by the alerts saying nothing about them.
+      expect(snapshot.convocationsOfDay("day-1").single.roleCandidateId, "candidacy-1");
+    });
+
     test("a location's dated permit document not covering the day surfaces the permit alert", () {
       final location = _buildLocation(
         id: "location-1",
