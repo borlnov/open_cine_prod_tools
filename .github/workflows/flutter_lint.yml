@@ -54,6 +54,7 @@ jobs:
         package:
           - { name: app, path: . }
           - { name: fountain_kit, path: packages/fountain_kit }
+          - { name: script_import_kit, path: packages/script_import_kit }
           - { name: spell_kit, path: packages/spell_kit }
     steps:
       - name: Checkout code
