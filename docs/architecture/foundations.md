@@ -7,9 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 # Architecture — the foundations
 
 The layers every task crosses: the managers, the routing, the BLoC pattern, the workspace
-shell and the episode it shows, the app-wide look, the spell-checking, the packaging, and the four
-things every mode inherits — the persistence, the project versions, the sync-ready data model and
-the read-only preview.
+shell and the episode it shows, the app-wide look, the spell-checking, the packaging, how a project
+file travels and how one from another build is opened, and the four things every mode inherits —
+the persistence, the project versions, the sync-ready data model and the read-only preview.
 
 - `OcptGlobalManager extends AbsUiGlobalManager` owns every manager; managers are
   `AbsWithLifeCycle` classes registered with builder factories (`dependsOn` ordering) and
@@ -404,6 +404,69 @@ the read-only preview.
   would forget the erasure and resurrect the person in one transaction. `local_erasures` is
   therefore local — no tombstone, no `sortKey`, no stamps, never captured, never hashed, never
   restored.
+
+- The portable project package (ADR 0021): a `.ocpt` holds no bytes of what it references (ADR
+  0013), so a project *sent* to somebody arrives with every reference dangling. A **package** is
+  what travels instead: one zip, extension **`.ocptz`**, holding `manifest.json`, `project.ocpt`
+  (fixed name, the display name living in the manifest) and `assets/<assetId>/<file name>`, written
+  and read by `OcptProjectPackageService` (`lib/managers/projects/services/`) through
+  `package:archive`, streamed to disk (`ZipFileEncoder`/`InputFileStream`) and never assembled in
+  memory. The manifest is versioned by **`packageFormat`** independently of the schema, exactly as
+  `OcptProjectVersionCodec`'s `payloadFormat` is — older upgraded on read
+  (`_packageManifestUpgrades`, empty at format 1), newer refused
+  (`OcptProjectPackageStatus.unsupportedPackageFormat`).
+  **Everything on this path works from a file path and never from an open database**, and nothing in
+  the service imports drift: one code path therefore serves a project open in a mode and a project
+  card on the home page, and a package built from an older file does not migrate it on the way out.
+  The `.ocpt` inside is produced by **`VACUUM INTO`** from a **read-only** connection — one
+  consistent file out of an open database, the WAL folded in, `user_version` preserved — so an
+  export never writes the user's own file, not even to checkpoint it.
+  A referenced file that is **gone** never blocks anything: `scanAssets` stats every live `assets`
+  row first, the caller asks through `OcptConfirmDialog` with the count and the labels, and
+  continuing records those rows in the manifest's `skippedAssets`, which the **import reports
+  again** as the project lands. A packaged row is rewritten to its entry inside the archive and back
+  to an absolute path on import; a skipped one keeps the path it always had, so either end can name
+  what is missing. `project_versions` travel **scrubbed**: on the staged copy alone, every stored
+  payload is rewritten with the erased people taken back out
+  (`ocptScrubErasedPeopleFromPayload`, `lib/utils/`, the third implementation of the erasure rule
+  after `OcptPeopleService.deletePerson` and `OcptProjectVersionsService._scrubErasedPeople`, and
+  the only untyped one — a package may be built from a file at any schema version, so it reads the
+  payload's own keys; a test walks every key the codec writes for a person and fails unless this one
+  classifies it), `content_digest` nulled on the rows actually touched, and `local_erasures` emptied.
+  Everything the mode side needs is `MixinOcptProjectPackageBloc`/`MixinOcptProjectPackageState`
+  (`lib/ui/pages/workspace/blocs/`), mixed in beside `MixinOcptProjectVersionsBloc` and declaring
+  the **same `flushPendingProjectWrites` hook**, for the same reason: the package is built from the
+  file on disk, so a debounced field edit has to reach it first. `OcptHomeBloc` mixes it in too, for
+  a project card's `Export…` with nothing open. See `exports.md` for where the two gestures sit in
+  the UI.
+
+- Opening a project file from another build (ADR 0022): **no `.ocpt` reaches drift before it has
+  been read.** `OcptProjectFileCompatibilityService` (`lib/managers/projects/services/`) probes it
+  through raw `sqlite3` opened **read-only** — `PRAGMA user_version`, plus
+  `project_info.app_version_at_creation` when `sqlite_master` says that table is there — and answers
+  an `OcptProjectFileCompatibility` (`lib/models/`) whose `verdict` is
+  `current | older | newer | unreadable`. `OcptProjectsManager.probeProjectFile` is that probe and
+  `openProject`'s `_gateOnFileFormat` is what acts on it, **before** the currently open project is
+  closed, so a refusal never costs the user the project they already had: a **newer** file is
+  refused with `OcptProjectStatus.newerFormat` — not opened, not touched, not added to the recent
+  list, since handing it to drift stamps its `user_version` back *down* while leaving the newer
+  build's tables in place — an **older** one returns `OcptProjectStatus.migrationRequired` unless
+  the caller passes `allowMigration: true`, and `current`/`unreadable` open exactly as they did
+  before the gate existed. The default of `false` is deliberate: forgetting the gate fails as a
+  refusal, never as a silent migration.
+  The migration is confirmed by `OcptConfirmDialog` like every other irreversible action, worded by
+  the *page* (`OcptHomePage._stateFileCompatibility`) and never by the bloc, and it names the two
+  format numbers and **where the copy will be kept**; the refusal is `OcptProjectFileNewerDialog`.
+  The copy is `<name>.backup-v<n>.ocpt` beside the original (a counter appended rather than an
+  existing backup overwritten), taken with `VACUUM INTO` from a read-only connection, at the very
+  path `OcptProjectFileCompatibility.suggestedBackupPath` named — the promise and the write cannot
+  drift apart — and **no copy means no migration**: a backup that fails to write turns the open into
+  an `ioError`. The extension is kept on purpose, a backup being a file the older build can still
+  open. Every door into a project file goes through this gate — the home page's `Open…`, a recent
+  project card, and the landing of an imported package — and **exporting deliberately does not**: a
+  package carries the file at whatever format it is in, and the recipient's own gate is what states
+  the migration. The version *preview* and the *restore* are untouched too, hydrating an in-memory
+  database from a payload the codec already version-checks.
 
 - The `Versions` dock tab (`OcptProjectVersionsPanel`/`OcptProjectWorkingCopyCard`/
   `OcptProjectVersionCard`/`OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is

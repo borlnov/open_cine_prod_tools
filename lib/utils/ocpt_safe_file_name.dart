@@ -8,9 +8,10 @@
 /// filesystem should be handed.
 ///
 /// Linux only forbids `/`, and macOS only `/` and, at the Finder layer, `:` — but a package built
-/// on one platform has to unpack cleanly on either of the other two (`docs/plans/portable-project-
-/// package.md` §5.2), so [ocptSafeFileNameOf] applies the **strictest** of the three rules
-/// everywhere rather than the one the exporting machine happens to enforce.
+/// on one platform has to unpack cleanly on either of the other two
+/// (`docs/adr/0021-the-portable-project-package.md`), so [ocptSafeFileNameOf] applies the
+/// **strictest** of the three rules everywhere rather than the one the exporting machine happens to
+/// enforce.
 final RegExp _ocptForbiddenFileNameCharacters = RegExp(r'[\\/:*?"<>|\x00-\x1F\x7F]');
 
 /// Runs of whitespace **or** of the placeholder [_ocptForbiddenFileNameCharacters] were just
@@ -31,7 +32,7 @@ final RegExp _ocptLeadingOrTrailingClutter = RegExp(r'^[\s.]+|[\s.]+$');
 ///
 /// Windows caps a full path at 260 characters unless long-path support is opted into, and a
 /// project's folder is only the first segment of a deeper one (`<name>/assets/<assetId>/<file>`,
-/// `docs/plans/portable-project-package.md` §3) — 80 leaves comfortable room for everything that
+/// `docs/adr/0021-the-portable-project-package.md`) — 80 leaves comfortable room for everything that
 /// gets appended under it without being so short that two differently-punctuated titles collapse
 /// into the same stem more often than they already would.
 const ocptSafeFileNameMaxLength = 80;

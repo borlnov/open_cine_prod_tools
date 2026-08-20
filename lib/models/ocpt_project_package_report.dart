@@ -63,9 +63,9 @@ class OcptProjectPackageExportReport extends Equatable {
 ///
 /// [skippedAssets] is copied straight from the manifest rather than recomputed: the files it
 /// names were never in the archive to begin with, so there is nothing here to check them against
-/// — the export already asked whoever sent this package, and the plan's own rule (§2) is that the
-/// same list is reported again to whoever receives it, so a colleague who was handed a project
-/// with a missing filming permit finds out from their own machine too, not only from the sender's.
+/// — the export already asked whoever sent this package, and the rule of ADR 0021 is that the same
+/// list is reported again to whoever receives it, so a colleague who was handed a project with a
+/// missing filming permit finds out from their own machine too, not only from the sender's.
 class OcptProjectPackageImportReport extends Equatable {
   /// The `.ocpt` this import wrote, ready to be opened through the compatibility gate
   /// (`OcptProjectsManager.probeProjectFile`/`openProject`) — never opened directly here, since a

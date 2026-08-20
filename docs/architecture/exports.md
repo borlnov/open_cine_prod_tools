@@ -6,9 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # Architecture — the exports
 
-How a document leaves the app: the panel every mode reaches its exports from, the manager
-owning the fifteen services, and the scenario coverage PDF. Each mode's own documents are
-described in that mode's file.
+How a document leaves the app — and how the project itself does: the panel every mode reaches its
+exports from, the card grid that panel and the home page's `Import…` modal are both built on, the
+manager owning the fifteen services, and the scenario coverage PDF. Each mode's own documents are
+described in that mode's file; the package a whole project travels as is `foundations.md`'s, this
+file covering only where the two gestures sit.
 
 - **Every export in the app is reached from one place**: the toolbar's own `Export` control, in
   every mode that prints something, opening `OcptWorkspaceExportDialog<T>`
@@ -18,7 +20,10 @@ described in that mode's file.
   so an export is the same gesture in the same place in every mode, and `onExportRequested` is
   nullable like every other chrome slot: the budget mode, printing nothing, shows **no button at
   all** rather than a disabled one. The panel **only asks** — it pops the picked value and nothing
-  else, the mode then opening that document's own options dialog from its own context.
+  else, the mode then opening that document's own options dialog from its own context. What it pops
+  is a sealed `OcptWorkspaceExportPick<T>` (`lib/models/`), `document(T)` or `projectPackage`,
+  rather than a bare `T?`: every mode's call site already switched on the pick, so the standing card
+  below costs one branch each instead of one enum value each.
   `OcptWorkspaceExportEntry<T>` (`lib/models/`, pure) is one card's descriptor (`value`, `title`,
   `description`, `formatLabel`, nullable `unavailableReason`) and carries no `Tr`, the mode
   resolving every word, as `OcptShotListXlsxLabels` already does for the services; `PDF`, `XLSX` and
@@ -30,9 +35,53 @@ described in that mode's file.
   never planned a day would never learn the app prints sides at all. The scope is the **active
   mode's own** documents (the whole project's would need one mode to trigger another's export, which
   nothing in this architecture does), and the panel stays offered **under a version preview**, an
-  export only ever reading. What the `⋮` keeps is the screenplay's import-and-replace, its two
+  export only ever reading — the one card that is not a document being the exception below. What the
+  `⋮` keeps is the screenplay's import-and-replace, its two
   display toggles, its page setup and its title page; the other four modes keep `Reset panel layout`
   alone, which is thin but honest.
+
+- **The project itself is a card in that panel**, below the documents grid, behind a divider and
+  under its own short heading, because nobody *reads* it — it is the project, as one `.ocptz`
+  somebody can send (ADR 0021, and `foundations.md` for what travels inside one). The **dialog owns
+  that card**, in every mode, rather than each mode declaring it: five modes each adding a
+  `projectPackage` value to their own enum would let its wording, its position and its availability
+  drift apart mode by mode, the same reasoning that makes the end of the toolbar the shell's own
+  chrome. Picking it pops `OcptWorkspaceExportProjectPackagePick`, which the mode's bloc answers
+  through `MixinOcptProjectPackageBloc`: flush the pending writes, scan the referenced files, open
+  `OcptConfirmDialog` when some are gone, then the native save dialog and the write, reported in a
+  SnackBar like every other export outcome — and no bloc holds a `Tr`, the notice travelling as an
+  `OcptProjectPackageNotice` the mode words through `ocptProjectPackageNoticeMessage`.
+  Under a **version preview** that card alone is drawn **unavailable with a reason** rather than
+  withheld, and it is the one place the app's "withhold, don't disable" rule yields: what it would
+  export is the working copy on disk, which is not what is on screen, while every other export under
+  a preview writes exactly what *is* — leaving it clickable with a caveat would make it the odd one
+  out in the one way that matters, and a card that vanished would make the panel lie about what
+  exists. ADR 0021 records the exception with its argument so it is not read later as a slip.
+  The **budget mode has no `Export` control and keeps none**: it has no bloc by design, one created
+  for a mode whose whole content is "coming in a future version" would be rewritten the day that
+  mode arrives, and routing its pick to `OcptWorkspaceBloc` instead would have one action handled by
+  two different blocs depending on where the user was standing. The stated cost is that it is the
+  one place in the app where the project package is a click further away.
+  The **same flow with no project open** is a home page project card's `⋮` `Export…`
+  (`OcptHomeBloc` mixes the very same mixin in, answering `flushPendingProjectWrites` with a no-op):
+  sending a project should not require opening it first, and it is the only way to export one whose
+  file is at an older format without migrating it. The entry is inert for a card whose file is gone,
+  as the card itself already is.
+
+- The card grid is not the export panel's own: `OcptCardChoiceDialog<T>` + `OcptCardChoiceEntry`
+  (`lib/ui/widgets/`, `lib/models/`) is the shape the app asks "which one of these?" in, and
+  `OcptWorkspaceExportDialog` is its export-flavoured caller — keeping its title, its message, its
+  greyed-and-inert unavailability semantics and the standing project card above.
+  `OcptWorkspaceExportEntry<T>` is expressed in terms of `OcptCardChoiceEntry`. The other caller is
+  the home header's single **`Import…`** button, opening a modal of two cards, `A project`
+  (`.ocptz`) and `A screenplay` (`.fountain`): the two gestures are named side by side where
+  somebody compares them, laid out the same way, and the header keeps four controls instead of
+  growing to five, two of which would have started with the same word. Picking `A project` runs pick
+  the `.ocptz` (`FileSelectorManager`), pick a **parent folder**
+  (`OcptSaveLocationService.pickDirectory`), unpack into `<project name>/` inside it — a folder of
+  that name already there is a clear refusal, never an overwrite — then state the skipped files and
+  open the project **through the compatibility gate** (`foundations.md`, ADR 0022), exactly as
+  tapping a recent project card would.
 
 - A suggested file name is built in one place, `ocptExportFileNameOf`
   (`lib/managers/export/services/ocpt_export_file_name.dart`):
@@ -65,8 +114,8 @@ described in that mode's file.
   four of them are `const` services where every PDF one is constructed with the shared loader. An
   export writing into a folder reports an `OcptCallSheetExportResult` rather than a path: some files
   landing and others not is a third outcome, and it must never read as success — somebody would go
-  unwarned about a day they are called on. The home page's "Import a screenplay…" action, the
-  screenplay's own `⋮` import-and-replace and every export card go through the manager; the
+  unwarned about a day they are called on. The home page's `Import…` modal, the screenplay's own `⋮`
+  import-and-replace and every export card go through the manager; the
   screenplay text itself is always written through `OcptScreenplayService.saveScreenplayText`, never
   by hand.
 
