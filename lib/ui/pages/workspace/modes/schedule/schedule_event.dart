@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -231,6 +232,26 @@ class OcptScheduleDayDateChangedEvent extends OcptScheduleEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, dayId, date];
+}
+
+/// Writes [kind] onto day [dayId], dispatched by the day inspector's own `Kind` picker.
+///
+/// Nothing else moves with it: the day keeps its slots, its blocks, its convocations and its
+/// events, and its number is recounted — in the series it has just joined — by the reload that
+/// follows, three separate series being what makes `J3` keep counting shooting days alone.
+class OcptScheduleDayKindChangedEvent extends OcptScheduleEvent {
+  /// The id of the day whose kind changed.
+  final String dayId;
+
+  /// The kind just picked.
+  final OcptShootingDayKind kind;
+
+  /// Class constructor
+  const OcptScheduleDayKindChangedEvent({required this.dayId, required this.kind});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, kind];
 }
 
 /// Writes a new status onto day [dayId] immediately, dispatched by the day inspector's own status

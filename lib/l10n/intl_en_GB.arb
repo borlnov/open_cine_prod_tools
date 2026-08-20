@@ -7431,10 +7431,24 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleDayTagPrefix": "D",
-  "@scheduleDayTagPrefix": {
+  "scheduleDayTagPrefixShoot": "D",
+  "@scheduleDayTagPrefixShoot": {
     "description": "The single letter printed before a shooting day's rank (D3), read on the call sheet",
     "context": "Displayed throughout the schedule mode and the shot list's own shooting day read-out",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayTagPrefixCasting": "C",
+  "@scheduleDayTagPrefixCasting": {
+    "description": "The single letter printed before a casting day's rank (C1), its own series beside the shooting days'",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayTagPrefixRehearsal": "R",
+  "@scheduleDayTagPrefixRehearsal": {
+    "description": "The single letter printed before a rehearsal day's rank (R1), its own series beside the shooting days'",
+    "context": "Displayed throughout the schedule mode",
     "type": "text",
     "placeholders": {}
   },
@@ -7610,6 +7624,27 @@
   "scheduleDayStatusCancelled": "Cancelled",
   "@scheduleDayStatusCancelled": {
     "description": "Label of a shooting day that was cancelled",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayKindShoot": "Shooting day",
+  "@scheduleDayKindShoot": {
+    "description": "Label of a day that shoots — the nature of a day, beside casting and rehearsal",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayKindCasting": "Casting",
+  "@scheduleDayKindCasting": {
+    "description": "Label of a day that sees candidates for a part rather than shooting",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayKindRehearsal": "Rehearsal",
+  "@scheduleDayKindRehearsal": {
+    "description": "Label of a day that rehearses rather than shooting",
     "context": "Displayed throughout the schedule mode",
     "type": "text",
     "placeholders": {}
@@ -7790,6 +7825,13 @@
         "type": "String"
       }
     }
+  },
+  "scheduleInspectorKindLabel": "Kind",
+  "@scheduleInspectorKindLabel": {
+    "description": "Label of the day inspector's own section saying whether the day shoots, auditions or rehearses",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
   },
   "scheduleInspectorStatusLabel": "Status",
   "@scheduleInspectorStatusLabel": {
@@ -8688,6 +8730,13 @@
     "placeholders": {}
   },
   "scheduleExportUnavailableReason": "No day is planned yet.",
+  "scheduleExportNoShootingDayUnavailableReason": "No shooting day is planned yet.",
+  "@scheduleExportNoShootingDayUnavailableReason": {
+    "description": "Reason shown in place of a card's description while the project holds days but none that shoots",
+    "context": "Displayed in the schedule mode's export panel, on the four documents that print shooting days only",
+    "type": "text",
+    "placeholders": {}
+  },
   "@scheduleExportUnavailableReason": {
     "description": "Reason shown in place of a card's description while the project holds no live day",
     "context": "Displayed on every card of the schedule mode's export panel while unavailable",

@@ -51,7 +51,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
 // OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
 // OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter,
-// OcptRoleCandidateStatusConverter), but
+// OcptRoleCandidateStatusConverter, OcptShootingDayKindConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -70,6 +70,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
@@ -136,7 +137,10 @@ part 'ocpt_project_database.g.dart';
 /// — and, alongside it, [OcptProjectDictionaryWordsTable], the words a writer has taught this
 /// project's spell checker. Schema version 20 adds [OcptRoleCandidatesTable], the people seen for a
 /// part before `roles.personId` can be filled in — a link between `roles` and `people` carrying the
-/// status, the audition date and the notes a casting decision is made on.
+/// status, the audition date and the notes a casting decision is made on. Schema version 21 adds
+/// `shooting_days.kind` ([OcptShootingDayKind]), which is what lets a day audition or rehearse
+/// rather than shoot; every day a project already held is a day that shoots, which the column's own
+/// default answers.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -248,7 +252,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 20;
+  static const currentSchemaVersion = 21;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -380,7 +384,12 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// coming from any version, both tables it references (`roles` and `people`) existing by version
   /// 6 and being created fresh above for a file older than that — and nothing to backfill either, a
   /// project migrating onto this version having kept its casting somewhere this app has never been
-  /// able to read. Every step is additive, as
+  /// able to read. From 20 to 21 it adds `shooting_days.kind`, the column that lets a day audition
+  /// or rehearse rather than shoot — guarded by `from >= 18` for the reason its own comment gives,
+  /// the version-18 rewrite of that table already landing every older file on a shape carrying it.
+  /// Nothing is backfilled and nothing needs to be: every day a project already held
+  /// is a day that shoots, which the column's own default says without a statement being written
+  /// for it. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -599,6 +608,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // to backfill: a project reaching this version kept the people it saw for a part somewhere
         // this app has never been able to read.
         await m.createTable(ocptRoleCandidatesTable);
+      }
+
+      if (from < 21 && from >= 18) {
+        // Guarded by `from >= 18`, not `from >= 11`: a file from below 11 has just had
+        // `shooting_days` created fresh above, from the current declaration, and one from 11 to 17
+        // has just been rewritten onto that same declaration by
+        // [_alterRoleAndShootingDayTablesToV18], which names this column in its own `newColumns` —
+        // so both already carry it, exactly as `shooting_day_blocks.crew_note` above already did
+        // for its own two cases. Nothing to backfill either way: the column's `'shoot'` default is
+        // the truthful reading of every day a project already held, this app having had no way to
+        // say a day did anything else.
+        await m.addColumn(ocptShootingDaysTable, ocptShootingDaysTable.kind);
       }
     },
     beforeOpen: (details) async {
@@ -974,9 +995,13 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
     if (from >= 11) {
       await m.alterTable(
-        // Same as above.
+        // Same as above, but with one column being **added** on the way past: `kind` (schema
+        // version 21) belongs to the current declaration this rewrite targets, and a file reaching
+        // version 18 from below has no such column to copy across. It carries a default, so the
+        // rewrite simply leaves it out of the copy and every day comes back as a day that shoots —
+        // which is what it was.
         // ignore: experimental_member_use
-        TableMigration(ocptShootingDaysTable),
+        TableMigration(ocptShootingDaysTable, newColumns: [ocptShootingDaysTable.kind]),
       );
     }
   }

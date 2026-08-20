@@ -138,7 +138,7 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
       for (final day in days)
         _OcptPresenceGridDayColumn(
           day: day,
-          dayTag: ocptScheduleDayTagLabel(tr, day.dayNumber),
+          dayTag: ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber),
           dateLabel: dateFormat.format(day.date),
         ),
     ];

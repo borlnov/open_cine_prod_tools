@@ -5,6 +5,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 
 /// Every localized string the exported call sheets — general and named alike — carry, resolved by
 /// the caller.
@@ -45,9 +46,14 @@ class OcptCallSheetLabels extends Equatable {
   /// the two documents of one shoot name their own issue identically.
   final String versionLabel;
 
-  /// The day tag's own letter (`D`/`J`), printed beside a day's rank exactly as
-  /// `OcptShotListXlsxLabels.dayTagPrefix` already is.
-  final String dayTagPrefix;
+  /// The day tag's own letter, printed beside a day's rank and keyed by the day's own
+  /// `OcptShootingDayKind` — `D`/`J` for a shooting day, `C` for a casting day, `R` for a
+  /// rehearsal — exactly as `OcptShotListXlsxLabels.dayTagPrefixes` already is.
+  ///
+  /// The call sheet is printed for **all three** kinds: a casting day is convoked, alerted on and
+  /// phoned down like a shooting day, and the file it writes is named after the tag that day
+  /// actually wears.
+  final Map<OcptShootingDayKind, String> dayTagPrefixes;
 
   /// The label of the day-number line (`JOUR : 2`).
   final String dayNumberLabel;
@@ -195,7 +201,7 @@ class OcptCallSheetLabels extends Equatable {
     required this.dayTitles,
     required this.directorLine,
     required this.versionLabel,
-    required this.dayTagPrefix,
+    required this.dayTagPrefixes,
     required this.dayNumberLabel,
     required this.recipientsSectionTitle,
     required this.namedRecipientLabel,
@@ -250,6 +256,10 @@ class OcptCallSheetLabels extends Equatable {
   /// The default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
+  /// The day tag letter of [kind], or an empty string if [dayTagPrefixes] holds none for it — a
+  /// tag reading `3` alone rather than a sheet claiming a kind nobody resolved a letter for.
+  String dayTagPrefixOf(OcptShootingDayKind kind) => dayTagPrefixes[kind] ?? "";
+
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() => "OcptCallSheetLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
@@ -262,7 +272,7 @@ class OcptCallSheetLabels extends Equatable {
     dayTitles,
     directorLine,
     versionLabel,
-    dayTagPrefix,
+    dayTagPrefixes,
     dayNumberLabel,
     recipientsSectionTitle,
     namedRecipientLabel,

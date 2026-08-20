@@ -3,7 +3,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+
+/// Converts a [OcptShootingDayKind] to and from the text stored in the `shooting_days.kind` column.
+class OcptShootingDayKindConverter extends TypeConverter<OcptShootingDayKind, String> {
+  /// Class constructor
+  const OcptShootingDayKindConverter();
+
+  /// {@macro drift.TypeConverter.fromSql}
+  @override
+  OcptShootingDayKind fromSql(String fromDb) => OcptShootingDayKind.values.byName(fromDb);
+
+  /// {@macro drift.TypeConverter.toSql}
+  @override
+  String toSql(OcptShootingDayKind value) => value.name;
+}
 
 /// Converts a [OcptShootingDayStatus] to and from the text stored in the `shooting_days.status`
 /// column.
@@ -28,6 +43,11 @@ class OcptShootingDayStatusConverter extends TypeConverter<OcptShootingDayStatus
 /// the schedule mode lie about the plan it actually holds, so nothing here says which screenplay a
 /// day is "for" — the schedule reads across every episode of the project.
 ///
+/// A day is not necessarily a day that **shoots**: [kind] says whether it auditions or rehearses
+/// instead, and a day of either sort is planned, convoked, alerted on and printed like the shooting
+/// days beside it. Each kind is numbered in its own series, so `J3` still counts shooting days
+/// alone.
+///
 /// A day is placed in the calendar by [date], never by a free-text label: the week and month
 /// agenda views, the sun and twilight block and every crossing against a person's or a location's
 /// availability all depend on it being real and never null. The *day number* printed on a call
@@ -51,6 +71,14 @@ class OcptShootingDaysTable extends Table {
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
+
+  /// What this day is for: it shoots, it sees candidates, or it rehearses.
+  // The stored literal below must match `OcptShootingDayKind.shoot.name` exactly, for the same
+  // reason [status]'s own default does — an enum's `.name` getter isn't a compile-time constant
+  // expression. Every day a project already held is a day that shoots, which this default answers
+  // on its own, with nothing to backfill.
+  TextColumn get kind =>
+      text().map(const OcptShootingDayKindConverter()).withDefault(const Constant('shoot'))();
 
   /// Where this day stands.
   // The stored literal below must match `OcptShootingDayStatus.planned.name` exactly, for the same

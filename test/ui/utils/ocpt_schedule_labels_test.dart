@@ -3,10 +3,35 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+
+/// Pumps [body] under the app's own localizations, so a test can read a real [Tr].
+Future<void> _pumpWithTr(WidgetTester tester, void Function(Tr tr) body) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: const [
+        Tr.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: Tr.delegate.supportedLocales,
+      home: Builder(
+        builder: (context) {
+          body(Tr.of(context));
+          return const SizedBox.shrink();
+        },
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
 
 void main() {
   group("ocptScheduleStartOfWeek", () {
@@ -110,6 +135,84 @@ void main() {
                   category: ocptScheduleDayEffectTint(context, category),
               };
               expect(colors.values.toSet(), hasLength(OcptSceneEffectCategory.values.length));
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+    });
+  });
+
+  group("ocptScheduleDayTagLabel", () {
+    testWidgets("a shooting day keeps the D it always wore", (tester) async {
+      await _pumpWithTr(tester, (tr) {
+        expect(ocptScheduleDayTagLabel(tr, OcptShootingDayKind.shoot, 3), "D3");
+      });
+    });
+
+    testWidgets("each kind opens its own letter, so the same number reads three ways", (
+      tester,
+    ) async {
+      await _pumpWithTr(tester, (tr) {
+        expect(ocptScheduleDayTagLabel(tr, OcptShootingDayKind.shoot, 1), "D1");
+        expect(ocptScheduleDayTagLabel(tr, OcptShootingDayKind.casting, 1), "C1");
+        expect(ocptScheduleDayTagLabel(tr, OcptShootingDayKind.rehearsal, 1), "R1");
+      });
+    });
+
+    testWidgets("no two kinds share a letter", (tester) async {
+      await _pumpWithTr(tester, (tr) {
+        final letters = {
+          for (final kind in OcptShootingDayKind.values) ocptScheduleDayTagPrefix(tr, kind),
+        };
+
+        expect(letters, hasLength(OcptShootingDayKind.values.length));
+      });
+    });
+
+    testWidgets("every kind reads out under a name of its own", (tester) async {
+      await _pumpWithTr(tester, (tr) {
+        final labels = {
+          for (final kind in OcptShootingDayKind.values) ocptShootingDayKindLabel(tr, kind),
+        };
+
+        expect(labels, hasLength(OcptShootingDayKind.values.length));
+        expect(labels.every((label) => label.isNotEmpty), isTrue);
+      });
+    });
+  });
+
+  group("ocptScheduleDayKindTint", () {
+    testWidgets("a shooting day has no tint of its own, and reads through Colour by", (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              expect(ocptScheduleDayKindTint(context, OcptShootingDayKind.shoot), isNull);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+    });
+
+    testWidgets("the two non-shooting kinds each carry their own distinct colour", (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              final casting = ocptScheduleDayKindTint(context, OcptShootingDayKind.casting);
+              final rehearsal = ocptScheduleDayKindTint(context, OcptShootingDayKind.rehearsal);
+
+              expect(casting, isNotNull);
+              expect(rehearsal, isNotNull);
+              expect(casting, isNot(rehearsal));
+              // And neither borrows the neutral a day with nothing to say already wears.
+              final neutral = ocptScheduleDayEffectTint(context, null);
+              expect(casting, isNot(neutral));
+              expect(rehearsal, isNot(neutral));
               return const SizedBox();
             },
           ),

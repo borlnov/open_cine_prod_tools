@@ -108,6 +108,13 @@ class OcptSidesPdfService {
 
   /// Renders [dayId]'s own sides booklet, returning the PDF's bytes.
   ///
+  /// **Shooting days only**, as the shooting plan, the *Day Out of Days* and the one-line schedule
+  /// are: sides are the pages a crew shoots today, and the mode's own day picker offers the
+  /// shooting days alone. Unlike its three siblings this document is about **one** day rather than
+  /// a range, so there is nothing here to filter — a day of another kind reaching this method
+  /// composes from the scenes its own shot blocks name, which is none, and the booklet says so
+  /// through the same empty-day note a shooting day with nothing placed already gets.
+  ///
   /// [documents] is one composed run per episode, **in the order the booklet chains them in**: a
   /// screenplay may only ever be composed against its own text, so there is one
   /// `FountainScriptComposer.compose` call, one [OcptScriptSidesLayout] and one running head per

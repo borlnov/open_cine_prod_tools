@@ -257,7 +257,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
         if ((slotsByDayId[day.id] ?? const <OcptShootingSlot>[]).isNotEmpty)
           _OcptPositionsMatrixDayBand(
             day: day,
-            dayTag: ocptScheduleDayTagLabel(tr, day.dayNumber),
+            dayTag: ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber),
             dateLabel: dateFormat.format(day.date),
             columnCount: slotsByDayId[day.id]!.length,
           ),

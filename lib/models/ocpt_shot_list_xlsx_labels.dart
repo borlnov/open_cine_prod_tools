@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
@@ -34,10 +35,18 @@ class OcptShotListXlsxLabels extends Equatable {
   /// resolved sequence by sequence by the caller rather than formatted here.
   final Map<String, String> sequenceTitles;
 
-  /// The single letter printed before a shooting day's rank (`D3`/`J3`) — `Tr.scheduleDayTagPrefix`,
-  /// resolved by the caller since there is no `Tr` here, and reused rather than reimplemented so a
-  /// placement cell never disagrees with the shot list's own `ocptScheduleDayTagLabel` read-out.
-  final String dayTagPrefix;
+  /// The single letter printed before a day's rank, **one per `OcptShootingDayKind`**: `D`/`J` for
+  /// a shooting day, `C` for a casting day, `R` for a rehearsal.
+  ///
+  /// Three rather than one because the three kinds are ranked in three separate series
+  /// (`OcptShootingDay.dayNumber`), so a placement's own number means nothing without the letter
+  /// its day's kind wears. Resolved by the caller, there being no `Tr` here, and reused rather than
+  /// reimplemented so a placement cell never disagrees with the shot list's own
+  /// `ocptScheduleDayTagLabel` read-out.
+  ///
+  /// A shot normally sits on a day that shoots; the other two entries exist because nothing forbids
+  /// a block outliving a change of kind, and a cell must print the tag the day actually wears.
+  final Map<OcptShootingDayKind, String> dayTagPrefixes;
 
   /// Class constructor
   const OcptShotListXlsxLabels({
@@ -45,7 +54,7 @@ class OcptShotListXlsxLabels extends Equatable {
     required this.columnHeaders,
     required this.statusLabels,
     required this.sequenceTitles,
-    required this.dayTagPrefix,
+    required this.dayTagPrefixes,
   });
 
   /// The header of [column], or an empty string if [columnHeaders] holds none for it.
@@ -58,11 +67,21 @@ class OcptShotListXlsxLabels extends Equatable {
   /// [sequenceTitles] holds none for it.
   String titleOfSequence(String sequenceId) => sequenceTitles[sequenceId] ?? "";
 
+  /// The day tag letter of [kind], or an empty string if [dayTagPrefixes] holds none for it — a
+  /// tag reading `3` alone rather than a cell claiming a kind nobody resolved a letter for.
+  String dayTagPrefixOf(OcptShootingDayKind kind) => dayTagPrefixes[kind] ?? "";
+
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() => "OcptShotListXlsxLabels(sheetName: $sheetName)";
 
   /// Object properties
   @override
-  List<Object?> get props => [sheetName, columnHeaders, statusLabels, sequenceTitles, dayTagPrefix];
+  List<Object?> get props => [
+    sheetName,
+    columnHeaders,
+    statusLabels,
+    sequenceTitles,
+    dayTagPrefixes,
+  ];
 }

@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:path/path.dart' as p;
@@ -328,7 +329,11 @@ void main() {
       columnHeaders: {},
       statusLabels: {},
       sequenceTitles: {},
-      dayTagPrefix: "D",
+      dayTagPrefixes: {
+        OcptShootingDayKind.shoot: "D",
+        OcptShootingDayKind.casting: "C",
+        OcptShootingDayKind.rehearsal: "R",
+      },
     );
 
     test('a cancelled dialog returns null and writes nothing', () async {
@@ -648,7 +653,11 @@ void main() {
       dayTitles: {},
       directorLine: "",
       versionLabel: "Version",
-      dayTagPrefix: "D",
+      dayTagPrefixes: {
+        OcptShootingDayKind.shoot: "D",
+        OcptShootingDayKind.casting: "C",
+        OcptShootingDayKind.rehearsal: "R",
+      },
       dayNumberLabel: "DAY",
       recipientsSectionTitle: "Recipients",
       namedRecipientLabel: "For",
@@ -697,6 +706,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",
@@ -977,6 +987,7 @@ void main() {
             id: "day-1",
             date: DateTime(2026, 1, 2),
             dayNumber: 2,
+            kind: OcptShootingDayKind.shoot,
             status: OcptShootingDayStatus.planned,
             crewNote: "",
             weatherNote: "",
@@ -986,6 +997,7 @@ void main() {
             id: "day-2",
             date: DateTime(2026, 1, 3),
             dayNumber: 3,
+            kind: OcptShootingDayKind.shoot,
             status: OcptShootingDayStatus.planned,
             crewNote: "",
             weatherNote: "",
@@ -1141,6 +1153,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",
@@ -1256,6 +1269,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",
@@ -1378,6 +1392,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",
@@ -1485,6 +1500,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",

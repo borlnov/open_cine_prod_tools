@@ -359,7 +359,7 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      ocptScheduleDayTagLabel(tr, day.dayNumber),
+                      ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber),
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,

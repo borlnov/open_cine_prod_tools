@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -478,32 +479,51 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// has no entry here, read the same way an absent key reads everywhere else in this state: as
   /// "unplaced". What the shot picker dialog's own already-placed mark reads.
   ///
+  /// The **days themselves**, not their numbers: a number ranks a day among its own
+  /// `OcptShootingDayKind` alone, so a reader needs the day both to print the tag
+  /// (`ocptScheduleDayTagLabel`) and to order the list by date rather than by a rank three series
+  /// share.
+  ///
   /// Built from [snapshot]'s own [OcptScheduleSnapshot.blocksByDayId], one entry per **day** a shot
   /// is placed on rather than one per block, so a shot placed twice on the same day (interrupted by
-  /// the meal break and resumed after it) still reports that day's number once. Computed on every
-  /// read rather than stored, for the same reason [unplacedGroups] is: nothing here rides a
-  /// per-keystroke timer that would need it cached.
-  Map<String, List<int>> get placedDayNumbersByShotId {
-    final dayNumbersByShotId = <String, Set<int>>{};
+  /// the meal break and resumed after it) still reports that day once. Computed on every read
+  /// rather than stored, for the same reason [unplacedGroups] is: nothing here rides a per-keystroke
+  /// timer that would need it cached.
+  Map<String, List<OcptShootingDay>> get placedDaysByShotId {
+    final daysByShotId = <String, Map<String, OcptShootingDay>>{};
 
     for (final entry in snapshot?.blocksByDayId.entries ?? const <MapEntry<String, List<OcptShootingDayBlock>>>[]) {
-      final dayNumber = daysById[entry.key]?.dayNumber;
-      if (dayNumber == null) {
+      final day = daysById[entry.key];
+      if (day == null) {
         continue;
       }
 
       for (final block in entry.value) {
         final shotId = block.shotId;
         if (block.kind == OcptShootingBlockKind.shot && shotId != null) {
-          (dayNumbersByShotId[shotId] ??= <int>{}).add(dayNumber);
+          (daysByShotId[shotId] ??= <String, OcptShootingDay>{})[day.id] = day;
         }
       }
     }
 
     return {
-      for (final entry in dayNumbersByShotId.entries) entry.key: entry.value.toList()..sort(),
+      for (final entry in daysByShotId.entries)
+        entry.key: entry.value.values.toList()..sort((a, b) => a.date.compareTo(b.date)),
     };
   }
+
+  /// The project's live days that **shoot**, in [days]' own order.
+  ///
+  /// What the four documents scoped to the shoot — the shooting plan (both formats), the *Day Out
+  /// of Days*, the one-line schedule and the sides — offer in their day pickers, so that what the
+  /// dialog lists is what the service will print (each of those services filters by kind itself,
+  /// and this is what keeps the two in step rather than leaving the user to tick a day nothing
+  /// comes out for). Nothing else in the mode reads it: the day view, the three agendas, the
+  /// matrix, the presence grid, the alerts and the call sheets are about **every** day.
+  List<OcptShootingDay> get shootingDays => [
+    for (final day in days)
+      if (day.kind == OcptShootingDayKind.shoot) day,
+  ];
 
   /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
   /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at

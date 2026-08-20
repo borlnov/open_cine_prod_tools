@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -46,10 +47,15 @@ const _labels = OcptOneLineScheduleLabels(
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
-OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
+OcptShootingDay _buildDay({
+  required String id,
+  required int dayNumber,
+  OcptShootingDayKind kind = OcptShootingDayKind.shoot,
+}) => OcptShootingDay(
   id: id,
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
+  kind: kind,
   status: OcptShootingDayStatus.planned,
   crewNote: "",
   weatherNote: "",
@@ -406,6 +412,59 @@ void main() {
 
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
       expect(_pageCount(bytes), 1);
+    });
+
+    test("a day that does not shoot is skipped, exactly as an unknown id is", () async {
+      // A one-line schedule is the shoot in one line: a rehearsal day ticked (or reaching this
+      // through a hand-edited file) prints nothing of its own, so the document reads exactly as it
+      // would with only the id that names no live day at all.
+      final plan = _buildSnapshot(
+        days: [
+          _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.rehearsal),
+        ],
+        slotsByDayId: {
+          "day-1": [_buildSlot(id: "slot-1", shootingDayId: "day-1")],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-1"),
+          ],
+        },
+        roles: [_buildRole(id: "role-1", name: "Alice", number: 1)],
+        shotLists: [
+          _buildShotList(
+            shots: [
+              _buildShot(
+                id: "shot-1",
+                sceneId: "scene-1",
+                code: "1/1",
+                characters: const ["ALICE"],
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final rehearsalBytes = await service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        exportDate: pinnedExportDate,
+      );
+      final unknownDayBytes = await service.generate(
+        plan: plan,
+        dayIds: const ["nope"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        exportDate: pinnedExportDate,
+      );
+
+      expect(_contentStreams(rehearsalBytes), _contentStreams(unknownDayBytes));
     });
 
     test("the export moment is what the version line prints, not the wall clock", () async {

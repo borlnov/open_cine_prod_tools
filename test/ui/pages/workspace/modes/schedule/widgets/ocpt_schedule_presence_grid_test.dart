@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_presence_grid.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
@@ -75,6 +76,7 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
       id: id,
       date: date,
       dayNumber: dayNumber,
+      kind: OcptShootingDayKind.shoot,
       status: OcptShootingDayStatus.planned,
       crewNote: "",
       weatherNote: "",

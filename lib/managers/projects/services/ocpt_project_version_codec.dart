@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
@@ -61,7 +62,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 16;
+  static const currentPayloadFormat = 17;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -490,8 +491,9 @@ class OcptProjectVersionCodec {
   /// `elements`) from a JSON object
   static const _nameKey = "name";
 
-  /// This is the key used to stringify or parse a `kind` column (`roles.kind`, `assets.kind` or
-  /// `shooting_day_blocks.kind`) from a JSON object
+  /// This is the key used to stringify or parse a `kind` column (`roles.kind`, `assets.kind`,
+  /// `shooting_day_blocks.kind` or, from payload format 17, `shooting_days.kind`) from a JSON
+  /// object
   static const _kindKey = "kind";
 
   /// This is the key used to stringify or parse a breakdown tag's `targetKind` column from a JSON
@@ -799,6 +801,7 @@ class OcptProjectVersionCodec {
     13: _upgradeFormat13To14,
     14: _upgradeFormat14To15,
     15: _upgradeFormat15To16,
+    16: _upgradeFormat16To17,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1269,6 +1272,25 @@ class OcptProjectVersionCodec {
   static Map<String, dynamic> _upgradeFormat15To16(Map<String, dynamic> json) => {
     ...json,
     _roleCandidatesKey: const <dynamic>[],
+  };
+
+  /// Turns a format-**16** JSON object into a format-**17** one: each `shootingDays` row gains a
+  /// [_kindKey] of `"shoot"`.
+  ///
+  /// [_upgradeFormat11To12]'s kind, not [_upgradeFormat1To2]'s empty lists nor
+  /// [_upgradeFormat3To4]'s null: the column is defaulted by design, and a version captured before
+  /// this app could say a day did anything but shoot recorded a schedule every day of which shot —
+  /// so `"shoot"` is not a stand-in for a missing value, it is the value. It is written back onto
+  /// the working copy on restore like any other column, and, as everywhere else in this codec,
+  /// **nothing is reconstructed**: a day whose timetable happens to hold nothing but a `hold` block
+  /// does not become a rehearsal nobody declared.
+  static Map<String, dynamic> _upgradeFormat16To17(Map<String, dynamic> json) => {
+    ...json,
+    _shootingDaysKey: [
+      // The literal must match `OcptShootingDayKind.shoot.name`, for the same reason the column's
+      // own default has to.
+      for (final row in _rows(json, _shootingDaysKey)) {...row, _kindKey: "shoot"},
+    ],
   };
 
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
@@ -2435,6 +2457,7 @@ class OcptProjectVersionCodec {
     _idKey: row.id,
     _dateKey: row.date.toIso8601String(),
     _sortKeyKey: row.sortKey,
+    _kindKey: row.kind.name,
     _statusKey: row.status.name,
     _crewNoteKey: row.crewNote,
     _weatherNoteKey: row.weatherNote,
@@ -2447,6 +2470,7 @@ class OcptProjectVersionCodec {
     id: _string(json, _idKey),
     date: _dateTime(json, _dateKey),
     sortKey: _string(json, _sortKeyKey),
+    kind: _enum(json, _kindKey, OcptShootingDayKind.values.asNameMap()),
     status: _enum(json, _statusKey, OcptShootingDayStatus.values.asNameMap()),
     crewNote: _string(json, _crewNoteKey),
     weatherNote: _string(json, _weatherNoteKey),

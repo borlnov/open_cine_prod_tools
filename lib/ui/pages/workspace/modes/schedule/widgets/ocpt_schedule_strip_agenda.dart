@@ -216,7 +216,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              ocptScheduleDayTagLabel(tr, day.dayNumber),
+                              ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber),
                               style: theme.textTheme.labelMedium?.copyWith(
                                 color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.bold,

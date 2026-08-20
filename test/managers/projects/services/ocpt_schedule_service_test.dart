@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
@@ -186,6 +187,120 @@ void main() {
       snapshot = await scheduleService.loadSchedule(database: database);
       expect(snapshot.days.map((day) => day.id), [middleId, earliestId, laterId]);
       expect(snapshot.days.map((day) => day.dayNumber), [1, 2, 3]);
+    });
+
+    test("a day is created as a day that shoots unless another kind is asked for", () async {
+      final shootId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final castingId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 11),
+        kind: OcptShootingDayKind.casting,
+      ))!;
+
+      final snapshot = await scheduleService.loadSchedule(database: database);
+
+      expect(snapshot.daysById[shootId]!.kind, OcptShootingDayKind.shoot);
+      expect(snapshot.daysById[castingId]!.kind, OcptShootingDayKind.casting);
+    });
+
+    test("each kind is numbered in its own series, so a rehearsal renumbers no shooting day",
+        () async {
+      // Three shooting days on the 10th, 12th and 14th, with a casting day and a rehearsal slipped
+      // between them — created out of order, since the rank is read off the dates.
+      final firstShootId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final rehearsalId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 13),
+        kind: OcptShootingDayKind.rehearsal,
+      ))!;
+      final thirdShootId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 14),
+      ))!;
+      final castingId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 11),
+        kind: OcptShootingDayKind.casting,
+      ))!;
+      final secondShootId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 12),
+      ))!;
+
+      final snapshot = await scheduleService.loadSchedule(database: database);
+
+      // The days themselves are still one chronological list…
+      expect(snapshot.days.map((day) => day.id), [
+        firstShootId,
+        castingId,
+        secondShootId,
+        rehearsalId,
+        thirdShootId,
+      ]);
+      // …but each kind counts on its own: the three shooting days read 1, 2, 3 with nothing
+      // skipped for the two days that do not shoot, and each of those two opens its own series.
+      expect(snapshot.daysById[firstShootId]!.dayNumber, 1);
+      expect(snapshot.daysById[secondShootId]!.dayNumber, 2);
+      expect(snapshot.daysById[thirdShootId]!.dayNumber, 3);
+      expect(snapshot.daysById[castingId]!.dayNumber, 1);
+      expect(snapshot.daysById[rehearsalId]!.dayNumber, 1);
+    });
+
+    test("turning a shooting day into a casting day renumbers both series", () async {
+      final firstId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final secondId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 11),
+      ))!;
+      final thirdId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 12),
+      ))!;
+
+      await scheduleService.updateDay(
+        database: database,
+        dayId: secondId,
+        kind: const Value(OcptShootingDayKind.casting),
+      );
+
+      final snapshot = await scheduleService.loadSchedule(database: database);
+
+      // The day left one series and opened another; the day after it closes the gap rather than
+      // keeping the number it had.
+      expect(snapshot.daysById[firstId]!.dayNumber, 1);
+      expect(snapshot.daysById[secondId]!.kind, OcptShootingDayKind.casting);
+      expect(snapshot.daysById[secondId]!.dayNumber, 1);
+      expect(snapshot.daysById[thirdId]!.dayNumber, 2);
+      // And nothing else about the day moved: its own slot is still there.
+      expect(await readLiveSlots(secondId), hasLength(1));
+    });
+
+    test("duplicateDay carries the source day's own kind over", () async {
+      final sourceId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+        kind: OcptShootingDayKind.casting,
+      ))!;
+
+      final copyId = (await scheduleService.duplicateDay(
+        database: database,
+        sourceDayId: sourceId,
+        date: DateTime(2026, 8, 11),
+      ))!;
+
+      final snapshot = await scheduleService.loadSchedule(database: database);
+
+      expect(snapshot.daysById[copyId]!.kind, OcptShootingDayKind.casting);
+      expect(snapshot.daysById[copyId]!.dayNumber, 2);
     });
 
     test("deleteDay tombstones the day and everything hanging off it", () async {
@@ -933,6 +1048,41 @@ void main() {
       expect(placements[shotId]![0].dayNumber, 1);
       expect(placements[shotId]![1].dayId, secondDayId);
       expect(placements[shotId]![1].dayNumber, 2);
+    });
+
+    test("a placement carries the kind of the day it sits on, and that kind's own number",
+        () async {
+      final shootDayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final rehearsalDayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 11),
+        kind: OcptShootingDayKind.rehearsal,
+      ))!;
+      final shotId = await createShot("shot-1");
+
+      await scheduleService.placeShot(
+        database: database,
+        slotId: (await readLiveSlots(shootDayId)).single.id,
+        shotId: shotId,
+      );
+      await scheduleService.placeShot(
+        database: database,
+        slotId: (await readLiveSlots(rehearsalDayId)).single.id,
+        shotId: shotId,
+      );
+
+      final placements = await scheduleService.loadShotPlacements(database: database);
+
+      expect(placements[shotId]!.map((placement) => placement.dayKind), [
+        OcptShootingDayKind.shoot,
+        OcptShootingDayKind.rehearsal,
+      ]);
+      // Both read `1`: they rank in two different series, which is exactly why a read-out needs
+      // the kind beside the number.
+      expect(placements[shotId]!.map((placement) => placement.dayNumber), [1, 1]);
     });
 
     test("moveBlockToSlot moves a block to another slot, and to that slot's day with it", () async {

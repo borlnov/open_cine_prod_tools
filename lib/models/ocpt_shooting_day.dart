@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 
 /// One day of the shooting schedule.
@@ -13,11 +14,16 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 /// than any one screenplay's.
 ///
 /// [dayNumber] is the printed `J3` — a **read-time rank**, 1-based, over the project's live days
-/// ordered chronologically (by `date`, `sortKey` breaking a tie between two days sharing one
-/// date), exactly as `OcptShot.position` is never `shots.position`. It is a **label, not an id**:
-/// moving a day's date renumbers every day around it, which is what `J1`/`J2` mean on a call
-/// sheet. It is never stored: `OcptScheduleService.loadSchedule` counts it off while ordering the
-/// days it loads.
+/// **of this day's own [kind]**, ordered chronologically (by `date`, `sortKey` breaking a tie
+/// between two days sharing one date), exactly as `OcptShot.position` is never `shots.position`. It
+/// is a **label, not an id**: moving a day's date renumbers every day around it, which is what
+/// `J1`/`J2` mean on a call sheet. It is never stored: `OcptScheduleService.loadSchedule` counts it
+/// off while ordering the days it loads.
+///
+/// The three kinds are numbered in **three separate series**, which is what keeps `J3` counting
+/// shooting days alone: inserting a rehearsal day mid-shoot renumbers no shooting day, and a
+/// casting day is `C1` whatever sits around it. The number alone is therefore meaningless — it is
+/// read with [kind], through `ocptScheduleDayTagLabel`, and never on its own.
 class OcptShootingDay extends Equatable {
   /// The stable, unique id of this day (a UUID).
   final String id;
@@ -25,9 +31,12 @@ class OcptShootingDay extends Equatable {
   /// The calendar date of this day. Never null — see `OcptShootingDaysTable`'s own doc comment.
   final DateTime date;
 
-  /// This day's 1-based rank among its screenplay's live days, ordered chronologically. See the
-  /// class doc comment.
+  /// This day's 1-based rank among the project's live days **of its own [kind]**, ordered
+  /// chronologically. See the class doc comment.
   final int dayNumber;
+
+  /// What this day is for: it shoots, it sees candidates, or it rehearses.
+  final OcptShootingDayKind kind;
 
   /// Where this day stands.
   final OcptShootingDayStatus status;
@@ -46,6 +55,7 @@ class OcptShootingDay extends Equatable {
     required this.id,
     required this.date,
     required this.dayNumber,
+    required this.kind,
     required this.status,
     required this.crewNote,
     required this.weatherNote,
@@ -59,6 +69,7 @@ class OcptShootingDay extends Equatable {
         id: row.id,
         date: row.date,
         dayNumber: dayNumber,
+        kind: row.kind,
         status: row.status,
         crewNote: row.crewNote,
         weatherNote: row.weatherNote,
@@ -67,7 +78,8 @@ class OcptShootingDay extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptShootingDay(id: $id, dayNumber: $dayNumber, date: $date)";
+  String toString() =>
+      "OcptShootingDay(id: $id, kind: $kind, dayNumber: $dayNumber, date: $date)";
 
   /// Object properties
   @override
@@ -75,6 +87,7 @@ class OcptShootingDay extends Equatable {
     id,
     date,
     dayNumber,
+    kind,
     status,
     crewNote,
     weatherNote,

@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -198,6 +199,7 @@ void main() {
           id: "day-1",
           date: DateTime(2026),
           dayNumber: 1,
+          kind: OcptShootingDayKind.shoot,
           status: OcptShootingDayStatus.planned,
           crewNote: "",
           weatherNote: "",
@@ -254,6 +256,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026),
         dayNumber: 1,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",
@@ -319,6 +322,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026),
         dayNumber: 1,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",
@@ -359,6 +363,7 @@ void main() {
         id: "day-1",
         date: DateTime(2026),
         dayNumber: 1,
+        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "",
         weatherNote: "",
@@ -385,11 +390,72 @@ void main() {
     });
   });
 
-  group("placedDayNumbersByShotId", () {
+  group("shootingDays", () {
+    /// Builds a day of [kind], the two fields this group reads.
+    OcptShootingDay buildKindDay({
+      required String id,
+      required int dayNumber,
+      required OcptShootingDayKind kind,
+    }) => OcptShootingDay(
+      id: id,
+      date: DateTime(2026, 8, dayNumber),
+      dayNumber: dayNumber,
+      kind: kind,
+      status: OcptShootingDayStatus.planned,
+      crewNote: "",
+      weatherNote: "",
+      notes: "",
+    );
+
+    test("keeps the days that shoot, in the schedule's own order", () {
+      final snapshot = OcptScheduleSnapshot.build(
+        days: [
+          buildKindDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.shoot),
+          buildKindDay(id: "day-2", dayNumber: 2, kind: OcptShootingDayKind.casting),
+          buildKindDay(id: "day-3", dayNumber: 3, kind: OcptShootingDayKind.rehearsal),
+          buildKindDay(id: "day-4", dayNumber: 4, kind: OcptShootingDayKind.shoot),
+        ],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        eventsByDayId: const {},
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      expect(state.days, hasLength(4));
+      expect(state.shootingDays.map((day) => day.id), ["day-1", "day-4"]);
+    });
+
+    test("a schedule of casting and rehearsal days alone offers no shooting day at all", () {
+      // What disables the four shoot-only exports: the project holds days, so the mode is far from
+      // empty, and yet a shooting plan would have nothing to print.
+      final snapshot = OcptScheduleSnapshot.build(
+        days: [
+          buildKindDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.casting),
+          buildKindDay(id: "day-2", dayNumber: 2, kind: OcptShootingDayKind.rehearsal),
+        ],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        eventsByDayId: const {},
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      expect(state.days, hasLength(2));
+      expect(state.shootingDays, isEmpty);
+    });
+
+    test("reads empty while no schedule has loaded yet", () {
+      expect(OcptScheduleState.init().shootingDays, isEmpty);
+    });
+  });
+
+  group("placedDaysByShotId", () {
     OcptShootingDay buildDay({required String id, required int dayNumber}) => OcptShootingDay(
       id: id,
       date: DateTime(2026, 1, dayNumber),
       dayNumber: dayNumber,
+      kind: OcptShootingDayKind.shoot,
       status: OcptShootingDayStatus.planned,
       crewNote: "",
       weatherNote: "",
@@ -430,7 +496,7 @@ void main() {
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-      expect(state.placedDayNumbersByShotId, {"shot-1": [3]});
+      expect(state.placedDaysByShotId, {"shot-1": [day]});
     });
 
     test("a shot placed on two different days reports both, ascending", () {
@@ -448,7 +514,7 @@ void main() {
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-      expect(state.placedDayNumbersByShotId, {"shot-1": [3, 5]});
+      expect(state.placedDaysByShotId, {"shot-1": [dayThree, dayFive]});
     });
 
     test("a shot with no live block placing it has no entry at all", () {
@@ -462,11 +528,11 @@ void main() {
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-      expect(state.placedDayNumbersByShotId, isEmpty);
+      expect(state.placedDaysByShotId, isEmpty);
     });
 
     test("reads empty while no schedule has loaded yet", () {
-      expect(OcptScheduleState.init().placedDayNumbersByShotId, isEmpty);
+      expect(OcptScheduleState.init().placedDaysByShotId, isEmpty);
     });
   });
 }

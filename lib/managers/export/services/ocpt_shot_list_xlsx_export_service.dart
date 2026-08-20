@@ -217,11 +217,13 @@ class OcptShotListXlsxExportService {
   /// placement lands on the same day, the day tags alone joined with `, ` (`D3, D5`) when they don't,
   /// or null for a shot the schedule carries no placement for at all — exactly like any other field
   /// the user hasn't filled in ([_textOrNull]). Days are deduplicated by `OcptShotPlacement.dayId`
-  /// and kept in ascending `dayNumber` order, exactly as `ocptShotPlacementLabel` does.
+  /// and kept in ascending **date** order, exactly as `ocptShotPlacementLabel` does — a day's number
+  /// ranks it among its own kind alone, so ordering by it would interleave a `C1` between two
+  /// shooting days.
   ///
-  /// The day tag's own letter is [labels]' own `dayTagPrefix`, resolved by the caller from `Tr`
-  /// since this service has none of its own — the paperwork a crew reads follows the app's
-  /// language, letter included. The date half stays locale-free: a spreadsheet cell with no `Tr` to
+  /// The day tag's own letter is [labels]' own `dayTagPrefixes` entry **for that day's kind**,
+  /// resolved by the caller from `Tr` since this service has none of its own — the paperwork a crew
+  /// reads follows the app's language, letter included. The date half stays locale-free: a spreadsheet cell with no `Tr` to
   /// format a date with is exactly the situation `yyyy-MM-dd` already serves elsewhere in this
   /// codebase (`OcptResourcesXlsxExportService._isoDate`), inlined here rather than imported since
   /// the service layer this class sits in must not depend on the UI layer that helper lives in.
@@ -234,18 +236,22 @@ class OcptShotListXlsxExportService {
     for (final placement in placements) {
       distinctDays[placement.dayId] = placement;
     }
-    final orderedDays = distinctDays.values.toList()
-      ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
+    final orderedDays = distinctDays.values.toList()..sort((a, b) => a.date.compareTo(b.date));
 
     if (orderedDays.length == 1) {
       final placement = orderedDays.single;
       return TextCellValue(
-        "${labels.dayTagPrefix}${placement.dayNumber} · ${_isoDate(placement.date)}",
+        "${labels.dayTagPrefixOf(placement.dayKind)}${placement.dayNumber} · "
+        "${_isoDate(placement.date)}",
       );
     }
 
     return TextCellValue(
-      orderedDays.map((placement) => "${labels.dayTagPrefix}${placement.dayNumber}").join(", "),
+      orderedDays
+          .map(
+            (placement) => "${labels.dayTagPrefixOf(placement.dayKind)}${placement.dayNumber}",
+          )
+          .join(", "),
     );
   }
 

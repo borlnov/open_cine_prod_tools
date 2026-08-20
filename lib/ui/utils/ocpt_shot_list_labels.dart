@@ -11,10 +11,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart' show ocptScheduleDayTagLabel;
+import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart'
+    show ocptScheduleDayTagLabel, ocptScheduleDayTagPrefix;
 
 /// The placeholder shown in place of a shot field that has no value yet.
 ///
@@ -89,7 +91,9 @@ OcptShotListXlsxLabels ocptShotListXlsxLabelsOf(Tr tr, List<OcptShotSequence> se
         for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
       },
       sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
-      dayTagPrefix: tr.scheduleDayTagPrefix,
+      dayTagPrefixes: {
+        for (final kind in OcptShootingDayKind.values) kind: ocptScheduleDayTagPrefix(tr, kind),
+      },
     );
 
 /// Builds every localized string the exported scenario coverage document carries, for the
@@ -201,9 +205,10 @@ String ocptShotFieldOrDash(String? value) =>
 ///   there is no room left for dates once there is more than one, and the tags are what a crew
 ///   actually says.
 ///
-/// Days are deduplicated by [OcptShotPlacement.dayId] and kept in ascending
-/// [OcptShotPlacement.dayNumber] order. The day tag is [ocptScheduleDayTagLabel], the schedule
-/// mode's own — reused rather than reimplemented, so the two modes can never print a shooting
+/// Days are deduplicated by [OcptShotPlacement.dayId] and kept in ascending [OcptShotPlacement
+/// .date] order — a day's number ranks it among its own kind alone, so ordering by it would
+/// interleave a casting day between two shooting days. The day tag is [ocptScheduleDayTagLabel],
+/// the schedule mode's own — reused rather than reimplemented, so the two modes can never print a
 /// day's rank differently, letter included. The date, in the single-day case, is formatted for the
 /// locale [context] resolves to, without a year: the column has no room for one and a shoot rarely
 /// spans two.
@@ -217,8 +222,7 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
   for (final placement in placements) {
     distinctDays[placement.dayId] = placement;
   }
-  final orderedDays = distinctDays.values.toList()
-    ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
+  final orderedDays = distinctDays.values.toList()..sort((a, b) => a.date.compareTo(b.date));
 
   if (orderedDays.length == 1) {
     final placement = orderedDays.single;
@@ -226,10 +230,12 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
       Localizations.localeOf(context).toString(),
     ).format(placement.date);
 
-    return "${ocptScheduleDayTagLabel(tr, placement.dayNumber)} · $dateLabel";
+    return "${ocptScheduleDayTagLabel(tr, placement.dayKind, placement.dayNumber)} · $dateLabel";
   }
 
-  return orderedDays.map((placement) => ocptScheduleDayTagLabel(tr, placement.dayNumber)).join(", ");
+  return orderedDays
+      .map((placement) => ocptScheduleDayTagLabel(tr, placement.dayKind, placement.dayNumber))
+      .join(", ");
 }
 
 /// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].

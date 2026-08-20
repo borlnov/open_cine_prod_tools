@@ -187,6 +187,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleAgendaAnchorDateChangedEvent>(_onAgendaAnchorDateChanged);
     on<OcptScheduleDayCreatedEvent>(_onDayCreated);
     on<OcptScheduleDayDateChangedEvent>(_onDayDateChanged);
+    on<OcptScheduleDayKindChangedEvent>(_onDayKindChanged);
     on<OcptScheduleDayStatusChangedEvent>(_onDayStatusChanged);
     on<OcptScheduleDayDuplicationRequestedEvent>(_onDayDuplicationRequested);
     on<OcptScheduleDayDeletionConfirmedEvent>(_onDayDeletionConfirmed);
@@ -665,6 +666,25 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       dayId: event.dayId,
       date: Value(event.date),
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Writes a new kind onto the selected day, and reloads: the day leaves one numbering series and
+  /// joins another, so both are recounted by the read that follows rather than patched here.
+  Future<void> _onDayKindChanged(
+    OcptScheduleDayKindChangedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.updateDay(
+      database: project.database,
+      dayId: event.dayId,
+      kind: Value(event.kind),
     );
     await _applyScheduleSnapshot(emitter, project);
   }
