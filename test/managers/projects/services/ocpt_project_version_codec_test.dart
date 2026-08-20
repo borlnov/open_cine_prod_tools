@@ -861,6 +861,33 @@ void main() {
   }
 
   group('OcptProjectVersionCodec round trip', () {
+    test('a candidacy in any of the statuses decodes back to the one it was written in', () {
+      // A `status` is stored by **name** and read back through `values.byName`: a value the tests
+      // never actually put through the codec is exactly the kind that only ever fails in a user's
+      // own file, months later. Walking `values` is what keeps a ninth status from being added
+      // without this being true of it too.
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+
+      for (final status in OcptRoleCandidateStatus.values) {
+        final rewritten = {
+          ...encoded,
+          "roleCandidates": [
+            for (final row in encoded["roleCandidates"] as List)
+              {...row as Map<String, dynamic>, "status": status.name},
+          ],
+        };
+
+        final result = codec.decode(jsonEncode(rewritten));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok, reason: "for $status");
+        expect(
+          result.value!.roleCandidates.map((row) => row.status),
+          everyElement(status),
+          reason: "for $status",
+        );
+      }
+    });
+
     test('decode(encode(payload)) returns an equal payload', () {
       final payload = buildRichPayload();
 

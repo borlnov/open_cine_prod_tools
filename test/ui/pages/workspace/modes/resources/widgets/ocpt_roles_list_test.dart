@@ -375,31 +375,77 @@ void main() {
     expect(find.text(tr.resourcesRolesListCandidatesPill(0)), findsNothing);
   });
 
-  testWidgets("an uncast role with live candidates wears the `{n} seen` pill", (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(
-        OcptRolesList(
-          roles: [_role(id: "r1", name: "Le Client")],
-          people: const [],
-          candidatesByRoleId: {
-            "r1": [
-              _candidate(id: "c1", roleId: "r1"),
-              _candidate(id: "c2", roleId: "r1"),
-            ],
-          },
-          episodes: const [],
-          selectedRoleId: null,
-          searchQuery: "",
-          onRoleSelected: (_) {},
+  testWidgets(
+    "an uncast role wears the `{n} leads` pill, counting its leads alone",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptRolesList(
+            roles: [_role(id: "r1", name: "Le Client")],
+            people: const [],
+            candidatesByRoleId: {
+              "r1": [
+                _candidate(id: "c1", roleId: "r1"),
+                _candidate(id: "c2", roleId: "r1"),
+                // Turned down: still on the sheet, no longer a possibility, so out of the count.
+                _candidate(
+                  id: "c3",
+                  roleId: "r1",
+                  status: OcptRoleCandidateStatus.notRetained,
+                ),
+              ],
+            },
+            episodes: const [],
+            selectedRoleId: null,
+            searchQuery: "",
+            onRoleSelected: (_) {},
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
-    expect(find.text(tr.resourcesRolesListCandidatesPill(2)), findsOneWidget);
-    expect(find.text(tr.resourcesRolesListCastPill), findsNothing);
-  });
+      final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
+      expect(find.text(tr.resourcesRolesListCandidatesPill(2)), findsOneWidget);
+      expect(find.text(tr.resourcesRolesListCastPill), findsNothing);
+      expect(find.text(tr.resourcesRolesListNoLeadPill), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "an uncast role whose every candidate has fallen out wears the `No lead` pill",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptRolesList(
+            roles: [_role(id: "r1", name: "Le Client")],
+            people: const [],
+            candidatesByRoleId: {
+              "r1": [
+                _candidate(id: "c1", roleId: "r1", status: OcptRoleCandidateStatus.declined),
+                _candidate(
+                  id: "c2",
+                  roleId: "r1",
+                  status: OcptRoleCandidateStatus.unavailable,
+                ),
+              ],
+            },
+            episodes: const [],
+            selectedRoleId: null,
+            searchQuery: "",
+            onRoleSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Nobody is left, and the row says so rather than reading like a part nobody has started —
+      // the two states look identical on every other line of it.
+      final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
+      expect(find.text(tr.resourcesRolesListNoLeadPill), findsOneWidget);
+      expect(find.text(tr.resourcesRolesListCandidatesPill(0)), findsNothing);
+      expect(find.text(tr.resourcesRolesListCastPill), findsNothing);
+    },
+  );
 
   testWidgets("an uncast role with no candidate wears no pill at all", (tester) async {
     await tester.pumpWidget(

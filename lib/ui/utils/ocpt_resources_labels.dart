@@ -123,9 +123,12 @@ String ocptImageRightsStatusLabel(Tr tr, OcptImageRightsStatus status) => switch
 
 /// The display label of [status], where one person stands in the casting of one part.
 String ocptRoleCandidateStatusLabel(Tr tr, OcptRoleCandidateStatus status) => switch (status) {
+  OcptRoleCandidateStatus.spotted => tr.resourcesRoleCandidateStatusSpotted,
+  OcptRoleCandidateStatus.toMeet => tr.resourcesRoleCandidateStatusToMeet,
   OcptRoleCandidateStatus.seen => tr.resourcesRoleCandidateStatusSeen,
   OcptRoleCandidateStatus.shortlisted => tr.resourcesRoleCandidateStatusShortlisted,
   OcptRoleCandidateStatus.retained => tr.resourcesRoleCandidateStatusRetained,
+  OcptRoleCandidateStatus.notRetained => tr.resourcesRoleCandidateStatusNotRetained,
   OcptRoleCandidateStatus.declined => tr.resourcesRoleCandidateStatusDeclined,
   OcptRoleCandidateStatus.unavailable => tr.resourcesRoleCandidateStatusUnavailable,
 };

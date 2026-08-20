@@ -51,7 +51,8 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
   final ValueChanged<String>? onCandidateAdded;
 
   /// Called with a candidacy's id and its newly picked status, or null while it may not be used —
-  /// every status gesture the `⋮` menu offers, `Retain` and `Drop` included.
+  /// **every** status gesture the `⋮` menu offers, retaining included: there is no separate
+  /// callback for it, retaining being a status like any other from this widget's point of view.
   final void Function(String candidateId, OcptRoleCandidateStatus status)? onStatusChanged;
 
   /// Called with a candidacy's id and its newly picked audition date (or null, once cleared), or
@@ -167,14 +168,23 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
       person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
 }
 
-/// The colour a status pill wears: the accent for [OcptRoleCandidateStatus.retained], a warmer read
-/// for [OcptRoleCandidateStatus.shortlisted], the error colour for the two ways a candidacy stops
-/// (`declined`, `unavailable`), and a neutral read for [OcptRoleCandidateStatus.seen] — the one
-/// status that says nothing has been decided yet.
+/// The colour a status pill wears, in three families: the accent for
+/// [OcptRoleCandidateStatus.retained]; a warmer read for the two lists a candidate is *kept* on
+/// ([OcptRoleCandidateStatus.toMeet] before being seen, [OcptRoleCandidateStatus.shortlisted]
+/// after); the error colour for the three ways a candidacy stops (`notRetained`, `declined`,
+/// `unavailable` — three different facts wearing one colour, the pill's own word saying which);
+/// and a neutral read for the two that decide nothing ([OcptRoleCandidateStatus.spotted] and
+/// [OcptRoleCandidateStatus.seen]).
+///
+/// A `switch` with no `default`, so a ninth status must be given a colour here rather than
+/// inheriting one by accident.
 Color _statusColorOf(ColorScheme scheme, OcptRoleCandidateStatus status) => switch (status) {
   OcptRoleCandidateStatus.retained => scheme.primary,
   OcptRoleCandidateStatus.shortlisted => scheme.tertiary,
+  OcptRoleCandidateStatus.toMeet => scheme.tertiary,
+  OcptRoleCandidateStatus.spotted => scheme.onSurfaceVariant,
   OcptRoleCandidateStatus.seen => scheme.onSurfaceVariant,
+  OcptRoleCandidateStatus.notRetained => scheme.error,
   OcptRoleCandidateStatus.declined => scheme.error,
   OcptRoleCandidateStatus.unavailable => scheme.error,
 };
@@ -268,13 +278,7 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
               _OcptCandidateStatusPill(status: candidate.status),
               if (showsMenu) ...[
                 const SizedBox(width: 2),
-                _buildActionsMenu(
-                  context,
-                  tr,
-                  isRetained,
-                  onStatusChanged,
-                  onCandidateRemoveRequested,
-                ),
+                _buildActionsMenu(context, tr, onStatusChanged, onCandidateRemoveRequested),
               ],
             ],
           ),
@@ -305,13 +309,17 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
     );
   }
 
-  /// The row's own `⋮`: the five statuses under a heading entry, `Retain`/`Drop`, a divider, then
-  /// `Remove this candidate` — each group withheld on its own when the callback behind it is
-  /// null.
+  /// The row's own `⋮`: the statuses under a heading entry, a divider, then `Remove this
+  /// candidate` — each group withheld on its own when the callback behind it is null.
+  ///
+  /// **Retaining is picking the `Retained` status, and nothing else.** A `Retain`/`Drop` pair sat
+  /// here beside the list and did exactly what its two entries already did — same callback, same
+  /// argument, same transaction — so the menu offered one action twice under two names. The
+  /// consequence retaining carries (the role's previous retained candidacy demoted, `roles.personId`
+  /// written) is the service's, not a second gesture's: it holds however the status was picked.
   Widget _buildActionsMenu(
     BuildContext context,
     Tr tr,
-    bool isRetained,
     void Function(String candidateId, OcptRoleCandidateStatus status)? onStatusChanged,
     ValueChanged<String>? onCandidateRemoveRequested,
   ) {
@@ -337,15 +345,6 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
               value: () => onStatusChanged(candidateId, status),
               child: Text(ocptRoleCandidateStatusLabel(tr, status)),
             ),
-          PopupMenuItem<VoidCallback>(
-            value: () => onStatusChanged(
-              candidateId,
-              isRetained ? OcptRoleCandidateStatus.seen : OcptRoleCandidateStatus.retained,
-            ),
-            child: Text(
-              isRetained ? tr.resourcesDropCandidateAction : tr.resourcesRetainCandidateAction,
-            ),
-          ),
         ],
         if (onStatusChanged != null && onCandidateRemoveRequested != null) const PopupMenuDivider(),
         if (onCandidateRemoveRequested != null)

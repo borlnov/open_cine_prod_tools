@@ -333,8 +333,13 @@ class _OcptRoleEntry extends StatelessWidget {
 }
 
 /// A row's own text pill, reading [OcptRoleCastingProgress]: `Cast` in the accent colour while the
-/// role is cast, `{n} seen` in a muted tint while candidates are in progress — never drawn for
+/// role is cast, `{n} leads` in a muted tint while candidates are still in the running, and `No
+/// lead` in the **error** colour once every candidacy has stopped — never drawn for
 /// [OcptRoleCastingStage.notStarted], see [_OcptRoleEntry.build].
+///
+/// The error colour on [OcptRoleCastingStage.exhausted] is deliberate and is the only place this
+/// list raises its voice: a part everybody has turned down looks, on every other line of the row,
+/// exactly like a part nobody has started, and it is the opposite of it.
 ///
 /// A text pill rather than a coloured dot, the developer's own pick: it has to read without
 /// hovering, which a dot never does on its own.
@@ -349,11 +354,23 @@ class _OcptRoleCastingPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final isCast = progress.stage == OcptRoleCastingStage.cast;
-    final color = isCast ? theme.colorScheme.primary : theme.colorScheme.tertiary;
-    final label = isCast
-        ? tr.resourcesRolesListCastPill
-        : tr.resourcesRolesListCandidatesPill(progress.candidateCount);
+    final color = switch (progress.stage) {
+      OcptRoleCastingStage.cast => theme.colorScheme.primary,
+      OcptRoleCastingStage.inProgress => theme.colorScheme.tertiary,
+      OcptRoleCastingStage.exhausted => theme.colorScheme.error,
+      OcptRoleCastingStage.notStarted => theme.colorScheme.onSurfaceVariant,
+    };
+    final label = switch (progress.stage) {
+      OcptRoleCastingStage.cast => tr.resourcesRolesListCastPill,
+      OcptRoleCastingStage.inProgress => tr.resourcesRolesListCandidatesPill(
+        progress.candidateCount,
+      ),
+      OcptRoleCastingStage.exhausted => tr.resourcesRolesListNoLeadPill,
+      // Never drawn — the caller skips the pill entirely for a role nobody has been recorded on
+      // (see [_OcptRoleEntry.build]) — but a `switch` that answers every stage is what keeps a
+      // later reader from having to prove that again.
+      OcptRoleCastingStage.notStarted => "",
+    };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

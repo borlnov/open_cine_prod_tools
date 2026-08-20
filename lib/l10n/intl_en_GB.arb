@@ -4266,7 +4266,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRoleNoCandidateHint": "Nobody seen yet.",
+  "resourcesRoleNoCandidateHint": "Nobody recorded yet.",
   "@resourcesRoleNoCandidateHint": {
     "description": "Hint shown in the candidates card while a role has no candidate yet",
     "context": "Displayed in the resources mode's role sheet, on the candidates card",
@@ -4277,6 +4277,20 @@
   "@resourcesAddCandidateToRoleAction": {
     "description": "Action opening the person picker adding a candidate to a role",
     "context": "Displayed in the resources mode's role sheet, on the candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusSpotted": "Spotted",
+  "@resourcesRoleCandidateStatusSpotted": {
+    "description": "Label of a candidate whose application has arrived, or who was contacted, with nothing decided yet",
+    "context": "Displayed on the role sheet's Candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusToMeet": "To meet",
+  "@resourcesRoleCandidateStatusToMeet": {
+    "description": "Label of a candidate whose application was read and who is going to be met at a casting session",
+    "context": "Displayed on the role sheet's Candidates card",
     "type": "text",
     "placeholders": {}
   },
@@ -4298,6 +4312,13 @@
   "@resourcesRoleCandidateStatusRetained": {
     "description": "Label of the retained candidate status: this person is the one cast in the part",
     "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusNotRetained": "Not retained",
+  "@resourcesRoleCandidateStatusNotRetained": {
+    "description": "Label of a candidate the production has decided not to take — its own answer, unlike Declined",
+    "context": "Displayed on the role sheet's Candidates card",
     "type": "text",
     "placeholders": {}
   },
@@ -4343,20 +4364,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRetainCandidateAction": "Retain",
-  "@resourcesRetainCandidateAction": {
-    "description": "Action retaining a candidate: this person is the one cast in the part",
-    "context": "Displayed in a candidate row's ⋮ menu of the resources mode's candidates card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "resourcesDropCandidateAction": "Drop",
-  "@resourcesDropCandidateAction": {
-    "description": "Action dropping the retained candidate back to seen, clearing the part's casting with it",
-    "context": "Displayed in a candidate row's ⋮ menu of the resources mode's candidates card",
-    "type": "text",
-    "placeholders": {}
-  },
   "resourcesRemoveCandidateAction": "Remove this candidate",
   "@resourcesRemoveCandidateAction": {
     "description": "Action opening the candidate removal confirmation dialog",
@@ -4385,9 +4392,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRolesListCandidatesPill": "{count, plural, one{{count} seen} other{{count} seen}}",
+  "resourcesRolesListCandidatesPill": "{count, plural, one{{count} lead} other{{count} leads}}",
   "@resourcesRolesListCandidatesPill": {
-    "description": "Pill shown on an uncast role's row while candidates are in progress, naming how many people have been seen",
+    "description": "Pill shown on an uncast role's row while candidates are still leads, naming how many are still in the running — the counterpart of the No lead pill",
     "context": "Displayed in the resources mode's left dock, on the roles tab",
     "type": "text",
     "placeholders": {
@@ -4395,6 +4402,13 @@
         "type": "int"
       }
     }
+  },
+  "resourcesRolesListNoLeadPill": "No lead",
+  "@resourcesRolesListNoLeadPill": {
+    "description": "Pill shown on an uncast role whose candidates have all been turned down, declined or are unavailable",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {}
   },
   "resourcesStatsRolesCast": "{count, plural, one{{count} cast} other{{count} cast}}",
   "@resourcesStatsRolesCast": {

@@ -292,15 +292,39 @@ void main() {
     });
 
     test("any status taken away from the retained one clears the casting too", () async {
+      // Every one of them, not a listed few: the cast column was written by exactly the status
+      // being taken away, so leaving it for any reason at all has to give the column back.
+      for (final status in OcptRoleCandidateStatus.values.where(
+        (status) => status != OcptRoleCandidateStatus.retained,
+      )) {
+        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+        expect(await readCasting("role-1"), isNotNull, reason: "before moving to $status");
+
+        await candidatesService.setStatus(
+          database: database,
+          candidateId: firstCandidateId,
+          status: status,
+        );
+
+        expect((await readCandidate(firstCandidateId)).status, status);
+        expect(await readCasting("role-1"), isNull, reason: "after moving to $status");
+      }
+    });
+
+    test("turning the retained candidate down uncasts the part, as any other move away does",
+        () async {
+      // `notRetained` is the mirror of `retained` and the likeliest way a production changes its
+      // mind, so it gets its own case beside the walk above rather than only being one of its
+      // iterations.
       await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
 
       await candidatesService.setStatus(
         database: database,
         candidateId: firstCandidateId,
-        status: OcptRoleCandidateStatus.declined,
+        status: OcptRoleCandidateStatus.notRetained,
       );
 
-      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.declined);
+      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.notRetained);
       expect(await readCasting("role-1"), isNull);
     });
 

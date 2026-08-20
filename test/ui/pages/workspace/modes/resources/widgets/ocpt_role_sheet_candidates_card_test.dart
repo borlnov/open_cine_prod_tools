@@ -151,7 +151,9 @@ void main() {
     );
   });
 
-  testWidgets("the retained row's menu offers Drop, another row's offers Retain", (tester) async {
+  testWidgets("the menu offers every status once, retaining among them and only there", (
+    tester,
+  ) async {
     final retained = _person(id: "p1", firstName: "Léa", lastName: "Marchand");
     final seen = _person(id: "p2", firstName: "Paul", lastName: "Ilyes");
 
@@ -171,29 +173,34 @@ void main() {
     final menus = find.byIcon(Icons.more_vert);
     expect(menus, findsNWidgets(2));
 
-    // The retained row is drawn first, so its own menu is the first icon.
+    // The retained row is drawn first, so its own menu is the first icon. Every status is offered,
+    // whatever this row currently holds — a status list is a vocabulary, not a workflow — and each
+    // is offered exactly **once**: retaining is picking `Retained`, never a second entry beside it.
+    // Scoped to the menu's own entries, the rows' status pills carrying the same words behind it.
     await tester.tap(menus.first);
     await tester.pumpAndSettle();
-    expect(find.text(tr.resourcesDropCandidateAction), findsOneWidget);
-    expect(find.text(tr.resourcesRetainCandidateAction), findsNothing);
-    await tester.tapAt(const Offset(10, 10));
-    await tester.pumpAndSettle();
-
-    await tester.tap(menus.last);
-    await tester.pumpAndSettle();
-    expect(find.text(tr.resourcesRetainCandidateAction), findsOneWidget);
-    expect(find.text(tr.resourcesDropCandidateAction), findsNothing);
+    for (final status in OcptRoleCandidateStatus.values) {
+      expect(
+        find.descendant(
+          of: find.byType(PopupMenuItem<VoidCallback>),
+          matching: find.text(ocptRoleCandidateStatusLabel(tr, status)),
+        ),
+        findsOneWidget,
+        reason: "for $status, on the retained row",
+      );
+    }
+    expect(find.text(tr.resourcesRemoveCandidateAction), findsOneWidget);
   });
 
-  testWidgets("Drop reports the seen status, Retain reports the retained one", (tester) async {
+  testWidgets("picking the retained status reports it, exactly as any other status is", (
+    tester,
+  ) async {
     final reported = <(String, OcptRoleCandidateStatus)>[];
-    final retained = _person(id: "p1", firstName: "Léa", lastName: "Marchand");
+    final person = _person(id: "p1", firstName: "Léa", lastName: "Marchand");
 
     await tester.pumpWidget(
       _buildCard(
-        candidates: [
-          _candidate(id: "c1", person: retained, status: OcptRoleCandidateStatus.retained),
-        ],
+        candidates: [_candidate(id: "c1", person: person)],
         onStatusChanged: (candidateId, status) => reported.add((candidateId, status)),
       ),
     );
@@ -202,10 +209,17 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptRoleSheetCandidatesCard)));
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.resourcesDropCandidateAction));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(PopupMenuItem<VoidCallback>),
+        matching: find.text(ocptRoleCandidateStatusLabel(tr, OcptRoleCandidateStatus.retained)),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    expect(reported, [("c1", OcptRoleCandidateStatus.seen)]);
+    // The card only ever asks: what retaining *does* to `roles.personId`, and to whoever was
+    // retained before, is `OcptRoleCandidatesService`'s and is tested there.
+    expect(reported, [("c1", OcptRoleCandidateStatus.retained)]);
   });
 
   testWidgets("typing the note reports it raw, riding no local debounce", (tester) async {

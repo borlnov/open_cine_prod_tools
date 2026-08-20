@@ -102,7 +102,20 @@ void main() {
       expect(progress.candidateCount, 0);
     });
 
-    test("an uncast role with at least one live candidate is `inProgress`", () {
+    test("a cast role counts its leads alone, the ones who fell out excluded", () {
+      final progress = OcptRoleCastingProgress.of(
+        role: _role(id: "r1", personId: "p1"),
+        candidates: [
+          _candidate(id: "c1", roleId: "r1", status: OcptRoleCandidateStatus.retained),
+          _candidate(id: "c2", roleId: "r1", status: OcptRoleCandidateStatus.notRetained),
+        ],
+      );
+
+      expect(progress.stage, OcptRoleCastingStage.cast);
+      expect(progress.candidateCount, 1);
+    });
+
+    test("an uncast role with at least one lead is `inProgress`, counting the leads alone", () {
       final progress = OcptRoleCastingProgress.of(
         role: _role(id: "r1"),
         candidates: [
@@ -112,7 +125,63 @@ void main() {
       );
 
       expect(progress.stage, OcptRoleCastingStage.inProgress);
-      expect(progress.candidateCount, 2);
+      // Two candidacies, one lead: the person who declined is still on the role sheet with their
+      // notes, and is not a possibility any more.
+      expect(progress.candidateCount, 1);
+    });
+
+    test("every status that leaves a candidacy in the running counts as a lead", () {
+      for (final status in OcptRoleCandidateStatus.values.where((s) => s.isStillALead)) {
+        final progress = OcptRoleCastingProgress.of(
+          role: _role(id: "r1"),
+          candidates: [_candidate(id: "c1", roleId: "r1", status: status)],
+        );
+
+        expect(progress.stage, OcptRoleCastingStage.inProgress, reason: "for $status");
+        expect(progress.candidateCount, 1, reason: "for $status");
+      }
+    });
+
+    test("an uncast role whose every candidacy has stopped is `exhausted`", () {
+      // Turned down by us, turned down by them, and unable to do it: the three ways a candidacy
+      // ends, none of which leaves a possibility behind.
+      final progress = OcptRoleCastingProgress.of(
+        role: _role(id: "r1"),
+        candidates: [
+          _candidate(id: "c1", roleId: "r1", status: OcptRoleCandidateStatus.notRetained),
+          _candidate(id: "c2", roleId: "r1", status: OcptRoleCandidateStatus.declined),
+          _candidate(id: "c3", roleId: "r1", status: OcptRoleCandidateStatus.unavailable),
+        ],
+      );
+
+      expect(progress.stage, OcptRoleCastingStage.exhausted);
+      expect(progress.candidateCount, 0);
+    });
+
+    test("one more name entered takes an exhausted role back to `inProgress`", () {
+      final progress = OcptRoleCastingProgress.of(
+        role: _role(id: "r1"),
+        candidates: [
+          _candidate(id: "c1", roleId: "r1", status: OcptRoleCandidateStatus.declined),
+          _candidate(id: "c2", roleId: "r1", status: OcptRoleCandidateStatus.spotted),
+        ],
+      );
+
+      expect(progress.stage, OcptRoleCastingStage.inProgress);
+      expect(progress.candidateCount, 1);
+    });
+
+    test("an exhausted role is not `notStarted`: the two say opposite things", () {
+      final exhausted = OcptRoleCastingProgress.of(
+        role: _role(id: "r1"),
+        candidates: [
+          _candidate(id: "c1", roleId: "r1", status: OcptRoleCandidateStatus.declined),
+        ],
+      );
+      final notStarted = OcptRoleCastingProgress.of(role: _role(id: "r2"), candidates: const []);
+
+      expect(exhausted.candidateCount, notStarted.candidateCount);
+      expect(exhausted.stage, isNot(notStarted.stage));
     });
 
     test("an uncast role with no candidate is `notStarted`", () {
