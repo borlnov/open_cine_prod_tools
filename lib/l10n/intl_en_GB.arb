@@ -6160,7 +6160,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectSettingsMinimumRestSectionTitle": "Minimum rest between two shooting days",
+  "projectSettingsMinimumRestSectionTitle": "Minimum rest between two days",
   "@projectSettingsMinimumRestSectionTitle": {
     "description": "Title of the project settings page's minimum rest section",
     "context": "Displayed at the top of the minimum rest section card on the project settings page",
@@ -6248,7 +6248,7 @@
       }
     }
   },
-  "projectSettingsDeleteEpisodeConfirmMessage": "This permanently deletes its screenplay, its snapshots, its scenes, its shots and their scenario coverage, and its breakdown, along with the cast links naming it. The people, the locations, the elements and the shooting days are left untouched — they were never this episode's alone. This can't be undone.",
+  "projectSettingsDeleteEpisodeConfirmMessage": "This permanently deletes its screenplay, its snapshots, its scenes, its shots and their scenario coverage, and its breakdown, along with the cast links naming it. The people, the locations, the elements and the days are left untouched — they were never this episode's alone. This can't be undone.",
   "@projectSettingsDeleteEpisodeConfirmMessage": {
     "description": "Message of the confirmation dialog before deleting an episode, stating what it takes and what it leaves",
     "context": "Displayed in a confirmation dialog opened from the project settings page",
@@ -7452,7 +7452,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleAgendaEmptyHint": "No shooting day has been created yet.",
+  "scheduleAgendaEmptyHint": "No day has been created yet.",
   "@scheduleAgendaEmptyHint": {
     "description": "Shown in the strip agenda when the schedule has no day at all",
     "context": "Displayed in the schedule mode's centre area",
@@ -7571,14 +7571,14 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleDaysPanelTitle": "Shooting days",
+  "scheduleDaysPanelTitle": "Days",
   "@scheduleDaysPanelTitle": {
     "description": "Title of the schedule mode's left dock day list",
     "context": "Displayed in the schedule mode's left dock",
     "type": "text",
     "placeholders": {}
   },
-  "scheduleDaysEmptyHint": "No shooting day has been created yet.",
+  "scheduleDaysEmptyHint": "No day has been created yet.",
   "@scheduleDaysEmptyHint": {
     "description": "Shown in the left dock's day list when the schedule has no day at all",
     "context": "Displayed in the schedule mode's left dock",
@@ -9773,7 +9773,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "schedulePositionsMatrixLegend": "One column per slot, grouped by shooting day, with its computed hours. A position dropped mid-day is read in the Alerts panel.",
+  "schedulePositionsMatrixLegend": "One column per slot, grouped by day, with its computed hours. A position dropped mid-day is read in the Alerts panel.",
   "@schedulePositionsMatrixLegend": {
     "description": "Caption explaining how the positions matrix is read, and where a lost position is reported",
     "context": "Displayed above the schedule mode's positions view",
@@ -10094,7 +10094,7 @@
       }
     }
   },
-  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since their previous shooting day, short of the recorded minimum of {minimumDuration}.",
+  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since their previous day, short of the recorded minimum of {minimumDuration}.",
   "@scheduleAlertRestTimeSentence": {
     "description": "Body sentence of a rest-time alert card (rule 9)",
     "context": "Displayed in the schedule mode's Alerts dock tab",
