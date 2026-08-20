@@ -10,7 +10,8 @@ A pure Dart reader turning the screenplay files a production is actually
 sent into [Fountain](https://fountain.io/syntax) text.
 
 Nobody converts their screenplay before opening a tool: what arrives is a
-Final Draft `.fdx`. `script_import_kit` reads one and hands back Fountain
+Final Draft `.fdx`, or — for an older or writing-side project — a legacy
+Celtx `.celtx`. `script_import_kit` reads either and hands back Fountain
 source text, so that the receiving application only ever has one format to
 store, edit, print and export.
 
@@ -54,6 +55,35 @@ contact block, so not one line of the original is lost.
 **Not carried over**: `<ScriptNote>` margin notes (an authoring
 side-channel with no printed equivalent), revision marks, locked pages, and
 every text style Fountain has no marker for.
+
+### Celtx (`.celtx`)
+
+The legacy container: a zip holding a `project.rdf` manifest and one HTML
+file per document. The manifest names the project's title and creator,
+which become the title page, and the **first script document** it lists is
+the one read. A `<p class="…">` of that document becomes a line of
+screenplay:
+
+| `class` | Fountain |
+| --- | --- |
+| `sceneheading` | scene heading, the `scenenumber` attribute becoming `#N#` |
+| `action` | action |
+| `character` | character cue |
+| `dialog` | dialogue |
+| `parenthetical` | parenthetical |
+| `transition` | transition |
+| `shot` | action |
+| `act`, `actbreak` | centered text |
+| `text`, an unknown class, a `<p>` with no class | action |
+
+A `<br>` inside a paragraph splits it into several lines of one same block,
+and `<b>`/`<i>`/`<u>` (with their `<strong>`/`<em>` spellings) become the
+matching emphasis markup.
+
+**Not carried over**: every document but the first script — the catalogue,
+the storyboard, the scratch files, the schedule and any further script
+document — the project's media, its index cards and its notes, and every
+text style Fountain has no marker for.
 
 ## Usage
 

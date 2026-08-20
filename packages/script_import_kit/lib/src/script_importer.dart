@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:script_import_kit/src/models/script_import_exception.dart';
 import 'package:script_import_kit/src/models/script_import_format.dart';
 import 'package:script_import_kit/src/models/script_import_result.dart';
+import 'package:script_import_kit/src/readers/celtx_script_reader.dart';
 import 'package:script_import_kit/src/readers/fdx_script_reader.dart';
 
 /// Reads a foreign screenplay file and converts it to Fountain.
@@ -22,10 +23,16 @@ import 'package:script_import_kit/src/readers/fdx_script_reader.dart';
 /// that case).
 class ScriptImporter {
   /// Creates a [ScriptImporter].
-  const ScriptImporter({this.finalDraftReader = const FdxScriptReader()});
+  const ScriptImporter({
+    this.finalDraftReader = const FdxScriptReader(),
+    this.celtxReader = const CeltxScriptReader(),
+  });
 
   /// The reader used for a Final Draft file.
   final FdxScriptReader finalDraftReader;
+
+  /// The reader used for a Celtx project.
+  final CeltxScriptReader celtxReader;
 
   /// Reads the screenplay held in [bytes], picking the reader from
   /// [fileName]'s extension.
@@ -42,6 +49,10 @@ class ScriptImporter {
       'fdx' => ScriptImportResult(
         format: ScriptImportFormat.finalDraft,
         fountainText: finalDraftReader.read(bytes),
+      ),
+      'celtx' => ScriptImportResult(
+        format: ScriptImportFormat.celtx,
+        fountainText: celtxReader.read(bytes),
       ),
       _ => throw ScriptImportException(
         ScriptImportFailure.unsupportedFormat,

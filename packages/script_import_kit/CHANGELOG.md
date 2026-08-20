@@ -13,6 +13,10 @@ SPDX-License-Identifier: Apache-2.0
 - Reads a Final Draft `.fdx`: every paragraph type, scene numbers, dual
   dialogue, bold/italic/underline runs, and a free-form title page sorted
   into Fountain's six fields.
+- Reads a legacy Celtx `.celtx`: its zip container, its `project.rdf`
+  manifest and the first script document that manifest names, with the
+  paragraph classes, the scene numbers and the inline emphasis of its
+  HTML.
 - Refuses a file it cannot read as a screenplay with a typed
   `ScriptImportException` rather than a half-wrong conversion.
 - Renders every reader's typed lines through `fountain_kit`'s own writers,
