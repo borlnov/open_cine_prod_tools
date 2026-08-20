@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 
@@ -67,6 +68,24 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
 
+  /// The status of the last project package import that failed, or null if none did (or it was
+  /// already dismissed).
+  ///
+  /// A field of its own rather than reusing [error]: that one is an [OcptProjectStatus], a
+  /// different enum entirely, and a project package import fails with an
+  /// [OcptProjectPackageStatus] instead — the two must not be conflated into one field that could
+  /// only ever hold one of them truthfully.
+  final OcptProjectPackageStatus? projectPackageImportError;
+
+  /// What the last project package import landed the user with, while the page still has to state
+  /// the skipped files (if any) and open the project itself; null the rest of the time.
+  ///
+  /// A **one-shot** field, like every question/report this state carries: the page reads it,
+  /// dispatches `OcptHomeProjectPackageImportReportDismissedEvent` straight away, and only then
+  /// acts on the copy it already holds — this bloc never opens the project it imports (see
+  /// `OcptHomeImportProjectPackageRequestedEvent`'s own doc comment for why).
+  final OcptProjectPackageImportReport? projectPackageImportReport;
+
   /// Class constructor
   const OcptHomeState({
     required this.recentProjects,
@@ -75,6 +94,8 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     this.pendingFileCompatibility,
     this.projectPackagePendingExport,
     this.projectPackageNotice,
+    this.projectPackageImportError,
+    this.projectPackageImportReport,
   });
 
   /// Init class constructor
@@ -84,15 +105,17 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
       error = null,
       pendingFileCompatibility = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackageImportError = null,
+      projectPackageImportReport = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [error] and [pendingFileCompatibility] are only replaced when a new one is given or their
   /// clear flag is true; otherwise the current one is kept, since null is a legitimate "nothing to
   /// report" value that a plain `?? this.error` couldn't distinguish from "not provided". The
-  /// project package's own pair follows the very same rule, through [copyProjectPackageState]
-  /// below.
+  /// project package's own pairs — the export one through [copyProjectPackageState] below, the
+  /// import one right here — follow the very same rule.
   @override
   OcptHomeState copyWith({
     List<OcptHomeRecentProjectEntry>? recentProjects,
@@ -105,6 +128,10 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     bool clearProjectPackagePendingExport = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool clearProjectPackageNotice = false,
+    OcptProjectPackageStatus? projectPackageImportError,
+    bool clearProjectPackageImportError = false,
+    OcptProjectPackageImportReport? projectPackageImportReport,
+    bool clearProjectPackageImportReport = false,
   }) => OcptHomeState(
     recentProjects: recentProjects ?? this.recentProjects,
     isBusy: isBusy ?? this.isBusy,
@@ -118,6 +145,12 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     projectPackageNotice: clearProjectPackageNotice
         ? null
         : (projectPackageNotice ?? this.projectPackageNotice),
+    projectPackageImportError: clearProjectPackageImportError
+        ? null
+        : (projectPackageImportError ?? this.projectPackageImportError),
+    projectPackageImportReport: clearProjectPackageImportReport
+        ? null
+        : (projectPackageImportReport ?? this.projectPackageImportReport),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
@@ -142,5 +175,7 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     isBusy,
     error,
     pendingFileCompatibility,
+    projectPackageImportError,
+    projectPackageImportReport,
   ];
 }

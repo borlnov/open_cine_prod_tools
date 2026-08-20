@@ -20,8 +20,8 @@ class OcptHomeHeader extends StatelessWidget {
   /// Called when the user taps the "Open…" action.
   final VoidCallback onOpenProject;
 
-  /// Called when the user taps the "Import a screenplay…" action.
-  final VoidCallback onImportScreenplay;
+  /// Called when the user taps the "Import…" action, opening `OcptHomeImportDialog`.
+  final VoidCallback onImport;
 
   /// Called when the user taps the settings gear action.
   final VoidCallback onOpenSettings;
@@ -30,7 +30,7 @@ class OcptHomeHeader extends StatelessWidget {
   const OcptHomeHeader({
     required this.onNewProject,
     required this.onOpenProject,
-    required this.onImportScreenplay,
+    required this.onImport,
     required this.onOpenSettings,
     super.key,
   });
@@ -54,9 +54,9 @@ class OcptHomeHeader extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         OutlinedButton.icon(
-          onPressed: onImportScreenplay,
+          onPressed: onImport,
           icon: const Icon(Icons.file_download_outlined),
-          label: Text(tr.homeImportScreenplayAction),
+          label: Text(tr.homeImportAction),
         ),
         const SizedBox(width: 12),
         OutlinedButton.icon(

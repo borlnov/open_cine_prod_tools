@@ -9,8 +9,13 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 
-/// The separator between two missing files in the question's own list.
-const _ocptMissingAssetsSeparator = ", ";
+/// The separator between two missing files in a list of them.
+///
+/// Public — shared by [ocptAskAboutMissingPackagedFiles]'s own question and by
+/// `OcptProjectPackageSkippedFilesDialog`, which states the very same list again as a package
+/// lands: the two must read as the one statement of what is missing, not as two different lists
+/// that happen to agree.
+const ocptMissingAssetsSeparator = ", ";
 
 /// Asks whether to write the package even though [preflight] found files the project references
 /// and that are no longer there, and returns true if the user said to go on.
@@ -34,7 +39,7 @@ Future<bool?> ocptAskAboutMissingPackagedFiles(
     title: tr.projectPackageMissingFilesConfirmTitle,
     message: tr.projectPackageMissingFilesConfirmMessage(
       missingAssets.length,
-      missingAssets.map(_ocptMissingAssetLabel).join(_ocptMissingAssetsSeparator),
+      missingAssets.map(ocptMissingAssetLabel).join(ocptMissingAssetsSeparator),
     ),
     cancelLabel: tr.projectPackageMissingFilesConfirmCancelAction,
     confirmLabel: tr.projectPackageMissingFilesConfirmContinueAction,
@@ -42,10 +47,11 @@ Future<bool?> ocptAskAboutMissingPackagedFiles(
   );
 }
 
-/// How [asset] is named in the question: its own label, or the file name its path ends on for a row
-/// that never got one.
+/// How [asset] is named in a list of missing files: its own label, or the file name its path ends
+/// on for a row that never got one.
 ///
 /// A row with no label is an ordinary state — a photo dropped in and never named — and the whole
-/// point of listing them is that the user recognises what is missing.
-String _ocptMissingAssetLabel(OcptSkippedAsset asset) =>
+/// point of listing them is that the user recognises what is missing. Public for the same reason
+/// [ocptMissingAssetsSeparator] is.
+String ocptMissingAssetLabel(OcptSkippedAsset asset) =>
     asset.label.isNotEmpty ? asset.label : p.basename(asset.originalPath);

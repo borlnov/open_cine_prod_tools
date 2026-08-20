@@ -1082,10 +1082,115 @@
     "type": "text",
     "placeholders": {}
   },
-  "homeImportScreenplayAction": "Import a screenplay…",
-  "@homeImportScreenplayAction": {
-    "description": "Label of the action that creates a new project from an imported .fountain file",
+  "homeImportAction": "Import…",
+  "@homeImportAction": {
+    "description": "Label of the action that opens the Import modal",
     "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportDialogTitle": "Import",
+  "@homeImportDialogTitle": {
+    "description": "Title of the modal offering the two things that can be imported",
+    "context": "Displayed at the top of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportDialogMessage": "Two things can come in from outside: a whole project somebody sent you, or a screenplay to start one from.",
+  "@homeImportDialogMessage": {
+    "description": "Message of the modal offering the two things that can be imported",
+    "context": "Displayed under the title of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportProjectTitle": "A project",
+  "@homeImportProjectTitle": {
+    "description": "Name of the portable project package, on the Import modal's own card",
+    "context": "Displayed on a card of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportProjectDescription": "A package somebody sent you, unpacked into a project of your own: the project file and every photo, permit and document it carries.",
+  "@homeImportProjectDescription": {
+    "description": "Line saying what importing a project package does",
+    "context": "Displayed under the project card's title, in the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportScreenplayTitle": "A screenplay",
+  "@homeImportScreenplayTitle": {
+    "description": "Name of a Fountain screenplay, on the Import modal's own card",
+    "context": "Displayed on a card of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportScreenplayDescription": "A Fountain file, which becomes a new project holding its text.",
+  "@homeImportScreenplayDescription": {
+    "description": "Line saying what importing a screenplay does",
+    "context": "Displayed under the screenplay card's title, in the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportProjectDestinationConfirmAction": "Import here",
+  "@homeImportProjectDestinationConfirmAction": {
+    "description": "Label of the native folder picker's own confirm button, when picking a project package's destination folder",
+    "context": "Displayed by the operating system's own folder picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportSkippedFilesTitle": "Some files did not travel",
+  "@homeImportSkippedFilesTitle": {
+    "description": "Title of the dialog stating that an imported package's project references files that did not travel",
+    "context": "Displayed before the workspace opens, once a project package import has landed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportSkippedFilesMessage": "{count, plural, one{{count} file this project references was already missing when the package was written, and is not here:} other{{count} files this project references were already missing when the package was written, and are not here:}} {labels}",
+  "@homeImportSkippedFilesMessage": {
+    "description": "Message naming how many referenced files did not travel, and which ones",
+    "context": "Displayed in the dialog stating that an imported package's project references files that did not travel",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "labels": {
+        "type": "String"
+      }
+    }
+  },
+  "homeImportSkippedFilesCloseAction": "Close",
+  "@homeImportSkippedFilesCloseAction": {
+    "description": "Label of the button dismissing the skipped files dialog",
+    "context": "Displayed in the dialog stating that an imported package's project references files that did not travel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorUnreadableArchive": "This file could not be read as a project package.",
+  "@homeImportErrorUnreadableArchive": {
+    "description": "Error shown when the picked file is not a valid project package archive",
+    "context": "Displayed as a SnackBar over the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorUnsupportedFormat": "This package was written by a newer version of the app, which this one cannot read.",
+  "@homeImportErrorUnsupportedFormat": {
+    "description": "Error shown when the picked package states a packageFormat newer than this build knows how to read",
+    "context": "Displayed as a SnackBar over the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorDestinationExists": "A folder of that name is already there. Pick another destination.",
+  "@homeImportErrorDestinationExists": {
+    "description": "Error shown when the folder an import would create already exists",
+    "context": "Displayed as a SnackBar over the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorIoError": "The project package could not be imported.",
+  "@homeImportErrorIoError": {
+    "description": "Error shown when a project package import failed for a reason the app can only report",
+    "context": "Displayed as a SnackBar over the home page",
     "type": "text",
     "placeholders": {}
   },

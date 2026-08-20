@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -20,6 +23,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
@@ -70,20 +74,27 @@ class _FakeFileSaverManager extends FileSaverManager {
   }
 }
 
-/// A save location service answering [answer] without ever showing a native dialog, and recording
-/// that it was asked — used to exercise a project card's own `Export…` without a real save dialog.
+/// A save location service answering [saveLocationAnswer]/[directoryAnswer] without ever showing a
+/// native dialog, and recording that either was asked — used to exercise a project card's own
+/// `Export…`, and a project package import's own destination folder picker, without a real dialog.
 ///
-/// A null [answer] is the user cancelling the dialog, which every export of this app treats as a
-/// silent no-op.
+/// A null answer is the user cancelling the dialog, which every import/export of this app treats
+/// as a silent no-op.
 class _RecordingSaveLocationService extends OcptSaveLocationService {
-  /// The path handed back, or null to answer as a cancelled dialog.
-  final String? answer;
+  /// The path [pickSaveLocation] hands back, or null to answer as a cancelled dialog.
+  final String? saveLocationAnswer;
+
+  /// The path [pickDirectory] hands back, or null to answer as a cancelled dialog.
+  final String? directoryAnswer;
 
   /// How many times a save location was asked for.
   int askCount = 0;
 
+  /// The [pickDirectory] confirm button text of the last call, or null if it was never called.
+  String? lastDirectoryConfirmButtonText;
+
   /// Class constructor
-  _RecordingSaveLocationService({required this.answer});
+  _RecordingSaveLocationService({this.saveLocationAnswer, this.directoryAnswer});
 
   @override
   Future<String?> pickSaveLocation({
@@ -92,7 +103,38 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
     required List<String> extensions,
   }) async {
     askCount++;
-    return answer;
+    return saveLocationAnswer;
+  }
+
+  @override
+  Future<String?> pickDirectory({required String confirmButtonText}) async {
+    lastDirectoryConfirmButtonText = confirmButtonText;
+    return directoryAnswer;
+  }
+}
+
+/// A file selector manager whose [openSelector] is stubbed, to exercise the bloc's import flows
+/// without any real open-file dialog.
+class _FakeFileSelectorManager extends FileSelectorManager {
+  /// Class constructor
+  _FakeFileSelectorManager({this.result});
+
+  /// The file [openSelector] returns, or null to simulate a cancelled dialog.
+  final XFile? result;
+
+  /// The extensions of the last [openSelector] call.
+  List<String>? lastAllowedExtensions;
+
+  @override
+  Future<ResultWithBoolStatus<XFile>> openSelector({
+    required List<String> allowedExtensions,
+    required String label,
+    bool strictOnExtensions = true,
+  }) async {
+    lastAllowedExtensions = allowedExtensions;
+    // A cancelled native dialog reports success with no file, never a failure status — mirroring
+    // FileSelectorManager.openSelector's own real behaviour.
+    return ResultWithBoolStatus<XFile>(status: BoolResultStatus.success, value: result);
   }
 }
 
@@ -158,13 +200,14 @@ void main() {
   OcptHomeBloc buildBloc({
     OcptExportManager? exportManager,
     FileSaverManager? fileSaverManager,
+    FileSelectorManager? fileSelectorManager,
     OcptRouterManager? routerManager,
   }) => OcptHomeBloc(
     propertiesManager: propertiesManager,
     projectsManager: projectsManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
     fileSaverManager: fileSaverManager ?? _FakeFileSaverManager(),
-    fileSelectorManager: const FileSelectorManager(),
+    fileSelectorManager: fileSelectorManager ?? const FileSelectorManager(),
     exportManager: exportManager ?? _FakeExportManager(),
   );
 
@@ -512,7 +555,7 @@ void main() {
       );
 
       final packagePath = p.join(tempDir.path, "movie.ocptz");
-      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+      final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: packagePath);
       final bloc = buildBloc(
         exportManager: OcptExportManager(
           fileSelectorManager: const FileSelectorManager(),
@@ -533,6 +576,228 @@ void main() {
       expect(File(packagePath).existsSync(), isTrue);
       expect(saveLocationService.askCount, 1);
       expect(projectsManager.currentProject, isNull);
+
+      await bloc.close();
+    });
+  });
+
+  group("importing a project package", () {
+    late Directory importsParent;
+
+    setUp(() {
+      importsParent = Directory(p.join(tempDir.path, "imports"))..createSync(recursive: true);
+    });
+
+    /// Creates a project, exports it as a package at [packagePath], and returns it: the package a
+    /// test picks through the (faked) open dialog.
+    Future<String> exportedPackage(String packagePath) async {
+      final projectFilePath = p.join(tempDir.path, "source.ocpt");
+      await projectsManager.createProject(name: "Les Vagues", filePath: projectFilePath);
+      await projectsManager.closeCurrentProject();
+
+      final result = await projectsManager.exportProjectPackage(
+        projectFilePath: projectFilePath,
+        projectName: "Les Vagues",
+        packageFilePath: packagePath,
+      );
+      expect(result.status.isSuccess, isTrue);
+      return packagePath;
+    }
+
+    /// Rewrites the `manifest.json` entry of the package at [sourcePath] with [transform] applied
+    /// to it, and returns the path of the package this produces — used to build the malformed
+    /// package a newer `packageFormat` refusal is tested against, on the model of
+    /// `ocpt_project_package_service_test.dart`'s own `repackagedWith`.
+    Future<String> repackagedWithManifest(
+      String sourcePath,
+      Map<String, dynamic> Function(Map<String, dynamic> manifest) transform,
+    ) async {
+      final archive = ZipDecoder().decodeStream(InputFileStream(sourcePath));
+      final manifestEntry = archive.files.firstWhere((entry) => entry.name == "manifest.json");
+      final manifest = jsonDecode(utf8.decode(manifestEntry.readBytes()!)) as Map<String, dynamic>;
+      final rewrittenManifest = utf8.encode(jsonEncode(transform(manifest)));
+
+      final targetPath = p.join(p.dirname(sourcePath), "repackaged-${p.basename(sourcePath)}");
+      final encoder = ZipFileEncoder()..create(targetPath);
+      try {
+        for (final entry in archive.files) {
+          if (!entry.isFile) {
+            continue;
+          }
+          final bytes = entry.name == "manifest.json" ? rewrittenManifest : entry.readBytes()!;
+          encoder.addArchiveFile(ArchiveFile.bytes(entry.name, bytes));
+        }
+      } finally {
+        await encoder.close();
+      }
+
+      return targetPath;
+    }
+
+    test(
+      "imports a picked package into the picked parent folder and raises the report, without "
+      "opening anything itself",
+      () async {
+        final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
+        final fileSelectorManager = _FakeFileSelectorManager(result: XFile(packagePath));
+        final saveLocationService = _RecordingSaveLocationService(
+          directoryAnswer: importsParent.path,
+        );
+        final bloc = buildBloc(
+          fileSelectorManager: fileSelectorManager,
+          exportManager: OcptExportManager(
+            fileSelectorManager: const FileSelectorManager(),
+            saveLocationService: saveLocationService,
+          ),
+        );
+
+        bloc.add(
+          const OcptHomeImportProjectPackageRequestedEvent(
+            packageFileTypeLabel: "Project package",
+            destinationConfirmButtonText: "Import here",
+          ),
+        );
+
+        final state = await waitForState(bloc, (state) => state.projectPackageImportReport != null);
+
+        final report = state.projectPackageImportReport!;
+        expect(report.projectName, "Les Vagues");
+        expect(report.skippedAssets, isEmpty);
+        expect(File(report.projectFilePath).existsSync(), isTrue);
+        expect(fileSelectorManager.lastAllowedExtensions, ["ocptz"]);
+        expect(saveLocationService.lastDirectoryConfirmButtonText, "Import here");
+        expect(
+          projectsManager.currentProject,
+          isNull,
+          reason: "the bloc unpacks the package but never opens it itself",
+        );
+        expect(state.projectPackageImportError, isNull);
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      "an existing folder of that name comes back as destinationExists, raised through the state",
+      () async {
+        final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
+        Directory(p.join(importsParent.path, "Les Vagues")).createSync(recursive: true);
+
+        final bloc = buildBloc(
+          fileSelectorManager: _FakeFileSelectorManager(result: XFile(packagePath)),
+          exportManager: OcptExportManager(
+            fileSelectorManager: const FileSelectorManager(),
+            saveLocationService: _RecordingSaveLocationService(
+              directoryAnswer: importsParent.path,
+            ),
+          ),
+        );
+
+        bloc.add(
+          const OcptHomeImportProjectPackageRequestedEvent(
+            packageFileTypeLabel: "Project package",
+            destinationConfirmButtonText: "Import here",
+          ),
+        );
+
+        final state = await waitForState(bloc, (state) => state.projectPackageImportError != null);
+
+        expect(state.projectPackageImportError, OcptProjectPackageStatus.destinationExists);
+        expect(state.projectPackageImportReport, isNull);
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      "a packageFormat newer than this build's is refused with its own status rather than an "
+      "exception",
+      () async {
+        final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
+        final futurePackagePath = await repackagedWithManifest(
+          packagePath,
+          (manifest) => {...manifest, "packageFormat": 999},
+        );
+
+        final bloc = buildBloc(
+          fileSelectorManager: _FakeFileSelectorManager(result: XFile(futurePackagePath)),
+          exportManager: OcptExportManager(
+            fileSelectorManager: const FileSelectorManager(),
+            saveLocationService: _RecordingSaveLocationService(
+              directoryAnswer: importsParent.path,
+            ),
+          ),
+        );
+
+        bloc.add(
+          const OcptHomeImportProjectPackageRequestedEvent(
+            packageFileTypeLabel: "Project package",
+            destinationConfirmButtonText: "Import here",
+          ),
+        );
+
+        final state = await waitForState(bloc, (state) => state.projectPackageImportError != null);
+
+        expect(state.projectPackageImportError, OcptProjectPackageStatus.unsupportedPackageFormat);
+        expect(state.projectPackageImportReport, isNull);
+        expect(importsParent.listSync(), isEmpty);
+
+        await bloc.close();
+      },
+    );
+
+    test("a cancelled open dialog does nothing at all", () async {
+      final saveLocationService = _RecordingSaveLocationService(directoryAnswer: importsParent.path);
+      final bloc = buildBloc(
+        fileSelectorManager: _FakeFileSelectorManager(),
+        exportManager: OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        ),
+      );
+
+      bloc.add(
+        const OcptHomeImportProjectPackageRequestedEvent(
+          packageFileTypeLabel: "Project package",
+          destinationConfirmButtonText: "Import here",
+        ),
+      );
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.projectPackageImportReport, isNull);
+      expect(state.projectPackageImportError, isNull);
+      expect(
+        saveLocationService.lastDirectoryConfirmButtonText,
+        isNull,
+        reason: "the folder picker is never reached once the open dialog was cancelled",
+      );
+
+      await bloc.close();
+    });
+
+    test("a cancelled folder picker does nothing at all", () async {
+      final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
+      final bloc = buildBloc(
+        fileSelectorManager: _FakeFileSelectorManager(result: XFile(packagePath)),
+        exportManager: OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: _RecordingSaveLocationService(),
+        ),
+      );
+
+      bloc.add(
+        const OcptHomeImportProjectPackageRequestedEvent(
+          packageFileTypeLabel: "Project package",
+          destinationConfirmButtonText: "Import here",
+        ),
+      );
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.projectPackageImportReport, isNull);
+      expect(state.projectPackageImportError, isNull);
+      expect(importsParent.listSync(), isEmpty);
 
       await bloc.close();
     });

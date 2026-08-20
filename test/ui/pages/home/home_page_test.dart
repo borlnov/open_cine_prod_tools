@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_empty_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_import_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_file_newer_dialog.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -149,33 +150,44 @@ void main() {
     expect(inkWell.onTap, isNull);
   });
 
-  testWidgets('the import-a-screenplay action is shown in the header and the empty state', (
-    tester,
-  ) async {
+  testWidgets('the import action is shown in the header and the empty state', (tester) async {
     await _pumpHome(tester, const HomePage());
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(HomePage));
-    expect(find.text(Tr.of(context).homeImportScreenplayAction), findsNWidgets(2));
+    expect(find.text(Tr.of(context).homeImportAction), findsNWidgets(2));
   });
 
-  testWidgets('tapping the import-a-screenplay action starts the import flow', (tester) async {
+  testWidgets('tapping the import action calls back', (tester) async {
     var tapped = false;
     await _pumpHome(
       tester,
       OcptHomeHeader(
         onNewProject: () {},
         onOpenProject: () {},
-        onImportScreenplay: () => tapped = true,
+        onImport: () => tapped = true,
         onOpenSettings: () {},
       ),
     );
 
     final context = tester.element(find.byType(OcptHomeHeader));
-    await tester.tap(find.text(Tr.of(context).homeImportScreenplayAction));
+    await tester.tap(find.text(Tr.of(context).homeImportAction));
     await tester.pumpAndSettle();
 
     expect(tapped, isTrue);
+  });
+
+  testWidgets('Import… opens a modal offering a project and a screenplay', (tester) async {
+    await _pumpHome(tester, const HomePage());
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(HomePage));
+    await tester.tap(find.text(Tr.of(context).homeImportAction).first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptHomeImportDialog), findsOneWidget);
+    expect(find.text(Tr.of(context).homeImportProjectTitle), findsOneWidget);
+    expect(find.text(Tr.of(context).homeImportScreenplayTitle), findsOneWidget);
   });
 
   group("opening a project file from another build", () {

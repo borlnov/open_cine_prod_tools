@@ -114,3 +114,46 @@ class OcptHomeImportScreenplayRequestedEvent extends OcptHomeEvent {
   @override
   List<Object?> get props => [...super.props, fountainFileTypeLabel];
 }
+
+/// Requests unpacking a picked portable project package (`.ocptz`) into a project of its own.
+///
+/// Picks the package through an open-file dialog, then a **parent folder** to create
+/// `<project name>/` inside — never a single file, since a package unpacks into a folder holding
+/// the `.ocpt` and its `assets/`. It does not open the project it unpacks, and does not navigate
+/// anywhere: the outcome lands in the state, either
+/// `OcptHomeState.projectPackageImportError` (a status the page words) or
+/// `OcptHomeState.projectPackageImportReport` (for the page to state the skipped files, if any,
+/// then dispatch [OcptHomeOpenProjectRequestedEvent] itself) — the same compatibility gate every
+/// other door into a project file goes through, rather than a silent migration.
+class OcptHomeImportProjectPackageRequestedEvent extends OcptHomeEvent {
+  /// The label of the `.ocptz` file type shown in the native open-file dialog.
+  final String packageFileTypeLabel;
+
+  /// The label of the native folder picker's own confirm button, shown when picking the
+  /// destination's parent folder.
+  final String destinationConfirmButtonText;
+
+  /// Class constructor
+  const OcptHomeImportProjectPackageRequestedEvent({
+    required this.packageFileTypeLabel,
+    required this.destinationConfirmButtonText,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, packageFileTypeLabel, destinationConfirmButtonText];
+}
+
+/// Dismisses the transient project package import error currently shown, if any.
+class OcptHomeProjectPackageImportErrorDismissedEvent extends OcptHomeEvent {
+  /// Class constructor
+  const OcptHomeProjectPackageImportErrorDismissedEvent();
+}
+
+/// Reports that the page has read the last project package import's report — the one-shot field
+/// the page consumes to state the skipped files (if any) and then open the project itself — which
+/// clears it from the state.
+class OcptHomeProjectPackageImportReportDismissedEvent extends OcptHomeEvent {
+  /// Class constructor
+  const OcptHomeProjectPackageImportReportDismissedEvent();
+}

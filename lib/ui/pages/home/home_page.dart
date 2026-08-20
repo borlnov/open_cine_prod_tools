@@ -12,7 +12,9 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
+import 'package:open_cine_prod_tools/types/ocpt_home_import_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
@@ -20,9 +22,11 @@ import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_empty_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_import_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_new_project_name_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_file_newer_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_package_skipped_files_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
@@ -60,7 +64,7 @@ class _HomeView extends StatelessWidget {
               OcptHomeHeader(
                 onNewProject: () => _requestNewProject(context),
                 onOpenProject: () => _requestOpenProject(context),
-                onImportScreenplay: () => _requestImportScreenplay(context),
+                onImport: () => _requestImport(context),
                 onOpenSettings: () => _requestOpenSettings(context),
               ),
               const SizedBox(height: 24),
@@ -69,7 +73,7 @@ class _HomeView extends StatelessWidget {
                     ? OcptHomeEmptyState(
                         onNewProject: () => _requestNewProject(context),
                         onOpenProject: () => _requestOpenProject(context),
-                        onImportScreenplay: () => _requestImportScreenplay(context),
+                        onImport: () => _requestImport(context),
                       )
                     : GridView.builder(
                         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -115,8 +119,9 @@ class _HomeView extends StatelessWidget {
 
   /// States whatever [state] is holding for the user: the verdict on a project file whose format
   /// isn't this build's, the transient error of a failed create/open, a project card's export
-  /// pre-flight asking about missing files, and the outcome of that export — each dismissed from
-  /// the state as soon as it has been put on screen.
+  /// pre-flight asking about missing files, the outcome of that export, a failed project package
+  /// import, and a landed one's report — each dismissed from the state as soon as it has been put
+  /// on screen.
   void _onStateChanged(BuildContext context, OcptHomeState state) {
     final compatibility = state.pendingFileCompatibility;
     if (compatibility != null) {
@@ -148,6 +153,49 @@ class _HomeView extends StatelessWidget {
         );
       context.read<OcptHomeBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
+
+    final packageImportError = state.projectPackageImportError;
+    if (packageImportError != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_importErrorMessage(context, packageImportError))));
+
+      context.read<OcptHomeBloc>().add(const OcptHomeProjectPackageImportErrorDismissedEvent());
+    }
+
+    final packageImportReport = state.projectPackageImportReport;
+    if (packageImportReport != null) {
+      context.read<OcptHomeBloc>().add(const OcptHomeProjectPackageImportReportDismissedEvent());
+      unawaited(_landImportedPackage(context, packageImportReport));
+    }
+  }
+
+  /// States the skipped files a landed project package import carries, if any, then dispatches the
+  /// open that finishes bringing it in.
+  ///
+  /// The dialog is shown **before** the open, on purpose — the plan's own arbitration: a SnackBar
+  /// would be covered by the pushed workspace within the second, and nothing at all is said when
+  /// [report] carries no skipped file, the project opening being the report then. The open reuses
+  /// the very same compatibility gate every other door into a project file goes through: a package
+  /// built by an older build lands as files here and *then* asks its migration question, exactly as
+  /// tapping a recent project card would.
+  Future<void> _landImportedPackage(
+    BuildContext context,
+    OcptProjectPackageImportReport report,
+  ) async {
+    if (report.skippedAssets.isNotEmpty) {
+      await OcptProjectPackageSkippedFilesDialog.show(context, skippedAssets: report.skippedAssets);
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    context.read<OcptHomeBloc>().add(
+      OcptHomeOpenProjectRequestedEvent(
+        filePath: report.projectFilePath,
+        fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel,
+      ),
+    );
   }
 
   /// Asks whether to write a card's package even though some referenced files are gone, then
@@ -246,6 +294,26 @@ class _HomeView extends StatelessWidget {
     };
   }
 
+  /// Maps [status] to its localized, user-facing message.
+  ///
+  /// [OcptProjectPackageStatus.ok] and [OcptProjectPackageStatus.sourceNotFound] are never raised
+  /// by an import — the former is success, not an error, and the latter is
+  /// `OcptProjectsManager.exportProjectPackage`'s own refusal for a project file gone missing
+  /// between picking it and reading it, which an import's own picked `.ocptz` has no equivalent
+  /// of. Both still need a branch for the switch to be exhaustive, so each falls back to the same
+  /// generic sentence [OcptProjectPackageStatus.ioError] gets.
+  String _importErrorMessage(BuildContext context, OcptProjectPackageStatus status) {
+    final tr = Tr.of(context);
+
+    return switch (status) {
+      OcptProjectPackageStatus.ok || OcptProjectPackageStatus.sourceNotFound => "",
+      OcptProjectPackageStatus.unreadableArchive => tr.homeImportErrorUnreadableArchive,
+      OcptProjectPackageStatus.unsupportedPackageFormat => tr.homeImportErrorUnsupportedFormat,
+      OcptProjectPackageStatus.destinationExists => tr.homeImportErrorDestinationExists,
+      OcptProjectPackageStatus.ioError => tr.homeImportErrorIoError,
+    };
+  }
+
   /// Asks the user for a new project's name, then dispatches the creation request.
   Future<void> _requestNewProject(BuildContext context) async {
     final bloc = context.read<OcptHomeBloc>();
@@ -264,11 +332,44 @@ class _HomeView extends StatelessWidget {
     );
   }
 
+  /// Opens the `Import…` modal, then dispatches whichever of the two import flows the user picked
+  /// a card for — a cancelled modal is a silent no-op, exactly as every dialog of this app treats
+  /// one.
+  Future<void> _requestImport(BuildContext context) async {
+    final kind = await OcptHomeImportDialog.show(context);
+    if (kind == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    switch (kind) {
+      case OcptHomeImportKind.project:
+        _requestImportProjectPackage(context);
+      case OcptHomeImportKind.screenplay:
+        _requestImportScreenplay(context);
+    }
+  }
+
   /// Dispatches the import-screenplay request that shows the `.fountain` open-file dialog.
   void _requestImportScreenplay(BuildContext context) {
     context.read<OcptHomeBloc>().add(
       OcptHomeImportScreenplayRequestedEvent(
         fountainFileTypeLabel: Tr.of(context).homeImportFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Dispatches the import-project-package request that shows the `.ocptz` open-file dialog, then
+  /// the destination folder picker.
+  void _requestImportProjectPackage(BuildContext context) {
+    final tr = Tr.of(context);
+
+    context.read<OcptHomeBloc>().add(
+      OcptHomeImportProjectPackageRequestedEvent(
+        packageFileTypeLabel: tr.projectPackageFileTypeLabel,
+        destinationConfirmButtonText: tr.homeImportProjectDestinationConfirmAction,
       ),
     );
   }
