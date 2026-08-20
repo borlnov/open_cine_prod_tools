@@ -8725,6 +8725,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExpandSlotTooltip": "Show this unit in full",
+  "@scheduleExpandSlotTooltip": {
+    "description": "Tooltip of the control opening a compact audition row back into its full slot card",
+    "context": "Displayed in the schedule mode's day view",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportPanelTitle": "Export the schedule",
   "@scheduleExportPanelTitle": {
     "description": "Title of the schedule mode's export panel",

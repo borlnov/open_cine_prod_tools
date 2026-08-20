@@ -17,8 +17,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_compact_slot_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_events_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
@@ -175,6 +177,14 @@ class OcptScheduleDayView extends StatelessWidget {
   /// footer, or null while withheld.
   final void Function(String slotId, String personId)? onSlotGuestAdded;
 
+  /// Called with a slot's id and the id of the candidacy picked by that slot card's own
+  /// `+ Candidate` footer, or null while withheld — see [OcptScheduleSlotCard.onCandidateAdded].
+  final void Function(String slotId, String roleCandidateId)? onSlotCandidateAdded;
+
+  /// Called with a candidate convocation's id when its own remove control is clicked, or null while
+  /// withheld — see [OcptScheduleSlotCard.onCandidateRemoved].
+  final ValueChanged<String>? onSlotCandidateRemoved;
+
   /// Called with a guest attendance's id when its row's remove control is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onSlotGuestRemoved;
@@ -306,6 +316,8 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onSlotCrewMemberRemoved,
     required this.onSlotCastRoleAdded,
     required this.onSlotCastRoleRemoved,
+    required this.onSlotCandidateAdded,
+    required this.onSlotCandidateRemoved,
     required this.onSlotGuestAdded,
     required this.onSlotGuestRemoved,
     required this.slotGuestReasonValueOf,
@@ -345,7 +357,19 @@ class OcptScheduleDayView extends StatelessWidget {
         for (final (index, slot) in slots.indexed)
           Padding(
             padding: const EdgeInsets.only(bottom: 11),
-            child: OcptScheduleSlotCard(
+            child: _OcptScheduleSlotSection(
+              key: ValueKey(slot.id),
+              compactAudition: _compactAuditionOf(slot),
+              compactBuilder: (auditionBlock, onExpandRequested) =>
+                  OcptScheduleCompactSlotRow(
+                    slot: slot,
+                    auditionBlock: auditionBlock,
+                    timeline: timeline?.bySlotId[slot.id],
+                    roleById: roleById,
+                    roleCandidateById: roleCandidateById,
+                    onExpandRequested: onExpandRequested,
+                  ),
+              cardBuilder: () => OcptScheduleSlotCard(
               slot: slot,
               location: slot.locationId == null ? null : locationById[slot.locationId],
               set: slot.setId == null ? null : setById[slot.setId],
@@ -392,6 +416,10 @@ class OcptScheduleDayView extends StatelessWidget {
                   ? null
                   : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
               onCastRoleRemoved: onSlotCastRoleRemoved,
+              onCandidateAdded: onSlotCandidateAdded == null
+                  ? null
+                  : (roleCandidateId) => onSlotCandidateAdded!(slot.id, roleCandidateId),
+              onCandidateRemoved: onSlotCandidateRemoved,
               onGuestAdded: onSlotGuestAdded == null
                   ? null
                   : (personId) => onSlotGuestAdded!(slot.id, personId),
@@ -424,6 +452,7 @@ class OcptScheduleDayView extends StatelessWidget {
                   ? null
                   : () => onAuditionBlockRequested!(slot.id),
               onBlockMovedToSlot: onBlockMovedToSlot,
+              ),
             ),
           ),
         if (onSlotAdded != null)
@@ -446,6 +475,32 @@ class OcptScheduleDayView extends StatelessWidget {
         const SizedBox(height: 24),
       ],
     );
+  }
+
+  /// [slot]'s own single audition block, when that is the whole of what it carries — what makes it
+  /// draw as a compact row — or null in every other case, which is what makes it draw its full card.
+  ///
+  /// **The whole content, not merely the first block** (see [OcptScheduleCompactSlotRow]): a slot
+  /// carrying an audition *and* anything else is a unit with a running order, and a running order is
+  /// exactly what a card is for. A day that shoots never compacts either — its blocks are shots, and
+  /// this reading is about the twelve-slot casting day ADR 0018's own cost lands on.
+  OcptShootingDayBlock? _compactAuditionOf(OcptShootingSlot slot) {
+    if (day.kind == OcptShootingDayKind.shoot) {
+      return null;
+    }
+
+    OcptShootingDayBlock? onlyBlock;
+    for (final block in blocks) {
+      if (block.slotId != slot.id) {
+        continue;
+      }
+      if (onlyBlock != null) {
+        return null;
+      }
+      onlyBlock = block;
+    }
+
+    return onlyBlock?.kind == OcptShootingBlockKind.audition ? onlyBlock : null;
   }
 
   /// The day's own summary band: arrival → estimated end, sun times, weather and the total (shot
@@ -547,6 +602,59 @@ class OcptScheduleDayView extends StatelessWidget {
         const SizedBox(height: 3),
         Text(value, style: theme.textTheme.bodySmall),
       ],
+    );
+  }
+}
+
+/// One slot's own place in the day view: its [OcptScheduleCompactSlotRow] while it holds nothing
+/// but a single audition and the user has not opened it, its full [OcptScheduleSlotCard] otherwise.
+///
+/// The fold is **per-view [State]**, keyed by the slot's own id, and expanded state is deliberately
+/// not persisted anywhere: it is a reading preference, and losing it the next time the day is opened
+/// costs one click. The very argument the slot card's own people section already makes for its fold.
+///
+/// It owns nothing but that state — both renderings are built by the day view, which is where every
+/// row, callback and catalogue they need is already in scope, so this widget takes them as builders
+/// rather than re-declaring the thirty fields it would only forward.
+class _OcptScheduleSlotSection extends StatefulWidget {
+  /// The single audition block this slot carries, when that is the whole of its content — see
+  /// `OcptScheduleDayView._compactAuditionOf`. Null means "draw the card", full stop.
+  final OcptShootingDayBlock? compactAudition;
+
+  /// Builds the compact row, given that audition block and the callback opening the card.
+  final Widget Function(OcptShootingDayBlock auditionBlock, VoidCallback onExpandRequested)
+  compactBuilder;
+
+  /// Builds the full card.
+  final Widget Function() cardBuilder;
+
+  /// Class constructor
+  const _OcptScheduleSlotSection({
+    super.key,
+    required this.compactAudition,
+    required this.compactBuilder,
+    required this.cardBuilder,
+  });
+
+  @override
+  State<_OcptScheduleSlotSection> createState() => _OcptScheduleSlotSectionState();
+}
+
+/// The state of [_OcptScheduleSlotSection]: whether the user has opened this slot's own card.
+class _OcptScheduleSlotSectionState extends State<_OcptScheduleSlotSection> {
+  /// Whether the user asked for the full card of a slot that would otherwise draw compact.
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final compactAudition = widget.compactAudition;
+    if (compactAudition == null || _isExpanded) {
+      return widget.cardBuilder();
+    }
+
+    return widget.compactBuilder(
+      compactAudition,
+      () => setState(() => _isExpanded = true),
     );
   }
 }

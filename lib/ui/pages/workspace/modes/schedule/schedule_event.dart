@@ -504,6 +504,46 @@ class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, castRoleId];
 }
 
+/// Convokes candidacy [roleCandidateId] on slot [slotId], dispatched by the candidates band's own
+/// `+ Candidate` footer — the fourth kind of link a slot carries, and the one a casting day is
+/// planned with (ADR 0018: you are convoked because you are linked to a slot).
+///
+/// It names a **candidacy**, never a person: the convocation is about somebody being seen *for a
+/// part*, and one person seen for two parts on one day is two convocations.
+class OcptScheduleSlotCandidateAddedEvent extends OcptScheduleEvent {
+  /// The id of the slot the candidate is convoked on.
+  final String slotId;
+
+  /// The id of the candidacy convoked — who, for which part.
+  final String roleCandidateId;
+
+  /// Class constructor
+  const OcptScheduleSlotCandidateAddedEvent({
+    required this.slotId,
+    required this.roleCandidateId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, roleCandidateId];
+}
+
+/// Removes candidate convocation [slotCandidateId] for good, dispatched by its own row's dismissal.
+///
+/// **Touches no block**: an audition block naming that candidacy stays exactly where it is — see
+/// `OcptScheduleService.removeSlotCandidate`.
+class OcptScheduleSlotCandidateRemovedEvent extends OcptScheduleEvent {
+  /// The id of the candidate convocation to remove.
+  final String slotCandidateId;
+
+  /// Class constructor
+  const OcptScheduleSlotCandidateRemovedEvent({required this.slotCandidateId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotCandidateId];
+}
+
 /// Adds [personId] to slot [slotId]'s own guests, dispatched by the guest band's own `+ Guest`
 /// footer — the address book alone, per Benoit's own decision: nobody is created from this mode, so
 /// there is no free-named counterpart of this event.

@@ -96,6 +96,12 @@ const double _personCardWidth = 230;
 /// revealed from the `⋮` menu before it could be filled hid the very affordance somebody looking for
 /// it was after.
 ///
+/// **A fourth band, `Candidats`, sits under the guests on a casting day and on no other**: there is
+/// nobody to audition on a day that shoots, and a band drawn empty everywhere would ask a question
+/// most days never have. Its rows are `shooting_slot_candidates` — a convocation naming a
+/// **candidacy**, so each card reads the person and the part they are coming to be seen for — and
+/// its footer offers every candidacy of the project this slot does not already convoke.
+///
 /// **The anchor control is a flat menu on the edge label** (`Début à heure fixe`, `Fin à heure
 /// fixe`, then one entry per other slot of the day, in both directions), with the typed hour beside
 /// it and the computed opposite edge under it. An entry that would close a circle of anchors is
@@ -110,7 +116,7 @@ const double _personCardWidth = 230;
 /// the anchor menu and its own minute field, the `▲`/`▼` controls moving the card in its day's
 /// list, every
 /// crew/cast row's own position picker and remove control, every guest row's own remove control and
-/// its own reason/notes fields, all three `+`
+/// its own reason/notes fields, every candidate row's own remove control, all four `+`
 /// footers, and every writing affordance of the timetable itself, its own hold row's sequence
 /// picker included (see [OcptScheduleTimetable]'s own doc comment). Nothing here reads a
 /// `pendingFieldEdits` map itself — [labelValue] is already resolved by the caller, exactly as
@@ -212,6 +218,17 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// Called with the id of the person picked by the guest band's own `+ Guest` footer, or null while
   /// withheld — also what gates the `⋮` menu's own `Add a guest` entry (see the class doc comment).
   final ValueChanged<String>? onGuestAdded;
+
+  /// Called with the id of the candidacy picked by the candidates band's own `+ Candidate` footer,
+  /// or null while withheld — drawn on a casting day alone, this being the only kind of day with
+  /// anybody to audition.
+  final ValueChanged<String>? onCandidateAdded;
+
+  /// Called with a candidate convocation's id when its row's remove control is clicked, or null
+  /// while withheld. Removing the convocation leaves any audition block naming that candidacy
+  /// exactly where it is: un-convoking somebody and taking their audition out of the running order
+  /// are two gestures.
+  final ValueChanged<String>? onCandidateRemoved;
 
   /// Called with a guest attendance's id when its row's remove control is clicked, or null while
   /// withheld.
@@ -324,6 +341,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.onCrewMemberRemoved,
     required this.onCastRoleAdded,
     required this.onCastRoleRemoved,
+    required this.onCandidateAdded,
+    required this.onCandidateRemoved,
     required this.onGuestAdded,
     required this.onGuestRemoved,
     required this.guestReasonValueOf,
@@ -404,7 +423,11 @@ class OcptScheduleSlotCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
             child: _OcptScheduleSlotPeople(
-              peopleCount: slot.crew.length + slot.cast.length + slot.guests.length,
+              peopleCount:
+                  slot.crew.length +
+                  slot.cast.length +
+                  slot.guests.length +
+                  slot.candidates.length,
               crewBuilder: (cardWidth) => _OcptScheduleCrewSection(
                 crew: slot.crew,
                 personById: personById,
@@ -416,6 +439,9 @@ class OcptScheduleSlotCard extends StatelessWidget {
               ),
               castBuilder: (cardWidth) => _buildCastColumn(context, cardWidth: cardWidth),
               guestsBuilder: () => _buildGuestBand(context),
+              candidatesBuilder: dayKind == OcptShootingDayKind.casting
+                  ? () => _buildCandidatesBand(context)
+                  : null,
             ),
           ),
           Padding(
@@ -1014,6 +1040,122 @@ class OcptScheduleSlotCard extends StatelessWidget {
       ],
     );
   }
+  /// The candidates band, under the guests and drawn on a **casting day alone**: the candidacies
+  /// this slot convokes, wrapped at [_personCardWidth] over the card's whole width exactly as the
+  /// guests are, then the `+ Candidate` footer offering every candidacy of the project this slot
+  /// does not already convoke.
+  ///
+  /// A row whose candidacy the project no longer holds is **left out**: the convocation points at
+  /// nobody, and drawing a nameless card would be worse than drawing nothing. Nothing cascades it
+  /// away either — see `OcptShootingSlotCandidatesTable`.
+  Widget _buildCandidatesBand(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    final rows = [
+      for (final convocation in slot.candidates)
+        if (roleCandidateById[convocation.roleCandidateId] != null)
+          (convocation, roleCandidateById[convocation.roleCandidateId]!),
+    ];
+    final convokedCandidacyIds = {
+      for (final convocation in slot.candidates) convocation.roleCandidateId,
+    };
+    final offerable = [
+      for (final candidate in roleCandidateById.values)
+        if (!convokedCandidacyIds.contains(candidate.id)) candidate,
+    ]..sort((left, right) => left.person.displayName.compareTo(right.person.displayName));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPeopleSubsectionTitle(
+          context,
+          title: tr.scheduleSlotCandidatesColumnTitle,
+          count: rows.length,
+        ),
+        const SizedBox(height: 7),
+        if (rows.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              tr.scheduleSlotCandidatesEmptyHint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final (convocation, candidate) in rows)
+                    SizedBox(
+                      width: math.min(_personCardWidth, constraints.maxWidth),
+                      child: _OcptScheduleSlotCandidateRow(
+                        key: ValueKey(convocation.id),
+                        candidate: candidate,
+                        role: roleById[candidate.roleId],
+                        onRemoved: onCandidateRemoved == null
+                            ? null
+                            : () => onCandidateRemoved!(convocation.id),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        if (onCandidateAdded != null)
+          // Everybody the project has seen is already on this unit: the footer says so rather than
+          // opening a menu with nothing in it.
+          offerable.isEmpty
+              ? Text(
+                  tr.scheduleCandidateAlreadyConvokedHint,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              : PopupMenuButton<String>(
+                  tooltip: "",
+                  onSelected: onCandidateAdded,
+                  itemBuilder: (context) => [
+                    for (final candidate in offerable)
+                      PopupMenuItem<String>(
+                        value: candidate.id,
+                        child: Text(_candidateMenuLabelOf(tr, candidate)),
+                      ),
+                  ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add, size: 14),
+                      const SizedBox(width: 4),
+                      Text(tr.scheduleAddCandidateAction, style: theme.textTheme.labelSmall),
+                    ],
+                  ),
+                ),
+      ],
+    );
+  }
+
+  /// One entry of the `+ Candidate` menu: who, and for which part — the same pair an audition row
+  /// of the timetable reads, since two candidacies of one person are two different entries and a
+  /// name alone could not tell them apart.
+  String _candidateMenuLabelOf(Tr tr, OcptRoleCandidate candidate) {
+    final role = roleById[candidate.roleId];
+
+    return tr.scheduleAuditionBlockLabel(
+      candidate.person.displayName.isEmpty
+          ? tr.resourcesUnnamedPerson
+          : candidate.person.displayName,
+      role == null || role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
+    );
+  }
 }
 
 /// One kind of person's own title row inside [_OcptScheduleSlotPeople]'s section, shared by
@@ -1079,12 +1221,18 @@ class _OcptScheduleSlotPeople extends StatefulWidget {
   /// Builds the guest band, which spans the section's whole width and therefore takes none.
   final Widget Function() guestsBuilder;
 
+  /// Builds the candidates band under the guests, or null on a day with nobody to audition — a
+  /// shooting day draws no such band at all rather than an empty one, absence of a question being
+  /// different from an unanswered one.
+  final Widget Function()? candidatesBuilder;
+
   /// Class constructor
   const _OcptScheduleSlotPeople({
     required this.peopleCount,
     required this.crewBuilder,
     required this.castBuilder,
     required this.guestsBuilder,
+    required this.candidatesBuilder,
   });
 
   @override
@@ -1122,6 +1270,10 @@ class _OcptScheduleSlotPeopleState extends State<_OcptScheduleSlotPeople> {
         ),
         const SizedBox(height: 11),
         widget.guestsBuilder(),
+        if (widget.candidatesBuilder != null) ...[
+          const SizedBox(height: 11),
+          widget.candidatesBuilder!(),
+        ],
       ],
     ],
   );
@@ -1554,6 +1706,81 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               color: person == null ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One candidate's own card of [OcptScheduleSlotCard]'s candidates band, built in the same
+/// [_buildSlotPersonCard] shell every other convoked person's is: who is coming, and the part they
+/// are coming to be seen for.
+///
+/// **The part is read out under the name, not instead of it**, which is the mirror of what
+/// [_OcptScheduleCastRoleRow] does: a cast row asks "which part is convoked, and who plays it", a
+/// candidate row asks "who is coming, and what for" — nobody plays the part yet, which is the whole
+/// reason this band exists.
+///
+/// It carries **no clock at all**, exactly as every other card on this slot: a convocation is a fact
+/// about a person on a day, joined across every slot they sit on, and the hours live in the
+/// `Convocations` dock tab.
+class _OcptScheduleSlotCandidateRow extends StatelessWidget {
+  /// The candidacy this row shows — who, for which part.
+  final OcptRoleCandidate candidate;
+
+  /// The part [candidate] is seen for, or null while the cast no longer holds it (read defensively,
+  /// no cascade dropping this row).
+  final OcptRole? role;
+
+  /// Called when this row's remove control is clicked, or null while withheld.
+  final VoidCallback? onRemoved;
+
+  /// Class constructor
+  const _OcptScheduleSlotCandidateRow({
+    super.key,
+    required this.candidate,
+    required this.role,
+    required this.onRemoved,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final role = this.role;
+
+    return _buildSlotPersonCard(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  candidate.person.displayName.isEmpty
+                      ? tr.resourcesUnnamedPerson
+                      : candidate.person.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              if (onRemoved != null)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 14),
+                  visualDensity: VisualDensity.compact,
+                  tooltip: tr.scheduleRemoveCandidateTooltip,
+                  onPressed: onRemoved,
+                ),
+            ],
+          ),
+          Text(
+            role == null || role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
       ),

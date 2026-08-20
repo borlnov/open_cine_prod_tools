@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -13,8 +14,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 /// The right dock's own `Convocations` tab: the selected day's whole call, one card per **person**
 /// (crew and cast folded together — an actor is read through `roles.personId`, so the question this
 /// panel answers is "when does this human arrive" rather than "who plays what") or per **uncast
-/// role** — a convocation nobody has cast yet, still owed to the production — then, in their own
-/// **trailing group** under its own heading, one card per **guest** (address-book or free-named).
+/// role** — a convocation nobody has cast yet, still owed to the production — then two **trailing
+/// groups**, each under its own heading: one card per **candidate** convoked to be seen for a part,
+/// and one card per **guest** (address-book or free-named).
 /// This is the reading nobody could get from a single slot card any more, once a person may sit on
 /// several of a day's slots at once (ADR 0018): a slot card only ever draws its own `startMinute`,
 /// and every other clock about a person moved here.
@@ -23,6 +25,13 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 /// reading as an em dash, [OcptDayConvocation.isGuest] never carrying a PAT band at all — kept in
 /// its own group rather than interleaved with the crew and cast by arrival, so a reader can tell "who
 /// is here to work" from "who is here to watch" at a glance.
+///
+/// A **candidate**'s card is that same card again, and unlike a guest's it reads a **real band**:
+/// somebody seen for a part is working, and their band is read off the day's auditions like anybody
+/// else's (ADR 0018). They are grouped apart on the same argument that gives guests their group —
+/// the call an assistant director reads down is the crew and the cast — and **before** the guests,
+/// being the one group that is there to be seen. Candidates sit ahead of guests for that reason and
+/// no other.
 ///
 /// Entirely **read-only**: every figure on a card is computed by `ocptComputeDayConvocations`
 /// (through `OcptScheduleState.convocationsOfDay`), and the only way to change any of them is to
@@ -43,8 +52,13 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
   final Map<String, OcptPerson> personById;
 
   /// The whole cast, keyed by id — an uncast convocation's own [OcptDayConvocation.roleId] is
-  /// resolved to a name through this map.
+  /// resolved to a name through this map, and so is the part a candidate is coming to be seen for.
   final Map<String, OcptRole> roleById;
+
+  /// Every live candidacy, keyed by id — a candidate convocation's own
+  /// [OcptDayConvocation.roleCandidateId] is resolved to a person and a part through this map.
+  /// Empty on a project that has auditioned nobody, which draws no candidate group at all.
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// The selected day's own live slots, keyed by id — every entry of an
   /// [OcptDayConvocation.slotIds] is resolved to a label through this map.
@@ -56,6 +70,7 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     required this.convocations,
     required this.personById,
     required this.roleById,
+    required this.roleCandidateById,
     required this.slotById,
   });
 
@@ -68,9 +83,18 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
       return _buildHint(context, tr.scheduleConvocationsEmptyHint);
     }
 
-    final mainRows = _sortedRows(tr, convocations.where((convocation) => !convocation.isGuest));
+    final mainRows = _sortedRows(
+      tr,
+      convocations.where(
+        (convocation) => !convocation.isGuest && !convocation.isCandidate,
+      ),
+    );
+    final candidateRows = _sortedRows(
+      tr,
+      convocations.where((convocation) => convocation.isCandidate),
+    );
     final guestRows = _sortedRows(tr, convocations.where((convocation) => convocation.isGuest));
-    if (mainRows.isEmpty && guestRows.isEmpty) {
+    if (mainRows.isEmpty && candidateRows.isEmpty && guestRows.isEmpty) {
       return _buildHint(context, tr.scheduleConvocationsNoConvocationHint);
     }
 
@@ -78,8 +102,14 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         for (final (convocation, title) in mainRows) _buildCard(context, convocation, title),
-        if (guestRows.isNotEmpty) ...[
+        if (candidateRows.isNotEmpty) ...[
           if (mainRows.isNotEmpty) const SizedBox(height: 8),
+          _buildSectionHeading(context, tr.scheduleConvocationsCandidatesSectionTitle),
+          const SizedBox(height: 8),
+          for (final (convocation, title) in candidateRows) _buildCard(context, convocation, title),
+        ],
+        if (guestRows.isNotEmpty) ...[
+          if (mainRows.isNotEmpty || candidateRows.isNotEmpty) const SizedBox(height: 8),
           _buildSectionHeading(context, tr.scheduleConvocationsGuestsSectionTitle),
           const SizedBox(height: 8),
           for (final (convocation, title) in guestRows) _buildCard(context, convocation, title),
@@ -97,8 +127,8 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
         slotsLabel: ocptScheduleConvocationSlotsLabel(Tr.of(context), convocation, slotById),
       );
 
-  /// The guest group's own heading — muted, uppercased, the same idiom the slot card's own people
-  /// section titles use.
+  /// A trailing group's own heading — muted, uppercased, the same idiom the slot card's own people
+  /// section titles use, drawn identically for the candidates and for the guests.
   Widget _buildSectionHeading(BuildContext context, String title) {
     final theme = Theme.of(context);
 
@@ -112,11 +142,21 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
   /// order people actually walk in, which `ocptComputeDayConvocations` itself cannot produce: it
   /// ties on id for want of a name, and resolving one is this state's own job, not that pure
   /// function's (see [OcptDayConvocation]'s own doc comment). Used once per group ([build]), so a
-  /// guest is never sorted against a crew or cast row it doesn't share a heading with.
+  /// guest or a candidate is never sorted against a crew or cast row it doesn't share a heading
+  /// with.
   List<(OcptDayConvocation, String)> _sortedRows(Tr tr, Iterable<OcptDayConvocation> source) {
     final rows = [
       for (final convocation in source)
-        (convocation, ocptScheduleConvocationTitle(tr, convocation, personById, roleById)),
+        (
+          convocation,
+          ocptScheduleConvocationTitle(
+            tr,
+            convocation,
+            personById,
+            roleById,
+            roleCandidateById: roleCandidateById,
+          ),
+        ),
     ];
 
     rows.sort((left, right) {

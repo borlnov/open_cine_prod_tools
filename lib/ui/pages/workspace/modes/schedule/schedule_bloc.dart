@@ -214,6 +214,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleSlotCrewMemberRemovedEvent>(_onSlotCrewMemberRemoved);
     on<OcptScheduleSlotCastRoleAddedEvent>(_onSlotCastRoleAdded);
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
+    on<OcptScheduleSlotCandidateAddedEvent>(_onSlotCandidateAdded);
+    on<OcptScheduleSlotCandidateRemovedEvent>(_onSlotCandidateRemoved);
     on<OcptScheduleSlotGuestAddedEvent>(_onSlotGuestAdded);
     on<OcptScheduleSlotGuestRemovedEvent>(_onSlotGuestRemoved);
     on<OcptScheduleDayEventCreatedEvent>(_onDayEventCreated);
@@ -951,6 +953,41 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.removeSlotCastRole(database: project.database, castRoleId: event.castRoleId);
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Convokes a candidate on a slot — the fourth kind of link a slot carries.
+  Future<void> _onSlotCandidateAdded(
+    OcptScheduleSlotCandidateAddedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.addSlotCandidate(
+      database: project.database,
+      slotId: event.slotId,
+      roleCandidateId: event.roleCandidateId,
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Removes a candidate's own convocation from a slot, leaving every block alone.
+  Future<void> _onSlotCandidateRemoved(
+    OcptScheduleSlotCandidateRemovedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.removeSlotCandidate(
+      database: project.database,
+      slotCandidateId: event.slotCandidateId,
+    );
     await _applyScheduleSnapshot(emitter, project);
   }
 

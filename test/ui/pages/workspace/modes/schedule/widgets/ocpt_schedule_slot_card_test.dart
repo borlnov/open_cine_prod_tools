@@ -9,14 +9,17 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
@@ -47,6 +50,7 @@ OcptShootingSlot _buildSlot({
   List<OcptShootingSlotCrewMember> crew = const [],
   List<OcptShootingSlotCastMember> cast = const [],
   List<OcptShootingSlotGuest> guests = const [],
+  List<OcptShootingSlotCandidate> candidates = const [],
   OcptShootingSlotAnchorEdge anchorEdge = OcptShootingSlotAnchorEdge.start,
   int? anchorMinute = 480,
   String? anchorSlotId,
@@ -63,7 +67,33 @@ OcptShootingSlot _buildSlot({
   crew: crew,
   cast: cast,
   guests: guests,
-  candidates: const [],
+  candidates: candidates,
+);
+
+/// Builds a candidacy — somebody seen for a part — with the few fields these tests read.
+OcptRoleCandidate _buildCandidacy({
+  required String id,
+  required String roleId,
+  required OcptPerson person,
+}) => OcptRoleCandidate(
+  id: id,
+  roleId: roleId,
+  person: person,
+  status: OcptRoleCandidateStatus.seen,
+  auditionedOn: null,
+  notes: "",
+);
+
+/// Builds a candidate's own convocation on a slot.
+OcptShootingSlotCandidate _buildSlotCandidate({
+  required String id,
+  required String roleCandidateId,
+  String slotId = "slot-1",
+}) => OcptShootingSlotCandidate(
+  id: id,
+  slotId: slotId,
+  roleCandidateId: roleCandidateId,
+  notes: "",
 );
 
 /// Builds a person with the few fields these tests read, everything else neutral.
@@ -180,6 +210,11 @@ void main() {
     ValueChanged<String>? onCastRoleAdded,
     ValueChanged<String>? onGuestAdded,
     ValueChanged<String>? onGuestRemoved,
+    List<OcptShootingSlotCandidate> candidates = const [],
+    Map<String, OcptRoleCandidate> roleCandidateById = const {},
+    OcptShootingDayKind dayKind = OcptShootingDayKind.shoot,
+    ValueChanged<String>? onCandidateAdded,
+    ValueChanged<String>? onCandidateRemoved,
     String Function(String guestId)? guestReasonValueOf,
     void Function(String guestId, String rawValue)? onGuestReasonChanged,
     String Function(String guestId)? guestNotesValueOf,
@@ -208,6 +243,7 @@ void main() {
       crew: crew,
       cast: cast,
       guests: guests,
+      candidates: candidates,
       anchorEdge: anchorEdge,
       anchorMinute: anchorMinute,
       anchorSlotId: anchorSlotId,
@@ -217,6 +253,8 @@ void main() {
     locations: const [],
     personById: {(crewPerson ?? person).id: crewPerson ?? person},
     roleById: {role.id: role},
+    dayKind: dayKind,
+    roleCandidateById: roleCandidateById,
     people: [crewPerson ?? person],
     roles: [role],
     labelValue: "Matin",
@@ -256,9 +294,9 @@ void main() {
     onBlockAdded: isReadOnly ? null : (onBlockAdded ?? (_) {}),
     onShotBlockRequested: isReadOnly ? null : (onShotBlockRequested ?? () {}),
     onBlockMovedToSlot: isReadOnly ? null : (onBlockMovedToSlot ?? (_, _) {}),
-    dayKind: OcptShootingDayKind.shoot,
     onAuditionBlockRequested: null,
-    roleCandidateById: const {},
+    onCandidateAdded: isReadOnly ? null : onCandidateAdded,
+    onCandidateRemoved: isReadOnly ? null : onCandidateRemoved,
   );
 
   testWidgets("the `+ Crew member` footer opens a picker dispatching the person just picked", (
@@ -950,4 +988,134 @@ void main() {
       expect(find.byIcon(Icons.close), findsNothing);
     },
   );
+
+  testWidgets("no candidates band is drawn on a day that shoots", (tester) async {
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotCandidatesColumnTitle.toUpperCase()), findsNothing);
+  });
+
+  testWidgets("a casting day draws the band, its rows naming who is seen and for what", (tester) async {
+    final candidatePerson = _buildPerson(id: "person-9", firstName: "Camille");
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          dayKind: OcptShootingDayKind.casting,
+          candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "candidacy-1")],
+          roleCandidateById: {
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: role.id,
+              person: candidatePerson,
+            ),
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotCandidatesColumnTitle.toUpperCase()), findsOneWidget);
+    expect(find.text("Camille"), findsOneWidget);
+    expect(find.text(role.name), findsWidgets);
+  });
+
+  testWidgets("an empty band on a casting day shows its own hint", (tester) async {
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, dayKind: OcptShootingDayKind.casting)));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotCandidatesEmptyHint), findsOneWidget);
+  });
+
+  testWidgets("a convocation onto a candidacy the project no longer holds is left out", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          dayKind: OcptShootingDayKind.casting,
+          candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "gone")],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotCandidatesEmptyHint), findsOneWidget);
+  });
+
+  testWidgets("the `+ Candidate` footer offers the candidacies this slot doesn't convoke", (tester) async {
+    final alreadyConvoked = _buildPerson(id: "person-9", firstName: "Camille");
+    final offerable = _buildPerson(id: "person-10", firstName: "Alice");
+    String? addedCandidacyId;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          dayKind: OcptShootingDayKind.casting,
+          candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "candidacy-1")],
+          roleCandidateById: {
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: role.id,
+              person: alreadyConvoked,
+            ),
+            "candidacy-2": _buildCandidacy(
+              id: "candidacy-2",
+              roleId: role.id,
+              person: offerable,
+            ),
+          },
+          onCandidateAdded: (id) => addedCandidacyId = id,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleAddCandidateAction));
+    await tester.pumpAndSettle();
+
+    // The one already on this unit is absent from the menu; the other one reads as who, for which
+    // part, two candidacies of one person being indistinguishable by name alone.
+    expect(find.text(tr.scheduleAuditionBlockLabel("Camille", role.name)), findsNothing);
+    await tester.tap(find.text(tr.scheduleAuditionBlockLabel("Alice", role.name)));
+    await tester.pumpAndSettle();
+
+    expect(addedCandidacyId, "candidacy-2");
+  });
+
+  testWidgets("the band's remove control is withheld under a read-only preview", (tester) async {
+    final candidatePerson = _buildPerson(id: "person-9", firstName: "Camille");
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: true,
+          dayKind: OcptShootingDayKind.casting,
+          candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "candidacy-1")],
+          roleCandidateById: {
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: role.id,
+              person: candidatePerson,
+            ),
+          },
+          onCandidateAdded: (_) {},
+          onCandidateRemoved: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text("Camille"), findsOneWidget);
+    expect(find.byTooltip(tr.scheduleRemoveCandidateTooltip), findsNothing);
+    expect(find.text(tr.scheduleAddCandidateAction), findsNothing);
+  });
 }

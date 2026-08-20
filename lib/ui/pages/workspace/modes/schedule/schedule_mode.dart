@@ -901,6 +901,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onSlotCastRoleRemoved: isReadOnly
           ? null
           : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
+      onSlotCandidateAdded: isReadOnly
+          ? null
+          : (slotId, roleCandidateId) => bloc.add(
+              OcptScheduleSlotCandidateAddedEvent(
+                slotId: slotId,
+                roleCandidateId: roleCandidateId,
+              ),
+            ),
+      onSlotCandidateRemoved: isReadOnly
+          ? null
+          : (slotCandidateId) =>
+                bloc.add(OcptScheduleSlotCandidateRemovedEvent(slotCandidateId: slotCandidateId)),
       onSlotGuestAdded: isReadOnly
           ? null
           : (slotId, personId) =>
@@ -1215,6 +1227,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       convocations: selectedDayId == null ? null : state.convocationsOfDay(selectedDayId),
       personById: state.personById,
       roleById: state.roleById,
+      roleCandidateById: state.roleCandidateById,
       slotById: {for (final slot in state.selectedDaySlots) slot.id: slot},
     );
   }

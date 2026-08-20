@@ -1171,6 +1171,7 @@
   "scheduleAddCandidateAction": "Candidat",
   "scheduleRemoveCandidateTooltip": "Retirer cette convocation",
   "scheduleCandidateAlreadyConvokedHint": "Tous les candidats du projet sont déjà convoqués sur ce créneau.",
+  "scheduleExpandSlotTooltip": "Afficher ce créneau en entier",
   "scheduleExportPanelTitle": "Exporter le planning",
   "scheduleExportPanelMessage": "Les documents sur lesquels repose un tournage — feuilles de service, plan de travail, etc.",
   "scheduleExportPanelCallSheetsTitle": "Feuilles de service",
