@@ -79,6 +79,7 @@ number is a stable identifier other documents and commits can reference.
 | [0020](0020-bundled-hunspell-dictionaries-and-our-own-checker.md) | Bundled hunspell dictionaries and our own checker | Accepted |
 | [0021](0021-the-portable-project-package.md) | The portable project package | Accepted |
 | [0022](0022-opening-a-project-file-from-another-build.md) | Opening a project file from another build | Accepted |
+| [0023](0023-foreign-screenplay-import-only.md) | Foreign screenplay import, one way only | Accepted |
 
 ## Candidates
 
