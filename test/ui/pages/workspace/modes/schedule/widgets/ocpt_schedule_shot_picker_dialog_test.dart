@@ -10,12 +10,9 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_picker_dialog.dart';
@@ -49,18 +46,6 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.
-/// Builds a shooting day carrying the two fields the picker's own day tags are read off.
-OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
-  id: id,
-  date: DateTime(2026, 3, dayNumber),
-  dayNumber: dayNumber,
-  kind: OcptShootingDayKind.shoot,
-  status: OcptShootingDayStatus.planned,
-  crewNote: "",
-  weatherNote: "",
-  notes: "",
-);
-
 OcptShot _buildShot({required String id, required String code, String shotSize = "GP"}) => OcptShot(
   id: id,
   screenplayId: "screenplay-1",
@@ -127,19 +112,19 @@ void main() {
 
   /// Pumps [OcptScheduleShotPickerDialog] directly (no `showDialog`/`.show`), for
   /// [shotListSnapshots], [episodes] (defaulting to empty, i.e. a single-episode project drawing
-  /// no band) and [placedDaysByShotId] (defaulting to empty, i.e. nothing placed yet).
+  /// no band) and [placedDayNumbersByShotId] (defaulting to empty, i.e. nothing placed yet).
   Future<void> pumpDialog(
     WidgetTester tester, {
     required List<OcptShotListSnapshot> shotListSnapshots,
     List<OcptEpisode> episodes = const [],
-    Map<String, List<OcptShootingDay>> placedDaysByShotId = const {},
+    Map<String, List<int>> placedDayNumbersByShotId = const {},
   }) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
         OcptScheduleShotPickerDialog(
           shotListSnapshots: shotListSnapshots,
           episodes: episodes,
-          placedDaysByShotId: placedDaysByShotId,
+          placedDayNumbersByShotId: placedDayNumbersByShotId,
         ),
       ),
     );
@@ -165,11 +150,8 @@ void main() {
             ],
           ),
         ],
-        placedDaysByShotId: {
-          "shot-2": [
-            _buildDay(id: "day-3", dayNumber: 3),
-            _buildDay(id: "day-5", dayNumber: 5),
-          ],
+        placedDayNumbersByShotId: const {
+          "shot-2": [3, 5],
         },
       );
 

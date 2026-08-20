@@ -9,7 +9,6 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
@@ -162,7 +161,6 @@ void main() {
                   shotId: "shot-1",
                   dayId: "day-3",
                   dayNumber: 3,
-                  dayKind: OcptShootingDayKind.shoot,
                   date: DateTime(2026, 8, 4),
                 ),
               ]);
@@ -197,14 +195,12 @@ void main() {
                   shotId: "shot-1",
                   dayId: "day-3",
                   dayNumber: 3,
-                  dayKind: OcptShootingDayKind.shoot,
                   date: DateTime(2026, 8, 4),
                 ),
                 OcptShotPlacement(
                   shotId: "shot-1",
                   dayId: "day-3",
                   dayNumber: 3,
-                  dayKind: OcptShootingDayKind.shoot,
                   date: DateTime(2026, 8, 4),
                 ),
               ]);
@@ -239,14 +235,12 @@ void main() {
                   shotId: "shot-1",
                   dayId: "day-5",
                   dayNumber: 5,
-                  dayKind: OcptShootingDayKind.shoot,
                   date: DateTime(2026, 8, 6),
                 ),
                 OcptShotPlacement(
                   shotId: "shot-1",
                   dayId: "day-3",
                   dayNumber: 3,
-                  dayKind: OcptShootingDayKind.shoot,
                   date: DateTime(2026, 8, 4),
                 ),
               ]);

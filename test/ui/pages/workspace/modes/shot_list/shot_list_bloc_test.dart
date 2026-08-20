@@ -25,7 +25,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -218,11 +217,7 @@ const _exportLabels = OcptShotListXlsxLabels(
   columnHeaders: {},
   statusLabels: {},
   sequenceTitles: {},
-  dayTagPrefixes: {
-    OcptShootingDayKind.shoot: "D",
-    OcptShootingDayKind.casting: "C",
-    OcptShootingDayKind.rehearsal: "R",
-  },
+  dayTagPrefix: "D",
 );
 
 /// The labels the scenario coverage export tests dispatch, standing in for what

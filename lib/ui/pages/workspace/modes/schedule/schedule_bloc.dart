@@ -200,7 +200,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleAgendaAnchorDateChangedEvent>(_onAgendaAnchorDateChanged);
     on<OcptScheduleDayCreatedEvent>(_onDayCreated);
     on<OcptScheduleDayDateChangedEvent>(_onDayDateChanged);
-    on<OcptScheduleDayKindChangedEvent>(_onDayKindChanged);
     on<OcptScheduleDayStatusChangedEvent>(_onDayStatusChanged);
     on<OcptScheduleDayDuplicationRequestedEvent>(_onDayDuplicationRequested);
     on<OcptScheduleDayDeletionConfirmedEvent>(_onDayDeletionConfirmed);
@@ -225,10 +224,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
     on<OcptScheduleShotBlockCreatedEvent>(_onShotBlockCreated);
-    on<OcptScheduleAuditionBlockCreatedEvent>(_onAuditionBlockCreated);
     on<OcptScheduleBlockDurationChangedEvent>(_onBlockDurationChanged);
     on<OcptScheduleBlockAnchorChangedEvent>(_onBlockAnchorChanged);
     on<OcptScheduleBlockSequenceChangedEvent>(_onBlockSequenceChanged);
+    on<OcptScheduleBlockRoleChangedEvent>(_onBlockRoleChanged);
     on<OcptScheduleBlockReorderedEvent>(_onBlockReordered);
     on<OcptScheduleBlockMovedToSlotEvent>(_onBlockMovedToSlot);
     on<OcptScheduleBlockDeletionConfirmedEvent>(_onBlockDeletionConfirmed);
@@ -708,25 +707,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Writes a new kind onto the selected day, and reloads: the day leaves one numbering series and
-  /// joins another, so both are recounted by the read that follows rather than patched here.
-  Future<void> _onDayKindChanged(
-    OcptScheduleDayKindChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateDay(
-      database: project.database,
-      dayId: event.dayId,
-      kind: Value(event.kind),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
   /// Writes a new status onto the selected day.
   Future<void> _onDayStatusChanged(
     OcptScheduleDayStatusChangedEvent event,
@@ -1134,34 +1114,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Creates a new **audition** block at the end of the timetable named by the event's own
-  /// [OcptScheduleAuditionBlockCreatedEvent.slotId] — the slot card's own `+ Block` menu's
-  /// `Audition` entry, once the mode's own candidate picker dialog resolved to a pick.
-  ///
-  /// The **part is read off the candidacy** rather than carried by the event: the two halves of an
-  /// audition's link have to agree, and reading the second out of the first is what makes them
-  /// unable to disagree. A candidacy the state no longer holds — removed between the dialog opening
-  /// and the pick landing — writes nothing at all rather than a block naming half a link.
-  Future<void> _onAuditionBlockCreated(
-    OcptScheduleAuditionBlockCreatedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    final candidate = state.roleCandidateById[event.roleCandidateId];
-    if (project == null || candidate == null) {
-      return;
-    }
-
-    await _scheduleService.createBlock(
-      database: project.database,
-      slotId: event.slotId,
-      kind: OcptShootingBlockKind.audition,
-      roleId: candidate.roleId,
-      roleCandidateId: candidate.id,
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
   /// Writes a new duration onto a block.
   Future<void> _onBlockDurationChanged(
     OcptScheduleBlockDurationChangedEvent event,
@@ -1214,6 +1166,25 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       blockId: event.blockId,
       sceneId: Value(event.sceneId),
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Writes a new part onto an **audition** block — the part being auditioned at that hour, never
+  /// the person coming to be seen.
+  Future<void> _onBlockRoleChanged(
+    OcptScheduleBlockRoleChangedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.updateBlock(
+      database: project.database,
+      blockId: event.blockId,
+      roleId: Value(event.roleId),
     );
     await _applyScheduleSnapshot(emitter, project);
   }

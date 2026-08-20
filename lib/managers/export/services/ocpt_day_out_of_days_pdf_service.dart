@@ -12,7 +12,6 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_out_of_days.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -105,12 +104,6 @@ class OcptDayOutOfDaysPdfService {
   /// anywhere in, still produces a readable, one-note document (plus its title page, when
   /// [includeTitlePage] asks for one) rather than an empty file nobody can open.
   ///
-  /// **Shooting days only.** This document is about the shoot: a [dayIds] entry naming a day whose
-  /// `OcptShootingDayKind` is not [OcptShootingDayKind.shoot] is skipped exactly as an entry naming
-  /// no live day at all is. The scoping lives here rather than at the call site so every caller
-  /// gets the same answer — the mode's own day picker offers the shooting days alone, and this is
-  /// what makes that an agreement rather than a coincidence.
-  ///
   /// [exportDate] is the moment the title page's own version line and every page's running head
   /// print (through [ocptScheduleGeneratedAtStamp], the stamp every schedule document of this app
   /// prints); it defaults to the moment this method runs, and is exposed so a test can pin it rather
@@ -132,8 +125,7 @@ class OcptDayOutOfDaysPdfService {
 
     final days = [
       for (final dayId in dayIds)
-        if (plan.schedule.daysById[dayId] case final day?)
-          if (day.kind == OcptShootingDayKind.shoot) day,
+        if (plan.schedule.daysById[dayId] case final day?) day,
     ];
 
     if (includeTitlePage) {

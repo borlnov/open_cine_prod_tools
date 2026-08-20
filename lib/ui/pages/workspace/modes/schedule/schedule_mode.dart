@@ -10,7 +10,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -33,7 +32,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_alerts_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_call_sheets_export_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_candidate_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_out_of_days_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
@@ -206,12 +204,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// project holds no live day at all — there would be nothing to print, and the sides dialog
   /// additionally relies on it, its day dropdown having to open on some day.
   ///
-  /// **Four of them are disabled one step earlier still**: the shooting plan (both formats), the
-  /// *Day Out of Days*, the one-line schedule and the sides list **shooting days only**
-  /// (`OcptScheduleState.shootingDays`), so a project holding nothing but casting and rehearsal
-  /// days offers them with their own reason rather than with a day picker that would list nothing.
-  /// The call sheets are not among them: a casting day is convoked and phoned down like any other.
-  ///
   /// The named call sheets entry needs no further check of its own: which recipients (and which
   /// days) it prints is a question answered **inside** `OcptScheduleNamedCallSheetsExportDialog`
   /// itself, whose own `Export` button is already disabled while no day or no recipient is ticked —
@@ -223,9 +215,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
   ) {
     final tr = Tr.of(context);
     final unavailableReason = state.days.isNotEmpty ? null : tr.scheduleExportUnavailableReason;
-    final shootOnlyUnavailableReason = state.shootingDays.isNotEmpty
-        ? unavailableReason
-        : (unavailableReason ?? tr.scheduleExportNoShootingDayUnavailableReason);
 
     return [
       OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
@@ -247,35 +236,35 @@ class _ScheduleViewState extends State<_ScheduleView> {
         title: tr.scheduleExportPanelShootingPlanTitle,
         description: tr.scheduleExportPanelShootingPlanDescription,
         formatLabel: "PDF",
-        unavailableReason: shootOnlyUnavailableReason,
+        unavailableReason: unavailableReason,
       ),
       OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
         value: OcptScheduleExportDocument.shootingPlanXlsx,
         title: tr.scheduleExportPanelShootingPlanXlsxTitle,
         description: tr.scheduleExportPanelShootingPlanXlsxDescription,
         formatLabel: "XLSX",
-        unavailableReason: shootOnlyUnavailableReason,
+        unavailableReason: unavailableReason,
       ),
       OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
         value: OcptScheduleExportDocument.dayOutOfDays,
         title: tr.scheduleExportPanelDayOutOfDaysTitle,
         description: tr.scheduleExportPanelDayOutOfDaysDescription,
         formatLabel: "PDF",
-        unavailableReason: shootOnlyUnavailableReason,
+        unavailableReason: unavailableReason,
       ),
       OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
         value: OcptScheduleExportDocument.oneLineSchedule,
         title: tr.scheduleExportPanelOneLineScheduleTitle,
         description: tr.scheduleExportPanelOneLineScheduleDescription,
         formatLabel: "PDF",
-        unavailableReason: shootOnlyUnavailableReason,
+        unavailableReason: unavailableReason,
       ),
       OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
         value: OcptScheduleExportDocument.sides,
         title: tr.scheduleExportPanelSidesTitle,
         description: tr.scheduleExportPanelSidesDescription,
         formatLabel: "PDF",
-        unavailableReason: shootOnlyUnavailableReason,
+        unavailableReason: unavailableReason,
       ),
     ];
   }
@@ -399,7 +388,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final options = await OcptScheduleShootingPlanExportDialog.show(
       context,
       current: state.pageSetup,
-      days: state.shootingDays,
+      days: state.days,
     );
     if (options == null) {
       return;
@@ -412,11 +401,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(
       OcptScheduleShootingPlanExportRequestedEvent(
         options: options,
-        labels: ocptShootingPlanLabelsOf(
-          context,
-          days: state.shootingDays,
-          people: state.people,
-        ),
+        labels: ocptShootingPlanLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
       ),
     );
@@ -427,10 +412,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// the days and nothing else (`OcptScheduleShootingPlanXlsxExportDialog`'s own doc comment).
   Future<void> _requestShootingPlanXlsxExport(BuildContext context, OcptScheduleState state) async {
     final bloc = context.read<OcptScheduleBloc>();
-    final options = await OcptScheduleShootingPlanXlsxExportDialog.show(
-      context,
-      days: state.shootingDays,
-    );
+    final options = await OcptScheduleShootingPlanXlsxExportDialog.show(context, days: state.days);
     if (options == null) {
       return;
     }
@@ -455,7 +437,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final options = await OcptScheduleDayOutOfDaysExportDialog.show(
       context,
       current: state.pageSetup,
-      days: state.shootingDays,
+      days: state.days,
     );
     if (options == null) {
       return;
@@ -468,11 +450,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(
       OcptScheduleDayOutOfDaysExportRequestedEvent(
         options: options,
-        labels: ocptDayOutOfDaysLabelsOf(
-          context,
-          days: state.shootingDays,
-          people: state.people,
-        ),
+        labels: ocptDayOutOfDaysLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
       ),
     );
@@ -485,7 +463,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final options = await OcptScheduleOneLineScheduleExportDialog.show(
       context,
       current: state.pageSetup,
-      days: state.shootingDays,
+      days: state.days,
     );
     if (options == null) {
       return;
@@ -498,11 +476,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(
       OcptScheduleOneLineScheduleExportRequestedEvent(
         options: options,
-        labels: ocptOneLineScheduleLabelsOf(
-          context,
-          days: state.shootingDays,
-          people: state.people,
-        ),
+        labels: ocptOneLineScheduleLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
       ),
     );
@@ -516,7 +490,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final options = await OcptScheduleSidesExportDialog.show(
       context,
       current: state.pageSetup,
-      days: state.shootingDays,
+      days: state.days,
       selectedDayId: state.selectedDayId,
     );
     if (options == null) {
@@ -532,7 +506,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptSidesLabelsOf(
           context,
-          day: state.shootingDays.where((day) => day.id == options.dayId).firstOrNull,
+          day: state.days.where((day) => day.id == options.dayId).firstOrNull,
           episodes: state.episodes,
         ),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
@@ -734,26 +708,13 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// `OcptSchedulePlanSnapshot.effectCategoryOfDay` under [OcptScheduleAgendaColorMode.effect] —
   /// built once per build so switching the "Colour by" control re-tints all three presentations at
   /// once without any of them knowing which fact they are currently reading.
-  ///
-  /// **A day that does not shoot answers before either of them** ([ocptScheduleDayKindTint]): a
-  /// casting or a rehearsal day carries its own fixed tint whatever the control currently says, and
-  /// the control gains no third entry for it — the kind is a fact about the day rather than a
-  /// colouring choice, and a reader must not have to pick the right mode to see that a day is not a
-  /// shooting day. The shooting days keep exactly the behaviour they had.
-  Color Function(String dayId) _dayTintOf(BuildContext context, OcptScheduleState state) {
-    final tintOfMode = switch (state.agendaColorMode) {
-      OcptScheduleAgendaColorMode.location => (String dayId) =>
-          ocptScheduleDayLocationTint(context, state.firstLocationOfDay(dayId)),
-      OcptScheduleAgendaColorMode.effect => (String dayId) =>
-          ocptScheduleDayEffectTint(context, state.planSnapshot?.effectCategoryOfDay(dayId)),
-    };
-
-    return (dayId) {
-      final kind = state.daysById[dayId]?.kind;
-
-      return (kind == null ? null : ocptScheduleDayKindTint(context, kind)) ?? tintOfMode(dayId);
-    };
-  }
+  Color Function(String dayId) _dayTintOf(BuildContext context, OcptScheduleState state) =>
+      switch (state.agendaColorMode) {
+        OcptScheduleAgendaColorMode.location => (dayId) =>
+            ocptScheduleDayLocationTint(context, state.firstLocationOfDay(dayId)),
+        OcptScheduleAgendaColorMode.effect => (dayId) =>
+            ocptScheduleDayEffectTint(context, state.planSnapshot?.effectCategoryOfDay(dayId)),
+      };
 
   /// Builds the positions matrix: who holds which crew position, slot by slot, across the whole
   /// shoot. A position held on one slot and by nobody on the next is read straight off two
@@ -1014,6 +975,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (blockId, sceneId) =>
                 bloc.add(OcptScheduleBlockSequenceChangedEvent(blockId: blockId, sceneId: sceneId)),
+      onBlockRoleChanged: isReadOnly
+          ? null
+          : (blockId, roleId) =>
+                bloc.add(OcptScheduleBlockRoleChangedEvent(blockId: blockId, roleId: roleId)),
       onBlockDeletionRequested: isReadOnly
           ? null
           : (blockId) => unawaited(_handleBlockDeletionRequested(context, blockId)),
@@ -1023,9 +988,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onShotBlockRequested: isReadOnly
           ? null
           : (slotId) => unawaited(_handleShotBlockRequested(context, slotId)),
-      onAuditionBlockRequested: isReadOnly
-          ? null
-          : (slotId) => unawaited(_handleAuditionBlockRequested(context, slotId)),
       onBlockMovedToSlot: isReadOnly
           ? null
           : (blockId, targetSlotId) =>
@@ -1084,7 +1046,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       context,
       shotListSnapshots: state.shotListSnapshots,
       episodes: state.episodes,
-      placedDaysByShotId: state.placedDaysByShotId,
+      placedDayNumbersByShotId: state.placedDayNumbersByShotId,
     );
     if (shotId == null) {
       return;
@@ -1096,37 +1058,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(OcptScheduleShotBlockCreatedEvent(slotId: slotId, shotId: shotId));
   }
 
-  /// Opens `OcptScheduleCandidatePickerDialog` for slot [slotId] — the slot card's own `+ Block`
-  /// menu's `Audition` entry — then dispatches [OcptScheduleAuditionBlockCreatedEvent] once the
-  /// user picked a candidacy. Does nothing while the dialog is dismissed with no pick.
-  ///
-  /// The dialog is handed the candidacies the **selected day** already plans to see, so a row can
-  /// say so: seeing somebody twice in one session is legitimate, and the mark is information rather
-  /// than a bar.
-  Future<void> _handleAuditionBlockRequested(BuildContext context, String slotId) async {
-    final bloc = context.read<OcptScheduleBloc>();
-    final state = bloc.state;
-
-    final roleCandidateId = await OcptScheduleCandidatePickerDialog.show(
-      context,
-      roleCandidates: state.roleCandidates,
-      roleById: state.roleById,
-      plannedCandidacyIds: {
-        for (final block in state.selectedDayBlocks)
-          if (block.roleCandidateId != null) block.roleCandidateId!,
-      },
-    );
-    if (roleCandidateId == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(
-      OcptScheduleAuditionBlockCreatedEvent(slotId: slotId, roleCandidateId: roleCandidateId),
-    );
-  }
 
   /// Asks `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatches the
   /// deletion if the user answered `Delete`.
@@ -1292,9 +1223,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
     final shot = state.selectedShot;
     final shotSequenceLabel = shot == null ? null : _sequenceLabelOfShot(context, state, shot);
-    final shotPlacedDays = shot == null
-        ? const <OcptShootingDay>[]
-        : state.placedDaysByShotId[shot.id] ?? const [];
+    final shotPlacedDayNumbers = shot == null
+        ? const <int>[]
+        : state.placedDayNumbersByShotId[shot.id] ?? const [];
 
     // The two selections are mutually exclusive (`OcptScheduleBloc` keeps them so), so exactly one
     // of `blockShot`/`shot` is ever non-null: this is what feeds the status control either
@@ -1361,9 +1292,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onEventDeletionRequested: isReadOnly
           ? null
           : (eventId) => unawaited(_handleDayEventDeletionRequested(context, eventId)),
-      onDayKindChanged: isReadOnly || day == null
-          ? null
-          : (kind) => bloc.add(OcptScheduleDayKindChangedEvent(dayId: day.id, kind: kind)),
       onDayStatusChanged: isReadOnly || day == null
           ? null
           : (status) => bloc.add(OcptScheduleDayStatusChangedEvent(dayId: day.id, status: status)),
@@ -1387,7 +1315,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       shot: shot,
       shotSequenceLabel: shotSequenceLabel,
-      shotPlacedDays: shotPlacedDays,
+      shotPlacedDayNumbers: shotPlacedDayNumbers,
       block: block,
       blockShot: blockShot,
       blockSlotLabel: blockSlotLabel,

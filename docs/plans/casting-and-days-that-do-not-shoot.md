@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Casting candidates, and the days that do not shoot
+# Casting candidates, and the days that do not only shoot
 
 This document is the implementation strategy for [issue #56][i56] and [issue #57][i57], which are
 companions: #57 plans the sessions where the candidates of #56 are actually seen, so **#56 ships
@@ -26,15 +26,21 @@ each, one is eventually retained — and the app has nowhere to put any of it. A
 today either keeps its casting in a spreadsheet, or types the retained name in and loses every
 trace of who else was seen.
 
-The schedule mode has the same hole one step further: it can only describe a day that **shoots**.
-The weeks of auditions and rehearsals a production runs before the first shooting day are planned
+The schedule mode has the same hole one step further: it can only put a **shot** in a block. The
+weeks of auditions and rehearsals a production runs before the first shooting day are planned
 exactly like shooting days — a date, a place, people convoked, a running order — and the mode
-already has every one of those pieces. What it lacks is a way to say a day is *not* a shooting day,
-and to put something other than a shot in a block.
+already has every one of those pieces. What it lacks is something other than a shot to put in the
+running order.
 
-The outcome: a role carries its candidates and the one retained writes the cast column; a day
-carries a **kind**, and a casting or rehearsal day is planned, convoked, alerted on and printed
-like the shooting days beside it.
+**A day is never given a kind.** A real day auditions in the morning and rehearses in the
+afternoon; a rehearsal regularly falls on the morning of the day it is shot. What a day is for is
+therefore said by the **blocks it holds**, and by nothing else — a day that carries an audition is a
+day that auditions, and the paperwork adapts to what it finds rather than to a label somebody
+picked.
+
+The outcome: a role carries its candidates and the one retained writes the cast column; an audition
+and a rehearsal are block kinds like any other, and a day made of them is planned, convoked, alerted
+on and printed like every day beside it.
 
 ## 2. Decisions taken before writing this
 
@@ -47,19 +53,22 @@ Eight, all settled with Benoit before a line of this plan was written:
    retained one to `seen`; dropping the retained one clears the column back to null. The role
    header's own cast picker **stays editable** and writes `roles.personId` alone — a production
    that ran no auditions casts directly, and touches no candidate row doing it.
-3. **Separate numbering series**: `J3` keeps counting shooting days only; a casting day is `C1`, a
-   rehearsal `R1`, each ranked in its own series in date order, each rendered through `Tr`
-   (`D`/`C`/`R` in English) exactly as `ocptScheduleDayTagLabel` already renders the first.
-4. The **call sheet learns a casting variant**: same header, same time bands, same crew note, same
-   directories; the `SEQ / PLANS / EFFET / DÉCORS / RÔLES` table becomes
-   `HORAIRE / RÔLE / CANDIDAT / CONTACT`, and the cast table becomes the day's convoked candidates.
+3. **One kind of day and one numbering series**: every day of the schedule is a day, `J1..Jn` in
+   date order, and every block kind is offered on every one of them. *(Amended after M4: the day
+   kind M3 introduced, and the three series that came with it, are gone.)*
+4. The **call sheet adapts to the blocks it finds**: same header, same time bands, same crew note,
+   same directories; a day carrying auditions prints an `HORAIRE / RÔLE / CANDIDAT / CONTACT` table
+   beside — not instead of — the `SEQ / PLANS / EFFET / DÉCORS / RÔLES` one it prints for its shots,
+   and the candidates convoked on the day are listed under the cast table rather than replacing
+   it.
 5. The candidates live in a **`Candidates` card on the role sheet**, under the casting card: one
    row per candidate (avatar, name, status pill, audition date, a foldable note), the retained one
    pinned on top, a person picker at the bottom to add one.
 6. The **roles tab wears a per-row pill** — cast, candidates in progress, nothing yet — and its
    header counts `12 roles · 5 cast`.
-7. A day's kind is picked **in the day inspector, right under the date and above the status**, the
-   twin of the status picker already there.
+7. An audition block names **the part being seen and nothing else**: who comes to be seen is the
+   slot's own candidates, and one audition regularly sees several people one after another. The
+   part is picked in the row itself, the twin of a hold's own sequence picker.
 8. The audition table prints the candidate's **contact**, the sheet being what an assistant
    director phones down.
 
@@ -115,34 +124,22 @@ convocations.
 | `roleCandidateId` | text → `role_candidates` | who, for which part |
 | `isDeleted` | bool | ADR 0010 |
 
-### 3.3 `shooting_days.kind` (#57)
+### 3.3 `shooting_day_blocks` (#57)
 
-A new non-null text column with a converter, defaulting to `shoot` — the literal `'shoot'` written
-out in the `Constant`, as `status` and `shots.status` already are, an enum's `.name` not being a
-compile-time constant.
+One new nullable column and two new kinds:
 
-```dart
-enum OcptShootingDayKind { shoot, casting, rehearsal }
-```
-
-Migration: every existing row is a `shoot` day, which the default answers on its own.
-
-### 3.4 `shooting_day_blocks` (#57)
-
-Two new nullable columns and two new kinds:
-
-- `roleId` (→ `roles`, nullable) and `roleCandidateId` (→ `role_candidates`, nullable), non-null
-  **iff** `kind` is `audition` — the discriminator idiom `shotId` and `sceneId` already follow.
-- `OcptShootingBlockKind.audition`: one candidate, seen for one role, for this block's duration.
-  One block per candidate: *"these four people, for that part, twenty minutes each"* is four
-  blocks, which is also what makes the audition table print four rows.
+- `roleId` (→ `roles`, nullable), non-null **only** on an `audition` block — the discriminator
+  idiom `shotId` and `sceneId` already follow. It names the **part**, never the person: who comes
+  to be seen is `shooting_slot_candidates`, on the slot.
+- `OcptShootingBlockKind.audition`: the part being seen, for this block's duration. A part not yet
+  settled is an ordinary state, exactly as a `hold` with no sequence is.
 - `OcptShootingBlockKind.rehearsal`: names a **sequence** through the existing `sceneId`, exactly as
   `hold` already does, and needs no column of its own.
 
 **Both new kinds are shooting blocks** for `ocptComputeSlotTimeline` and the PAT band, joining
 `shot` and `hold`: they are the working time of the day they sit on, and a candidate or an actor
-owed a band on a rehearsal day is owed it for the same reason a cast member is on a shooting day.
-Nothing else in `lib/utils/ocpt_shooting_day_timeline.dart` moves.
+owed a band on a day of rehearsals is owed it for the same reason a cast member is on a day of
+shots. Nothing else in `lib/utils/ocpt_shooting_day_timeline.dart` moves.
 
 ## 4. Issue #56 — the casting side
 
@@ -175,79 +172,56 @@ Nothing else in `lib/utils/ocpt_shooting_day_timeline.dart` moves.
   candidates but none retained is that same alert, and the alerts file keeps knowing nothing about
   candidates.
 
-## 5. Issue #57 — the days that do not shoot
+## 5. Issue #57 — auditions and rehearsals in a timetable
 
-- **`OcptScheduleService`** learns the day kind: `createDay` takes one (defaulting to `shoot`),
-  `setDayKind` writes it, and the read-time ranking splits into **three series** — the rank of a
-  day among the live days **of its own kind**, in date order, `sortKey` still the tiebreaker.
-  `OcptShootingDay.dayNumber` keeps its name and its meaning within its series; `ocptScheduleDayTag`
-  (`lib/ui/utils/ocpt_schedule_labels.dart`) takes the kind beside the number and picks the prefix
-  through `Tr`. The workbook, having no `Tr`, takes the three prefixes as
-  `OcptShotListXlsxLabels` already takes one.
-- **The day inspector** gains the `Nature` picker under the date and above the status, built from
-  the same `PopupMenuButton` shape the status already uses, withheld under a read-only preview.
-- **The timetable's `+ Block` menu is scoped by the day's kind**: a shooting day offers what it
-  offers today plus `Rehearsal`; a casting day offers `Audition`, `Rehearsal` and the milestones,
-  and **not** `Shot`. It is a scoping of the menu, not a rule in the schema: a block already there
-  when the kind changes is left alone and keeps working, because refusing to draw a row a file
-  holds is how a plan becomes unreadable. An `Audition` block opens
-  **`OcptScheduleCandidatePickerDialog`** — the role, then its candidates, the mode's to open as
-  `OcptScheduleShotPickerDialog` already is.
-- **The slot card** gains a fourth band under crew, cast and guests: `Candidates`, drawn on a
-  casting day alone (there is nobody to audition on a shooting day), fed by
-  `shooting_slot_candidates` and reading each row as the candidate's name and the part they are
-  seen for.
+- **The `+ Block` menu offers every kind on every day.** Nothing is scoped: a day auditions,
+  rehearses and shoots as its blocks say, and a menu that narrowed itself would be guessing which
+  of those a user is about to plan.
+- **An audition row carries a role picker**, the twin of a hold's sequence picker, writing
+  `shooting_day_blocks.roleId`. A rehearsal row carries the sequence picker itself.
+- **The slot card gains a fourth band**, `Candidats`, **beside the guests** — the second row of two
+  halves, as `Comédiens` sits beside `Équipe technique` — fed by `shooting_slot_candidates` and
+  reading each row as the candidate's name and the part they are seen for.
 - **`ocptComputeDayConvocations`** gains its fourth link kind. A candidate's convocation reads
   exactly like everybody else's — arrival, PAT band over the slot's shooting blocks (auditions
-  included), departure — and the `Convocations` dock tab gains a **trailing candidates group**,
-  after crew and cast and before the guests, on the same argument that gives guests theirs.
-- **The alerts**, scoped by kind rather than rewritten:
-  - `OcptScheduleRoleNotConvokedAlert` is about a role a **placed shot** plays, so it cannot fire
-    on a day carrying no shot block; it needs no change and gets none.
-  - Every alert **about people** — unavailable, double-booked, past their maximum, short of the
-    minimum rest — fires on the new days unchanged, and that is the point: a rehearsal the day
-    before a 07:00 call eats the same turnaround a shooting day does.
-  - `OcptScheduleLocationUncoveredAlert` and `OcptSchedulePermitNotValidAlert` also fire unchanged
-    — a casting studio is booked over a window like anywhere else.
-  - **No new alert kind**, and deliberately none: "a candidate convoked on no slot" would be an
-    opinion about how a production runs its auditions.
-- **The agenda** tints the two new kinds: the `Colour by` control gains no third entry, the kind
-  being a fact about the day rather than a colouring choice — a non-shooting day carries its own
-  tint in all three presentations whatever the current `Colour by` is, with the shooting days
-  keeping the existing behaviour. One fixed ARGB pair in
-  `lib/constants/ocpt_schedule_effect_palette.dart`'s neighbourhood, like every other palette that
-  must read the same in every project.
-- **The presence grid** counts the new days as `working`, unchanged: somebody at a rehearsal is
-  there. The **positions matrix** likewise needs nothing — a casting day's crew is crew.
-- **The shooting plan, the day-out-of-days, the one-line schedule and the sides keep listing
-  shooting days only**, and their day pickers say so. A DOOD is a document about a cast's shooting
-  days; a one-line schedule is the shoot in one line. This is a **scoping**, stated in each
-  service's doc comment, not a filter invented at the call site.
+  included), departure — and the `Convocations` dock tab gains a **candidates group**, after crew
+  and cast and before the guests, on the same argument that gives guests theirs.
+- **The alerts are untouched**, and that is the point: nothing there reads what a day is for. Every
+  rule about people fires as it always did — a rehearsal the day before a 07:00 call eats the same
+  turnaround — the location and permit rules likewise, and `OcptScheduleRoleNotConvokedAlert` finds
+  nothing on a day carrying no shot without needing to be told. **No new alert kind**, and
+  deliberately none: "a candidate convoked on no slot" would be an opinion about how a production
+  runs its auditions.
+- **The presence grid** counts such days as `working`, unchanged: somebody at a rehearsal is there.
+  The **positions matrix** likewise needs nothing.
+- **Every export keeps listing every day**: with no kind to filter on, the shooting plan, the day
+  out of days, the one-line schedule and the sides read the days they are given, and a day carrying
+  no shot simply gives them nothing to print.
 
-## 6. The call sheet's casting variant
+## 6. The call sheet, adapting to what a day holds
 
-`OcptCallSheetPdfService` keeps **one composition** and branches on the day's kind, rather than
-growing a second service: the header, the per-slot time bands, the events, the crew note, the
-locations, the sun block and both directories are the same paper, and a second service would drift
-from them section by section.
+`OcptCallSheetPdfService` keeps **one composition** and reads the day's own blocks, rather than
+growing a second service or branching on a label: the header, the per-slot time bands, the events,
+the crew note, the locations, the sun block and both directories are the same paper whatever the day
+does.
 
-What the casting variant replaces:
+What a day carrying **audition blocks** adds:
 
-| Shooting day | Casting day |
+| Always | Added by an audition block |
 | --- | --- |
-| `SEQ / PLANS / EFFET / DÉCORS / RÔLES` | `HORAIRE / RÔLE / CANDIDAT / CONTACT` |
-| the cast table (every role the day calls for) | the day's convoked candidates |
+| the `SEQ / PLANS / EFFET / DÉCORS / RÔLES` table, for the shots the day holds | an `HORAIRE / RÔLE / CANDIDAT / CONTACT` table |
+| the cast table (every role the day calls for) | the day's convoked candidates, under it |
 
-- The audition table is interleaved with the non-shooting blocks as full-width milestone rows,
-  exactly as the shot table already is, and prints a block's `crewNote` under its row.
-- `CONTACT` is the candidate's own phone, read off their `people` row, an em dash where there is
-  none. A candidate convoked on the day but named by no audition block still gets a row in the
-  **table**, with an em dash for its hour: that is the same honesty the shooting sheet's cast table
-  already practises when it prints a role nobody convoked.
-- A **rehearsal day** prints the shooting-day shape with its rehearsal blocks named by their
-  sequence, and its cast table unchanged: a rehearsal convokes roles, not candidates.
-- The **named** call sheet follows: its recipient union is the day's convocations, which now
-  include candidates, and what a named sheet narrows stays the timetable and only the timetable.
+- A day holding both prints both, in that order: this is one sheet for one day, and a production
+  that auditions in the morning and shoots in the afternoon gets one piece of paper.
+- The audition table prints **one row per audition block** — its hour and the part it sees — and the
+  candidates convoked on the day are listed under the cast table with their **contact**, the sheet
+  being what an assistant director phones down. The block names no candidate, so no row claims a
+  candidate is expected at an hour nobody typed.
+- A table that has nothing to print is **skipped entirely** rather than drawn over an em dash, the
+  rule the events, guest and crew-note sections already follow.
+- The **named** call sheet follows: its recipient union is the day's convocations, which now include
+  candidates, and what a named sheet narrows stays the timetable and only the timetable.
 
 ## 7. Localization
 
@@ -263,17 +237,17 @@ and the audition table's four column headings.
 
 - `docs/architecture/resources.md`: the candidates card, the retained rule, the service, the roles
   tab's progress reading, and `role_candidates` joining the erasure rule.
-- `docs/architecture/schedule.md`: the day kind and the three numbering series, the two block kinds,
-  the fourth link table and what it does **not** change about ADR 0018, the alert scoping, the
-  agenda tint, and the call sheet's casting variant.
+- `docs/architecture/schedule.md`: the two block kinds, the fourth link table and what it does
+  **not** change about ADR 0018, why the alerts needed no change at all, and how the call sheet
+  reads the blocks a day holds rather than a label on the day.
 - `docs/architecture/foundations.md`: the two new synchronised tables in the schema section, and
   `role_candidates` in the erasure paragraph — the three implementations kept in step by hand.
-- **`docs/adr/0024-a-day-has-a-kind.md`**: why a kind column on `shooting_days` rather than a
-  second table of "other days" (a casting day is a day: it has slots, blocks, convocations, alerts
-  and paperwork, and a parallel table would have to grow every one of them again), why the
-  numbering splits into series rather than skipping numbers, and why a candidate is convoked by a
-  link table rather than by the block that names them — ADR 0018 restated on purpose, with the
-  cost that comes with it (§10). Listed in `docs/adr/README.md`.
+- **`docs/adr/0024-what-a-day-is-for-is-what-it-holds.md`**: why an audition and a rehearsal are
+  **block kinds** rather than a kind on the day (a real day mixes them, and a day carrying both a
+  casting session and an afternoon of shots could never be labelled once), why an audition block
+  names a **part** and not a person, and why a candidate is convoked by a link table rather than by
+  the block that sees them — ADR 0018 restated on purpose. It records, with its reasons, that a day
+  kind was built and taken back out. Listed in `docs/adr/README.md`.
 
 ## 9. Milestones
 
@@ -297,59 +271,54 @@ widget test, the progress function, and the bloc's own events.
 
 **#56 is complete and mergeable here.**
 
-### M3 — A day has a kind
+### M3 — A day has a kind — **built, then taken back out**
 
-`shooting_days.kind`, the enum, the three numbering series, `ocptScheduleDayTag`, the inspector's
-`Nature` picker, the agenda tint, and the export scoping of the four documents that stay
-shoot-only. Tests: the ranking (a rehearsal inserted mid-shoot renumbers nothing), the tag, and the
-day picker scoping.
+Shipped a `shooting_days.kind` column, three numbering series, a `Nature` picker, an agenda tint and
+a shoot-only scoping of four exports. All of it was removed during M4: a day mixes casting,
+rehearsal and shooting, so what a day is for is said by its blocks. Nothing of it remains but two
+dropped columns in the migration and one payload-format step.
 
-### M4 — Auditions and rehearsals in a timetable
+### M4 — Auditions and rehearsals in a timetable — ✅ done
 
-The two block kinds, the block's two new columns, `shooting_slot_candidates`, the candidate picker
-dialog, the slot card's fourth band, the convocations' fourth kind and their trailing group, and the
-`+ Block` menu scoping. Tests: the timeline with an audition block, a candidate's convocation, the
-menu scoping, and the alerts firing (or not) per kind.
+The two block kinds, the block's `roleId`, `shooting_slot_candidates`, the audition row's role
+picker, the slot card's fourth band beside the guests, the convocations' fourth kind and their
+group. Tests: the timeline with an audition block, a candidate's convocation, the menu, the role
+picker and the alerts firing (or not).
 
-### M5 — The casting call sheet
+### M5 — The call sheet, adapting to what a day holds
 
-The call sheet's branch, the audition table, the candidates replacing the cast table, and the named
-sheet's recipient union. Tests: the composition over a casting day, over a rehearsal day, and the
-named sheet's own union.
+The audition table, the candidates listed under the cast table, both drawn only when the day's own
+blocks call for them, and the named sheet's recipient union. Tests: the composition over a day of
+auditions, over a day mixing auditions and shots, over a day of rehearsals, and the named sheet's
+own union.
 
 ### M6 — The record
 
 The documentation of §8 and ADR 0024. This plan file is deleted in the same commit.
 
-## 10. The open point, stated rather than buried
+## 10. The open point, settled
 
-**Convoking twelve candidates at twenty-minute intervals costs twelve slots.** That follows from
-decision 1 and from ADR 0018 as it stands: a convocation *is* the slot you are linked to, so two
-people arriving at different hours are two slots, and the day view draws one card per slot. It is
-the same trade ADR 0018 already accepts for an actor called early for make-up, and it is honest —
-the file says what is actually happening, and it prints. But a casting day is where it bites
-hardest, twelve slot cards being a lot of surface for twelve twenty-minute auditions.
+**Convoking twelve candidates at twenty-minute intervals need not cost twelve slots.** It looked as
+though it would while a block named the candidate it saw: twelve people at twelve hours would have
+been twelve convocations, and a convocation *is* a slot (ADR 0018). It is not, because an audition
+block names the **part** and the people are convoked on the slot: one slot, `Casting mardi`, carries
+the whole session's candidates and as many audition blocks as the running order needs.
 
-M4 therefore adds a **compact slot rendering on a non-shooting day**: a slot whose whole content is
-one audition block draws as a row rather than a card, the day view falling back to the full card the
-moment it carries more. That is a rendering, not a second model, and it is the one piece of this
-plan I would most like reviewed before it is built — the alternative, letting an audition block
-carry its own convocation, buys one gesture and costs the rule that makes every convocation in the
-app readable the same way.
+M4 briefly carried a compact rendering — a slot holding one audition drawn as a row rather than a
+card — to soften that cost. It went with the cost: there is one way to read a slot.
 
 ## 11. Verification
 
 The full gates before each commit. `dart run tool/check_markdown.dart` for the documentation
-commits. The two PDF milestones (M5) additionally get an eyeball pass: the composition rendered to a
-file and read, a casting day and a rehearsal day, since nothing in a test says a table reads well.
+commits. M5 additionally gets an eyeball pass: the composition rendered to a file and read, over a
+day of auditions and over one mixing them with shots, since nothing in a test says a table reads
+well.
 
 End to end in the real app through `tool/screenshot-app.sh` (release bundle rebuilt first), once at
 the end of M2 and once at the end of M5:
 
 1. a role, three candidates, one retained: the cast column follows, the roles tab's pill follows,
    and dropping the retained one empties both;
-2. a casting day created, its kind picked, `C1` on the agenda while the shooting days keep their
-   own numbers;
-3. two candidates convoked on two slots, an audition block each, and the `Convocations` tab reading
-   their hours;
-4. the casting call sheet exported and opened.
+2. a day carrying one slot, three candidates convoked on it and two audition blocks naming their
+   parts, the `Convocations` tab reading everybody's hours;
+3. the same day given a shot as well, and its call sheet printing both tables.

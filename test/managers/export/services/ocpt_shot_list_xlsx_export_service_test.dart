@@ -10,7 +10,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
@@ -101,11 +100,7 @@ OcptShotListXlsxLabels _buildLabels({
     OcptShotStatus.retake: "Retake",
   },
   sequenceTitles: sequenceTitles,
-  dayTagPrefixes: {
-    OcptShootingDayKind.shoot: dayTagPrefix,
-    OcptShootingDayKind.casting: "C",
-    OcptShootingDayKind.rehearsal: "R",
-  },
+  dayTagPrefix: dayTagPrefix,
 );
 
 /// Decodes [bytes] and returns the rows of its [_sheetName] sheet, as plain Dart values.
@@ -232,7 +227,6 @@ void main() {
               shotId: "shot-1",
               dayId: "day-3",
               dayNumber: 3,
-              dayKind: OcptShootingDayKind.shoot,
               date: DateTime(2026, 8, 4),
             ),
           ],
@@ -282,7 +276,6 @@ void main() {
               shotId: "shot-1",
               dayId: "day-3",
               dayNumber: 3,
-              dayKind: OcptShootingDayKind.shoot,
               date: DateTime(2026, 8, 4),
             ),
           ],

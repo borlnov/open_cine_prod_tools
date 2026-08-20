@@ -13,15 +13,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 /// shoot still has to fit inside one dialog.
 const double _ocptScheduleDaySelectionMaxHeight = 220;
 
-/// A scrollable, checkbox list of days with "select all"/"select none" controls — shared by
+/// A scrollable, checkbox list of shooting days with "select all"/"select none" controls — shared by
 /// `OcptScheduleCallSheetsExportDialog` and `OcptScheduleShootingPlanExportDialog`, the two export
 /// dialogs that ask "which days to print" over what may be a forty-day shoot: offering the two bulk
 /// controls rather than leaving the user to click forty boxes one at a time.
-///
-/// **Which days those are is the caller's**: the call sheets offer every day of the schedule, while
-/// the four documents scoped to the shoot hand it `OcptScheduleState.shootingDays` alone. This
-/// widget only draws what it is given, each row tagged through `ocptScheduleDayTagLabel`, so a
-/// casting day reads `C1` wherever one is offered.
 ///
 /// Purely presentational: [selectedDayIds] is owned by the caller, and every tick — a single row, or
 /// one of the two bulk controls — reports the full next set through [onChanged] rather than a diff,
@@ -32,8 +27,7 @@ const double _ocptScheduleDaySelectionMaxHeight = 220;
 /// a shrink-wrapping viewport cannot report one — it throws at layout rather than merely looking
 /// wrong. A shoot's worth of days is a handful of rows anyway, so laziness buys nothing here.
 class OcptScheduleDaySelectionList extends StatelessWidget {
-  /// Every day offered, in the order they are printed — the caller's own list; see the class doc
-  /// comment for which days each dialog hands over.
+  /// Every live day offered, in the order they are printed.
   final List<OcptShootingDay> days;
 
   /// The ids of the days currently ticked.
@@ -85,7 +79,7 @@ class OcptScheduleDaySelectionList extends StatelessWidget {
                     mouseCursor: ocptClickableCursor,
                     value: selectedDayIds.contains(day.id),
                     title: Text(
-                      "${ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber)} · "
+                      "${ocptScheduleDayTagLabel(tr, day.dayNumber)} · "
                       "${dateFormat.format(day.date)}",
                     ),
                     onChanged: (checked) {

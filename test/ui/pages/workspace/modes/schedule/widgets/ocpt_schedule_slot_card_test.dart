@@ -22,7 +22,6 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
@@ -169,7 +168,6 @@ OcptShootingDayBlock _buildBlock({required String id, required String slotId, St
       anchorMinute: null,
       notes: "",
       crewNote: "",
-      roleCandidateId: null,
       roleId: null,
     );
 
@@ -212,7 +210,6 @@ void main() {
     ValueChanged<String>? onGuestRemoved,
     List<OcptShootingSlotCandidate> candidates = const [],
     Map<String, OcptRoleCandidate> roleCandidateById = const {},
-    OcptShootingDayKind dayKind = OcptShootingDayKind.shoot,
     ValueChanged<String>? onCandidateAdded,
     ValueChanged<String>? onCandidateRemoved,
     String Function(String guestId)? guestReasonValueOf,
@@ -253,7 +250,6 @@ void main() {
     locations: const [],
     personById: {(crewPerson ?? person).id: crewPerson ?? person},
     roleById: {role.id: role},
-    dayKind: dayKind,
     roleCandidateById: roleCandidateById,
     people: [crewPerson ?? person],
     roles: [role],
@@ -290,11 +286,11 @@ void main() {
     onBlockAnchorChanged: isReadOnly ? null : (_, _) {},
     onShotStatusChanged: isReadOnly ? null : (_, _) {},
     onBlockSequenceChanged: isReadOnly ? null : (_, _) {},
+    onBlockRoleChanged: isReadOnly ? null : (_, _) {},
     onBlockDeletionRequested: isReadOnly ? null : (_) {},
     onBlockAdded: isReadOnly ? null : (onBlockAdded ?? (_) {}),
     onShotBlockRequested: isReadOnly ? null : (onShotBlockRequested ?? () {}),
     onBlockMovedToSlot: isReadOnly ? null : (onBlockMovedToSlot ?? (_, _) {}),
-    onAuditionBlockRequested: null,
     onCandidateAdded: isReadOnly ? null : onCandidateAdded,
     onCandidateRemoved: isReadOnly ? null : onCandidateRemoved,
   );
@@ -989,22 +985,13 @@ void main() {
     },
   );
 
-  testWidgets("no candidates band is drawn on a day that shoots", (tester) async {
-    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-    expect(find.text(tr.scheduleSlotCandidatesColumnTitle.toUpperCase()), findsNothing);
-  });
-
-  testWidgets("a casting day draws the band, its rows naming who is seen and for what", (tester) async {
+  testWidgets("the candidates band sits beside the guests, naming who is seen and for what", (tester) async {
     final candidatePerson = _buildPerson(id: "person-9", firstName: "Camille");
 
     await tester.pumpWidget(
       _wrapInApp(
         buildCard(
           isReadOnly: false,
-          dayKind: OcptShootingDayKind.casting,
           candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "candidacy-1")],
           roleCandidateById: {
             "candidacy-1": _buildCandidacy(
@@ -1024,8 +1011,8 @@ void main() {
     expect(find.text(role.name), findsWidgets);
   });
 
-  testWidgets("an empty band on a casting day shows its own hint", (tester) async {
-    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, dayKind: OcptShootingDayKind.casting)));
+  testWidgets("an empty candidates band shows its own hint", (tester) async {
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
@@ -1037,7 +1024,6 @@ void main() {
       _wrapInApp(
         buildCard(
           isReadOnly: false,
-          dayKind: OcptShootingDayKind.casting,
           candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "gone")],
         ),
       ),
@@ -1057,7 +1043,6 @@ void main() {
       _wrapInApp(
         buildCard(
           isReadOnly: false,
-          dayKind: OcptShootingDayKind.casting,
           candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "candidacy-1")],
           roleCandidateById: {
             "candidacy-1": _buildCandidacy(
@@ -1097,7 +1082,6 @@ void main() {
       _wrapInApp(
         buildCard(
           isReadOnly: true,
-          dayKind: OcptShootingDayKind.casting,
           candidates: [_buildSlotCandidate(id: "convocation-1", roleCandidateId: "candidacy-1")],
           roleCandidateById: {
             "candidacy-1": _buildCandidacy(

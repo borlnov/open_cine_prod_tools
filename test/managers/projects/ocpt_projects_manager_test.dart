@@ -837,19 +837,18 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Turns the project file at [filePath] back into the file the previous build would have
-    /// written: the version 22 step's own additions — `shooting_slot_candidates` and the two links
-    /// an audition block names — taken back out, and the format number with it.
+    /// written: the two columns version 23 **drops** put back, and the format number with them.
     ///
-    /// Undoing the step rather than only stamping the number down is what makes this a real
-    /// migration to run — `addColumn` on a column that is already there throws, and `createTable`
-    /// on a table that already exists does too, which is exactly what a file merely relabelled
-    /// would have hidden.
+    /// It adds rather than removes, unlike every earlier version of this helper, because the step
+    /// it undoes is itself a removal — `shooting_days.kind` and
+    /// `shooting_day_blocks.role_candidate_id` are what a build that never merged wrote. Undoing
+    /// the step rather than only stamping the number down is what makes this a real migration to
+    /// run, which is exactly what a file merely relabelled would have hidden.
     void demoteToPreviousFormat(String filePath) {
       final database = sqlite3.open(filePath);
       database
-        ..execute("DROP TABLE shooting_slot_candidates")
-        ..execute("ALTER TABLE shooting_day_blocks DROP COLUMN role_id")
-        ..execute("ALTER TABLE shooting_day_blocks DROP COLUMN role_candidate_id")
+        ..execute("ALTER TABLE shooting_days ADD COLUMN kind TEXT NOT NULL DEFAULT 'shoot'")
+        ..execute("ALTER TABLE shooting_day_blocks ADD COLUMN role_candidate_id TEXT NULL")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

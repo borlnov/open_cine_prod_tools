@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_schedule_day_kind_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_schedule_effect_palette.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
@@ -34,7 +33,6 @@ import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
@@ -120,34 +118,13 @@ String ocptScheduleAgendaModeLabel(Tr tr, OcptScheduleAgendaMode mode) => switch
   OcptScheduleAgendaMode.month => tr.scheduleAgendaModeMonth,
 };
 
-/// The display label of day kind [kind] — what the day inspector's own `Kind` picker reads out.
-String ocptShootingDayKindLabel(Tr tr, OcptShootingDayKind kind) => switch (kind) {
-  OcptShootingDayKind.shoot => tr.scheduleDayKindShoot,
-  OcptShootingDayKind.casting => tr.scheduleDayKindCasting,
-  OcptShootingDayKind.rehearsal => tr.scheduleDayKindRehearsal,
-};
-
-/// The single letter a day of kind [kind] wears before its rank: `D`/`J` for a shooting day, `C`
-/// for a casting day, `R` for a rehearsal.
-///
-/// **Localized**, all three: the paperwork a crew reads is printed in the language the app is set
-/// to, so the letter that opens a day's own tag follows it, the same as every other word on the
-/// page. A `switch` with no `default`, so a fourth [OcptShootingDayKind] must be given a letter of
-/// its own here rather than silently borrowing one already in use.
-String ocptScheduleDayTagPrefix(Tr tr, OcptShootingDayKind kind) => switch (kind) {
-  OcptShootingDayKind.shoot => tr.scheduleDayTagPrefixShoot,
-  OcptShootingDayKind.casting => tr.scheduleDayTagPrefixCasting,
-  OcptShootingDayKind.rehearsal => tr.scheduleDayTagPrefixRehearsal,
-};
-
 /// A day's printed rank, `D3`/`J3` — the shorthand the reference production documents this mode
-/// is modelled on use throughout — or `C1`/`R1` for a day that auditions or rehearses.
+/// is modelled on use throughout.
 ///
-/// [dayNumber] is read **with** [kind] and never on its own: the three kinds are ranked in three
-/// separate series (`OcptShootingDay.dayNumber`), so the same `1` is `D1`, `C1` or `R1` depending
-/// on what the day is for. The letter is [ocptScheduleDayTagPrefix]'s.
-String ocptScheduleDayTagLabel(Tr tr, OcptShootingDayKind kind, int dayNumber) =>
-    "${ocptScheduleDayTagPrefix(tr, kind)}$dayNumber";
+/// The letter is [Tr.scheduleDayTagPrefix], **localized**: the paperwork a crew reads is printed
+/// in the language the app is set to, so the letter that opens a day's own tag follows it, the
+/// same as every other word on the page.
+String ocptScheduleDayTagLabel(Tr tr, int dayNumber) => "${tr.scheduleDayTagPrefix}$dayNumber";
 
 /// The colour a day (or, once built, a week/month cell) is tinted with, following its first slot's
 /// own location — the M1 rule ("M1 tints a day by its location, with no choice offered", the
@@ -164,21 +141,6 @@ Color ocptScheduleDayLocationTint(BuildContext context, OcptLocation? location) 
 
   return Color(ocptCoverageColorAt(location.colorIndex));
 }
-
-/// The colour a day of kind [kind] is tinted with whatever the agenda's own `Colour by` control
-/// says — or **null** for [OcptShootingDayKind.shoot], which has no tint of its own and reads
-/// through that control like it always has.
-///
-/// A non-shooting day overrides the choice rather than joining it
-/// (`ocpt_schedule_day_kind_palette.dart`): "this day does not shoot" is the first thing a reader
-/// of an agenda needs to know about
-/// a day, not one more way of colouring one. Returning null rather than a fallback is what lets the
-/// caller keep the existing behaviour for the shooting days untouched.
-Color? ocptScheduleDayKindTint(BuildContext context, OcptShootingDayKind kind) => switch (kind) {
-  OcptShootingDayKind.shoot => null,
-  OcptShootingDayKind.casting => const Color(ocptScheduleCastingDayColor),
-  OcptShootingDayKind.rehearsal => const Color(ocptScheduleRehearsalDayColor),
-};
 
 /// The colour a day (or a week/month cell) is tinted with under [OcptScheduleAgendaColorMode.effect]
 /// — [ocptScheduleEffectColorOf] applied to [category], or the same neutral `outlineVariant`
@@ -468,9 +430,7 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     },
     directorLine: ocptScheduleDirectorLineOf(tr, people),
     versionLabel: tr.scheduleExportVersionLabel,
-    dayTagPrefixes: {
-      for (final kind in OcptShootingDayKind.values) kind: ocptScheduleDayTagPrefix(tr, kind),
-    },
+    dayTagPrefix: tr.scheduleDayTagPrefix,
     dayNumberLabel: tr.scheduleExportDayNumberLabel,
     recipientsSectionTitle: tr.scheduleExportRecipientsSectionTitle,
     namedRecipientLabel: tr.scheduleExportNamedRecipientLabel,
@@ -544,7 +504,7 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     tenMinuteGridSectionTitle: tr.scheduleExportTenMinuteGridSectionTitle,
     directorLine: ocptScheduleDirectorLineOf(tr, people),
     versionLabel: tr.scheduleExportVersionLabel,
-    dayTagPrefix: tr.scheduleDayTagPrefixShoot,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
     locationsGridTitle: tr.scheduleExportLocationsGridTitle,
     sequencesGridTitle: tr.scheduleExportSequencesGridTitle,
     peopleGridTitle: tr.scheduleExportPeopleGridTitle,
@@ -634,7 +594,7 @@ OcptShootingPlanXlsxLabels ocptShootingPlanXlsxLabelsOf(BuildContext context) {
       OcptShootingPlanXlsxColumn.durationMinutes: tr.scheduleExportShootingPlanXlsxDurationColumnHeader,
       OcptShootingPlanXlsxColumn.crewNote: tr.scheduleInspectorBlockCrewNoteLabel,
     },
-    dayTagPrefix: tr.scheduleDayTagPrefixShoot,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
     presenceMark: tr.scheduleExportPresenceMark,
     persoLabel: tr.scheduleExportPersoLabel,
     sequenceRowPrefix: tr.scheduleExportSequenceRowPrefix,
@@ -675,7 +635,7 @@ OcptDayOutOfDaysLabels ocptDayOutOfDaysLabelsOf(
     documentTitle: tr.scheduleExportDayOutOfDaysDocumentTitle,
     directorLine: ocptScheduleDirectorLineOf(tr, people),
     versionLabel: tr.scheduleExportVersionLabel,
-    dayTagPrefix: tr.scheduleDayTagPrefixShoot,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
     dayDateLabels: {for (final day in days) day.id: DateFormat.Md(locale).format(day.date)},
     roleHeader: tr.scheduleExportDayOutOfDaysRoleHeader,
     workedDaysHeader: tr.scheduleExportDayOutOfDaysWorkedDaysHeader,
@@ -730,7 +690,7 @@ OcptOneLineScheduleLabels ocptOneLineScheduleLabelsOf(
     documentTitle: tr.scheduleExportOneLineScheduleDocumentTitle,
     directorLine: ocptScheduleDirectorLineOf(tr, people),
     versionLabel: tr.scheduleExportVersionLabel,
-    dayTagPrefix: tr.scheduleDayTagPrefixShoot,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
     dayTitles: {for (final day in days) day.id: DateFormat.MMMMEEEEd(locale).format(day.date)},
     seqHeader: tr.scheduleExportSeqHeader,
     effectHeader: tr.scheduleExportEffetHeader,
@@ -770,7 +730,7 @@ OcptSidesLabels ocptSidesLabelsOf(
     fileNameSuffix: tr.scheduleExportSidesFileNameSuffix,
     documentTitle: tr.scheduleExportSidesDocumentTitle,
     versionLabel: tr.scheduleExportVersionLabel,
-    dayTagPrefix: tr.scheduleDayTagPrefixShoot,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
     dayTitle: day == null ? "" : DateFormat.MMMMEEEEd(locale).format(day.date),
     episodeLabels: {
       for (final episode in episodes)

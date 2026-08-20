@@ -28,7 +28,6 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
@@ -62,7 +61,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 18;
+  static const currentPayloadFormat = 19;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -816,6 +815,7 @@ class OcptProjectVersionCodec {
     15: _upgradeFormat15To16,
     16: _upgradeFormat16To17,
     17: _upgradeFormat17To18,
+    18: _upgradeFormat18To19,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1323,6 +1323,28 @@ class OcptProjectVersionCodec {
     _shootingDayBlocksKey: [
       for (final row in _rows(json, _shootingDayBlocksKey))
         {...row, _roleIdKey: null, _roleCandidateIdKey: null},
+    ],
+  };
+
+  /// Turns a format-**18** JSON object into a format-**19** one: `shootingDays` rows lose their
+  /// [_kindKey] and `shootingDayBlocks` rows their [_roleCandidateIdKey].
+  ///
+  /// [_upgradeFormat7To8]'s kind — a step that **removes** — and for a close cousin of its reason. A
+  /// day was briefly given a kind (shoot, casting, rehearsal) and an audition block was briefly
+  /// given the candidacy it saw; both were dropped, because a real day mixes those activities and
+  /// says so through its **blocks**: a production auditions in the morning and rehearses in the
+  /// afternoon, and rehearses on the morning of a day it shoots. What a day is for is read off what
+  /// it holds, so neither column has anything left to say.
+  ///
+  /// Both keys are stripped rather than left to be ignored: [contentDigest] hashes what this codec
+  /// writes, and a key nothing writes any more must not linger in one payload and not the next.
+  static Map<String, dynamic> _upgradeFormat18To19(Map<String, dynamic> json) => {
+    ...json,
+    _shootingDaysKey: [
+      for (final row in _rows(json, _shootingDaysKey)) {...row}..remove(_kindKey),
+    ],
+    _shootingDayBlocksKey: [
+      for (final row in _rows(json, _shootingDayBlocksKey)) {...row}..remove(_roleCandidateIdKey),
     ],
   };
 
@@ -2503,7 +2525,6 @@ class OcptProjectVersionCodec {
     _idKey: row.id,
     _dateKey: row.date.toIso8601String(),
     _sortKeyKey: row.sortKey,
-    _kindKey: row.kind.name,
     _statusKey: row.status.name,
     _crewNoteKey: row.crewNote,
     _weatherNoteKey: row.weatherNote,
@@ -2516,7 +2537,6 @@ class OcptProjectVersionCodec {
     id: _string(json, _idKey),
     date: _dateTime(json, _dateKey),
     sortKey: _string(json, _sortKeyKey),
-    kind: _enum(json, _kindKey, OcptShootingDayKind.values.asNameMap()),
     status: _enum(json, _statusKey, OcptShootingDayStatus.values.asNameMap()),
     crewNote: _string(json, _crewNoteKey),
     weatherNote: _string(json, _weatherNoteKey),
@@ -2611,7 +2631,6 @@ class OcptProjectVersionCodec {
     _shotIdKey: row.shotId,
     _sceneIdKey: row.sceneId,
     _roleIdKey: row.roleId,
-    _roleCandidateIdKey: row.roleCandidateId,
     _labelKey: row.label,
     _durationMinutesKey: row.durationMinutes,
     _anchorMinuteKey: row.anchorMinute,
@@ -2631,7 +2650,6 @@ class OcptProjectVersionCodec {
         shotId: _nullableString(json, _shotIdKey),
         sceneId: _nullableString(json, _sceneIdKey),
         roleId: _nullableString(json, _roleIdKey),
-        roleCandidateId: _nullableString(json, _roleCandidateIdKey),
         label: _string(json, _labelKey),
         durationMinutes: _nullableInt(json, _durationMinutesKey),
         anchorMinute: _nullableInt(json, _anchorMinuteKey),

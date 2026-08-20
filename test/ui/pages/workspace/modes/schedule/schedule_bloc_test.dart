@@ -33,7 +33,6 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
@@ -67,11 +66,7 @@ const _callSheetLabels = OcptCallSheetLabels(
   dayTitles: {},
   directorLine: "",
   versionLabel: "Version",
-  dayTagPrefixes: {
-    OcptShootingDayKind.shoot: "D",
-    OcptShootingDayKind.casting: "C",
-    OcptShootingDayKind.rehearsal: "R",
-  },
+  dayTagPrefix: "D",
   dayNumberLabel: "Day",
   recipientsSectionTitle: "Recipients",
   namedRecipientLabel: "For",
@@ -626,8 +621,8 @@ void main() {
   });
 
   group("planning an audition", () {
-    /// A part, somebody seen for it, and a casting day with one slot: what an audition is planned
-    /// on. Returns the slot and the candidacy.
+    /// A part, somebody seen for it, and a day with one slot: what an audition is planned on.
+    /// Returns the slot and the candidacy.
     Future<(String slotId, String roleCandidateId)> seedCastingDay() async {
       final project = projectsManager.currentProject!;
 
@@ -654,7 +649,6 @@ void main() {
       final dayId = await projectsManager.scheduleService.createDay(
         database: project.database,
         date: DateTime(2026, 8, 10),
-        kind: OcptShootingDayKind.casting,
       );
       final schedule = await projectsManager.scheduleService.loadSchedule(
         database: project.database,
@@ -675,46 +669,30 @@ void main() {
       await bloc.close();
     });
 
-    test("the audition event writes a block naming both halves of its link", () async {
+    test("an audition block is created in place, and its part written onto it after", () async {
       final (slotId, roleCandidateId) = await seedCastingDay();
 
       final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final roleId = loaded.roleCandidateById[roleCandidateId]!.roleId;
 
+      // Created like every other block that names no row of another table: nothing is asked at
+      // creation, and an audition with no part settled yet is an ordinary state.
       bloc.add(
-        OcptScheduleAuditionBlockCreatedEvent(slotId: slotId, roleCandidateId: roleCandidateId),
+        OcptScheduleBlockCreatedEvent(slotId: slotId, kind: OcptShootingBlockKind.audition),
       );
-      final state = await waitForState(
-        bloc,
-        (state) => state.selectedDayBlocks.isNotEmpty,
-      );
-
-      final block = state.selectedDayBlocks.single;
+      final created = await waitForState(bloc, (state) => state.selectedDayBlocks.isNotEmpty);
+      final block = created.selectedDayBlocks.single;
       expect(block.kind, OcptShootingBlockKind.audition);
-      expect(block.roleCandidateId, roleCandidateId);
-      // The part is read off the candidacy rather than carried by the event, so the two halves
-      // cannot disagree.
-      expect(block.roleId, state.roleCandidateById[roleCandidateId]!.roleId);
+      expect(block.roleId, isNull);
 
-      await bloc.close();
-    });
-
-    test("the audition event writes nothing at all for a candidacy the state doesn't hold", () async {
-      final (slotId, _) = await seedCastingDay();
-
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(
-        const OcptScheduleAuditionBlockCreatedEvent(
-          slotId: "any-slot",
-          roleCandidateId: "gone-since-the-dialog-opened",
-        ),
+      // Then the row's own role picker says which part is being seen at that hour.
+      bloc.add(OcptScheduleBlockRoleChangedEvent(blockId: block.id, roleId: roleId));
+      final named = await waitForState(
+        bloc,
+        (state) => state.selectedDayBlocks.single.roleId != null,
       );
-      await pumpEventQueue();
-
-      expect(bloc.state.selectedDayBlocks, isEmpty);
-      expect(slotId, isNotEmpty);
+      expect(named.selectedDayBlocks.single.roleId, roleId);
 
       await bloc.close();
     });

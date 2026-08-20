@@ -13,7 +13,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_events_list.dart';
@@ -29,11 +28,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// (`OcptScheduleBloc` keeps them mutually exclusive); a shot is what the user just clicked in the
 /// left dock, so it wins over a day it says nothing about.
 ///
-/// Every writing affordance ([onDayKindChanged], [onDayStatusChanged], [onCrewNoteChanged],
-/// [onWeatherNoteChanged], [onEventAdded] and the rest of the events section's own callbacks,
-/// [onShotStatusChanged], [onBlockDurationChanged], [onBlockCrewNoteChanged],
-/// [onBlockNotesChanged]) is a nullable callback, withheld while a project version is being
-/// previewed. Reading — every other line — stays.
+/// Every writing affordance ([onDayStatusChanged], [onCrewNoteChanged], [onWeatherNoteChanged],
+/// [onEventAdded] and the rest of the events section's own callbacks, [onShotStatusChanged],
+/// [onBlockDurationChanged], [onBlockCrewNoteChanged], [onBlockNotesChanged]) is a nullable
+/// callback, withheld while a project version is being previewed. Reading — every other line —
+/// stays.
 ///
 /// The day inspector's own events section is [OcptScheduleDayEventsList] under an
 /// `_OcptScheduleInspectorSection`, after the sun times and before the weather note — the very same
@@ -99,9 +98,6 @@ class OcptScheduleInspector extends StatelessWidget {
   /// only ever asks, the mode owning the confirmation.
   final ValueChanged<String>? onEventDeletionRequested;
 
-  /// Called with the kind just picked, or null while withheld.
-  final ValueChanged<OcptShootingDayKind>? onDayKindChanged;
-
   /// Called with the status just picked, or null while withheld.
   final ValueChanged<OcptShootingDayStatus>? onDayStatusChanged;
 
@@ -118,12 +114,9 @@ class OcptScheduleInspector extends StatelessWidget {
   /// [shot]'s own sequence, as the left dock heads it — null while [shot] is null.
   final String? shotSequenceLabel;
 
-  /// The days [shot] is currently placed on, in ascending date order — empty while it isn't placed
-  /// anywhere yet. Ignored while [shot] is null.
-  ///
-  /// The days rather than their numbers: a day's number ranks it among its own kind alone, so the
-  /// tag this reads out is [ocptScheduleDayTagLabel]'s reading of the pair.
-  final List<OcptShootingDay> shotPlacedDays;
+  /// The day numbers [shot] is currently placed on, in ascending order — empty while it isn't
+  /// placed anywhere yet. Ignored while [shot] is null.
+  final List<int> shotPlacedDayNumbers;
 
   /// The selected block, or null while none is selected — the inspector then shows [shot]'s own
   /// read-out instead, or, with neither selected, [day]'s.
@@ -184,13 +177,12 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.onEventLabelChanged,
     required this.onEventNotesChanged,
     required this.onEventDeletionRequested,
-    required this.onDayKindChanged,
     required this.onDayStatusChanged,
     required this.onCrewNoteChanged,
     required this.onWeatherNoteChanged,
     required this.shot,
     required this.shotSequenceLabel,
-    required this.shotPlacedDays,
+    required this.shotPlacedDayNumbers,
     required this.block,
     required this.blockShot,
     required this.blockSlotLabel,
@@ -235,14 +227,9 @@ class OcptScheduleInspector extends StatelessWidget {
     return _buildDayInspector(context, day);
   }
 
-  /// The day inspector: date, kind, status, locations, sets, slots, the arrival → the estimated
-  /// end, the sun times and the UTC offset they were computed with, its own events, weather note,
-  /// crew note.
-  ///
-  /// **`Kind` sits right under the date and above `Status`**, the twin of the status picker and
-  /// built from the same shape: what a day is *for* is read before where it stands, a casting day
-  /// that has not happened yet and a shooting day that has not happened yet being two different
-  /// facts a reader must not have to infer from the timetable.
+  /// The day inspector: date, status, locations, sets, slots, the arrival → the estimated end,
+  /// the sun times and the UTC offset they were computed with, its own events, weather note, crew
+  /// note.
   Widget _buildDayInspector(BuildContext context, OcptShootingDay day) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -260,39 +247,12 @@ class OcptScheduleInspector extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          tr.scheduleInspectorDayTitle(ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber)),
+          tr.scheduleInspectorDayTitle(ocptScheduleDayTagLabel(tr, day.dayNumber)),
           style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: 2),
         Text(dateLabel, style: theme.textTheme.bodySmall),
         const SizedBox(height: 12),
-        _OcptScheduleInspectorSection(
-          label: tr.scheduleInspectorKindLabel,
-          child: onDayKindChanged == null
-              ? Text(ocptShootingDayKindLabel(tr, day.kind), style: theme.textTheme.bodySmall)
-              : PopupMenuButton<OcptShootingDayKind>(
-                  tooltip: "",
-                  onSelected: onDayKindChanged,
-                  itemBuilder: (context) => [
-                    for (final kind in OcptShootingDayKind.values)
-                      PopupMenuItem<OcptShootingDayKind>(
-                        value: kind,
-                        child: Text(ocptShootingDayKindLabel(tr, kind)),
-                      ),
-                  ],
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        ocptShootingDayKindLabel(tr, day.kind),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, size: 16),
-                    ],
-                  ),
-                ),
-        ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorStatusLabel,
           child: onDayStatusChanged == null
@@ -517,11 +477,9 @@ class OcptScheduleInspector extends StatelessWidget {
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorPlacementLabel,
           child: Text(
-            shotPlacedDays.isEmpty
+            shotPlacedDayNumbers.isEmpty
                 ? tr.scheduleInspectorShotNotPlanned
-                : shotPlacedDays
-                      .map((day) => ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber))
-                      .join(", "),
+                : shotPlacedDayNumbers.map((n) => ocptScheduleDayTagLabel(tr, n)).join(", "),
             style: theme.textTheme.bodySmall,
           ),
         ),

@@ -21,7 +21,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -62,15 +61,10 @@ OcptShootingPlanXlsxLabels _buildLabels() => OcptShootingPlanXlsxLabels(
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
-OcptShootingDay _buildDay({
-  required String id,
-  required int dayNumber,
-  OcptShootingDayKind kind = OcptShootingDayKind.shoot,
-}) => OcptShootingDay(
+OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
   id: id,
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
-  kind: kind,
   status: OcptShootingDayStatus.planned,
   crewNote: "",
   weatherNote: "",
@@ -121,7 +115,6 @@ OcptShootingDayBlock _buildBlock({
   anchorMinute: null,
   notes: "",
   crewNote: crewNote,
-  roleCandidateId: null,
   roleId: null,
 );
 
@@ -369,56 +362,6 @@ void main() {
           _cellAt(rows[1], OcptShootingPlanXlsxColumn.date.index),
           DateCellValue.fromDateTime(dayOne.date),
         );
-      });
-
-      test("a day that does not shoot is skipped, ticked or not", () {
-        // This workbook is about the shoot: a casting day reaching it — through a hand-edited file,
-        // or a day whose kind changed after the dialog was opened — prints nothing, exactly as an
-        // id naming no live day at all does.
-        final shootDay = _buildDay(id: "day-1", dayNumber: 1);
-        final castingDay = _buildDay(
-          id: "day-2",
-          dayNumber: 1,
-          kind: OcptShootingDayKind.casting,
-        );
-        final shootSlot = _buildSlot(id: "slot-1", shootingDayId: "day-1", label: "Morning");
-        final castingSlot = _buildSlot(id: "slot-2", shootingDayId: "day-2", label: "Morning");
-        final shotA = _buildShot(id: "shot-a", sceneId: "scene-1", code: "1/1");
-        final shotB = _buildShot(id: "shot-b", sceneId: "scene-1", code: "1/2");
-
-        final bytes = generate(
-          plan: _buildSnapshot(
-            days: [shootDay, castingDay],
-            slotsByDayId: {
-              "day-1": [shootSlot],
-              "day-2": [castingSlot],
-            },
-            blocksByDayId: {
-              "day-1": [
-                _buildBlock(
-                  id: "block-a",
-                  shootingDayId: "day-1",
-                  slotId: "slot-1",
-                  shotId: "shot-a",
-                ),
-              ],
-              "day-2": [
-                _buildBlock(
-                  id: "block-b",
-                  shootingDayId: "day-2",
-                  slotId: "slot-2",
-                  shotId: "shot-b",
-                ),
-              ],
-            },
-            shotLists: [_buildShotList(shots: [shotA, shotB])],
-          ),
-          dayIds: const ["day-1", "day-2"],
-        );
-
-        final rows = _rowsOf(bytes, _chronologySheetName);
-        expect(rows, hasLength(2)); // header + the shooting day's own single block
-        expect(_cellAt(rows[1], OcptShootingPlanXlsxColumn.shot.index), "1/1");
       });
 
       test("a day with no live slot writes no chronology row", () {

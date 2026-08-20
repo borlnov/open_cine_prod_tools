@@ -11,7 +11,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
@@ -35,17 +34,13 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({
-  String id = "day-1",
-  int dayNumber = 3,
-  OcptShootingDayKind kind = OcptShootingDayKind.shoot,
   OcptShootingDayStatus status = OcptShootingDayStatus.planned,
   String crewNote = "",
   String weatherNote = "",
 }) => OcptShootingDay(
-  id: id,
+  id: "day-1",
   date: DateTime(2026, 8, 4),
-  dayNumber: dayNumber,
-  kind: kind,
+  dayNumber: 3,
   status: status,
   crewNote: crewNote,
   weatherNote: weatherNote,
@@ -104,7 +99,6 @@ OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Pre
       anchorMinute: null,
       notes: "",
       crewNote: crewNote,
-      roleCandidateId: null,
       roleId: null,
     );
 
@@ -118,13 +112,12 @@ Future<void> _pumpInspector(
   int? dayArrivalMinute,
   OcptSunTimes? sunTimes,
   List<OcptShootingDayEvent> events = const [],
-  ValueChanged<OcptShootingDayKind>? onDayKindChanged,
   ValueChanged<OcptShootingDayStatus>? onDayStatusChanged,
   ValueChanged<String>? onCrewNoteChanged,
   ValueChanged<String>? onWeatherNoteChanged,
   OcptShot? shot,
   String? shotSequenceLabel,
-  List<OcptShootingDay> shotPlacedDays = const [],
+  List<int> shotPlacedDayNumbers = const [],
   OcptShootingDayBlock? block,
   OcptShootingTimelineEntry? blockEntry,
   ValueChanged<OcptShotStatus>? onShotStatusChanged,
@@ -152,13 +145,12 @@ Future<void> _pumpInspector(
         onEventLabelChanged: onDayStatusChanged == null ? null : (_, _) {},
         onEventNotesChanged: onDayStatusChanged == null ? null : (_, _) {},
         onEventDeletionRequested: onDayStatusChanged == null ? null : (_) {},
-        onDayKindChanged: onDayKindChanged,
         onDayStatusChanged: onDayStatusChanged,
         onCrewNoteChanged: onCrewNoteChanged,
         onWeatherNoteChanged: onWeatherNoteChanged,
         shot: shot,
         shotSequenceLabel: shotSequenceLabel,
-        shotPlacedDays: shotPlacedDays,
+        shotPlacedDayNumbers: shotPlacedDayNumbers,
         block: block,
         blockShot: null,
         blockSlotLabel: null,
@@ -184,7 +176,6 @@ Future<void> _pumpDayInspector(
   OcptShootingDayTimelines? timeline,
   int? dayArrivalMinute,
   OcptSunTimes? sunTimes,
-  ValueChanged<OcptShootingDayKind>? onDayKindChanged,
   ValueChanged<OcptShootingDayStatus>? onDayStatusChanged,
   ValueChanged<String>? onCrewNoteChanged,
   ValueChanged<String>? onWeatherNoteChanged,
@@ -194,7 +185,6 @@ Future<void> _pumpDayInspector(
   timeline: timeline,
   dayArrivalMinute: dayArrivalMinute,
   sunTimes: sunTimes,
-  onDayKindChanged: onDayKindChanged,
   onDayStatusChanged: onDayStatusChanged,
   onCrewNoteChanged: onCrewNoteChanged,
   onWeatherNoteChanged: onWeatherNoteChanged,
@@ -308,42 +298,6 @@ void main() {
     expect(crewNoteEdits, ["Rain expected"]);
   });
 
-  testWidgets("the kind picker reads out the day's own kind, right above the status", (
-    tester,
-  ) async {
-    await _pumpDayInspector(
-      tester,
-      day: _buildDay(kind: OcptShootingDayKind.casting),
-      onDayKindChanged: (_) {},
-      onDayStatusChanged: (_) {},
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
-    expect(find.text(tr.scheduleInspectorKindLabel.toUpperCase()), findsOneWidget);
-    expect(find.text(tr.scheduleDayKindCasting), findsOneWidget);
-    // And the day tag it heads itself with follows the kind rather than always saying `D`.
-    expect(find.text(tr.scheduleInspectorDayTitle("C3")), findsOneWidget);
-  });
-
-  testWidgets("picking a kind writes immediately, through its own callback", (tester) async {
-    OcptShootingDayKind? pickedKind;
-
-    await _pumpDayInspector(
-      tester,
-      day: _buildDay(),
-      onDayKindChanged: (kind) => pickedKind = kind,
-      onDayStatusChanged: (_) {},
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
-    await tester.tap(find.text(tr.scheduleDayKindShoot));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.scheduleDayKindRehearsal).last);
-    await tester.pumpAndSettle();
-
-    expect(pickedKind, OcptShootingDayKind.rehearsal);
-  });
-
   testWidgets("every writing affordance is withheld when the mode is read-only", (tester) async {
     // Every callback left at the helper's own default, which is null: read-only is expressed as
     // "no callback, no affordance", so handing none of them is exactly what the mode does while a
@@ -351,9 +305,7 @@ void main() {
     await _pumpDayInspector(tester, day: _buildDay(crewNote: "Bring umbrellas"));
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
-    // The kind and the status both read as plain text, no drop-down affordance on either.
-    expect(find.byType(PopupMenuButton<OcptShootingDayKind>), findsNothing);
-    expect(find.text(tr.scheduleDayKindShoot), findsOneWidget);
+    // The status reads as plain text, no drop-down affordance.
     expect(find.byType(PopupMenuButton<OcptShootingDayStatus>), findsNothing);
     expect(find.text(tr.scheduleDayStatusPlanned), findsOneWidget);
     // The crew note reads as plain selectable text, not an editable field.
@@ -402,10 +354,7 @@ void main() {
         tester,
         shot: shot,
         shotSequenceLabel: "SEQ 1",
-        shotPlacedDays: [
-          _buildDay(id: "day-2", dayNumber: 2),
-          _buildDay(id: "day-5", dayNumber: 5),
-        ],
+        shotPlacedDayNumbers: const [2, 5],
         onShotStatusChanged: (_) {},
       );
 

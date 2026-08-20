@@ -15,7 +15,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
@@ -36,15 +35,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **A day's printed number (`J3`) is a read-time rank, never a column.** [loadSchedule] counts it
 /// off the same way `OcptShotListService` counts a shot's `OcptShot.position`: the 1-based index of
-/// a live day among the project's days, ordered by `date` then `sortKey`.
-///
-/// **It is counted per `OcptShootingDayKind`, in three separate series.** A day is not necessarily
-/// a day that shoots — it may audition or rehearse instead — and each kind is ranked among its own
-/// kind alone, so `J3` keeps counting shooting days while a casting day is `C1` and a rehearsal
-/// `R1`. Inserting a casting day in the middle of a shoot therefore renumbers no shooting day,
-/// which is the whole point: `J3` is what a crew says to each other, and a series that shifted
-/// every time somebody planned an audition would be a series nobody could say out loud. The letter
-/// itself is the UI's (`ocptScheduleDayTagLabel`); this service only ever counts.
+/// a live day among its screenplay's days, ordered by `sortKey`.
 ///
 /// **A day is a set of parallel chains, one per slot, rather than one timetable.** A block belongs
 /// to exactly one slot ([createBlock]/[placeShot] both take a required slot id and read the day off
@@ -249,10 +240,9 @@ class OcptScheduleService {
           .add(OcptShootingDayEvent.fromRow(row));
     }
 
-    final dayNumbers = _dayNumbersOf(dayRows);
     final days = [
       for (var i = 0; i < dayRows.length; i++)
-        OcptShootingDay.fromRow(row: dayRows[i], dayNumber: dayNumbers[dayRows[i].id]!),
+        OcptShootingDay.fromRow(row: dayRows[i], dayNumber: i + 1),
     ];
 
     return OcptScheduleSnapshot.build(
@@ -263,15 +253,11 @@ class OcptScheduleService {
     );
   }
 
-  /// For every shot of the project placed in the schedule, every block that places it — which day
-  /// it sits on, what that day is for, and that day's rank and date — keyed by shot id, each list
-  /// in **date** order (days are walked by date, then by `sortKey` between two sharing one) and,
-  /// within a day, in the order the query itself returns, no secondary sort invented on top of it.
-  ///
-  /// Date rather than `dayNumber`: the three day kinds are ranked in three separate series, so a
-  /// number no longer orders two days of different kinds against each other. Every reader of this
-  /// map sorts by date for the same reason, and prints the number with [OcptShotPlacement.dayKind]
-  /// beside it.
+  /// For every shot of the project placed in the schedule, every block that places it — which
+  /// day it sits on and that day's rank and date — keyed by shot id, each list ordered by
+  /// `dayNumber` ascending, which is chronological order (days are ranked by date, then by
+  /// `sortKey` between two sharing one), and, within a day, in the order the query itself returns,
+  /// no secondary sort invented on top of it.
   ///
   /// A shot with no live block has **no entry** in the returned map, rather than an empty list: the
   /// shot list's `Jour de tournage` read-out reads absence as "not yet planned" rather than looking
@@ -285,9 +271,12 @@ class OcptScheduleService {
       return const {};
     }
 
-    final dayNumberById = _dayNumbersOf(dayRows);
-    final kindById = {for (final row in dayRows) row.id: row.kind};
-    final dateById = {for (final row in dayRows) row.id: row.date};
+    final dayNumberById = <String, int>{};
+    final dateById = <String, DateTime>{};
+    for (var i = 0; i < dayRows.length; i++) {
+      dayNumberById[dayRows[i].id] = i + 1;
+      dateById[dayRows[i].id] = dayRows[i].date;
+    }
 
     final dayIds = dayRows.map((row) => row.id).toList(growable: false);
     final blockRows =
@@ -322,7 +311,6 @@ class OcptScheduleService {
                 shotId: shotId,
                 dayId: row.shootingDayId,
                 dayNumber: dayNumberById[row.shootingDayId]!,
-                dayKind: kindById[row.shootingDayId]!,
                 date: dateById[row.shootingDayId]!,
               ),
             );
@@ -332,13 +320,8 @@ class OcptScheduleService {
     return placementsByShotId;
   }
 
-  /// Creates a new day of the project dated [date] and of kind [kind], appended at the end, and
-  /// returns its freshly generated id.
-  ///
-  /// [kind] defaults to [OcptShootingDayKind.shoot], which is what every day of this schedule was
-  /// before the other two existed and what the day list's own `+` still mints: a day that auditions
-  /// or rehearses is said so in the day inspector, on a day already created, rather than chosen up
-  /// front — creating a day is a gesture about a **date**.
+  /// Creates a new shooting day of the project dated [date], appended at the end, and returns its
+  /// freshly generated id.
   ///
   /// **Mints one slot with it.** A day has at least one convocation window — see
   /// `OcptShootingSlotsTable`'s own doc comment — and a day with none could hold no crew, no cast
@@ -349,7 +332,6 @@ class OcptScheduleService {
   Future<String?> createDay({
     required OcptProjectDatabase database,
     required DateTime date,
-    OcptShootingDayKind kind = OcptShootingDayKind.shoot,
   }) async {
     if (database.refusesUserWrite("createDay")) {
       return null;
@@ -365,7 +347,6 @@ class OcptScheduleService {
             OcptShootingDaysTableCompanion.insert(
               id: dayId,
               date: date,
-              kind: Value(kind),
               sortKey: Value(
                 ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
               ),
@@ -379,13 +360,7 @@ class OcptScheduleService {
   }
 
   /// Updates the fields of day [dayId] in [database] that are passed as something other than
-  /// [Value.absent].
-  ///
-  /// Changing [kind] renumbers **both** series it stands between — the day leaves one and joins the
-  /// other — which nothing here has to do, the number being a read-time rank the next
-  /// [loadSchedule] counts off afresh. It leaves the day's slots, blocks, convocations and events
-  /// exactly where they are: a block a day already carries keeps working whatever the day becomes,
-  /// refusing to draw a row a file holds being how a plan becomes unreadable. Never touches `sortKey` or `isDeleted`: `sortKey` is only allocated once, at
+  /// [Value.absent]. Never touches `sortKey` or `isDeleted`: `sortKey` is only allocated once, at
   /// insertion (breaking a tie between two days sharing one [date] — the order of the days
   /// themselves is [date]'s own, not a stored fact anybody can move), and `isDeleted` only through
   /// [deleteDay].
@@ -395,7 +370,6 @@ class OcptScheduleService {
     required OcptProjectDatabase database,
     required String dayId,
     Value<DateTime> date = const Value.absent(),
-    Value<OcptShootingDayKind> kind = const Value.absent(),
     Value<OcptShootingDayStatus> status = const Value.absent(),
     Value<String> crewNote = const Value.absent(),
     Value<String> weatherNote = const Value.absent(),
@@ -410,7 +384,6 @@ class OcptScheduleService {
     )..where((table) => table.id.equals(dayId) & table.isDeleted.not())).write(
       OcptShootingDaysTableCompanion(
         date: date,
-        kind: kind,
         status: status,
         crewNote: crewNote,
         weatherNote: weatherNote,
@@ -490,10 +463,6 @@ class OcptScheduleService {
   /// candidates they convoke — fresh ids, fresh `sortKey`s, everything else copied verbatim.
   /// Returns the new day's id.
   ///
-  /// **Carries the source day's own [OcptShootingDayKind] over**: duplicating a casting day plans a
-  /// second casting day, this gesture being "the same day, at another date" rather than "a fresh
-  /// day near this one".
-  ///
   /// **Copies neither the placed shots, the crew note, nor the source day's events** — see the class
   /// doc comment for why, and
   /// for the two further fields (`weatherNote`, `notes`) this service also leaves at their defaults
@@ -513,10 +482,9 @@ class OcptScheduleService {
     }
 
     return database.transaction(() async {
-      // Throws if `sourceDayId` doesn't exist or has been tombstoned. Its `kind` is the one field
-      // read off it: duplicating a casting day plans a second casting day, the gesture being "the
-      // same day, at another date".
-      final sourceDay = await _getDayRow(database: database, dayId: sourceDayId);
+      // Read back for validation alone from here on — throws if `sourceDayId` doesn't exist or has
+      // been tombstoned — since a day no longer names a screenplay for this method to carry over.
+      await _getDayRow(database: database, dayId: sourceDayId);
       final existingDays = await _liveDayRows(database: database);
       final newDayId = const Uuid().v4();
 
@@ -526,7 +494,6 @@ class OcptScheduleService {
             OcptShootingDaysTableCompanion.insert(
               id: newDayId,
               date: date,
-              kind: Value(sourceDay.kind),
               sortKey: Value(
                 ocptFractionalKeyBetween(
                   before: existingDays.isEmpty ? null : existingDays.last.sortKey,
@@ -1591,11 +1558,10 @@ class OcptScheduleService {
   /// sequence. It stays null on a hold or a rehearsal whose sequence hasn't been settled yet, which
   /// is an ordinary state.
   ///
-  /// **[roleId] and [roleCandidateId] belong to a [OcptShootingBlockKind.audition] and to nothing
-  /// else**, and are dropped on every other kind for the same reason [sceneId] is. They are
-  /// **required together**: an audition passed only one of the two is refused (returns null, writes
-  /// nothing) rather than stored half-linked — a row saying somebody is seen for no part, or that a
-  /// part sees nobody, is a row no reader could draw.
+  /// **[roleId] belongs to a [OcptShootingBlockKind.audition] and to nothing else** — the part being
+  /// auditioned — and is dropped on every other kind for the same reason [sceneId] is. It stays null
+  /// on an audition whose part hasn't been settled yet, exactly as a hold's own scene does, and it
+  /// never names a **person**: who comes to be seen is `shooting_slot_candidates`, on the slot.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createBlock({
@@ -1604,7 +1570,6 @@ class OcptScheduleService {
     required OcptShootingBlockKind kind,
     String? sceneId,
     String? roleId,
-    String? roleCandidateId,
     String label = "",
     int? durationMinutes,
     int? anchorMinute,
@@ -1616,11 +1581,6 @@ class OcptScheduleService {
     }
 
     if (kind == OcptShootingBlockKind.shot) {
-      return null;
-    }
-
-    final isAudition = kind == OcptShootingBlockKind.audition;
-    if (isAudition && (roleId == null || roleCandidateId == null)) {
       return null;
     }
 
@@ -1645,8 +1605,7 @@ class OcptScheduleService {
             slotId: slotId,
             kind: Value(kind),
             sceneId: Value(_namesASequence(kind) ? sceneId : null),
-            roleId: Value(isAudition ? roleId : null),
-            roleCandidateId: Value(isAudition ? roleCandidateId : null),
+            roleId: Value(kind == OcptShootingBlockKind.audition ? roleId : null),
             label: Value(label),
             durationMinutes: Value(durationMinutes),
             anchorMinute: Value(anchorMinute),
@@ -1676,11 +1635,11 @@ class OcptScheduleService {
   /// scene is set to null the ordinary way, by passing `Value(null)`, which is how a production
   /// un-decides which sequence a reserved slot is for.
   ///
-  /// **`roleId`/`roleCandidateId` likewise only ever hold on a [OcptShootingBlockKind.audition]**,
-  /// and are dropped to null the moment this call turns such a block into anything else. Neither is
-  /// settable here: which candidate is seen for which part *is* what an audition block is, so it is
-  /// chosen when the block is created ([createBlock]) and changed by deleting the row and picking
-  /// again — exactly as a shot block's own `shotId` already is.
+  /// **`roleId` likewise only ever holds on a [OcptShootingBlockKind.audition]**, and is dropped to
+  /// null the moment this call turns such a block into anything else. It is settable here, unlike a
+  /// shot block's own `shotId`: the part a session auditions is corrected as that session is
+  /// planned, exactly as a hold's sequence is, and `Value(null)` is how it goes back to "no part
+  /// yet".
   ///
   /// **[notes] and [crewNote] are not the same field wearing two names**: [notes] never prints,
   /// [crewNote] does — see `OcptShootingDayBlocksTable`'s own doc comment on each.
@@ -1691,6 +1650,7 @@ class OcptScheduleService {
     required String blockId,
     Value<OcptShootingBlockKind> kind = const Value.absent(),
     Value<String?> sceneId = const Value.absent(),
+    Value<String?> roleId = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<int?> durationMinutes = const Value.absent(),
     Value<int?> anchorMinute = const Value.absent(),
@@ -1707,12 +1667,9 @@ class OcptScheduleService {
 
     await database.transaction(() async {
       var sceneIdToWrite = sceneId;
-      // Never *sets* either link — see the doc comment — so `absent` is all it can ever be until a
-      // kind change makes an audition into something else, at which point both are cleared
-      // together, the pair being one link.
-      var auditionLinksToWrite = const Value<String?>.absent();
+      var roleIdToWrite = roleId;
 
-      if (kind.present || sceneId.present) {
+      if (kind.present || sceneId.present || roleId.present) {
         final row =
             await (database.select(database.ocptShootingDayBlocksTable)..where(
                   (table) => table.id.equals(blockId) & table.isDeleted.not(),
@@ -1729,7 +1686,7 @@ class OcptScheduleService {
         }
 
         if (resultingKind != OcptShootingBlockKind.audition) {
-          auditionLinksToWrite = const Value(null);
+          roleIdToWrite = const Value(null);
         }
       }
 
@@ -1739,8 +1696,7 @@ class OcptScheduleService {
         OcptShootingDayBlocksTableCompanion(
           kind: kind,
           sceneId: sceneIdToWrite,
-          roleId: auditionLinksToWrite,
-          roleCandidateId: auditionLinksToWrite,
+          roleId: roleIdToWrite,
           label: label,
           durationMinutes: durationMinutes,
           anchorMinute: anchorMinute,
@@ -2041,7 +1997,7 @@ class OcptScheduleService {
   /// (`docs/adr/0019-one-project-several-episodes.md`), the schedule being shared across every
   /// screenplay it holds — ordered by `date` ascending then `sortKey` ascending: chronologically,
   /// `sortKey` breaking the tie between two days sharing one date (a second unit), the order
-  /// [_dayNumbersOf] walks to rank each day among its own kind.
+  /// [OcptShootingDay.dayNumber] is a read-time rank over.
   Future<List<OcptShootingDayRow>> _liveDayRows({required OcptProjectDatabase database}) =>
       (database.select(database.ocptShootingDaysTable)
             ..where((table) => table.isDeleted.not())
@@ -2050,28 +2006,6 @@ class OcptScheduleService {
               (table) => OrderingTerm.asc(table.sortKey),
             ]))
           .get();
-
-  /// The 1-based number of each row of [dayRows], keyed by day id: its rank among the rows of its
-  /// **own [OcptShootingDayKind]**, in the order [dayRows] already carries (chronological, `sortKey`
-  /// breaking a tie).
-  ///
-  /// Three counters walked in one pass rather than three filtered lists: the input is already in
-  /// the one order every series is ranked in, so a kind's own numbering is just its own counter
-  /// advancing as the walk meets it. Shared by [loadSchedule] and [loadShotPlacements], which must
-  /// answer the same number for one day — a shot's `Jour de tournage` read-out and the day list's
-  /// own tag are the same label read in two modes.
-  Map<String, int> _dayNumbersOf(List<OcptShootingDayRow> dayRows) {
-    final numberByKind = <OcptShootingDayKind, int>{};
-    final numberById = <String, int>{};
-
-    for (final row in dayRows) {
-      final number = (numberByKind[row.kind] ?? 0) + 1;
-      numberByKind[row.kind] = number;
-      numberById[row.id] = number;
-    }
-
-    return numberById;
-  }
 
   /// Every live slot row of day [dayId], ordered by `sortKey`.
   Future<List<OcptShootingSlotRow>> _liveSlotRows({

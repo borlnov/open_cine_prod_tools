@@ -28,7 +28,6 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
@@ -612,7 +611,6 @@ void main() {
         id: "day-1",
         date: DateTime.utc(2026, 3, 10),
         sortKey: "V",
-        kind: OcptShootingDayKind.shoot,
         status: OcptShootingDayStatus.planned,
         crewNote: "Arrive at the north gate",
         weatherNote: "Sunny, light wind",
@@ -623,7 +621,6 @@ void main() {
         id: "day-2",
         date: DateTime.utc(2026, 3, 11),
         sortKey: "k",
-        kind: OcptShootingDayKind.casting,
         status: OcptShootingDayStatus.cancelled,
         crewNote: "",
         weatherNote: "",
@@ -745,7 +742,6 @@ void main() {
         slotId: "slot-3",
         kind: OcptShootingBlockKind.audition,
         roleId: "role-1",
-        roleCandidateId: "role-candidate-1",
         label: "",
         durationMinutes: 20,
         notes: "",
@@ -1152,14 +1148,12 @@ void main() {
       final day = roundTripped.shootingDays.firstWhere((row) => row.id == "day-1");
       expect(day.date, DateTime.utc(2026, 3, 10));
       expect(day.sortKey, "V");
-      expect(day.kind, OcptShootingDayKind.shoot);
       expect(day.status, OcptShootingDayStatus.planned);
       expect(day.crewNote, "Arrive at the north gate");
       expect(day.weatherNote, "Sunny, light wind");
       expect(day.notes, "Backup interior booked in case of rain");
       expect(day.isDeleted, isFalse);
       final cancelledDay = roundTripped.shootingDays.firstWhere((row) => row.id == "day-2");
-      expect(cancelledDay.kind, OcptShootingDayKind.casting);
       expect(cancelledDay.status, OcptShootingDayStatus.cancelled);
       expect(cancelledDay.isDeleted, isTrue);
 
@@ -2269,7 +2263,6 @@ void main() {
             id: "day-3",
             date: DateTime.utc(2026, 3, 12),
             sortKey: "m",
-            kind: OcptShootingDayKind.shoot,
             status: OcptShootingDayStatus.planned,
             crewNote: "",
             weatherNote: "",
@@ -3657,18 +3650,9 @@ void main() {
         expect(result.value!.assets.map((row) => row.validFrom), everyElement(isNull));
         expect(result.value!.assets.map((row) => row.validUntil), everyElement(isNull));
         expect(result.value!.minimumRestMinutes, isNull);
-        // And nothing else was disturbed on the way through: the rest of the schedule came back —
-        // every day of it as a day that **shoots**, `shooting_days.kind` arriving at format 17 and
-        // a payload captured at format 11 having been written when this app could say nothing else
-        // about a day.
+        // And nothing else was disturbed on the way through: the rest of the schedule came back.
         expect(result.value!.shootingSlots, buildRichPayload().shootingSlots);
-        expect(
-          result.value!.shootingDays,
-          [
-            for (final row in buildRichPayload().shootingDays)
-              row.copyWith(kind: OcptShootingDayKind.shoot),
-          ],
-        );
+        expect(result.value!.shootingDays, buildRichPayload().shootingDays);
 
         // The dropped override is gone for good, not merely unread: re-encoding what came out of
         // the decode never mentions it again, exactly as a format-7 payload's dropped lead times
@@ -3828,70 +3812,18 @@ void main() {
     );
 
     test(
-      'a stored format-16 payload decodes with every day it holds a day that shoots',
-      () {
-        // Format 16 predates `shooting_days.kind`, so [_upgradeFormat16To17] writes `"shoot"` onto
-        // every day — [_upgradeFormat11To12]'s kind of upgrade, not an empty list and not a null:
-        // the column is defaulted by design, and a schedule captured when this app could say
-        // nothing else about a day was a schedule every day of which shot. The fixture is the
-        // current encoding with the key taken back off each row and the format wound back.
-        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
-        encoded["shootingDays"] = [
-          for (final day in encoded["shootingDays"] as List)
-            {...day as Map<String, dynamic>}..remove("kind"),
-        ];
-        encoded["payloadFormat"] = 16;
-
-        final result = codec.decode(jsonEncode(encoded));
-
-        expect(result.status, OcptProjectVersionPayloadStatus.ok);
-        expect(
-          result.value!.shootingDays.map((row) => row.kind),
-          everyElement(OcptShootingDayKind.shoot),
-          reason: "including day-2, which the current fixture calls a casting day",
-        );
-        // And nothing else about the schedule was disturbed on the way through: only the one
-        // column arrived, and nothing was deduced from what a day already carried.
-        expect(
-          result.value!.shootingDays,
-          [
-            for (final row in buildRichPayload().shootingDays)
-              row.copyWith(kind: OcptShootingDayKind.shoot),
-          ],
-        );
-        expect(result.value!.shootingSlots, buildRichPayload().shootingSlots);
-        // The blocks come back with both audition links empty: a format-16 payload walks the
-        // 17 → 18 step below on its way here too, and a version captured before this app could
-        // plan an audition held none. Everything else about them is untouched.
-        expect(
-          result.value!.shootingDayBlocks,
-          [
-            for (final row in buildRichPayload().shootingDayBlocks)
-              row.copyWith(
-                roleId: const drift.Value(null),
-                roleCandidateId: const drift.Value(null),
-              ),
-          ],
-        );
-      },
-    );
-
-    test(
       'a stored format-17 payload decodes with no audition planned anywhere',
       () {
-        // Format 17 predates `shooting_slot_candidates` and the two links an audition block names,
-        // so [_upgradeFormat17To18] materialises the table as an **empty list** and writes a
-        // **null** into each of the two columns: both halves are the truthful reading of a version
-        // captured when this app could plan no audition at all. The fixture is the current encoding
-        // with the key taken back out, the two columns taken back off each block, and the format
-        // wound back.
+        // Format 17 predates `shooting_slot_candidates` and the part an audition block names, so
+        // [_upgradeFormat17To18] materialises the table as an **empty list** and writes a **null**
+        // into that column: both are the truthful reading of a version captured when this app could
+        // plan no audition at all. The fixture is the current encoding with the key taken back out,
+        // the column taken back off each block, and the format wound back.
         final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
         encoded.remove("shootingSlotCandidates");
         encoded["shootingDayBlocks"] = [
           for (final block in encoded["shootingDayBlocks"] as List)
-            {...block as Map<String, dynamic>}
-              ..remove("roleId")
-              ..remove("roleCandidateId"),
+            {...block as Map<String, dynamic>}..remove("roleId"),
         ];
         encoded["payloadFormat"] = 17;
 
@@ -3904,10 +3836,6 @@ void main() {
           everyElement(isNull),
           reason: "including block-3, which the current fixture calls an audition",
         );
-        expect(
-          result.value!.shootingDayBlocks.map((row) => row.roleCandidateId),
-          everyElement(isNull),
-        );
         // And nothing else was disturbed on the way through: the people seen for a part came back,
         // and so did every other column of the blocks — nothing is deduced from what a block was
         // called.
@@ -3916,6 +3844,34 @@ void main() {
           result.value!.shootingDayBlocks.map((row) => row.kind),
           buildRichPayload().shootingDayBlocks.map((row) => row.kind),
         );
+      },
+    );
+
+    test(
+      'a stored format-18 payload decodes with the two columns it alone carried dropped',
+      () {
+        // Format 18 was written by builds that never merged: a day carried a `kind` and an audition
+        // block the candidacy it saw. [_upgradeFormat18To19] strips both keys rather than leaving
+        // them to be ignored — [contentDigest] hashes what this codec writes, and a key nothing
+        // writes any more must not linger in one payload and not the next. Everything else about
+        // such a payload comes back untouched.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded["shootingDays"] = [
+          for (final day in encoded["shootingDays"] as List)
+            {...day as Map<String, dynamic>, "kind": "casting"},
+        ];
+        encoded["shootingDayBlocks"] = [
+          for (final block in encoded["shootingDayBlocks"] as List)
+            {...block as Map<String, dynamic>, "roleCandidateId": "role-candidate-1"},
+        ];
+        encoded["payloadFormat"] = 18;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.shootingDays, buildRichPayload().shootingDays);
+        expect(result.value!.shootingDayBlocks, buildRichPayload().shootingDayBlocks);
+        expect(result.value!.shootingSlotCandidates, buildRichPayload().shootingSlotCandidates);
       },
     );
   });

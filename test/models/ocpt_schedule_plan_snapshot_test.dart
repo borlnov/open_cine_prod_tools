@@ -36,22 +36,16 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
-OcptShootingDay _buildDay({
-  required String id,
-  required int dayNumber,
-  OcptShootingDayKind kind = OcptShootingDayKind.shoot,
-}) => OcptShootingDay(
+OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
   id: id,
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
-  kind: kind,
   status: OcptShootingDayStatus.planned,
   crewNote: "",
   weatherNote: "",
@@ -131,7 +125,6 @@ OcptShootingDayBlock _buildBlock({
   anchorMinute: null,
   notes: "",
   crewNote: "",
-  roleCandidateId: null,
   roleId: null,
 );
 
@@ -668,7 +661,7 @@ void main() {
       expect(convocation.patEndMinute, isNull);
     });
 
-    test("a candidate convoked on a casting day reads a band over its auditions", () {
+    test("a candidate convoked on a day reads a band over its auditions", () {
       final person = _buildPerson(id: "person-1", firstName: "Camille");
       final candidacy = _buildCandidacy(id: "candidacy-1", roleId: "role-1", person: person);
       final slot = _buildSlot(
@@ -678,7 +671,7 @@ void main() {
           _buildSlotCandidate(id: "convocation-1", slotId: "slot-1", roleCandidateId: "candidacy-1"),
         ],
       );
-      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.casting);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
       final snapshot = _buildSnapshot(
         days: [day],
         slotsByDayId: {
@@ -721,7 +714,7 @@ void main() {
         anchorMinute: 540,
         cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
       );
-      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.rehearsal);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
       final snapshot = _buildSnapshot(
         days: [day],
         slotsByDayId: {
@@ -757,7 +750,7 @@ void main() {
           _buildSlotCandidate(id: "convocation-1", slotId: "slot-1", roleCandidateId: "gone"),
         ],
       );
-      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.casting);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
       final snapshot = _buildSnapshot(
         days: [day],
         slotsByDayId: {
@@ -884,7 +877,6 @@ void main() {
               anchorMinute: null,
               notes: "",
               crewNote: "",
-              roleCandidateId: null,
               roleId: null,
             ),
           ],
@@ -959,8 +951,8 @@ void main() {
       expect(alert.shotId, "shot-1");
     });
 
-    test("a rehearsal day double-books a person exactly as a shooting day does", () {
-      // Every alert about people is blind to what a day is for, and deliberately: a rehearsal eats
+    test("a day spent rehearsing double-books a person exactly as a shooting one does", () {
+      // Every alert about people is blind to what a day holds, and deliberately: a rehearsal eats
       // a person's day like a shoot does, and the plan is just as broken either way.
       final slotA = _buildSlot(
         id: "slot-a",
@@ -972,7 +964,7 @@ void main() {
         anchorMinute: 550,
         crew: [_buildCrewMember(id: "crew-2", slotId: "slot-b", personId: "person-1")],
       );
-      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.rehearsal);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
       final snapshot = _buildSnapshot(
         days: [day],
         slotsByDayId: {
@@ -1001,13 +993,13 @@ void main() {
       expect(alert.personId, "person-1");
     });
 
-    test("a casting day raises no role-not-convoked alert, carrying no shot to call one", () {
-      // The rule is about a role a **placed shot** plays, so it cannot fire on a day whose
-      // timetable holds auditions: it needs no scoping of its own, and gets none.
+    test("a day of auditions raises no role-not-convoked alert, carrying no shot to call one", () {
+      // The rule is about a role a **placed shot** plays, so it finds nothing on a day whose
+      // timetable holds auditions alone: it needs no special case of its own, and gets none.
       final role = _buildRole(id: "role-1", name: "Alice");
       final shot = _buildShot(id: "shot-1", characters: const ["ALICE"]);
       final slot = _buildSlot(id: "slot-1", anchorMinute: 540);
-      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.casting);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
       final snapshot = _buildSnapshot(
         days: [day],
         slotsByDayId: {
@@ -1043,7 +1035,7 @@ void main() {
           _buildSlotCandidate(id: "convocation-1", slotId: "slot-1", roleCandidateId: "candidacy-1"),
         ],
       );
-      final day = _buildDay(id: "day-1", dayNumber: 1, kind: OcptShootingDayKind.casting);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
       final snapshot = _buildSnapshot(
         days: [day],
         slotsByDayId: {

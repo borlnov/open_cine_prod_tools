@@ -256,7 +256,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
                 ],
                 if (day != null)
                   Text(
-                    ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber),
+                    ocptScheduleDayTagLabel(tr, day.dayNumber),
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,

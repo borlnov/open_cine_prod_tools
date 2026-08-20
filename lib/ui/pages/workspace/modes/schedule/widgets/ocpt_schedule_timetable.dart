@@ -6,12 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
@@ -28,6 +26,10 @@ const int _ocptDurationStepGridMinutes = 5;
 /// be selectable, the same convention `OcptScheduleSlotCard`'s own `_noLocationOption`/
 /// `_noGroupOption` already use.
 const String _noSequenceOption = "";
+
+/// The value the "no role yet" entry of an audition row's own role picker carries, distinct from
+/// every role id — [_noSequenceOption]'s twin, and the same convention for the same reason.
+const String _noRoleOption = "";
 
 /// The payload a row's own cross-slot drag carries: which block, and the id of the slot it
 /// currently belongs to. The second half is what lets a slot card's own [DragTarget] refuse a block
@@ -63,21 +65,16 @@ class _OcptScheduleDraggedBlock {
 /// [sequences] plus a "no sequence yet" entry, [sequences] itself never carrying the shot list's
 /// own orphan group: an orphan names no `scenes` row, so `sceneId` could never point at it.
 ///
-/// An **audition** row is the one kind that names neither a shot nor a sequence but a **person and
-/// a part**: its title is its candidacy's own name and the role it is for, resolved through
-/// [roleCandidateById]/[roleById] — a candidacy since removed reads as the address book's own
-/// "unnamed" fallback rather than emptying the row, no cascade dropping the block under it.
-///
-/// **The `+ Block` menu is scoped by [dayKind]** (`OcptShootingDayKindBlockKinds`): a shooting day
-/// never offers an audition, a day that does not shoot never offers a shot or a hold, and the
-/// milestones are offered on all three. It is a scoping of the **menu** and of nothing else — a
-/// block already sitting on the day is drawn whatever the day has since become, because refusing to
-/// draw a row a file holds is how a plan becomes unreadable.
+/// An **audition** row carries that very idiom one table across: a picker naming the **role** being
+/// auditioned ([onAuditionRoleChanged], writing `shooting_day_blocks.roleId`), offering every one of
+/// [roles] plus a "no role yet" entry. It names a *part*, never a person — who is coming to be seen
+/// is the slot's own candidates band, and one audition block regularly sees several of them one
+/// after another.
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onReordered], [onDurationChanged], [onAnchorChanged], [onShotStatusChanged],
-/// [onHoldSequenceChanged], [onDeletionRequested], [onBlockAdded], [onShotBlockRequested],
-/// [onAuditionBlockRequested] and
+/// [onHoldSequenceChanged], [onAuditionRoleChanged], [onDeletionRequested], [onBlockAdded],
+/// [onShotBlockRequested] and
 /// [onBlockMovedToSlot] — the last of which also turns every row undraggable and this timetable's
 /// own drop area inert, rather than merely disabled. Selecting a row ([onBlockSelected]) only ever
 /// reads, so it is never withheld.
@@ -90,17 +87,9 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// This slot's own live blocks, in `sortKey` order.
   final List<OcptShootingDayBlock> blocks;
 
-  /// What the day this slot belongs to is **for** — what scopes the `+ Block` menu, and nothing
-  /// else. See the class doc comment.
-  final OcptShootingDayKind dayKind;
-
-  /// The whole cast, keyed by id — what an **audition** row names the part it sees somebody for
-  /// through.
-  final Map<String, OcptRole> roleById;
-
-  /// Every live candidacy of the project, keyed by id — what an **audition** row names the person
-  /// being seen through.
-  final Map<String, OcptRoleCandidate> roleCandidateById;
+  /// The whole cast, in its own order — what an **audition** row's own role picker offers, and what
+  /// it names the part being auditioned through.
+  final List<OcptRole> roles;
 
   /// This slot's own computed timeline, or null while it has nothing placed yet.
   final OcptShootingSlotTimeline? timeline;
@@ -146,6 +135,11 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// read-only text.
   final void Function(String blockId, String? sceneId)? onHoldSequenceChanged;
 
+  /// Called with an **audition** block's id and the role just picked from its own role picker (null
+  /// for "no role yet"), or null while withheld — which also turns that picker into plain read-only
+  /// text, exactly as [onHoldSequenceChanged] does for a hold's own.
+  final void Function(String blockId, String? roleId)? onAuditionRoleChanged;
+
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onDeletionRequested;
 
@@ -160,12 +154,6 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// while withheld, which also hides the entry.
   final VoidCallback? onShotBlockRequested;
 
-  /// Called when the `+ Block` menu's own `Audition` entry is picked — the mode itself opens the
-  /// candidate picker dialog and, on a pick, dispatches the event that actually creates the block —
-  /// or null while withheld, which also hides the entry. The twin of [onShotBlockRequested], for
-  /// the very same reason: an audition names a row this widget has no business choosing.
-  final VoidCallback? onAuditionBlockRequested;
-
   /// Called with a block's id and the id of the slot it is moved to — dispatched either by dropping
   /// a row dragged out of another slot's own timetable onto this one, or by picking an entry of a
   /// row's own `Move to…` menu — or null while withheld, which also makes every row of this
@@ -177,9 +165,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     super.key,
     required this.slotId,
     required this.blocks,
-    required this.dayKind,
-    required this.roleById,
-    required this.roleCandidateById,
+    required this.roles,
     required this.timeline,
     required this.shotOf,
     required this.selectedBlockId,
@@ -191,10 +177,10 @@ class OcptScheduleTimetable extends StatelessWidget {
     required this.onAnchorChanged,
     required this.onShotStatusChanged,
     required this.onHoldSequenceChanged,
+    required this.onAuditionRoleChanged,
     required this.onDeletionRequested,
     required this.onBlockAdded,
     required this.onShotBlockRequested,
-    required this.onAuditionBlockRequested,
     required this.onBlockMovedToSlot,
   });
 
@@ -212,30 +198,25 @@ class OcptScheduleTimetable extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildBlocksArea(context, tr, entryByBlockId, overrunBlockIds),
-        if (_hasAnyBlockKindToOffer) ...[
+        if (onBlockAdded != null || onShotBlockRequested != null) ...[
           const SizedBox(height: 6),
           PopupMenuButton<OcptShootingBlockKind>(
             tooltip: "",
-            onSelected: (kind) => switch (kind) {
-              // The two kinds that name a row of another table are picked in a dialog the mode
-              // opens; every other kind is created where it is chosen.
-              OcptShootingBlockKind.shot => onShotBlockRequested?.call(),
-              OcptShootingBlockKind.audition => onAuditionBlockRequested?.call(),
-              _ => onBlockAdded?.call(kind),
-            },
+            onSelected: (kind) => kind == OcptShootingBlockKind.shot
+                ? onShotBlockRequested?.call()
+                : onBlockAdded?.call(kind),
             itemBuilder: (context) => [
-              // The entry that opens a dialog sits first — on a shooting day the shot, on a casting
-              // day the audition, each being the one a user reaches for most on the day they are
-              // offered — with a divider setting it apart from the kinds created in place below it,
-              // shown only while there is something to separate it from.
-              if (_leadingDialogKind != null) ...[
-                _buildBlockKindMenuItem(tr, _leadingDialogKind!),
-                if (_hasInPlaceKindToOffer) const PopupMenuDivider(),
+              // The `Shot` entry sits first — it is the one a user reaches for most — with a
+              // divider setting it apart from the kinds below it, shown only while there is
+              // something to separate it from. Every other kind is offered on every day: what a day
+              // is for is what its blocks say, so nothing here narrows the list.
+              if (onShotBlockRequested != null) ...[
+                _buildBlockKindMenuItem(tr, OcptShootingBlockKind.shot),
+                if (onBlockAdded != null) const PopupMenuDivider(),
               ],
               if (onBlockAdded != null)
                 for (final kind in OcptShootingBlockKind.values)
-                  if (kind != _leadingDialogKind && _offersInPlace(kind))
-                    _buildBlockKindMenuItem(tr, kind),
+                  if (kind != OcptShootingBlockKind.shot) _buildBlockKindMenuItem(tr, kind),
             ],
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -258,38 +239,8 @@ class OcptScheduleTimetable extends StatelessWidget {
     );
   }
 
-  /// The one kind of block this day offers that is picked in a **dialog** rather than created in
-  /// place — the shot on a shooting day, the audition on a casting one — or null while the day
-  /// offers neither, or its own callback is withheld. Never both: no day kind offers a shot and an
-  /// audition at once (`OcptShootingDayKindBlockKinds`).
-  OcptShootingBlockKind? get _leadingDialogKind {
-    if (onShotBlockRequested != null && dayKind.offersBlockKind(OcptShootingBlockKind.shot)) {
-      return OcptShootingBlockKind.shot;
-    }
-    if (onAuditionBlockRequested != null &&
-        dayKind.offersBlockKind(OcptShootingBlockKind.audition)) {
-      return OcptShootingBlockKind.audition;
-    }
-    return null;
-  }
-
-  /// Whether [kind] is one this day offers and this widget may create **in place**, through
-  /// [onBlockAdded] — every kind but the two that name a row of another table.
-  bool _offersInPlace(OcptShootingBlockKind kind) =>
-      kind != OcptShootingBlockKind.shot &&
-      kind != OcptShootingBlockKind.audition &&
-      dayKind.offersBlockKind(kind);
-
-  /// Whether the `+ Block` menu would hold at least one entry created in place — what the divider
-  /// under the leading dialog entry is drawn for.
-  bool get _hasInPlaceKindToOffer =>
-      onBlockAdded != null && OcptShootingBlockKind.values.any(_offersInPlace);
-
-  /// Whether the `+ Block` control is drawn at all: a menu that would open on nothing is not shown.
-  bool get _hasAnyBlockKindToOffer => _leadingDialogKind != null || _hasInPlaceKindToOffer;
-
   /// One entry of the `+ Block` menu for block kind [kind]: its own icon and label, shared by the
-  /// leading dialog entry and every entry created in place below it.
+  /// `Shot` entry and every other entry below it.
   PopupMenuItem<OcptShootingBlockKind> _buildBlockKindMenuItem(Tr tr, OcptShootingBlockKind kind) =>
       PopupMenuItem<OcptShootingBlockKind>(
         value: kind,
@@ -390,8 +341,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     entry: entry,
     isOverrun: isOverrun,
     shot: block.kind == OcptShootingBlockKind.shot && block.shotId != null ? shotOf(block.shotId!) : null,
-    roleById: roleById,
-    roleCandidateById: roleCandidateById,
+    roles: roles,
     isSelected: block.id == selectedBlockId,
     reorderIndex: reorderIndex,
     sequences: sequences,
@@ -409,6 +359,9 @@ class OcptScheduleTimetable extends StatelessWidget {
     onSequenceChanged: onHoldSequenceChanged == null
         ? null
         : (sceneId) => onHoldSequenceChanged!(block.id, sceneId),
+    onRoleChanged: onAuditionRoleChanged == null
+        ? null
+        : (roleId) => onAuditionRoleChanged!(block.id, roleId),
     onDeletionRequested: onDeletionRequested == null ? null : () => onDeletionRequested!(block.id),
     onMovedToSlot: onBlockMovedToSlot == null
         ? null
@@ -430,13 +383,9 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// The shot [block] places, when [block]'s own kind is [OcptShootingBlockKind.shot].
   final OcptShot? shot;
 
-  /// The whole cast, keyed by id — only read when [block]'s own kind is
-  /// [OcptShootingBlockKind.audition], to name the part somebody is seen for.
-  final Map<String, OcptRole> roleById;
-
-  /// Every live candidacy, keyed by id — only read under the same condition as [roleById], to name
-  /// who is being seen.
-  final Map<String, OcptRoleCandidate> roleCandidateById;
+  /// The whole cast — only read when [block]'s own kind is [OcptShootingBlockKind.audition], to
+  /// offer and to name the part being auditioned.
+  final List<OcptRole> roles;
 
   /// Whether this is the currently selected block.
   final bool isSelected;
@@ -470,6 +419,10 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// yet"), or null while withheld or [block]'s own kind names no sequence — see [_namesASequence].
   final ValueChanged<String?>? onSequenceChanged;
 
+  /// Called with the role just picked from this row's own role picker (null for "no role yet"), or
+  /// null while withheld or [block] isn't an [OcptShootingBlockKind.audition].
+  final ValueChanged<String?>? onRoleChanged;
+
   /// Called when this row's own remove control is clicked, or null while withheld.
   final VoidCallback? onDeletionRequested;
 
@@ -484,8 +437,7 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     required this.entry,
     required this.isOverrun,
     required this.shot,
-    required this.roleById,
-    required this.roleCandidateById,
+    required this.roles,
     required this.isSelected,
     required this.reorderIndex,
     required this.sequences,
@@ -495,6 +447,7 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     required this.onAnchorChanged,
     required this.onShotStatusChanged,
     required this.onSequenceChanged,
+    required this.onRoleChanged,
     required this.onDeletionRequested,
     required this.onMovedToSlot,
   });
@@ -504,23 +457,6 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   bool get _namesASequence =>
       block.kind == OcptShootingBlockKind.hold || block.kind == OcptShootingBlockKind.rehearsal;
 
-  /// An audition row's own title: who is being seen, and for which part.
-  ///
-  /// Both halves are read defensively — a candidacy removed, or a role deleted, under a plan that
-  /// still holds the block leaves the row naming the address book's own fallbacks rather than going
-  /// blank: a row that says nothing is a row nobody can act on, and no cascade drops it.
-  String _auditionTitleOf(Tr tr) {
-    final candidate = roleCandidateById[block.roleCandidateId];
-    final candidateName = candidate == null || candidate.person.displayName.isEmpty
-        ? tr.resourcesUnnamedPerson
-        : candidate.person.displayName;
-
-    final role = roleById[block.roleId];
-    final roleName = role == null || role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name;
-
-    return tr.scheduleAuditionBlockLabel(candidateName, roleName);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -529,13 +465,9 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     final isShot = block.kind == OcptShootingBlockKind.shot;
     final shot = this.shot;
     final timeColor = isOverrun ? theme.colorScheme.error : theme.colorScheme.onSurface;
-    final title = switch (block.kind) {
-      OcptShootingBlockKind.shot => shot == null ? "" : "${shot.code} · ${shot.shotSize}",
-      // An audition says who is seen and for which part, and says it in place of a caption: that
-      // pair *is* what the block is, where every other kind's title is a wording typed onto it.
-      OcptShootingBlockKind.audition => _auditionTitleOf(tr),
-      _ => block.label.isEmpty ? ocptShootingBlockKindLabel(tr, block.kind) : block.label,
-    };
+    final title = isShot
+        ? (shot == null ? "" : "${shot.code} · ${shot.shotSize}")
+        : (block.label.isEmpty ? ocptShootingBlockKindLabel(tr, block.kind) : block.label);
     final canMove = onMovedToSlot != null && otherSlots.isNotEmpty;
 
     // Everything but the drag handle below: kept as its own widget so it — and only it — can be
@@ -559,6 +491,11 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: _buildSequencePicker(context, tr, theme),
+          ),
+        if (block.kind == OcptShootingBlockKind.audition)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: _buildRolePicker(context, tr, theme),
           ),
         Expanded(
           child: Text(
@@ -750,6 +687,71 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
             value: sequence.sceneId,
             child: Text(
               "${tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber)} · ${sequence.heading}",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(currentLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: labelStyle),
+          Icon(Icons.arrow_drop_down, size: 14, color: theme.colorScheme.onSurfaceVariant),
+        ],
+      ),
+    );
+  }
+
+  /// An **audition** row's own role picker: the part being auditioned, or the "no role yet" entry
+  /// while nobody has settled which — an ordinary state, exactly as a hold with no sequence is.
+  ///
+  /// Deliberately the sequence picker's twin rather than a dialog asked once at creation time: the
+  /// part an audition is for gets corrected while a session is planned, and a question asked at
+  /// creation could never be answered a second time. It names a **role** and never a person — who
+  /// is coming to be seen is the slot's own candidates band, one audition regularly seeing several
+  /// of them one after another.
+  ///
+  /// Read defensively: a role deleted under a block that still names it falls back on the cast's
+  /// own "unnamed" reading rather than emptying the picker.
+  Widget _buildRolePicker(BuildContext context, Tr tr, ThemeData theme) {
+    final onRoleChanged = this.onRoleChanged;
+    final roleId = block.roleId;
+    OcptRole? currentRole;
+    for (final role in roles) {
+      if (role.id == roleId) {
+        currentRole = role;
+        break;
+      }
+    }
+    final currentLabel = switch (currentRole) {
+      null when roleId == null => tr.scheduleAuditionRolePickerNoRoleOption,
+      null => tr.resourcesRoleUnnamed,
+      final role => role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
+    };
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+
+    if (onRoleChanged == null) {
+      return Text(currentLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: labelStyle);
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: "",
+      padding: EdgeInsets.zero,
+      onSelected: (value) => onRoleChanged(value == _noRoleOption ? null : value),
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: _noRoleOption,
+          child: Text(tr.scheduleAuditionRolePickerNoRoleOption),
+        ),
+        const PopupMenuDivider(),
+        for (final role in roles)
+          PopupMenuItem<String>(
+            value: role.id,
+            child: Text(
+              role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

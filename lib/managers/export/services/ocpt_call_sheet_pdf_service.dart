@@ -23,7 +23,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_effect.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -193,19 +192,12 @@ class OcptCallSheetPdfService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// The `.pdf` file name of the general call sheet of the day [dayKind] × [dayNumber] tags
-  /// (`FDS-J2.pdf`, `FDS-C1.pdf`).
-  ///
-  /// [dayKind] is what picks the tag's letter: the three kinds are ranked in three separate series,
-  /// so a casting day's `1` and the first shooting day's `1` would otherwise write the same file.
-  String callSheetFileName({
-    required OcptCallSheetLabels labels,
-    required OcptShootingDayKind dayKind,
-    required int dayNumber,
-  }) => "${labels.fileNamePrefix}-${labels.dayTagPrefixOf(dayKind)}$dayNumber.pdf";
+  /// The `.pdf` file name of the general call sheet of day [dayNumber] (`FDS-J2.pdf`).
+  String callSheetFileName({required OcptCallSheetLabels labels, required int dayNumber}) =>
+      "${labels.fileNamePrefix}-${labels.dayTagPrefix}$dayNumber.pdf";
 
-  /// The `.pdf` file name of the named call sheet of the day [dayKind] × [dayNumber] tags, for
-  /// [personName] (`FDS-J2-Elisa-Mabit.pdf`).
+  /// The `.pdf` file name of the named call sheet of day [dayNumber] for [personName]
+  /// (`FDS-J2-Elisa-Mabit.pdf`).
   ///
   /// [personName] is sanitized through [_safeFileNamePart] — diacritics folded, unsafe characters
   /// dropped, whitespace turned into dashes — and a name that sanitizes down to nothing (blank, or
@@ -214,11 +206,10 @@ class OcptCallSheetPdfService {
   /// rather than none at all.
   String namedCallSheetFileName({
     required OcptCallSheetLabels labels,
-    required OcptShootingDayKind dayKind,
     required int dayNumber,
     required String personName,
   }) {
-    final base = "${labels.fileNamePrefix}-${labels.dayTagPrefixOf(dayKind)}$dayNumber";
+    final base = "${labels.fileNamePrefix}-${labels.dayTagPrefix}$dayNumber";
     final safeName = _safeFileNamePart(personName);
     final suffix = safeName.isEmpty ? _safeFileNamePart(labels.unnamedPersonLabel) : safeName;
     return suffix.isEmpty ? "$base.pdf" : "$base-$suffix.pdf";
@@ -690,7 +681,7 @@ class OcptCallSheetPdfService {
         ),
         pw.SizedBox(height: 4),
         pw.Text(
-          title.isEmpty ? "${labels.dayTagPrefixOf(day.kind)}${day.dayNumber}" : title,
+          title.isEmpty ? "${labels.dayTagPrefix}${day.dayNumber}" : title,
           style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
         ),
       ],

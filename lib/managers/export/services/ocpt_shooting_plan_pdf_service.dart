@@ -21,7 +21,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:pdf/pdf.dart';
@@ -177,12 +176,6 @@ class OcptShootingPlanPdfService {
   /// still produces a readable, one-note document (plus its title page, when [includeTitlePage]
   /// asks for one) rather than an empty file nobody can open.
   ///
-  /// **Shooting days only.** This document is about the shoot: a [dayIds] entry naming a day whose
-  /// `OcptShootingDayKind` is not [OcptShootingDayKind.shoot] is skipped exactly as an entry naming
-  /// no live day at all is. The scoping lives here rather than at the call site so every caller
-  /// gets the same answer — the mode's own day picker offers the shooting days alone, and this is
-  /// what makes that an agreement rather than a coincidence.
-  ///
   /// [exportDate] is the moment the title page's own version line and every page's running head
   /// print (`Version 2026-08-08 14:32`, through [ocptScheduleGeneratedAtStamp], the stamp
   /// `OcptCallSheetPdfService` prints too); it defaults to the moment this method runs, and is
@@ -207,10 +200,7 @@ class OcptShootingPlanPdfService {
     final pdfDocument = pw.Document();
     final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
 
-    final resolvedDayIds = [
-      for (final id in dayIds)
-        if (plan.schedule.daysById[id]?.kind == OcptShootingDayKind.shoot) id,
-    ];
+    final resolvedDayIds = [for (final id in dayIds) if (plan.schedule.daysById.containsKey(id)) id];
 
     if (includeTitlePage) {
       pdfDocument.addPage(

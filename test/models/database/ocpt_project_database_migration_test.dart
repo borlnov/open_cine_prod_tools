@@ -21,7 +21,6 @@ import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -325,10 +324,10 @@ const _v20RoleCandidatesDdl = '''
 CREATE TABLE "role_candidates" ("id" TEXT NOT NULL, "role_id" TEXT NOT NULL REFERENCES roles (id), "person_id" TEXT NOT NULL REFERENCES people (id), "status" TEXT NOT NULL DEFAULT 'seen', "auditioned_on" TEXT NULL, "notes" TEXT NOT NULL DEFAULT '', "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
 ''';
 
-// The one column schema version 21 adds on top of the version 20 shape: `shooting_days.kind`.
-// Written as the very `ALTER TABLE` the migration itself runs, rather than a re-declared table, so
-// a fixture claiming to be a version 21 file carries exactly the shape a file that genuinely
-// reached it does.
+// The one column an unmerged build briefly added to `shooting_days`: `kind`, taken back out at
+// schema version 23. No released build ever wrote it, so this fixture stands for the only files
+// that can carry it — the ones this branch was developed against — and is what proves the drop step
+// lands them on the same shape as everything else.
 const _v21ShootingDayKindDdl = '''
 ALTER TABLE "shooting_days" ADD COLUMN "kind" TEXT NOT NULL DEFAULT 'shoot';
 ''';
@@ -479,10 +478,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 22.
+    // anything but version 23.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 22);
+    expect(await readSchemaVersion(freshDatabase), 23);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -615,7 +614,7 @@ void main() {
             "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       await database.close();
     }
@@ -703,7 +702,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 9.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -812,7 +811,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -868,7 +867,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -902,7 +901,7 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1044,7 +1043,7 @@ void main() {
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1095,7 +1094,7 @@ void main() {
     expect(availability.isDeleted, isFalse);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1129,7 +1128,7 @@ void main() {
     expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1220,7 +1219,7 @@ void main() {
     );
 
     // (e) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1274,7 +1273,7 @@ void main() {
     ]);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1403,7 +1402,7 @@ void main() {
       expect(block.shotId, "shot-a");
 
       // (e) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       await database.close();
     },
@@ -1552,7 +1551,7 @@ void main() {
       expect(shape.containsKey('shooting_presences'), isFalse);
 
       // (f) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       await database.close();
     },
@@ -1626,7 +1625,7 @@ void main() {
       expect(cast.roleId, "role1");
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       await database.close();
     },
@@ -1687,7 +1686,7 @@ void main() {
       expect(slotsById['slotNight']!.anchorSlotId, isNull);
 
       // (c) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       await database.close();
     },
@@ -1748,7 +1747,7 @@ void main() {
     expect(link.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1798,7 +1797,7 @@ void main() {
       expect(updated.maxDailyPresenceMinutes, 480);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       await database.close();
     },
@@ -1879,7 +1878,7 @@ void main() {
     expect(event.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -1976,7 +1975,7 @@ void main() {
       );
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       await database.close();
     },
@@ -2067,7 +2066,7 @@ void main() {
       );
 
       // (h) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 22);
+      expect(await readSchemaVersion(database), 23);
 
       // (i) `project_info.screenplay_language` didn't exist at version 17: the migration adds it
       // unconditionally, and gets no backfill, so a file that never named a language reads exactly
@@ -2132,12 +2131,12 @@ void main() {
     expect(candidate.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
 
-  test('a v20 database migrates on, gaining a kind for every day it already held', () async {
+  test('a v20 database migrates on, gaining what an audition needs', () async {
     final filePath = p.join(tempDir.path, 'legacy_v20.ocpt');
 
     final legacyDb = sqlite3.sqlite3.open(filePath);
@@ -2146,69 +2145,12 @@ void main() {
     legacyDb.execute('PRAGMA user_version = 20;');
     seedCommonRows(legacyDb);
 
-    // Two days the file already held, one of them tombstoned: the column is added to the table, so
-    // a dead row gains it exactly as a live one does.
-    legacyDb.execute(
-      "INSERT INTO shooting_days (id, date, sort_key, is_deleted) VALUES "
-      "('day1', '2026-03-02T00:00:00.000', 'a', 0), "
-      "('dayDead', '2026-03-03T00:00:00.000', 'b', 1);",
-    );
-    legacyDb.dispose();
-
-    final database = OcptProjectDatabase(File(filePath));
-
-    // (a) every row the file already held survived — the migration adds a column and touches
-    // nothing else.
-    await expectCommonRowsSurvived(database);
-
-    // (b) and every day it already held is a day that **shoots**: the column's own default is the
-    // truthful reading, this app having had no way to say a day did anything else, and nothing is
-    // deduced from what a day carried — a day with no block at all was still a shooting day.
-    final days = await (database.select(
-      database.ocptShootingDaysTable,
-    )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
-    expect(days.map((row) => row.id), ['day1', 'dayDead']);
-    expect(days.map((row) => row.kind), everyElement(OcptShootingDayKind.shoot));
-
-    // (c) and the column is writable, the other two kinds included.
-    await (database.update(
-      database.ocptShootingDaysTable,
-    )..where((table) => table.id.equals('day1'))).write(
-      const OcptShootingDaysTableCompanion(kind: Value(OcptShootingDayKind.casting)),
-    );
-    expect(
-      (await (database.select(
-        database.ocptShootingDaysTable,
-      )..where((table) => table.id.equals('day1'))).getSingle()).kind,
-      OcptShootingDayKind.casting,
-    );
-
-    // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
-
-    await database.close();
-  });
-
-  test('a v21 database migrates on, gaining the two links an audition needs', () async {
-    final filePath = p.join(tempDir.path, 'legacy_v21.ocpt');
-
-    final legacyDb = sqlite3.sqlite3.open(filePath);
-    legacyDb.execute(_v19Ddl);
-    legacyDb.execute(_v20RoleCandidatesDdl);
-    legacyDb.execute(_v21ShootingDayKindDdl);
-    legacyDb.execute('PRAGMA user_version = 21;');
-    seedCommonRows(legacyDb);
-
-    // A part and somebody to see for it, so the new table has both ends to point at below.
     legacyDb.execute(
       "INSERT INTO people (id, first_name, last_name) VALUES ('person1', 'Léa', 'Petit');",
     );
     legacyDb.execute(
       "INSERT INTO roles (id, name, kind, sort_key) VALUES ('role1', 'CLARA', 'speaking', 'a');",
     );
-
-    // A day, a slot and a block the file already held: the migration adds a table and two columns,
-    // and must leave the timetable it finds exactly where it is.
     legacyDb.execute(
       "INSERT INTO shooting_days (id, date, sort_key, is_deleted) VALUES "
       "('day1', '2026-03-02T00:00:00.000', 'a', 0);",
@@ -2228,15 +2170,12 @@ void main() {
     // (a) every row the file already held survived.
     await expectCommonRowsSurvived(database);
 
-    // (b) and the block it already held names neither a part nor a candidacy: the two columns are
-    // added null, and nothing is deduced from what a block was called.
-    final block = await database.select(database.ocptShootingDayBlocksTable).getSingle();
-    expect(block.id, 'block1');
-    expect(block.roleId, isNull);
-    expect(block.roleCandidateId, isNull);
+    // (b) the block it already held names no part: the column is added null, and nothing is deduced
+    // from what a block was called.
+    expect((await database.select(database.ocptShootingDayBlocksTable).getSingle()).roleId, isNull);
 
     // (c) the new table is there and usable: a candidacy convoked on the slot the file already
-    // held, which is what a casting day is planned with.
+    // held, which is what a session of auditions is planned with.
     await database
         .into(database.ocptRoleCandidatesTable)
         .insert(
@@ -2260,22 +2199,77 @@ void main() {
       'candidacy1',
     );
 
-    // (d) and both new columns are writable, an audition block naming who is seen and for what.
+    // (d) and the new column is writable, an audition naming the part it sees.
     await (database.update(
       database.ocptShootingDayBlocksTable,
     )..where((table) => table.id.equals('block1'))).write(
       const OcptShootingDayBlocksTableCompanion(
         kind: Value(OcptShootingBlockKind.audition),
         roleId: Value('role1'),
-        roleCandidateId: Value('candidacy1'),
       ),
     );
-    final auditionBlock = await database.select(database.ocptShootingDayBlocksTable).getSingle();
-    expect(auditionBlock.roleId, 'role1');
-    expect(auditionBlock.roleCandidateId, 'candidacy1');
+    expect(
+      (await database.select(database.ocptShootingDayBlocksTable).getSingle()).roleId,
+      'role1',
+    );
 
     // (e) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
+
+    await database.close();
+  });
+
+  test('a file written by an unmerged build loses the two columns it alone carried', () async {
+    // The only files that can hold `shooting_days.kind` or `shooting_day_blocks.role_candidate_id`
+    // are the ones this branch was developed against: a day was briefly given a kind and an
+    // audition block the candidacy it saw, and both were taken back out before any of it merged.
+    // The migration therefore asks the file what it holds rather than trusting its version number.
+    final filePath = p.join(tempDir.path, 'legacy_unmerged.ocpt');
+
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v19Ddl);
+    legacyDb.execute(_v20RoleCandidatesDdl);
+    legacyDb.execute(_v21ShootingDayKindDdl);
+    legacyDb.execute(
+      'ALTER TABLE "shooting_day_blocks" ADD COLUMN "role_candidate_id" TEXT NULL '
+      'REFERENCES role_candidates (id);',
+    );
+    legacyDb.execute('PRAGMA user_version = 22;');
+    seedCommonRows(legacyDb);
+
+    legacyDb.execute(
+      "INSERT INTO shooting_days (id, date, sort_key, kind, is_deleted) VALUES "
+      "('day1', '2026-03-02T00:00:00.000', 'a', 'casting', 0);",
+    );
+    legacyDb.execute(
+      "INSERT INTO shooting_slots (id, shooting_day_id, sort_key, is_deleted) VALUES "
+      "('slot1', 'day1', 'a', 0);",
+    );
+    legacyDb.execute(
+      "INSERT INTO shooting_day_blocks (id, shooting_day_id, slot_id, sort_key, kind, is_deleted) "
+      "VALUES ('block1', 'day1', 'slot1', 'a', 'audition', 0);",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) the day and its timetable survive: what the day was called a "casting day" is now said by
+    // the audition block it holds, which is untouched.
+    await expectCommonRowsSurvived(database);
+    final day = await database.select(database.ocptShootingDaysTable).getSingle();
+    expect(day.id, 'day1');
+    final block = await database.select(database.ocptShootingDayBlocksTable).getSingle();
+    expect(block.kind, OcptShootingBlockKind.audition);
+
+    // (b) and both columns are gone from the file itself.
+    final dayColumns = await database.customSelect('PRAGMA table_info(shooting_days)').get();
+    expect(dayColumns.map((row) => row.data['name']), isNot(contains('kind')));
+    final blockColumns = await database
+        .customSelect('PRAGMA table_info(shooting_day_blocks)')
+        .get();
+    expect(blockColumns.map((row) => row.data['name']), isNot(contains('role_candidate_id')));
+
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });
@@ -2317,7 +2311,7 @@ void main() {
     final screenplay = await database.select(database.ocptScreenplaysTable).getSingle();
     expect(screenplay.title, "Draft");
 
-    expect(await readSchemaVersion(database), 22);
+    expect(await readSchemaVersion(database), 23);
 
     await database.close();
   });

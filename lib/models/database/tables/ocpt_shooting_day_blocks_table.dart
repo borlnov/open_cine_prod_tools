@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_candidates_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
@@ -31,9 +30,10 @@ class OcptShootingBlockKindConverter extends TypeConverter<OcptShootingBlockKind
 ///
 /// [shotId] is non-null **iff** [kind] is [OcptShootingBlockKind.shot]; [sceneId] is null on every
 /// kind but [OcptShootingBlockKind.hold] and [OcptShootingBlockKind.rehearsal], where it names the
-/// scene whose time is being reserved or worked; and [roleId]/[roleCandidateId] are non-null
-/// **iff** [kind] is [OcptShootingBlockKind.audition] — the same discriminator idiom, three times
-/// over. [durationMinutes] null on a shot block means "use that shot's `estimatedDurationMs`";
+/// scene whose time is being reserved or worked; and [roleId] only ever holds on
+/// [OcptShootingBlockKind.audition], where it names the part being auditioned — the same
+/// discriminator idiom, three times over. [durationMinutes] null on a shot block means "use that
+/// shot's `estimatedDurationMs`";
 /// [label] is what a non-shot block says it is for. [anchorMinute], when set, pins this block to
 /// start at exactly that minute (an offset from the day's own midnight, which may exceed 1440 — see
 /// `ocpt_shooting_slots_table.dart`) rather than wherever the chain before it lands.
@@ -45,15 +45,16 @@ class OcptShootingBlockKindConverter extends TypeConverter<OcptShootingBlockKind
 /// which sequence goes there — a hold with no scene names no role, exactly as it did before this
 /// column existed.
 ///
-/// **An audition names a candidate, and a rehearsal names a sequence.** [roleCandidateId] says
-/// *who, for which part* — a candidacy rather than a person, two candidacies of one person being
-/// two different things to see them about — and [roleId] says the part beside it, so a block reads
-/// on its own without a second query. A rehearsal reuses [sceneId] rather than growing a column:
-/// what is rehearsed is a sequence, which is exactly what a [OcptShootingBlockKind.hold] already
-/// names. Both links are **read defensively**: a candidacy since removed, or a role since deleted,
-/// leaves the block where it is and reads as nothing at all, exactly as `shooting_slot_cast` does
-/// for a role deleted under it — the schedule has never held a cascade for that, and a plan that
-/// silently dropped rows would be worse than one naming somebody it can no longer resolve.
+/// **An audition names a part, and a rehearsal names a sequence.** [roleId] says *which part is
+/// being seen at this hour*, and deliberately **not who comes to be seen**: one audition block
+/// regularly sees several people one after another, and who they are is the slot's own
+/// `shooting_slot_candidates`. A rehearsal reuses [sceneId] rather than growing a column of its
+/// own: what is rehearsed is a sequence, which is exactly what a [OcptShootingBlockKind.hold]
+/// already names. Both links are **read defensively**: a role or a scene deleted under a block that
+/// still names it leaves that block where it is and reads as nothing at all, exactly as
+/// `shooting_slot_cast` does for a role deleted under it — the schedule has never held a cascade
+/// for that, and a plan that silently dropped rows would be worse than one naming something it can
+/// no longer resolve.
 ///
 /// **A block belongs to exactly one slot** ([slotId], non-null from schema v12 on): a day is a set
 /// of parallel chains, one per slot, and a block's own chain is its slot's own, starting from that
@@ -94,14 +95,10 @@ class OcptShootingDayBlocksTable extends Table {
   /// another kind, or because the sequence hasn't been settled yet. See the class doc comment.
   TextColumn get sceneId => text().nullable().references(OcptScenesTable, #id)();
 
-  /// The part an [OcptShootingBlockKind.audition] block sees somebody for, or null on every other
-  /// kind. Non-null exactly with [roleCandidateId], both halves of one link — see the class doc
+  /// The part an [OcptShootingBlockKind.audition] block sees people for, or null — either because
+  /// this block is of another kind, or because the part hasn't been settled yet. See the class doc
   /// comment.
   TextColumn get roleId => text().nullable().references(OcptRolesTable, #id)();
-
-  /// The candidacy an [OcptShootingBlockKind.audition] block is about — *who, for which part* —, or
-  /// null on every other kind. See the class doc comment.
-  TextColumn get roleCandidateId => text().nullable().references(OcptRoleCandidatesTable, #id)();
 
   /// The wording of a non-shot block; for [OcptShootingBlockKind.hold], what sequence is being
   /// reserved time for. Free text, empty for a shot block.

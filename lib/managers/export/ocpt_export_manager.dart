@@ -50,7 +50,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:path/path.dart' as p;
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
@@ -489,7 +488,6 @@ class OcptExportManager extends AbsWithLifeCycle {
       final day = plan.schedule.daysById[dayId];
       final fileName = callSheetPdfService.callSheetFileName(
         labels: labels,
-        dayKind: day?.kind ?? OcptShootingDayKind.shoot,
         dayNumber: day?.dayNumber ?? 0,
       );
 
@@ -557,7 +555,6 @@ class OcptExportManager extends AbsWithLifeCycle {
     for (final dayId in dayIds) {
       final day = plan.schedule.daysById[dayId];
       final dayNumber = day?.dayNumber ?? 0;
-      final dayKind = day?.kind ?? OcptShootingDayKind.shoot;
       final convocations = [
         for (final convocation in plan.convocationsOfDay(dayId))
           if (!convocation.isGuest &&
@@ -573,7 +570,6 @@ class OcptExportManager extends AbsWithLifeCycle {
         final fileName = _uniqueFileName(
           callSheetPdfService.namedCallSheetFileName(
             labels: labels,
-            dayKind: dayKind,
             dayNumber: dayNumber,
             personName: personName,
           ),

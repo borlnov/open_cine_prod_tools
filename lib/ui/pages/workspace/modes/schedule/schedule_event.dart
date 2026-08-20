@@ -21,7 +21,6 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -232,26 +231,6 @@ class OcptScheduleDayDateChangedEvent extends OcptScheduleEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, dayId, date];
-}
-
-/// Writes [kind] onto day [dayId], dispatched by the day inspector's own `Kind` picker.
-///
-/// Nothing else moves with it: the day keeps its slots, its blocks, its convocations and its
-/// events, and its number is recounted — in the series it has just joined — by the reload that
-/// follows, three separate series being what makes `J3` keep counting shooting days alone.
-class OcptScheduleDayKindChangedEvent extends OcptScheduleEvent {
-  /// The id of the day whose kind changed.
-  final String dayId;
-
-  /// The kind just picked.
-  final OcptShootingDayKind kind;
-
-  /// Class constructor
-  const OcptScheduleDayKindChangedEvent({required this.dayId, required this.kind});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, dayId, kind];
 }
 
 /// Writes a new status onto day [dayId] immediately, dispatched by the day inspector's own status
@@ -706,36 +685,6 @@ class OcptScheduleShotBlockCreatedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, slotId, shotId];
 }
 
-/// Creates a new **audition** block inside slot [slotId], appended at the end of that slot's own
-/// timetable, dispatched once the mode's own candidate picker dialog — opened by that slot card's
-/// own `+ Block` menu's `Audition` entry — resolves to a pick.
-///
-/// A **third** event beside [OcptScheduleBlockCreatedEvent] and [OcptScheduleShotBlockCreatedEvent],
-/// and for that second one's own reason: an audition names a candidacy and the part it is for, and
-/// a kind that only ever accompanies those two ids is a shape better ruled out by construction than
-/// rejected in a handler.
-///
-/// It carries the **candidacy** alone: the part is that candidacy's own `roleId`, and asking the
-/// user for it twice — or letting an event name a pair that disagrees with itself — would be the
-/// same mistake one step further on.
-class OcptScheduleAuditionBlockCreatedEvent extends OcptScheduleEvent {
-  /// The id of the slot the new block belongs to.
-  final String slotId;
-
-  /// The id of the candidacy being seen — who, for which part.
-  final String roleCandidateId;
-
-  /// Class constructor
-  const OcptScheduleAuditionBlockCreatedEvent({
-    required this.slotId,
-    required this.roleCandidateId,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, slotId, roleCandidateId];
-}
-
 /// Writes a new duration onto block [blockId] immediately, dispatched by its own slot card's own ±
 /// duration controls.
 class OcptScheduleBlockDurationChangedEvent extends OcptScheduleEvent {
@@ -787,6 +736,27 @@ class OcptScheduleBlockSequenceChangedEvent extends OcptScheduleEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, blockId, sceneId];
+}
+
+/// Writes a new part onto **audition** block [blockId] immediately, dispatched by its own timetable
+/// row's role picker — the control that fills `shooting_day_blocks.roleId`, which says which part
+/// is being auditioned at that hour.
+///
+/// It names a **role** and never a person: who comes to be seen is `shooting_slot_candidates`, on
+/// the slot, and one audition regularly sees several candidates one after another.
+class OcptScheduleBlockRoleChangedEvent extends OcptScheduleEvent {
+  /// The id of the audition block being edited.
+  final String blockId;
+
+  /// The id of the role just picked, or null to clear it back to "no role yet".
+  final String? roleId;
+
+  /// Class constructor
+  const OcptScheduleBlockRoleChangedEvent({required this.blockId, required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, roleId];
 }
 
 /// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, dispatched by

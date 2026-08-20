@@ -12,7 +12,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_week_grid.dart';
@@ -40,7 +39,6 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
       id: id,
       date: date,
       dayNumber: dayNumber,
-      kind: OcptShootingDayKind.shoot,
       status: OcptShootingDayStatus.planned,
       crewNote: "",
       weatherNote: "",
@@ -62,7 +60,6 @@ OcptShootingDayBlock _buildBlock({required String id, String slotId = "slot-1", 
       anchorMinute: null,
       notes: "",
       crewNote: "",
-      roleCandidateId: null,
       roleId: null,
     );
 

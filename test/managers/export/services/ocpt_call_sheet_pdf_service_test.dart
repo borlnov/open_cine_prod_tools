@@ -34,7 +34,6 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -54,11 +53,7 @@ const _labels = OcptCallSheetLabels(
   dayTitles: {"day-1": "CALL SHEET OF THURSDAY 10 AUGUST 2023"},
   directorLine: "A film by Jane Doe",
   versionLabel: "Version",
-  dayTagPrefixes: {
-    OcptShootingDayKind.shoot: "D",
-    OcptShootingDayKind.casting: "C",
-    OcptShootingDayKind.rehearsal: "R",
-  },
+  dayTagPrefix: "D",
   dayNumberLabel: "DAY",
   recipientsSectionTitle: "Recipients",
   namedRecipientLabel: "For",
@@ -126,7 +121,6 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, String cr
       id: id,
       date: DateTime(2026, 1, dayNumber),
       dayNumber: dayNumber,
-      kind: OcptShootingDayKind.shoot,
       status: OcptShootingDayStatus.planned,
       crewNote: crewNote,
       weatherNote: "",
@@ -181,7 +175,6 @@ OcptShootingDayBlock _buildBlock({
   anchorMinute: null,
   notes: "",
   crewNote: crewNote,
-  roleCandidateId: null,
   roleId: null,
 );
 
@@ -1739,37 +1732,14 @@ void main() {
 
   group("callSheetFileName", () {
     test("joins the file name prefix and the day tag", () {
-      expect(
-        service.callSheetFileName(
-          labels: _labels,
-          dayKind: OcptShootingDayKind.shoot,
-          dayNumber: 2,
-        ),
-        "FDS-D2.pdf",
-      );
-    });
-
-    test("a casting day wears its own series' letter", () {
-      expect(
-        service.callSheetFileName(
-          labels: _labels,
-          dayKind: OcptShootingDayKind.casting,
-          dayNumber: 1,
-        ),
-        "FDS-C1.pdf",
-      );
+      expect(service.callSheetFileName(labels: _labels, dayNumber: 2), "FDS-D2.pdf");
     });
   });
 
   group("namedCallSheetFileName", () {
     test("appends the sanitized person name", () {
       expect(
-        service.namedCallSheetFileName(
-          labels: _labels,
-          dayKind: OcptShootingDayKind.shoot,
-          dayNumber: 2,
-          personName: "Elisa Mabit",
-        ),
+        service.namedCallSheetFileName(labels: _labels, dayNumber: 2, personName: "Elisa Mabit"),
         "FDS-D2-Elisa-Mabit.pdf",
       );
     });
@@ -1777,7 +1747,6 @@ void main() {
     test("a name with a slash, an accent and a space produces a safe file name", () {
       final fileName = service.namedCallSheetFileName(
         labels: _labels,
-        dayKind: OcptShootingDayKind.shoot,
         dayNumber: 2,
         personName: "Élise/Bénard Dupont",
       );
@@ -1790,12 +1759,7 @@ void main() {
 
     test("a blank name falls back to the localized unnamed-person label, sanitized", () {
       expect(
-        service.namedCallSheetFileName(
-          labels: _labels,
-          dayKind: OcptShootingDayKind.shoot,
-          dayNumber: 3,
-          personName: "   ",
-        ),
+        service.namedCallSheetFileName(labels: _labels, dayNumber: 3, personName: "   "),
         "FDS-D3-No-name.pdf",
       );
     });

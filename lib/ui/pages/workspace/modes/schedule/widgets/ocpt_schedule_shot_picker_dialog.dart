@@ -8,7 +8,6 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -30,7 +29,7 @@ const double _ocptScheduleShotPickerMaxListHeight = 420;
 /// **Every shot of the shot list is listed, not only the ones still unplaced**: a shot may be
 /// placed more than once (interrupted by the meal break and resumed after it), so an
 /// already-placed row stays clickable. It only carries, at the end of its own row, the day tags it
-/// is already placed on ([placedDaysByShotId]), muted, so a second placement reads as a
+/// is already placed on ([placedDayNumbersByShotId]), muted, so a second placement reads as a
 /// deliberate choice rather than an accident nobody warned about.
 ///
 /// Purely presentational, modelled on `OcptScenarioCoverageExportDialog`: [show] opens it and
@@ -49,20 +48,17 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
   /// holds more than one: a single-episode project names no episode anywhere (ADR 0019).
   final List<OcptEpisode> episodes;
 
-  /// For every shot already placed somewhere in the schedule, the days it is placed on,
-  /// deduplicated and in ascending date order — `OcptScheduleState.placedDaysByShotId`. A shot with
-  /// no entry here is unplaced.
-  ///
-  /// The days rather than their numbers: a day's number ranks it among its own kind alone, so the
-  /// tag a row prints is `ocptScheduleDayTagLabel`'s reading of the pair.
-  final Map<String, List<OcptShootingDay>> placedDaysByShotId;
+  /// For every shot already placed somewhere in the schedule, the day numbers it is placed on,
+  /// deduplicated and in ascending order — `OcptScheduleState.placedDayNumbersByShotId`. A shot
+  /// with no entry here is unplaced.
+  final Map<String, List<int>> placedDayNumbersByShotId;
 
   /// Class constructor
   const OcptScheduleShotPickerDialog({
     super.key,
     required this.shotListSnapshots,
     required this.episodes,
-    required this.placedDaysByShotId,
+    required this.placedDayNumbersByShotId,
   });
 
   /// Shows the dialog and returns the id of the shot picked, or null if the user dismissed it.
@@ -70,13 +66,13 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
     BuildContext context, {
     required List<OcptShotListSnapshot> shotListSnapshots,
     required List<OcptEpisode> episodes,
-    required Map<String, List<OcptShootingDay>> placedDaysByShotId,
+    required Map<String, List<int>> placedDayNumbersByShotId,
   }) => showDialog<String>(
     context: context,
     builder: (context) => OcptScheduleShotPickerDialog(
       shotListSnapshots: shotListSnapshots,
       episodes: episodes,
-      placedDaysByShotId: placedDaysByShotId,
+      placedDayNumbersByShotId: placedDayNumbersByShotId,
     ),
   );
 
@@ -311,8 +307,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
   /// day tags, muted, with a tooltip saying so. The mark is information, never a bar: the row stays
   /// clickable either way.
   Widget _buildShotRow(BuildContext context, Tr tr, ThemeData theme, OcptShot shot) {
-    final placedDays = widget.placedDaysByShotId[shot.id];
-    final isPlaced = placedDays != null && placedDays.isNotEmpty;
+    final dayNumbers = widget.placedDayNumbersByShotId[shot.id];
+    final isPlaced = dayNumbers != null && dayNumbers.isNotEmpty;
     final mutedStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
     return InkWell(
@@ -341,9 +337,7 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
               Tooltip(
                 message: tr.scheduleShotPickerAlreadyPlacedTooltip,
                 child: Text(
-                  placedDays
-                      .map((day) => ocptScheduleDayTagLabel(tr, day.kind, day.dayNumber))
-                      .join(", "),
+                  dayNumbers.map((n) => ocptScheduleDayTagLabel(tr, n)).join(", "),
                   style: mutedStyle,
                 ),
               ),

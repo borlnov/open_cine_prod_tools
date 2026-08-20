@@ -7,17 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
-import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
@@ -35,20 +30,6 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 640, height: 700, child: child)),
 );
 
-/// Builds a candidacy — somebody seen for a part — with the few fields these tests read.
-OcptRoleCandidate _buildCandidacy({
-  required String id,
-  required String roleId,
-  required String displayName,
-}) => OcptRoleCandidate(
-  id: id,
-  roleId: roleId,
-  person: _buildPerson(displayName),
-  status: OcptRoleCandidateStatus.seen,
-  auditionedOn: null,
-  notes: "",
-);
-
 /// Builds a part with the few fields these tests read.
 OcptRole _buildRole({required String id, required String name}) => OcptRole(
   id: id,
@@ -62,48 +43,6 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
   episodeIds: const [],
 );
 
-/// Builds a person whose display name is [displayName], everything else neutral.
-OcptPerson _buildPerson(String displayName) => OcptPerson(
-  id: "person-1",
-  firstName: displayName,
-  lastName: "",
-  email: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  postalCode: "",
-  city: "",
-  region: "",
-  country: "",
-  colorIndex: 0,
-  birthDate: null,
-  minorNotes: "",
-  maxDailyPresenceMinutes: null,
-  isTransportAutonomous: null,
-  accommodationNotes: "",
-  travelNotes: "",
-  dietaryNotes: "",
-  allergies: "",
-  measurementHeight: "",
-  measurementChest: "",
-  measurementWaist: "",
-  measurementHips: "",
-  sizeTop: "",
-  sizeBottom: "",
-  sizeShoes: "",
-  hmcNotes: "",
-  imageRightsStatus: OcptImageRightsStatus.notApplicable,
-  imageRightsDate: null,
-  imageRightsAssetId: null,
-  imageRightsDocument: null,
-  photoAssetId: null,
-  photo: null,
-  notes: "",
-  positions: const [],
-  skills: const [],
-  unavailabilities: const [],
-);
-
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
 OcptShootingDayBlock _buildBlock({
   required String id,
@@ -112,7 +51,6 @@ OcptShootingDayBlock _buildBlock({
   String? shotId,
   String? sceneId,
   String? roleId,
-  String? roleCandidateId,
   int? anchorMinute,
   String label = "",
 }) => OcptShootingDayBlock(
@@ -128,7 +66,6 @@ OcptShootingDayBlock _buildBlock({
   notes: "",
   crewNote: "",
   roleId: roleId,
-  roleCandidateId: roleCandidateId,
 );
 
 /// Builds a scene sequence with the few fields these tests read, everything else neutral.
@@ -199,10 +136,8 @@ void main() {
     ValueChanged<String>? onDeletionRequested,
     ValueChanged<OcptShootingBlockKind>? onBlockAdded,
     VoidCallback? onShotBlockRequested,
-    VoidCallback? onAuditionBlockRequested,
-    OcptShootingDayKind dayKind = OcptShootingDayKind.shoot,
-    Map<String, OcptRole> roleById = const {},
-    Map<String, OcptRoleCandidate> roleCandidateById = const {},
+    void Function(String blockId, String? roleId)? onAuditionRoleChanged,
+    List<OcptRole> roles = const [],
     void Function(String blockId, String targetSlotId)? onBlockMovedToSlot,
   }) => OcptScheduleTimetable(
     slotId: "slot-1",
@@ -222,10 +157,8 @@ void main() {
     onBlockAdded: onBlockAdded,
     onShotBlockRequested: onShotBlockRequested,
     onBlockMovedToSlot: onBlockMovedToSlot,
-    dayKind: dayKind,
-    onAuditionBlockRequested: onAuditionBlockRequested,
-    roleById: roleById,
-    roleCandidateById: roleCandidateById,
+    onAuditionRoleChanged: onAuditionRoleChanged,
+    roles: roles,
   );
 
   testWidgets("a block's computed start time is shown from the timeline", (tester) async {
@@ -653,7 +586,9 @@ void main() {
     expect(find.text(tr.scheduleBlockKindShot), findsNothing);
   });
 
-  testWidgets("a shooting day's menu offers a rehearsal and never an audition", (tester) async {
+  testWidgets("the `+ Block` menu offers every kind, an audition and a rehearsal included", (tester) async {
+    // Nothing narrows this menu: what a day is for is what its blocks say, and one day regularly
+    // auditions in the morning, rehearses at noon and shoots in the afternoon.
     await tester.pumpWidget(
       _wrapInApp(
         buildTimetable(
@@ -661,7 +596,6 @@ void main() {
           timeline: null,
           onBlockAdded: (_) {},
           onShotBlockRequested: () {},
-          onAuditionBlockRequested: () {},
         ),
       ),
     );
@@ -673,12 +607,11 @@ void main() {
 
     expect(find.text(tr.scheduleBlockKindShot), findsOneWidget);
     expect(find.text(tr.scheduleBlockKindHold), findsOneWidget);
+    expect(find.text(tr.scheduleBlockKindAudition), findsOneWidget);
     expect(find.text(tr.scheduleBlockKindRehearsal), findsOneWidget);
-    expect(find.text(tr.scheduleBlockKindAudition), findsNothing);
   });
 
-  testWidgets("a casting day's menu offers an audition and neither a shot nor a hold", (tester) async {
-    var auditionRequested = false;
+  testWidgets("an audition is created in place, like every other kind but a shot", (tester) async {
     OcptShootingBlockKind? addedKind;
 
     await tester.pumpWidget(
@@ -686,10 +619,8 @@ void main() {
         buildTimetable(
           blocks: const [],
           timeline: null,
-          dayKind: OcptShootingDayKind.casting,
           onBlockAdded: (kind) => addedKind = kind,
           onShotBlockRequested: () {},
-          onAuditionBlockRequested: () => auditionRequested = true,
         ),
       ),
     );
@@ -698,58 +629,14 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
     await tester.tap(find.text(tr.scheduleAddBlockAction));
     await tester.pumpAndSettle();
-
-    expect(find.text(tr.scheduleBlockKindShot), findsNothing);
-    expect(find.text(tr.scheduleBlockKindHold), findsNothing);
-    expect(find.text(tr.scheduleBlockKindRehearsal), findsOneWidget);
-    // The audition leads the menu on the day it is offered, exactly as the shot does on a shooting
-    // day, and picking it opens the mode's own dialog rather than creating anything in place.
-    expect(
-      tester.getCenter(find.text(tr.scheduleBlockKindAudition)).dy,
-      lessThan(tester.getCenter(find.text(tr.scheduleBlockKindMeal)).dy),
-    );
-
-    await tester.tap(find.text(tr.scheduleBlockKindAudition));
+    await tester.tap(find.text(tr.scheduleBlockKindAudition).last);
     await tester.pumpAndSettle();
 
-    expect(auditionRequested, isTrue);
-    expect(addedKind, isNull);
+    expect(addedKind, OcptShootingBlockKind.audition);
   });
 
-  testWidgets("a rehearsal day's menu offers neither a shot nor an audition", (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(
-        buildTimetable(
-          blocks: const [],
-          timeline: null,
-          dayKind: OcptShootingDayKind.rehearsal,
-          onBlockAdded: (_) {},
-          onShotBlockRequested: () {},
-          onAuditionBlockRequested: () {},
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
-    await tester.tap(find.text(tr.scheduleAddBlockAction));
-    await tester.pumpAndSettle();
-
-    expect(find.text(tr.scheduleBlockKindShot), findsNothing);
-    expect(find.text(tr.scheduleBlockKindAudition), findsNothing);
-    expect(find.text(tr.scheduleBlockKindRehearsal), findsOneWidget);
-    expect(find.text(tr.scheduleBlockKindMeal), findsOneWidget);
-    // Nothing leads the menu on this day, so nothing is set apart from anything.
-    expect(find.byType(PopupMenuDivider), findsNothing);
-  });
-
-  testWidgets("an audition row reads who is seen and for which part", (tester) async {
-    final block = _buildBlock(
-      id: "block-1",
-      kind: OcptShootingBlockKind.audition,
-      roleId: "role-1",
-      roleCandidateId: "candidacy-1",
-    );
+  testWidgets("an audition row's role picker names the part, and picking one dispatches", (tester) async {
+    final audition = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition);
     const timeline = OcptShootingSlotTimeline(
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
@@ -758,20 +645,18 @@ void main() {
       startMinute: 540,
       endMinute: 560,
     );
+    String? pickedRoleId;
+    var picked = false;
 
     await tester.pumpWidget(
       _wrapInApp(
         buildTimetable(
-          blocks: [block],
+          blocks: [audition],
           timeline: timeline,
-          dayKind: OcptShootingDayKind.casting,
-          roleById: {"role-1": _buildRole(id: "role-1", name: "MARIE")},
-          roleCandidateById: {
-            "candidacy-1": _buildCandidacy(
-              id: "candidacy-1",
-              roleId: "role-1",
-              displayName: "Camille",
-            ),
+          roles: [_buildRole(id: "role-1", name: "MARIE")],
+          onAuditionRoleChanged: (_, roleId) {
+            picked = true;
+            pickedRoleId = roleId;
           },
         ),
       ),
@@ -779,44 +664,49 @@ void main() {
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
-    expect(find.text(tr.scheduleAuditionBlockLabel("Camille", "MARIE")), findsOneWidget);
+    // A part nobody has settled yet is an ordinary state, exactly as a hold with no sequence is.
+    expect(find.text(tr.scheduleAuditionRolePickerNoRoleOption), findsOneWidget);
+
+    await tester.tap(find.text(tr.scheduleAuditionRolePickerNoRoleOption));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("MARIE").last);
+    await tester.pumpAndSettle();
+
+    expect(picked, isTrue);
+    expect(pickedRoleId, "role-1");
   });
 
-  testWidgets("an audition row whose candidacy has since been removed still names its row", (tester) async {
-    // No cascade drops a block when its candidacy goes: the row falls back on the address book's
-    // own "unnamed" reading rather than going blank, a row saying nothing being one nobody can act
-    // on.
-    final block = _buildBlock(
+  testWidgets("an audition row naming a part reads it, and no other kind draws that picker", (tester) async {
+    final audition = _buildBlock(
       id: "block-1",
       kind: OcptShootingBlockKind.audition,
-      roleId: "role-gone",
-      roleCandidateId: "candidacy-gone",
+      roleId: "role-1",
     );
+    final meal = _buildBlock(id: "block-2", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+        OcptShootingTimelineEntry(blockId: "block-2", startMinute: 560, endMinute: 620, durationMinutes: 60),
       ],
       overruns: [],
       startMinute: 540,
-      endMinute: 560,
+      endMinute: 620,
     );
 
     await tester.pumpWidget(
       _wrapInApp(
         buildTimetable(
-          blocks: [block],
+          blocks: [audition, meal],
           timeline: timeline,
-          dayKind: OcptShootingDayKind.casting,
+          roles: [_buildRole(id: "role-1", name: "MARIE")],
+          onAuditionRoleChanged: (_, _) {},
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
-    expect(
-      find.text(tr.scheduleAuditionBlockLabel(tr.resourcesUnnamedPerson, tr.resourcesRoleUnnamed)),
-      findsOneWidget,
-    );
+    expect(find.text("MARIE"), findsOneWidget);
+    expect(find.byType(PopupMenuButton<String>), findsOneWidget);
   });
 
   testWidgets("a rehearsal row carries the sequence picker a hold row does", (tester) async {
@@ -953,10 +843,8 @@ void main() {
                 onBlockAdded: null,
                 onShotBlockRequested: null,
                 onBlockMovedToSlot: (blockId, targetSlotId) => moved.add((blockId, targetSlotId)),
-                dayKind: OcptShootingDayKind.shoot,
-                onAuditionBlockRequested: null,
-                roleById: const {},
-                roleCandidateById: const {},
+                onAuditionRoleChanged: null,
+                roles: const [],
               ),
             ),
             SizedBox(
@@ -980,10 +868,8 @@ void main() {
                 onBlockAdded: null,
                 onShotBlockRequested: null,
                 onBlockMovedToSlot: (blockId, targetSlotId) => moved.add((blockId, targetSlotId)),
-                dayKind: OcptShootingDayKind.shoot,
-                onAuditionBlockRequested: null,
-                roleById: const {},
-                roleCandidateById: const {},
+                onAuditionRoleChanged: null,
+                roles: const [],
               ),
             ),
           ],
@@ -1047,10 +933,8 @@ void main() {
                 onBlockAdded: null,
                 onShotBlockRequested: null,
                 onBlockMovedToSlot: (_, _) {},
-                dayKind: OcptShootingDayKind.shoot,
-                onAuditionBlockRequested: null,
-                roleById: const {},
-                roleCandidateById: const {},
+                onAuditionRoleChanged: null,
+                roles: const [],
               ),
             ),
             SizedBox(
@@ -1074,10 +958,8 @@ void main() {
                 onBlockAdded: null,
                 onShotBlockRequested: null,
                 onBlockMovedToSlot: (_, _) {},
-                dayKind: OcptShootingDayKind.shoot,
-                onAuditionBlockRequested: null,
-                roleById: const {},
-                roleCandidateById: const {},
+                onAuditionRoleChanged: null,
+                roles: const [],
               ),
             ),
           ],

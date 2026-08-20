@@ -15,7 +15,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 
@@ -85,12 +84,6 @@ class OcptShootingPlanXlsxExportService {
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as
   /// `OcptShootingPlanPdfService.generate` reads a missing one.
   ///
-  /// **Shooting days only.** This document is about the shoot: a [dayIds] entry naming a day whose
-  /// `OcptShootingDayKind` is not [OcptShootingDayKind.shoot] is skipped exactly as an entry naming
-  /// no live day at all is. The scoping lives here rather than at the call site so every caller
-  /// gets the same answer — the mode's own day picker offers the shooting days alone, and this is
-  /// what makes that an agreement rather than a coincidence.
-  ///
   /// Throws a [StateError] if the workbook cannot be encoded, which the caller reports as a failed
   /// export: `excel_community` returns null there rather than throwing anything of its own.
   Uint8List generate({
@@ -98,10 +91,7 @@ class OcptShootingPlanXlsxExportService {
     required List<String> dayIds,
     required OcptShootingPlanXlsxLabels labels,
   }) {
-    final resolvedDayIds = [
-      for (final id in dayIds)
-        if (plan.schedule.daysById[id]?.kind == OcptShootingDayKind.shoot) id,
-    ];
+    final resolvedDayIds = [for (final id in dayIds) if (plan.schedule.daysById.containsKey(id)) id];
 
     final excel = Excel.createExcel();
     final locationsSheetName = _sheetNameOr(labels.locationsSheetName, fallbackLocationsSheetName);
