@@ -6,21 +6,26 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
-import 'package:drift/drift.dart' show OrderingTerm;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -62,6 +67,32 @@ class _FakeFileSaverManager extends FileSaverManager {
   Future<String?> saveFileFromBytes({required String fileName, required Uint8List bytes}) async {
     lastFileName = fileName;
     return result;
+  }
+}
+
+/// A save location service answering [answer] without ever showing a native dialog, and recording
+/// that it was asked — used to exercise a project card's own `Export…` without a real save dialog.
+///
+/// A null [answer] is the user cancelling the dialog, which every export of this app treats as a
+/// silent no-op.
+class _RecordingSaveLocationService extends OcptSaveLocationService {
+  /// The path handed back, or null to answer as a cancelled dialog.
+  final String? answer;
+
+  /// How many times a save location was asked for.
+  int askCount = 0;
+
+  /// Class constructor
+  _RecordingSaveLocationService({required this.answer});
+
+  @override
+  Future<String?> pickSaveLocation({
+    required String suggestedFileName,
+    required String fileTypeLabel,
+    required List<String> extensions,
+  }) async {
+    askCount++;
+    return answer;
   }
 }
 
@@ -399,6 +430,109 @@ void main() {
       final state = await waitForState(bloc, (state) => state.pendingFileCompatibility == null);
 
       expect(state.pendingFileCompatibility, isNull);
+
+      await bloc.close();
+    });
+  });
+
+  group("a project card's Export…", () {
+    /// Writes a real file under the temp directory and returns its path, so an `assets` row can
+    /// point at something that is actually there.
+    String writeReferencedFile(String name) {
+      final path = p.join(tempDir.path, name);
+      File(path).writeAsStringSync("referenced bytes");
+      return path;
+    }
+
+    /// Creates a project at [filePath], adds one `assets` row labelled [label] and pointing at
+    /// [assetPath] (which may or may not exist), then closes it — a project card names a file
+    /// nothing has opened, exactly like this leaves the project.
+    Future<void> createProjectWithAsset(
+      String filePath, {
+      required String assetPath,
+      required String label,
+    }) async {
+      await projectsManager.createProject(name: "My Movie", filePath: filePath);
+      final database = projectsManager.currentProject!.database;
+      await database
+          .into(database.ocptAssetsTable)
+          .insert(
+            OcptAssetsTableCompanion.insert(
+              id: label,
+              kind: OcptAssetKind.locationPhoto,
+              path: assetPath,
+              label: Value(label),
+              addedAt: DateTime.utc(2026, 8, 19),
+            ),
+          );
+      await projectsManager.closeCurrentProject();
+    }
+
+    test(
+      "runs the pre-flight and asks through the state when a referenced file is missing",
+      () async {
+        final filePath = p.join(tempDir.path, "movie.ocpt");
+        await createProjectWithAsset(
+          filePath,
+          assetPath: p.join(tempDir.path, "gone.jpg"),
+          label: "Town hall permit",
+        );
+
+        final bloc = buildBloc();
+        bloc.add(
+          OcptProjectPackageExportRequestedEvent(
+            fileTypeLabel: "Project package",
+            target: OcptProjectPackageTarget(filePath: filePath, name: "My Movie"),
+          ),
+        );
+
+        final state = await waitForState(
+          bloc,
+          (state) => state.projectPackagePendingExport != null,
+        );
+
+        expect(state.projectPackagePendingExport?.missingAssets.single.label, "Town hall permit");
+        expect(state.projectPackageNotice, isNull);
+        expect(
+          projectsManager.currentProject,
+          isNull,
+          reason: "nothing was opened to export the card's project",
+        );
+
+        await bloc.close();
+      },
+    );
+
+    test("writes to the picked save location when nothing is missing", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectWithAsset(
+        filePath,
+        assetPath: writeReferencedFile("headshot.jpg"),
+        label: "Headshot",
+      );
+
+      final packagePath = p.join(tempDir.path, "movie.ocptz");
+      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+      final bloc = buildBloc(
+        exportManager: OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        ),
+      );
+
+      bloc.add(
+        OcptProjectPackageExportRequestedEvent(
+          fileTypeLabel: "Project package",
+          target: OcptProjectPackageTarget(filePath: filePath, name: "My Movie"),
+        ),
+      );
+
+      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+      expect(File(packagePath).existsSync(), isTrue);
+      expect(saveLocationService.askCount, 1);
+      expect(projectsManager.currentProject, isNull);
 
       await bloc.close();
     });

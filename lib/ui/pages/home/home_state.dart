@@ -5,8 +5,11 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 
 /// A recent project enriched with whether its file can still be found on disk.
 class OcptHomeRecentProjectEntry extends Equatable {
@@ -28,7 +31,12 @@ class OcptHomeRecentProjectEntry extends Equatable {
 }
 
 /// The state of `OcptHomeBloc`.
-class OcptHomeState extends BlocStateForMixin<OcptHomeState> {
+///
+/// Mixes in [MixinOcptProjectPackageState] for a project card's own `Export…`: the same pair of
+/// fields every production mode's state carries for the toolbar's `Export` panel, since the home
+/// page runs the very same `MixinOcptProjectPackageBloc` flow over a project nothing has opened.
+class OcptHomeState extends BlocStateForMixin<OcptHomeState>
+    with MixinOcptProjectPackageState<OcptHomeState> {
   /// The recently opened projects, most recently opened first.
   final List<OcptHomeRecentProjectEntry> recentProjects;
 
@@ -51,12 +59,22 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState> {
   /// one behind the first.
   final OcptProjectFileCompatibility? pendingFileCompatibility;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExport}
+  @override
+  final OcptProjectPackagePreflight? projectPackagePendingExport;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
+  @override
+  final OcptProjectPackageNotice? projectPackageNotice;
+
   /// Class constructor
   const OcptHomeState({
     required this.recentProjects,
     required this.isBusy,
     required this.error,
     this.pendingFileCompatibility,
+    this.projectPackagePendingExport,
+    this.projectPackageNotice,
   });
 
   /// Init class constructor
@@ -64,13 +82,17 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState> {
     : recentProjects = const [],
       isBusy = false,
       error = null,
-      pendingFileCompatibility = null;
+      pendingFileCompatibility = null,
+      projectPackagePendingExport = null,
+      projectPackageNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [error] and [pendingFileCompatibility] are only replaced when a new one is given or their
   /// clear flag is true; otherwise the current one is kept, since null is a legitimate "nothing to
-  /// report" value that a plain `?? this.error` couldn't distinguish from "not provided".
+  /// report" value that a plain `?? this.error` couldn't distinguish from "not provided". The
+  /// project package's own pair follows the very same rule, through [copyProjectPackageState]
+  /// below.
   @override
   OcptHomeState copyWith({
     List<OcptHomeRecentProjectEntry>? recentProjects,
@@ -79,6 +101,10 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState> {
     bool clearError = false,
     OcptProjectFileCompatibility? pendingFileCompatibility,
     bool clearPendingFileCompatibility = false,
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
   }) => OcptHomeState(
     recentProjects: recentProjects ?? this.recentProjects,
     isBusy: isBusy ?? this.isBusy,
@@ -86,6 +112,26 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState> {
     pendingFileCompatibility: clearPendingFileCompatibility
         ? null
         : (pendingFileCompatibility ?? this.pendingFileCompatibility),
+    projectPackagePendingExport: clearProjectPackagePendingExport
+        ? null
+        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
+    projectPackageNotice: clearProjectPackageNotice
+        ? null
+        : (projectPackageNotice ?? this.projectPackageNotice),
+  );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
+  @override
+  OcptHomeState copyProjectPackageState({
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
+  }) => copyWith(
+    projectPackagePendingExport: projectPackagePendingExport,
+    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    projectPackageNotice: projectPackageNotice,
+    clearProjectPackageNotice: clearProjectPackageNotice,
   );
 
   /// Object properties

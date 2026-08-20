@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:path/path.dart' as p;
 
 /// This is the bloc class for the home page.
@@ -33,7 +34,13 @@ import 'package:path/path.dart' as p;
 /// It is also where the app's **compatibility gate** stands: every path that opens a project file
 /// runs through here, so every one of them is probed before it is opened, and a file from another
 /// build is raised as a question or a refusal rather than migrated behind the user's back.
-class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
+///
+/// It mixes in [MixinOcptProjectPackageBloc] for a project card's own `Export…`: the same flow
+/// every production mode's toolbar `Export` panel runs, over a target the card names rather than
+/// an open project — nothing has to be open for it, which is the point (see
+/// `MixinOcptProjectPackageBloc`'s own doc comment).
+class OcptHomeBloc extends BlocForMixin<OcptHomeState>
+    with MixinOcptProjectPackageBloc<OcptHomeState> {
   /// The properties manager used to read/update the recent projects list.
   final OcptPropertiesManager _propertiesManager;
 
@@ -82,6 +89,22 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     on<OcptHomeErrorDismissedEvent>(_onErrorDismissed);
     on<OcptHomeImportScreenplayRequestedEvent>(_onImportScreenplayRequested);
   }
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
+
+  /// Does nothing: no project is open from the home page, so there is no debounced field edit or
+  /// pending autosave a mode would otherwise still be holding outside the database.
+  @protected
+  @override
+  Future<void> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async {}
 
   /// Reloads the recent projects list and recomputes which of them still exist on disk.
   Future<void> _onRefreshRequested(

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
@@ -223,6 +224,58 @@ void main() {
     expect(state.projectPackageNotice?.skippedAssetCount, 1);
     expect(File(packagePath).existsSync(), isTrue);
   });
+
+  test(
+    "a named target is packaged even while no project is open at all",
+    () async {
+      final movieFilePath = p.join(tempDir.path, "movie.ocpt");
+      await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+      await projectsManager.closeCurrentProject();
+
+      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+      final bloc = await buildLoadedBloc(saveLocationService);
+
+      bloc.add(
+        OcptProjectPackageExportRequestedEvent(
+          fileTypeLabel: "Project package",
+          target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
+        ),
+      );
+
+      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+      expect(state.projectPackagePendingExport, isNull);
+      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+      expect(File(packagePath).existsSync(), isTrue);
+      expect(saveLocationService.lastSuggestedFileName, "My Movie.ocptz");
+    },
+  );
+
+  test(
+    "the read-only preview refusal does not apply to a named target",
+    () async {
+      final movieFilePath = p.join(tempDir.path, "movie.ocpt");
+      await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      await projectsManager.previewVersion(version!.id);
+      expect(projectsManager.currentProject!.isReadOnly, isTrue);
+
+      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+      final bloc = await buildLoadedBloc(saveLocationService);
+
+      bloc.add(
+        OcptProjectPackageExportRequestedEvent(
+          fileTypeLabel: "Project package",
+          target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
+        ),
+      );
+
+      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+      expect(File(packagePath).existsSync(), isTrue);
+    },
+  );
 
   test("a cancelled save dialog writes nothing and says nothing", () async {
     await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");

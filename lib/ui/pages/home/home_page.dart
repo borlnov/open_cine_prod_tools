@@ -10,6 +10,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -21,6 +23,9 @@ import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_header.dart
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_new_project_name_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_file_newer_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// Displays the project card grid: the app's real landing page.
@@ -85,6 +90,15 @@ class _HomeView extends StatelessWidget {
                                 fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel,
                               ),
                             ),
+                            onExport: () => context.read<OcptHomeBloc>().add(
+                              OcptProjectPackageExportRequestedEvent(
+                                fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+                                target: OcptProjectPackageTarget(
+                                  filePath: entry.project.path,
+                                  name: entry.project.name,
+                                ),
+                              ),
+                            ),
                             onRemove: () => context.read<OcptHomeBloc>().add(
                               OcptHomeRemoveRecentProjectRequestedEvent(path: entry.project.path),
                             ),
@@ -100,8 +114,9 @@ class _HomeView extends StatelessWidget {
   );
 
   /// States whatever [state] is holding for the user: the verdict on a project file whose format
-  /// isn't this build's, and the transient error of a failed create/open — each dismissed from the
-  /// state as soon as it has been put on screen.
+  /// isn't this build's, the transient error of a failed create/open, a project card's export
+  /// pre-flight asking about missing files, and the outcome of that export — each dismissed from
+  /// the state as soon as it has been put on screen.
   void _onStateChanged(BuildContext context, OcptHomeState state) {
     final compatibility = state.pendingFileCompatibility;
     if (compatibility != null) {
@@ -110,15 +125,56 @@ class _HomeView extends StatelessWidget {
     }
 
     final error = state.error;
-    if (error == null) {
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_errorMessage(context, error))));
+
+      context.read<OcptHomeBloc>().add(const OcptHomeErrorDismissedEvent());
+    }
+
+    final packagePendingExport = state.projectPackagePendingExport;
+    if (packagePendingExport != null) {
+      context.read<OcptHomeBloc>().add(const OcptProjectPackageMissingFilesAskDismissedEvent());
+      unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
+    }
+
+    final packageNotice = state.projectPackageNotice;
+    if (packageNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
+        );
+      context.read<OcptHomeBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
+    }
+  }
+
+  /// Asks whether to write a card's package even though some referenced files are gone, then
+  /// dispatches the export if the user said to go on.
+  ///
+  /// Mirrors every production mode's own `_askAboutMissingPackagedFiles` step for step: opened
+  /// from the bloc's state rather than from the card's own click, since only the bloc can read the
+  /// project file the pre-flight scanned, and the question is cleared from that state the moment
+  /// this opens, so a later emission never stacks a second dialog behind this one.
+  Future<void> _askAboutMissingPackagedFiles(
+    BuildContext context,
+    OcptProjectPackagePreflight preflight,
+  ) async {
+    final bloc = context.read<OcptHomeBloc>();
+    final confirmed = await ocptAskAboutMissingPackagedFiles(context, preflight);
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(_errorMessage(context, error))));
-
-    context.read<OcptHomeBloc>().add(const OcptHomeErrorDismissedEvent());
+    bloc.add(
+      OcptProjectPackageExportConfirmedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
+    );
   }
 
   /// Puts [compatibility] in front of the user: the migration to answer for an older file, the

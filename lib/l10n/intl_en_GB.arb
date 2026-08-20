@@ -1103,6 +1103,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeExportProjectAction": "Export…",
+  "@homeExportProjectAction": {
+    "description": "Label of the action that writes a project card's project out as a portable package",
+    "context": "Displayed in a project card's overflow menu, above Remove from list",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeRemoveFromListAction": "Remove from list",
   "@homeRemoveFromListAction": {
     "description": "Label of the action that removes a project from the recent projects list",

@@ -151,6 +151,7 @@
   "homeImportScreenplayAction": "Importer un scénario…",
   "homeEmptyStateTitle": "Aucun projet pour le moment",
   "homeEmptyStateMessage": "Créez un nouveau projet de scénario ou ouvrez-en un existant pour commencer.",
+  "homeExportProjectAction": "Exporter…",
   "homeRemoveFromListAction": "Retirer de la liste",
   "homeMissingFileTooltip": "Le fichier de ce projet est introuvable",
   "homeProjectEpisodeCount": "{count, plural, one{{count} épisode} other{{count} épisodes}}",
