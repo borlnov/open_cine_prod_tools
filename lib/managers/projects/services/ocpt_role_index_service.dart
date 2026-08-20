@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -58,8 +59,19 @@ class OcptRoleIndexService {
   /// beyond the ids its links carry, so nothing here can close a circle.
   final OcptElementsService elementsService;
 
+  /// The service owning the `role_candidates` rows, held so [deleteRole] can carry a part's
+  /// candidates off with the part.
+  ///
+  /// Held for the same reason [elementsService] is, and the edge runs the same way: that service
+  /// knows nothing of this one, and reads `roles` only to keep `roles.personId` in step with the
+  /// candidacy that wrote it.
+  final OcptRoleCandidatesService roleCandidatesService;
+
   /// Class constructor
-  const OcptRoleIndexService({this.elementsService = const OcptElementsService()});
+  const OcptRoleIndexService({
+    this.elementsService = const OcptElementsService(),
+    this.roleCandidatesService = const OcptRoleCandidatesService(),
+  });
 
   /// Reconciles the `roles` table of the project against the whole screenplay cast of [document]
   /// (`screenplayCharactersOf(document.blocks)`, already normalised, deduplicated and in
@@ -480,15 +492,17 @@ class OcptRoleIndexService {
     });
   }
 
-  /// Tombstones role [roleId], the `role_elements` links naming it, and every `role_episodes` link
-  /// it carries: the removed-role banner's "delete" action, and the plain way to remove a
-  /// hand-added role.
+  /// Tombstones role [roleId], the `role_elements` links naming it, the `role_candidates` rows
+  /// naming it and every `role_episodes` link it carries: the removed-role banner's "delete"
+  /// action, and the plain way to remove a hand-added role.
   ///
   /// The links go with it for the reason `OcptElementsService.deleteElement` takes its own along:
   /// nothing can reach a link whose role is gone any more, which makes it an orphan rather than
   /// history. The **element** it pointed at is of course untouched — a coat outlives the character
-  /// who wore it, and it is still in the catalogue — and so is every **episode** a `role_episodes`
-  /// link named: deleting a role is not deleting the screenplays it spoke in.
+  /// who wore it, and it is still in the catalogue — the **person** a candidacy named is untouched
+  /// for exactly the same reason, an address book outliving a part being cut, and so is every
+  /// **episode** a `role_episodes` link named: deleting a role is not deleting the screenplays it
+  /// spoke in.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -500,6 +514,8 @@ class OcptRoleIndexService {
 
     await database.transaction(() async {
       await elementsService.tombstoneRoleLinksOfRole(database: database, roleId: roleId);
+
+      await roleCandidatesService.tombstoneCandidatesOfRole(database: database, roleId: roleId);
 
       await (database.update(
         database.ocptRoleEpisodesTable,

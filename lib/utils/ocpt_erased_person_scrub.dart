@@ -83,20 +83,23 @@ const _scrubbedChildLists = {
   "personPositions": _personIdKey,
   "personSkills": _personIdKey,
   "personUnavailabilities": _personIdKey,
+  "roleCandidates": _personIdKey,
   "assets": _personIdKey,
 };
 
 /// The keys blanked, per list, alongside the tombstone of a child row belonging to an erased
 /// person.
 ///
-/// `person_skills.label` and `person_unavailabilities.reason` routinely hold something personal (a
-/// driving licence, a language, why they were away on a date), so an erasure empties them: it is
-/// about what the file stops holding, not only about what a screen stops showing. A
-/// `person_positions` row holds a position id and nothing personal, so it is only tombstoned.
+/// `person_skills.label`, `person_unavailabilities.reason` and `role_candidates.notes` routinely
+/// hold something personal (a driving licence, a language, why they were away on a date, what
+/// somebody wrote about them at an audition), so an erasure empties them: it is about what the file
+/// stops holding, not only about what a screen stops showing. A `person_positions` row holds a
+/// position id and nothing personal, so it is only tombstoned.
 const _scrubbedChildBlankedKeys = {
   "personPositions": <String>{},
   "personSkills": {"label"},
   "personUnavailabilities": {"reason"},
+  "roleCandidates": {"notes"},
   "assets": ocptErasedAssetBlankedKeys,
 };
 
@@ -104,7 +107,8 @@ const _scrubbedChildBlankedKeys = {
 /// [erasedPersonIds] scrubbed out of it, and a flag saying whether anything was actually changed.
 ///
 /// This is the **third** implementation of one rule, and the only one that is not typed:
-/// `OcptPeopleService.deletePerson` (with `OcptAssetsService.erasePersonAssets`) applies it to a
+/// `OcptPeopleService.deletePerson` (with `OcptAssetsService.erasePersonAssets` and
+/// `OcptRoleCandidatesService.eraseCandidaciesOfPerson`) applies it to a
 /// live row, `OcptProjectVersionsService._scrubErasedPeople` applies it to a decoded payload on its
 /// way to a preview or a restore, and this one applies it to the stored JSON of a payload being
 /// **copied out of the project** — the export of a portable package, which must not carry an erased

@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -510,6 +511,27 @@ void main() {
         isDeleted: true,
       ),
     ],
+    roleCandidates: [
+      OcptRoleCandidateRow(
+        id: "role-candidate-1",
+        roleId: "role-1",
+        personId: "person-1",
+        status: OcptRoleCandidateStatus.retained,
+        auditionedOn: DateTime.utc(2026, 2, 12, 14, 30),
+        notes: "Very sure of the last scene",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      const OcptRoleCandidateRow(
+        id: "role-candidate-2",
+        roleId: "role-1",
+        personId: "person-2",
+        status: OcptRoleCandidateStatus.declined,
+        notes: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
     assets: [
       OcptAssetRow(
         id: "asset-1",
@@ -882,7 +904,7 @@ void main() {
       expect(roundTripped.rowFieldVersions.last.deviceId, "device-2");
     });
 
-    test('every column of the eleven resource tables round trips, enums and nulls included', () {
+    test('every column of the twelve resource tables round trips, enums and nulls included', () {
       final roundTripped = roundTrip(buildRichPayload());
 
       final person = roundTripped.people.first;
@@ -987,6 +1009,25 @@ void main() {
       final sceneElement = roundTripped.sceneElements.first;
       expect(sceneElement.elementId, "element-1");
       expect(sceneElement.quantity, "1");
+
+      final roleElement = roundTripped.roleElements.first;
+      expect(roleElement.roleId, "role-1");
+      expect(roleElement.elementId, "element-1");
+      expect(roleElement.notes, "Torn from scene 12 on");
+
+      final candidate = roundTripped.roleCandidates.first;
+      expect(candidate.roleId, "role-1");
+      expect(candidate.personId, "person-1");
+      expect(candidate.status, OcptRoleCandidateStatus.retained);
+      expect(candidate.auditionedOn, DateTime.utc(2026, 2, 12, 14, 30));
+      expect(candidate.notes, "Very sure of the last scene");
+      expect(candidate.sortKey, "V");
+      // The second candidacy was never dated: a self-tape, or somebody seen before the project was
+      // opened, keeps a null there rather than a moment nobody recorded.
+      final undatedCandidate = roundTripped.roleCandidates.last;
+      expect(undatedCandidate.status, OcptRoleCandidateStatus.declined);
+      expect(undatedCandidate.auditionedOn, isNull);
+      expect(undatedCandidate.isDeleted, isTrue);
 
       final asset = roundTripped.assets.first;
       expect(asset.kind, OcptAssetKind.document);
@@ -1236,6 +1277,7 @@ void main() {
         elements: [],
         sceneElements: [],
         roleElements: [],
+        roleCandidates: [],
         assets: [],
         breakdownTags: [],
         sceneBreakdowns: [],
@@ -1291,6 +1333,7 @@ void main() {
         elements: payload.elements.reversed.toList(),
         sceneElements: payload.sceneElements.reversed.toList(),
         roleElements: payload.roleElements.reversed.toList(),
+        roleCandidates: payload.roleCandidates.reversed.toList(),
         assets: payload.assets.reversed.toList(),
         breakdownTags: payload.breakdownTags.reversed.toList(),
         sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
@@ -1334,6 +1377,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1385,6 +1429,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1439,6 +1484,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1482,6 +1528,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1525,6 +1572,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1570,6 +1618,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1621,6 +1670,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1644,6 +1694,117 @@ void main() {
       // digest that left `role_episodes` out would let the working-copy card claim no drift after
       // an afternoon spent saying, episode by episode, who speaks where.
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewLink)));
+    });
+
+    test('changes when a candidate is added', () {
+      // A week of casting moves no other table at all until somebody is retained, so a digest
+      // blind to this one would let the working-copy card claim no drift after exactly the work
+      // `role_candidates` exists to hold.
+      final payload = buildRichPayload();
+      final withNewCandidate = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        roleCandidates: [
+          ...payload.roleCandidates,
+          const OcptRoleCandidateRow(
+            id: "role-candidate-3",
+            roleId: "role-2",
+            personId: "person-2",
+            status: OcptRoleCandidateStatus.shortlisted,
+            notes: "",
+            sortKey: "t",
+            isDeleted: false,
+          ),
+        ],
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+      );
+
+      // Two states differing only in which episodes name a role are not the same project: a
+      // digest that left `role_episodes` out would let the working-copy card claim no drift after
+      // an afternoon spent saying, episode by episode, who speaks where.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewCandidate)));
+    });
+
+    test("changes when a candidate's status changes", () {
+      final payload = buildRichPayload();
+      final withOtherStatuses = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        roleCandidates: [
+          for (final row in payload.roleCandidates)
+            row.copyWith(status: OcptRoleCandidateStatus.shortlisted),
+        ],
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+      );
+
+      // Two states differing only in which episodes name a role are not the same project: a
+      // digest that left `role_episodes` out would let the working-copy card claim no drift after
+      // an afternoon spent saying, episode by episode, who speaks where.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withOtherStatuses)));
     });
 
     test('changes when a role_episodes row is tombstoned', () {
@@ -1670,6 +1831,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1716,6 +1878,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1761,6 +1924,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: [
           ...payload.breakdownTags,
@@ -1819,6 +1983,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(
@@ -1869,6 +2034,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(isDeleted: true),
@@ -1915,6 +2081,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: [
@@ -1964,6 +2131,7 @@ void main() {
         ],
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2009,6 +2177,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2066,6 +2235,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2112,6 +2282,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2158,6 +2329,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2212,6 +2384,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2258,6 +2431,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2301,6 +2475,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2344,6 +2519,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2387,6 +2563,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2440,6 +2617,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3463,6 +3641,30 @@ void main() {
         // And nothing else was disturbed on the way through: the rest of the project came back.
         expect(result.value!.roleEpisodes, buildRichPayload().roleEpisodes);
         expect(result.value!.screenplayLanguage, buildRichPayload().screenplayLanguage);
+      },
+    );
+
+    test(
+      'a stored format-15 payload decodes with nobody seen for any part',
+      () {
+        // Format 15 predates `role_candidates` entirely, so [_upgradeFormat15To16] materialises it
+        // as an **empty list** — [_upgradeFormat14To15]'s kind, not [_upgradeFormat13To14]'s null:
+        // a version captured this early genuinely held nobody seen for any part. The fixture is
+        // the current encoding with the key taken back out and the format wound back, rather than
+        // a second hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("roleCandidates");
+        encoded["payloadFormat"] = 15;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.roleCandidates, isEmpty);
+        // And nothing else was disturbed on the way through: the cast the project actually had
+        // when it was captured comes back, `roles.personId` included, which is the honest answer
+        // for a moment nothing recorded who else had been seen.
+        expect(result.value!.roles, buildRichPayload().roles);
+        expect(result.value!.people, buildRichPayload().people);
       },
     );
   });
