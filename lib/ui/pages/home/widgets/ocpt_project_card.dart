@@ -17,9 +17,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 /// comes from [OcptSpecificColors.projectPosterTints], indexed by [_stablePathHash] of the
 /// project's path so a project keeps the same colour across launches and machines. When
 /// [OcptHomeRecentProjectEntry.exists] is false, the whole card is greyed out, tapping it is
-/// disabled, and a tooltip explains why; it can still be removed from the list, or exported, through
-/// the overflow menu — export because there is no file to read, remove because the entry is still
-/// worth clearing away.
+/// disabled, and a tooltip explains why; the overflow menu still offers to remove it from the list,
+/// the entry being worth clearing away even when the project it names is gone, while `Export…` goes
+/// disabled with the card — there is no file left to read, let alone to package.
 ///
 /// The `⋮` overflow menu holds two entries: `Export…`, writing the project out as a portable
 /// package without opening it first (the same flow the toolbar's own `Export` panel runs from
