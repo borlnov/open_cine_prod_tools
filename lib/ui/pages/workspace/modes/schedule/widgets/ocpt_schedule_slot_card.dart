@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
@@ -128,6 +130,15 @@ class OcptScheduleSlotCard extends StatelessWidget {
 
   /// The whole address book, keyed by id — what a crew row's own name is read off.
   final Map<String, OcptPerson> personById;
+
+  /// What the day this slot belongs to is **for**: what scopes this card's own timetable `+ Block`
+  /// menu, and what says whether the candidates band below is drawn at all — there is nobody to
+  /// audition on a day that shoots.
+  final OcptShootingDayKind dayKind;
+
+  /// Every live candidacy of the project, keyed by id — what this card's own candidates band and
+  /// its timetable's audition rows name a person and a part through.
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// The whole cast, keyed by id — what a cast row's own name is read off.
   final Map<String, OcptRole> roleById;
@@ -277,6 +288,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// withheld — see [OcptScheduleTimetable.onShotBlockRequested].
   final VoidCallback? onShotBlockRequested;
 
+  /// Called when the timetable's own `+ Block` menu's `Audition` entry is picked, or null while
+  /// withheld — see [OcptScheduleTimetable.onAuditionBlockRequested].
+  final VoidCallback? onAuditionBlockRequested;
+
   /// Called with a block's id and the id of the slot it is moved to, or null while withheld — see
   /// [OcptScheduleTimetable.onBlockMovedToSlot].
   final void Function(String blockId, String targetSlotId)? onBlockMovedToSlot;
@@ -289,6 +304,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.set,
     required this.locations,
     required this.personById,
+    required this.dayKind,
+    required this.roleCandidateById,
     required this.roleById,
     required this.people,
     required this.roles,
@@ -328,6 +345,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
     required this.onShotBlockRequested,
+    required this.onAuditionBlockRequested,
     required this.onBlockMovedToSlot,
   });
 
@@ -428,6 +446,9 @@ class OcptScheduleSlotCard extends StatelessWidget {
             for (final block in blocks)
               if (block.slotId == slot.id) block,
           ],
+          dayKind: dayKind,
+          roleById: roleById,
+          roleCandidateById: roleCandidateById,
           timeline: timeline,
           shotOf: shotOf,
           selectedBlockId: selectedBlockId,
@@ -442,6 +463,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
           onDeletionRequested: onBlockDeletionRequested,
           onBlockAdded: onBlockAdded,
           onShotBlockRequested: onShotBlockRequested,
+          onAuditionBlockRequested: onAuditionBlockRequested,
           onBlockMovedToSlot: onBlockMovedToSlot,
         ),
       ],

@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -87,6 +88,11 @@ class OcptScheduleDayView extends StatelessWidget {
 
   /// The whole cast, keyed by id.
   final Map<String, OcptRole> roleById;
+
+  /// Every live candidacy of the project, keyed by id — handed straight to every
+  /// [OcptScheduleSlotCard], which is where an audition row and the candidates band read a person
+  /// and a part off one.
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// The whole address book, in display order.
   final List<OcptPerson> people;
@@ -222,6 +228,10 @@ class OcptScheduleDayView extends StatelessWidget {
   /// null while withheld — see [OcptScheduleSlotCard.onShotBlockRequested].
   final void Function(String slotId)? onShotBlockRequested;
 
+  /// Called with a slot's id when that slot card's own `+ Block` menu's `Audition` entry is picked,
+  /// or null while withheld — see [OcptScheduleSlotCard.onAuditionBlockRequested].
+  final void Function(String slotId)? onAuditionBlockRequested;
+
   /// Called with a block's id and the id of the slot it is moved to, dispatched by a cross-slot drag
   /// or by a row's own `Move to…` menu, or null while withheld — see
   /// [OcptScheduleTimetable.onBlockMovedToSlot].
@@ -276,6 +286,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.locations,
     required this.personById,
     required this.roleById,
+    required this.roleCandidateById,
     required this.people,
     required this.roles,
     required this.shotOf,
@@ -310,6 +321,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
     required this.onShotBlockRequested,
+    required this.onAuditionBlockRequested,
     required this.onBlockMovedToSlot,
     required this.onAlertsOpenRequested,
     required this.events,
@@ -340,6 +352,8 @@ class OcptScheduleDayView extends StatelessWidget {
               locations: locations,
               personById: personById,
               roleById: roleById,
+              dayKind: day.kind,
+              roleCandidateById: roleCandidateById,
               people: people,
               roles: roles.where((role) => !slot.cast.any((cast) => cast.roleId == role.id)).toList(),
               labelValue: slotLabelValueOf(slot.id),
@@ -406,6 +420,9 @@ class OcptScheduleDayView extends StatelessWidget {
               onShotBlockRequested: onShotBlockRequested == null
                   ? null
                   : () => onShotBlockRequested!(slot.id),
+              onAuditionBlockRequested: onAuditionBlockRequested == null
+                  ? null
+                  : () => onAuditionBlockRequested!(slot.id),
               onBlockMovedToSlot: onBlockMovedToSlot,
             ),
           ),

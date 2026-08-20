@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
@@ -193,6 +194,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// bring" section reads through [planSnapshot].
   final List<OcptElement> elements;
 
+  /// Every live candidacy of the project — who was seen for which part — as last loaded, in no
+  /// particular order. What an `audition` block and a candidate's own convocation are resolved to a
+  /// name and a part through, on the days that do not shoot; empty on a project that has auditioned
+  /// nobody, which is most of them.
+  final List<OcptRoleCandidate> roleCandidates;
+
   /// `project_info.minimumRestMinutes`, as last loaded — null while nobody has recorded one, which
   /// the rest-time alert never fires on. Read by the bloc's own load handler beside the page setup,
   /// and re-read by `OcptScheduleProjectSettingsChangedEvent` for the same reason that handler
@@ -322,6 +329,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       roles: roles,
       people: people,
       elements: elements,
+      roleCandidates: roleCandidates,
       minimumRestMinutes: minimumRestMinutes,
     ),
   };
@@ -396,6 +404,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
   /// The whole address book, keyed by id. Delegates to [planSnapshot], empty while it is null.
   Map<String, OcptPerson> get personById => planSnapshot?.personById ?? const {};
+
+  /// Every live candidacy, keyed by id — what an audition block's own row and a candidate's
+  /// convocation card read their name and their part off. Delegates to [planSnapshot], empty while
+  /// it is null.
+  Map<String, OcptRoleCandidate> get roleCandidateById =>
+      planSnapshot?.roleCandidateById ?? const {};
 
   /// The shot [shotId] names, or null while [shotListSnapshots] hasn't loaded it (or it has since
   /// been deleted). Delegates to [planSnapshot].
@@ -574,6 +588,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.roles,
     required this.people,
     required this.elements,
+    required this.roleCandidates,
     required this.minimumRestMinutes,
     required this.selectedDayId,
     required this.selectedBlockId,
@@ -613,6 +628,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       roles = const [],
       people = const [],
       elements = const [],
+      roleCandidates = const [],
       minimumRestMinutes = null,
       selectedDayId = null,
       selectedBlockId = null,
@@ -658,6 +674,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     List<OcptRole>? roles,
     List<OcptPerson>? people,
     List<OcptElement>? elements,
+    List<OcptRoleCandidate>? roleCandidates,
     int? minimumRestMinutes,
     bool clearMinimumRestMinutes = false,
     String? selectedDayId,
@@ -708,6 +725,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     roles: roles ?? this.roles,
     people: people ?? this.people,
     elements: elements ?? this.elements,
+    roleCandidates: roleCandidates ?? this.roleCandidates,
     minimumRestMinutes: clearMinimumRestMinutes
         ? null
         : (minimumRestMinutes ?? this.minimumRestMinutes),
@@ -809,6 +827,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     roles,
     people,
     elements,
+    roleCandidates,
     minimumRestMinutes,
     selectedDayId,
     selectedBlockId,

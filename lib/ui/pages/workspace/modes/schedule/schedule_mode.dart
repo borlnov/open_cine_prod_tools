@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_alerts_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_call_sheets_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_candidate_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_out_of_days_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
@@ -817,6 +818,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       locations: state.locations,
       personById: state.personById,
       roleById: state.roleById,
+      roleCandidateById: state.roleCandidateById,
       people: state.people,
       roles: state.roles,
       shotOf: state.shotById,
@@ -1009,6 +1011,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onShotBlockRequested: isReadOnly
           ? null
           : (slotId) => unawaited(_handleShotBlockRequested(context, slotId)),
+      onAuditionBlockRequested: isReadOnly
+          ? null
+          : (slotId) => unawaited(_handleAuditionBlockRequested(context, slotId)),
       onBlockMovedToSlot: isReadOnly
           ? null
           : (blockId, targetSlotId) =>
@@ -1077,6 +1082,38 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
 
     bloc.add(OcptScheduleShotBlockCreatedEvent(slotId: slotId, shotId: shotId));
+  }
+
+  /// Opens `OcptScheduleCandidatePickerDialog` for slot [slotId] — the slot card's own `+ Block`
+  /// menu's `Audition` entry — then dispatches [OcptScheduleAuditionBlockCreatedEvent] once the
+  /// user picked a candidacy. Does nothing while the dialog is dismissed with no pick.
+  ///
+  /// The dialog is handed the candidacies the **selected day** already plans to see, so a row can
+  /// say so: seeing somebody twice in one session is legitimate, and the mark is information rather
+  /// than a bar.
+  Future<void> _handleAuditionBlockRequested(BuildContext context, String slotId) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final state = bloc.state;
+
+    final roleCandidateId = await OcptScheduleCandidatePickerDialog.show(
+      context,
+      roleCandidates: state.roleCandidates,
+      roleById: state.roleById,
+      plannedCandidacyIds: {
+        for (final block in state.selectedDayBlocks)
+          if (block.roleCandidateId != null) block.roleCandidateId!,
+      },
+    );
+    if (roleCandidateId == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptScheduleAuditionBlockCreatedEvent(slotId: slotId, roleCandidateId: roleCandidateId),
+    );
   }
 
   /// Asks `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatches the

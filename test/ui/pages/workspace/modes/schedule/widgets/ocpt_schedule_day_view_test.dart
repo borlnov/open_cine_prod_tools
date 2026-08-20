@@ -113,6 +113,8 @@ Future<void> _pumpDayView(
         onEventLabelChanged: onEventAdded == null ? null : (_, _) {},
         onEventNotesChanged: onEventAdded == null ? null : (_, _) {},
         onEventDeletionRequested: onEventAdded == null ? null : (_) {},
+        onAuditionBlockRequested: null,
+        roleCandidateById: const {},
       ),
     ),
   );

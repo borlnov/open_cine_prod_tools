@@ -666,6 +666,36 @@ class OcptScheduleShotBlockCreatedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, slotId, shotId];
 }
 
+/// Creates a new **audition** block inside slot [slotId], appended at the end of that slot's own
+/// timetable, dispatched once the mode's own candidate picker dialog — opened by that slot card's
+/// own `+ Block` menu's `Audition` entry — resolves to a pick.
+///
+/// A **third** event beside [OcptScheduleBlockCreatedEvent] and [OcptScheduleShotBlockCreatedEvent],
+/// and for that second one's own reason: an audition names a candidacy and the part it is for, and
+/// a kind that only ever accompanies those two ids is a shape better ruled out by construction than
+/// rejected in a handler.
+///
+/// It carries the **candidacy** alone: the part is that candidacy's own `roleId`, and asking the
+/// user for it twice — or letting an event name a pair that disagrees with itself — would be the
+/// same mistake one step further on.
+class OcptScheduleAuditionBlockCreatedEvent extends OcptScheduleEvent {
+  /// The id of the slot the new block belongs to.
+  final String slotId;
+
+  /// The id of the candidacy being seen — who, for which part.
+  final String roleCandidateId;
+
+  /// Class constructor
+  const OcptScheduleAuditionBlockCreatedEvent({
+    required this.slotId,
+    required this.roleCandidateId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, roleCandidateId];
+}
+
 /// Writes a new duration onto block [blockId] immediately, dispatched by its own slot card's own ±
 /// duration controls.
 class OcptScheduleBlockDurationChangedEvent extends OcptScheduleEvent {

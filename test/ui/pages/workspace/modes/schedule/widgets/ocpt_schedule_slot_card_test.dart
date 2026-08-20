@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
@@ -255,6 +256,9 @@ void main() {
     onBlockAdded: isReadOnly ? null : (onBlockAdded ?? (_) {}),
     onShotBlockRequested: isReadOnly ? null : (onShotBlockRequested ?? () {}),
     onBlockMovedToSlot: isReadOnly ? null : (onBlockMovedToSlot ?? (_, _) {}),
+    dayKind: OcptShootingDayKind.shoot,
+    onAuditionBlockRequested: null,
+    roleCandidateById: const {},
   );
 
   testWidgets("the `+ Crew member` footer opens a picker dispatching the person just picked", (
