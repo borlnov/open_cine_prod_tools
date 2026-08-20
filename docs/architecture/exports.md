@@ -75,8 +75,10 @@ sit.
   greyed-and-inert unavailability semantics and the standing project card above.
   `OcptWorkspaceExportEntry<T>` is expressed in terms of `OcptCardChoiceEntry`. The other caller is
   the home header's single **`Import…`** button, opening a modal of two cards, `A project`
-  (`.ocptz`) and `A screenplay` (`.fountain · .fdx · .celtx`): the two gestures are named side by
-  side where somebody compares them, laid out the same way, and the header keeps four controls
+  (`.ocptz`) and `A screenplay` (`.fountain, .fdx, .celtx`, joined from
+  `OcptScriptImportService.importableExtensions` rather than written out, so a fourth format
+  cannot be added without the card saying so): the two gestures are named side by side where
+  somebody compares them, laid out the same way, and the header keeps four controls
   instead of growing to five, two of which would have started with the same word. Picking
   `A project` runs pick the `.ocptz` (`FileSelectorManager`), pick a **parent folder**
   (`OcptSaveLocationService.pickDirectory`), unpack into `<project name>/` inside it — a folder of
