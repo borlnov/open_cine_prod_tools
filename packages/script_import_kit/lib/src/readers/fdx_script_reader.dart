@@ -10,6 +10,7 @@ import 'package:script_import_kit/src/emitter/script_fountain_emitter.dart';
 import 'package:script_import_kit/src/emitter/script_line.dart';
 import 'package:script_import_kit/src/emitter/script_title_page.dart';
 import 'package:script_import_kit/src/models/script_import_exception.dart';
+import 'package:script_import_kit/src/script_styled_runs.dart';
 import 'package:script_import_kit/src/script_text_decoder.dart';
 import 'package:xml/xml.dart';
 
@@ -243,7 +244,7 @@ class FdxScriptReader {
         ),
       );
     }
-    return _trimEdges(runs);
+    return trimStyledRunEdges(runs);
   }
 
   /// The lower-cased style names a `<Text>`'s `Style` attribute lists
@@ -253,45 +254,6 @@ class FdxScriptReader {
       for (final name in style.split('+'))
         if (name.trim().isNotEmpty) name.trim().toLowerCase(),
   };
-
-  /// Trims the outer whitespace of [runs] as a whole — the leading
-  /// whitespace of the first run, the trailing whitespace of the last —
-  /// dropping any run left with nothing in it. The whitespace *between*
-  /// two runs is the text's own and is left alone.
-  List<FountainStyledRun> _trimEdges(List<FountainStyledRun> runs) {
-    final trimmed = List.of(runs);
-
-    while (trimmed.isNotEmpty) {
-      final text = trimmed.first.text.trimLeft();
-      if (text.isEmpty) {
-        trimmed.removeAt(0);
-        continue;
-      }
-      trimmed[0] = _withText(trimmed.first, text);
-      break;
-    }
-
-    while (trimmed.isNotEmpty) {
-      final text = trimmed.last.text.trimRight();
-      if (text.isEmpty) {
-        trimmed.removeLast();
-        continue;
-      }
-      trimmed[trimmed.length - 1] = _withText(trimmed.last, text);
-      break;
-    }
-
-    return trimmed;
-  }
-
-  /// [run] with its text replaced by [text], its styles kept.
-  FountainStyledRun _withText(FountainStyledRun run, String text) =>
-      FountainStyledRun(
-        text: text,
-        isBold: run.isBold,
-        isItalic: run.isItalic,
-        isUnderline: run.isUnderline,
-      );
 
   /// Reads the document's `<TitlePage>` into the six fields Fountain writes.
   ScriptTitlePage _readTitlePage(XmlElement root) {
