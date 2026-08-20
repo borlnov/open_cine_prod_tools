@@ -983,7 +983,14 @@ class OcptCallSheetPdfService {
       }
       lines.add(
         _timeBandLine(
-          label: _captionOf(block: ordered.block, labels: labels, headingBySceneId: const {}),
+          // Both resolvers are empty on purpose: only a `meal` block reaches this line, and a meal
+          // break names neither a sequence nor a part — its caption is its own label or the kind's.
+          label: _captionOf(
+            block: ordered.block,
+            labels: labels,
+            headingBySceneId: const {},
+            roleById: const {},
+          ),
           startMinute: ordered.entry.startMinute,
           endMinute: ordered.entry.endMinute,
         ),
@@ -1599,7 +1606,12 @@ List<_DayRow> _buildDayRows({
 
     rows.add(
       _DayRow.milestone(
-        caption: _captionOf(block: block, labels: labels, headingBySceneId: headingBySceneId),
+        caption: _captionOf(
+          block: block,
+          labels: labels,
+          headingBySceneId: headingBySceneId,
+          roleById: plan.roleById,
+        ),
         roleNumbers: ocptScheduleBlockRoleNumbersOf(
           block: block,
           slot: slot,
@@ -1615,9 +1627,10 @@ List<_DayRow> _buildDayRows({
   return rows;
 }
 
-/// The caption a non-shot [block] prints: its own free-text label when it has one, a
-/// [OcptShootingBlockKind.hold]'s own sequence heading when it names one and carries no free-text
-/// label, or [OcptCallSheetLabels.blockKindLabelOf] as the final fallback.
+/// The caption a non-shot [block] prints: its own free-text label when it has one, then whatever
+/// that kind of block names — a sequence's heading for a hold or a rehearsal, the part's own
+/// `<number> · <name>` for an audition — or [OcptCallSheetLabels.blockKindLabelOf] as the final
+/// fallback.
 ///
 /// A thin alias over [ocptScheduleBlockCaptionOf] (`ocpt_schedule_pdf_shared.dart`), shared with
 /// `OcptShootingPlanPdfService` — see that function's own doc comment for why. The roles a
@@ -1627,9 +1640,11 @@ String _captionOf({
   required OcptShootingDayBlock block,
   required OcptCallSheetLabels labels,
   required Map<String, String> headingBySceneId,
+  required Map<String, OcptRole> roleById,
 }) => ocptScheduleBlockCaptionOf(
   block: block,
   headingBySceneId: headingBySceneId,
+  roleById: roleById,
   blockKindLabelOf: labels.blockKindLabelOf,
 );
 

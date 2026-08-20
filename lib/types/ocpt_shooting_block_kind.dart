@@ -8,10 +8,10 @@
 /// [shot], [hold], [audition] and [rehearsal] is a milestone the reference call sheets interleave
 /// between shots (preparation, hair and make-up, a meal, a break, a travel move, the wrap).
 ///
-/// **Which kinds a `+ Block` menu offers is scoped by the day's own `OcptShootingDayKind`**, and
-/// that is a scoping of the menu rather than a rule of the schema: a block already sitting on a day
-/// keeps working whatever that day later becomes, refusing to draw a row a file holds being how a
-/// plan becomes unreadable.
+/// **Every kind is offered on every day.** A day is never given a kind of its own: a real day
+/// auditions in the morning and rehearses in the afternoon, and a rehearsal regularly falls on the
+/// morning of the day it is shot — so what a day is for is said by the blocks it holds, and a menu
+/// that narrowed itself would be guessing which of those somebody is about to plan.
 enum OcptShootingBlockKind {
   /// This block is a shot from the shot list.
   shot,
@@ -39,12 +39,13 @@ enum OcptShootingBlockKind {
   /// "shots only" placement rule would otherwise forbid.
   hold,
 
-  /// This block sees **one candidate, for one part**: the audition a casting day is made of. It
-  /// names both through `shooting_day_blocks.roleId`/`.roleCandidateId`, non-null exactly on this
-  /// kind.
+  /// This block sees **one part**, for its own duration: the audition a casting session is made of.
+  /// It names that part through `shooting_day_blocks.roleId`, non-null exactly on this kind.
   ///
-  /// **One block per candidate**: *"these four people, for that part, twenty minutes each"* is four
-  /// blocks, which is also what makes the printed audition table read four rows.
+  /// **It never names who comes to be seen** — they are convoked on the *slot*, through
+  /// `shooting_slot_candidates` (ADR 0018) — because one session regularly sees several people one
+  /// after another: *"these four people, for that part, twenty minutes each"* is one slot carrying
+  /// four candidacies, and as many audition blocks as the running order actually needs.
   audition,
 
   /// This block rehearses a **sequence**, named through the existing `shooting_day_blocks.sceneId`

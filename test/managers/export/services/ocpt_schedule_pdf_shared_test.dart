@@ -159,6 +159,7 @@ OcptShootingDayBlock _buildBlock({
   required OcptShootingBlockKind kind,
   String label = "",
   String? sceneId,
+  String? roleId,
 }) => OcptShootingDayBlock(
   id: "block-1",
   shootingDayId: "day-1",
@@ -171,7 +172,7 @@ OcptShootingDayBlock _buildBlock({
   anchorMinute: null,
   notes: "",
   crewNote: "",
-  roleId: null,
+  roleId: roleId,
 );
 
 /// Builds a role with the few fields these tests read, everything else neutral.
@@ -185,6 +186,19 @@ OcptRole _buildRole({required String id, required int number}) => OcptRole(
   castingNotes: "",
   number: number,
   episodeIds: const [],
+);
+
+/// Builds a role nobody has named yet — what [ocptScheduleRoleLabelOf] answers nothing for.
+OcptRole _buildUnnamedRole() => const OcptRole(
+  id: "role-unnamed",
+  name: "   ",
+  personId: null,
+  kind: OcptRoleKind.speaking,
+  isFromScreenplay: true,
+  orphanedName: null,
+  castingNotes: "",
+  number: 9,
+  episodeIds: [],
 );
 
 void main() {
@@ -291,6 +305,7 @@ void main() {
       final caption = ocptScheduleBlockCaptionOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hairMakeUp),
         headingBySceneId: const {},
+        roleById: roleById,
         blockKindLabelOf: _blockKindLabelOf,
       );
 
@@ -301,6 +316,7 @@ void main() {
       final caption = ocptScheduleBlockCaptionOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hairMakeUp, label: "HMC dressing room 2"),
         headingBySceneId: const {},
+        roleById: roleById,
         blockKindLabelOf: _blockKindLabelOf,
       );
 
@@ -313,6 +329,7 @@ void main() {
           ocptScheduleBlockCaptionOf(
             block: _buildBlock(kind: kind),
             headingBySceneId: const {},
+            roleById: roleById,
             blockKindLabelOf: _blockKindLabelOf,
           ),
           _blockKindLabelOf(kind),
@@ -324,6 +341,7 @@ void main() {
       final caption = ocptScheduleBlockCaptionOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hold, sceneId: "scene-1"),
         headingBySceneId: const {"scene-1": "INT. HOUSE - DAY"},
+        roleById: roleById,
         blockKindLabelOf: _blockKindLabelOf,
       );
 
@@ -334,10 +352,80 @@ void main() {
       final caption = ocptScheduleBlockCaptionOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hold, sceneId: "scene-1", label: "Reserved for the storm"),
         headingBySceneId: const {"scene-1": "INT. HOUSE - DAY"},
+        roleById: roleById,
         blockKindLabelOf: _blockKindLabelOf,
       );
 
       expect(caption, "Reserved for the storm");
+    });
+
+    test("a rehearsal block names its own sequence's heading, exactly as a hold does", () {
+      final caption = ocptScheduleBlockCaptionOf(
+        block: _buildBlock(kind: OcptShootingBlockKind.rehearsal, sceneId: "scene-1"),
+        headingBySceneId: const {"scene-1": "INT. HOUSE - DAY"},
+        roleById: roleById,
+        blockKindLabelOf: _blockKindLabelOf,
+      );
+
+      expect(caption, "INT. HOUSE - DAY");
+    });
+
+    test("an audition block names the part it sees, in the shape the cast table names a role in", () {
+      final caption = ocptScheduleBlockCaptionOf(
+        block: _buildBlock(kind: OcptShootingBlockKind.audition, roleId: "role-a"),
+        headingBySceneId: const {},
+        roleById: roleById,
+        blockKindLabelOf: _blockKindLabelOf,
+      );
+
+      expect(caption, "5 · Role 5");
+    });
+
+    test("an audition block naming no part yet reads as its kind, which is an ordinary state", () {
+      final caption = ocptScheduleBlockCaptionOf(
+        block: _buildBlock(kind: OcptShootingBlockKind.audition),
+        headingBySceneId: const {},
+        roleById: roleById,
+        blockKindLabelOf: _blockKindLabelOf,
+      );
+
+      expect(caption, "Audition");
+    });
+
+    test("an audition block naming a part the project has since deleted reads as its kind", () {
+      final caption = ocptScheduleBlockCaptionOf(
+        block: _buildBlock(kind: OcptShootingBlockKind.audition, roleId: "role-gone"),
+        headingBySceneId: const {},
+        roleById: roleById,
+        blockKindLabelOf: _blockKindLabelOf,
+      );
+
+      expect(caption, "Audition");
+    });
+
+    test("an audition block's own free text wins over the part it names", () {
+      final caption = ocptScheduleBlockCaptionOf(
+        block: _buildBlock(kind: OcptShootingBlockKind.audition, roleId: "role-a", label: "Second round"),
+        headingBySceneId: const {},
+        roleById: roleById,
+        blockKindLabelOf: _blockKindLabelOf,
+      );
+
+      expect(caption, "Second round");
+    });
+  });
+
+  group("ocptScheduleRoleLabelOf", () {
+    test("names a part by its number and its name", () {
+      expect(ocptScheduleRoleLabelOf(roleById["role-b"]), "3 · Role 3");
+    });
+
+    test("a part the project no longer holds has no label at all", () {
+      expect(ocptScheduleRoleLabelOf(null), isNull);
+    });
+
+    test("a part named by nothing printable has no label either", () {
+      expect(ocptScheduleRoleLabelOf(_buildUnnamedRole()), isNull);
     });
   });
 
@@ -388,6 +476,7 @@ void main() {
         ocptScheduleBlockCaptionOf(
           block: _buildBlock(kind: OcptShootingBlockKind.hold, sceneId: "scene-e2"),
           headingBySceneId: headingBySceneId,
+          roleById: roleById,
           blockKindLabelOf: _blockKindLabelOf,
         ),
         "EXT. STREET - NIGHT",
