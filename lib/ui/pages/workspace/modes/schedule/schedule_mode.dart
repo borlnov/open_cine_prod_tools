@@ -311,14 +311,19 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
   }
 
-  /// [dayId]'s own convocations, **minus its guests** — what the named call sheets dialog reads for
-  /// whichever days the user ticks there, rather than [OcptScheduleState.convocationsOfDay] directly:
-  /// a guest is not yet a call sheet recipient (that is a later milestone's own job), and every reader
-  /// downstream of this list — the dialog's own selection keys among them — assumes every entry names
-  /// a person or a role, never a guest.
+  /// [dayId]'s own convocations that a named call sheet can be addressed to — every one carrying an
+  /// [OcptDayConvocation.selectionKey], which is to say everybody but its **guests** — read by the
+  /// named call sheets dialog for whichever days the user ticks there, rather than
+  /// [OcptScheduleState.convocationsOfDay] directly.
+  ///
+  /// A guest is not yet a call sheet recipient (that is a later milestone's own job), and every
+  /// reader downstream of this list — the dialog's own selection keys among them — assumes every
+  /// entry has one. A crew member, a cast member, an uncast role and a **candidate** all do: somebody
+  /// coming to be seen for a part is convoked like anybody else (ADR 0018) and is owed the sheet
+  /// saying when.
   List<OcptDayConvocation> _namedCallSheetRecipientsOf(OcptScheduleState state, String dayId) => [
     for (final convocation in state.convocationsOfDay(dayId))
-      if (!convocation.isGuest) convocation,
+      if (convocation.selectionKey != null) convocation,
   ];
 
   /// Shows the general call sheets export options dialog, then dispatches the export request if the
@@ -363,6 +368,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       recipientsOfDay: (dayId) => _namedCallSheetRecipientsOf(state, dayId),
       personById: state.personById,
       roleById: state.roleById,
+      roleCandidateById: state.roleCandidateById,
     );
     if (options == null) {
       return;

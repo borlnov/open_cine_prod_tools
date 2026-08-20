@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart'
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_selection_list.dart';
@@ -27,15 +28,20 @@ const double _ocptScheduleNamedCallSheetsMaxHeight = 260;
 /// its own [OcptScheduleDaySelectionList] this dialog reuses outright (in turn reused from
 /// `OcptBreakdownSheetsExportDialog` for the format and the buttons). Unlike that dialog, ticking a
 /// day here does more than choose what gets printed: the recipient list itself is the **union** of
-/// the ticked days' own convocations, deduplicated by the selection key
-/// `OcptDayConvocation.personId`/`.roleId` — a person convoked on two of the ticked days appears once
-/// in the list, and ticking or unticking them there prints (or withholds) their sheet for every one
-/// of those days. Changing which days are ticked recomputes that union and carries the tick state
-/// over rather than resetting it: a recipient still in the union keeps whatever the user set for
-/// them, one newly appearing is ticked (the dialog's standing default is "everybody"), and one that
-/// has left the union is simply dropped — see the state's own `_onDaysChanged`. An uncast role is
-/// listed like any other convocation and named by its role, with a plain hint that such a sheet has
-/// nobody to send it to yet.
+/// the ticked days' own convocations, deduplicated by `OcptDayConvocation.selectionKey` — a person
+/// convoked on two of the ticked days appears once in the list, and ticking or unticking them there
+/// prints (or withholds) their sheet for every one of those days. Changing which days are ticked
+/// recomputes that union and carries the tick state over rather than resetting it: a recipient still
+/// in the union keeps whatever the user set for them, one newly appearing is ticked (the dialog's
+/// standing default is "everybody"), and one that has left the union is simply dropped — see the
+/// state's own `_onDaysChanged`. An uncast role is listed like any other convocation and named by
+/// its role, with a plain hint that such a sheet has nobody to send it to yet.
+///
+/// **A candidate is a recipient like anybody else**, named by their candidacy — who is coming, and
+/// the part they are coming to be seen for — since two candidacies of one person are two
+/// convocations, and a name alone could not tell them apart. Only a **guest** is absent, carrying no
+/// `selectionKey` at all: `OcptScheduleModeContent` filters the list on that, so this dialog needs
+/// no rule of its own about who may be written to.
 ///
 /// Use [show] to display it and get back the resulting [OcptCallSheetExportOptions], or null if the
 /// user cancelled.
@@ -61,8 +67,13 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
   /// The whole address book, keyed by id — resolves a convocation's own display name.
   final Map<String, OcptPerson> personById;
 
-  /// The whole cast, keyed by id — resolves an uncast convocation's own role name.
+  /// The whole cast, keyed by id — resolves an uncast convocation's own role name, and the part a
+  /// candidate is coming to be seen for.
   final Map<String, OcptRole> roleById;
+
+  /// Every candidacy of the project, keyed by id — resolves a candidate convocation's own name and
+  /// the part behind it, `shooting_slot_candidates` naming a candidacy rather than a person.
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// Class constructor
   const OcptScheduleNamedCallSheetsExportDialog({
@@ -72,6 +83,7 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
     required this.recipientsOfDay,
     required this.personById,
     required this.roleById,
+    required this.roleCandidateById,
     super.key,
   });
 
@@ -85,6 +97,7 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
     required List<OcptDayConvocation> Function(String dayId) recipientsOfDay,
     required Map<String, OcptPerson> personById,
     required Map<String, OcptRole> roleById,
+    required Map<String, OcptRoleCandidate> roleCandidateById,
   }) => showDialog<OcptCallSheetExportOptions>(
     context: context,
     builder: (context) => OcptScheduleNamedCallSheetsExportDialog(
@@ -94,6 +107,7 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
       recipientsOfDay: recipientsOfDay,
       personById: personById,
       roleById: roleById,
+      roleCandidateById: roleCandidateById,
     ),
   );
 
@@ -115,8 +129,8 @@ class _OcptScheduleNamedCallSheetsExportDialogState
   /// checkboxes below are built from. Recomputed by [_onDaysChanged] whenever the ticked days change.
   late List<OcptDayConvocation> _recipients;
 
-  /// The convocation keys currently ticked — a person's own id, or an uncast role's, exactly as
-  /// `OcptDayConvocation.personId`/`.roleId` discriminate one.
+  /// The convocation keys currently ticked — `OcptDayConvocation.selectionKey`, the one place that
+  /// reading is written.
   late Set<String> _selectedKeys;
 
   @override
@@ -203,9 +217,15 @@ class _OcptScheduleNamedCallSheetsExportDialogState
                             convocation,
                             widget.personById,
                             widget.roleById,
+                            roleCandidateById: widget.roleCandidateById,
                           ),
                         ),
-                        subtitle: convocation.personId == null
+                        // The hint belongs to an **uncast role** alone, which is the one recipient
+                        // this app can name nobody for. A candidate names a person as squarely as a
+                        // crew member does, through their candidacy, and reading `personId == null`
+                        // here would have told an assistant director that somebody they are about
+                        // to see has nobody to send the sheet to.
+                        subtitle: convocation.roleId != null
                             ? Text(tr.scheduleExportNamedCallSheetsUncastRoleHint)
                             : null,
                         onChanged: (checked) => setState(() {
@@ -270,7 +290,11 @@ class _OcptScheduleNamedCallSheetsExportDialogState
   }
 
   /// [convocation]'s own selection key — see [_selectedKeys]' own doc comment.
-  String _keyOf(OcptDayConvocation convocation) => (convocation.personId ?? convocation.roleId)!;
+  ///
+  /// Non-null for every convocation this dialog is ever handed: a guest is the one kind that carries
+  /// none, and [OcptScheduleNamedCallSheetsExportDialog.recipientsOfDay] filters those out before
+  /// the list ever reaches here.
+  String _keyOf(OcptDayConvocation convocation) => convocation.selectionKey!;
 
   /// The localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {

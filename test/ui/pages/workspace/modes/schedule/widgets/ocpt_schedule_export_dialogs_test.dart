@@ -14,9 +14,11 @@ import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_export_options.
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_call_sheets_export_dialog.dart';
@@ -122,18 +124,34 @@ OcptRole _buildRole({required String id, required String name, String? personId}
   episodeIds: const [],
 );
 
-/// A convocation of [personId] (or of the uncast [roleId]), with clocks these dialogs never read.
-OcptDayConvocation _buildConvocation({String? personId, String? roleId}) => OcptDayConvocation(
-  personId: personId,
+/// A convocation of [personId], of the uncast [roleId] or of the candidacy [roleCandidateId], with
+/// clocks these dialogs never read.
+OcptDayConvocation _buildConvocation({String? personId, String? roleId, String? roleCandidateId}) =>
+    OcptDayConvocation(
+      personId: personId,
+      roleId: roleId,
+      guestPersonId: null,
+      guestFreeName: null,
+      arrivalMinute: 480,
+      patStartMinute: 540,
+      patEndMinute: 1020,
+      departureMinute: 1080,
+      slotIds: const ["slot-1"],
+      roleCandidateId: roleCandidateId,
+    );
+
+/// A candidacy of [person] for [roleId], with the fields these dialogs read and nothing else.
+OcptRoleCandidate _buildRoleCandidate({
+  required String id,
+  required String roleId,
+  required OcptPerson person,
+}) => OcptRoleCandidate(
+  id: id,
   roleId: roleId,
-  guestPersonId: null,
-  guestFreeName: null,
-  arrivalMinute: 480,
-  patStartMinute: 540,
-  patEndMinute: 1020,
-  departureMinute: 1080,
-  slotIds: const ["slot-1"],
-  roleCandidateId: null,
+  person: person,
+  status: OcptRoleCandidateStatus.seen,
+  auditionedOn: null,
+  notes: "",
 );
 
 void main() {
@@ -245,6 +263,7 @@ void main() {
       required Map<String, List<OcptDayConvocation>> convocationsByDayId,
       Map<String, OcptPerson> personById = const {},
       Map<String, OcptRole> roleById = const {},
+      Map<String, OcptRoleCandidate> roleCandidateById = const {},
     }) async {
       await tester.pumpWidget(
         _wrapWithLocalization(
@@ -255,6 +274,7 @@ void main() {
             recipientsOfDay: (dayId) => convocationsByDayId[dayId] ?? const [],
             personById: personById,
             roleById: roleById,
+            roleCandidateById: roleCandidateById,
           ),
         ),
       );
@@ -311,6 +331,41 @@ void main() {
       expect(
         (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
         {"role-1"},
+      );
+    });
+
+    testWidgets("a candidate is listed by name and part, and is a recipient like anybody else", (
+      tester,
+    ) async {
+      final camille = _buildPerson(id: "person-camille", firstName: "Camille", lastName: "Renard");
+
+      await pumpDialog(
+        tester,
+        days: [dayOne],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [_buildConvocation(roleCandidateId: "candidate-1")],
+        },
+        personById: {"person-camille": camille},
+        roleById: {"role-1": _buildRole(id: "role-1", name: "MARIE")},
+        roleCandidateById: {
+          "candidate-1": _buildRoleCandidate(id: "candidate-1", roleId: "role-1", person: camille),
+        },
+      );
+
+      // Who is coming, and the part they are coming to be seen for: two candidacies of one person
+      // are two convocations, and the name alone could not tell them apart.
+      expect(find.text(Tr.current.scheduleAuditionBlockLabel("Camille Renard", "MARIE")), findsOneWidget);
+      // The "nobody to send this to" hint belongs to an uncast role alone — a candidate names a
+      // person as squarely as a crew member does.
+      expect(find.text(Tr.current.scheduleExportNamedCallSheetsUncastRoleHint), findsNothing);
+
+      await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
+        {"candidate-1"},
       );
     });
 

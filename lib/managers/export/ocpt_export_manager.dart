@@ -50,6 +50,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:path/path.dart' as p;
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
@@ -517,18 +518,18 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The loop is over each day's **own** convocations, filtered by [convocationKeys], never over the
   /// product of the two: a key ticked in the dialog but convoked on none of a given day's slots
   /// simply yields no file for that day rather than an empty one. [convocationKeys] selects which of
-  /// a day's own convocations are printed — a person's own id, or an uncast role's, exactly as
-  /// `OcptDayConvocation.personId`/`.roleId` discriminate one — or null to print every convocation of
-  /// every day, the common case when nobody has narrowed the selection down. See
-  /// [exportGeneralCallSheets] for the folder-picking, the once-per-run export moment (its own
-  /// argument holds for a run spanning several days exactly as it does for one: a folder of sheets
-  /// produced by one gesture is one issue of that paperwork) and the partial-failure contract,
-  /// identical here.
+  /// a day's own convocations are printed — `OcptDayConvocation.selectionKey`, the very key the
+  /// dialog ticks them by — or null to print every convocation of every day, the common case when
+  /// nobody has narrowed the selection down. See [exportGeneralCallSheets] for the folder-picking,
+  /// the once-per-run export moment (its own argument holds for a run spanning several days exactly
+  /// as it does for one: a folder of sheets produced by one gesture is one issue of that paperwork)
+  /// and the partial-failure contract, identical here.
   ///
-  /// **A guest is never printed here**, whatever [convocationKeys] says: `OcptDayConvocation.isGuest`
-  /// is filtered out before either the explicit selection or the "print every convocation" default
-  /// is applied — a guest is not yet a call sheet recipient, and every reader downstream of this list
-  /// assumes every entry names a person or a role.
+  /// **A guest is never printed here**, whatever [convocationKeys] says: a guest carries no
+  /// `selectionKey` at all, so they are out before either the explicit selection or the "print every
+  /// convocation" default is applied — a guest is not yet a call sheet recipient. A **candidate**
+  /// very much is one: somebody coming to be seen for a part is convoked like anybody else (ADR
+  /// 0018) and is owed the sheet saying when.
   ///
   /// [_uniqueFileName] accumulates across the **whole** run rather than being reset per day, so two
   /// recipients whose names collide on one day still each get a file of their own (`-2`, `-3`) — the
@@ -557,16 +558,12 @@ class OcptExportManager extends AbsWithLifeCycle {
       final dayNumber = day?.dayNumber ?? 0;
       final convocations = [
         for (final convocation in plan.convocationsOfDay(dayId))
-          if (!convocation.isGuest &&
-              (convocationKeys == null ||
-                  convocationKeys.contains(convocation.personId ?? convocation.roleId)))
-            convocation,
+          if (convocation.selectionKey case final key?)
+            if (convocationKeys == null || convocationKeys.contains(key)) convocation,
       ];
 
       for (final convocation in convocations) {
-        final personName = convocation.personId != null
-            ? (plan.personById[convocation.personId]?.displayName ?? "")
-            : (plan.roleById[convocation.roleId]?.name ?? "");
+        final personName = _namedCallSheetRecipientNameOf(plan, convocation);
         final fileName = _uniqueFileName(
           callSheetPdfService.namedCallSheetFileName(
             labels: labels,
@@ -798,6 +795,29 @@ class OcptExportManager extends AbsWithLifeCycle {
       extensions: const ["pdf"],
       bytes: bytes,
     );
+  }
+
+  /// The name a named call sheet's own file is built from for [convocation]: the person's own display
+  /// name for a crew or cast recipient, the **candidate's** own for a candidacy — read through
+  /// `plan.roleCandidateById`, the candidacy being what points at the person — and the role's own
+  /// name for an uncast role, which names nobody else.
+  ///
+  /// An empty string is a perfectly ordinary answer here, for a recipient the project has not named
+  /// yet or a candidacy the file no longer holds:
+  /// `OcptCallSheetPdfService.namedCallSheetFileName` falls back to its own localized unnamed-person
+  /// label for it, and the sheet still gets a readable file name rather than none.
+  String _namedCallSheetRecipientNameOf(OcptSchedulePlanSnapshot plan, OcptDayConvocation convocation) {
+    final personId = convocation.personId;
+    if (personId != null) {
+      return plan.personById[personId]?.displayName ?? "";
+    }
+
+    final roleCandidateId = convocation.roleCandidateId;
+    if (roleCandidateId != null) {
+      return plan.roleCandidateById[roleCandidateId]?.person.displayName ?? "";
+    }
+
+    return plan.roleById[convocation.roleId]?.name ?? "";
   }
 
   /// [fileName], suffixed with `-2`, `-3`… while [written] or [failed] already holds it.

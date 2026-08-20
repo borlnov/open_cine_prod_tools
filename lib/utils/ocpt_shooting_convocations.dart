@@ -126,6 +126,18 @@ class OcptDayConvocation {
   /// [guestFreeName].
   bool get isGuest => guestPersonId != null || guestFreeName != null;
 
+  /// The key this convocation is picked by when named call sheets are asked for one recipient at a
+  /// time — its own [personId], [roleId] or [roleCandidateId], the three arms of the discriminator a
+  /// named sheet is ever addressed to, and stable across the days of one export (somebody convoked
+  /// on three days is one recipient, ticked once).
+  ///
+  /// **Null for a guest** ([isGuest]), who is never a named sheet's recipient: they are on the day
+  /// and owed an hour, and the sheet an assistant director reads down is not addressed to them — the
+  /// same reason the trailing guest table exists rather than a guest row in the crew list. A caller
+  /// building that recipient list therefore filters on this being non-null and needs no second rule
+  /// of its own.
+  String? get selectionKey => personId ?? roleId ?? roleCandidateId;
+
   /// Whether this convocation is a candidate's — [roleCandidateId] being the arm of the
   /// discriminator that says so.
   ///

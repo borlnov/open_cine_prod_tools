@@ -2136,8 +2136,9 @@ String? _mapsUrlOf(OcptLocation location) {
   return "https://www.google.com/maps?q=$latitude,$longitude";
 }
 
-/// [convocation]'s own display name: the person's, the uncast role's, or
-/// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable.
+/// [convocation]'s own display name: the person's, the **candidate's** — read through their own
+/// candidacy, which is what `shooting_slot_candidates` names — the uncast role's, or
+/// [OcptCallSheetLabels.unnamedPersonLabel] while none of them names anybody printable.
 String _convocationDisplayNameOf(
   OcptDayConvocation convocation,
   OcptSchedulePlanSnapshot plan,
@@ -2146,6 +2147,14 @@ String _convocationDisplayNameOf(
   final personId = convocation.personId;
   if (personId != null) {
     final name = plan.personById[personId]?.displayName.trim() ?? "";
+    if (name.isNotEmpty) {
+      return name;
+    }
+  }
+
+  final roleCandidateId = convocation.roleCandidateId;
+  if (roleCandidateId != null) {
+    final name = plan.roleCandidateById[roleCandidateId]?.person.displayName.trim() ?? "";
     if (name.isNotEmpty) {
       return name;
     }
@@ -2162,19 +2171,27 @@ String _convocationDisplayNameOf(
   return labels.unnamedPersonLabel;
 }
 
-/// [convocation]'s own positions (a crew person's, comma-joined) or role label (an uncast or cast
-/// role's own number and name), read off [ownSlots] alone.
+/// [convocation]'s own positions (a crew person's, comma-joined), or the part behind it — the role
+/// an uncast convocation names, or the one a **candidate** is coming to be seen for, which is the
+/// only thing that tells two candidacies of one person apart. Read off [ownSlots] alone.
 String _convocationPositionsLabel({
   required OcptDayConvocation convocation,
   required List<OcptShootingSlot> ownSlots,
   required OcptSchedulePlanSnapshot plan,
   required OcptCallSheetLabels labels,
 }) {
+  final roleCandidateId = convocation.roleCandidateId;
+  if (roleCandidateId != null) {
+    final candidate = plan.roleCandidateById[roleCandidateId];
+    final label = candidate == null ? null : ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]);
+    return label == null ? "" : "${labels.roleHeader} $label";
+  }
+
   final personId = convocation.personId;
   if (personId == null) {
     final roleId = convocation.roleId;
-    final role = roleId == null ? null : plan.roleById[roleId];
-    return role == null ? "" : "${labels.roleHeader} ${role.number} · ${role.name}";
+    final label = ocptScheduleRoleLabelOf(roleId == null ? null : plan.roleById[roleId]);
+    return label == null ? "" : "${labels.roleHeader} $label";
   }
 
   final positionById = {for (final position in ocptCrewPositions) position.id: position};

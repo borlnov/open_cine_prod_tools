@@ -1900,6 +1900,26 @@ void main() {
         "FDS-D1-Camille-Renard.pdf",
       );
     });
+
+    test("a candidate carries a selection key, so the named export can be narrowed to them", () async {
+      final plan = buildDay(
+        blocks: [
+          _buildBlock(
+            id: "block-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.audition,
+            roleId: "role-1",
+            durationMinutes: 120,
+          ),
+        ],
+        convokesCandidate: true,
+      );
+
+      // A guest is the one convocation kind carrying none — which is what keeps them out of the
+      // named sheets dialog without that dialog needing a rule of its own.
+      final convocations = plan.convocationsOfDay("day-1");
+      expect(convocations.single.selectionKey, "candidate-1");
+    });
   });
 
   group("multiple episodes", () {
