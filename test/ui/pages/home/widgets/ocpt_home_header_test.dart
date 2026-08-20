@@ -24,7 +24,7 @@ Widget _buildHeader() => MaterialApp(
     body: OcptHomeHeader(
       onNewProject: () {},
       onOpenProject: () {},
-      onImportScreenplay: () {},
+      onImport: () {},
       onOpenSettings: () {},
     ),
   ),

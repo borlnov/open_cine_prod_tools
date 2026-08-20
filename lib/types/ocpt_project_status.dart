@@ -20,6 +20,19 @@ enum OcptProjectStatus with MixinResultStatus {
   /// The project file exists but isn't a valid Open Cine Prod Tools project database.
   corruptedFile(isSuccess: false, canBeRetried: false),
 
+  /// The project file was written by an **older** build and `openProject` wasn't allowed to
+  /// migrate it: nothing was opened, nothing was touched, and the file is still in its own format.
+  ///
+  /// The retryable one of the two format outcomes: the caller states the migration, keeps the copy
+  /// the probe named, and asks again with `allowMigration: true`.
+  migrationRequired(isSuccess: false, canBeRetried: true),
+
+  /// The project file was written by a **newer** build than this one, and is refused rather than
+  /// migrated backwards: it isn't opened, isn't touched and doesn't reach the recent projects list.
+  ///
+  /// Nothing this build can do makes this work — the answer is the newer build.
+  newerFormat(isSuccess: false, canBeRetried: false),
+
   /// Another create/open/close operation is already in progress on this manager.
   alreadyOpen(isSuccess: false, canBeRetried: true),
 

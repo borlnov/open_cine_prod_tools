@@ -237,9 +237,16 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     return true;
   }
 
+  /// The schema version this build of the app writes, readable without a database to hand.
+  ///
+  /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
+  /// number **before** any database exists — its whole point is to read a file's own
+  /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
+  static const currentSchemaVersion = 19;
+
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => currentSchemaVersion;
 
   /// The database options used by this database.
   ///

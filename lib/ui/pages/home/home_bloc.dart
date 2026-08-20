@@ -3,21 +3,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:path/path.dart' as p;
 
 /// This is the bloc class for the home page.
@@ -28,7 +31,23 @@ import 'package:path/path.dart' as p;
 /// [FileSelectorManager], delegating the actual create/open work to [OcptProjectsManager], and
 /// navigating to the workspace through [OcptRouterManager] (RFL31: navigation only via the router
 /// manager) once it succeeds.
-class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
+///
+/// It is also where the app's **compatibility gate** stands: every path that opens a project file
+/// runs through here, so every one of them is probed before it is opened, and a file from another
+/// build is raised as a question or a refusal rather than migrated behind the user's back.
+///
+/// It mixes in [MixinOcptProjectPackageBloc] for a project card's own `Export…`: the same flow
+/// every production mode's toolbar `Export` panel runs, over a target the card names rather than
+/// an open project — nothing has to be open for it, which is the point (see
+/// `MixinOcptProjectPackageBloc`'s own doc comment).
+///
+/// The header's `Import…` action's other card — a whole project rather than a screenplay — is
+/// [_onImportProjectPackageRequested]: it unpacks the picked package and stops, leaving the page
+/// to state the skipped files (if any) and dispatch the open itself, which is what runs the
+/// unpacked `.ocpt` through the very same compatibility gate this bloc puts every other project
+/// file through.
+class OcptHomeBloc extends BlocForMixin<OcptHomeState>
+    with MixinOcptProjectPackageBloc<OcptHomeState> {
   /// The properties manager used to read/update the recent projects list.
   final OcptPropertiesManager _propertiesManager;
 
@@ -44,7 +63,10 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
   /// The manager used to show the "Open…" open-file dialog.
   final FileSelectorManager _fileSelectorManager;
 
-  /// The manager used to pick and read a `.fountain` file when importing a screenplay.
+  /// The manager used to pick and read a `.fountain` file when importing a screenplay, to show
+  /// the native save dialog for a project card's own `Export…`
+  /// ([MixinOcptProjectPackageBloc.exportManager]), and to show the native folder picker for a
+  /// project package import's destination folder.
   final OcptExportManager _exportManager;
 
   /// Class constructor
@@ -73,9 +95,29 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     on<OcptHomeCreateProjectRequestedEvent>(_onCreateProjectRequested);
     on<OcptHomeOpenProjectRequestedEvent>(_onOpenProjectRequested);
     on<OcptHomeRemoveRecentProjectRequestedEvent>(_onRemoveRecentProjectRequested);
+    on<OcptHomeFileCompatibilityStatedEvent>(_onFileCompatibilityStated);
     on<OcptHomeErrorDismissedEvent>(_onErrorDismissed);
     on<OcptHomeImportScreenplayRequestedEvent>(_onImportScreenplayRequested);
+    on<OcptHomeImportProjectPackageRequestedEvent>(_onImportProjectPackageRequested);
+    on<OcptHomeProjectPackageImportErrorDismissedEvent>(_onProjectPackageImportErrorDismissed);
+    on<OcptHomeProjectPackageImportReportDismissedEvent>(_onProjectPackageImportReportDismissed);
   }
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
+
+  /// Does nothing: no project is open from the home page, so there is no debounced field edit or
+  /// pending autosave a mode would otherwise still be holding outside the database.
+  @protected
+  @override
+  Future<void> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async {}
 
   /// Reloads the recent projects list and recomputes which of them still exist on disk.
   Future<void> _onRefreshRequested(
@@ -143,6 +185,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
   /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
   /// it's null, then navigates to the editor.
+  ///
+  /// Every project file this page opens goes through the compatibility gate first, the picked one
+  /// and the tapped card alike: a file from another build stops here, and what the probe found is
+  /// raised through the state for the page to state — the migration to confirm, or the refusal to
+  /// report. The open itself is only reached for a file this build can take as it is, or for one
+  /// the user has just answered the migration question for.
   Future<void> _onOpenProjectRequested(
     OcptHomeOpenProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -167,7 +215,14 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
       filePath = selectedFile.path;
     }
 
-    final result = await _projectsManager.openProject(filePath: filePath);
+    if (!event.allowMigration && _stopsOnFileFormat(filePath, emitter)) {
+      return;
+    }
+
+    final result = await _projectsManager.openProject(
+      filePath: filePath,
+      allowMigration: event.allowMigration,
+    );
     if (!result.status.isSuccess) {
       emitter(state.copyWith(isBusy: false, error: result.status));
       return;
@@ -176,6 +231,35 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushWorkspaceAndRefreshOnReturn(emitter);
+  }
+
+  /// Whether opening [filePath] has to stop and be stated to the user first, raising what the
+  /// probe found through the state when it does.
+  ///
+  /// The manager refuses these two verdicts on its own as well, and would report them as statuses:
+  /// asking here rather than reacting there is what gets the *numbers* to the dialog — which format
+  /// the file is in, which one this build writes, and which build made it — instead of a status
+  /// that could only say that something is wrong.
+  bool _stopsOnFileFormat(String filePath, Emitter<OcptHomeState> emitter) {
+    final compatibility = _projectsManager.probeProjectFile(filePath: filePath);
+
+    switch (compatibility.verdict) {
+      case OcptProjectFileVerdict.older:
+      case OcptProjectFileVerdict.newer:
+        emitter(state.copyWith(isBusy: false, pendingFileCompatibility: compatibility));
+        return true;
+      case OcptProjectFileVerdict.current:
+      case OcptProjectFileVerdict.unreadable:
+        return false;
+    }
+  }
+
+  /// Clears the compatibility verdict the page has just stated, if any.
+  Future<void> _onFileCompatibilityStated(
+    OcptHomeFileCompatibilityStatedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(clearPendingFileCompatibility: true));
   }
 
   /// Removes a recent project from the list and refreshes it.
@@ -259,5 +343,71 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushWorkspaceAndRefreshOnReturn(emitter);
+  }
+
+  /// Picks a `.ocptz` file, then a parent folder to unpack it into, and raises what landed through
+  /// the state.
+  ///
+  /// A cancelled open dialog or a cancelled folder picker are both silent no-ops, exactly as every
+  /// other import/export of this app treats one. **This does not open the project it unpacks, and
+  /// does not navigate anywhere** — see [OcptHomeImportProjectPackageRequestedEvent]'s own doc
+  /// comment for why: the page is what finishes the landing, once it has stated the skipped files
+  /// (if any) from the report this raises.
+  Future<void> _onImportProjectPackageRequested(
+    OcptHomeImportProjectPackageRequestedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(isBusy: true, clearError: true, clearProjectPackageImportError: true));
+
+    final selection = await _fileSelectorManager.openSelector(
+      allowedExtensions: [ocptPackageFileExtension],
+      label: event.packageFileTypeLabel,
+    );
+
+    final selectedFile = selection.value;
+    if (!selection.status.isSuccess || selectedFile == null) {
+      // The user cancelled the dialog, or the selection failed; the latter is a soft failure
+      // deliberately not surfaced as an error, since the OS dialog itself already reported it.
+      emitter(state.copyWith(isBusy: false));
+      return;
+    }
+
+    final parentDirectoryPath = await _exportManager.saveLocationService.pickDirectory(
+      confirmButtonText: event.destinationConfirmButtonText,
+    );
+    if (parentDirectoryPath == null) {
+      // The user cancelled the folder picker.
+      emitter(state.copyWith(isBusy: false));
+      return;
+    }
+
+    final result = await _projectsManager.importProjectPackage(
+      packageFilePath: selectedFile.path,
+      parentDirectoryPath: parentDirectoryPath,
+    );
+
+    final report = result.value;
+    if (!result.status.isSuccess || report == null) {
+      emitter(state.copyWith(isBusy: false, projectPackageImportError: result.status));
+      return;
+    }
+
+    emitter(state.copyWith(isBusy: false, projectPackageImportReport: report));
+  }
+
+  /// Clears the transient project package import error currently shown, if any.
+  Future<void> _onProjectPackageImportErrorDismissed(
+    OcptHomeProjectPackageImportErrorDismissedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(clearProjectPackageImportError: true));
+  }
+
+  /// Clears the project package import report the page has just read, if any.
+  Future<void> _onProjectPackageImportReportDismissed(
+    OcptHomeProjectPackageImportReportDismissedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(clearProjectPackageImportReport: true));
   }
 }

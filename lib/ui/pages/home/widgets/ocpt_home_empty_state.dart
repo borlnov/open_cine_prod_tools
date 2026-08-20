@@ -13,14 +13,14 @@ class OcptHomeEmptyState extends StatelessWidget {
   /// Called when the user taps the "Open…" action.
   final VoidCallback onOpenProject;
 
-  /// Called when the user taps the "Import a screenplay…" action.
-  final VoidCallback onImportScreenplay;
+  /// Called when the user taps the "Import…" action, opening `OcptHomeImportDialog`.
+  final VoidCallback onImport;
 
   /// Class constructor
   const OcptHomeEmptyState({
     required this.onNewProject,
     required this.onOpenProject,
-    required this.onImportScreenplay,
+    required this.onImport,
     super.key,
   });
 
@@ -55,9 +55,9 @@ class OcptHomeEmptyState extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 OutlinedButton.icon(
-                  onPressed: onImportScreenplay,
+                  onPressed: onImport,
                   icon: const Icon(Icons.file_download_outlined),
-                  label: Text(tr.homeImportScreenplayAction),
+                  label: Text(tr.homeImportAction),
                 ),
                 const SizedBox(width: 12),
                 OutlinedButton.icon(

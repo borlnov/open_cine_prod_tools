@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 
 /// A stand-in for a mode's own export enum, so this test needs no real mode.
@@ -77,14 +78,16 @@ void main() {
   });
 
   /// Pumps [OcptWorkspaceExportDialog] directly (no [showDialog]/`.show`), over the same [entries]
-  /// for every test.
-  Future<void> pumpDialog(WidgetTester tester) async {
+  /// for every test, with [isPreviewingVersion] saying whether a version is being previewed — the
+  /// one thing that changes the standing project package card.
+  Future<void> pumpDialog(WidgetTester tester, {bool isPreviewingVersion = false}) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
         OcptWorkspaceExportDialog<_TestExportKind>(
           title: "Export",
           message: "Choose a document.",
           entries: entries,
+          isPreviewingVersion: isPreviewingVersion,
         ),
       ),
     );
@@ -107,7 +110,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isTrue);
-    expect(routerManager.poppedValue, _TestExportKind.alpha);
+    expect(
+      routerManager.poppedValue,
+      const OcptWorkspaceExportDocumentPick<_TestExportKind>(_TestExportKind.alpha),
+    );
   });
 
   testWidgets("an unavailable card pops nothing and shows its reason in place of its description", (
@@ -119,6 +125,40 @@ void main() {
     expect(find.text("The catalogue is empty"), findsOneWidget);
 
     await tester.tap(find.text("Beta document"));
+    await tester.pumpAndSettle();
+
+    expect(routerManager.popped, isFalse);
+  });
+
+  testWidgets("the project package card stands under the documents, and pops its own pick", (
+    tester,
+  ) async {
+    await pumpDialog(tester);
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceExportDialog<_TestExportKind>)));
+
+    expect(find.text(tr.workspaceExportProjectSectionHeading), findsOneWidget);
+    expect(find.text(tr.workspaceExportProjectPackageDescription), findsOneWidget);
+
+    await tester.tap(find.text(tr.workspaceExportProjectPackageTitle));
+    await tester.pumpAndSettle();
+
+    expect(routerManager.popped, isTrue);
+    expect(routerManager.poppedValue, const OcptWorkspaceExportProjectPackagePick<_TestExportKind>());
+  });
+
+  testWidgets("under a version preview that card is greyed with its reason, not withheld", (
+    tester,
+  ) async {
+    await pumpDialog(tester, isPreviewingVersion: true);
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceExportDialog<_TestExportKind>)));
+
+    expect(find.text(tr.workspaceExportProjectPackageTitle), findsOneWidget);
+    expect(find.text(tr.workspaceExportProjectPackagePreviewReason), findsOneWidget);
+    expect(find.text(tr.workspaceExportProjectPackageDescription), findsNothing);
+
+    await tester.tap(find.text(tr.workspaceExportProjectPackageTitle));
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isFalse);

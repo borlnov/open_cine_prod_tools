@@ -1082,10 +1082,115 @@
     "type": "text",
     "placeholders": {}
   },
-  "homeImportScreenplayAction": "Import a screenplay…",
-  "@homeImportScreenplayAction": {
-    "description": "Label of the action that creates a new project from an imported .fountain file",
+  "homeImportAction": "Import…",
+  "@homeImportAction": {
+    "description": "Label of the action that opens the Import modal",
     "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportDialogTitle": "Import",
+  "@homeImportDialogTitle": {
+    "description": "Title of the modal offering the two things that can be imported",
+    "context": "Displayed at the top of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportDialogMessage": "Two things can come in from outside: a whole project somebody sent you, or a screenplay to start one from.",
+  "@homeImportDialogMessage": {
+    "description": "Message of the modal offering the two things that can be imported",
+    "context": "Displayed under the title of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportProjectTitle": "A project",
+  "@homeImportProjectTitle": {
+    "description": "Name of the portable project package, on the Import modal's own card",
+    "context": "Displayed on a card of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportProjectDescription": "A package somebody sent you, unpacked into a project of your own: the project file and every photo, permit and document it carries.",
+  "@homeImportProjectDescription": {
+    "description": "Line saying what importing a project package does",
+    "context": "Displayed under the project card's title, in the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportScreenplayTitle": "A screenplay",
+  "@homeImportScreenplayTitle": {
+    "description": "Name of a Fountain screenplay, on the Import modal's own card",
+    "context": "Displayed on a card of the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportScreenplayDescription": "A Fountain file, which becomes a new project holding its text.",
+  "@homeImportScreenplayDescription": {
+    "description": "Line saying what importing a screenplay does",
+    "context": "Displayed under the screenplay card's title, in the Import modal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportProjectDestinationConfirmAction": "Import here",
+  "@homeImportProjectDestinationConfirmAction": {
+    "description": "Label of the native folder picker's own confirm button, when picking a project package's destination folder",
+    "context": "Displayed by the operating system's own folder picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportSkippedFilesTitle": "Some files did not travel",
+  "@homeImportSkippedFilesTitle": {
+    "description": "Title of the dialog stating that an imported package's project references files that did not travel",
+    "context": "Displayed before the workspace opens, once a project package import has landed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportSkippedFilesMessage": "{count, plural, one{{count} file this project references was already missing when the package was written, and is not here:} other{{count} files this project references were already missing when the package was written, and are not here:}} {labels}",
+  "@homeImportSkippedFilesMessage": {
+    "description": "Message naming how many referenced files did not travel, and which ones",
+    "context": "Displayed in the dialog stating that an imported package's project references files that did not travel",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "labels": {
+        "type": "String"
+      }
+    }
+  },
+  "homeImportSkippedFilesCloseAction": "Close",
+  "@homeImportSkippedFilesCloseAction": {
+    "description": "Label of the button dismissing the skipped files dialog",
+    "context": "Displayed in the dialog stating that an imported package's project references files that did not travel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorUnreadableArchive": "This file could not be read as a project package.",
+  "@homeImportErrorUnreadableArchive": {
+    "description": "Error shown when the picked file is not a valid project package archive",
+    "context": "Displayed as a SnackBar over the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorUnsupportedFormat": "This package was written by a newer version of the app, which this one cannot read.",
+  "@homeImportErrorUnsupportedFormat": {
+    "description": "Error shown when the picked package states a packageFormat newer than this build knows how to read",
+    "context": "Displayed as a SnackBar over the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorDestinationExists": "A folder of that name is already there. Pick another destination.",
+  "@homeImportErrorDestinationExists": {
+    "description": "Error shown when the folder an import would create already exists",
+    "context": "Displayed as a SnackBar over the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportErrorIoError": "The project package could not be imported.",
+  "@homeImportErrorIoError": {
+    "description": "Error shown when a project package import failed for a reason the app can only report",
+    "context": "Displayed as a SnackBar over the home page",
     "type": "text",
     "placeholders": {}
   },
@@ -1100,6 +1205,13 @@
   "@homeEmptyStateMessage": {
     "description": "Message of the home page's empty state",
     "context": "Displayed below the empty state title, when the recent projects list is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeExportProjectAction": "Export…",
+  "@homeExportProjectAction": {
+    "description": "Label of the action that writes a project card's project out as a portable package",
+    "context": "Displayed in a project card's overflow menu, above Remove from list",
     "type": "text",
     "placeholders": {}
   },
@@ -1202,6 +1314,103 @@
   "@homeErrorAlreadyOpen": {
     "description": "Error shown when a create/open/close operation is already in progress",
     "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorMigrationRequired": "This project is in an older format and wasn't brought up to date, so it stays closed.",
+  "@homeErrorMigrationRequired": {
+    "description": "Error shown when an older-format project file was left unopened because its migration wasn't confirmed",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorNewerFormat": "This project was saved by a newer version of the app and can't be opened here.",
+  "@homeErrorNewerFormat": {
+    "description": "Error shown when the project file was written by a newer build of the app",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMigrateProjectTitle": "Bring this project up to date?",
+  "@homeMigrateProjectTitle": {
+    "description": "Title of the dialog asking to migrate a project file saved in an older format",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMigrateProjectMessage": "This project is saved in format {fileFormat}, and this version of the app uses format {appFormat}. Opening it updates the file for good. A copy in its current format is kept at {backupPath}.",
+  "@homeMigrateProjectMessage": {
+    "description": "Message stating which format the file is in, which one it is brought to, that it cannot be undone, and where the copy is kept",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {
+      "fileFormat": {
+        "type": "int"
+      },
+      "appFormat": {
+        "type": "int"
+      },
+      "backupPath": {
+        "type": "String"
+      }
+    }
+  },
+  "homeMigrateProjectCancelAction": "Cancel",
+  "@homeMigrateProjectCancelAction": {
+    "description": "Label of the button leaving the project file untouched and unopened",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMigrateProjectConfirmAction": "Update and open",
+  "@homeMigrateProjectConfirmAction": {
+    "description": "Label of the button migrating the project file and opening it",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeProjectFileNewerTitle": "This project needs a newer version of the app",
+  "@homeProjectFileNewerTitle": {
+    "description": "Title of the dialog refusing a project file written by a newer build of the app",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeProjectFileNewerMessage": "This project is saved in format {fileFormat}, and this version of the app reads up to format {appFormat}. Nothing has been opened or changed. Install a newer version of the app to open it.",
+  "@homeProjectFileNewerMessage": {
+    "description": "Message naming both formats when the app version the file was created with is unknown",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {
+      "fileFormat": {
+        "type": "int"
+      },
+      "appFormat": {
+        "type": "int"
+      }
+    }
+  },
+  "homeProjectFileNewerWithAppVersionMessage": "This project is saved in format {fileFormat}, and this version of the app reads up to format {appFormat}. It was created with Open Cine Prod Tools {appVersion}. Nothing has been opened or changed. Install that version, or a later one, to open it.",
+  "@homeProjectFileNewerWithAppVersionMessage": {
+    "description": "Message naming both formats and the app version the file was created with",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {
+      "fileFormat": {
+        "type": "int"
+      },
+      "appFormat": {
+        "type": "int"
+      },
+      "appVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "homeProjectFileNewerCloseAction": "Close",
+  "@homeProjectFileNewerCloseAction": {
+    "description": "Label of the button dismissing the refusal dialog",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
     "type": "text",
     "placeholders": {}
   },
@@ -9677,6 +9886,108 @@
   "@workspaceAddEpisodeTooltip": {
     "description": "Tooltip of the toolbar button opening the project settings page's episodes card",
     "context": "Displayed on hover over the screenplay mode's Add an episode button, next to the project title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportProjectSectionHeading": "The project itself",
+  "@workspaceExportProjectSectionHeading": {
+    "description": "Heading of the export panel's last section, holding the project package card",
+    "context": "Displayed in every production mode's Export panel, under the documents grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportProjectPackageTitle": "Project package",
+  "@workspaceExportProjectPackageTitle": {
+    "description": "Name of the portable project package, on the export panel's standing card",
+    "context": "Displayed on the project package card of every production mode's Export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportProjectPackageDescription": "The whole project as one archive to send: the project file, and every photo, permit and document it references.",
+  "@workspaceExportProjectPackageDescription": {
+    "description": "Line saying what the portable project package holds",
+    "context": "Displayed under the project package card's title, in every production mode's Export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportProjectPackagePreviewReason": "A package is written from the working copy, not from the version being previewed. Leave the preview to export it.",
+  "@workspaceExportProjectPackagePreviewReason": {
+    "description": "Reason greying the project package card while a project version is being previewed",
+    "context": "Displayed in place of the project package card's description, in every production mode's Export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageFileTypeLabel": "Project package",
+  "@projectPackageFileTypeLabel": {
+    "description": "Label of the native save dialog's type filter when writing a project package",
+    "context": "Displayed by the operating system's own save dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageMissingFilesConfirmTitle": "Some referenced files are missing",
+  "@projectPackageMissingFilesConfirmTitle": {
+    "description": "Title of the dialog asking whether to write a package that cannot carry every referenced file",
+    "context": "Displayed after picking the project package card, when the pre-flight found missing files",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageMissingFilesConfirmMessage": "{count, plural, one{{count} file the project references is no longer there, and will not travel in the package:} other{{count} files the project references are no longer there, and will not travel in the package:}} {labels}",
+  "@projectPackageMissingFilesConfirmMessage": {
+    "description": "Message naming how many referenced files are missing, and which ones",
+    "context": "Displayed in the dialog asking whether to write a package that cannot carry every referenced file",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "labels": {
+        "type": "String"
+      }
+    }
+  },
+  "projectPackageMissingFilesConfirmCancelAction": "Cancel",
+  "@projectPackageMissingFilesConfirmCancelAction": {
+    "description": "Label of the button leaving the package unwritten",
+    "context": "Displayed in the dialog asking whether to write a package that cannot carry every referenced file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageMissingFilesConfirmContinueAction": "Export anyway",
+  "@projectPackageMissingFilesConfirmContinueAction": {
+    "description": "Label of the button writing the package without the missing files",
+    "context": "Displayed in the dialog asking whether to write a package that cannot carry every referenced file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageExportSuccessMessage": "Project package written to {path}",
+  "@projectPackageExportSuccessMessage": {
+    "description": "Message shown when the project was successfully written out as a portable package",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "projectPackageExportSuccessWithSkippedMessage": "Project package written to {path}. {count, plural, one{{count} missing file could not be included.} other{{count} missing files could not be included.}}",
+  "@projectPackageExportSuccessWithSkippedMessage": {
+    "description": "Message shown when the package was written but some referenced files were missing",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "projectPackageExportError": "The project package could not be written.",
+  "@projectPackageExportError": {
+    "description": "Error shown when writing the project out as a portable package failed",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
     "type": "text",
     "placeholders": {}
   }

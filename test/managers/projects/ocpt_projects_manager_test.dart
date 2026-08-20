@@ -9,8 +9,10 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -19,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   // OcptPropertiesManager wraps a process-wide singleton (see the properties manager test), so we
@@ -826,6 +829,164 @@ void main() {
         fileDatabase.select(fileDatabase.ocptScreenplaysTable).get(),
         throwsA(anything),
       );
+    });
+  });
+
+  group("opening a file from another build", () {
+    /// The schema version a file has to state to be one format behind this build.
+    final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
+
+    /// Turns the project file at [filePath] back into the file the previous build would have
+    /// written: the version 19 step's two additions taken back out, and the format number with
+    /// them.
+    ///
+    /// Undoing the step rather than only stamping the number down is what makes this a real
+    /// migration to run — `addColumn` on a column that is already there, and `createTable` on a
+    /// table that already exists, both throw, which is exactly what a file merely relabelled would
+    /// have hidden.
+    void demoteToPreviousFormat(String filePath) {
+      final database = sqlite3.open(filePath);
+      database
+        ..execute("DROP TABLE project_dictionary_words")
+        ..execute("ALTER TABLE project_info DROP COLUMN screenplay_language")
+        ..execute("PRAGMA user_version = $previousSchemaVersion")
+        ..dispose();
+    }
+
+    /// Stamps [userVersion] onto the project file at [filePath], changing nothing else.
+    void stampFormat(String filePath, int userVersion) {
+      final database = sqlite3.open(filePath);
+      database
+        ..execute("PRAGMA user_version = $userVersion")
+        ..dispose();
+    }
+
+    /// The `PRAGMA user_version` the file at [filePath] states about itself.
+    int formatOf(String filePath) {
+      final database = sqlite3.open(filePath, mode: OpenMode.readOnly);
+      try {
+        return database.select("PRAGMA user_version").first.values.first! as int;
+      } finally {
+        database.dispose();
+      }
+    }
+
+    /// Creates a project at [filePath], closes it, and hands it back at the previous format.
+    Future<void> createProjectAtPreviousFormat(String filePath) async {
+      await manager.createProject(name: "My Movie", filePath: filePath);
+      await manager.screenplayService.saveScreenplayText(
+        database: manager.currentProject!.database,
+        screenplayId: manager.currentProject!.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nAction.",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      await manager.closeCurrentProject();
+      demoteToPreviousFormat(filePath);
+    }
+
+    test("an older file is left closed and untouched until the migration is allowed", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectAtPreviousFormat(filePath);
+
+      final result = await manager.openProject(filePath: filePath);
+
+      expect(result.status, OcptProjectStatus.migrationRequired);
+      expect(manager.currentProject, isNull);
+      expect(formatOf(filePath), previousSchemaVersion);
+      expect(
+        File(
+          manager.probeProjectFile(filePath: filePath).suggestedBackupPath!,
+        ).existsSync(),
+        isFalse,
+        reason: "nothing was answered, so nothing was copied either",
+      );
+    });
+
+    test("the probe says which format the file is in, and where the copy would go", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectAtPreviousFormat(filePath);
+
+      final compatibility = manager.probeProjectFile(filePath: filePath);
+
+      expect(compatibility.verdict, OcptProjectFileVerdict.older);
+      expect(compatibility.fileSchemaVersion, previousSchemaVersion);
+      expect(compatibility.appSchemaVersion, OcptProjectDatabase.currentSchemaVersion);
+      expect(compatibility.appVersionAtCreation, isNotNull);
+      expect(
+        compatibility.suggestedBackupPath,
+        p.join(tempDir.path, "movie.backup-v$previousSchemaVersion.ocpt"),
+      );
+    });
+
+    test("an allowed migration keeps the copy where the probe said, and the rows", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectAtPreviousFormat(filePath);
+      final backupPath = manager.probeProjectFile(filePath: filePath).suggestedBackupPath!;
+
+      final result = await manager.openProject(filePath: filePath, allowMigration: true);
+
+      expect(result.status, OcptProjectStatus.ok);
+      expect(manager.currentProject?.name, "My Movie");
+      expect(
+        await manager.screenplayService.loadScreenplayText(
+          database: manager.currentProject!.database,
+          screenplayId: manager.currentProject!.primaryScreenplayId,
+        ),
+        "INT. HOUSE - DAY\n\nAction.",
+      );
+
+      expect(File(backupPath).existsSync(), isTrue);
+      expect(
+        formatOf(backupPath),
+        previousSchemaVersion,
+        reason: "the copy is kept so the older build can still open it",
+      );
+
+      await manager.closeCurrentProject();
+      expect(formatOf(filePath), OcptProjectDatabase.currentSchemaVersion);
+      expect(
+        manager.probeProjectFile(filePath: filePath).verdict,
+        OcptProjectFileVerdict.current,
+        reason: "a file migrated once is never asked about again",
+      );
+    });
+
+    test("a file from a newer build is refused, and comes back byte-identical", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "From The Future", filePath: filePath);
+      await manager.closeCurrentProject();
+      stampFormat(filePath, OcptProjectDatabase.currentSchemaVersion + 1);
+      await propertiesManager.deleteAll();
+
+      final bytesBefore = File(filePath).readAsBytesSync();
+
+      final result = await manager.openProject(filePath: filePath);
+
+      expect(result.status, OcptProjectStatus.newerFormat);
+      expect(manager.currentProject, isNull);
+      expect(File(filePath).readAsBytesSync(), bytesBefore);
+      expect(formatOf(filePath), OcptProjectDatabase.currentSchemaVersion + 1);
+      expect(
+        await propertiesManager.recentProjects.load() ?? const [],
+        isEmpty,
+        reason: "a file that was never opened has no business in the recent projects list",
+      );
+    });
+
+    test("a refusal leaves the project already open alone", () async {
+      final openPath = p.join(tempDir.path, "current.ocpt");
+      await manager.createProject(name: "Current", filePath: openPath);
+
+      final futurePath = p.join(tempDir.path, "future.ocpt");
+      final future = OcptProjectDatabase(File(futurePath));
+      await future.close();
+      stampFormat(futurePath, OcptProjectDatabase.currentSchemaVersion + 1);
+
+      expect(
+        (await manager.openProject(filePath: futurePath)).status,
+        OcptProjectStatus.newerFormat,
+      );
+      expect(manager.currentProject?.path, openPath);
     });
   });
 }

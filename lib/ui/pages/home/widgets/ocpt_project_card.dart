@@ -17,8 +17,13 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 /// comes from [OcptSpecificColors.projectPosterTints], indexed by [_stablePathHash] of the
 /// project's path so a project keeps the same colour across launches and machines. When
 /// [OcptHomeRecentProjectEntry.exists] is false, the whole card is greyed out, tapping it is
-/// disabled, and a tooltip explains why; it can still be removed from the list through the
-/// overflow menu.
+/// disabled, and a tooltip explains why; the overflow menu still offers to remove it from the list,
+/// the entry being worth clearing away even when the project it names is gone, while `Export…` goes
+/// disabled with the card — there is no file left to read, let alone to package.
+///
+/// The `⋮` overflow menu holds two entries: `Export…`, writing the project out as a portable
+/// package without opening it first (the same flow the toolbar's own `Export` panel runs from
+/// inside a project, `MixinOcptProjectPackageBloc`), and `Remove from list`.
 ///
 /// A project holding several episodes wears a small `⟨N episodes⟩` pill in the poster's top-left
 /// corner ([_OcptProjectCardEpisodeBadge]), mirroring the `⋮` overflow menu's own top-right one.
@@ -32,11 +37,22 @@ class OcptProjectCard extends StatelessWidget {
   /// Called when the card is tapped, unless [OcptHomeRecentProjectEntry.exists] is false.
   final VoidCallback onTap;
 
+  /// Called when "Export…" is chosen from the overflow menu, unless
+  /// [OcptHomeRecentProjectEntry.exists] is false: there is no file to scan or to package for an
+  /// entry whose project can't be found any more.
+  final VoidCallback onExport;
+
   /// Called when "Remove from list" is chosen from the overflow menu.
   final VoidCallback onRemove;
 
   /// Class constructor
-  const OcptProjectCard({required this.entry, required this.onTap, required this.onRemove, super.key});
+  const OcptProjectCard({
+    required this.entry,
+    required this.onTap,
+    required this.onExport,
+    required this.onRemove,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +115,11 @@ class OcptProjectCard extends StatelessWidget {
                       icon: const Icon(Icons.more_vert),
                       tooltip: MaterialLocalizations.of(context).showMenuTooltip,
                       itemBuilder: (context) => [
+                        PopupMenuItem<void>(
+                          enabled: exists,
+                          onTap: onExport,
+                          child: Text(tr.homeExportProjectAction),
+                        ),
                         PopupMenuItem<void>(
                           onTap: onRemove,
                           child: Text(tr.homeRemoveFromListAction),

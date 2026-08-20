@@ -75,8 +75,8 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 Everything that has shipped is recorded by the code itself, by `docs/architecture/` and by
 `docs/adr/` — this section lists only what is still ahead, so it stays short enough to be read.
 The MVP (Fountain editor, shot list, resources, breakdown, schedule, their exports, project
-versions, the sync-ready data model, the desktop packaging) is done; the budget mode is the one
-production mode still showing an empty state.
+versions, the sync-ready data model, the portable project package, the desktop packaging) is done;
+the budget mode is the one production mode still showing an empty state.
 
 | Step | Content | Status |
 | --- | --- | --- |
@@ -158,7 +158,7 @@ file in `docs/architecture/` says what the code does because of it.
 
 | Read this | Before touching |
 | --- | --- |
-| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview |
+| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview, the portable project package, opening a project file from another build |
 | [`screenplay.md`](docs/architecture/screenplay.md) | `packages/fountain_kit/`, `packages/spell_kit/`, `lib/ui/pages/editor/` |
 | [`exports.md`](docs/architecture/exports.md) | `lib/managers/export/`, the export panel |
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |

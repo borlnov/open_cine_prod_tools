@@ -12,7 +12,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -37,6 +39,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_saved_t
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_title_page_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
@@ -49,6 +52,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shortcut_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
@@ -1334,6 +1339,7 @@ class _EditorViewState extends State<_EditorView> {
       title: tr.editorExportPanelTitle,
       message: tr.editorExportPanelMessage,
       entries: _buildExportEntries(context),
+      isPreviewingVersion: context.read<OcptEditorBloc>().state.isPreviewingVersion,
     );
     if (picked == null) {
       return;
@@ -1343,15 +1349,20 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     switch (picked) {
-      case OcptEditorExportDocument.fountain:
-        context.read<OcptEditorBloc>().add(
-          OcptEditorExportRequestedEvent(
-            fileTypeLabel: tr.editorImportFileTypeLabel,
-            episodeTag: _episodeExportTag(context),
-          ),
-        );
-      case OcptEditorExportDocument.pdf:
-        await _requestExportPdf(context);
+      case OcptWorkspaceExportDocumentPick<OcptEditorExportDocument>(:final document):
+        switch (document) {
+          case OcptEditorExportDocument.fountain:
+            context.read<OcptEditorBloc>().add(
+              OcptEditorExportRequestedEvent(
+                fileTypeLabel: tr.editorImportFileTypeLabel,
+                episodeTag: _episodeExportTag(context),
+              ),
+            );
+          case OcptEditorExportDocument.pdf:
+            await _requestExportPdf(context);
+        }
+      case OcptWorkspaceExportProjectPackagePick<OcptEditorExportDocument>():
+        _requestProjectPackageExport(context);
     }
   }
 
@@ -1516,6 +1527,64 @@ class _EditorViewState extends State<_EditorView> {
         );
       context.read<OcptEditorBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
+
+    final packagePendingExport = state.projectPackagePendingExport;
+    if (packagePendingExport != null) {
+      context.read<OcptEditorBloc>().add(
+        const OcptProjectPackageMissingFilesAskDismissedEvent(),
+      );
+      unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
+    }
+
+    final packageNotice = state.projectPackageNotice;
+    if (packageNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
+        );
+      context.read<OcptEditorBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
+    }
+  }
+
+  /// Dispatches the project package export, resolving here — the last place with a
+  /// [BuildContext] — the label the native save dialog carries.
+  ///
+  /// What happens next depends on what the project references: everything being there, the save
+  /// dialog opens straight away; anything missing, the bloc asks back through its own state and
+  /// [_askAboutMissingPackagedFiles] is what puts that question on screen.
+  void _requestProjectPackageExport(BuildContext context) {
+    context.read<OcptEditorBloc>().add(
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// the export if the user said to go on.
+  ///
+  /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can
+  /// read the project file the pre-flight scanned. The question is cleared from that state the
+  /// moment this opens, so a later emission never stacks a second dialog behind this one.
+  Future<void> _askAboutMissingPackagedFiles(
+    BuildContext context,
+    OcptProjectPackagePreflight preflight,
+  ) async {
+    final bloc = context.read<OcptEditorBloc>();
+    final confirmed = await ocptAskAboutMissingPackagedFiles(context, preflight);
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptProjectPackageExportConfirmedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
+    );
   }
 
   /// Maps [notice] to its localized, user-facing message.

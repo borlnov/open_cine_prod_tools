@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
@@ -89,8 +90,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// ([_onScenarioCoverageExportRequested]): both flush whatever is still pending, then hand the
 /// loaded snapshot to [OcptExportManager], which owns both the document building and the native
 /// save dialog.
+///
+/// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
+/// package from the `Export` panel's own standing card. That mixin reuses
+/// [flushPendingProjectWrites] — what a colleague receives is the project *file*, so a debounced
+/// edit has to reach it first — and asks [exportManager] where to write, exactly as this mode's
+/// own exports do.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState>
-    with MixinOcptProjectVersionsBloc<OcptShotListState> {
+    with
+        MixinOcptProjectVersionsBloc<OcptShotListState>,
+        MixinOcptProjectPackageBloc<OcptShotListState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -205,6 +214,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   @protected
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none

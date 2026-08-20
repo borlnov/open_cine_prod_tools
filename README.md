@@ -169,6 +169,13 @@ What the app does today:
 - Project versions: named, permanent checkpoints of the whole project, previewed read-only before
   you commit to anything and restored as an edit rather than a reset - the state a restore replaces
   is itself kept as a version, so going back is never a one-way door.
+- A project you can hand to somebody: exported as one `.ocptz` package holding the project file
+  and every photo, permit and document it points at, and imported back into a folder of its own,
+  each file landing where its record expects it. A reference whose file has gone missing is named
+  before the package is written and again when it is opened, never silently dropped.
+- A project file written by another build of the app is never opened silently: an older one states
+  the migration it needs and keeps a copy of itself first, a newer one is refused rather than
+  damaged.
 - A scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage each shot covers, the passages no shot covers washed grey, and optional
   legend and summary pages - so you can see, page by page, what your découpage still leaves out.

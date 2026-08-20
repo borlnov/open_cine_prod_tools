@@ -13,8 +13,13 @@ import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dar
 
 /// Builds an [OcptProjectCard] for a project at [path], themed and localized as the app does,
 /// holding [episodeCount] episodes (null, as [OcptRecentProjectModel.episodeCount] itself
-/// defaults to, for an entry that never recorded one).
-Widget _buildCard(String path, {int? episodeCount}) => MaterialApp(
+/// defaults to, for an entry that never recorded one), and whose file [exists] (true by default).
+Widget _buildCard(
+  String path, {
+  int? episodeCount,
+  bool exists = true,
+  VoidCallback? onExport,
+}) => MaterialApp(
   theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
@@ -31,9 +36,10 @@ Widget _buildCard(String path, {int? episodeCount}) => MaterialApp(
         lastOpenedAt: DateTime(2026),
         episodeCount: episodeCount,
       ),
-      exists: true,
+      exists: exists,
     ),
     onTap: () {},
+    onExport: onExport ?? () {},
     onRemove: () {},
   ),
 );
@@ -105,5 +111,71 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
     expect(find.text(tr.homeProjectEpisodeCount(1)), findsNothing);
     expect(find.text(tr.homeProjectEpisodeCount(2)), findsNothing);
+  });
+
+  testWidgets("the overflow menu offers Export…, above Remove from list", (tester) async {
+    await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
+
+    await tester.tap(find.byType(PopupMenuButton<void>));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    expect(find.text(tr.homeExportProjectAction), findsOneWidget);
+    expect(find.text(tr.homeRemoveFromListAction), findsOneWidget);
+
+    final exportItem = tester.widget<PopupMenuItem<void>>(
+      find.ancestor(
+        of: find.text(tr.homeExportProjectAction),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+    );
+    expect(exportItem.enabled, isTrue);
+
+    await tester.tap(find.text(tr.homeExportProjectAction));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets("tapping Export… calls back for a project whose file exists", (tester) async {
+    var exported = false;
+    await tester.pumpWidget(
+      _buildCard('/home/user/projects/glass-paths.ocpt', onExport: () => exported = true),
+    );
+
+    await tester.tap(find.byType(PopupMenuButton<void>));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    await tester.tap(find.text(tr.homeExportProjectAction));
+    await tester.pumpAndSettle();
+
+    expect(exported, isTrue);
+  });
+
+  testWidgets("Export… is inert for a project whose file is gone", (tester) async {
+    var exported = false;
+    await tester.pumpWidget(
+      _buildCard(
+        '/home/user/projects/glass-paths.ocpt',
+        exists: false,
+        onExport: () => exported = true,
+      ),
+    );
+
+    await tester.tap(find.byType(PopupMenuButton<void>));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    final exportItem = tester.widget<PopupMenuItem<void>>(
+      find.ancestor(
+        of: find.text(tr.homeExportProjectAction),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+    );
+    expect(exportItem.enabled, isFalse);
+
+    await tester.tap(find.text(tr.homeExportProjectAction));
+    await tester.pumpAndSettle();
+
+    expect(exported, isFalse);
   });
 }

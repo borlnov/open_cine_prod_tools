@@ -11,6 +11,8 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -21,6 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
@@ -70,7 +73,9 @@ class OcptBreakdownIoNotice extends Equatable {
 /// ephemeral and write nothing on their own: the range interaction they drive only touches the
 /// database once the popover it opens answers with a link or an element creation.
 class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
-    with MixinOcptProjectVersionsState<OcptBreakdownState> {
+    with
+        MixinOcptProjectVersionsState<OcptBreakdownState>,
+        MixinOcptProjectPackageState<OcptBreakdownState> {
   /// Whether the breakdown read is still being loaded from the project database.
   final bool isLoading;
 
@@ -231,6 +236,14 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExport}
+  @override
+  final OcptProjectPackagePreflight? projectPackagePendingExport;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
+  @override
+  final OcptProjectPackageNotice? projectPackageNotice;
 
   /// Every scene of [snapshot], in source order (empty while nothing is loaded).
   List<OcptBreakdownScene> get scenes => snapshot?.scenes ?? const [];
@@ -411,6 +424,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.versionPendingRestoreId,
     required this.versionPendingRenameId,
     required this.projectVersionNotice,
+    required this.projectPackagePendingExport,
+    required this.projectPackageNotice,
   });
 
   /// Init class constructor
@@ -444,7 +459,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       versionPendingDeletionId = null,
       versionPendingRestoreId = null,
       versionPendingRenameId = null,
-      projectVersionNotice = null;
+      projectVersionNotice = null,
+      projectPackagePendingExport = null,
+      projectPackageNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -507,6 +524,10 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
   }) {
     final nextSnapshot = snapshot ?? this.snapshot;
     final nextScreenplayText = screenplayText ?? this.screenplayText;
@@ -565,6 +586,12 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       projectVersionNotice: clearProjectVersionNotice
           ? null
           : (projectVersionNotice ?? this.projectVersionNotice),
+      projectPackagePendingExport: clearProjectPackagePendingExport
+          ? null
+          : (projectPackagePendingExport ?? this.projectPackagePendingExport),
+      projectPackageNotice: clearProjectPackageNotice
+          ? null
+          : (projectPackageNotice ?? this.projectPackageNotice),
     );
   }
 
@@ -598,6 +625,20 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     clearVersionPendingRenameId: clearVersionPendingRenameId,
     projectVersionNotice: projectVersionNotice,
     clearProjectVersionNotice: clearProjectVersionNotice,
+  );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
+  @override
+  OcptBreakdownState copyProjectPackageState({
+    OcptProjectPackagePreflight? projectPackagePendingExport,
+    bool clearProjectPackagePendingExport = false,
+    OcptProjectPackageNotice? projectPackageNotice,
+    bool clearProjectPackageNotice = false,
+  }) => copyWith(
+    projectPackagePendingExport: projectPackagePendingExport,
+    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    projectPackageNotice: projectPackageNotice,
+    clearProjectPackageNotice: clearProjectPackageNotice,
   );
 
   /// Object properties
