@@ -76,13 +76,14 @@ Everything that has shipped is recorded by the code itself, by `docs/architectur
 `docs/adr/` — this section lists only what is still ahead, so it stays short enough to be read.
 The MVP (Fountain editor, shot list, resources, breakdown, schedule, their exports, project
 versions, the sync-ready data model, the portable project package, the desktop packaging) is done;
-the budget mode's M1 (the quote against the CNC nomenclature, `docs/architecture/budget.md`) has
-shipped too, with its cash journal, financing and revenue-sharing milestones still ahead.
+the budget mode's M1 and M2 (the quote against the CNC nomenclature and the cash journal it is
+measured against, `docs/architecture/budget.md`) have shipped too, with its financing and
+revenue-sharing milestones still ahead.
 
 | Step | Content | Status |
 | --- | --- | --- |
 | 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
-| 30 | Budget mode M2-M4: cash and commitments, financing and catering, sharing and the exports (`docs/plans/budget-mode.md`) | 📝 planned |
+| 30 | Budget mode M3-M4: financing and catering, sharing and the exports (`docs/plans/budget-mode.md`) | 📝 planned |
 | — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard, casting tracker | 📝 planned |
 
 Step numbers are historical: they were allocated as the work was planned, are referenced by no

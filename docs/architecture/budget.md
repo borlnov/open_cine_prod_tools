@@ -7,25 +7,28 @@ SPDX-License-Identifier: Apache-2.0
 # Architecture — the budget mode
 
 The production's money, read honestly in whichever tax basis it was typed in: the quote against
-the CNC nomenclature this milestone (M1) builds, the cash journal, the financing plan and the
-revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
+the CNC nomenclature, and the cash journal it is measured against — every entry the account has
+actually seen, and every commitment still owed but not yet paid — with the financing plan, the
+catering and travel pass and the revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
 
-## Who it serves, and what M1 ships
+## Who it serves, and what the mode now shows
 
 - `lib/ui/pages/workspace/modes/budget/` has to serve two readers who want different documents
   from the same figures: the **commission**, which expects the CNC nomenclature, a financing plan
   with its in-kind contributions valued separately and a final report against the quote; and the
   **production that shot the film with five people**, whose real account book is a debit/credit
-  journal with free categories, a meals sheet and a sharing sheet. Nothing about M1 favours one
-  reader over the other — it builds the one document both eventually need, the quote, and stops
-  there. `OcptBudgetCentreView` holds exactly the two views this milestone can honestly show,
-  `dashboard` and `costTracking`: the mockup validates seven (financing, cash journal, committed
-  spending, catering and travel, revenue sharing among them), and every one of the missing five
-  reads a table this milestone's schema does not hold at all (`budget_entries`,
-  `budget_commitments`, `budget_resources`, `budget_revenues`, `budget_shares`) — a value added for
-  any of them today would be a header chip that opens onto nothing, which this app never draws.
-  Each joins the enum, at its end, as the milestone that gives it real content lands, so a stored
-  preference never points at a view that has moved.
+  journal with free categories, a meals sheet and a sharing sheet. Nothing about the mode so far
+  favours one reader over the other — it builds the one document both eventually need, the quote,
+  and then the ledger both eventually keep, the cash journal that measures what has actually moved
+  against it and what is still owed. `OcptBudgetCentreView` holds the four views this stands for
+  today — `dashboard`, `costTracking`, `cashJournal` and `committed` — of the seven the mockup
+  validates; **financing, catering and travel, and revenue sharing** are the three still missing,
+  and each reads a table no milestone so far holds at all (`budget_resources`, `budget_revenues`,
+  `budget_shares`) — a value added for any of them today would be a header chip that opens onto
+  nothing, which this app never draws. Each joins the enum, at its own end, as the milestone that
+  gives it real content lands, so a stored preference never points at a view that has moved — the
+  reading `cashJournal` and `committed` themselves just proved out, one milestone after
+  `dashboard`/`costTracking` did the same.
 
 ## The money rule
 
@@ -87,6 +90,43 @@ revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
   read at a glance is not the place to explain which of the two bases a figure is read in, and the
   untouched sum needs no rate at all to be complete, unlike either converted reading.
 
+## Money that has moved is read tax-inclusive, always
+
+- The quote's own header offers a basis to pick because a quote is a plan, read either way
+  depending on who is looking at it; a payment is not a plan, it is the very cash a bank account
+  actually saw leave or enter, and there is no second way to look at that. `budget_entries` and
+  `budget_commitments` are therefore never read through the header's toggle at all:
+  `ocptBudgetEntryDebitCentsOf`/`ocptBudgetEntryCreditCentsOf` (`lib/utils/ocpt_budget_journal.dart`)
+  and `ocptBudgetCommitmentCashCentsOf` (`lib/utils/ocpt_budget_projection.dart`) each go straight to
+  `ocptIncludingTaxAmountCentsOf`, the one basis a real balance is ever expressed in. An amount typed
+  excluding tax with no rate anywhere to gross it back up with — neither the row's own override nor
+  the project's default — is exactly the case `ocpt_budget_vat.dart`'s "null, never zero" rule
+  already governs, so it answers null here too, carried out through the very same
+  `OcptBudgetCoveredTotal` the quote's own totals use: a journal, a poste's paid total or a
+  projection missing a rate says *how many* of its rows it covers, never a wrong figure standing in
+  for the rows it does not.
+  The running balance the cash journal prints inherits that honesty at the row level rather than
+  losing it: `ocptBudgetJournalRowsOf` never reorders the entries it is handed — a balance only means
+  anything read in the order money actually moved — and an entry it cannot read leaves that row's own
+  `balanceAfterCents` **null**, not a repeat of the balance before it and not a guess at what it might
+  become. The balance the reader already had is not in doubt; the balance *after* a movement of
+  unknown size genuinely is, and printing the old figure again would claim, falsely, that this
+  movement changed nothing. The row below the hole is not poisoned by it either: it keeps counting
+  from exactly where the journal stood before the gap, so one unreadable entry costs the reader one
+  blank cell, never the rest of the ledger.
+
+## The journal's balance is the whole journal's
+
+- `OcptBudgetCashTotals.balanceCents` is always read over **every** live entry, never the subset a
+  poste filter happens to be showing: a bank balance does not change because the screen is scrolled
+  to one category, and a filtered view that quietly totalled only what it displayed would print a
+  number that looks like the account's balance while actually being something else. The cash journal
+  view's own poste filter is not a piece of state of its own for exactly this reason — it is
+  `OcptBudgetState.selectedPosteId`, the very same field the cost-tracking table already writes when
+  a row is clicked, read again here rather than duplicated. Selecting a poste there and switching to
+  `cashJournal` lands already filtered to it, and the two views agree on what "filtered by this
+  poste" means because they are reading one flag rather than two that could drift apart.
+
 ## A poste's quoted amount is not stored
 
 - `OcptBudgetPostesTable` carries **no `quotedAmount` column**, and `OcptBudgetPoste` carries no
@@ -97,6 +137,47 @@ revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
   freezes every poste and every line exactly as they stood, so a separate frozen-total column would
   freeze nothing a version doesn't already.
 
+## A commitment settles by naming the entry that paid it
+
+- `OcptBudgetCommitmentStatus` carries four steps — quote accepted, contract signed, invoice
+  received, declared — and **deliberately no fifth, `settled`**. A commitment is settled the moment
+  `budget_commitments.settledEntryId` names the `budget_entries` row that paid it
+  (`OcptBudgetCommitment.isSettled`), and that is exactly the argument the poste's own missing
+  `quotedAmount` column already makes: a `settled` flag living beside a link that says the same
+  thing would be a second copy of one truth, kept in step by hand or by a write nobody could
+  guarantee never to forget. Reading settlement off the link rather than off a status also lets a
+  commitment be `declared` and settled at once, or settled without ever having been marked
+  `declared` at all — a production that pays before its paperwork catches up is not a state this
+  enum has to pretend cannot happen. A settled commitment is excluded **outright** from
+  `ocptBudgetCommittedCentsByPosteId`'s own map and from `ocptBudgetProjectionOf`'s own steps — not
+  counted at zero, simply not there — because the money it stood for has already left the account
+  and is already counted once, as *paid*, by the very entry it now names: counting it a second time,
+  as still owed, would double the very same movement. It keeps its row in the committed-spending
+  view regardless, marked settled rather than removed, since a production still wants to see what it
+  once owed and to whom.
+  The `Settle` gesture on a commitment is not a status flip: it opens `OcptBudgetEntryDialog`
+  pre-filled with today's date, the commitment's own label, poste, amount, tax basis and rate, as a
+  debit — the very same dialog an ordinary entry uses, seeded rather than editing one already
+  stored — and confirming it both creates that journal entry and points `settledEntryId` at it in one
+  event, so a settlement can never exist as a link with no entry behind it. Undoing a settlement
+  clears that link alone; the journal entry it once named is left exactly as it was, since the
+  payment it recorded did happen and un-settling a commitment is a correction to the commitment's own
+  bookkeeping, not a claim that the money came back.
+
+## A commitment's poste is editable, a quote line's is not
+
+- `OcptBudgetQuoteService.updateLine` refuses to move a line to another poste, because
+  `OcptBudgetLinesTable.sortKey` is fractional **within its own `posteId`** (`OcptBudgetPostesTable`
+  orders flat; `budget_lines` orders "like a shot within a scene"): moving a line to a different
+  poste would need its position recomputed against a different group entirely, a real second
+  operation wearing the name of a field write. `OcptBudgetCommitmentsTable.sortKey` is flat, exactly
+  as `budget_entries`' own is, so no such recomputation is hiding behind a poste change here — and a
+  commitment's poste is exactly the field a person types once against a ten-poste nomenclature and
+  sometimes gets wrong. Refusing the edit would leave a mistyped commitment correctable only by
+  deleting it, and a delete here is a tombstone kept forever (ADR 0010) — too heavy a price for a
+  slip of the mouse. `OcptBudgetCommitmentDialog` therefore offers the same `Poste` picker on an edit
+  that it offers on creation, and `updateCommitment` writes it like any other field.
+
 ## The nomenclature is seeded, not frozen
 
 - `lib/constants/ocpt_budget_cnc_postes.dart` declares the ten postes of the CNC nomenclature every
@@ -106,10 +187,10 @@ revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
   the same project independently agree on ten rows rather than each minting their own ten for a
   merge to reconcile into twenty. `OcptBudgetQuoteService.loadPostes` seeds them (`_seedIfEmpty`)
   on the **first read of a `budget_postes` table holding no row at all, tombstones included** — not
-  at project creation, so a project that predates this milestone gets them on its very next open,
-  and not when the table holds even one tombstoned row, because a user who has deleted every poste
-  has not asked for them back. Once seeded, a poste is an ordinary row from that moment on: renamed,
-  reordered or deleted like any other, and never re-inserted by a later read.
+  at project creation, so a project that predates the budget mode entirely gets them on its very
+  next open, and not when the table holds even one tombstoned row, because a user who has deleted
+  every poste has not asked for them back. Once seeded, a poste is an ordinary row from that moment
+  on: renamed, reordered or deleted like any other, and never re-inserted by a later read.
   Every entry carries only a `labelKey`/`simpleLabelKey` pair naming an ARB key, never a resolved
   word — `lib/constants/` and every service under `lib/managers/` must stay free of `Tr`
   (`AGENTS.md`). `ocptBudgetCncPosteSeeds` (`lib/ui/utils/ocpt_budget_labels.dart`) is the one place
@@ -140,6 +221,22 @@ revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
   null: a version sealed before this milestone existed truthfully had no budget at all, so restoring
   it tombstones every poste and line added since, exactly the same reading a restore already gives a
   dropped column or an episode a version predates.
+  Two more synchronised tables follow the same rule: `budget_entries` (`date`, `label`, a nullable
+  `posteId` — money coming in prices no poste, so this is a real fact rather than an omission — the
+  money triple, and `voucherNumber`) and `budget_commitments` (`dueDate?`, `label`, a **non-nullable**
+  `posteId` — a commitment is always a cost against the quote — the money triple, `status` and a
+  nullable `settledEntryId` referencing `budget_entries`). `budget_entries` carries no `resourceId`
+  yet, even though `docs/plans/budget-mode.md` names one: `budget_resources` is a later table, and
+  the nullable foreign key onto it arrives with `Migrator.addColumn` the day that table lands,
+  exactly the way `budget_entries.posteId` itself was added onto an already-existing
+  `budget_postes`. `assets` gains one column, `budgetEntryId`, and one kind, `OcptAssetKind.receipt`,
+  for a voucher file — see "The voucher" below. This is schema **v21**. `OcptProjectVersionCodec`
+  gains both tables and the `assets` column in all three of its required places under **payload
+  format 17**, whose upgrade from format 16 **materialises** `budgetEntries` and `budgetCommitments`
+  as empty lists and every `assets` row's `budgetEntryId` as null — a version sealed before the
+  journal existed truthfully had no entry and no commitment, and no asset could yet reference one
+  that didn't exist, exactly the reading format 16's own upgrade already gives the tables it
+  materialises.
 
 ## The mode's own shape
 
@@ -152,11 +249,16 @@ revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
   (`OcptBudgetRightDockTab`): `Inspector`, the selected poste's own figures, its quote lines — each
   a card collapsed to a summary row and expanding **in place**, never into a dialog, into its own
   editable fields (quantity, unit, unit price, whether it includes tax, and the rate it reads
-  under) — and its related entries, drawn and empty until M2 gives them content; and the shared
-  `Versions` tab every mode carries.
-  The header's two toggles — `Dashboard`/`Cost tracking`, simplified/detailed, and
-  excluding/including-tax — are **always offered, whatever the project holds**: neither is ever
-  withheld or disabled according to the state of the data, there is no conditional branch in
+  under) — and, since the journal exists, its own **related entries**: the cash journal's live
+  entries naming this poste, newest first, a debit and a credit told apart by
+  `ColorScheme.error`/`.primary`, printing the em dash for an entry it cannot read and a coverage
+  read-out the moment some of them are; and the shared `Versions` tab every mode carries.
+  The header's four view chips (`Dashboard`, `Cost tracking`, `Trésorerie` in French — `Cash
+  journal` in English, deliberately renamed off "Journal de caisse" once that first choice turned
+  out to name a petty-cash book rather than the bank account the view actually reads — and
+  `Committed`) and its two further toggles, simplified/detailed and excluding/including-tax, are
+  **always offered, whatever the project holds**: neither is ever withheld or disabled according to
+  the state of the data, there is no conditional branch in
   `OcptBudgetHeader` at all, only a value that may turn out empty once the centre reads it. Every
   other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder, a
   delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
@@ -179,21 +281,80 @@ revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
   `MixinOcptProjectPackageBloc` exactly as every other mode's bloc does, so a colleague can already
   receive this project as a portable `.ocptz` before the mode prints a single PDF of its own.
 
-## What M1 deliberately does not show
+## The dashboard's two alerts compute themselves, and ask for no threshold
 
-- `budget_entries` and `budget_commitments`, the cash journal and the commitments the dashboard's
-  `Paid` and `Committed` figures need, are M2's tables and do not exist yet. The cost-tracking
-  table and the poste inspector read them all the same, through the very functions
-  `lib/utils/ocpt_budget_totals.dart` will keep answering once those tables land
-  (`ocptBudgetRemainingCents`, `ocptBudgetVarianceCents`, `ocptBudgetConsumedRatioOf`,
-  `ocptBudgetPosteStrainOf`), but every call site hands them a plain `paidCentsOf`/`committedCentsOf`
-  that always answers zero — and the five columns those feed print `ocptBudgetEmptyValue` (an em
-  dash), never `0 €` or `0 %`. **Nothing having moved against a poste is not the same fact as zero
-  having moved against it**, and this milestone is careful never to claim the second when it only
-  knows the first; M2 only has to start answering those two functions for real and flip
-  `isCashDataAvailable`, and every column already wired here starts reading honestly with no other
-  change. The dashboard is held to the same rule: no alert (a poste over its quote, the cash
-  projection going negative — M2), no needs/resources balance bar or "what feeds this budget" card
-  (M3), no catering pass (M3), no revenue sharing (M4) — each arrives with the milestone that gives
-  it real content, argued in full in `docs/plans/budget-mode.md`, which is where the rest of this
-  mode is still only planned.
+- `ocptComputeBudgetAlerts` (`lib/utils/ocpt_budget_alerts.dart`, pure) raises exactly two kinds of
+  alert, and both are read straight off arithmetic the mode already has rather than a figure typed
+  in on purpose for the alert's own sake: a poste whose paid plus committed already exceeds its own
+  quote (`ocptBudgetPosteStrainOf` answering `over`, paired with `ocptBudgetVarianceCents`'s own
+  figure), and the cash projection (`ocptBudgetProjectionOf`, opened at the journal's own balance
+  over the unsettled commitments) going negative, at the date and by the amount its own first
+  negative step already says. The mockup's own 1,500 € cash floor is deliberately not a third alert:
+  it was calibrated by nobody, and it is not the app's place to advance a figure nobody here
+  validated — the same argument `minimumRestMinutes` already settled for a single column, applied
+  here to a whole mode. Each alert card offers exactly one action back into the data it is about:
+  a poste over its quote selects that poste and switches to `costTracking`, the projection going
+  negative switches to `committed` — never a dismiss, since the alert is not a notification to clear,
+  it is a standing fact about the project that stays true until the underlying figures change.
+
+## The voucher
+
+- `OcptBudgetJournalService._nextVoucherNumber` mints an entry's own accounting reference the
+  instant `createEntry` runs — `J-001`, `J-002`, …, growing past three digits rather than wrapping —
+  scanning every voucher number ever minted, tombstones included, so a number is never reused even
+  once the entry that carried it has since been deleted and some paper trail elsewhere still names
+  it. It is **deliberately not localized**: a voucher number is stapled, physically or figuratively,
+  to a receipt or an invoice, and has to read the same whatever language the UI happens to be shown
+  in that day — the same reason every service under `lib/managers/` stays free of `Tr`. Editing an
+  entry can retype it, since a user may need it to match a paper trail the minted reference doesn't;
+  creating one cannot, the number belonging to the service that mints it.
+  The voucher **file** is a different thing entirely from the voucher **number**: a till receipt, an
+  invoice PDF, a bank slip, referenced by path rather than embedded (ADR 0013), through
+  `assets.budgetEntryId` and the new `OcptAssetKind.receipt` — there is no `receiptAssetId` column on
+  `budget_entries` itself to keep in step, for the very reason a poste keeps no `quotedAmount`
+  column: a second copy of the same fact is a second place for it to drift from the first.
+  `OcptBudgetJournalService.setEntryReceipt` tombstones whichever voucher an entry already
+  referenced before recording the new one, since an entry has at most one and a row nothing points
+  at any more is an orphan, not history worth keeping — and the file itself is never touched by
+  either a replace or a `clearEntryReceipt`, ADR 0013's own reading of a missing path as a normal
+  state applying to a voucher exactly as it does to a permit or a photo.
+
+## The one deliberate divergence: picking a receipt
+
+- `OcptBudgetEntryDialog` resolves `globalGetIt().get<FileSelectorManager>()` directly, in its own
+  `_pickReceipt`, rather than dispatching a bloc event the way every other file pick in the app does
+  (the resources mode's own photo and document pickers write the instant a file is chosen, because
+  that gesture has no `Save` step of its own to defer to). This dialog is built the other way round:
+  every other field it collects — the label, the amount, the tax basis, the VAT override — is gathered
+  locally and written once, on `Save`, and a receipt pick is no different in kind, only in the fact
+  that it happens to involve a file. Calling the manager here is a plain read of a path the OS
+  dialog already reports, with nothing to decode and no `assets` row to mint on the spot: the
+  actual write — minting or tombstoning that row — happens in the very same bloc handler that
+  creates or updates the entry, once `Save` is pressed, exactly where every other field's write
+  already lands. Routing the pick itself through an event first would buy nothing but an extra
+  round trip before the dialog even knows whether the user will keep the entry at all.
+
+## What the mode still does not show
+
+- The cash journal changed what this section can honestly say, not just what it has to say: for as
+  long as `budget_entries` and `budget_commitments` did not exist, "nothing paid" and "nothing known
+  about what was paid" were the same unavoidable fact, and the app printed the em dash for both
+  rather than claim the second when it only ever knew the first. Now that the journal is real,
+  `OcptBudgetSnapshot.paidCentsOf` and `.committedCentsOf` answer **zero**, in cents, the moment
+  their own map carries no entry for a poste — its own doc comment states plainly why that `?? 0` is
+  the honest reading now and would not have been before: the app has gone from *not being able to
+  know* whether anything had moved against a poste to *knowing that nothing has*, and a fact
+  established is not a fact withheld. `Paid`, `Committed`, `Remaining` and `Variance` therefore
+  always print a real amount today. `Consumed` alone still prints `ocptBudgetEmptyValue`, and for a
+  reason that has nothing to do with the journal: it is a ratio, paid-plus-committed over the quote,
+  and a poste with no quote at all makes that a division by zero — a figure that cannot exist rather
+  than one that happens to be absent, which is a different silence from the one this section used to
+  describe and survives regardless of what the journal ever learns.
+  What is still missing is exactly the three views `budget_resources`, `budget_revenues` and
+  `budget_shares` would feed: **financing** — subsidies, cash and in-kind contributions, each with
+  its own status and what is still left to receive; **catering and travel** — the meals and mileage
+  a shooting day actually cost, read off the schedule and the project settings rather than typed
+  twice; and **revenue sharing** — the takings, the reimbursable contributions repaid before anything
+  is split, and the split itself. None of the three reads a byte the schema holds today, each is
+  argued in full in `docs/plans/budget-mode.md`, and each joins `OcptBudgetCentreView` the day its
+  own milestone gives it something real to show.

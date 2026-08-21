@@ -182,18 +182,27 @@ now, not for want of a bloc.
   stating today, with an argument, that this mode has neither a bloc nor an `Export` control, and
   using it as a precedent for other rules.
 
-### M2 — Cash and commitments
+### M2 — Cash and commitments — shipped
 
-- `budget_entries`, `budget_commitments`, `OcptBudgetJournalService`.
-- **Cash journal** view: the entries with a running balance, a filter by poste (set by a click in the
-  cost tracking view), the debit/credit/balance totals, and the add-an-entry dialog.
-- **Committed** view: the commitments by due date with their status, and the cash projection — the
-  balance falling instalment by instalment (`ocpt_budget_projection.dart`, pure and tested).
-- Vouchers: `assets.budgetEntryId` and `OcptAssetKind.receipt`, referenced through
-  `OcptAssetsService` like the permits and the photos.
-- The poste inspector finally shows the entries attached to it.
-- The dashboard's two alerts, **both computed and neither configured**: a poste over its quote (paid
-  plus committed above it), and the date the projection goes negative.
+`budget_entries`, `budget_commitments`, `OcptBudgetJournalService`, the **cash journal** and
+**committed** views, the settle/unsettle gesture, the vouchers and the dashboard's two alerts have
+shipped; `docs/architecture/budget.md` is the record from here on and this section is not
+re-described. Two points are kept here rather than only there, because M3 is the milestone that
+reads them:
+
+- **`budget_entries.resourceId` was not created.** This table lists it as one of `budget_entries`'
+  own columns, naming which financing resource an entry settles, but `budget_resources` did not
+  exist while M2 was being built. `budget_entries` shipped with no such column at all; the nullable
+  foreign key onto `budget_resources` is added with `Migrator.addColumn` and its own `REFERENCES`
+  clause the moment that table lands here, exactly the way `budget_entries.posteId` itself was
+  added onto an already-existing `budget_postes`.
+- **The pure arithmetic landed as two files, not one.** `lib/utils/ocpt_budget_projection.dart`
+  shipped as planned, but the journal's own readings — a movement's tax-inclusive debit and credit,
+  the running balance, the per-poste paid totals — went into a second file,
+  `lib/utils/ocpt_budget_journal.dart`, rather than being folded into the projection file: a
+  journal entry that has already happened and a commitment instalment that has not yet are a
+  different subject, read by different views, and keeping them apart kept each file about one
+  thing.
 
 ### M3 — Financing, catering and travel
 
