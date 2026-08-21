@@ -8410,13 +8410,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleAuditionRolePickerNoRoleOption": "No role yet",
-  "@scheduleAuditionRolePickerNoRoleOption": {
-    "description": "The entry of an audition block's own role picker naming no role at all",
-    "context": "Displayed in a slot card's own timetable, in the schedule mode's day view",
-    "type": "text",
-    "placeholders": {}
-  },
   "scheduleHoldSequencePickerNoSequenceOption": "No sequence yet",
   "@scheduleHoldSequencePickerNoSequenceOption": {
     "description": "Entry of a hold row's own sequence picker clearing it back to no sequence, and the read-out shown for a hold that names none",
@@ -8603,6 +8596,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleAuditionNoCandidateHint": "Nobody named yet",
+  "@scheduleAuditionNoCandidateHint": {
+    "description": "Read out beside an audition row's candidate picker while that block names no candidacy at all",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddAuditionCandidateAction": "Candidate",
+  "@scheduleAddAuditionCandidateAction": {
+    "description": "Label and tooltip of the picker adding a candidacy to the audition block that sees them",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveAuditionCandidateTooltip": "Remove from this audition",
+  "@scheduleRemoveAuditionCandidateTooltip": {
+    "description": "Tooltip of the control removing one candidacy from the audition block naming it",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAuditionCandidateAlreadyNamedHint": "Every candidate of this project is already seen at this audition.",
+  "@scheduleAuditionCandidateAlreadyNamedHint": {
+    "description": "Shown in an audition row's candidate picker when the block already names every candidacy the project holds",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleAuditionBlockLabel": "{candidateName} — {roleName}",
   "@scheduleAuditionBlockLabel": {
     "description": "Title of an audition block's own timetable row: who is seen, and for which part",
@@ -8612,41 +8633,6 @@
       "candidateName": {"type": "String", "example": "Camille Renard"},
       "roleName": {"type": "String", "example": "MARIE"}
     }
-  },
-  "scheduleSlotCandidatesColumnTitle": "Candidates",
-  "@scheduleSlotCandidatesColumnTitle": {
-    "description": "Title of a slot card's own candidates band, drawn on a casting day alone",
-    "context": "Displayed in the schedule mode's day view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleSlotCandidatesEmptyHint": "No candidate yet.",
-  "@scheduleSlotCandidatesEmptyHint": {
-    "description": "Shown in a slot card's own candidates band while nobody is convoked on it",
-    "context": "Displayed in the schedule mode's day view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleAddCandidateAction": "Candidate",
-  "@scheduleAddCandidateAction": {
-    "description": "Label of the `+ Candidate` footer of a slot card's own candidates band",
-    "context": "Displayed in the schedule mode's day view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleRemoveCandidateTooltip": "Remove this convocation",
-  "@scheduleRemoveCandidateTooltip": {
-    "description": "Tooltip of the remove control of a candidate convoked on a slot",
-    "context": "Displayed in the schedule mode's day view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleCandidateAlreadyConvokedHint": "Every candidate of this project is already convoked on this unit.",
-  "@scheduleCandidateAlreadyConvokedHint": {
-    "description": "Shown instead of the `+ Candidate` menu when the project's candidacies are all already convoked on the slot",
-    "context": "Displayed in the schedule mode's day view",
-    "type": "text",
-    "placeholders": {}
   },
   "scheduleExportPanelTitle": "Export the schedule",
   "@scheduleExportPanelTitle": {
@@ -9394,6 +9380,13 @@
   "scheduleExportAuditionsSectionTitle": "Auditions",
   "@scheduleExportAuditionsSectionTitle": {
     "description": "Heading of a call sheet's own audition table, printed on a day whose blocks hold an audition",
+    "context": "Printed on every exported call sheet whose day auditions somebody",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCandidateHeader": "Candidate",
+  "@scheduleExportCandidateHeader": {
+    "description": "Header of the CANDIDAT column of a call sheet's own audition table, naming who is seen at that hour",
     "context": "Printed on every exported call sheet whose day auditions somebody",
     "type": "text",
     "placeholders": {}

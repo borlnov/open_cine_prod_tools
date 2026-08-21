@@ -72,7 +72,7 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
   final Map<String, OcptRole> roleById;
 
   /// Every candidacy of the project, keyed by id — resolves a candidate convocation's own name and
-  /// the part behind it, `shooting_slot_candidates` naming a candidacy rather than a person.
+  /// the part behind it, `shooting_block_candidates` naming a candidacy rather than a person.
   final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// Class constructor

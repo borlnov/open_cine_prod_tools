@@ -213,8 +213,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleSlotCrewMemberRemovedEvent>(_onSlotCrewMemberRemoved);
     on<OcptScheduleSlotCastRoleAddedEvent>(_onSlotCastRoleAdded);
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
-    on<OcptScheduleSlotCandidateAddedEvent>(_onSlotCandidateAdded);
-    on<OcptScheduleSlotCandidateRemovedEvent>(_onSlotCandidateRemoved);
+    on<OcptScheduleBlockCandidateAddedEvent>(_onBlockCandidateAdded);
+    on<OcptScheduleBlockCandidateRemovedEvent>(_onBlockCandidateRemoved);
     on<OcptScheduleSlotGuestAddedEvent>(_onSlotGuestAdded);
     on<OcptScheduleSlotGuestRemovedEvent>(_onSlotGuestRemoved);
     on<OcptScheduleDayEventCreatedEvent>(_onDayEventCreated);
@@ -227,7 +227,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleBlockDurationChangedEvent>(_onBlockDurationChanged);
     on<OcptScheduleBlockAnchorChangedEvent>(_onBlockAnchorChanged);
     on<OcptScheduleBlockSequenceChangedEvent>(_onBlockSequenceChanged);
-    on<OcptScheduleBlockRoleChangedEvent>(_onBlockRoleChanged);
     on<OcptScheduleBlockReorderedEvent>(_onBlockReordered);
     on<OcptScheduleBlockMovedToSlotEvent>(_onBlockMovedToSlot);
     on<OcptScheduleBlockDeletionConfirmedEvent>(_onBlockDeletionConfirmed);
@@ -936,9 +935,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Convokes a candidate on a slot — the fourth kind of link a slot carries.
-  Future<void> _onSlotCandidateAdded(
-    OcptScheduleSlotCandidateAddedEvent event,
+  /// Names a candidacy on an **audition** block — the hour that candidate is expected at.
+  Future<void> _onBlockCandidateAdded(
+    OcptScheduleBlockCandidateAddedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -946,17 +945,17 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.addSlotCandidate(
+    await _scheduleService.addBlockCandidate(
       database: project.database,
-      slotId: event.slotId,
+      blockId: event.blockId,
       roleCandidateId: event.roleCandidateId,
     );
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Removes a candidate's own convocation from a slot, leaving every block alone.
-  Future<void> _onSlotCandidateRemoved(
-    OcptScheduleSlotCandidateRemovedEvent event,
+  /// Takes a candidacy off an audition block, leaving the block and the candidacy alone.
+  Future<void> _onBlockCandidateRemoved(
+    OcptScheduleBlockCandidateRemovedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -964,9 +963,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.removeSlotCandidate(
+    await _scheduleService.removeBlockCandidate(
       database: project.database,
-      slotCandidateId: event.slotCandidateId,
+      blockCandidateId: event.blockCandidateId,
     );
     await _applyScheduleSnapshot(emitter, project);
   }
@@ -1166,25 +1165,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       blockId: event.blockId,
       sceneId: Value(event.sceneId),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Writes a new part onto an **audition** block — the part being auditioned at that hour, never
-  /// the person coming to be seen.
-  Future<void> _onBlockRoleChanged(
-    OcptScheduleBlockRoleChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateBlock(
-      database: project.database,
-      blockId: event.blockId,
-      roleId: Value(event.roleId),
     );
     await _applyScheduleSnapshot(emitter, project);
   }

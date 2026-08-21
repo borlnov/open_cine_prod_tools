@@ -99,7 +99,6 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   crew: const [],
   cast: const [],
   guests: const [],
-  candidates: const [],
 );
 
 /// Builds a candidacy — somebody seen for a part — with the few fields these tests read.

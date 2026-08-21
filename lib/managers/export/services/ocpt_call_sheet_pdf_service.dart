@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -88,14 +89,15 @@ const Map<int, pw.TableColumnWidth> _peopleColumnWidths = {
   4: pw.FlexColumnWidth(1.4),
 };
 
-/// The audition table's `HORAIRES / RÔLE` columns — two, and deliberately only two: an audition
-/// block names the part it sees and never the person who comes to be seen (ADR 0018, and
-/// `OcptShootingBlockKind.audition`'s own doc comment), so a `CANDIDAT` column could only ever have
-/// claimed somebody was expected at an hour nobody typed. Who is coming reads off the day's own
-/// candidates list instead, where their phone number sits beside their name.
+/// The audition table's `HORAIRES / RÔLE / CANDIDAT` columns — three, the third one arriving with
+/// the link that can fill it: an audition block names the **candidacies** it sees (ADR 0024), so it
+/// knows both who is expected and at what hour, which is exactly what this table is read for. No
+/// phone number among them: this is a reading of the timetable, and a contact belongs in the day's
+/// own candidates directory beside everybody else's.
 const Map<int, pw.TableColumnWidth> _auditionColumnWidths = {
   0: pw.FlexColumnWidth(1.2),
-  1: pw.FlexColumnWidth(2.4),
+  1: pw.FlexColumnWidth(1.8),
+  2: pw.FlexColumnWidth(1.8),
 };
 
 /// The trailing guest table's `NOM / MOTIF / HORAIRES` columns — wider on the reason column than
@@ -1036,13 +1038,15 @@ class OcptCallSheetPdfService {
       }
       lines.add(
         _timeBandLine(
-          // Both resolvers are empty on purpose: only a `meal` block reaches this line, and a meal
-          // break names neither a sequence nor a part — its caption is its own label or the kind's.
+          // All three resolvers are empty on purpose: only a `meal` block reaches this line, and a
+          // meal break names neither a sequence nor a candidacy — its caption is its own label or
+          // the kind's.
           label: _captionOf(
             block: ordered.block,
             labels: labels,
             headingBySceneId: const {},
             roleById: const {},
+            roleCandidateById: const {},
           ),
           startMinute: ordered.entry.startMinute,
           endMinute: ordered.entry.endMinute,
@@ -1337,8 +1341,9 @@ class OcptCallSheetPdfService {
     ],
   );
 
-  /// The day's own audition table (`HORAIRES / RÔLE`): one row per audition block, in the running
-  /// order the timetable resolved, saying at what hour which part is being seen.
+  /// The day's own audition table (`HORAIRES / RÔLE / CANDIDAT`): one row per candidacy an audition
+  /// block names, in the running order the timetable resolved, saying at what hour which part is
+  /// being seen and by whom.
   ///
   /// Printed **beside** the main table rather than instead of it, and only on a day whose own blocks
   /// hold an audition: a production that auditions in the morning and shoots in the afternoon gets
@@ -1366,7 +1371,11 @@ class OcptCallSheetPdfService {
             repeat: true,
             decoration: const pw.BoxDecoration(color: _bandColor),
             children: [
-              for (final header in [labels.hoursLinePrefix, labels.roleHeader])
+              for (final header in [
+                labels.hoursLinePrefix,
+                labels.roleHeader,
+                labels.candidateHeader,
+              ])
                 _textCell(painter: painter, text: header, isBold: true),
             ],
           ),
@@ -1375,11 +1384,12 @@ class OcptCallSheetPdfService {
               children: [
                 _textCell(
                   painter: painter,
-                  text: row.endMinute == null
-                      ? ocptFormatDayMinute(row.startMinute)
-                      : "${ocptFormatDayMinute(row.startMinute)} – ${ocptFormatDayMinute(row.endMinute!)}",
+                  text:
+                      "${ocptFormatDayMinute(row.startMinute)} – "
+                      "${ocptFormatDayMinute(row.endMinute)}",
                 ),
                 _textCell(painter: painter, text: row.roleLabel ?? ocptScheduleEmptyValue),
+                _textCell(painter: painter, text: row.candidateName ?? ocptScheduleEmptyValue),
               ],
             ),
         ],
@@ -1604,22 +1614,36 @@ class _CastRow {
   final OcptDayConvocation? convocation;
 }
 
-/// One printed row of the day's own audition table: an audition block's resolved hours, and the part
-/// it sees.
+/// One printed row of the day's own audition table: an audition block's resolved hours, the part it
+/// sees, and who is being seen for it.
+///
+/// **One row per candidacy, not per block**: two actors of two different parts read together are two
+/// rows sharing one hour (ADR 0024), and a block naming nobody yet is one row carrying its hour
+/// alone.
 class _AuditionRow {
-  const _AuditionRow({required this.startMinute, required this.endMinute, required this.roleLabel});
+  const _AuditionRow({
+    required this.startMinute,
+    required this.endMinute,
+    required this.roleLabel,
+    required this.candidateName,
+  });
 
   /// Where this audition starts, resolved off the timeline like every other hour on this sheet.
   final int startMinute;
 
-  /// Where it ends, resolved — null for a block the timeline gives no duration at all, which prints
-  /// the one figure rather than an open band.
-  final int? endMinute;
+  /// Where it ends, resolved off the same timeline.
+  final int endMinute;
 
   /// The part being seen, as `<number> · <name>` ([ocptScheduleRoleLabelOf]), or null while the
-  /// block names none — an ordinary state, exactly as a hold with no sequence is — or while it names
-  /// one the project has since deleted. The caller prints [ocptScheduleEmptyValue] for it.
+  /// block names nobody — an ordinary state, exactly as a hold with no sequence is — or while the
+  /// candidacy names a part the project has since deleted. The caller prints
+  /// [ocptScheduleEmptyValue] for it.
   final String? roleLabel;
+
+  /// Who is being seen, or null under the same conditions as [roleLabel]. Their phone number is
+  /// deliberately not here: it sits in the day's own candidates directory, where a directory
+  /// belongs.
+  final String? candidateName;
 }
 
 /// One crew member's own contact: who they are, what they hold that day, and which department that
@@ -1741,6 +1765,7 @@ List<_DayRow> _buildDayRows({
           labels: labels,
           headingBySceneId: headingBySceneId,
           roleById: plan.roleById,
+          roleCandidateById: plan.roleCandidateById,
         ),
         roleNumbers: ocptScheduleBlockRoleNumbersOf(
           block: block,
@@ -1758,9 +1783,9 @@ List<_DayRow> _buildDayRows({
 }
 
 /// The caption a non-shot [block] prints: its own free-text label when it has one, then whatever
-/// that kind of block names — a sequence's heading for a hold or a rehearsal, the part's own
-/// `<number> · <name>` for an audition — or [OcptCallSheetLabels.blockKindLabelOf] as the final
-/// fallback.
+/// that kind of block names — a sequence's heading for a hold or a rehearsal, the parts an audition
+/// sees, each as its own `<number> · <name>` — or [OcptCallSheetLabels.blockKindLabelOf] as the
+/// final fallback.
 ///
 /// A thin alias over [ocptScheduleBlockCaptionOf] (`ocpt_schedule_pdf_shared.dart`), shared with
 /// `OcptShootingPlanPdfService` — see that function's own doc comment for why. The roles a
@@ -1771,10 +1796,12 @@ String _captionOf({
   required OcptCallSheetLabels labels,
   required Map<String, String> headingBySceneId,
   required Map<String, OcptRole> roleById,
+  required Map<String, OcptRoleCandidate> roleCandidateById,
 }) => ocptScheduleBlockCaptionOf(
   block: block,
   headingBySceneId: headingBySceneId,
   roleById: roleById,
+  roleCandidateById: roleCandidateById,
   blockKindLabelOf: labels.blockKindLabelOf,
 );
 
@@ -1866,27 +1893,83 @@ List<_CastRow> _castRowsOfDay({
   return rows;
 }
 
-/// The audition rows of [orderedEntries]: one per [OcptShootingBlockKind.audition] block, in the
-/// timetable's own resolved order, each carrying its own hours and the part it sees.
+/// The audition rows of [orderedEntries]: one per candidacy every [OcptShootingBlockKind.audition]
+/// block names, in the timetable's own resolved order and, within a block, in its candidacies' own
+/// `sortKey` order — each carrying that block's hours, the part being seen and who is being seen for
+/// it. A block naming nobody yet still prints **one** row, carrying its hour alone: the day plans
+/// something at that time, and a table that hid it would be a running order with a gap in it.
 ///
 /// Read off the very entries the main table is built from, so the two tables of one sheet can never
 /// order the day differently — which is also why a named sheet's own narrowed entries narrow the
 /// audition table with it: it is a reading of the timetable, and the timetable is the one thing a
 /// named sheet narrows.
+///
+/// **[onlyRoleCandidateId], when given, narrows it to that one candidacy** — the reading a named
+/// sheet addressed to a **candidate** gets, and the one place a block-level link narrows something
+/// a slot-level one could not. The reason is not tidiness: who else is being seen for a part is the
+/// production's business and not another candidate's. Every other directory on their sheet stays
+/// day-wide.
+///
+/// A candidacy [OcptSchedulePlanSnapshot.roleCandidateById] no longer holds is dropped rather than
+/// printed nameless — the same reading the convocations panel already gives a vanished candidacy.
 List<_AuditionRow> _auditionRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required List<OcptOrderedScheduleEntry> orderedEntries,
-}) => [
-  for (final ordered in orderedEntries)
-    if (ordered.block.kind == OcptShootingBlockKind.audition)
-      _AuditionRow(
-        startMinute: ordered.entry.startMinute,
-        endMinute: ordered.entry.endMinute,
-        roleLabel: ocptScheduleRoleLabelOf(
-          ordered.block.roleId == null ? null : plan.roleById[ordered.block.roleId],
+  String? onlyRoleCandidateId,
+}) {
+  final rows = <_AuditionRow>[];
+
+  for (final ordered in orderedEntries) {
+    if (ordered.block.kind != OcptShootingBlockKind.audition) {
+      continue;
+    }
+
+    final candidacies = <OcptRoleCandidate>[];
+    for (final link in ordered.block.candidates) {
+      if (onlyRoleCandidateId != null && link.roleCandidateId != onlyRoleCandidateId) {
+        continue;
+      }
+      final candidate = plan.roleCandidateById[link.roleCandidateId];
+      if (candidate != null) {
+        candidacies.add(candidate);
+      }
+    }
+
+    // A block narrowed away entirely by [onlyRoleCandidateId] is another candidate's hour, and says
+    // nothing to this recipient — unlike a block that genuinely names nobody, which is this day's
+    // own plan and keeps its empty row.
+    if (candidacies.isEmpty && onlyRoleCandidateId != null) {
+      continue;
+    }
+
+    if (candidacies.isEmpty) {
+      rows.add(
+        _AuditionRow(
+          startMinute: ordered.entry.startMinute,
+          endMinute: ordered.entry.endMinute,
+          roleLabel: null,
+          candidateName: null,
         ),
-      ),
-];
+      );
+      continue;
+    }
+
+    for (final candidate in candidacies) {
+      rows.add(
+        _AuditionRow(
+          startMinute: ordered.entry.startMinute,
+          endMinute: ordered.entry.endMinute,
+          roleLabel: ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]),
+          candidateName: candidate.person.displayName.trim().isEmpty
+              ? null
+              : candidate.person.displayName.trim(),
+        ),
+      );
+    }
+  }
+
+  return rows;
+}
 
 /// The day's own candidates list: one row per candidate convoked on [dayId]
 /// ([OcptDayConvocation.isCandidate]), their name, the part they are coming to be seen for, their
@@ -1898,7 +1981,7 @@ List<_AuditionRow> _auditionRowsOfDay({
 /// cast-and-extras list and the trailing guest table already are.
 ///
 /// The part is named through the **candidacy** rather than through the person, which is the whole
-/// reason `shooting_slot_candidates` points at a `role_candidates` row: two candidacies of one
+/// reason `shooting_block_candidates` points at a `role_candidates` row: two candidacies of one
 /// person are two convocations, and a list naming the person alone could not tell an assistant
 /// director which of the two they are looking at. A convocation whose candidacy
 /// [OcptSchedulePlanSnapshot.roleCandidateById] no longer holds is left out entirely rather than
@@ -2137,7 +2220,7 @@ String? _mapsUrlOf(OcptLocation location) {
 }
 
 /// [convocation]'s own display name: the person's, the **candidate's** — read through their own
-/// candidacy, which is what `shooting_slot_candidates` names — the uncast role's, or
+/// candidacy, which is what `shooting_block_candidates` names — the uncast role's, or
 /// [OcptCallSheetLabels.unnamedPersonLabel] while none of them names anybody printable.
 String _convocationDisplayNameOf(
   OcptDayConvocation convocation,

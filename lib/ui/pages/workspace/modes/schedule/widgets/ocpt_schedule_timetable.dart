@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -26,10 +27,6 @@ const int _ocptDurationStepGridMinutes = 5;
 /// be selectable, the same convention `OcptScheduleSlotCard`'s own `_noLocationOption`/
 /// `_noGroupOption` already use.
 const String _noSequenceOption = "";
-
-/// The value the "no role yet" entry of an audition row's own role picker carries, distinct from
-/// every role id — [_noSequenceOption]'s twin, and the same convention for the same reason.
-const String _noRoleOption = "";
 
 /// The payload a row's own cross-slot drag carries: which block, and the id of the slot it
 /// currently belongs to. The second half is what lets a slot card's own [DragTarget] refuse a block
@@ -65,15 +62,22 @@ class _OcptScheduleDraggedBlock {
 /// [sequences] plus a "no sequence yet" entry, [sequences] itself never carrying the shot list's
 /// own orphan group: an orphan names no `scenes` row, so `sceneId` could never point at it.
 ///
-/// An **audition** row carries that very idiom one table across: a picker naming the **role** being
-/// auditioned ([onAuditionRoleChanged], writing `shooting_day_blocks.roleId`), offering every one of
-/// [roles] plus a "no role yet" entry. It names a *part*, never a person — who is coming to be seen
-/// is the slot's own candidates band, and one audition block regularly sees several of them one
-/// after another.
+/// An **audition** row carries something else again: a strip of **candidacy chips** under it, one
+/// per `shooting_block_candidates` row it names — the person and the part they are being seen for —
+/// each with its own remove control ([onCandidateRemoved]), and a `+` picker
+/// ([onCandidateAdded]) offering every candidacy of the project grouped by role, minus the ones this
+/// block already names. The block *is* the hour somebody is expected at (ADR 0024), so this is where
+/// they are named; several chips on one row is ordinary, two actors of two different parts being
+/// regularly read together, and a row naming nobody yet is as ordinary as a hold with no sequence.
+///
+/// The picker **picks an existing candidacy and never creates one**: a candidate is recorded on the
+/// role sheet, where the casting is decided, and a timetable that could invent one would be a second
+/// place saying who is seen for a part.
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onReordered], [onDurationChanged], [onAnchorChanged], [onShotStatusChanged],
-/// [onHoldSequenceChanged], [onAuditionRoleChanged], [onDeletionRequested], [onBlockAdded],
+/// [onHoldSequenceChanged], [onCandidateAdded], [onCandidateRemoved], [onDeletionRequested],
+/// [onBlockAdded],
 /// [onShotBlockRequested] and
 /// [onBlockMovedToSlot] — the last of which also turns every row undraggable and this timetable's
 /// own drop area inert, rather than merely disabled. Selecting a row ([onBlockSelected]) only ever
@@ -87,9 +91,15 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// This slot's own live blocks, in `sortKey` order.
   final List<OcptShootingDayBlock> blocks;
 
-  /// The whole cast, in its own order — what an **audition** row's own role picker offers, and what
-  /// it names the part being auditioned through.
+  /// The whole cast, in its own order — what an **audition** row's own candidacy chips and picker
+  /// read a part's name off, and what groups that picker's own entries.
   final List<OcptRole> roles;
+
+  /// Every live candidacy of the project, keyed by id — what an **audition** row's own chips resolve
+  /// their `roleCandidateId` through, and what its picker offers. A chip whose candidacy this map no
+  /// longer holds is left out: the link points at nobody, and drawing a nameless chip would be worse
+  /// than drawing nothing (no cascade removes it — see `OcptShootingBlockCandidatesTable`).
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// This slot's own computed timeline, or null while it has nothing placed yet.
   final OcptShootingSlotTimeline? timeline;
@@ -135,10 +145,13 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// read-only text.
   final void Function(String blockId, String? sceneId)? onHoldSequenceChanged;
 
-  /// Called with an **audition** block's id and the role just picked from its own role picker (null
-  /// for "no role yet"), or null while withheld — which also turns that picker into plain read-only
-  /// text, exactly as [onHoldSequenceChanged] does for a hold's own.
-  final void Function(String blockId, String? roleId)? onAuditionRoleChanged;
+  /// Called with an **audition** block's id and the id of the candidacy just picked from its own `+`
+  /// picker, or null while withheld — which also hides that picker.
+  final void Function(String blockId, String roleCandidateId)? onCandidateAdded;
+
+  /// Called with a candidacy convocation's own id (`shooting_block_candidates.id`) when its chip's
+  /// remove control is clicked, or null while withheld — which also hides every chip's own control.
+  final ValueChanged<String>? onCandidateRemoved;
 
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onDeletionRequested;
@@ -166,6 +179,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     required this.slotId,
     required this.blocks,
     required this.roles,
+    required this.roleCandidateById,
     required this.timeline,
     required this.shotOf,
     required this.selectedBlockId,
@@ -177,7 +191,8 @@ class OcptScheduleTimetable extends StatelessWidget {
     required this.onAnchorChanged,
     required this.onShotStatusChanged,
     required this.onHoldSequenceChanged,
-    required this.onAuditionRoleChanged,
+    required this.onCandidateAdded,
+    required this.onCandidateRemoved,
     required this.onDeletionRequested,
     required this.onBlockAdded,
     required this.onShotBlockRequested,
@@ -342,6 +357,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     isOverrun: isOverrun,
     shot: block.kind == OcptShootingBlockKind.shot && block.shotId != null ? shotOf(block.shotId!) : null,
     roles: roles,
+    roleCandidateById: roleCandidateById,
     isSelected: block.id == selectedBlockId,
     reorderIndex: reorderIndex,
     sequences: sequences,
@@ -359,9 +375,10 @@ class OcptScheduleTimetable extends StatelessWidget {
     onSequenceChanged: onHoldSequenceChanged == null
         ? null
         : (sceneId) => onHoldSequenceChanged!(block.id, sceneId),
-    onRoleChanged: onAuditionRoleChanged == null
+    onCandidateAdded: onCandidateAdded == null
         ? null
-        : (roleId) => onAuditionRoleChanged!(block.id, roleId),
+        : (roleCandidateId) => onCandidateAdded!(block.id, roleCandidateId),
+    onCandidateRemoved: onCandidateRemoved,
     onDeletionRequested: onDeletionRequested == null ? null : () => onDeletionRequested!(block.id),
     onMovedToSlot: onBlockMovedToSlot == null
         ? null
@@ -383,9 +400,12 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// The shot [block] places, when [block]'s own kind is [OcptShootingBlockKind.shot].
   final OcptShot? shot;
 
-  /// The whole cast — only read when [block]'s own kind is [OcptShootingBlockKind.audition], to
-  /// offer and to name the part being auditioned.
+  /// The whole cast — only read when [block]'s own kind is [OcptShootingBlockKind.audition], to name
+  /// and to group the parts its candidacies are seen for.
   final List<OcptRole> roles;
+
+  /// Every live candidacy of the project, keyed by id — see [OcptScheduleTimetable.roleCandidateById].
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// Whether this is the currently selected block.
   final bool isSelected;
@@ -419,9 +439,13 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// yet"), or null while withheld or [block]'s own kind names no sequence — see [_namesASequence].
   final ValueChanged<String?>? onSequenceChanged;
 
-  /// Called with the role just picked from this row's own role picker (null for "no role yet"), or
-  /// null while withheld or [block] isn't an [OcptShootingBlockKind.audition].
-  final ValueChanged<String?>? onRoleChanged;
+  /// Called with the id of the candidacy just picked from this row's own `+` picker, or null while
+  /// withheld or [block] isn't an [OcptShootingBlockKind.audition].
+  final ValueChanged<String>? onCandidateAdded;
+
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
+  /// under the same conditions as [onCandidateAdded].
+  final ValueChanged<String>? onCandidateRemoved;
 
   /// Called when this row's own remove control is clicked, or null while withheld.
   final VoidCallback? onDeletionRequested;
@@ -438,6 +462,7 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     required this.isOverrun,
     required this.shot,
     required this.roles,
+    required this.roleCandidateById,
     required this.isSelected,
     required this.reorderIndex,
     required this.sequences,
@@ -447,7 +472,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     required this.onAnchorChanged,
     required this.onShotStatusChanged,
     required this.onSequenceChanged,
-    required this.onRoleChanged,
+    required this.onCandidateAdded,
+    required this.onCandidateRemoved,
     required this.onDeletionRequested,
     required this.onMovedToSlot,
   });
@@ -491,11 +517,6 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: _buildSequencePicker(context, tr, theme),
-          ),
-        if (block.kind == OcptShootingBlockKind.audition)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: _buildRolePicker(context, tr, theme),
           ),
         Expanded(
           child: Text(
@@ -591,6 +612,13 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
           )
         : rowTail;
 
+    // On a line of its own under the row, never inside it: a strip that wraps cannot share a line
+    // with controls that must stay put, and it is left outside the [Draggable] so its own chips keep
+    // their gestures rather than starting a cross-slot drag.
+    final candidateStrip = block.kind == OcptShootingBlockKind.audition
+        ? _buildCandidateStrip(context, tr, theme)
+        : null;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: InkWell(
@@ -620,7 +648,14 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
                     child: Icon(Icons.drag_indicator, size: 16, color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ),
-              Expanded(child: rowBody),
+              Expanded(
+                child: candidateStrip == null
+                    ? rowBody
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [rowBody, const SizedBox(height: 6), candidateStrip],
+                      ),
+              ),
             ],
           ),
         ),
@@ -702,68 +737,159 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     );
   }
 
-  /// An **audition** row's own role picker: the part being auditioned, or the "no role yet" entry
-  /// while nobody has settled which — an ordinary state, exactly as a hold with no sequence is.
+  /// This **audition** row's own candidacy strip: one chip per `shooting_block_candidates` row the
+  /// block names — who is being seen, and for which part — then the `+` picker offering every
+  /// candidacy of the project this block does not already name, grouped by role.
   ///
-  /// Deliberately the sequence picker's twin rather than a dialog asked once at creation time: the
-  /// part an audition is for gets corrected while a session is planned, and a question asked at
-  /// creation could never be answered a second time. It names a **role** and never a person — who
-  /// is coming to be seen is the slot's own candidates band, one audition regularly seeing several
-  /// of them one after another.
+  /// A [Wrap] rather than a [Row]: a block reading two actors of two different parts together names
+  /// two candidacies, and a timetable narrowed by a side dock has no width to promise them. The
+  /// picker is a [PopupMenuButton] and the chips are plain containers, so nothing here puts a
+  /// [MenuItemButton] inside that [Wrap] — see `OcptResourcesColorSwatches` for what that costs.
   ///
-  /// Read defensively: a role deleted under a block that still names it falls back on the cast's
-  /// own "unnamed" reading rather than emptying the picker.
-  Widget _buildRolePicker(BuildContext context, Tr tr, ThemeData theme) {
-    final onRoleChanged = this.onRoleChanged;
-    final roleId = block.roleId;
-    OcptRole? currentRole;
-    for (final role in roles) {
-      if (role.id == roleId) {
-        currentRole = role;
-        break;
+  /// A chip whose candidacy [roleCandidateById] no longer holds is **left out**: the link points at
+  /// nobody, and drawing a nameless chip would be worse than drawing nothing. Nothing cascades it
+  /// away either — see `OcptShootingBlockCandidatesTable`.
+  ///
+  /// A block naming nobody yet reads out [Tr.scheduleAuditionNoCandidateHint] beside its picker,
+  /// exactly as a hold with no sequence reads its own "no sequence yet": an ordinary state said
+  /// plainly rather than an empty strip nobody can tell from a bug.
+  Widget _buildCandidateStrip(BuildContext context, Tr tr, ThemeData theme) {
+    final onCandidateRemoved = this.onCandidateRemoved;
+    final onCandidateAdded = this.onCandidateAdded;
+
+    final named = <(String, OcptRoleCandidate)>[];
+    final namedCandidacyIds = <String>{};
+    for (final link in block.candidates) {
+      namedCandidacyIds.add(link.roleCandidateId);
+      final candidate = roleCandidateById[link.roleCandidateId];
+      if (candidate != null) {
+        named.add((link.id, candidate));
       }
     }
-    final currentLabel = switch (currentRole) {
-      null when roleId == null => tr.scheduleAuditionRolePickerNoRoleOption,
-      null => tr.resourcesRoleUnnamed,
-      final role => role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
-    };
-    final labelStyle = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-      fontWeight: FontWeight.w600,
-    );
 
-    if (onRoleChanged == null) {
-      return Text(currentLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: labelStyle);
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (named.isEmpty)
+          Text(
+            tr.scheduleAuditionNoCandidateHint,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        for (final (linkId, candidate) in named)
+          _OcptScheduleAuditionCandidateChip(
+            key: ValueKey(linkId),
+            label: _candidacyLabelOf(tr, candidate),
+            onRemoved: onCandidateRemoved == null ? null : () => onCandidateRemoved(linkId),
+          ),
+        if (onCandidateAdded != null)
+          _buildCandidatePicker(
+            context,
+            tr,
+            theme,
+            namedCandidacyIds: namedCandidacyIds,
+            onPicked: onCandidateAdded,
+          ),
+      ],
+    );
+  }
+
+  /// The `+` half of the strip: every candidacy of the project this block does not already name,
+  /// **grouped by the part it is for** — a disabled heading per role, then its own candidacies —
+  /// since a casting director looks for "who else was seen for Marie" rather than for a name in one
+  /// long list.
+  ///
+  /// It offers what already exists and never creates: a candidate is recorded on the role sheet,
+  /// where the casting is decided. With nothing left to offer, the menu says so
+  /// ([Tr.scheduleAuditionCandidateAlreadyNamedHint]) rather than opening empty.
+  Widget _buildCandidatePicker(
+    BuildContext context,
+    Tr tr,
+    ThemeData theme, {
+    required Set<String> namedCandidacyIds,
+    required ValueChanged<String> onPicked,
+  }) {
+    final offerableByRoleId = <String, List<OcptRoleCandidate>>{};
+    for (final candidate in roleCandidateById.values) {
+      if (namedCandidacyIds.contains(candidate.id)) {
+        continue;
+      }
+      (offerableByRoleId[candidate.roleId] ??= <OcptRoleCandidate>[]).add(candidate);
+    }
+    for (final group in offerableByRoleId.values) {
+      group.sort((left, right) => left.person.displayName.compareTo(right.person.displayName));
     }
 
     return PopupMenuButton<String>(
-      tooltip: "",
+      tooltip: tr.scheduleAddAuditionCandidateAction,
       padding: EdgeInsets.zero,
-      onSelected: (value) => onRoleChanged(value == _noRoleOption ? null : value),
+      onSelected: onPicked,
       itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: _noRoleOption,
-          child: Text(tr.scheduleAuditionRolePickerNoRoleOption),
-        ),
-        const PopupMenuDivider(),
-        for (final role in roles)
+        if (offerableByRoleId.isEmpty)
           PopupMenuItem<String>(
-            value: role.id,
-            child: Text(
-              role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            enabled: false,
+            child: Text(tr.scheduleAuditionCandidateAlreadyNamedHint),
           ),
+        // Walked over [roles] rather than over the groups themselves, so the menu reads the cast in
+        // its own order — the very order the roles tab lists it in — rather than in whatever order
+        // the candidacies happened to arrive.
+        for (final role in roles)
+          if (offerableByRoleId[role.id] case final group?) ...[
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Text(role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name),
+            ),
+            for (final candidate in group)
+              PopupMenuItem<String>(
+                value: candidate.id,
+                child: Text(
+                  candidate.person.displayName.isEmpty
+                      ? tr.resourcesUnnamedPerson
+                      : candidate.person.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
       ],
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(currentLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: labelStyle),
-          Icon(Icons.arrow_drop_down, size: 14, color: theme.colorScheme.onSurfaceVariant),
+          Icon(Icons.add, size: 14, color: theme.colorScheme.primary),
+          const SizedBox(width: 2),
+          Text(
+            tr.scheduleAddAuditionCandidateAction,
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
+          ),
         ],
       ),
+    );
+  }
+
+  /// One candidacy's own wording — who, and for which part — the pair every reading of a candidacy
+  /// in this app carries, since two candidacies of one person are two different things and a name
+  /// alone could not tell them apart.
+  ///
+  /// The part is read through the candidacy's own `roleId` against [roles], defensively: a role
+  /// deleted under it falls back on the cast's own "unnamed" reading rather than emptying the chip.
+  String _candidacyLabelOf(Tr tr, OcptRoleCandidate candidate) {
+    OcptRole? role;
+    for (final candidateRole in roles) {
+      if (candidateRole.id == candidate.roleId) {
+        role = candidateRole;
+        break;
+      }
+    }
+
+    return tr.scheduleAuditionBlockLabel(
+      candidate.person.displayName.isEmpty
+          ? tr.resourcesUnnamedPerson
+          : candidate.person.displayName,
+      role == null || role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
     );
   }
 
@@ -781,6 +907,56 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
         PopupMenuItem<String>(value: id, child: Text(label.isEmpty ? tr.scheduleInspectorUnnamedSlot : label)),
     ],
   );
+}
+
+/// One candidacy an audition row names, drawn as a chip: who is being seen and for which part, plus
+/// its own remove control while one is given.
+///
+/// A chip rather than a card, unlike every convocation on the slot above it, because this is a
+/// reading of one line of a running order rather than a directory of the unit: a block regularly
+/// names two of these, and two cards would push the timetable's own hours off the row they belong
+/// to.
+class _OcptScheduleAuditionCandidateChip extends StatelessWidget {
+  /// Who is being seen, and for which part — already resolved by the row, this widget resolving
+  /// nothing itself.
+  final String label;
+
+  /// Called when this chip's own remove control is clicked, or null while withheld — which hides
+  /// the control rather than disabling it.
+  final VoidCallback? onRemoved;
+
+  /// Class constructor
+  const _OcptScheduleAuditionCandidateChip({super.key, required this.label, required this.onRemoved});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Container(
+      padding: EdgeInsets.only(left: 8, right: onRemoved == null ? 8 : 2, top: 2, bottom: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: theme.textTheme.labelSmall),
+          if (onRemoved != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 13),
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(3),
+              tooltip: tr.scheduleRemoveAuditionCandidateTooltip,
+              onPressed: onRemoved,
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// The `±` duration controls, over the block's own currently resolved duration.

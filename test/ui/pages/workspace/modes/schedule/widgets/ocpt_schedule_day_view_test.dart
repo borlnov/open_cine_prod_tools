@@ -55,7 +55,6 @@ OcptShootingSlot _buildSlot({String id = "slot-1"}) => OcptShootingSlot(
   crew: const [],
   cast: const [],
   guests: const [],
-  candidates: const [],
 );
 
 /// Builds a block with the few fields these tests read.
@@ -71,7 +70,7 @@ OcptShootingDayBlock _buildBlock({
   kind: kind,
   shotId: null,
   sceneId: null,
-  roleId: roleId,
+  candidates: const [],
   label: "",
   durationMinutes: 20,
   anchorMinute: null,
@@ -145,7 +144,8 @@ Future<void> _pumpDayView(
         onBlockAnchorChanged: null,
         onShotStatusChanged: null,
         onBlockSequenceChanged: null,
-        onBlockRoleChanged: null,
+        onBlockCandidateAdded: null,
+        onBlockCandidateRemoved: null,
         onBlockDeletionRequested: null,
         onBlockAdded: null,
         onShotBlockRequested: null,
@@ -160,8 +160,6 @@ Future<void> _pumpDayView(
         onEventNotesChanged: onEventAdded == null ? null : (_, _) {},
         onEventDeletionRequested: onEventAdded == null ? null : (_) {},
         roleCandidateById: const {},
-        onSlotCandidateAdded: null,
-        onSlotCandidateRemoved: null,
       ),
     ),
   );

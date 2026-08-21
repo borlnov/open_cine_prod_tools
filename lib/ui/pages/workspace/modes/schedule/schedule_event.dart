@@ -483,44 +483,46 @@ class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, castRoleId];
 }
 
-/// Convokes candidacy [roleCandidateId] on slot [slotId], dispatched by the candidates band's own
-/// `+ Candidate` footer — the fourth kind of link a slot carries, and the one a casting day is
-/// planned with (ADR 0018: you are convoked because you are linked to a slot).
+/// Names candidacy [roleCandidateId] on **audition** block [blockId], dispatched by that row's own
+/// `+` picker — the one convocation in this app read off a block rather than off a slot (ADR 0024),
+/// because a candidate is expected at twenty past ten rather than "on the unit today".
 ///
 /// It names a **candidacy**, never a person: the convocation is about somebody being seen *for a
-/// part*, and one person seen for two parts on one day is two convocations.
-class OcptScheduleSlotCandidateAddedEvent extends OcptScheduleEvent {
-  /// The id of the slot the candidate is convoked on.
-  final String slotId;
+/// part*, and one person read for two parts on one day is two convocations. Several on one block is
+/// ordinary — two actors of two different parts read together.
+class OcptScheduleBlockCandidateAddedEvent extends OcptScheduleEvent {
+  /// The id of the audition block the candidate is seen at.
+  final String blockId;
 
-  /// The id of the candidacy convoked — who, for which part.
+  /// The id of the candidacy named — who, for which part.
   final String roleCandidateId;
 
   /// Class constructor
-  const OcptScheduleSlotCandidateAddedEvent({
-    required this.slotId,
+  const OcptScheduleBlockCandidateAddedEvent({
+    required this.blockId,
     required this.roleCandidateId,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, slotId, roleCandidateId];
+  List<Object?> get props => [...super.props, blockId, roleCandidateId];
 }
 
-/// Removes candidate convocation [slotCandidateId] for good, dispatched by its own row's dismissal.
+/// Removes candidate convocation [blockCandidateId] for good, dispatched by its own chip's remove
+/// control.
 ///
-/// **Touches no block**: an audition block naming that candidacy stays exactly where it is — see
-/// `OcptScheduleService.removeSlotCandidate`.
-class OcptScheduleSlotCandidateRemovedEvent extends OcptScheduleEvent {
+/// **Touches neither the block nor the candidacy**: the audition stays exactly where it is and the
+/// `role_candidates` row outlives it — see `OcptScheduleService.removeBlockCandidate`.
+class OcptScheduleBlockCandidateRemovedEvent extends OcptScheduleEvent {
   /// The id of the candidate convocation to remove.
-  final String slotCandidateId;
+  final String blockCandidateId;
 
   /// Class constructor
-  const OcptScheduleSlotCandidateRemovedEvent({required this.slotCandidateId});
+  const OcptScheduleBlockCandidateRemovedEvent({required this.blockCandidateId});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, slotCandidateId];
+  List<Object?> get props => [...super.props, blockCandidateId];
 }
 
 /// Adds [personId] to slot [slotId]'s own guests, dispatched by the guest band's own `+ Guest`
@@ -736,27 +738,6 @@ class OcptScheduleBlockSequenceChangedEvent extends OcptScheduleEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, blockId, sceneId];
-}
-
-/// Writes a new part onto **audition** block [blockId] immediately, dispatched by its own timetable
-/// row's role picker — the control that fills `shooting_day_blocks.roleId`, which says which part
-/// is being auditioned at that hour.
-///
-/// It names a **role** and never a person: who comes to be seen is `shooting_slot_candidates`, on
-/// the slot, and one audition regularly sees several candidates one after another.
-class OcptScheduleBlockRoleChangedEvent extends OcptScheduleEvent {
-  /// The id of the audition block being edited.
-  final String blockId;
-
-  /// The id of the role just picked, or null to clear it back to "no role yet".
-  final String? roleId;
-
-  /// Class constructor
-  const OcptScheduleBlockRoleChangedEvent({required this.blockId, required this.roleId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, blockId, roleId];
 }
 
 /// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, dispatched by

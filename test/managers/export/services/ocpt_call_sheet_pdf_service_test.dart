@@ -4,7 +4,6 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
@@ -17,11 +16,11 @@ import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_block_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
@@ -115,6 +114,7 @@ const _labels = OcptCallSheetLabels(
   unnamedPersonLabel: "No name",
   eventsSectionTitle: "Events",
   auditionsSectionTitle: "Auditions",
+  candidateHeader: "CANDIDAT",
   candidatesSectionTitle: "Candidates",
   guestsSectionTitle: "Guests",
   guestReasonHeader: "Reason",
@@ -143,7 +143,6 @@ OcptShootingSlot _buildSlot({
   List<OcptShootingSlotCrewMember> crew = const [],
   List<OcptShootingSlotCastMember> cast = const [],
   List<OcptShootingSlotGuest> guests = const [],
-  List<OcptShootingSlotCandidate> candidates = const [],
 }) => OcptShootingSlot(
   id: id,
   shootingDayId: "day-1",
@@ -157,7 +156,6 @@ OcptShootingSlot _buildSlot({
   crew: crew,
   cast: cast,
   guests: guests,
-  candidates: candidates,
 );
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
@@ -167,7 +165,7 @@ OcptShootingDayBlock _buildBlock({
   OcptShootingBlockKind kind = OcptShootingBlockKind.preparation,
   String? shotId,
   String? sceneId,
-  String? roleId,
+  List<OcptShootingBlockCandidate> candidates = const [],
   String label = "",
   int? durationMinutes = 30,
   String crewNote = "",
@@ -178,12 +176,12 @@ OcptShootingDayBlock _buildBlock({
   kind: kind,
   shotId: shotId,
   sceneId: sceneId,
+  candidates: candidates,
   label: label,
   durationMinutes: durationMinutes,
   anchorMinute: null,
   notes: "",
   crewNote: crewNote,
-  roleId: roleId,
 );
 
 /// Builds a day event with the few fields these tests read, everything else neutral.
@@ -229,12 +227,18 @@ OcptShootingSlotCastMember _buildCastMember({
   required String roleId,
 }) => OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
 
-/// Builds a slot's own candidate convocation with the few fields these tests read.
-OcptShootingSlotCandidate _buildSlotCandidate({
+/// Builds an audition block's own candidate convocation with the few fields these tests read.
+OcptShootingBlockCandidate _buildBlockCandidate({
   required String id,
-  required String slotId,
+  required String blockId,
   required String roleCandidateId,
-}) => OcptShootingSlotCandidate(id: id, slotId: slotId, roleCandidateId: roleCandidateId, notes: "");
+}) =>
+    OcptShootingBlockCandidate(
+      id: id,
+      blockId: blockId,
+      roleCandidateId: roleCandidateId,
+      notes: "",
+    );
 
 /// Builds a candidacy — somebody seen for a part — with the few fields these tests read.
 OcptRoleCandidate _buildRoleCandidate({
@@ -1568,24 +1572,18 @@ void main() {
     );
     final candidate = _buildRoleCandidate(id: "candidate-1", roleId: "role-1", person: camille);
 
-    /// A day of one slot, given [blocks] and, optionally, [candidate] convoked on that slot.
+    /// The link naming [candidate] on audition block [blockId].
+    OcptShootingBlockCandidate namedOn(String blockId) =>
+        _buildBlockCandidate(id: "link-$blockId", blockId: blockId, roleCandidateId: "candidate-1");
+
+    /// A day of one slot, given [blocks].
     OcptSchedulePlanSnapshot buildDay({
       required List<OcptShootingDayBlock> blocks,
-      bool convokesCandidate = false,
       List<OcptShot> shots = const [],
     }) => _buildSnapshot(
       days: [_buildDay(id: "day-1", dayNumber: 1)],
       slotsByDayId: {
-        "day-1": [
-          _buildSlot(
-            id: "slot-1",
-            label: "Casting",
-            anchorMinute: 540, // 09:00
-            candidates: convokesCandidate
-                ? [_buildSlotCandidate(id: "slot-candidate-1", slotId: "slot-1", roleCandidateId: "candidate-1")]
-                : const [],
-          ),
-        ],
+        "day-1": [_buildSlot(id: "slot-1", label: "Casting", anchorMinute: 540)],
       },
       blocksByDayId: {"day-1": blocks},
       roles: [_buildRole(id: "role-1", name: "Marie", number: 3)],
@@ -1611,8 +1609,8 @@ void main() {
             id: "block-1",
             slotId: "slot-1",
             kind: OcptShootingBlockKind.audition,
-            roleId: "role-1",
             durationMinutes: 120,
+            candidates: [namedOn("block-1")],
           ),
         ],
       );
@@ -1638,8 +1636,8 @@ void main() {
             id: "block-1",
             slotId: "slot-1",
             kind: OcptShootingBlockKind.audition,
-            roleId: "role-1",
             durationMinutes: 60,
+            candidates: [namedOn("block-1")],
           ),
         ],
       );
@@ -1649,15 +1647,15 @@ void main() {
             id: "block-1",
             slotId: "slot-1",
             kind: OcptShootingBlockKind.audition,
-            roleId: "role-1",
             durationMinutes: 60,
+            candidates: [namedOn("block-1")],
           ),
           _buildBlock(
             id: "block-2",
             slotId: "slot-1",
             kind: OcptShootingBlockKind.audition,
-            roleId: "role-1",
             durationMinutes: 60,
+            candidates: [namedOn("block-2")],
           ),
         ],
       );
@@ -1719,7 +1717,6 @@ void main() {
             id: "block-2",
             slotId: "slot-1",
             kind: OcptShootingBlockKind.audition,
-            roleId: "role-1",
             durationMinutes: 60,
           ),
         ],
@@ -1781,21 +1778,31 @@ void main() {
       expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
     });
 
-    test("a candidate convoked on the day is listed under the cast table, with their contact", () async {
-      final blocks = [
-        _buildBlock(
-          id: "block-1",
-          slotId: "slot-1",
-          kind: OcptShootingBlockKind.audition,
-          roleId: "role-1",
-          durationMinutes: 120,
-        ),
-      ];
-      final without = buildDay(blocks: blocks);
-      final with_ = buildDay(blocks: blocks, convokesCandidate: true);
+    test("a candidate named on an audition is listed under the cast table, with their contact", () async {
+      final without = buildDay(
+        blocks: [
+          _buildBlock(
+            id: "block-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.audition,
+            durationMinutes: 120,
+          ),
+        ],
+      );
+      final with_ = buildDay(
+        blocks: [
+          _buildBlock(
+            id: "block-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.audition,
+            durationMinutes: 120,
+            candidates: [namedOn("block-1")],
+          ),
+        ],
+      );
 
-      // The candidate's convocation is computed like anybody else's, band included: an audition is
-      // shooting time (ADR 0018).
+      // The candidate's own hours come off the audition that sees them, not off the unit's day
+      // (ADR 0024) — here they happen to be the same, the slot holding that one block.
       final convocation = with_.convocationsOfDay("day-1").firstWhere((c) => c.isCandidate);
       expect(convocation.roleCandidateId, "candidate-1");
       expect(convocation.patStartMinute, 540);
@@ -1808,15 +1815,83 @@ void main() {
       expect(withBytes.length, greaterThan(withoutBytes.length));
     });
 
+    test("the audition table names who is seen at which hour", () async {
+      // The `CANDIDAT` column: a block naming somebody prints their name beside the hour, where a
+      // block naming nobody prints the hour alone.
+      final named = buildDay(
+        blocks: [
+          _buildBlock(
+            id: "block-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.audition,
+            durationMinutes: 20,
+            candidates: [namedOn("block-1")],
+          ),
+        ],
+      );
+      final nameless = buildDay(
+        blocks: [
+          _buildBlock(
+            id: "block-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.audition,
+            durationMinutes: 20,
+          ),
+        ],
+      );
+
+      final namedBytes = await generalOf(named);
+      final namelessBytes = await generalOf(nameless);
+
+      expect(_contentStreams(namedBytes), isNot(_contentStreams(namelessBytes)));
+      expect(namedBytes.length, greaterThan(namelessBytes.length));
+    });
+
+    test("two candidacies on one block print two rows sharing one hour", () async {
+      final alice = _buildPerson(id: "person-alice", firstName: "Alice", lastName: "Simon");
+      final second = _buildRoleCandidate(id: "candidate-2", roleId: "role-2", person: alice);
+      OcptSchedulePlanSnapshot buildWith(List<OcptShootingBlockCandidate> links) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [_buildSlot(id: "slot-1", label: "Casting", anchorMinute: 540)],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 40,
+              candidates: links,
+            ),
+          ],
+        },
+        roles: [
+          _buildRole(id: "role-1", name: "Marie", number: 3),
+          _buildRole(id: "role-2", name: "Julien", number: 4),
+        ],
+        people: [camille, alice],
+        roleCandidates: [candidate, second],
+      );
+
+      final oneBytes = await generalOf(buildWith([namedOn("block-1")]));
+      final twoBytes = await generalOf(
+        buildWith([
+          namedOn("block-1"),
+          _buildBlockCandidate(id: "link-2", blockId: "block-1", roleCandidateId: "candidate-2"),
+        ]),
+      );
+
+      expect(_contentStreams(twoBytes), isNot(_contentStreams(oneBytes)));
+      expect(twoBytes.length, greaterThan(oneBytes.length));
+    });
+
     test("the candidates list is day-wide on a named sheet, the audition table is not", () async {
       final morning = _buildSlot(
         id: "slot-morning",
         label: "Casting",
         anchorMinute: 540,
         crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1")],
-        candidates: [
-          _buildSlotCandidate(id: "slot-candidate-1", slotId: "slot-morning", roleCandidateId: "candidate-1"),
-        ],
       );
       final afternoon = _buildSlot(id: "slot-afternoon", label: "Second unit", anchorMinute: 840);
 
@@ -1831,14 +1906,13 @@ void main() {
               id: "block-1",
               slotId: "slot-morning",
               kind: OcptShootingBlockKind.audition,
-              roleId: "role-1",
               durationMinutes: 60,
+              candidates: [namedOn("block-1")],
             ),
             _buildBlock(
               id: "block-2",
               slotId: "slot-afternoon",
               kind: OcptShootingBlockKind.audition,
-              roleId: "role-1",
               durationMinutes: 60,
             ),
           ],
@@ -1873,11 +1947,10 @@ void main() {
             id: "block-1",
             slotId: "slot-1",
             kind: OcptShootingBlockKind.audition,
-            roleId: "role-1",
             durationMinutes: 120,
+            candidates: [namedOn("block-1")],
           ),
         ],
-        convokesCandidate: true,
       );
 
       final candidateConvocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.isCandidate);
@@ -1908,11 +1981,10 @@ void main() {
             id: "block-1",
             slotId: "slot-1",
             kind: OcptShootingBlockKind.audition,
-            roleId: "role-1",
             durationMinutes: 120,
+            candidates: [namedOn("block-1")],
           ),
         ],
-        convokesCandidate: true,
       );
 
       // A guest is the one convocation kind carrying none — which is what keeps them out of the

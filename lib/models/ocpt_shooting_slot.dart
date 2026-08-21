@@ -4,16 +4,19 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
 /// A convocation window inside a `OcptShootingDay` — the *créneau* the reference call sheets print
-/// — joined with its live [crew], [cast], [guests] and [candidates], all four in `sortKey` order,
-/// exactly as `OcptLocation.sets` nests a location's live sets. The fourth is only ever filled on a
-/// day that sees people for a part; a shooting day has nobody to audition, and draws none.
+/// — joined with its live [crew], [cast] and [guests], all three in `sortKey` order, exactly as
+/// `OcptLocation.sets` nests a location's live sets.
+///
+/// **A candidate is not one of them**, deliberately: somebody seen for a part is expected at twenty
+/// past ten rather than "on this unit today", so they are linked to the **audition block** that
+/// sees them and nothing else (ADR 0024, `OcptShootingBlockCandidatesTable`) — the one convocation
+/// in this app read off a block.
 ///
 /// **[anchorEdge] plus exactly one of [anchorMinute]/[anchorSlotId] is the whole of what this slot
 /// says about time**, and a stored minute may exceed 1440. See `OcptShootingSlotsTable`'s own doc
@@ -61,10 +64,6 @@ class OcptShootingSlot extends Equatable {
   /// The live guests attending this slot, in `sortKey` order.
   final List<OcptShootingSlotGuest> guests;
 
-  /// The live candidates convoked on this slot, in `sortKey` order — each naming a `role_candidates`
-  /// row rather than a person, see [OcptShootingSlotCandidate].
-  final List<OcptShootingSlotCandidate> candidates;
-
   /// Class constructor
   const OcptShootingSlot({
     required this.id,
@@ -79,17 +78,15 @@ class OcptShootingSlot extends Equatable {
     required this.crew,
     required this.cast,
     required this.guests,
-    required this.candidates,
   });
 
-  /// Builds an [OcptShootingSlot] from its stored [row] and its already-ordered [crew], [cast],
-  /// [guests] and [candidates].
+  /// Builds an [OcptShootingSlot] from its stored [row] and its already-ordered [crew], [cast] and
+  /// [guests].
   factory OcptShootingSlot.fromRow({
     required OcptShootingSlotRow row,
     required List<OcptShootingSlotCrewMember> crew,
     required List<OcptShootingSlotCastMember> cast,
     required List<OcptShootingSlotGuest> guests,
-    required List<OcptShootingSlotCandidate> candidates,
   }) => OcptShootingSlot(
     id: row.id,
     shootingDayId: row.shootingDayId,
@@ -103,7 +100,6 @@ class OcptShootingSlot extends Equatable {
     crew: crew,
     cast: cast,
     guests: guests,
-    candidates: candidates,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -125,6 +121,5 @@ class OcptShootingSlot extends Equatable {
     crew,
     cast,
     guests,
-    candidates,
   ];
 }

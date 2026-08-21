@@ -39,13 +39,16 @@ enum OcptShootingBlockKind {
   /// "shots only" placement rule would otherwise forbid.
   hold,
 
-  /// This block sees **one part**, for its own duration: the audition a casting session is made of.
-  /// It names that part through `shooting_day_blocks.roleId`, non-null exactly on this kind.
+  /// This block sees **the candidacies it names**, for its own duration: the audition a casting
+  /// session is made of. Who is read, and for which part, is `shooting_block_candidates` — the one
+  /// convocation in this app hanging off a block rather than off a slot (ADR 0024), because a
+  /// candidate is expected at twenty past ten rather than "on the unit today".
   ///
-  /// **It never names who comes to be seen** — they are convoked on the *slot*, through
-  /// `shooting_slot_candidates` (ADR 0018) — because one session regularly sees several people one
-  /// after another: *"these four people, for that part, twenty minutes each"* is one slot carrying
-  /// four candidacies, and as many audition blocks as the running order actually needs.
+  /// **It may name several at once**, and that is the point rather than an accident: two actors of
+  /// two different parts are regularly read together to see what they do to each other. *"These
+  /// four people, twenty minutes each"* is four blocks of one row apiece — four hours of their own,
+  /// inside one slot — and *"these two, together"* is one block of two rows. A block naming nobody
+  /// yet is an ordinary state, exactly as a [hold] with no sequence is.
   audition,
 
   /// This block rehearses a **sequence**, named through the existing `shooting_day_blocks.sceneId`

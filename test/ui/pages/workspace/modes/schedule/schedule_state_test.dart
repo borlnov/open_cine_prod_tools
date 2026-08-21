@@ -31,12 +31,12 @@ OcptShootingDayBlock _buildBlock({
   kind: kind,
   shotId: null,
   sceneId: sceneId,
+  candidates: const [],
   label: "",
   durationMinutes: durationMinutes,
   anchorMinute: null,
   notes: "",
   crewNote: "",
-  roleId: null,
 );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.
@@ -181,7 +181,6 @@ void main() {
             ),
           ],
           guests: [],
-          candidates: [],
         );
         final hold = _buildBlock(
           id: "block-hold",
@@ -250,7 +249,6 @@ void main() {
           ),
         ],
         guests: [],
-        candidates: [],
       );
       final preparation = _buildBlock(id: "block-1", slotId: "slot-1");
       final day = OcptShootingDay(
@@ -303,7 +301,6 @@ void main() {
         crew: [],
         cast: [],
         guests: [],
-        candidates: [],
       );
       const laterSlot = OcptShootingSlot(
         id: "slot-2",
@@ -318,7 +315,6 @@ void main() {
         crew: [],
         cast: [],
         guests: [],
-        candidates: [],
       );
       final day = OcptShootingDay(
         id: "day-1",
@@ -359,7 +355,6 @@ void main() {
         crew: [],
         cast: [],
         guests: [],
-        candidates: [],
       );
       final day = OcptShootingDay(
         id: "day-1",
@@ -413,12 +408,12 @@ void main() {
       kind: OcptShootingBlockKind.shot,
       shotId: shotId,
       sceneId: null,
+      candidates: const [],
       label: "",
       durationMinutes: null,
       anchorMinute: null,
       notes: "",
       crewNote: "",
-      roleId: null,
     );
 
     test("a shot placed twice on the same day reports that day's number once", () {

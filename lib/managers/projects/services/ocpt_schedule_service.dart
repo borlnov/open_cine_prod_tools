@@ -5,11 +5,11 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_block_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
@@ -42,8 +42,12 @@ import 'package:uuid/uuid.dart';
 /// it, so a block can never name a day its slot doesn't belong to) and chains from that slot's own
 /// `startMinute` — see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended).
 ///
-/// **A convocation is the slot you are linked to, and nothing about it is typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018). [addSlotCrewMember]/[addSlotCastRole] do
+/// **A convocation is what you are linked to, and nothing about it is typed** — see
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018). For everybody but a candidate that is a
+/// **slot**; a candidate is linked to the **audition block** that sees them
+/// ([addBlockCandidate], `shooting_block_candidates`, ADR 0024), because somebody seen for a part
+/// is expected at twenty past ten rather than "on this unit today" — the one convocation in this
+/// app read off a block. [addSlotCrewMember]/[addSlotCastRole] do
 /// nothing more than create the link: a person's or a role's arrival, readiness band and departure
 /// are read off every live slot they are linked to across the whole day, joined together, never
 /// stored on the row itself and never typed beside it. A production that wants somebody there
@@ -122,8 +126,8 @@ class OcptScheduleService {
   const OcptScheduleService();
 
   /// Loads the whole shooting schedule of the project in [database]: every live day, in `sortKey`
-  /// order, joined with its live slots (each carrying its own live crew, cast, guests and
-  /// candidates), its live blocks and its live events.
+  /// order, joined with its live slots (each carrying its own live crew, cast and guests), its live
+  /// blocks (each carrying the live candidacies it sees) and its live events.
   ///
   /// Runs a bounded number of queries regardless of the schedule's size — one per table, each
   /// restricted to the days (or slots) already loaded — rather than one per day, exactly as
@@ -161,17 +165,18 @@ class OcptScheduleService {
                 ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
               .get();
 
-    final candidateRows = slotIds.isEmpty
-        ? const <OcptShootingSlotCandidateRow>[]
-        : await (database.select(database.ocptShootingSlotCandidatesTable)
-                ..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not())
-                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-              .get();
-
     final blockRows = dayIds.isEmpty
         ? const <OcptShootingDayBlockRow>[]
         : await (database.select(database.ocptShootingDayBlocksTable)
                 ..where((table) => table.shootingDayId.isIn(dayIds) & table.isDeleted.not())
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+              .get();
+    final blockIds = blockRows.map((row) => row.id).toList(growable: false);
+
+    final candidateRows = blockIds.isEmpty
+        ? const <OcptShootingBlockCandidateRow>[]
+        : await (database.select(database.ocptShootingBlockCandidatesTable)
+                ..where((table) => table.blockId.isIn(blockIds) & table.isDeleted.not())
                 ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
               .get();
 
@@ -204,11 +209,11 @@ class OcptScheduleService {
       guestsBySlotId.putIfAbsent(row.slotId, () => []).add(OcptShootingSlotGuest.fromRow(row));
     }
 
-    final candidatesBySlotId = <String, List<OcptShootingSlotCandidate>>{};
+    final candidatesByBlockId = <String, List<OcptShootingBlockCandidate>>{};
     for (final row in candidateRows) {
-      candidatesBySlotId
-          .putIfAbsent(row.slotId, () => [])
-          .add(OcptShootingSlotCandidate.fromRow(row));
+      candidatesByBlockId
+          .putIfAbsent(row.blockId, () => [])
+          .add(OcptShootingBlockCandidate.fromRow(row));
     }
 
     final slotsByDayId = <String, List<OcptShootingSlot>>{};
@@ -221,7 +226,6 @@ class OcptScheduleService {
               crew: crewBySlotId[row.id] ?? const [],
               cast: castBySlotId[row.id] ?? const [],
               guests: guestsBySlotId[row.id] ?? const [],
-              candidates: candidatesBySlotId[row.id] ?? const [],
             ),
           );
     }
@@ -230,7 +234,12 @@ class OcptScheduleService {
     for (final row in blockRows) {
       blocksByDayId
           .putIfAbsent(row.shootingDayId, () => [])
-          .add(OcptShootingDayBlock.fromRow(row));
+          .add(
+            OcptShootingDayBlock.fromRow(
+              row: row,
+              candidates: candidatesByBlockId[row.id] ?? const [],
+            ),
+          );
     }
 
     final eventsByDayId = <String, List<OcptShootingDayEvent>>{};
@@ -427,16 +436,19 @@ class OcptScheduleService {
           const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
         );
         await (database.update(
-          database.ocptShootingSlotCandidatesTable,
-        )..where((table) => table.slotId.isIn(slotIds))).write(
-          const OcptShootingSlotCandidatesTableCompanion(isDeleted: Value(true)),
-        );
-        await (database.update(
           database.ocptShootingSlotsTable,
         )..where((table) => table.shootingDayId.equals(dayId))).write(
           const OcptShootingSlotsTableCompanion(isDeleted: Value(true)),
         );
       }
+
+      await _tombstoneCandidaciesOfBlocks(
+        database: database,
+        blockIds: (await _liveBlockRowsOfDay(
+          database: database,
+          dayId: dayId,
+        )).map((row) => row.id).toList(growable: false),
+      );
 
       await (database.update(
         database.ocptShootingDayBlocksTable,
@@ -459,12 +471,13 @@ class OcptScheduleService {
   }
 
   /// Creates a new day dated [date], appended at the end of the project's days, carrying copies of
-  /// [sourceDayId]'s live slots, their live crew, their live cast, their live guests and the
-  /// candidates they convoke — fresh ids, fresh `sortKey`s, everything else copied verbatim.
-  /// Returns the new day's id.
+  /// [sourceDayId]'s live slots, their live crew, their live cast and their live guests — fresh
+  /// ids, fresh `sortKey`s, everything else copied verbatim. Returns the new day's id.
   ///
-  /// **Copies neither the placed shots, the crew note, nor the source day's events** — see the class
-  /// doc comment for why, and
+  /// **Copies neither the timetable, the crew note, nor the source day's events** — which is also
+  /// why it copies no audition and no candidate: somebody seen for a part is linked to the
+  /// **block** that sees them (ADR 0024), and a day duplicated without its blocks has no hour to
+  /// convoke them at. See the class doc comment for why, and
   /// for the two further fields (`weatherNote`, `notes`) this service also leaves at their defaults
   /// on the new day, a decision the plan left unsaid. If [sourceDayId] currently holds no live slot
   /// at all (every one of them since deleted), the new day is given the same default slot
@@ -605,29 +618,6 @@ class OcptScheduleService {
                   freeName: Value(guest.freeName),
                   reason: Value(guest.reason),
                   notes: Value(guest.notes),
-                ),
-              );
-        }
-
-        // A candidate convoked on the source slot is copied like every other convocation: a casting
-        // day duplicated onto a second date is the same people seen again, in the same running
-        // order, which is exactly the gesture a production reaches for when a session overruns.
-        final sourceCandidates = await _liveCandidateRowsOfSlot(
-          database: database,
-          slotId: sourceSlot.id,
-        );
-        final candidateSortKeys = ocptFractionalKeySequence(sourceCandidates.length);
-        for (var j = 0; j < sourceCandidates.length; j++) {
-          final candidate = sourceCandidates[j];
-          await database
-              .into(database.ocptShootingSlotCandidatesTable)
-              .insert(
-                OcptShootingSlotCandidatesTableCompanion.insert(
-                  id: const Uuid().v4(),
-                  slotId: newSlotIds[i],
-                  roleCandidateId: candidate.roleCandidateId,
-                  sortKey: Value(candidateSortKeys[j]),
-                  notes: Value(candidate.notes),
                 ),
               );
         }
@@ -865,12 +855,6 @@ class OcptScheduleService {
       )..where((table) => table.slotId.equals(slotId))).write(
         const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
       );
-      await (database.update(
-        database.ocptShootingSlotCandidatesTable,
-      )..where((table) => table.slotId.equals(slotId))).write(
-        const OcptShootingSlotCandidatesTableCompanion(isDeleted: Value(true)),
-      );
-
       final otherSlots =
           (await _liveSlotRows(database: database, dayId: slot.shootingDayId))
             ..removeWhere((row) => row.id == slotId);
@@ -878,6 +862,10 @@ class OcptScheduleService {
 
       if (otherSlots.isEmpty) {
         if (blocksToMove.isNotEmpty) {
+          await _tombstoneCandidaciesOfBlocks(
+            database: database,
+            blockIds: blocksToMove.map((row) => row.id).toList(growable: false),
+          );
           await (database.update(
             database.ocptShootingDayBlocksTable,
           )..where((table) => table.slotId.equals(slotId))).write(
@@ -1270,37 +1258,47 @@ class OcptScheduleService {
     );
   }
 
-  /// Convokes candidacy [roleCandidateId] on slot [slotId], appended at the end of that slot's own
-  /// candidates, and returns the id of the convocation — the one that already said so when there
-  /// was one, a freshly generated one otherwise. No more than the link itself: this candidate's
-  /// arrival, PAT band and departure are read off every slot they are linked to (ADR 0018), never
-  /// seeded or typed here.
+  /// Names candidacy [roleCandidateId] on audition block [blockId], appended at the end of that
+  /// block's own candidacies, and returns the id of the convocation — the one that already said so
+  /// when there was one, a freshly generated one otherwise. No more than the link itself: this
+  /// candidate's arrival, PAT band and departure are read off every audition block naming them
+  /// (ADR 0018 as ADR 0024 applies it), never seeded or typed here.
   ///
-  /// Follows [addSlotCastRole] rule for rule, and for the same reason: a `{slotId,
-  /// roleCandidateId}` pair the slot already carries is a **no-op** rather than a second row —
-  /// convoking somebody twice on one unit says nothing the first row didn't — and a convocation
+  /// **Refuses a block that is not an [OcptShootingBlockKind.audition]** (returns null, writes
+  /// nothing): a candidacy on a meal break or a shot would say somebody was being seen at an hour
+  /// nothing in the day sees anybody at, and the timeline, the convocations and the call sheet all
+  /// read this link as an audition's own.
+  ///
+  /// Follows [addSlotCastRole] rule for rule otherwise, and for the same reason: a `{blockId,
+  /// roleCandidateId}` pair the block already carries is a **no-op** rather than a second row —
+  /// naming somebody twice at one hour says nothing the first row didn't — and a convocation
   /// removed earlier is **revived** rather than duplicated.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addSlotCandidate({
+  Future<String?> addBlockCandidate({
     required OcptProjectDatabase database,
-    required String slotId,
+    required String blockId,
     required String roleCandidateId,
     String notes = "",
   }) async {
-    if (database.refusesUserWrite("addSlotCandidate")) {
+    if (database.refusesUserWrite("addBlockCandidate")) {
       return null;
     }
 
     return database.transaction(() async {
+      final block = await _getBlockRow(database: database, blockId: blockId);
+      if (block.kind != OcptShootingBlockKind.audition) {
+        return null;
+      }
+
       final existingRows =
-          await (database.select(database.ocptShootingSlotCandidatesTable)..where(
+          await (database.select(database.ocptShootingBlockCandidatesTable)..where(
                 (table) =>
-                    table.slotId.equals(slotId) & table.roleCandidateId.equals(roleCandidateId),
+                    table.blockId.equals(blockId) & table.roleCandidateId.equals(roleCandidateId),
               ))
               .get();
 
-      OcptShootingSlotCandidateRow? tombstoned;
+      OcptShootingBlockCandidateRow? tombstoned;
       for (final row in existingRows) {
         if (!row.isDeleted) {
           return row.id;
@@ -1310,9 +1308,9 @@ class OcptScheduleService {
 
       if (tombstoned != null) {
         await (database.update(
-          database.ocptShootingSlotCandidatesTable,
+          database.ocptShootingBlockCandidatesTable,
         )..where((table) => table.id.equals(tombstoned!.id))).write(
-          OcptShootingSlotCandidatesTableCompanion(
+          OcptShootingBlockCandidatesTableCompanion(
             notes: Value(notes),
             isDeleted: const Value(false),
           ),
@@ -1320,15 +1318,15 @@ class OcptScheduleService {
         return tombstoned.id;
       }
 
-      final existing = await _liveCandidateRowsOfSlot(database: database, slotId: slotId);
+      final existing = await _liveCandidateRowsOfBlock(database: database, blockId: blockId);
       final id = const Uuid().v4();
 
       await database
-          .into(database.ocptShootingSlotCandidatesTable)
+          .into(database.ocptShootingBlockCandidatesTable)
           .insert(
-            OcptShootingSlotCandidatesTableCompanion.insert(
+            OcptShootingBlockCandidatesTableCompanion.insert(
               id: id,
-              slotId: slotId,
+              blockId: blockId,
               roleCandidateId: roleCandidateId,
               notes: Value(notes),
               sortKey: Value(
@@ -1341,49 +1339,98 @@ class OcptScheduleService {
     });
   }
 
-  /// Updates the fields of candidate convocation [slotCandidateId] in [database] that are passed as
+  /// Updates the fields of candidate convocation [blockCandidateId] in [database] that are passed as
   /// something other than [Value.absent]. Never touches `sortKey`, `roleCandidateId` or
-  /// `isDeleted`: those only change through [addSlotCandidate] and [removeSlotCandidate].
+  /// `isDeleted`: those only change through [addBlockCandidate], [reorderBlockCandidate] and
+  /// [removeBlockCandidate].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateSlotCandidate({
+  Future<void> updateBlockCandidate({
     required OcptProjectDatabase database,
-    required String slotCandidateId,
+    required String blockCandidateId,
     Value<String> notes = const Value.absent(),
   }) async {
-    if (database.refusesUserWrite("updateSlotCandidate")) {
+    if (database.refusesUserWrite("updateBlockCandidate")) {
       return;
     }
 
     await (database.update(
-      database.ocptShootingSlotCandidatesTable,
-    )..where((table) => table.id.equals(slotCandidateId) & table.isDeleted.not())).write(
-      OcptShootingSlotCandidatesTableCompanion(notes: notes),
+      database.ocptShootingBlockCandidatesTable,
+    )..where((table) => table.id.equals(blockCandidateId) & table.isDeleted.not())).write(
+      OcptShootingBlockCandidatesTableCompanion(notes: notes),
     );
   }
 
-  /// Tombstones candidate convocation [slotCandidateId].
+  /// Moves candidate convocation [blockCandidateId] to [newPosition] (0-based) among its own
+  /// block's candidacies, by giving it a `sortKey` sitting between the two it lands between there.
+  /// Writes **exactly one row**, exactly as [reorderBlock] does.
   ///
-  /// **Touches no block**: an audition block naming this candidacy is left exactly where it is, and
-  /// says what the day still plans to do at that hour. Un-convoking somebody and taking their
-  /// audition out of the running order are two gestures, and folding them would delete a row the
-  /// user never pointed at.
+  /// The order matters where two actors are read together: it is the order the block's own chips
+  /// draw them in, and the order the call sheet's audition table prints them under a shared hour.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> reorderBlockCandidate({
+    required OcptProjectDatabase database,
+    required String blockCandidateId,
+    required int newPosition,
+  }) async {
+    if (database.refusesUserWrite("reorderBlockCandidate")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final row =
+          await (database.select(database.ocptShootingBlockCandidatesTable)
+                ..where((table) => table.id.equals(blockCandidateId) & table.isDeleted.not()))
+              .getSingleOrNull();
+      if (row == null) {
+        return;
+      }
+
+      final others =
+          (await _liveCandidateRowsOfBlock(database: database, blockId: row.blockId))
+            ..removeWhere((other) => other.id == blockCandidateId);
+
+      final clampedPosition = newPosition < 0
+          ? 0
+          : (newPosition > others.length ? others.length : newPosition);
+
+      final sortKey = ocptFractionalKeyBetween(
+        before: clampedPosition > 0 ? others[clampedPosition - 1].sortKey : null,
+        after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
+      );
+
+      await (database.update(
+        database.ocptShootingBlockCandidatesTable,
+      )..where((table) => table.id.equals(blockCandidateId))).write(
+        OcptShootingBlockCandidatesTableCompanion(sortKey: Value(sortKey)),
+      );
+    });
+  }
+
+  /// Tombstones candidate convocation [blockCandidateId].
+  ///
+  /// **Touches neither the block nor the candidacy**: the audition stays exactly where it is and
+  /// says what the day still plans to do at that hour, and the `role_candidates` row outlives the
+  /// convocation exactly as a person outlives a candidacy. Taking somebody out of an audition and
+  /// taking that audition out of the running order are two gestures, and folding them would delete
+  /// a row the user never pointed at.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeSlotCandidate({
+  Future<void> removeBlockCandidate({
     required OcptProjectDatabase database,
-    required String slotCandidateId,
+    required String blockCandidateId,
   }) async {
-    if (database.refusesUserWrite("removeSlotCandidate")) {
+    if (database.refusesUserWrite("removeBlockCandidate")) {
       return;
     }
 
     await (database.update(
-      database.ocptShootingSlotCandidatesTable,
-    )..where((table) => table.id.equals(slotCandidateId))).write(
-      const OcptShootingSlotCandidatesTableCompanion(isDeleted: Value(true)),
+      database.ocptShootingBlockCandidatesTable,
+    )..where((table) => table.id.equals(blockCandidateId))).write(
+      const OcptShootingBlockCandidatesTableCompanion(isDeleted: Value(true)),
     );
   }
 
@@ -1519,9 +1566,16 @@ class OcptScheduleService {
     });
   }
 
-  /// Tombstones block [blockId], whatever its [OcptShootingBlockKind] — a shot block, a milestone
-  /// or a `hold`. Removing a shot's placement, now that a shot may carry several, means naming the
-  /// block it sits in and calling this — there is no operation keyed by shot any more.
+  /// Tombstones block [blockId], whatever its [OcptShootingBlockKind] — a shot block, a milestone,
+  /// a `hold` or an `audition` — **and the candidacies an audition names along with it**. Removing
+  /// a shot's placement, now that a shot may carry several, means naming the block it sits in and
+  /// calling this — there is no operation keyed by shot any more.
+  ///
+  /// The cascade is the counterpart of what a candidate's convocation *is* (ADR 0024): the block is
+  /// the hour they are expected at, so an audition that is gone convokes nobody, and a link left
+  /// live would keep somebody on a day whose timetable no longer holds it. The `role_candidates`
+  /// row itself is untouched: a candidacy outlives an audition exactly as a person outlives a
+  /// candidacy.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -1534,11 +1588,15 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingDayBlocksTable,
-    )..where((table) => table.id.equals(blockId))).write(
-      const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      await _tombstoneCandidaciesOfBlocks(database: database, blockIds: [blockId]);
+
+      await (database.update(
+        database.ocptShootingDayBlocksTable,
+      )..where((table) => table.id.equals(blockId))).write(
+        const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
+      );
+    });
   }
 
   /// Creates a new block inside slot [slotId], at [atPosition] within that slot's own timetable (or
@@ -1558,10 +1616,10 @@ class OcptScheduleService {
   /// sequence. It stays null on a hold or a rehearsal whose sequence hasn't been settled yet, which
   /// is an ordinary state.
   ///
-  /// **[roleId] belongs to a [OcptShootingBlockKind.audition] and to nothing else** — the part being
-  /// auditioned — and is dropped on every other kind for the same reason [sceneId] is. It stays null
-  /// on an audition whose part hasn't been settled yet, exactly as a hold's own scene does, and it
-  /// never names a **person**: who comes to be seen is `shooting_slot_candidates`, on the slot.
+  /// **An [OcptShootingBlockKind.audition] takes no link at all here**: who it sees, and for which
+  /// part, is `shooting_block_candidates`, added afterwards through [addBlockCandidate] — a block
+  /// that names nobody yet is an ordinary state, exactly as a hold with no sequence is, and one
+  /// block regularly names several (ADR 0024).
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createBlock({
@@ -1569,7 +1627,6 @@ class OcptScheduleService {
     required String slotId,
     required OcptShootingBlockKind kind,
     String? sceneId,
-    String? roleId,
     String label = "",
     int? durationMinutes,
     int? anchorMinute,
@@ -1605,7 +1662,6 @@ class OcptScheduleService {
             slotId: slotId,
             kind: Value(kind),
             sceneId: Value(_namesASequence(kind) ? sceneId : null),
-            roleId: Value(kind == OcptShootingBlockKind.audition ? roleId : null),
             label: Value(label),
             durationMinutes: Value(durationMinutes),
             anchorMinute: Value(anchorMinute),
@@ -1635,11 +1691,11 @@ class OcptScheduleService {
   /// scene is set to null the ordinary way, by passing `Value(null)`, which is how a production
   /// un-decides which sequence a reserved slot is for.
   ///
-  /// **`roleId` likewise only ever holds on a [OcptShootingBlockKind.audition]**, and is dropped to
-  /// null the moment this call turns such a block into anything else. It is settable here, unlike a
-  /// shot block's own `shotId`: the part a session auditions is corrected as that session is
-  /// planned, exactly as a hold's sequence is, and `Value(null)` is how it goes back to "no part
-  /// yet".
+  /// **An audition turned into anything else loses the candidacies it named**, tombstoned in this
+  /// very transaction — the same rule `sceneId` follows one column across, and for the same reason:
+  /// a meal break sees nobody, so a link saying somebody is read during it convokes them at an hour
+  /// nothing auditions at. The `role_candidates` rows themselves are untouched, a candidacy
+  /// outliving the audition that was going to see it.
   ///
   /// **[notes] and [crewNote] are not the same field wearing two names**: [notes] never prints,
   /// [crewNote] does — see `OcptShootingDayBlocksTable`'s own doc comment on each.
@@ -1650,7 +1706,6 @@ class OcptScheduleService {
     required String blockId,
     Value<OcptShootingBlockKind> kind = const Value.absent(),
     Value<String?> sceneId = const Value.absent(),
-    Value<String?> roleId = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<int?> durationMinutes = const Value.absent(),
     Value<int?> anchorMinute = const Value.absent(),
@@ -1667,9 +1722,8 @@ class OcptScheduleService {
 
     await database.transaction(() async {
       var sceneIdToWrite = sceneId;
-      var roleIdToWrite = roleId;
 
-      if (kind.present || sceneId.present || roleId.present) {
+      if (kind.present || sceneId.present) {
         final row =
             await (database.select(database.ocptShootingDayBlocksTable)..where(
                   (table) => table.id.equals(blockId) & table.isDeleted.not(),
@@ -1685,8 +1739,9 @@ class OcptScheduleService {
           sceneIdToWrite = const Value(null);
         }
 
-        if (resultingKind != OcptShootingBlockKind.audition) {
-          roleIdToWrite = const Value(null);
+        if (row.kind == OcptShootingBlockKind.audition &&
+            resultingKind != OcptShootingBlockKind.audition) {
+          await _tombstoneCandidaciesOfBlocks(database: database, blockIds: [blockId]);
         }
       }
 
@@ -1696,7 +1751,6 @@ class OcptScheduleService {
         OcptShootingDayBlocksTableCompanion(
           kind: kind,
           sceneId: sceneIdToWrite,
-          roleId: roleIdToWrite,
           label: label,
           durationMinutes: durationMinutes,
           anchorMinute: anchorMinute,
@@ -2063,14 +2117,46 @@ class OcptScheduleService {
         ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
 
-  /// Every live candidate row of slot [slotId], ordered by `sortKey`.
-  Future<List<OcptShootingSlotCandidateRow>> _liveCandidateRowsOfSlot({
+  /// Every live candidate row of block [blockId], ordered by `sortKey`.
+  Future<List<OcptShootingBlockCandidateRow>> _liveCandidateRowsOfBlock({
     required OcptProjectDatabase database,
-    required String slotId,
-  }) => (database.select(database.ocptShootingSlotCandidatesTable)
-        ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
+    required String blockId,
+  }) => (database.select(database.ocptShootingBlockCandidatesTable)
+        ..where((table) => table.blockId.equals(blockId) & table.isDeleted.not())
         ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
+
+  /// Every live block row of day [dayId], ordered by `sortKey` — the whole day's timetable, across
+  /// its slots, which is what a day-wide cascade has to reach.
+  Future<List<OcptShootingDayBlockRow>> _liveBlockRowsOfDay({
+    required OcptProjectDatabase database,
+    required String dayId,
+  }) => (database.select(database.ocptShootingDayBlocksTable)
+        ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
+        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+      .get();
+
+  /// Tombstones every `shooting_block_candidates` row hanging off [blockIds], and does nothing at
+  /// all when that list is empty.
+  ///
+  /// The cascade a block's own deletion owes its candidacies, written once because three callers
+  /// need it — [deleteBlock], [deleteSlot] (when the slot it empties is the day's last) and
+  /// [deleteDay]. A convocation whose audition is gone convokes nobody, and leaving the rows live
+  /// would let a candidate keep an hour on a day whose timetable no longer holds it.
+  Future<void> _tombstoneCandidaciesOfBlocks({
+    required OcptProjectDatabase database,
+    required List<String> blockIds,
+  }) async {
+    if (blockIds.isEmpty) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptShootingBlockCandidatesTable,
+    )..where((table) => table.blockId.isIn(blockIds))).write(
+      const OcptShootingBlockCandidatesTableCompanion(isDeleted: Value(true)),
+    );
+  }
 
   /// Every live event row of day [dayId], ordered by `sortKey` — the tiebreak `loadSchedule` falls
   /// back on once two events share a `minute`.

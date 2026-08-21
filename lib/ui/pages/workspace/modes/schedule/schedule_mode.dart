@@ -868,18 +868,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onSlotCastRoleRemoved: isReadOnly
           ? null
           : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
-      onSlotCandidateAdded: isReadOnly
-          ? null
-          : (slotId, roleCandidateId) => bloc.add(
-              OcptScheduleSlotCandidateAddedEvent(
-                slotId: slotId,
-                roleCandidateId: roleCandidateId,
-              ),
-            ),
-      onSlotCandidateRemoved: isReadOnly
-          ? null
-          : (slotCandidateId) =>
-                bloc.add(OcptScheduleSlotCandidateRemovedEvent(slotCandidateId: slotCandidateId)),
       onSlotGuestAdded: isReadOnly
           ? null
           : (slotId, personId) =>
@@ -981,10 +969,19 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (blockId, sceneId) =>
                 bloc.add(OcptScheduleBlockSequenceChangedEvent(blockId: blockId, sceneId: sceneId)),
-      onBlockRoleChanged: isReadOnly
+      onBlockCandidateAdded: isReadOnly
           ? null
-          : (blockId, roleId) =>
-                bloc.add(OcptScheduleBlockRoleChangedEvent(blockId: blockId, roleId: roleId)),
+          : (blockId, roleCandidateId) => bloc.add(
+              OcptScheduleBlockCandidateAddedEvent(
+                blockId: blockId,
+                roleCandidateId: roleCandidateId,
+              ),
+            ),
+      onBlockCandidateRemoved: isReadOnly
+          ? null
+          : (blockCandidateId) => bloc.add(
+              OcptScheduleBlockCandidateRemovedEvent(blockCandidateId: blockCandidateId),
+            ),
       onBlockDeletionRequested: isReadOnly
           ? null
           : (blockId) => unawaited(_handleBlockDeletionRequested(context, blockId)),

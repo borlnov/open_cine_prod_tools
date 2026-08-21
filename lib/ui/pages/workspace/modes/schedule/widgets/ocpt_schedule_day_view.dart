@@ -90,7 +90,7 @@ class OcptScheduleDayView extends StatelessWidget {
   final Map<String, OcptRole> roleById;
 
   /// Every live candidacy of the project, keyed by id — handed straight to every
-  /// [OcptScheduleSlotCard], which is where an audition row and the candidates band read a person
+  /// [OcptScheduleSlotCard], which is where an audition row's own chips and picker read a person
   /// and a part off one.
   final Map<String, OcptRoleCandidate> roleCandidateById;
 
@@ -175,14 +175,6 @@ class OcptScheduleDayView extends StatelessWidget {
   /// footer, or null while withheld.
   final void Function(String slotId, String personId)? onSlotGuestAdded;
 
-  /// Called with a slot's id and the id of the candidacy picked by that slot card's own
-  /// `+ Candidate` footer, or null while withheld — see [OcptScheduleSlotCard.onCandidateAdded].
-  final void Function(String slotId, String roleCandidateId)? onSlotCandidateAdded;
-
-  /// Called with a candidate convocation's id when its own remove control is clicked, or null while
-  /// withheld — see [OcptScheduleSlotCard.onCandidateRemoved].
-  final ValueChanged<String>? onSlotCandidateRemoved;
-
   /// Called with a guest attendance's id when its row's remove control is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onSlotGuestRemoved;
@@ -225,9 +217,13 @@ class OcptScheduleDayView extends StatelessWidget {
   /// sequence picker, or null while withheld — see `OcptScheduleTimetable.onHoldSequenceChanged`.
   final void Function(String blockId, String? sceneId)? onBlockSequenceChanged;
 
-  /// Called with an **audition** block's id and the role just picked from its own row's role
-  /// picker, or null while withheld — see [OcptScheduleSlotCard.onBlockRoleChanged].
-  final void Function(String blockId, String? roleId)? onBlockRoleChanged;
+  /// Called with an **audition** block's id and the id of the candidacy just picked from its own
+  /// row's `+` picker, or null while withheld — see [OcptScheduleSlotCard.onBlockCandidateAdded].
+  final void Function(String blockId, String roleCandidateId)? onBlockCandidateAdded;
+
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
+  /// while withheld — see [OcptScheduleSlotCard.onBlockCandidateRemoved].
+  final ValueChanged<String>? onBlockCandidateRemoved;
 
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onBlockDeletionRequested;
@@ -314,8 +310,6 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onSlotCrewMemberRemoved,
     required this.onSlotCastRoleAdded,
     required this.onSlotCastRoleRemoved,
-    required this.onSlotCandidateAdded,
-    required this.onSlotCandidateRemoved,
     required this.onSlotGuestAdded,
     required this.onSlotGuestRemoved,
     required this.slotGuestReasonValueOf,
@@ -328,7 +322,8 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onBlockAnchorChanged,
     required this.onShotStatusChanged,
     required this.onBlockSequenceChanged,
-    required this.onBlockRoleChanged,
+    required this.onBlockCandidateAdded,
+    required this.onBlockCandidateRemoved,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
     required this.onShotBlockRequested,
@@ -401,10 +396,6 @@ class OcptScheduleDayView extends StatelessWidget {
                   ? null
                   : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
               onCastRoleRemoved: onSlotCastRoleRemoved,
-              onCandidateAdded: onSlotCandidateAdded == null
-                  ? null
-                  : (roleCandidateId) => onSlotCandidateAdded!(slot.id, roleCandidateId),
-              onCandidateRemoved: onSlotCandidateRemoved,
               onGuestAdded: onSlotGuestAdded == null
                   ? null
                   : (personId) => onSlotGuestAdded!(slot.id, personId),
@@ -428,7 +419,8 @@ class OcptScheduleDayView extends StatelessWidget {
               onBlockAnchorChanged: onBlockAnchorChanged,
               onShotStatusChanged: onShotStatusChanged,
               onBlockSequenceChanged: onBlockSequenceChanged,
-              onBlockRoleChanged: onBlockRoleChanged,
+              onBlockCandidateAdded: onBlockCandidateAdded,
+              onBlockCandidateRemoved: onBlockCandidateRemoved,
               onBlockDeletionRequested: onBlockDeletionRequested,
               onBlockAdded: onBlockAdded == null ? null : (kind) => onBlockAdded!(slot.id, kind),
               onShotBlockRequested: onShotBlockRequested == null

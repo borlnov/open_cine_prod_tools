@@ -105,6 +105,7 @@ const _callSheetLabels = OcptCallSheetLabels(
   unnamedPersonLabel: "Unnamed",
   eventsSectionTitle: "Events",
   auditionsSectionTitle: "Auditions",
+  candidateHeader: "CANDIDAT",
   candidatesSectionTitle: "Candidates",
   guestsSectionTitle: "Guests",
   guestReasonHeader: "Reason",
@@ -671,30 +672,43 @@ void main() {
       await bloc.close();
     });
 
-    test("an audition block is created in place, and its part written onto it after", () async {
+    test("an audition block is created in place, and its candidacies named onto it after", () async {
       final (slotId, roleCandidateId) = await seedCastingDay();
 
       final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final roleId = loaded.roleCandidateById[roleCandidateId]!.roleId;
+      await waitForState(bloc, (state) => !state.isLoading);
 
       // Created like every other block that names no row of another table: nothing is asked at
-      // creation, and an audition with no part settled yet is an ordinary state.
+      // creation, and an audition naming nobody yet is an ordinary state.
       bloc.add(
         OcptScheduleBlockCreatedEvent(slotId: slotId, kind: OcptShootingBlockKind.audition),
       );
       final created = await waitForState(bloc, (state) => state.selectedDayBlocks.isNotEmpty);
       final block = created.selectedDayBlocks.single;
       expect(block.kind, OcptShootingBlockKind.audition);
-      expect(block.roleId, isNull);
+      expect(block.candidates, isEmpty);
 
-      // Then the row's own role picker says which part is being seen at that hour.
-      bloc.add(OcptScheduleBlockRoleChangedEvent(blockId: block.id, roleId: roleId));
+      // Then the row's own picker says who is seen at that hour, and for which part.
+      bloc.add(
+        OcptScheduleBlockCandidateAddedEvent(
+          blockId: block.id,
+          roleCandidateId: roleCandidateId,
+        ),
+      );
       final named = await waitForState(
         bloc,
-        (state) => state.selectedDayBlocks.single.roleId != null,
+        (state) => state.selectedDayBlocks.single.candidates.isNotEmpty,
       );
-      expect(named.selectedDayBlocks.single.roleId, roleId);
+      final link = named.selectedDayBlocks.single.candidates.single;
+      expect(link.roleCandidateId, roleCandidateId);
+
+      // And taking them back off leaves the audition exactly where it is.
+      bloc.add(OcptScheduleBlockCandidateRemovedEvent(blockCandidateId: link.id));
+      final emptied = await waitForState(
+        bloc,
+        (state) => state.selectedDayBlocks.single.candidates.isEmpty,
+      );
+      expect(emptied.selectedDayBlocks.single.kind, OcptShootingBlockKind.audition);
 
       await bloc.close();
     });

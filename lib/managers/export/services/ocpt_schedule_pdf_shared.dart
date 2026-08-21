@@ -4,6 +4,7 @@
 
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -152,20 +153,23 @@ List<int> ocptScheduleBlockRoleNumbersOf({
 
 /// The caption a non-shot [block] prints: its own free-text label when it has one, then **whatever
 /// that kind of block names** — a sequence's own heading for a [OcptShootingBlockKind.hold] and a
-/// [OcptShootingBlockKind.rehearsal] alike, the part's own `<number> · <name>` for a
-/// [OcptShootingBlockKind.audition] — or [blockKindLabelOf] as the final fallback.
+/// [OcptShootingBlockKind.rehearsal] alike, the parts an [OcptShootingBlockKind.audition] sees, each
+/// as its own `<number> · <name>` — or [blockKindLabelOf] as the final fallback.
 ///
 /// **A band says what it is about, not merely what kind it is.** A hold and a rehearsal both name a
 /// sequence through the same `shooting_day_blocks.sceneId`, so both read it here: a day of
 /// rehearsals whose every band printed the bare word *Rehearsal* would be a running order saying
-/// nothing about what is being worked. An audition names a **part** through
-/// `shooting_day_blocks.roleId` and prints it in the very shape the cast table already names a role
-/// in, so a reader holding both can match them without being told.
+/// nothing about what is being worked. An audition names its candidacies through
+/// `shooting_block_candidates`, and this reads the **parts** off them — deduplicated, in the block's
+/// own order, joined by `·`, and in the very shape the cast table already names a role in, so a
+/// reader holding both can match them without being told. Two actors of two different parts read
+/// together therefore print both parts (ADR 0024).
 ///
-/// The part is printed rather than the person for the reason ADR 0018 gives: an audition block sees
-/// a part, and who comes to be seen is convoked on the **slot** — one session regularly sees several
-/// people one after another, and a band naming one of them would be claiming a running order nobody
-/// typed.
+/// The part is printed rather than the person because this caption goes into the shooting plan and
+/// the call sheet's own main table, both read by the whole unit: who is being seen is the call
+/// sheet's audition table and its candidates directory, where an assistant director needs it. A
+/// candidacy [roleCandidateById] no longer holds, or one whose part [roleById] no longer holds,
+/// drops out of the caption rather than printing nameless.
 ///
 /// The role numbers a [OcptShootingBlockKind.hairMakeUp] band carries are deliberately **not** part
 /// of this string: they are [ocptScheduleBlockRoleNumbersOf]'s own answer, printed on a line of
@@ -180,6 +184,7 @@ String ocptScheduleBlockCaptionOf({
   required OcptShootingDayBlock block,
   required Map<String, String> headingBySceneId,
   required Map<String, OcptRole> roleById,
+  required Map<String, OcptRoleCandidate> roleCandidateById,
   required String Function(OcptShootingBlockKind kind) blockKindLabelOf,
 }) {
   final ownLabel = block.label.trim();
@@ -195,9 +200,19 @@ String ocptScheduleBlockCaptionOf({
     }
   }
 
-  if (block.kind == OcptShootingBlockKind.audition && block.roleId != null) {
-    if (ocptScheduleRoleLabelOf(roleById[block.roleId]) case final label?) {
-      return label;
+  if (block.kind == OcptShootingBlockKind.audition) {
+    final roleLabels = <String>{};
+    for (final candidate in block.candidates) {
+      final roleId = roleCandidateById[candidate.roleCandidateId]?.roleId;
+      if (roleId == null) {
+        continue;
+      }
+      if (ocptScheduleRoleLabelOf(roleById[roleId]) case final label?) {
+        roleLabels.add(label);
+      }
+    }
+    if (roleLabels.isNotEmpty) {
+      return roleLabels.join(" · ");
     }
   }
 

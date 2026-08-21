@@ -61,7 +61,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 19;
+  static const currentPayloadFormat = 20;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -165,13 +165,24 @@ class OcptProjectVersionCodec {
   static const _shootingSlotGuestsKey = "shootingSlotGuests";
 
   /// This is the key used to stringify or parse the `shooting_slot_candidates` rows from a JSON
-  /// object: which candidate each slot convokes, from payload format 18.
+  /// object: which candidate each slot convoked, from payload format 18. Written by no version any
+  /// more, and read only by [_upgradeFormat19To20], which drops it — the table itself is gone from
+  /// format 20 on, exactly as [_shootingDayGroupsKey] is for [_upgradeFormat7To8].
   static const _shootingSlotCandidatesKey = "shootingSlotCandidates";
 
+  /// This is the key used to stringify or parse the `shooting_block_candidates` rows from a JSON
+  /// object: which candidacies each audition block sees, from payload format 20.
+  static const _shootingBlockCandidatesKey = "shootingBlockCandidates";
+
+  /// This is the key used to stringify or parse a `blockId` column
+  /// (`shooting_block_candidates.blockId`, always non-null, the audition a candidacy is seen at)
+  /// from a JSON object, from payload format 20
+  static const _blockIdKey = "blockId";
+
   /// This is the key used to stringify or parse a `roleCandidateId` column
-  /// (`shooting_slot_candidates.roleCandidateId`, always non-null, the candidacy a slot convokes, or
-  /// `shooting_day_blocks.roleCandidateId`, non-null only on an `audition` block) from a JSON
-  /// object, from payload format 18
+  /// (`shooting_block_candidates.roleCandidateId`, always non-null, the candidacy an audition block
+  /// sees; formerly `shooting_slot_candidates.roleCandidateId` and
+  /// `shooting_day_blocks.roleCandidateId`, both gone) from a JSON object, from payload format 18
   static const _roleCandidateIdKey = "roleCandidateId";
 
   /// This is the key used to stringify or parse the `shooting_day_events` rows from a JSON object
@@ -588,8 +599,7 @@ class OcptProjectVersionCodec {
   /// the tag's `targetKind` names a role —, `shooting_slot_cast.roleId`, always non-null, the role
   /// a slot convokes, `role_elements.roleId`, the role wearing an element, or, from payload format
   /// 13, `role_episodes.roleId`, the role an episode names, or, from payload format 16,
-  /// `role_candidates.roleId`, the part somebody is seen for, or, from payload format 18,
-  /// `shooting_day_blocks.roleId`, the part an `audition` block sees somebody for) from a JSON
+  /// `role_candidates.roleId`, the part somebody is seen for) from a JSON
   /// object
   static const _roleIdKey = "roleId";
 
@@ -816,6 +826,7 @@ class OcptProjectVersionCodec {
     16: _upgradeFormat16To17,
     17: _upgradeFormat17To18,
     18: _upgradeFormat18To19,
+    19: _upgradeFormat19To20,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1348,6 +1359,32 @@ class OcptProjectVersionCodec {
     ],
   };
 
+  /// Turns a format-**19** JSON object into a format-**20** one: `shootingSlotCandidates` and every
+  /// `shootingDayBlocks` row's [_roleIdKey] are dropped, and `shootingBlockCandidates` — which
+  /// candidacies each audition block sees — is materialised as an **empty list**.
+  ///
+  /// [_upgradeFormat7To8]'s kind and [_upgradeFormat5To6]'s at once, and neither is a stand-in. What
+  /// goes was written only by intermediate builds of one unmerged branch: a candidate convoked on
+  /// the whole slot, and an audition block naming the single part it saw. Both were taken back out
+  /// because a candidate is expected at twenty past ten rather than "on the unit today", and a block
+  /// reading two actors of two different parts could never have named one part (ADR 0024). What
+  /// arrives is genuinely empty: a version captured before this app could name a candidacy on a
+  /// block named none anywhere. **Nothing is carried over** — a slot-wide convocation names no hour,
+  /// so there is no block for this step to attach it to, and inventing one would put somebody in a
+  /// running order nobody planned.
+  ///
+  /// Both retired keys are stripped rather than left to be ignored: [contentDigest] hashes what this
+  /// codec writes, and a key nothing writes any more must not linger in one payload and not the
+  /// next.
+  static Map<String, dynamic> _upgradeFormat19To20(Map<String, dynamic> json) =>
+      {
+        ...json,
+        _shootingBlockCandidatesKey: const <dynamic>[],
+        _shootingDayBlocksKey: [
+          for (final row in _rows(json, _shootingDayBlocksKey)) {...row}..remove(_roleIdKey),
+        ],
+      }..remove(_shootingSlotCandidatesKey);
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1429,8 +1466,8 @@ class OcptProjectVersionCodec {
     _shootingSlotGuestsKey: [
       for (final row in payload.shootingSlotGuests) _shootingSlotGuestToJson(row),
     ],
-    _shootingSlotCandidatesKey: [
-      for (final row in payload.shootingSlotCandidates) _shootingSlotCandidateToJson(row),
+    _shootingBlockCandidatesKey: [
+      for (final row in payload.shootingBlockCandidates) _shootingBlockCandidateToJson(row),
     ],
     _shootingDayEventsKey: [
       for (final row in payload.shootingDayEvents) _shootingDayEventToJson(row),
@@ -1510,7 +1547,7 @@ class OcptProjectVersionCodec {
   ///   `breakdownTags`,
   ///   `sceneBreakdowns`,
   ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
-  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingSlotCandidates`, `shootingDayEvents`,
+  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingBlockCandidates`, `shootingDayEvents`,
   ///   `projectDictionaryWords` —
   ///   every
   ///   column of each — plus `pageSetup.format`,
@@ -1695,10 +1732,10 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _shootingSlotGuestToJson,
       ),
-      _shootingSlotCandidatesKey: _canonicalRows(
-        payload.shootingSlotCandidates,
+      _shootingBlockCandidatesKey: _canonicalRows(
+        payload.shootingBlockCandidates,
         primaryKeyOf: (row) => row.id,
-        toJson: _shootingSlotCandidateToJson,
+        toJson: _shootingBlockCandidateToJson,
       ),
       _shootingDayEventsKey: _canonicalRows(
         payload.shootingDayEvents,
@@ -1811,9 +1848,9 @@ class OcptProjectVersionCodec {
       shootingSlotGuests: [
         for (final row in _rows(json, _shootingSlotGuestsKey)) _shootingSlotGuestFromJson(row),
       ],
-      shootingSlotCandidates: [
-        for (final row in _rows(json, _shootingSlotCandidatesKey))
-          _shootingSlotCandidateFromJson(row),
+      shootingBlockCandidates: [
+        for (final row in _rows(json, _shootingBlockCandidatesKey))
+          _shootingBlockCandidateFromJson(row),
       ],
       shootingDayEvents: [
         for (final row in _rows(json, _shootingDayEventsKey)) _shootingDayEventFromJson(row),
@@ -2630,7 +2667,6 @@ class OcptProjectVersionCodec {
     _kindKey: row.kind.name,
     _shotIdKey: row.shotId,
     _sceneIdKey: row.sceneId,
-    _roleIdKey: row.roleId,
     _labelKey: row.label,
     _durationMinutesKey: row.durationMinutes,
     _anchorMinuteKey: row.anchorMinute,
@@ -2649,7 +2685,6 @@ class OcptProjectVersionCodec {
         kind: _enum(json, _kindKey, OcptShootingBlockKind.values.asNameMap()),
         shotId: _nullableString(json, _shotIdKey),
         sceneId: _nullableString(json, _sceneIdKey),
-        roleId: _nullableString(json, _roleIdKey),
         label: _string(json, _labelKey),
         durationMinutes: _nullableInt(json, _durationMinutesKey),
         anchorMinute: _nullableInt(json, _anchorMinuteKey),
@@ -2658,26 +2693,27 @@ class OcptProjectVersionCodec {
         isDeleted: _bool(json, _isDeletedKey),
       );
 
-  /// Serializes one `shooting_slot_candidates` row.
-  static Map<String, dynamic> _shootingSlotCandidateToJson(OcptShootingSlotCandidateRow row) => {
+  /// Serializes one `shooting_block_candidates` row.
+  static Map<String, dynamic> _shootingBlockCandidateToJson(OcptShootingBlockCandidateRow row) => {
     _idKey: row.id,
-    _slotIdKey: row.slotId,
+    _blockIdKey: row.blockId,
     _roleCandidateIdKey: row.roleCandidateId,
     _sortKeyKey: row.sortKey,
     _notesKey: row.notes,
     _isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_slot_candidates` row.
-  static OcptShootingSlotCandidateRow _shootingSlotCandidateFromJson(Map<String, dynamic> json) =>
-      OcptShootingSlotCandidateRow(
-        id: _string(json, _idKey),
-        slotId: _string(json, _slotIdKey),
-        roleCandidateId: _string(json, _roleCandidateIdKey),
-        sortKey: _string(json, _sortKeyKey),
-        notes: _string(json, _notesKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
+  /// Parses one `shooting_block_candidates` row.
+  static OcptShootingBlockCandidateRow _shootingBlockCandidateFromJson(
+    Map<String, dynamic> json,
+  ) => OcptShootingBlockCandidateRow(
+    id: _string(json, _idKey),
+    blockId: _string(json, _blockIdKey),
+    roleCandidateId: _string(json, _roleCandidateIdKey),
+    sortKey: _string(json, _sortKeyKey),
+    notes: _string(json, _notesKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
 
   /// Serializes one `shooting_slot_guests` row.
   static Map<String, dynamic> _shootingSlotGuestToJson(OcptShootingSlotGuestRow row) => {

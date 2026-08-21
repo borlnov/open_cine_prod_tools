@@ -415,6 +415,8 @@ String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
 /// from the screen it was planned on. [OcptCallSheetLabels.auditionsSectionTitle] gets a key of its
 /// own because no screen carries that word in the plural: the timetable names one block at a time
 /// (`scheduleBlockKindAudition`), where the printed table heads a list of them.
+/// [OcptCallSheetLabels.candidateHeader] gets one for the mirror reason: the screen only ever names
+/// candidates as a group, where this heads a column naming one per row.
 OcptCallSheetLabels ocptCallSheetLabelsOf(
   BuildContext context, {
   required List<OcptShootingDay> days,
@@ -479,6 +481,7 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
     eventsSectionTitle: tr.scheduleDayEventsSectionTitle,
     auditionsSectionTitle: tr.scheduleExportAuditionsSectionTitle,
+    candidateHeader: tr.scheduleExportCandidateHeader,
     candidatesSectionTitle: tr.scheduleConvocationsCandidatesSectionTitle,
     guestsSectionTitle: tr.scheduleConvocationsGuestsSectionTitle,
     guestReasonHeader: tr.scheduleExportGuestReasonHeader,

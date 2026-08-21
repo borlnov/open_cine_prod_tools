@@ -179,9 +179,13 @@ class OcptCallSheetLabels extends Equatable {
   /// inspector's own section already carry on screen, so a printed sheet cannot name it differently.
   final String eventsSectionTitle;
 
-  /// The heading of the day's own audition table (`HORAIRES / RÔLE`) — printed only on a day whose
-  /// own blocks hold an audition, beside (never instead of) the main table the day's shots print.
+  /// The heading of the day's own audition table (`HORAIRES / RÔLE / CANDIDAT`) — printed only on a
+  /// day whose own blocks hold an audition, beside (never instead of) the main table the day's shots
+  /// print.
   final String auditionsSectionTitle;
+
+  /// The audition table's `CANDIDAT` column header — who is being seen at that hour, for that part.
+  final String candidateHeader;
 
   /// The heading of the day's own candidates list (`NOM / RÔLE / TEL. / MAIL / HORAIRES`) — the
   /// same word the `Convocations` dock panel's own candidates group already carries, so a printed
@@ -243,6 +247,7 @@ class OcptCallSheetLabels extends Equatable {
     required this.unnamedPersonLabel,
     required this.eventsSectionTitle,
     required this.auditionsSectionTitle,
+    required this.candidateHeader,
     required this.candidatesSectionTitle,
     required this.guestsSectionTitle,
     required this.guestReasonHeader,
@@ -312,6 +317,7 @@ class OcptCallSheetLabels extends Equatable {
     unnamedPersonLabel,
     eventsSectionTitle,
     auditionsSectionTitle,
+    candidateHeader,
     candidatesSectionTitle,
     guestsSectionTitle,
     guestReasonHeader,

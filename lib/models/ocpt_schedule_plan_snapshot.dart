@@ -86,8 +86,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
   final List<OcptElement> elements;
 
   /// Every live candidacy of the project — who was seen for which part — in no particular order,
-  /// as passed to [OcptSchedulePlanSnapshot.build]. What a `shooting_slot_candidates` link and an
-  /// `audition` block are both resolved to a name and a part through ([roleCandidateById]).
+  /// as passed to [OcptSchedulePlanSnapshot.build]. What a `shooting_block_candidates` link is
+  /// resolved to a name and a part through ([roleCandidateById]).
   ///
   /// Empty on a project that has auditioned nobody, which is most of them: the schedule reads this
   /// catalogue for the same reason it reads the elements one — one surface needs it — and a
@@ -112,10 +112,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// The whole address book, keyed by id.
   final Map<String, OcptPerson> personById;
 
-  /// [roleCandidates], keyed by id — what a candidate's convocation and an `audition` block resolve
-  /// their `roleCandidateId` through. A row this map no longer holds reads as nothing at all: the
+  /// [roleCandidates], keyed by id — what an `audition` block's own rows resolve their
+  /// `roleCandidateId` through. A row this map no longer holds reads as nothing at all: the
   /// candidacy has been removed since, and no cascade drops the schedule rows naming it (see
-  /// `OcptShootingSlotCandidatesTable`).
+  /// `OcptShootingBlockCandidatesTable`).
   final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// [episodes], keyed by id — the same derivation [locationById]/[setById]/[roleById]/[personById]
@@ -257,14 +257,16 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person, per uncast role,
-  /// per guest and per candidate linked to any of its live slots, empty while [dayId] names no day
-  /// with a live slot at all.
+  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person, per uncast role
+  /// and per guest linked to any of its live slots, plus one per candidacy named on any of its live
+  /// audition blocks (ADR 0024), empty while [dayId] names no day with a live slot at all.
   ///
   /// Built by [ocptComputeDayConvocations] over one [OcptConvocationSlot] per live slot
-  /// ([_convocationSlotOf]) — that pure function knows nothing of `shots`, `roles` or the timeline,
-  /// so joining a slot's already-chained blocks ([timelinesOfDay]) onto its own crew and cast rows,
-  /// and resolving a cast role's own actor through [roleById], is this snapshot's job alone.
+  /// ([_convocationSlotOf]) and one [OcptConvocationAudition] per live audition block
+  /// ([_convocationAuditionsOf]) — that pure function knows nothing of `shots`, `roles` or the
+  /// timeline, so joining a slot's already-chained blocks ([timelinesOfDay]) onto its own crew and
+  /// cast rows, resolving a cast role's own actor through [roleById], and resolving an audition
+  /// block to the hours the timeline actually put it at, are this snapshot's job alone.
   List<OcptDayConvocation> convocationsOfDay(String dayId) {
     final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     if (slots.isEmpty) {
@@ -272,10 +274,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
     }
 
     final timelines = timelinesOfDay(dayId);
-    final blocksById = {
-      for (final block in schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
-        block.id: block,
-    };
+    final blocks = schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
+    final blocksById = {for (final block in blocks) block.id: block};
 
     return ocptComputeDayConvocations(
       slots: [
@@ -284,7 +284,59 @@ class OcptSchedulePlanSnapshot extends Equatable {
         for (final slot in slots)
           _convocationSlotOf(slot, timelines!.bySlotId[slot.id]!, blocksById),
       ],
+      auditions: _convocationAuditionsOf(blocks, timelines!),
     );
+  }
+
+  /// The [OcptConvocationAudition] of every live [OcptShootingBlockKind.audition] block among
+  /// [blocks] that names at least one candidacy [roleCandidateById] still holds, its hours read off
+  /// [timelines]' own resolved entry for it.
+  ///
+  /// **Filtered through [roleCandidateById]**, exactly as the slot-level links are through
+  /// [roleById]: a row naming a candidacy that has since been removed convokes nobody, and dropping
+  /// it here is what keeps a stale link from drawing a nameless card. A block left with no candidacy
+  /// at all after that filter is left out entirely rather than passed in empty — it convokes nobody
+  /// either way, and an audition nobody has been named on yet is an ordinary state.
+  ///
+  /// A block the timelines have no entry for cannot happen — every live block of the day is chained
+  /// by [timelinesOfDay] — but is skipped rather than asserted about, the reading every other
+  /// dangling link in this file gets.
+  List<OcptConvocationAudition> _convocationAuditionsOf(
+    List<OcptShootingDayBlock> blocks,
+    OcptShootingDayTimelines timelines,
+  ) {
+    final auditions = <OcptConvocationAudition>[];
+    final entryByBlockId = {for (final entry in timelines.entries) entry.blockId: entry};
+
+    for (final block in blocks) {
+      if (block.kind != OcptShootingBlockKind.audition || block.candidates.isEmpty) {
+        continue;
+      }
+
+      final entry = entryByBlockId[block.id];
+      if (entry == null) {
+        continue;
+      }
+
+      final roleCandidateIds = <String>{
+        for (final candidate in block.candidates)
+          if (roleCandidateById.containsKey(candidate.roleCandidateId)) candidate.roleCandidateId,
+      };
+      if (roleCandidateIds.isEmpty) {
+        continue;
+      }
+
+      auditions.add(
+        OcptConvocationAudition(
+          slotId: block.slotId,
+          startMinute: entry.startMinute,
+          endMinute: entry.endMinute,
+          roleCandidateIds: roleCandidateIds,
+        ),
+      );
+    }
+
+    return auditions;
   }
 
   /// Builds [slot]'s own [OcptConvocationSlot]: [OcptConvocationSlot.shootingStartMinute]/
@@ -297,11 +349,12 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`,
   /// [OcptConvocationSlot.guestPersonIds]/[OcptConvocationSlot.guestFreeNames] come straight off
   /// [slot]'s own live [OcptShootingSlot.guests] — a guest's `personId`/`freeName` already being the
-  /// discriminator [ocptComputeDayConvocations] itself groups on, there is no join left to do here —
-  /// and [OcptConvocationSlot.roleCandidateIds] comes off its own live
-  /// [OcptShootingSlot.candidates], **filtered through [roleCandidateById]**: a link onto a
-  /// candidacy that has since been removed convokes nobody, and dropping it here is what keeps a
-  /// stale row from drawing a nameless card.
+  /// discriminator [ocptComputeDayConvocations] itself groups on, there is no join left to do here.
+  ///
+  /// **No candidate is read here at all**: a candidacy is named on an audition **block** (ADR 0024),
+  /// which [_convocationAuditionsOf] resolves separately — this slot's own `shootingStartMinute`/
+  /// `shootingEndMinute` still count its auditions as shooting time, since they are the working time
+  /// of everybody else on the unit.
   ///
   /// [OcptConvocationSlot.startMinute] is [timeline]'s own **resolved** start, never a stored
   /// column: a slot pinned by its end starts wherever its blocks put it, and a convocation is what
@@ -348,11 +401,6 @@ class OcptSchedulePlanSnapshot extends Equatable {
       }
     }
 
-    final roleCandidateIds = <String>{
-      for (final candidate in slot.candidates)
-        if (roleCandidateById.containsKey(candidate.roleCandidateId)) candidate.roleCandidateId,
-    };
-
     return OcptConvocationSlot(
       id: slot.id,
       startMinute: timeline.startMinute,
@@ -363,7 +411,6 @@ class OcptSchedulePlanSnapshot extends Equatable {
       uncastRoleIds: uncastRoleIds,
       guestPersonIds: guestPersonIds,
       guestFreeNames: guestFreeNames,
-      roleCandidateIds: roleCandidateIds,
     );
   }
 

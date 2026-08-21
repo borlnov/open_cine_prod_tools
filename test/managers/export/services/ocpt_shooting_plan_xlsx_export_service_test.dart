@@ -90,7 +90,6 @@ OcptShootingSlot _buildSlot({
   crew: const [],
   cast: cast,
   guests: const [],
-  candidates: const [],
 );
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
@@ -110,12 +109,12 @@ OcptShootingDayBlock _buildBlock({
   kind: kind,
   shotId: shotId,
   sceneId: sceneId,
+  candidates: const [],
   label: "",
   durationMinutes: durationMinutes,
   anchorMinute: null,
   notes: "",
   crewNote: crewNote,
-  roleId: null,
 );
 
 /// Builds a cast member with the few fields these tests read, everything else neutral.

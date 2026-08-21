@@ -57,7 +57,6 @@ OcptShootingSlot _buildSlot({required String id}) => OcptShootingSlot(
   crew: const [],
   cast: const [],
   guests: const [],
-  candidates: const [],
 );
 
 void main() {

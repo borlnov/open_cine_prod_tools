@@ -687,6 +687,7 @@ void main() {
       unnamedPersonLabel: "No name",
       eventsSectionTitle: "Events",
       auditionsSectionTitle: "Auditions",
+      candidateHeader: "CANDIDAT",
       candidatesSectionTitle: "Candidates",
       guestsSectionTitle: "Guests",
       guestReasonHeader: "Reason",
@@ -726,7 +727,6 @@ void main() {
         ],
         cast: [],
         guests: [],
-        candidates: [],
       );
 
       return OcptSchedulePlanSnapshot.build(
@@ -932,7 +932,6 @@ void main() {
                   ],
                   cast: slot.cast,
                   guests: slot.guests,
-                  candidates: [],
                 ),
               ],
             },
@@ -1017,7 +1016,6 @@ void main() {
             ],
             cast: [],
             guests: [],
-            candidates: [],
           );
           const slotTwo = OcptShootingSlot(
             id: "slot-2",
@@ -1049,7 +1047,6 @@ void main() {
             ],
             cast: [],
             guests: [],
-            candidates: [],
           );
 
           final twoDayPlan = OcptSchedulePlanSnapshot.build(
@@ -1165,7 +1162,6 @@ void main() {
         crew: [],
         cast: [],
         guests: [],
-        candidates: [],
       );
 
       return OcptSchedulePlanSnapshot.build(
@@ -1281,7 +1277,6 @@ void main() {
         crew: [],
         cast: [OcptShootingSlotCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1", notes: "")],
         guests: [],
-        candidates: [],
       );
 
       return OcptSchedulePlanSnapshot.build(
@@ -1404,7 +1399,6 @@ void main() {
         crew: [],
         cast: [],
         guests: [],
-        candidates: [],
       );
 
       return OcptSchedulePlanSnapshot.build(
@@ -1512,7 +1506,6 @@ void main() {
         crew: [],
         cast: [],
         guests: [],
-        candidates: [],
       );
 
       return OcptSchedulePlanSnapshot.build(

@@ -59,7 +59,7 @@ void main() {
     currencyCode: null,
     minimumRestMinutes: null,
     screenplayLanguage: null,
-    shootingSlotCandidates: const [],
+    shootingBlockCandidates: const [],
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].
