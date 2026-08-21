@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
@@ -64,6 +65,11 @@ class OcptBudgetSnapshot extends Equatable {
   /// The cash journal's own debit, credit and balance, over [entries].
   final OcptBudgetCashTotals cashTotals;
 
+  /// The dashboard's own two alerts — a poste over its quote, the cash projection going negative —
+  /// computed once, here, by [ocptComputeBudgetAlerts] over this snapshot's own already-loaded
+  /// data: **both computed, neither configured** (`docs/plans/budget-mode.md` §5, M2).
+  final List<OcptBudgetAlert> alerts;
+
   /// Class constructor
   const OcptBudgetSnapshot({
     required this.postes,
@@ -78,12 +84,13 @@ class OcptBudgetSnapshot extends Equatable {
     required this.paidByPosteId,
     required this.committedByPosteId,
     required this.cashTotals,
+    required this.alerts,
   });
 
   /// Builds an [OcptBudgetSnapshot] from [postes], [entries] and [commitments], the project's
   /// [defaultVatRateBasisPoints] and [currencyCode], deriving every count and every map from them.
   ///
-  /// [paidByPosteId], [committedByPosteId] and [cashTotals] are derived here exactly as
+  /// [paidByPosteId], [committedByPosteId], [cashTotals] and [alerts] are derived here exactly as
   /// [posteCount]/[lineCount] are: a pure function of the lists already loaded, reading them under
   /// [defaultVatRateBasisPoints] — the project's own rate, which moves the whole reading with it
   /// exactly as every silent line already does — with no database access of its own.
@@ -93,26 +100,43 @@ class OcptBudgetSnapshot extends Equatable {
     required List<OcptBudgetCommitment> commitments,
     required int? defaultVatRateBasisPoints,
     required String currencyCode,
-  }) => OcptBudgetSnapshot(
-    postes: postes,
-    entries: entries,
-    commitments: commitments,
-    defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-    currencyCode: currencyCode,
-    posteCount: postes.length,
-    lineCount: postes.fold(0, (sum, poste) => sum + poste.lines.length),
-    entryCount: entries.length,
-    commitmentCount: commitments.length,
-    paidByPosteId: ocptBudgetPaidCentsByPosteId(
+  }) {
+    final paidByPosteId = ocptBudgetPaidCentsByPosteId(
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
-    ),
-    committedByPosteId: ocptBudgetCommittedCentsByPosteId(
+    );
+    final committedByPosteId = ocptBudgetCommittedCentsByPosteId(
       commitments,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
-    ),
-    cashTotals: ocptBudgetCashTotalsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints),
-  );
+    );
+    final cashTotals = ocptBudgetCashTotalsOf(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+
+    return OcptBudgetSnapshot(
+      postes: postes,
+      entries: entries,
+      commitments: commitments,
+      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+      currencyCode: currencyCode,
+      posteCount: postes.length,
+      lineCount: postes.fold(0, (sum, poste) => sum + poste.lines.length),
+      entryCount: entries.length,
+      commitmentCount: commitments.length,
+      paidByPosteId: paidByPosteId,
+      committedByPosteId: committedByPosteId,
+      cashTotals: cashTotals,
+      alerts: ocptComputeBudgetAlerts(
+        postes: postes,
+        paidCentsOf: (posteId) => paidByPosteId[posteId]?.amountCents ?? 0,
+        committedCentsOf: (posteId) => committedByPosteId[posteId]?.amountCents ?? 0,
+        commitments: commitments,
+        cashTotals: cashTotals,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      ),
+    );
+  }
 
   /// [posteId]'s own paid total, in cents, tax-inclusive — [paidByPosteId]'s own entry for
   /// [posteId], or **0** while it carries none.
@@ -150,5 +174,6 @@ class OcptBudgetSnapshot extends Equatable {
     paidByPosteId,
     committedByPosteId,
     cashTotals,
+    alerts,
   ];
 }

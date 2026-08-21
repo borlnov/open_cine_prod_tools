@@ -277,14 +277,29 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Builds the dashboard.
-  Widget _buildDashboard(BuildContext context, OcptBudgetState state) => OcptBudgetDashboard(
-    postes: state.postes,
-    taxBasis: state.taxBasis,
-    defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-    currencyCode: state.currencyCode,
-    onPosteSelected: (posteId) =>
-        context.read<OcptBudgetBloc>().add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
-  );
+  Widget _buildDashboard(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+
+    return OcptBudgetDashboard(
+      postes: state.postes,
+      taxBasis: state.taxBasis,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      currencyCode: state.currencyCode,
+      cashTotals: state.cashTotals,
+      paidByPosteId: state.paidByPosteId,
+      committedByPosteId: state.committedByPosteId,
+      alerts: state.alerts,
+      onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
+      onPosteAlertActionRequested: (posteId) {
+        bloc
+          ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
+          ..add(const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.costTracking));
+      },
+      onCashAlertActionRequested: () => bloc.add(
+        const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.committed),
+      ),
+    );
+  }
 
   /// Builds the cost-tracking table.
   Widget _buildCostTracking(BuildContext context, OcptBudgetState state) {

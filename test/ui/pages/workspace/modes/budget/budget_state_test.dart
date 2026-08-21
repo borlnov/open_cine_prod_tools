@@ -256,4 +256,44 @@ void main() {
       expect(state.commitments, [commitment]);
     });
   });
+
+  group("OcptBudgetState.alerts", () {
+    test("reads the snapshot's own alerts, empty while nothing is loaded", () {
+      const emptyState = OcptBudgetState.init();
+      expect(emptyState.alerts, isEmpty);
+
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")])],
+        entries: const [],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      // A poste quoted at zero (the neutral line's own unit price) with nothing paid or
+      // committed against it raises nothing.
+      expect(state.alerts, isEmpty);
+    });
+  });
+
+  group("OcptBudgetState.paidByPosteId / committedByPosteId", () {
+    test("read the snapshot's own maps, empty while nothing is loaded", () {
+      const emptyState = OcptBudgetState.init();
+      expect(emptyState.paidByPosteId, isEmpty);
+      expect(emptyState.committedByPosteId, isEmpty);
+
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.paidByPosteId["poste-1"]?.amountCents, 1000);
+      expect(state.committedByPosteId, isEmpty);
+    });
+  });
 }

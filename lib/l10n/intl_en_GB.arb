@@ -10474,6 +10474,106 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetDashboardCashBalanceLabel": "Cash balance",
+  "@budgetDashboardCashBalanceLabel": {
+    "description": "Label of the dashboard's own cash-balance KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardPaidLabel": "Paid",
+  "@budgetDashboardPaidLabel": {
+    "description": "Label of the dashboard's own paid KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardCommittedLabel": "Committed",
+  "@budgetDashboardCommittedLabel": {
+    "description": "Label of the dashboard's own committed KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardPosteOverQuoteAlertTitle": "Over its quote",
+  "@budgetDashboardPosteOverQuoteAlertTitle": {
+    "description": "Title of the dashboard's alert card for a poste whose paid plus committed exceeds its own quote",
+    "context": "Displayed above the message, in the budget mode's dashboard, one card per poste over its quote",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardPosteOverQuoteAlertMessage": "{posteLabel} has {spentAmount} paid or committed against a {quotedAmount} quote — {varianceAmount} over.",
+  "@budgetDashboardPosteOverQuoteAlertMessage": {
+    "description": "Message of the dashboard's alert card for a poste over its own quote",
+    "context": "Displayed in the budget mode's dashboard, one card per poste over its quote",
+    "type": "text",
+    "placeholders": {
+      "posteLabel": {
+        "type": "String"
+      },
+      "spentAmount": {
+        "type": "String"
+      },
+      "quotedAmount": {
+        "type": "String"
+      },
+      "varianceAmount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetDashboardPosteOverQuoteAlertAction": "View poste",
+  "@budgetDashboardPosteOverQuoteAlertAction": {
+    "description": "Action of the dashboard's alert card for a poste over its own quote, selecting it and switching to the cost-tracking view",
+    "context": "Displayed on the budget mode's dashboard, one card per poste over its quote",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardCashNegativeAlertTitle": "Cash going negative",
+  "@budgetDashboardCashNegativeAlertTitle": {
+    "description": "Title of the dashboard's alert card for the cash projection going negative",
+    "context": "Displayed above the message, in the budget mode's dashboard",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardCashNegativeAlertMessageDated": "The {balance} balance falls below zero on {date}, once {dueAmount} falls due.",
+  "@budgetDashboardCashNegativeAlertMessageDated": {
+    "description": "Message of the dashboard's cash-negative alert card, while the instalment that tips the balance under has a recorded due date",
+    "context": "Displayed in the budget mode's dashboard",
+    "type": "text",
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "dueAmount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetDashboardCashNegativeAlertMessageUndated": "The {balance} balance falls below zero once {dueAmount} falls due, on a date nobody has recorded yet.",
+  "@budgetDashboardCashNegativeAlertMessageUndated": {
+    "description": "Message of the dashboard's cash-negative alert card, while the instalment that tips the balance under carries no recorded due date",
+    "context": "Displayed in the budget mode's dashboard",
+    "type": "text",
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "dueAmount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetDashboardCashNegativeAlertAction": "View commitments",
+  "@budgetDashboardCashNegativeAlertAction": {
+    "description": "Action of the dashboard's cash-negative alert card, switching to the committed view",
+    "context": "Displayed in the budget mode's dashboard",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetInspectorEmptyHint": "Select a poste to see its quote.",
   "@budgetInspectorEmptyHint": {
     "description": "Hint shown in the Inspector tab while no poste is selected",

@@ -20,7 +20,9 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The key [OcptBudgetState.pendingFieldEdits] is stored under: which poste or line, and which of
 /// its own [OcptBudgetField]s — mirrors `OcptSchedulePendingFieldKey`.
@@ -148,6 +150,18 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
   int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
+
+  /// What has actually been paid against each poste of [snapshot], empty while nothing is loaded —
+  /// the dashboard's own `Paid` KPI reads this rather than recomputing it.
+  Map<String, OcptBudgetCoveredTotal> get paidByPosteId => snapshot?.paidByPosteId ?? const {};
+
+  /// What is committed against each poste of [snapshot], empty while nothing is loaded — the
+  /// dashboard's own `Committed` KPI reads this rather than recomputing it.
+  Map<String, OcptBudgetCoveredTotal> get committedByPosteId =>
+      snapshot?.committedByPosteId ?? const {};
+
+  /// The dashboard's own two alerts, empty while nothing is loaded or the project raises neither.
+  List<OcptBudgetAlert> get alerts => snapshot?.alerts ?? const [];
 
   /// The project's default VAT rate, in basis points, or null while nobody has recorded one.
   int? get defaultVatRateBasisPoints => snapshot?.defaultVatRateBasisPoints;
