@@ -23,6 +23,7 @@ file here says what the code does because of it.
 | [resources.md](resources.md) | The address book, the cast, the locations and their sets, the elements catalogue, and the mode's two documents | `lib/ui/pages/workspace/modes/resources/` |
 | [breakdown.md](breakdown.md) | The *dépouillement*: tags, the scene pass, the script and recap views, and the mode's two documents | `lib/ui/pages/workspace/modes/breakdown/` |
 | [schedule.md](schedule.md) | The shooting days, slots and blocks, the time model, convocations, the four views, the alerts, and the seven documents a production runs on | `lib/ui/pages/workspace/modes/schedule/`, `lib/utils/ocpt_shooting_*.dart`, `lib/utils/ocpt_schedule_*.dart` |
+| [budget.md](budget.md) | The money rule, the CNC nomenclature, the quote and its two views — the mode's M1 foundations, with the cash journal, the financing and the sharing still ahead | `lib/ui/pages/workspace/modes/budget/`, `lib/utils/ocpt_budget_*.dart` |
 
 A change that crosses two of them — a new synchronised table, a new export, a new production
 mode — touches `foundations.md` too: that file is where the rules the others inherit are written.

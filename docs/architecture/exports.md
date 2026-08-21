@@ -19,8 +19,9 @@ sit.
   two-column grid of cards, one per document, each naming it, saying in a line what it is, and
   wearing its format as a trailing label. The control is built by the shell rather than handed in,
   so an export is the same gesture in the same place in every mode, and `onExportRequested` is
-  nullable like every other chrome slot: the budget mode, printing nothing, shows **no button at
-  all** rather than a disabled one. The panel **only asks** — it pops the picked value and nothing
+  nullable like every other chrome slot — a mode with nothing at all to print would show **no
+  button** rather than a disabled one, though every mode today wires the control, if only for the
+  project package card below. The panel **only asks** — it pops the picked value and nothing
   else, the mode then opening that document's own options dialog from its own context. What it pops
   is a sealed `OcptWorkspaceExportPick<T>` (`lib/models/`), `document(T)` or `projectPackage`,
   rather than a bare `T?`: every mode's call site already switched on the pick, so the standing card
@@ -58,11 +59,14 @@ sit.
   a preview writes exactly what *is* — leaving it clickable with a caveat would make it the odd one
   out in the one way that matters, and a card that vanished would make the panel lie about what
   exists. ADR 0021 records the exception with its argument so it is not read later as a slip.
-  The **budget mode has no `Export` control and keeps none**: it has no bloc by design, one created
-  for a mode whose whole content is "coming in a future version" would be rewritten the day that
-  mode arrives, and routing its pick to `OcptWorkspaceBloc` instead would have one action handled by
-  two different blocs depending on where the user was standing. The stated cost is that it is the
-  one place in the app where the project package is a click further away.
+  The **budget mode's `Export` control opens onto no document at all**: its own
+  `OcptWorkspaceExportDialog<Never>` is given `entries: const []`, generic over `Never` because
+  there is no document enum yet to be generic over, so the panel it draws holds this standing
+  project-package card and nothing else — a colleague can already receive the project as a portable
+  package before the mode prints a single PDF of its own (`budget.md`). The four documents the
+  mockup names — the quote, the financing plan, the cash journal, the financial report — arrive at
+  M4, each with its own entry in a real export enum this milestone deliberately left undeclared
+  rather than pre-empted.
   The **same flow with no project open** is a home page project card's `⋮` `Export…`
   (`OcptHomeBloc` mixes the very same mixin in, answering `flushPendingProjectWrites` with a no-op):
   sending a project should not require opening it first, and it is the only way to export one whose

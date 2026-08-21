@@ -29,14 +29,17 @@ the persistence, the project versions, the sync-ready data model and the read-on
   List<OcptEpisode> episodes, String? selectedEpisodeId }` — it owns *which* production mode is
   active and *which episode* it shows, nothing about that mode's own content.
   `OcptWorkspaceMode { screenplay, breakdown, shotList, resources, schedule, budget }` is ordered by
-  the order the work happens in (write, break down, shoot-list, resource, schedule) with the one
-  unimplemented mode last, and is persisted through `OcptPropertiesManager.workspaceMode` by
-  **name** rather than by index (modelled on `editorMode`), so opening a project restores the last
-  mode used and reordering the enum is safe. The modes are `EditorPage` (screenplay, under
-  `lib/ui/pages/editor/`), `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode` and
-  `OcptScheduleMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc),
-  plus the stateless `OcptBudgetMode` rendering the shared empty state — no bloc, no data, "coming
-  in a future version".
+  the order the work happens in (write, break down, shoot-list, resource, schedule) with `budget`
+  last since it is the one mode that reads every other mode's own figures rather than one anybody
+  starts from, and is persisted through `OcptPropertiesManager.workspaceMode` by **name** rather
+  than by index (modelled on `editorMode`), so opening a project restores the last mode used and
+  reordering the enum is safe. The modes are `EditorPage` (screenplay, under `lib/ui/pages/editor/`),
+  `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
+  `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc) —
+  `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
+  bare `true` so a mode shipped ahead of its own content (the way `budget` itself once sat here,
+  rendering the shared "coming in a future version" empty state) has a single, obvious place to be
+  left out of again.
   `OcptWorkspaceShell` is a stateless slot widget (title, toolbar actions, overflow entries, left
   panel, right panel, centre, status bar, dock controller) built by whichever mode is active. The
   end of the toolbar is the shell's own chrome rather than a mode's actions, so its order can't
@@ -70,10 +73,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   The **selector** is built by `OcptWorkspaceShell` itself from `episodes`/`selectedEpisodeId`/
   `onEpisodeSelected`, so the gesture cannot drift from one mode to the next, and its nullable
   callback is the whole of its conditional behaviour: **no control is drawn at all** — never a
-  disabled one, the budget mode's missing `Export` button being the precedent — for a project with
-  a single episode, and for the **schedule mode**, which reads every episode at once and would
-  otherwise show a selector that either does nothing or lies. The menu only ever *chooses*; its last
-  entry, `Manage episodes…`, lands on `OcptProjectSettingsPage`.
+  disabled one, the very idiom the toolbar's own slots already carry (`onExportRequested`, the two
+  dock toggles, each rendered only when the mode wired it, above) — for a project with a single
+  episode, and for the **schedule** mode, which reads every episode at once and would otherwise show
+  a selector that either does nothing or lies, and the **budget** mode, whose catalogue names no
+  episode at all (`budget.md`) and would show one filtering a read that was never split by episode
+  to begin with. The menu only ever *chooses*; its last entry, `Manage episodes…`, lands on
+  `OcptProjectSettingsPage`.
   That one toolbar slot holds **either** the selector **or**, for a project with a single episode,
   the screenplay mode's `Add an episode…` button (`onAddEpisodeRequested`, wired by that mode alone)
   — the only thing naming an episode on a project that has one, and the answer to a feature nobody
@@ -253,14 +259,17 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v19 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v20 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the fifteen resources tables (`role_elements` and `role_episodes`
-  among them), `breakdown_tags`, `scene_breakdowns`, the seven schedule tables,
-  `project_dictionary_words`, `row_field_versions`, `project_versions`),
+  among them), `breakdown_tags`, `scene_breakdowns`, the seven schedule tables, `budget_postes`,
+  `budget_lines`, `project_dictionary_words`, `row_field_versions`, `project_versions`),
   `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
-  number → exact heading → relative order). v19 adds `project_info.screenplayLanguage` (nullable,
-  no backfill: "nobody has said" is as true after the migration as before it) and creates
-  `project_dictionary_words`, both additive. v18 is the multi-episode migration: `screenplays` gains
+  number → exact heading → relative order). v20 adds `budget_postes` and `budget_lines` and three
+  nullable `project_info` columns (`defaultVatRateBasisPoints`, `mealPriceCents`,
+  `snackPriceCents`), all additive — `budget.md` for what they hold. v19 adds
+  `project_info.screenplayLanguage` (nullable, no backfill: "nobody has said" is as true after the
+  migration as before it) and creates `project_dictionary_words`, both additive. v18 is the
+  multi-episode migration: `screenplays` gains
   `number` and `sortKey`, `role_episodes` is added, and `roles.screenplayId` and
   `shooting_days.screenplayId` are **dropped** — the fifth time ADR 0007's additive-only rule is set
   aside for a column drop, through drift's own `Migrator.alterTable`/`TableMigration` recipe. It
@@ -285,7 +294,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  twenty-nine captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  thirty-one captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat` — independent of the schema version, upgraded on decode when older, refused when
   newer. It is **a hand-written mirror of the schema**, and a new synchronised table has to be added
@@ -295,9 +304,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
   The `_payloadUpgrades` map brings an older payload onto the current shape, and every entry is one
   of **four kinds**, each argued in its own doc comment — read them before writing a fifth. A
   **materialised** value states what was true at capture: an empty list for a table that did not
-  exist yet, or a column's own default. Restoring such a version therefore tombstones every row
-  added since, which is the truthful reading of "this project had none" — an edit like any other
-  restore, not a no-op that leaves that half of the project alone. A **null** says nobody had
+  exist yet, or a column's own default — `budgetPostes` and `budgetLines` join that kind at payload
+  format 16, materialising as empty lists for every version sealed before this milestone existed
+  (`budget.md`). Restoring such a version therefore tombstones every row added since, which is the
+  truthful reading of "this project had none" — an edit like any other restore, not a no-op that
+  leaves that half of the project alone. A **null** says nobody had
   recorded that figure, and is written back like any other changed column; the currency is the one
   exception, its column having never been nullable, so *its* null alone means "leave the live value
   untouched". A **removal** drops a list or a column the project has no concept for any more: unlike

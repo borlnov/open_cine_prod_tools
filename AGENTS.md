@@ -76,12 +76,14 @@ Everything that has shipped is recorded by the code itself, by `docs/architectur
 `docs/adr/` — this section lists only what is still ahead, so it stays short enough to be read.
 The MVP (Fountain editor, shot list, resources, breakdown, schedule, their exports, project
 versions, the sync-ready data model, the portable project package, the desktop packaging) is done;
-the budget mode is the one production mode still showing an empty state.
+the budget mode's M1 (the quote against the CNC nomenclature, `docs/architecture/budget.md`) has
+shipped too, with its cash journal, financing and revenue-sharing milestones still ahead.
 
 | Step | Content | Status |
 | --- | --- | --- |
 | 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
-| — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, budget, script supervisor reports, storyboard, casting tracker | 📝 planned |
+| 30 | Budget mode M2-M4: cash and commitments, financing and catering, sharing and the exports (`docs/plans/budget-mode.md`) | 📝 planned |
+| — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard, casting tracker | 📝 planned |
 
 Step numbers are historical: they were allocated as the work was planned, are referenced by no
 file any more, and a new one simply continues the series. What used to be listed here as `0`
@@ -164,6 +166,7 @@ file in `docs/architecture/` says what the code does because of it.
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |
 | [`breakdown.md`](docs/architecture/breakdown.md) | `lib/ui/pages/workspace/modes/breakdown/` |
 | [`schedule.md`](docs/architecture/schedule.md) | `lib/ui/pages/workspace/modes/schedule/` |
+| [`budget.md`](docs/architecture/budget.md) | `lib/ui/pages/workspace/modes/budget/`, `lib/utils/ocpt_budget_*.dart` |
 
 What follows is the short list of rules that hold **everywhere**, and that a file in
 `docs/architecture/` only ever refines:
