@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
@@ -157,6 +158,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetFieldChangedEvent>(_onFieldChanged);
     on<OcptBudgetFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptBudgetProjectSettingsChangedEvent>(_onProjectSettingsChanged);
+    on<OcptBudgetEntryCreationConfirmedEvent>(_onEntryCreationConfirmed);
+    on<OcptBudgetEntryUpdateConfirmedEvent>(_onEntryUpdateConfirmed);
+    on<OcptBudgetEntryDeletionConfirmedEvent>(_onEntryDeletionConfirmed);
+    on<OcptBudgetCashJournalFilterClearedEvent>(_onCashJournalFilterCleared);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -710,6 +715,89 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Creates a new cash-journal entry from `event.fields`, writing its typed amount onto whichever
+  /// of `debitCents`/`creditCents` [OcptBudgetEntryFormFields.isDebit] names and zero onto the
+  /// other — the one reading no single database column mirrors, see that model's own doc comment.
+  Future<void> _onEntryCreationConfirmed(
+    OcptBudgetEntryCreationConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    await _budgetJournalService.createEntry(
+      database: project.database,
+      date: fields.date,
+      label: fields.label,
+      posteId: fields.posteId,
+      debitCents: fields.isDebit ? fields.amountCents : 0,
+      creditCents: fields.isDebit ? 0 : fields.amountCents,
+      isTaxInclusive: fields.isTaxInclusive,
+      vatRateBasisPoints: fields.vatRateBasisPoints,
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes `event.fields` onto entry `event.entryId`, including its own voucher number — see
+  /// [OcptBudgetEntryFormFields.voucherNumber]'s own doc comment for why it is always set here, an
+  /// entry dialog only ever being opened to edit with one already loaded.
+  Future<void> _onEntryUpdateConfirmed(
+    OcptBudgetEntryUpdateConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    final voucherNumber = fields.voucherNumber;
+    await _budgetJournalService.updateEntry(
+      database: project.database,
+      entryId: event.entryId,
+      date: Value(fields.date),
+      label: Value(fields.label),
+      posteId: Value(fields.posteId),
+      debitCents: Value(fields.isDebit ? fields.amountCents : 0),
+      creditCents: Value(fields.isDebit ? 0 : fields.amountCents),
+      isTaxInclusive: Value(fields.isTaxInclusive),
+      vatRateBasisPoints: Value(fields.vatRateBasisPoints),
+      voucherNumber: voucherNumber == null ? const Value.absent() : Value(voucherNumber),
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Deletes cash-journal entry `event.entryId` for good, confirmed by the mode's own
+  /// `OcptConfirmDialog`.
+  Future<void> _onEntryDeletionConfirmed(
+    OcptBudgetEntryDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetJournalService.deleteEntry(database: project.database, entryId: event.entryId);
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Clears the cash journal view's own poste filter — `OcptBudgetState.selectedPosteId` itself,
+  /// see [OcptBudgetCashJournalFilterClearedEvent]'s own doc comment. Flushes any pending field
+  /// edit first, mirroring every other selection-changing handler.
+  Future<void> _onCashJournalFilterCleared(
+    OcptBudgetCashJournalFilterClearedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+    emitter(state.copyWith(clearSelectedPosteId: true, clearExpandedLineId: true));
   }
 
   /// Re-reads the quote of [project] and applies it, reconciling

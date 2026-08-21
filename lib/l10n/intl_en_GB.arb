@@ -10741,14 +10741,284 @@
   "budgetDeleteCancelAction": "Cancel",
   "@budgetDeleteCancelAction": {
     "description": "Cancel action of the budget mode's own deletion confirmation dialogs",
-    "context": "Shown by OcptConfirmDialog before a poste or a quote line is deleted",
+    "context": "Shown by OcptConfirmDialog before a poste, a quote line or a cash entry is deleted",
     "type": "text",
     "placeholders": {}
   },
   "budgetDeleteConfirmAction": "Delete",
   "@budgetDeleteConfirmAction": {
     "description": "Confirm action of the budget mode's own deletion confirmation dialogs",
-    "context": "Shown by OcptConfirmDialog before a poste or a quote line is deleted",
+    "context": "Shown by OcptConfirmDialog before a poste, a quote line or a cash entry is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCashJournalSegmentLabel": "Cash journal",
+  "@budgetHeaderCashJournalSegmentLabel": {
+    "description": "Label of the header's Cash journal view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalEmptyHint": "Record a payment or a receipt to start the cash journal.",
+  "@budgetCashJournalEmptyHint": {
+    "description": "Hint of the cash journal view's own empty state",
+    "context": "Shown in place of the cash journal view for a project with no entry at all",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalFilterCaption": "Filtered to {posteLabel}",
+  "@budgetCashJournalFilterCaption": {
+    "description": "Caption of the cash journal view's own top band while it is filtered onto one poste",
+    "context": "Displayed at the top of the budget mode's cash journal view",
+    "type": "text",
+    "placeholders": {
+      "posteLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetCashJournalRemoveFilterAction": "Remove filter",
+  "@budgetCashJournalRemoveFilterAction": {
+    "description": "Action clearing the cash journal view's own poste filter",
+    "context": "Displayed at the top of the budget mode's cash journal view, drawn only while a filter is on",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalDebitLabel": "Debit",
+  "@budgetCashJournalDebitLabel": {
+    "description": "Label of the cash journal view's own whole-journal debit figure",
+    "context": "Displayed at the top of the budget mode's cash journal view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalCreditLabel": "Credit",
+  "@budgetCashJournalCreditLabel": {
+    "description": "Label of the cash journal view's own whole-journal credit figure",
+    "context": "Displayed at the top of the budget mode's cash journal view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalBalanceLabel": "Balance",
+  "@budgetCashJournalBalanceLabel": {
+    "description": "Label of the cash journal view's own whole-journal balance figure",
+    "context": "Displayed at the top of the budget mode's cash journal view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalCoverageReadOut": "over {coveredCount} of the {entryCount} entries",
+  "@budgetCashJournalCoverageReadOut": {
+    "description": "The cash journal view's own coverage read-out, while some entries carry no known rate",
+    "context": "Displayed under the whole-journal balance figure once every entry carries a known rate, this disappears",
+    "type": "text",
+    "placeholders": {
+      "coveredCount": {
+        "type": "int"
+      },
+      "entryCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetCashJournalEntryCreationAction": "+ Entry",
+  "@budgetCashJournalEntryCreationAction": {
+    "description": "Label of the cash journal view's own entry creation action",
+    "context": "Displayed at the top of the budget mode's cash journal view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalColumnDate": "Date",
+  "@budgetCashJournalColumnDate": {
+    "description": "Header of the cash journal table's date column",
+    "context": "Displayed at the top of the budget mode's cash journal table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalColumnVoucher": "Voucher",
+  "@budgetCashJournalColumnVoucher": {
+    "description": "Header of the cash journal table's voucher-number column",
+    "context": "Displayed at the top of the budget mode's cash journal table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalColumnLabel": "Label",
+  "@budgetCashJournalColumnLabel": {
+    "description": "Header of the cash journal table's label column",
+    "context": "Displayed at the top of the budget mode's cash journal table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalColumnDebit": "Debit",
+  "@budgetCashJournalColumnDebit": {
+    "description": "Header of the cash journal table's debit column",
+    "context": "Displayed at the top of the budget mode's cash journal table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalColumnCredit": "Credit",
+  "@budgetCashJournalColumnCredit": {
+    "description": "Header of the cash journal table's credit column",
+    "context": "Displayed at the top of the budget mode's cash journal table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalColumnBalance": "Balance",
+  "@budgetCashJournalColumnBalance": {
+    "description": "Header of the cash journal table's running-balance column",
+    "context": "Displayed at the top of the budget mode's cash journal table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalNoPosteLabel": "No poste",
+  "@budgetCashJournalNoPosteLabel": {
+    "description": "Wording of an entry naming no poste, or of the entry dialog's own explicit no-poste choice",
+    "context": "Displayed in the budget mode's cash journal table poste column and in the entry dialog's own poste picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalWholeJournalNote": "Debit, credit and balance always cover the whole journal, whatever the poste filter above shows.",
+  "@budgetCashJournalWholeJournalNote": {
+    "description": "Note under the cash journal table explaining that its own top figures are never the filtered subset's",
+    "context": "Displayed under the budget mode's cash journal table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDeleteAction": "Delete",
+  "@budgetEntryDeleteAction": {
+    "description": "Entry of a cash journal row's own ⋮ menu deleting it",
+    "context": "Displayed in the budget mode's cash journal table row menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteEntryConfirmTitle": "Delete this entry?",
+  "@budgetDeleteEntryConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a cash journal entry",
+    "context": "Shown by OcptConfirmDialog before a cash journal entry is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteEntryConfirmMessage": "This cannot be undone.",
+  "@budgetDeleteEntryConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a cash journal entry",
+    "context": "Shown by OcptConfirmDialog before a cash journal entry is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogCreateTitle": "New entry",
+  "@budgetEntryDialogCreateTitle": {
+    "description": "Title of the entry dialog while creating a new cash journal entry",
+    "context": "Displayed at the top of OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogEditTitle": "Edit entry",
+  "@budgetEntryDialogEditTitle": {
+    "description": "Title of the entry dialog while editing an existing cash journal entry",
+    "context": "Displayed at the top of OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogCancelAction": "Cancel",
+  "@budgetEntryDialogCancelAction": {
+    "description": "Cancel action of the entry dialog",
+    "context": "Displayed at the bottom of OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogConfirmAction": "Save",
+  "@budgetEntryDialogConfirmAction": {
+    "description": "Confirm action of the entry dialog",
+    "context": "Displayed at the bottom of OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogDirectionFieldLabel": "Movement",
+  "@budgetEntryDialogDirectionFieldLabel": {
+    "description": "Label of the entry dialog's own debit/credit direction choice",
+    "context": "Displayed above OcptBudgetEntryDialog's own direction choice",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogPaidOption": "I paid",
+  "@budgetEntryDialogPaidOption": {
+    "description": "Label of the entry dialog's own debit segment, simplified header state",
+    "context": "Displayed on OcptBudgetEntryDialog's own direction choice while the header reads simplified",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogReceivedOption": "I received",
+  "@budgetEntryDialogReceivedOption": {
+    "description": "Label of the entry dialog's own credit segment, simplified header state",
+    "context": "Displayed on OcptBudgetEntryDialog's own direction choice while the header reads simplified",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogDebitOption": "Debit",
+  "@budgetEntryDialogDebitOption": {
+    "description": "Label of the entry dialog's own debit segment, detailed header state",
+    "context": "Displayed on OcptBudgetEntryDialog's own direction choice while the header reads detailed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogCreditOption": "Credit",
+  "@budgetEntryDialogCreditOption": {
+    "description": "Label of the entry dialog's own credit segment, detailed header state",
+    "context": "Displayed on OcptBudgetEntryDialog's own direction choice while the header reads detailed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogDateFieldLabel": "Date",
+  "@budgetEntryDialogDateFieldLabel": {
+    "description": "Label of the entry dialog's own date field",
+    "context": "Displayed above OcptBudgetEntryDialog's own date field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogLabelFieldLabel": "Label",
+  "@budgetEntryDialogLabelFieldLabel": {
+    "description": "Label of the entry dialog's own label field",
+    "context": "Displayed above OcptBudgetEntryDialog's own label field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogLabelRequiredError": "A label is required.",
+  "@budgetEntryDialogLabelRequiredError": {
+    "description": "Validation error of the entry dialog's own label field while it is left blank",
+    "context": "Displayed under OcptBudgetEntryDialog's own label field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogPosteFieldLabel": "Poste",
+  "@budgetEntryDialogPosteFieldLabel": {
+    "description": "Label of the entry dialog's own poste picker",
+    "context": "Displayed above OcptBudgetEntryDialog's own poste picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogAmountFieldLabel": "Amount",
+  "@budgetEntryDialogAmountFieldLabel": {
+    "description": "Label of the entry dialog's own amount field",
+    "context": "Displayed above OcptBudgetEntryDialog's own amount field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogAmountInvalidError": "Enter a valid amount.",
+  "@budgetEntryDialogAmountInvalidError": {
+    "description": "Validation error of the entry dialog's own amount field while it does not parse",
+    "context": "Displayed under OcptBudgetEntryDialog's own amount field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogVoucherFieldLabel": "Voucher number",
+  "@budgetEntryDialogVoucherFieldLabel": {
+    "description": "Label of the entry dialog's own voucher-number field",
+    "context": "Displayed above OcptBudgetEntryDialog's own voucher-number field, editable on an edit only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogVoucherAutoHint": "A voucher number is generated automatically once this entry is saved.",
+  "@budgetEntryDialogVoucherAutoHint": {
+    "description": "Hint replacing the entry dialog's own voucher-number field while creating a new entry",
+    "context": "Displayed in place of OcptBudgetEntryDialog's own voucher-number field while creating a new entry",
     "type": "text",
     "placeholders": {}
   }

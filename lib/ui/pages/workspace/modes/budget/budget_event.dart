@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -284,4 +285,64 @@ class OcptBudgetFieldEditFlushRequestedEvent extends OcptBudgetEvent {
 class OcptBudgetProjectSettingsChangedEvent extends OcptBudgetEvent {
   /// Class constructor
   const OcptBudgetProjectSettingsChangedEvent();
+}
+
+/// Creates a new cash-journal entry from [fields], dispatched by the mode once
+/// `OcptBudgetEntryDialog` returned a result for a fresh entry — mirrors `OcptBudgetLineCreatedEvent`'s
+/// own "written the moment it is dispatched" reading: none of this dialog's fields is typing, so
+/// none of them rides the field-edit debounce.
+class OcptBudgetEntryCreationConfirmedEvent extends OcptBudgetEvent {
+  /// Every field the dialog collected.
+  final OcptBudgetEntryFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetEntryCreationConfirmedEvent({required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fields];
+}
+
+/// Writes [fields] onto entry [entryId], dispatched by the mode once `OcptBudgetEntryDialog`
+/// returned a result for an existing entry it was opened to edit.
+class OcptBudgetEntryUpdateConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the entry being edited.
+  final String entryId;
+
+  /// Every field the dialog collected.
+  final OcptBudgetEntryFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetEntryUpdateConfirmedEvent({required this.entryId, required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, entryId, fields];
+}
+
+/// Deletes cash-journal entry [entryId] for good, dispatched by the mode once its own
+/// `OcptConfirmDialog` has already been answered — mirrors `OcptBudgetLineDeletionConfirmedEvent`.
+class OcptBudgetEntryDeletionConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the entry to delete.
+  final String entryId;
+
+  /// Class constructor
+  const OcptBudgetEntryDeletionConfirmedEvent({required this.entryId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, entryId];
+}
+
+/// Clears the cash journal view's own poste filter, dispatched by its top band's own `Remove
+/// filter` action.
+///
+/// The filter **is** `OcptBudgetState.selectedPosteId` — there is no filter state of this view's
+/// own — so clearing it here is exactly [OcptBudgetPosteSelectedEvent]'s own inverse, and carries
+/// the very same, single meaning "no poste is selected" already carries everywhere else in this
+/// mode: the `Inspector` tab, reading the very same field, empties out alongside the journal's own
+/// filter, one fact read by two views rather than two facts that happen to agree.
+class OcptBudgetCashJournalFilterClearedEvent extends OcptBudgetEvent {
+  /// Class constructor
+  const OcptBudgetCashJournalFilterClearedEvent();
 }

@@ -419,7 +419,7 @@ class _OcptCostTrackingIdentityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final label = isSimplified ? (poste.simpleLabel ?? poste.label) : poste.label;
+    final label = ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified);
 
     return InkWell(
       onTap: onTap,

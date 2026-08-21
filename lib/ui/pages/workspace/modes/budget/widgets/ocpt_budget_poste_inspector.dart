@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
@@ -670,8 +671,10 @@ class _OcptBudgetLineFields extends StatelessWidget {
           onChanged: _onFieldChanged(OcptBudgetField.lineUnitAmount),
         ),
         const SizedBox(height: 8),
-        _OcptBudgetTaxInclusiveChoice(
-          isTaxInclusive: line.unitPrice.isTaxInclusive,
+        OcptBudgetBinaryChoice(
+          value: line.unitPrice.isTaxInclusive,
+          trueLabel: tr.budgetLineTaxInclusiveOption,
+          falseLabel: tr.budgetLineTaxExclusiveOption,
           onChanged: onTaxInclusiveChanged,
         ),
         const SizedBox(height: 8),
@@ -753,63 +756,6 @@ class _OcptBudgetLineFields extends StatelessWidget {
       return null;
     }
     return (value) => onFieldChanged(line.id, field, value);
-  }
-}
-
-/// The line card's own including/excluding-tax choice: two clickable segments, mirroring
-/// `OcptBudgetHeader`'s own switch idiom rather than a [Radio] pair — this app carries no `Radio`
-/// elsewhere, and the header's segmented look is already how it draws a two-way choice.
-class _OcptBudgetTaxInclusiveChoice extends StatelessWidget {
-  /// Whether the price currently includes tax.
-  final bool isTaxInclusive;
-
-  /// Called with the choice just picked, or null while it may not be changed.
-  final ValueChanged<bool>? onChanged;
-
-  /// Class constructor
-  const _OcptBudgetTaxInclusiveChoice({required this.isTaxInclusive, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-
-    return Row(
-      children: [
-        _segment(context, true, tr.budgetLineTaxInclusiveOption),
-        const SizedBox(width: 8),
-        _segment(context, false, tr.budgetLineTaxExclusiveOption),
-      ],
-    );
-  }
-
-  /// One of the choice's own two segments: filled and bold while active, muted otherwise.
-  Widget _segment(BuildContext context, bool value, String label) {
-    final theme = Theme.of(context);
-    final isActive = value == isTaxInclusive;
-    final onChanged = this.onChanged;
-
-    return InkWell(
-      onTap: isActive || onChanged == null ? null : () => onChanged(value),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
-              : Colors.transparent,
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
   }
 }
 

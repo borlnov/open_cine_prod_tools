@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -430,6 +431,159 @@ void main() {
       expect(state.paidCentsOf(posteId), 5000);
       // A poste with no entry against it reads a real zero, not a hole.
       expect(state.paidCentsOf(otherPosteId), 0);
+    });
+  });
+
+  group("creating a cash-journal entry", () {
+    test("writes the typed amount onto debitCents when isDebit is true", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Camera rental",
+            posteId: posteId,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      expect(state.entries, hasLength(1));
+      final entry = state.entries.single;
+      expect(entry.label, "Camera rental");
+      expect(entry.posteId, posteId);
+      expect(entry.debitCents, 5000);
+      expect(entry.creditCents, 0);
+      // The service mints its own voucher number rather than reading the (null) one submitted.
+      expect(entry.voucherNumber, "J-001");
+    });
+
+    test("writes the typed amount onto creditCents when isDebit is false", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3, 2),
+            label: "Grant received",
+            posteId: null,
+            isDebit: false,
+            amountCents: 20000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      final entry = state.entries.single;
+      expect(entry.debitCents, 0);
+      expect(entry.creditCents, 20000);
+      expect(entry.posteId, isNull);
+    });
+  });
+
+  group("editing a cash-journal entry", () {
+    test("writes every field back, the voucher number included", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final otherPosteId = loaded.postes[1].id;
+      final project = projectsManager.currentProject!;
+
+      final entryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026),
+        label: "Original",
+        posteId: posteId,
+        debitCents: 1000,
+      );
+      expect(entryId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetEntryUpdateConfirmedEvent(
+          entryId: entryId!,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 2, 2),
+            label: "Renamed",
+            posteId: otherPosteId,
+            isDebit: false,
+            amountCents: 750,
+            isTaxInclusive: false,
+            vatRateBasisPoints: 2000,
+            voucherNumber: "J-999",
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.entries.single.label == "Renamed");
+
+      final entry = state.entries.single;
+      expect(entry.posteId, otherPosteId);
+      expect(entry.debitCents, 0);
+      expect(entry.creditCents, 750);
+      expect(entry.isTaxInclusive, isFalse);
+      expect(entry.vatRateBasisPoints, 2000);
+      expect(entry.voucherNumber, "J-999");
+    });
+  });
+
+  group("deleting a cash-journal entry", () {
+    test("tombstones it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final entryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026),
+        label: "To be deleted",
+        posteId: posteId,
+        debitCents: 500,
+      );
+      expect(entryId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId!));
+      final state = await waitForState(bloc, (state) => state.entries.isEmpty);
+
+      expect(state.entries, isEmpty);
+    });
+  });
+
+  group("clearing the cash journal filter", () {
+    test("clears the selected poste", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+
+      bloc.add(const OcptBudgetCashJournalFilterClearedEvent());
+      final state = await waitForState(bloc, (state) => state.selectedPosteId == null);
+
+      expect(state.selectedPosteId, isNull);
     });
   });
 }

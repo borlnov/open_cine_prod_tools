@@ -19,8 +19,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_right_dock.dart';
@@ -260,6 +262,7 @@ class _BudgetViewState extends State<_BudgetView> {
             child: switch (state.centreView) {
               OcptBudgetCentreView.dashboard => _buildDashboard(context, state),
               OcptBudgetCentreView.costTracking => _buildCostTracking(context, state),
+              OcptBudgetCentreView.cashJournal => _buildCashJournal(context, state),
             },
           ),
         ),
@@ -345,6 +348,103 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     bloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
+  }
+
+  /// Builds the cash journal view.
+  Widget _buildCashJournal(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptBudgetCashJournal(
+      entries: state.entries,
+      postes: state.postes,
+      selectedPosteId: state.selectedPosteId,
+      isSimplified: state.isSimplified,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      currencyCode: state.currencyCode,
+      isReadOnly: isReadOnly,
+      onFilterCleared: () => bloc.add(const OcptBudgetCashJournalFilterClearedEvent()),
+      onEntryCreationRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleEntryCreationRequested(context, state)),
+      onEntryTapped: isReadOnly
+          ? null
+          : (entry) => unawaited(_handleEntryEditRequested(context, state, entry)),
+      onEntryDeletionRequested: isReadOnly
+          ? null
+          : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
+    );
+  }
+
+  /// Opens the entry dialog with nothing pre-filled, then dispatches the creation if the user
+  /// confirmed it.
+  Future<void> _handleEntryCreationRequested(BuildContext context, OcptBudgetState state) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetEntryDialog.show(
+      context,
+      existing: null,
+      postes: state.postes,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
+  }
+
+  /// Opens the entry dialog pre-filled with [entry], then dispatches the update if the user
+  /// confirmed it.
+  Future<void> _handleEntryEditRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetEntry entry,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetEntryDialog.show(
+      context,
+      existing: entry,
+      postes: state.postes,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryUpdateConfirmedEvent(entryId: entry.id, fields: fields));
+  }
+
+  /// Asks `OcptConfirmDialog` whether cash-journal entry [entryId] really is to be deleted, then
+  /// dispatches the deletion if the user answered `Delete`.
+  Future<void> _handleEntryDeletionRequested(BuildContext context, String entryId) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetDeleteEntryConfirmTitle,
+      message: tr.budgetDeleteEntryConfirmMessage,
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetDeleteConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
   }
 
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches

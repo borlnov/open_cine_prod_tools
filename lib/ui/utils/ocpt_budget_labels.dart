@@ -5,6 +5,7 @@
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 
 /// The placeholder shown in place of a budget figure that cannot be read at all — this mode's own
@@ -87,6 +88,15 @@ List<OcptBudgetPosteSeed> ocptBudgetCncPosteSeeds(Tr tr) => [
       simpleLabel: _ocptBudgetCncPosteKeyLabel(tr, poste.simpleLabelKey),
     ),
 ];
+
+/// [poste]'s own displayed name under the header's simplified/detailed switch —
+/// `OcptBudgetCostTracking`'s own reading of [OcptBudgetPoste.simpleLabel]/[OcptBudgetPoste.label],
+/// lifted here so a second view (the cash journal's own poste column and filter caption) reads a
+/// poste's name exactly the same way rather than re-deriving the fallback itself: [isSimplified]
+/// true answers [OcptBudgetPoste.simpleLabel], falling back to [OcptBudgetPoste.label] when that is
+/// null, and false answers [OcptBudgetPoste.label] outright.
+String ocptBudgetPosteDisplayLabel(OcptBudgetPoste poste, {required bool isSimplified}) =>
+    isSimplified ? (poste.simpleLabel ?? poste.label) : poste.label;
 
 /// [cents] formatted as a **displayed** amount in [currencyCode]: grouped, carrying the currency
 /// symbol — `NumberFormat.simpleCurrency`, the precedent `OcptElementSheetSourcingCard` sets for

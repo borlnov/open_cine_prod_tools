@@ -16,7 +16,14 @@ const double _ocptBudgetSegmentPadding = 12;
 /// this, only the three controls are left — they are the only way to change what the centre shows,
 /// exactly the reasoning `OcptBreakdownHeader`'s own doc comment gives for shedding its own hint
 /// and progress bar first.
-const double _ocptBudgetHeaderTitleMinWidth = 980;
+///
+/// **Raised from `980` once the view switch grew a third segment** (`cashJournal`,
+/// `OcptBudgetCentreView`'s own doc comment): a third chip widens that one switch by roughly a
+/// segment's own width, and letting the title claim the space that segment now needs would have
+/// squeezed the three controls together right at the edge this constant is meant to guarantee they
+/// never reach — so the threshold moved out by the same margin instead, keeping the controls exactly
+/// as comfortable against a real font as they were with two views.
+const double _ocptBudgetHeaderTitleMinWidth = 1120;
 
 /// The budget mode's own header band, sitting above the centre: the mode's own title and a muted
 /// subtitle, the `Dashboard`/`Cost tracking` view chips, the simplified/detailed switch and the
@@ -216,6 +223,12 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
           value: OcptBudgetCentreView.costTracking,
           current: value,
           label: tr.budgetHeaderCostTrackingSegmentLabel,
+          onChanged: onChanged,
+        ),
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.cashJournal,
+          current: value,
+          label: tr.budgetHeaderCashJournalSegmentLabel,
           onChanged: onChanged,
         ),
       ],
