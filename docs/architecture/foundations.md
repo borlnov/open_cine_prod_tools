@@ -253,26 +253,35 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v19 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, the fifteen resources tables (`role_elements` and `role_episodes`
-  among them), `breakdown_tags`, `scene_breakdowns`, the seven schedule tables,
+- Persistence: drift schema v24 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, the fifteen resources tables (`role_candidates`, `role_elements` and
+  `role_episodes` among them), `breakdown_tags`, `scene_breakdowns`, the eight schedule tables,
   `project_dictionary_words`, `row_field_versions`, `project_versions`),
-  `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
-  number → exact heading → relative order). v19 adds `project_info.screenplayLanguage` (nullable,
-  no backfill: "nobody has said" is as true after the migration as before it) and creates
-  `project_dictionary_words`, both additive. v18 is the multi-episode migration: `screenplays` gains
-  `number` and `sortKey`, `role_episodes` is added, and `roles.screenplayId` and
-  `shooting_days.screenplayId` are **dropped** — the fifth time ADR 0007's additive-only rule is set
-  aside for a column drop, through drift's own `Migrator.alterTable`/`TableMigration` recipe. It
-  reconstructs nothing: the single screenplay a file holds is numbered 1 and given a key, every live
-  `roles` row gets the `role_episodes` row its own `screenplayId` already stated (**minted with the
-  role's own id**, so two replicas migrating the same file produce the same rows), and a shooting day
-  is not given an episode on the way out — it simply stops having one. `**/*.g.dart` is git-ignored
-  (documented deviation); CI regenerates with build_runner. A schema number is allocated **at merge
-  time, not at branch time** (ADR 0007): of two branches in flight, whichever merges second
-  renumbers, and the migration test pins what `onCreate` produces against what every upgrade path
-  produces, so a table declared and forgotten in `onUpgrade` fails there rather than on a user's
-  file.
+  `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene number → exact
+  heading → relative order). v24 creates `shooting_block_candidates`, the candidacies an audition
+  block sees (ADR 0024), and v20 created `role_candidates`, who was seen for a part — both additive
+  with nothing to backfill. v23 and v24 also **drop** four things no released build ever wrote, all
+  of them written by intermediate versions of the branch that landed them: `shooting_days.kind`,
+  `shooting_day_blocks.roleCandidateId`, `shooting_day_blocks.roleId` and the whole
+  `shooting_slot_candidates` table. They are dropped **defensively**, through
+  `_dropColumnIfPresent`/`_dropTableIfPresent` — the two helpers in this file that **ask the file
+  what it holds** rather than deducing it from the version it states, because a version number says
+  nothing about whether a file was made against an unmerged build — and nothing is carried over: a
+  slot-wide convocation names no hour, so there is no block to attach it to. v19 adds
+  `project_info.screenplayLanguage` (nullable, no backfill: "nobody has said" is as true after the
+  migration as before it) and creates `project_dictionary_words`, both additive. v18 is the
+  multi-episode migration: `screenplays` gains `number` and `sortKey`, `role_episodes` is added, and
+  `roles.screenplayId` and `shooting_days.screenplayId` are **dropped** — the fifth time ADR 0007's
+  additive-only rule is set aside for a column drop, through drift's own
+  `Migrator.alterTable`/`TableMigration` recipe. It reconstructs nothing: the single screenplay a
+  file holds is numbered 1 and given a key, every live `roles` row gets the `role_episodes` row its
+  own `screenplayId` already stated (**minted with the role's own id**, so two replicas migrating
+  the same file produce the same rows), and a shooting day is not given an episode on the way out —
+  it simply stops having one. `**/*.g.dart` is git-ignored (documented deviation); CI regenerates
+  with build_runner. A schema number is allocated **at merge time, not at branch time** (ADR 0007):
+  of two branches in flight, whichever merges second renumbers, and the migration test pins what
+  `onCreate` produces against what every upgrade path produces, so a table declared and forgotten in
+  `onUpgrade` fails there rather than on a user's file.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
@@ -285,7 +294,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  twenty-nine captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  thirty-one captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat` — independent of the schema version, upgraded on decode when older, refused when
   newer. It is **a hand-written mirror of the schema**, and a new synchronised table has to be added
@@ -397,9 +406,16 @@ the persistence, the project versions, the sync-ready data model and the read-on
   photograph of them sits, so tombstoning the row without emptying it would leave the leak open.
   **`_scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
   `OcptAssetsService.erasePersonAssets`) implement the same erasure from two starting points and
-  must be kept in step by hand**: a column blanked by one but not the other reopens the leak. A row
-  belonging to a location or an element is nobody's personal data and is left alone by both. That
-  list is a table for the same reason `project_versions` is one: parked in
+  must be kept in step by hand**: a column blanked by one but not the other reopens the leak.
+  **`role_candidates` joins that rule**, being the first *link* table to hold something about a
+  person rather than only ids: its `notes` is what somebody wrote about them at an audition, so
+  erasing a person blanks it and tombstones the row, in all three implementations
+  (`eraseCandidaciesOfPerson`, `_scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`) — and the
+  test walking every key the codec writes for a person is what catches a miss.
+  `shooting_block_candidates` does **not** join it: the link carries no `personId`, pointing at a
+  candidacy rather than at a person, and it drops out on its own once that candidacy is tombstoned.
+  A row belonging to a location or an element is nobody's personal data and is left alone by both.
+  That list is a table for the same reason `project_versions` is one: parked in
   `project_info.settingsJson` it would be captured, hashed and written back by any restore, which
   would forget the erasure and resurrect the person in one transaction. `local_erasures` is
   therefore local — no tombstone, no `sortKey`, no stamps, never captured, never hashed, never

@@ -43,6 +43,66 @@ their sets, the elements catalogue, and the two documents the mode prints.
   read-only chips landing on that role's sheet, a plain tab-and-selection change inside one mode
   rather than an `OcptWorkspaceRevealRequest`. A role's things are added and removed from the role's
   sheet alone: offering the same edit from both ends would only invite the two to disagree.
+  **Who was seen for a part** is `role_candidates`, `role_elements`' sibling on the casting side: a
+  link between `roles` and `people` carrying a `status`, an `auditionedOn` date, the `notes` written
+  about **this** person for **this** part, and a `sortKey` — the casting director's own ranking,
+  which `role_elements` needs none of. A person is one row whatever they do on the film, so an actor
+  seen for two parts is one `people` row and two candidacies, and their photo, their self-tape and
+  their contact are read off their own sheet rather than copied here — **no reference column at
+  all**, `assets` already answering through `personId`. `auditionedOn` is **typed by hand and stays
+  typed** even now that an audition can be planned: somebody seen over a self-tape, or before the app
+  was opened, has a date and no session, and a derived date would go empty the day the session was
+  deleted.
+  `OcptRoleCandidateStatus` has **eight** values — `spotted`, `toMeet`, `seen`, `shortlisted`,
+  `retained`, `notRetained`, `declined`, `unavailable` — declared in the chronology a casting usually
+  runs in, which is a reading convenience and **not a workflow the app enforces**: nothing refuses a
+  candidate going from `spotted` straight to `retained`, or coming back from `declined`. The three
+  "no" values are three different facts and are deliberately not folded into one: `declined` and
+  `unavailable` are the person's own answer, `notRetained` is the production's, and a casting
+  director re-reading a part months later needs to know which it was. Whether a status leaves a
+  candidacy **in the running** is written once, on the enum (`OcptRoleCandidateStatus.isStillALead`),
+  so no second reader can decide it again.
+  **`OcptRoleCandidatesService`** (owned by `OcptProjectsManager` beside `OcptRoleIndexService`) is
+  a service of its own rather than more methods on that one, because the **retained rule is about
+  two tables agreeing**: `setStatus` is the single door every status change comes through, retaining
+  writes `roles.personId` and turns every other candidacy still in the running down to `notRetained`
+  in one transaction, and moving a candidacy off `retained` — or removing it outright — clears that
+  column back to null, the cast having been written by exactly the status being taken away. The
+  closed ones are left as they are (they did not lose the part to this casting, they were out of it
+  before), un-retaining **does not bring anybody back** — what each of them held beforehand is
+  recorded nowhere, and reconstructing it is the guess this codebase refuses everywhere else — and a
+  second retained row, if a file somehow holds one, is turned down with the rest rather than left to
+  disagree with the cast column. **The role header's own cast picker stays editable beside all of
+  this** and writes `roles.personId` alone: a production that ran no auditions casts directly and
+  touches no candidacy, whose statuses can then move without the casting ever following. Adding a
+  candidacy the role already carries is a no-op and one removed earlier is **revived** with its
+  status, date and notes, exactly as `addRoleElement` does. `OcptRoleIndexService.deleteRole` gains
+  its second cascade (`tombstoneCandidatesOfRole`) beside `tombstoneRoleLinksOfRole`, and deleting a
+  candidacy never touches the `people` row — a person outlives a candidacy exactly as a coat outlives
+  the character who wore it.
+  `role_candidates` **joins the erasure rule**, being the first link table to hold something about a
+  person rather than only ids: `notes` is what somebody wrote about them at an audition, so erasing
+  a person blanks it and tombstones the row, in all three implementations kept in step by hand
+  (`OcptPeopleService.deletePerson` → `eraseCandidaciesOfPerson`,
+  `OcptProjectVersionsService._scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`).
+  **`OcptRoleSheetCandidatesCard`** sits under the casting card on the role sheet: one row per
+  candidacy — `OcptPersonAvatar`, the name, a status pill, the audition date and a foldable note
+  riding the sheets' own 2 s debounce through a sixth `pending…FieldEdits` map — the **retained row
+  pinned on top** wearing the accent while the rest keep their `sortKey` order, a pinning the card
+  does when it draws (the service deliberately does not). Its `⋮` offers every status, retaining
+  included, and `Remove this candidate`, which only **asks**: the mode opens `OcptConfirmDialog` as
+  every irreversible action does. A candidacy is added by the shared `OcptResourcesPersonPicker` over
+  the whole address book, minus the people already candidates for this role.
+  The **roles tab** wears a per-row pill and its header counts `N roles · M cast`, both read off
+  `OcptRoleCastingProgress` (`lib/utils/`, pure and tested), the one place that reading is written:
+  `cast` when `personId` is set — by hand or by a candidacy, no distinction being drawn — else
+  `inProgress` while a lead is left, else `exhausted` when candidacies were recorded and **none** is
+  still a lead, else `notStarted`. `exhausted` is its own stage rather than a count of zero because
+  "we saw four people and none of them can do it" is the state a production most needs to see coming,
+  and the pill counts the **leads** rather than every candidacy — a part where three of the four
+  people seen have declined has one real possibility left. `OcptScheduleRoleUncastAlert` is untouched
+  and knows nothing of any of this: a role with candidates but nobody retained is uncast, which is
+  exactly what it already says.
   **A photo is a slot, not a field**: `OcptResourcesPhotoSlot` is the person sheet's header avatar
   and the element sheet's alike, and it is **one menu** — reference a photo, drop it, then the
   palette — because "what does this record look like?" is one question and the colour is the

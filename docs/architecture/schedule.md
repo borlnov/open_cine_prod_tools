@@ -84,6 +84,22 @@ seven documents a production runs on.
   block carries a **crew note** beside its `notes`: `notes` is private and never prints, `crewNote`
   is the one that does, and the UI labels the former **`Private notes`** (`Notes privées`) so the
   two cannot be mistaken for one another.
+  **A day is never given a kind** (ADR 0024): what a day is for is said by the blocks it holds, and
+  by nothing else — a real day auditions in the morning and rehearses in the afternoon, and a
+  rehearsal regularly falls on the morning of the day it is shot, so a column naming it once could
+  only ever be wrong about the mixed day. Every kind is therefore offered on every day, `J1..Jn`
+  stays the one numbering series, every export keeps listing every day (a day carrying no shot simply
+  gives them nothing to print), and the two kinds that plan the weeks before a shoot are blocks like
+  any other. A **`rehearsal`** names a **sequence** through `sceneId` exactly as a `hold` does, and
+  needs no column of its own. An **`audition`** names **the candidacies it sees** —
+  `shooting_block_candidates`, `blockId` → `role_candidates`, somebody for a part — and may name
+  several: two actors of two different parts read together are one block of two rows, four people
+  seen twenty minutes each are four blocks of one row apiece, and a block naming nobody yet is an
+  ordinary state exactly as a `hold` with no sequence is. It carries **no `roleId`**: a candidacy
+  already says which part it is for, and two columns saying the part is one column too many — the one
+  that can be wrong. A row whose candidacy has since been removed is **read defensively and drops
+  out**, no cascade written for it, the treatment `shooting_slot_cast` already gets for a role deleted
+  under it; the link carries no `personId`, so it joins no erasure implementation.
   **A convocation is the slot you are linked to** (`ocptComputeDayConvocations`,
   `lib/utils/ocpt_shooting_convocations.dart`, ADR 0018): nobody types a call time, and **nothing is
   offset from anything**. A person is convoked by being **linked to a slot** — by person, by role or
@@ -95,17 +111,43 @@ seven documents a production runs on.
   (`HMC`, `Installation`) is what says why, its blocks are what say how long. That is the trade ADR
   0018 accepts: convoking one actor earlier costs a **slot** rather than a number typed in place,
   and the resulting file says what is actually happening, and prints.
-  A **shooting block** means `shot` **and** `hold` — a production scheduling ahead of its own
-  découpage still owes its cast a band — while every other kind (`preparation`, `hairMakeUp`,
-  `meal`, `pause`, `travel`, `wrap`) is not shooting time and never opens or closes one. **A slot
-  with no shooting block therefore gives no PAT at all**: somebody convoked only on preparation
-  slots has an arrival and a departure and no band, which is the truthful reading — they are there,
-  they are not waiting to shoot — and a slot carrying no block whatsoever ends at its own start, a
-  convocation with no content yet rather than a zero-length error. The band is **not clipped to one
-  slot**: someone on a morning slot and an evening slot reads one band spanning both, gaps included.
-  **Nothing depends on a block naming the person**: `shot_characters` and the roles the breakdown
-  tagged in a hold's sequence take no part in a convocation — whoever is linked to the slot is
-  convoked by the slot, for the whole of it. **A guest never gets a band at all**, whatever shooting
+  **A candidate is the one exception, and it is ADR 0018 applied rather than bent** (ADR 0024): you
+  are convoked by what you are linked to, and a candidate is linked to the **audition block** that
+  sees them rather than to the unit — they are expected at twenty past ten, for twenty minutes, so
+  their arrival, their band and their departure are read off those blocks. Four people seen twenty
+  minutes each inside one slot therefore read four different bands, where a slot-wide link could only
+  have said `09:00 – 18:00` four times over. `ocptComputeDayConvocations` takes the day's auditions
+  (`OcptConvocationAudition`, resolved by the caller to a slot id, a start, an end and its
+  candidacies) **beside** its slots, and a person's own auditions **join the same walk** as their
+  slots: `OcptDayConvocation` has no candidate arm at all, it carries `roleCandidateIds` — the
+  candidacies of this person the day sees, empty for everybody else — so somebody crewing the day and
+  seen for a part is **one** convocation arriving at the earlier of the two and leaving at the later,
+  and receives **one** call sheet. `isSeenForAPart` is what the directories that answer "who is
+  expected for what" read; `isOnlySeenForAPart` is what the panel's own candidates group holds.
+  A **shooting block** — working time, the thing a band is read off — means `shot`, `hold`,
+  `audition` **and** `rehearsal` (`OcptShootingBlockKind.isShootingTime`): a production scheduling
+  ahead of its own découpage still owes its cast a band, and a candidate seen for a part or an actor
+  working a sequence is owed one for the same reason one step earlier. Every other kind
+  (`preparation`, `hairMakeUp`, `meal`, `pause`, `travel`, `wrap`) is time around the work and never
+  opens or closes one. **Whether that band may be called a PAT band is a separate question**, asked
+  by `OcptShootingBlockKind.isFilming` (`shot` and `hold` alone): *prêt à tourner* is the hour a
+  performer must be costumed, made up and on set, ready for a take, and a day of auditions or of
+  rehearsals has none — so a band read off those alone is a **presence** band and says so
+  (`OcptDayConvocation.isPatBand`, `OcptCallSheetLabels.bandLabelOf`). The label follows the **band,
+  per convocation**, never the day: a day that auditions in the morning and shoots in the afternoon
+  prints `PAT` for its cast and `PRÉSENCE` for its candidates on the one sheet, and the two places
+  that head a **column** of many bands — the cast table and the day's own time band — read `PAT` when
+  any band under them is one, computed over those bands alone so a `PAT` line never opens at the hour
+  a candidate turned up. **A slot with no shooting block gives no band at all**: somebody convoked
+  only on preparation slots has an arrival and a departure and no band, which is the truthful reading
+  — they are there, they are not waiting to shoot — and a slot carrying no block whatsoever ends at
+  its own start, a convocation with no content yet rather than a zero-length error. The band is **not
+  clipped to one slot**: someone on a morning slot and an evening slot reads one band spanning both,
+  gaps included.
+  **No block *derives* who is convoked**: `shot_characters` and the roles the breakdown tagged in a
+  hold's sequence take no part in a convocation — whoever is linked to the slot is convoked by the
+  slot, for the whole of it, and an audition block convokes the candidacies it is **linked** to
+  rather than any it could be read to imply. **A guest never gets a band at all**, whatever shooting
   blocks their slots carry: an arrival, a departure and an em dash between them, a guest not being
   there to shoot. A guest is also the one kind that may double: somebody convoked as crew or cast
   **and** attending the same day as a guest reads as **two** convocations, deliberately — folding
@@ -134,16 +176,19 @@ seven documents a production runs on.
   note, nor the events**: a stable crew is entered once for a whole shoot, a day lost to rain is
   re-planned at another date in one gesture, and an event happens on a date. Convoking somebody
   **seeds nothing**: a convocation is the link and only the link.
-  **`OcptSchedulePlanSnapshot`** (`lib/models/`) is where the mode's six reads — the schedule, the
-  shot list, the locations, the cast, the address book and the elements catalogue — are joined into
-  the day-level facts everything else asks for: `timelinesOfDay`, `convocationsOfDay`,
-  `sunTimesOfDay`, `dayArrivalMinute`, `firstLocationOfDay`, `presenceCellOf`, `sceneIdsOfDay`,
-  `elementsToBringOnDay`, `sceneNumberBySceneId`, `sceneSpanBySceneId`, `convokedRoleIdsOfDay` and
-  `alerts` — the whole-shoot walk, computed **once** per snapshot rather than per read, which is
-  what made this class stop being `const` exactly as `OcptScheduleState` did. It exists because
-  those joins have **two** callers, `OcptScheduleState` and the manager layer's export services, and
-  a second implementation over there is exactly how a printed call sheet and the day view would come
-  to disagree about what hour a slot starts at. The state builds one **per state instance**, not per
+  **`OcptSchedulePlanSnapshot`** (`lib/models/`) is where the mode's seven reads — the schedule, the
+  shot list, the locations, the cast, the candidacies, the address book and the elements catalogue —
+  are joined into the day-level facts everything else asks for: `timelinesOfDay`,
+  `convocationsOfDay`, `sunTimesOfDay`, `dayArrivalMinute`, `firstLocationOfDay`, `presenceCellOf`,
+  `sceneIdsOfDay`, `elementsToBringOnDay`, `sceneNumberBySceneId`, `sceneSpanBySceneId`,
+  `convokedRoleIdsOfDay` and `alerts` — `convocationsOfDay` being the one that resolves the day's
+  `audition` blocks into `OcptConvocationAudition`s on the way, each filtered through
+  `roleCandidateById` so a link naming a candidacy that has since been removed convokes nobody —
+  the whole-shoot walk, computed **once** per snapshot rather than per read, which is what made
+  this class stop being `const` exactly as `OcptScheduleState` did. It exists because those joins
+  have **two** callers, `OcptScheduleState` and the manager layer's export services, and a second
+  implementation over there is exactly how a printed call sheet and the day view would come to
+  disagree about what hour a slot starts at. The state builds one **per state instance**, not per
   read: a state is immutable, so the join cannot go stale inside one.
 
 ## The views
@@ -198,6 +243,16 @@ seven documents a production runs on.
   selectable including a shot already placed, which merely carries the day tags it sits on so a
   second placement reads as a choice rather than an accident. The picker is the mode's to open,
   never the timetable's: the widget only asks (`onShotBlockRequested`).
+  A **rehearsal** row carries the sequence picker a `hold` row already does; an **audition** row
+  carries a wrapped strip of **candidacy chips** instead — one per `shooting_block_candidates` row it
+  names, reading the person and the part they are being seen for, each with its own remove control —
+  and a `+` picker offering every candidacy of the project grouped by role, minus the ones this block
+  already names. It **picks an existing candidacy and never creates one**: a candidate is recorded on
+  the role sheet, where the casting is decided, and a timetable that could invent one would be a
+  second place saying who is seen for a part. A chip whose candidacy the snapshot no longer holds is
+  left out rather than drawn nameless. The slot card's own people section is unchanged by any of
+  this — a candidate is expected at an hour, not at a unit, so there is no fourth band beside the
+  crew, the cast and the guests.
   A day's **events** are drawn by **one widget shown twice** (`OcptScheduleDayEventsList`): the day
   view frames it in its own band under the slot cards, the day inspector in a section of its own,
   both editable, so the two surfaces cannot read a day's events apart. A row is its hour, its label,
@@ -269,9 +324,16 @@ seven documents a production runs on.
   no band, over the slots it is linked to by label. It is scoped to the **selected day**, sorted by
   arrival then by name (the order people walk in — `ocptComputeDayConvocations` itself can only tie
   on id, knowing no names, so the panel does that last sort), and it is the reading no slot card can
-  give once a person sits on several slots of one day. **Guests form their own trailing group**,
-  after the crew and cast cards and under their own heading: they are on the day and are owed an
-  hour, but they are not the call the assistant director reads down.
+  give once a person sits on several slots of one day. **Candidates and guests each form their own
+  trailing group**, after the crew and cast cards and under their own heading. A **candidate**'s card
+  is the same card again and reads a **real band** — somebody seen for a part is working, and their
+  hours come off the audition blocks naming them (ADR 0024) — but it is grouped apart because a
+  casting day's call is read the other way round from a shooting day's: the candidates are the ones
+  coming to be seen. It holds only the people the day has **nothing else** for
+  (`OcptDayConvocation.isOnlySeenForAPart`): the second camera assistant who is also seen for Marie
+  at eleven belongs among the crew, with one band covering both. A **guest**'s card reads an em dash
+  where a band would be: they are on the day and are owed an hour, but they are not the call the
+  assistant director reads down. Candidates sit ahead of guests, being expected to work.
 
 ## The alerts
 
@@ -331,6 +393,14 @@ seven documents a production runs on.
   cell opens it — and a badge swallowing that tap would make selecting a day depend on hitting a
   16-pixel square. `OcptScheduleRoleUncastAlert` marks no day, carrying none: a role's casting is
   not a fact about any one day of the shoot.
+  **Nothing in this file reads what a day is for**, and the two block kinds ADR 0024 added changed
+  not a line of it: a rehearsal the day before a 07:00 call eats the same turnaround shooting would,
+  a person double-booked is double-booked whatever the two slots were for, and
+  `OcptScheduleRoleNotConvokedAlert` finds nothing on a day carrying no shot without being told. A
+  **candidate** takes part in no rule at all, on the argument that already keeps a guest out of every
+  one of them — they hold no position to lose, have no daily maximum and are not cast — and there is
+  deliberately no eleventh kind for "a candidate nobody has given an hour to", which would be an
+  opinion about how a production runs its auditions.
 
 ## The paperwork
 
@@ -360,23 +430,51 @@ seven documents a production runs on.
   turned out to be, and come off the slot's cast alone: a chair is a fact about the **unit**, not
   about whichever shot happens to be running. The events, guest and crew-note sections are
   **skipped entirely** on a day that has none rather than drawn over an em dash.
+  **The composition adapts to the blocks the day holds, and there is only ever one of it** (ADR
+  0024): no second service, no branch on a label. A day carrying `audition` blocks adds an
+  `HORAIRES / RÔLE / CANDIDAT` table **beside** — never instead of — the shot table, one row per
+  candidacy an audition names, in running order, two people read together making two rows sharing an
+  hour and a block naming nobody yet making one row carrying its hour alone (a running order with a
+  gap in it would be worse). It is built off the very entries the main table is built from, so the
+  two tables of one sheet can never order the day differently. The day's convoked **candidates** are
+  listed under the cast table with their **contact**, a directory beside everybody else's: the
+  audition table is a reading of the timetable, and a phone number does not belong in one. A day
+  holding auditions and shots prints both tables, in that order — one day, one piece of paper — and
+  a table with nothing to print is skipped entirely like every other section.
+  The day's own time band and the cast table head their `PAT` column through
+  `OcptCallSheetLabels.bandLabelOf`, computed over the bands under them alone, so a `PAT` line never
+  opens at the hour a candidate turned up and a mixed day prints `PAT` for its cast and `PRÉSENCE`
+  for its candidates on the one sheet.
   What a **named** sheet narrows is the **timetable, and only the timetable**: it keeps the day's
-  header, prints the rows its recipient's own slots carry — and then the day's own cast table and
-  both directories, exactly as the general sheet does, those answering "who else is on this day and
-  how do I reach them", which is a question about the day rather than about the reader. **Three**
-  sections belong to a named sheet alone: its recipient line, its own arrival/PAT/departure band,
-  and its **`À apporter`** table — `elementsToBringOnDay`'s join of the elements whose
-  `broughtByPersonId` is that recipient with the scenes `sceneIdsOfDay` says the day actually plays.
+  header — and then the day's own cast table and both directories, exactly as the general sheet
+  does, those answering "who else is on this day and how do I reach them", which is a question about
+  the day rather than about the reader. It narrows **twice**: to the recipient's own slots, then to
+  the blocks they are actually **in** on them, an actor otherwise reading down the shots they do not
+  play. A block is kept when the recipient is **crew on its slot** (a technician works the whole
+  order), when it is a shot, hold or rehearsal calling a part they play, or when it is an audition
+  naming one of their own candidacies — and **every milestone** (preparation, hair and make-up, meal,
+  break, travel, wrap) stays for everybody, a person who cannot see when they eat having been handed
+  a worse sheet. Its audition table narrows with the timetable and then once more, to that
+  recipient's **own candidacies**: the one place a block-level link narrows something a slot-level
+  one could not, and not for tidiness — who else is being seen for a part, and on what phone number,
+  is the production's business and not another candidate's. Every other directory on their sheet
+  stays day-wide. **Three** sections belong to a named sheet alone: its recipient line, its own
+  arrival/PAT/departure band, and its **`À apporter`** table — `elementsToBringOnDay`'s join of the
+  elements whose `broughtByPersonId` is that recipient with the scenes `sceneIdsOfDay` says the day
+  actually plays.
   **Both conditions matter and neither alone is enough**: an element somebody brings that no scene
   of the day needs is left off (a call sheet says what to bring *today*), and one a scene needs but
   somebody else brings is exactly as absent, being nobody's own instruction to pack it. It is the
   one section the **general** sheet has no reading for at all, is skipped for an **uncast role**,
-  and is why the schedule mode reads the elements catalogue as its sixth read while showing an
-  element nowhere on screen.
+  and is why the schedule mode reads the elements catalogue at all while showing an element nowhere
+  on screen.
   Both sheets write **one PDF per file into a folder the user picks**, and the **named** export
   picks its own days exactly as the general one does: its recipient list is the **union** of the
-  ticked days' convocations, deduplicated by the person's or the uncast role's own id, and it writes
-  one file per **(recipient × day)** — a call sheet being a document about a day, so somebody
+  ticked days' convocations, deduplicated by `OcptDayConvocation.selectionKey` — the person's or the
+  uncast role's own id, and **a person is one recipient whatever the day asks of them**: somebody
+  crewing a day and seen for a part on it is one line and one sheet, which is what carrying their
+  candidacies on their own convocation buys. It writes one file per **(recipient × day)** — a call
+  sheet being a document about a day, so somebody
   convoked on two of them gets two sheets, while a recipient ticked but convoked on none of a given
   day's slots simply gets no file for that day. Ticking a day carries the tick state over rather
   than resetting it (a recipient still in the union keeps what the user set, a new one arrives
