@@ -177,8 +177,13 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 ///
 /// **What a named sheet narrows is the timetable, and only the timetable.** Its main table and its
 /// audition table both hold the blocks of its recipient's own slots, since that is what they are
-/// being told to turn up for — the audition table is a reading of the timetable, not a directory;
-/// the cast table, the candidates list and the two closing directories are day-wide on both sheets,
+/// being told to turn up for — the audition table is a reading of the timetable, not a directory —
+/// and **a sheet addressed to a candidate narrows both one step further, to that candidacy alone**:
+/// its audition table prints the auditions naming them and no other, and the candidates directory
+/// prints their line alone (ADR 0024). It is the one place a block-level link narrows something a
+/// slot-level one could not, and the reason is not tidiness: who else is being seen for a part, and
+/// on what phone number, is the production's business and not another candidate's. The cast table,
+/// the candidates list for every other recipient and the two closing directories are day-wide,
 /// because they answer "who else is on this day and how do I reach them", which is a question about
 /// the day rather than about the reader — and a crew that cannot phone each other on the morning of a shoot is a crew that
 /// stops. The cast table is day-wide in a second sense too: it lists every role the day **calls
@@ -441,8 +446,21 @@ class OcptCallSheetPdfService {
       dayId: dayId,
       unnamedPersonLabel: labels.unnamedPersonLabel,
     );
-    final auditionRows = _auditionRowsOfDay(plan: plan, orderedEntries: orderedEntries);
-    final candidateEntries = _candidateListEntries(plan: plan, dayId: dayId, labels: labels);
+    // The one directory a named sheet narrows, and only when its recipient is a candidate: who else
+    // is being seen for a part, and on what phone number, is the production's business and not
+    // another candidate's. Null for every other recipient, which leaves both readings day-wide.
+    final recipientRoleCandidateId = convocation.roleCandidateId;
+    final auditionRows = _auditionRowsOfDay(
+      plan: plan,
+      orderedEntries: orderedEntries,
+      onlyRoleCandidateId: recipientRoleCandidateId,
+    );
+    final candidateEntries = _candidateListEntries(
+      plan: plan,
+      dayId: dayId,
+      labels: labels,
+      onlyRoleCandidateId: recipientRoleCandidateId,
+    );
     final displayName = _convocationDisplayNameOf(convocation, plan, labels);
     final positionsOrRole = _convocationPositionsLabel(
       convocation: convocation,
@@ -1980,6 +1998,13 @@ List<_AuditionRow> _auditionRowsOfDay({
 /// about which of its slots happens to convoke the reader, exactly as the crew list, the
 /// cast-and-extras list and the trailing guest table already are.
 ///
+/// **[onlyRoleCandidateId] is the one exception in this whole file**, and a named sheet addressed to
+/// a *candidate* is the only thing that ever passes it: their sheet prints their own line and no
+/// other. The reason is not tidiness — who else is being seen for a part, and on what phone number,
+/// is the production's business and not another candidate's. Every other directory on that same
+/// sheet stays day-wide, a candidate reading the crew and cast lists exactly as any other recipient
+/// does.
+///
 /// The part is named through the **candidacy** rather than through the person, which is the whole
 /// reason `shooting_block_candidates` points at a `role_candidates` row: two candidacies of one
 /// person are two convocations, and a list naming the person alone could not tell an assistant
@@ -1993,12 +2018,14 @@ List<_PeopleListEntry> _candidateListEntries({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,
   required OcptCallSheetLabels labels,
+  String? onlyRoleCandidateId,
 }) {
   final entries = <_PeopleListEntry>[];
 
   for (final convocation in plan.convocationsOfDay(dayId)) {
     final roleCandidateId = convocation.roleCandidateId;
-    if (roleCandidateId == null) {
+    if (roleCandidateId == null ||
+        (onlyRoleCandidateId != null && roleCandidateId != onlyRoleCandidateId)) {
       continue;
     }
     final candidate = plan.roleCandidateById[roleCandidateId];

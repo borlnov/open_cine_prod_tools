@@ -1974,6 +1974,108 @@ void main() {
       );
     });
 
+    test("a candidate's own sheet prints their audition and their line, and no other's", () async {
+      // The one place a named sheet narrows a directory (ADR 0024): who else is being seen for a
+      // part, and on what phone number, is the production's business and not another candidate's.
+      // Proved by swapping *who* that other candidate is: Camille's own sheet must come out
+      // identical, which it only can if neither the audition table nor the directory carries them.
+      OcptSchedulePlanSnapshot buildWithOther(OcptPerson otherPerson) {
+        final other = _buildRoleCandidate(
+          id: "candidate-2",
+          roleId: "role-1",
+          person: otherPerson,
+        );
+
+        return _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [_buildSlot(id: "slot-1", label: "Casting", anchorMinute: 540)],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(
+                id: "block-1",
+                slotId: "slot-1",
+                kind: OcptShootingBlockKind.audition,
+                durationMinutes: 20,
+                candidates: [namedOn("block-1")],
+              ),
+              _buildBlock(
+                id: "block-2",
+                slotId: "slot-1",
+                kind: OcptShootingBlockKind.audition,
+                durationMinutes: 20,
+                candidates: [
+                  _buildBlockCandidate(
+                    id: "link-2",
+                    blockId: "block-2",
+                    roleCandidateId: "candidate-2",
+                  ),
+                ],
+              ),
+            ],
+          },
+          roles: [_buildRole(id: "role-1", name: "Marie", number: 3)],
+          people: [camille, otherPerson],
+          roleCandidates: [candidate, other],
+        );
+      }
+
+      Future<Uint8List> camilleSheetOf(OcptSchedulePlanSnapshot plan) =>
+          service.generateNamedCallSheet(
+            plan: plan,
+            dayId: "day-1",
+            pageSetup: pageSetup,
+            labels: _labels,
+            projectName: "My Movie",
+            convocation: plan
+                .convocationsOfDay("day-1")
+                .firstWhere((c) => c.roleCandidateId == "candidate-1"),
+            exportDate: _pinnedExportDate,
+          );
+
+      final withAlice = buildWithOther(
+        _buildPerson(
+          id: "person-alice",
+          firstName: "Alice",
+          lastName: "Simon",
+          phone: "0655667788",
+          email: "alice@example.org",
+        ),
+      );
+      final withJonas = buildWithOther(
+        _buildPerson(
+          id: "person-jonas",
+          firstName: "Jonas",
+          lastName: "Weber",
+          phone: "0699887766",
+          email: "jonas@example.org",
+        ),
+      );
+
+      // Each candidate is expected at their own twenty minutes, off their own block rather than off
+      // the unit's whole session.
+      final convocations = withAlice.convocationsOfDay("day-1");
+      final camilleCall = convocations.firstWhere((c) => c.roleCandidateId == "candidate-1");
+      final aliceCall = convocations.firstWhere((c) => c.roleCandidateId == "candidate-2");
+      expect(camilleCall.arrivalMinute, 540);
+      expect(camilleCall.departureMinute, 560);
+      expect(aliceCall.arrivalMinute, 560);
+      expect(aliceCall.departureMinute, 580);
+
+      expect(
+        _contentStreams(await camilleSheetOf(withAlice)),
+        _contentStreams(await camilleSheetOf(withJonas)),
+        reason: "who else was seen that day appears nowhere on this candidate's own sheet",
+      );
+
+      // The general sheet, by contrast, carries both of them — it is the day's own paperwork.
+      expect(
+        _contentStreams(await generalOf(withAlice)),
+        isNot(_contentStreams(await generalOf(withJonas))),
+      );
+    });
+
     test("a candidate carries a selection key, so the named export can be narrowed to them", () async {
       final plan = buildDay(
         blocks: [
