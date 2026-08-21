@@ -1,0 +1,738 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:async';
+
+import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:act_global_manager/act_global_manager.dart';
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+
+/// This is the bloc class for the budget production mode.
+///
+/// It loads the current project's title and the mode's own whole read on entry: the quote itself
+/// ([_budgetQuoteService], seeding [_seed]'s ten CNC postes on the first read of an empty table),
+/// the project's currency and default VAT rate. It mixes in [MixinOcptProjectVersionsBloc],
+/// answering its two hooks through [flushPendingProjectWrites] and [reloadFromProjectDatabase].
+///
+/// **[_seed] is a constructor argument, captured once, rather than watched.** No bloc or service
+/// may ever see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves `ocptBudgetCncPosteSeeds(Tr.of
+/// (context))` and hands the list in when it creates this bloc; [reloadFromProjectDatabase] reuses
+/// the very list it was given rather than re-resolving it, since a preview or a restore swaps the
+/// database, not the app's own locale — nothing about the seed's own words has changed by the time
+/// a reload runs, and this bloc has no `BuildContext` to re-resolve them with even if it had.
+///
+/// **There is no episode selector.** One budget serves the whole production (ADR 0019): the
+/// catalogue this bloc reads is project-wide, naming no episode at all, so the mode keeps the
+/// shell's own `onEpisodeSelected` null for the same reason the schedule mode does — not for want
+/// of a bloc, but because a selector would filter a read that was never split by episode to begin
+/// with.
+///
+/// The right dock fraction and the last right dock tab are persisted through
+/// [_propertiesManager]'s `budgetRightDockFraction`/`budgetLastRightDockTab`, mirroring
+/// `OcptScheduleBloc`'s own pair — there is no left fraction, this mode having no left dock.
+///
+/// Every write but the free-text fields (which ride [_fieldEditDebounce], flushed by
+/// [_flushPendingFieldEdits] on a selection change, a dock tab change, a version preview and the
+/// mode's own `deactivate()`) lands the moment it is dispatched, then reloads the quote snapshot
+/// through [_applyBudgetSnapshot] — which also reconciles [OcptBudgetState.selectedPosteId]/
+/// [OcptBudgetState.expandedLineId] against the freshly loaded snapshot, and, while the `Versions`
+/// tab is open, asks [MixinOcptProjectVersionsBloc] for a fresh working-copy capture, the mode's own
+/// stand-in for "a save landing while it is open".
+///
+/// It mixes in [MixinOcptProjectPackageBloc] too: the `Export` panel's own standing project-package
+/// card is wired here exactly as every other mode's is, even though this milestone offers no
+/// document of its own — see `OcptBudgetMode`'s own doc comment for why the panel still opens.
+class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
+    with
+        MixinOcptProjectVersionsBloc<OcptBudgetState>,
+        MixinOcptProjectPackageBloc<OcptBudgetState> {
+  /// The default delay between the last field edit and its autosave write.
+  static const defaultFieldEditDebounce = Duration(seconds: 2);
+
+  /// The manager used to access the project currently open.
+  final OcptProjectsManager _projectsManager;
+
+  /// The manager used to load and persist the mode's right dock fraction and last right dock tab.
+  final OcptPropertiesManager _propertiesManager;
+
+  /// The router manager used to navigate back to the home page when leaving the workspace.
+  final OcptRouterManager _routerManager;
+
+  /// The manager the project package export goes through.
+  final OcptExportManager _exportManager;
+
+  /// The service used to read and write the quote: the postes and their lines.
+  final OcptBudgetQuoteService _budgetQuoteService;
+
+  /// The ten CNC postes, already localized — see the class doc comment for why this is a
+  /// constructor argument captured once rather than watched.
+  final List<OcptBudgetPosteSeed> _seed;
+
+  /// The delay between the last field edit and its autosave write.
+  final Duration _fieldEditDebounce;
+
+  /// The running field-edit debounce timer, if any.
+  Timer? _fieldEditTimer;
+
+  /// Class constructor
+  ///
+  /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
+  /// through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by tests, to keep it
+  /// fast and deterministic.
+  OcptBudgetBloc({
+    required List<OcptBudgetPosteSeed> seed,
+    OcptProjectsManager? projectsManager,
+    OcptPropertiesManager? propertiesManager,
+    OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
+    OcptBudgetQuoteService? budgetQuoteService,
+    Duration fieldEditDebounce = defaultFieldEditDebounce,
+  }) : _seed = seed,
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+       _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
+       _budgetQuoteService =
+           budgetQuoteService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetQuoteService,
+       _fieldEditDebounce = fieldEditDebounce,
+       super(const OcptBudgetState.init()) {
+    add(const OcptBudgetLoadRequestedEvent());
+  }
+
+  /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
+  @override
+  void registerMixinEvents() {
+    super.registerMixinEvents();
+    on<OcptBudgetLoadRequestedEvent>(_onLoadRequested);
+    on<OcptBudgetBackRequestedEvent>(_onBackRequested);
+    on<OcptBudgetRightDockTabSelectedEvent>(_onRightDockTabSelected);
+    on<OcptBudgetRightDockToggledEvent>(_onRightDockToggled);
+    on<OcptBudgetRightDockClosedEvent>(_onRightDockClosed);
+    on<OcptBudgetRightDockFractionChangedEvent>(_onRightDockFractionChanged);
+    on<OcptBudgetCentreViewSelectedEvent>(_onCentreViewSelected);
+    on<OcptBudgetSimplifiedToggledEvent>(_onSimplifiedToggled);
+    on<OcptBudgetTaxBasisChangedEvent>(_onTaxBasisChanged);
+    on<OcptBudgetPosteSelectedEvent>(_onPosteSelected);
+    on<OcptBudgetPosteCreatedEvent>(_onPosteCreated);
+    on<OcptBudgetPosteReorderedEvent>(_onPosteReordered);
+    on<OcptBudgetPosteDeletionConfirmedEvent>(_onPosteDeletionConfirmed);
+    on<OcptBudgetLineExpandedEvent>(_onLineExpanded);
+    on<OcptBudgetLineCreatedEvent>(_onLineCreated);
+    on<OcptBudgetLineDeletionConfirmedEvent>(_onLineDeletionConfirmed);
+    on<OcptBudgetLineTaxInclusiveChangedEvent>(_onLineTaxInclusiveChanged);
+    on<OcptBudgetLineVatRateInheritedRequestedEvent>(_onLineVatRateInheritedRequested);
+    on<OcptBudgetFieldChangedEvent>(_onFieldChanged);
+    on<OcptBudgetFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
+    on<OcptBudgetProjectSettingsChangedEvent>(_onProjectSettingsChanged);
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
+
+  /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
+  /// about to swap the database can't send it into the previewed version instead, then clears the
+  /// selected poste and expanded line: either selected out of the working copy's own catalogue
+  /// means nothing once a preview swaps that data out.
+  @protected
+  @override
+  Future<void> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
+    await _flushPendingFieldEdits(emitter);
+    emitter(state.copyWith(clearSelectedPosteId: true, clearExpandedLineId: true));
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
+  @protected
+  @override
+  Future<void> reloadFromProjectDatabase(Emitter<OcptBudgetState> emitter) =>
+      _onLoadRequested(const OcptBudgetLoadRequestedEvent(), emitter);
+
+  /// Loads the current project's whole quote read: the postes with their lines (seeding [_seed]'s
+  /// ten CNC postes on the first read of an empty table), the currency and the default VAT rate.
+  ///
+  /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
+  /// which version is being previewed alongside the read it just performed. The selected poste, the
+  /// expanded line and any pending field edit are always cleared on a (re)load: a preview or a
+  /// restore changes the whole database underneath, so a stale selection is dropped rather than
+  /// trusted to still mean something.
+  Future<void> _onLoadRequested(
+    OcptBudgetLoadRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final rightDockFraction =
+        await _propertiesManager.budgetRightDockFraction.load() ??
+        OcptWorkspaceDock.rightDefaultFraction;
+    final lastRightDockTab =
+        await _propertiesManager.budgetLastRightDockTab.load() ?? OcptBudgetRightDockTab.inspector;
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(
+        state.copyWith(
+          isLoading: false,
+          rightDockFraction: rightDockFraction,
+          lastRightDockTab: lastRightDockTab,
+          clearPreviewedVersionId: true,
+          clearSelectedPosteId: true,
+          clearExpandedLineId: true,
+          pendingFieldEdits: const {},
+        ),
+      );
+      return;
+    }
+
+    final previewedVersion = project.previewedVersion;
+    final snapshot = await _loadBudgetSnapshot(project);
+
+    emitter(
+      state.copyWith(
+        isLoading: false,
+        title: project.name,
+        previewedVersionId: previewedVersion?.id,
+        clearPreviewedVersionId: previewedVersion == null,
+        snapshot: snapshot,
+        currencyCode: snapshot.currencyCode,
+        clearSelectedPosteId: true,
+        clearExpandedLineId: true,
+        pendingFieldEdits: const {},
+        rightDockFraction: rightDockFraction,
+        lastRightDockTab: lastRightDockTab,
+      ),
+    );
+  }
+
+  /// Reads [project]'s whole quote: the postes with their lines, the currency and the default VAT
+  /// rate, joined into one [OcptBudgetSnapshot].
+  Future<OcptBudgetSnapshot> _loadBudgetSnapshot(OcptOpenProjectModel project) async {
+    final database = project.database;
+    final postes = await _budgetQuoteService.loadPostes(database: database, seed: _seed);
+    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
+    final defaultVatRateBasisPoints = await _projectsManager
+        .loadCurrentProjectDefaultVatRateBasisPoints();
+
+    return OcptBudgetSnapshot.build(
+      postes: postes,
+      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+      currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
+    );
+  }
+
+  /// Leaves the workspace: closes the current project and navigates back to the home page.
+  Future<void> _onBackRequested(
+    OcptBudgetBackRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _projectsManager.closeCurrentProject();
+    _routerManager.pop();
+  }
+
+  /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
+  /// or switches to it). Flushes any pending field edit first, mirroring every other mode.
+  Future<void> _onRightDockTabSelected(
+    OcptBudgetRightDockTabSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final isAlreadyActive = state.rightDockTab == event.tab;
+    await _persistLastRightDockTab(event.tab);
+    emitter(
+      state.copyWith(
+        rightDockTab: isAlreadyActive ? null : event.tab,
+        clearRightDockTab: isAlreadyActive,
+        lastRightDockTab: event.tab,
+      ),
+    );
+
+    if (!isAlreadyActive && event.tab == OcptBudgetRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
+  }
+
+  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// on [OcptBudgetState.lastRightDockTab].
+  Future<void> _onRightDockToggled(
+    OcptBudgetRightDockToggledEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    if (state.rightDockTab != null) {
+      emitter(state.copyWith(clearRightDockTab: true));
+      return;
+    }
+
+    emitter(state.copyWith(rightDockTab: state.lastRightDockTab));
+
+    if (state.lastRightDockTab == OcptBudgetRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
+  }
+
+  /// Closes the right dock via its own × close button.
+  Future<void> _onRightDockClosed(
+    OcptBudgetRightDockClosedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    emitter(state.copyWith(clearRightDockTab: true));
+  }
+
+  /// Applies and persists the right dock's new width fraction.
+  Future<void> _onRightDockFractionChanged(
+    OcptBudgetRightDockFractionChangedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _propertiesManager.budgetRightDockFraction.store(event.fraction);
+    emitter(state.copyWith(rightDockFraction: event.fraction));
+  }
+
+  /// Persists [tab] as the mode's last right dock tab, unless it already is.
+  Future<void> _persistLastRightDockTab(OcptBudgetRightDockTab tab) async {
+    if (state.lastRightDockTab == tab) {
+      return;
+    }
+
+    await _propertiesManager.budgetLastRightDockTab.store(tab);
+  }
+
+  /// Switches the centre between the dashboard and the cost-tracking table.
+  Future<void> _onCentreViewSelected(
+    OcptBudgetCentreViewSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    emitter(state.copyWith(centreView: event.view));
+  }
+
+  /// Toggles the header's simplified/detailed switch.
+  Future<void> _onSimplifiedToggled(
+    OcptBudgetSimplifiedToggledEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    emitter(state.copyWith(isSimplified: event.isSimplified));
+  }
+
+  /// Switches the header's excluding/including-tax toggle.
+  Future<void> _onTaxBasisChanged(
+    OcptBudgetTaxBasisChangedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    emitter(state.copyWith(taxBasis: event.basis));
+  }
+
+  /// Selects poste `event.posteId`, opening the right dock on the `Inspector` tab and collapsing
+  /// whichever line card was open — the two panels are about different postes now. A poste id
+  /// naming no live poste is ignored. Flushes any pending field edit first: switching which poste's
+  /// own fields are on screen is exactly the selection change every other mode flushes on.
+  Future<void> _onPosteSelected(
+    OcptBudgetPosteSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    if (!state.postes.any((poste) => poste.id == event.posteId)) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        selectedPosteId: event.posteId,
+        clearExpandedLineId: true,
+        rightDockTab: OcptBudgetRightDockTab.inspector,
+        lastRightDockTab: OcptBudgetRightDockTab.inspector,
+      ),
+    );
+  }
+
+  /// Creates a new, unnamed poste, appended at the end of the catalogue, and selects it.
+  Future<void> _onPosteCreated(
+    OcptBudgetPosteCreatedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final posteId = await _budgetQuoteService.createPoste(database: project.database, label: "");
+
+    await _applyBudgetSnapshot(emitter, project);
+    if (posteId != null) {
+      emitter(
+        state.copyWith(
+          selectedPosteId: posteId,
+          clearExpandedLineId: true,
+          rightDockTab: OcptBudgetRightDockTab.inspector,
+          lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        ),
+      );
+    }
+  }
+
+  /// Moves poste `event.posteId` to `event.newPosition` within the catalogue's flat order.
+  Future<void> _onPosteReordered(
+    OcptBudgetPosteReorderedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetQuoteService.reorderPoste(
+      database: project.database,
+      posteId: event.posteId,
+      newPosition: event.newPosition,
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Deletes poste `event.posteId` for good, along with every quote line it holds, confirmed by the
+  /// mode's own `OcptConfirmDialog`.
+  Future<void> _onPosteDeletionConfirmed(
+    OcptBudgetPosteDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetQuoteService.deletePoste(database: project.database, posteId: event.posteId);
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Expands or collapses quote line `event.lineId`'s own card, flushing any pending field edit
+  /// first: the field of a card about to collapse must reach the database before it goes, exactly
+  /// as a poste selection change does.
+  Future<void> _onLineExpanded(
+    OcptBudgetLineExpandedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final isAlreadyExpanded = state.expandedLineId == event.lineId;
+    emitter(
+      state.copyWith(
+        expandedLineId: isAlreadyExpanded ? null : event.lineId,
+        clearExpandedLineId: isAlreadyExpanded,
+      ),
+    );
+  }
+
+  /// Creates a new, unnamed quote line inside poste `event.posteId`, appended at the end of its own
+  /// lines, and expands it.
+  Future<void> _onLineCreated(
+    OcptBudgetLineCreatedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final lineId = await _budgetQuoteService.createLine(
+      database: project.database,
+      posteId: event.posteId,
+      label: "",
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+    if (lineId != null) {
+      emitter(state.copyWith(expandedLineId: lineId));
+    }
+  }
+
+  /// Deletes quote line `event.lineId` for good, confirmed by the mode's own `OcptConfirmDialog`.
+  Future<void> _onLineDeletionConfirmed(
+    OcptBudgetLineDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetQuoteService.deleteLine(database: project.database, lineId: event.lineId);
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes a new including/excluding-tax basis onto line `event.lineId`'s own unit price
+  /// immediately — a pick, not typing.
+  Future<void> _onLineTaxInclusiveChanged(
+    OcptBudgetLineTaxInclusiveChangedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetQuoteService.updateLine(
+      database: project.database,
+      lineId: event.lineId,
+      isTaxInclusive: Value(event.isTaxInclusive),
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Puts line `event.lineId`'s own VAT rate back to inheriting the project's default, immediately —
+  /// see `OcptBudgetLineVatRateInheritedRequestedEvent`'s own doc comment for why this is a
+  /// dedicated event rather than something an empty field submission could trigger.
+  Future<void> _onLineVatRateInheritedRequested(
+    OcptBudgetLineVatRateInheritedRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetQuoteService.updateLine(
+      database: project.database,
+      lineId: event.lineId,
+      vatRateBasisPoints: const Value(null),
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Records the raw text just typed into a field as a pending edit, visible immediately, and
+  /// (re)starts the field-edit debounce.
+  Future<void> _onFieldChanged(
+    OcptBudgetFieldChangedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final pending = Map<OcptBudgetPendingFieldKey, String>.of(state.pendingFieldEdits)
+      ..[(event.targetId, event.field)] = event.rawValue;
+    emitter(state.copyWith(pendingFieldEdits: pending));
+
+    _fieldEditTimer?.cancel();
+    _fieldEditTimer = Timer(_fieldEditDebounce, () {
+      if (!isClosed) {
+        add(const OcptBudgetFieldEditFlushRequestedEvent());
+      }
+    });
+  }
+
+  /// Fired by the field-edit debounce timer: writes every pending field edit.
+  Future<void> _onFieldEditFlushRequested(
+    OcptBudgetFieldEditFlushRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) => _flushPendingFieldEdits(emitter);
+
+  /// Writes every field edit still sitting in the debounce, cancelling the running timer first.
+  ///
+  /// A no-op when nothing is pending: called on every selection-changing path and on every
+  /// version-preview transition, most of which have nothing waiting.
+  Future<void> _flushPendingFieldEdits(Emitter<OcptBudgetState> emitter) async {
+    _fieldEditTimer?.cancel();
+    _fieldEditTimer = null;
+
+    final edits = state.pendingFieldEdits;
+    if (edits.isEmpty) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWith(pendingFieldEdits: const {}));
+      return;
+    }
+
+    await _writeAllPendingFieldEdits(project, edits);
+
+    emitter(state.copyWith(pendingFieldEdits: const {}));
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
+  /// and the bloc's own event queue.
+  ///
+  /// Called by the mode's own `deactivate()`, mirroring `OcptScheduleBloc.flushPendingFieldEdits`:
+  /// `deactivate()` runs before `dispose()` for every removal from the tree, so triggering the
+  /// write here — rather than dispatching an event, which would only be processed on a later
+  /// microtask this widget might not survive to see — is what guarantees the last
+  /// [_fieldEditDebounce] worth of typing isn't lost. Unlike [_flushPendingFieldEdits], this never
+  /// touches [state]: `emit` may only be called from inside a registered `on<Event>` handler, and
+  /// by the time this runs the widget tree that would show a fresh state is already gone anyway. A
+  /// failure here is only logged.
+  Future<void> flushPendingFieldEdits() async {
+    _fieldEditTimer?.cancel();
+    _fieldEditTimer = null;
+
+    final edits = state.pendingFieldEdits;
+    if (edits.isEmpty) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await _writeAllPendingFieldEdits(project, edits);
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to flush a pending budget field edit of the "
+          "project at ${project.path}: $error");
+    }
+  }
+
+  /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write
+  /// loop [_flushPendingFieldEdits] and [flushPendingFieldEdits] both run, so the switch over
+  /// [OcptBudgetField] is written once.
+  ///
+  /// The three numeric fields ([OcptBudgetField.lineQuantity], [OcptBudgetField.lineUnitAmount],
+  /// [OcptBudgetField.lineVatRateOverride]) are parsed here, and a submission that doesn't parse is
+  /// **skipped** rather than written: `quantityMilli` and `unitAmountCents` are never nullable, so
+  /// there is no null they could legitimately become, and an override's own empty/unparseable
+  /// reading is deliberately not "inherit" (`OcptBudgetField`'s own doc comment) — the field simply
+  /// reverts to whatever the database already holds on the next read.
+  Future<void> _writeAllPendingFieldEdits(
+    OcptOpenProjectModel project,
+    Map<OcptBudgetPendingFieldKey, String> edits,
+  ) async {
+    for (final entry in edits.entries) {
+      final (targetId, field) = entry.key;
+      final value = entry.value;
+
+      switch (field) {
+        case OcptBudgetField.posteLabel:
+          await _budgetQuoteService.updatePoste(
+            database: project.database,
+            posteId: targetId,
+            label: Value(value),
+          );
+        case OcptBudgetField.posteCode:
+          await _budgetQuoteService.updatePoste(
+            database: project.database,
+            posteId: targetId,
+            code: Value(value),
+          );
+        case OcptBudgetField.lineLabel:
+          await _budgetQuoteService.updateLine(
+            database: project.database,
+            lineId: targetId,
+            label: Value(value),
+          );
+        case OcptBudgetField.lineQuantity:
+          final quantityMilli = ocptBudgetQuantityMilliOf(value);
+          if (quantityMilli != null) {
+            await _budgetQuoteService.updateLine(
+              database: project.database,
+              lineId: targetId,
+              quantityMilli: Value(quantityMilli),
+            );
+          }
+        case OcptBudgetField.lineUnit:
+          await _budgetQuoteService.updateLine(
+            database: project.database,
+            lineId: targetId,
+            unit: Value(value),
+          );
+        case OcptBudgetField.lineUnitAmount:
+          final amountCents = ocptCostCentsOf(value);
+          if (amountCents != null) {
+            await _budgetQuoteService.updateLine(
+              database: project.database,
+              lineId: targetId,
+              unitAmountCents: Value(amountCents),
+            );
+          }
+        case OcptBudgetField.lineVatRateOverride:
+          final basisPoints = ocptVatRateBasisPointsOf(value);
+          if (basisPoints != null) {
+            await _budgetQuoteService.updateLine(
+              database: project.database,
+              lineId: targetId,
+              vatRateBasisPoints: Value(basisPoints),
+            );
+          }
+        case OcptBudgetField.lineNotes:
+          await _budgetQuoteService.updateLine(
+            database: project.database,
+            lineId: targetId,
+            notes: Value(value),
+          );
+      }
+    }
+  }
+
+  /// Re-reads the project's currency and default VAT rate after the project settings page changed
+  /// something — mirrors `OcptScheduleProjectSettingsChangedEvent`'s own handler.
+  Future<void> _onProjectSettingsChanged(
+    OcptBudgetProjectSettingsChangedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Re-reads the quote of [project] and applies it, reconciling
+  /// [OcptBudgetState.selectedPosteId]/[OcptBudgetState.expandedLineId] against what the fresh
+  /// snapshot still holds — a selected poste or an expanded line that disappeared is dropped rather
+  /// than trusted to still mean something.
+  ///
+  /// Every handler that writes to the quote tables ends here, which is also the mode's own
+  /// stand-in for "a save landing while the `Versions` tab is open": [OcptProjectWorkingCopyRefreshRequestedEvent]
+  /// is dispatched once the fresh snapshot has landed, mirroring `OcptScheduleBloc
+  /// ._applyScheduleSnapshot`.
+  Future<void> _applyBudgetSnapshot(
+    Emitter<OcptBudgetState> emitter,
+    OcptOpenProjectModel project,
+  ) async {
+    final snapshot = await _loadBudgetSnapshot(project);
+
+    final posteStillExists =
+        state.selectedPosteId == null ||
+        snapshot.postes.any((poste) => poste.id == state.selectedPosteId);
+    final lineStillExists =
+        posteStillExists &&
+        state.expandedLineId != null &&
+        snapshot.postes.any((poste) => poste.lines.any((line) => line.id == state.expandedLineId));
+
+    emitter(
+      state.copyWith(
+        snapshot: snapshot,
+        currencyCode: snapshot.currencyCode,
+        clearSelectedPosteId: !posteStillExists,
+        clearExpandedLineId: !lineStillExists,
+      ),
+    );
+
+    if (state.rightDockTab == OcptBudgetRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
+  }
+}

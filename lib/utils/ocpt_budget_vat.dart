@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 
 /// How many basis points make up 100 %: what turns 550 (5.5 %) into a fraction, `550 / 10000`.
@@ -207,4 +208,44 @@ String ocptVatRatePercentTextOf(int? basisPoints) {
   return (basisPoints / _ocptBasisPointsPerPercent)
       .toStringAsFixed(_ocptPercentDigits)
       .replaceFirst(_ocptTrailingZeroes, "");
+}
+
+/// The one rate every one of [lines] reads under, through [ocptEffectiveVatRateOf], or null while
+/// [lines] is empty, carries no known rate at all, or disagrees about it (either the figure or
+/// whether it is overridden) — what the cost-tracking table's own `Quote` sub-line shows the rate
+/// for, and only then: "only when the poste's lines all share one known rate"
+/// (`docs/plans/budget-mode.md` §5, M1).
+///
+/// Equality is [OcptBudgetEffectiveVatRate]'s own (`Equatable`, over both
+/// [OcptBudgetEffectiveVatRate.basisPoints] and [OcptBudgetEffectiveVatRate.isOverridden]): two
+/// lines reading the very same figure but one by its own override and the other by inheriting the
+/// project's identical default do not "share" it in the sense this reads for — which colour to
+/// paint the rate in would itself be ambiguous.
+OcptBudgetEffectiveVatRate? ocptBudgetPosteUniformVatRateOf(
+  List<OcptBudgetLine> lines, {
+  required int? projectVatRateBasisPoints,
+}) {
+  if (lines.isEmpty) {
+    return null;
+  }
+
+  final first = ocptEffectiveVatRateOf(
+    lineVatRateBasisPoints: lines.first.unitPrice.vatRateBasisPoints,
+    projectVatRateBasisPoints: projectVatRateBasisPoints,
+  );
+  if (first.basisPoints == null) {
+    return null;
+  }
+
+  for (final line in lines.skip(1)) {
+    final rate = ocptEffectiveVatRateOf(
+      lineVatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
+    if (rate != first) {
+      return null;
+    }
+  }
+
+  return first;
 }

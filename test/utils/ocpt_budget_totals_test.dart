@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 void main() {
@@ -224,6 +225,96 @@ void main() {
         ocptBudgetPosteStrainOf(quotedAmountCents: 0, paidCents: 500, committedCents: 0),
         OcptBudgetPosteStrain.over,
       );
+    });
+  });
+
+  group("ocptBudgetTotalOf", () {
+    test("reads a tax-inclusive line under either basis, given a rate", () {
+      final lines = [buildLine(amountCents: 1200, vatRateBasisPoints: 2000)];
+
+      expect(
+        ocptBudgetTotalOf(
+          lines,
+          basis: OcptBudgetTaxBasis.includingTax,
+          projectVatRateBasisPoints: null,
+        ).amountCents,
+        1200,
+      );
+      expect(
+        ocptBudgetTotalOf(
+          lines,
+          basis: OcptBudgetTaxBasis.excludingTax,
+          projectVatRateBasisPoints: null,
+        ).amountCents,
+        1000,
+      );
+    });
+
+    test("a line already typed in the basis asked for needs no rate at all", () {
+      final lines = [buildLine(amountCents: 1250)];
+
+      final total = ocptBudgetTotalOf(
+        lines,
+        basis: OcptBudgetTaxBasis.includingTax,
+        projectVatRateBasisPoints: null,
+      );
+
+      expect(total.amountCents, 1250);
+      expect(total.isComplete, isTrue);
+    });
+
+    test("a line typed in the other basis with no known rate is covered by neither figure", () {
+      final lines = [buildLine(amountCents: 1000, isTaxInclusive: false)];
+
+      final total = ocptBudgetTotalOf(
+        lines,
+        basis: OcptBudgetTaxBasis.includingTax,
+        projectVatRateBasisPoints: null,
+      );
+
+      expect(total.amountCents, 0);
+      expect(total.coveredLineCount, 0);
+      expect(total.lineCount, 1);
+      expect(total.isComplete, isFalse);
+    });
+
+    test("sums a table mixing the two bases row by row", () {
+      final lines = [
+        buildLine(id: "a", amountCents: 1200, vatRateBasisPoints: 2000),
+        buildLine(id: "b", amountCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 550),
+      ];
+
+      // 1200 TTC at 20 % is 1000 HT; 1000 HT at 5.5 % is 1055 TTC. Converting the summed figure by
+      // either single rate would land somewhere else entirely.
+      expect(
+        ocptBudgetTotalOf(
+          lines,
+          basis: OcptBudgetTaxBasis.excludingTax,
+          projectVatRateBasisPoints: null,
+        ).amountCents,
+        2000,
+      );
+      expect(
+        ocptBudgetTotalOf(
+          lines,
+          basis: OcptBudgetTaxBasis.includingTax,
+          projectVatRateBasisPoints: null,
+        ).amountCents,
+        2255,
+      );
+    });
+
+    test("an explicit 0 % counts, and counts as covered", () {
+      final lines = [buildLine(amountCents: 1250, vatRateBasisPoints: 0)];
+
+      final total = ocptBudgetTotalOf(
+        lines,
+        basis: OcptBudgetTaxBasis.excludingTax,
+        projectVatRateBasisPoints: null,
+      );
+
+      expect(total.amountCents, 1250);
+      expect(total.isComplete, isTrue);
     });
   });
 }

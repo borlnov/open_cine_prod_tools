@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 
 /// How many thousandths make up one whole unit: what turns `quantityMilli` (1500 for 1.5 day) back
@@ -211,4 +212,52 @@ OcptBudgetPosteStrain ocptBudgetPosteStrainOf({
   }
 
   return OcptBudgetPosteStrain.within;
+}
+
+/// [lines]' own total read in [basis], paired with how many of them that reading actually covers —
+/// `ocpt_budget_vat.dart`'s "null, never zero" rule applied to a whole basis rather than
+/// to the excluding-tax one alone, which is all `ocptBudgetExcludingTaxTotalOf` itself answers.
+///
+/// **Every row is converted individually and then summed, never the other way round**
+/// (`docs/plans/budget-mode.md` §3): [OcptBudgetTaxBasis.excludingTax] delegates to
+/// [ocptBudgetExcludingTaxTotalOf] directly, and [OcptBudgetTaxBasis.includingTax] mirrors it
+/// through [ocptIncludingTaxAmountCentsOf] over each line's own already-summed total
+/// ([ocptBudgetLineTotalCents]) — a line already typed tax-inclusive needs no rate at all to answer
+/// that reading (its own figure already is the answer), so only a line typed tax-exclusive with no
+/// known rate is ever the reason [OcptBudgetCoveredTotal.isComplete] reads false under this basis,
+/// exactly as only a tax-inclusive line with no known rate is the reason under the other one.
+OcptBudgetCoveredTotal ocptBudgetTotalOf(
+  List<OcptBudgetLine> lines, {
+  required OcptBudgetTaxBasis basis,
+  required int? projectVatRateBasisPoints,
+}) {
+  if (basis == OcptBudgetTaxBasis.excludingTax) {
+    return ocptBudgetExcludingTaxTotalOf(lines, projectVatRateBasisPoints: projectVatRateBasisPoints);
+  }
+
+  var amountCents = 0;
+  var coveredLineCount = 0;
+
+  for (final line in lines) {
+    final includingTax = ocptIncludingTaxAmountCentsOf(
+      OcptMoney(
+        amountCents: ocptBudgetLineTotalCents(line),
+        isTaxInclusive: line.unitPrice.isTaxInclusive,
+        vatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
+      ),
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
+    if (includingTax == null) {
+      continue;
+    }
+
+    amountCents += includingTax;
+    coveredLineCount++;
+  }
+
+  return OcptBudgetCoveredTotal(
+    amountCents: amountCents,
+    coveredLineCount: coveredLineCount,
+    lineCount: lines.length,
+  );
 }

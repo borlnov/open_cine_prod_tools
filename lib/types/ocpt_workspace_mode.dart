@@ -4,9 +4,11 @@
 
 /// A production mode the workspace shell can host, selected through its bottom mode switcher.
 ///
-/// Declared in the order the mode switcher displays them — the four implemented modes first,
-/// the two empty ones last; see `OcptPropertiesManager.workspaceMode` for how the last one used
-/// is persisted (by name, so this order is free to change without breaking a stored preference).
+/// Declared in the order the mode switcher displays them — the order the work happens in (write,
+/// break down, shoot-list, resource, schedule), [budget] last since it is the one that reads every
+/// other mode's own figures rather than the one anybody starts from; see
+/// `OcptPropertiesManager.workspaceMode` for how the last one used is persisted (by name, so this
+/// order is free to change without breaking a stored preference).
 enum OcptWorkspaceMode {
   /// The Fountain screenplay editor, the app's founding feature.
   screenplay,
@@ -24,15 +26,20 @@ enum OcptWorkspaceMode {
   /// The shooting schedule: planning the shoot day by day.
   schedule,
 
-  /// The budget tracker. Not implemented yet: selecting it shows an empty state.
+  /// The budget tracker: the production's quote, cash journal, financing and revenue sharing.
   budget;
 
   /// Whether this mode has real content today, rather than the shared "coming in a future
   /// version" empty state.
+  ///
+  /// Every value answers true today; the getter is kept as an explicit list rather than collapsed
+  /// to a bare `true` so a mode added ahead of its own content (the way [budget] itself once sat
+  /// here) has a single, obvious place to be left out of again.
   bool get isImplemented =>
       this == OcptWorkspaceMode.screenplay ||
       this == OcptWorkspaceMode.breakdown ||
       this == OcptWorkspaceMode.shotList ||
       this == OcptWorkspaceMode.resources ||
-      this == OcptWorkspaceMode.schedule;
+      this == OcptWorkspaceMode.schedule ||
+      this == OcptWorkspaceMode.budget;
 }

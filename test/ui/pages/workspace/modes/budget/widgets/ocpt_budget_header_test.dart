@@ -1,0 +1,154 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
+
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
+Widget _wrap(Widget child) => MaterialApp(
+  localizationsDelegates: const [
+    Tr.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: Tr.delegate.supportedLocales,
+  home: Scaffold(body: child),
+);
+
+void main() {
+  /// Widens the test surface so the header's own title and subtitle are shown — see
+  /// `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth`.
+  void useWideWindow(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  testWidgets("tapping the Cost tracking chip reports the view it names", (tester) async {
+    useWideWindow(tester);
+    OcptBudgetCentreView? reported;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (view) => reported = view,
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    await tester.tap(find.text(tr.budgetHeaderCostTrackingSegmentLabel));
+
+    expect(reported, OcptBudgetCentreView.costTracking);
+  });
+
+  testWidgets("tapping the active chip reports nothing (it is already the current view)", (
+    tester,
+  ) async {
+    useWideWindow(tester);
+    var callCount = 0;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (_) => callCount++,
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    await tester.tap(find.text(tr.budgetHeaderDashboardSegmentLabel));
+
+    expect(callCount, 0);
+  });
+
+  testWidgets("tapping Detailed reports isSimplified false", (tester) async {
+    useWideWindow(tester);
+    bool? reported;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (_) {},
+          isSimplified: true,
+          onSimplifiedChanged: (value) => reported = value,
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    await tester.tap(find.text(tr.budgetHeaderDetailedSegmentLabel));
+
+    expect(reported, isFalse);
+  });
+
+  testWidgets("tapping Excl. tax reports the excluding-tax basis", (tester) async {
+    useWideWindow(tester);
+    OcptBudgetTaxBasis? reported;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (_) {},
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (basis) => reported = basis,
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    await tester.tap(find.text(tr.budgetHeaderExcludingTaxSegmentLabel));
+
+    expect(reported, OcptBudgetTaxBasis.excludingTax);
+  });
+
+  testWidgets("shows the header's own title and subtitle on a wide window", (tester) async {
+    useWideWindow(tester);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (_) {},
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    expect(find.text(tr.budgetHeaderTitle), findsOneWidget);
+  });
+
+  // The narrow-window case (title/subtitle shed, the three controls kept) is
+  // `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth` threshold, argued in its class doc
+  // comment; not re-asserted here as a layout test, since `flutter_test`'s own substituted test
+  // font renders these short labels far wider than any real one does, which would make the
+  // threshold's own safety margin — comfortable against a real font — read as flaky here.
+}

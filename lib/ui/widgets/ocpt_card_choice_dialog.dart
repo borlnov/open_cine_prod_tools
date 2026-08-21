@@ -42,6 +42,15 @@ const double _ocptCardChoiceUnavailableOpacity = 0.5;
 /// description replaced by that reason, and never hidden: the dialog is a presentation of what the
 /// app knows how to produce, and a card that disappeared would make it lie about what exists.
 ///
+/// A **section** holding no entries at all is a different case, and is dropped rather than drawn:
+/// the budget mode at M1 opens this panel with its own documents section empty (it prints nothing
+/// yet) and only the project package section to show, and a section with nothing in it draws
+/// neither cards nor a heading — only the divider [_OcptCardChoiceSectionView] puts above every
+/// section but the first, which a naive `sections.indexed` reading would still draw over the empty
+/// section's own nothing, floating with no card above it. [build] filters the list down to the
+/// sections actually worth drawing first, so "the first one" — the one told to skip its own
+/// leading space and divider — means the first one a reader actually sees.
+///
 /// [title] and [message] are plain strings handed in by the caller, the wording of both being
 /// per-caller.
 class OcptCardChoiceDialog<T> extends StatelessWidget {
@@ -79,6 +88,7 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final visibleSections = [for (final section in sections) if (section.entries.isNotEmpty) section];
 
     return AlertDialog(
       title: Text(title),
@@ -97,7 +107,7 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final (index, section) in sections.indexed)
+                    for (final (index, section) in visibleSections.indexed)
                       _OcptCardChoiceSectionView<T>(section: section, isFirst: index == 0),
                   ],
                 ),

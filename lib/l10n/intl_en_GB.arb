@@ -1803,18 +1803,7 @@
   "workspaceModeComingSoonTooltip": "{modeName} — coming in a future version",
   "@workspaceModeComingSoonTooltip": {
     "description": "Tooltip of a mode switcher entry that isn't implemented yet",
-    "context": "Shown on hover over the Budget, Schedule or Shot list entries of the mode switcher",
-    "type": "text",
-    "placeholders": {
-      "modeName": {
-        "type": "String"
-      }
-    }
-  },
-  "workspaceEmptyModeMessage": "{modeName} is coming in a future version.",
-  "@workspaceEmptyModeMessage": {
-    "description": "Message shown in place of a production mode that isn't implemented yet",
-    "context": "Displayed centred in the workspace's main area for the Budget, Schedule and Shot list modes",
+    "context": "Dormant today: every mode is implemented, but this stays wired for the next one added ahead of its own content",
     "type": "text",
     "placeholders": {
       "modeName": {
@@ -10205,6 +10194,547 @@
   "@budgetCncPosteSimpleOverheads": {
     "description": "Simplified-header label of the CNC nomenclature's poste 10",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderTitle": "Quote",
+  "@budgetHeaderTitle": {
+    "description": "Title of the budget mode's own header band",
+    "context": "Displayed at the top of the budget mode's centre, above the view chips",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderSubtitle": "CNC nomenclature — rename, reorder or add postes freely.",
+  "@budgetHeaderSubtitle": {
+    "description": "Muted subtitle of the budget mode's own header band",
+    "context": "Displayed under the header's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderDashboardSegmentLabel": "Dashboard",
+  "@budgetHeaderDashboardSegmentLabel": {
+    "description": "Label of the header's Dashboard view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCostTrackingSegmentLabel": "Cost tracking",
+  "@budgetHeaderCostTrackingSegmentLabel": {
+    "description": "Label of the header's Cost tracking view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderSimplifiedSegmentLabel": "Simplified",
+  "@budgetHeaderSimplifiedSegmentLabel": {
+    "description": "Label of the header's simplified segment",
+    "context": "Displayed on the budget mode's own simplified/detailed switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderDetailedSegmentLabel": "Detailed",
+  "@budgetHeaderDetailedSegmentLabel": {
+    "description": "Label of the header's detailed segment",
+    "context": "Displayed on the budget mode's own simplified/detailed switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderExcludingTaxSegmentLabel": "Excl. tax",
+  "@budgetHeaderExcludingTaxSegmentLabel": {
+    "description": "Label of the header's excluding-tax segment",
+    "context": "Displayed on the budget mode's own tax-basis switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderIncludingTaxSegmentLabel": "Incl. tax",
+  "@budgetHeaderIncludingTaxSegmentLabel": {
+    "description": "Label of the header's including-tax segment",
+    "context": "Displayed on the budget mode's own tax-basis switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
+  "@budgetStatsPostes": {
+    "description": "Poste count of the budget mode's status band",
+    "context": "Displayed in the status bar under the budget mode's centre",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetStatsLines": "{count, plural, one{{count} line} other{{count} lines}}",
+  "@budgetStatsLines": {
+    "description": "Quote line count of the budget mode's status band",
+    "context": "Displayed in the status bar under the budget mode's centre",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetRightDockInspectorTabLabel": "Inspector",
+  "@budgetRightDockInspectorTabLabel": {
+    "description": "Label of the budget mode's right dock Inspector tab",
+    "context": "Displayed in the budget mode's own right dock tab row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRightDockVersionsTabLabel": "Versions",
+  "@budgetRightDockVersionsTabLabel": {
+    "description": "Label of the budget mode's right dock Versions tab",
+    "context": "Displayed in the budget mode's own right dock tab row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRightDockCloseTooltip": "Close the panel",
+  "@budgetRightDockCloseTooltip": {
+    "description": "Tooltip of the budget mode's right dock close button",
+    "context": "Shown on hover over the × button of the budget mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnNumber": "N°",
+  "@budgetCostTrackingColumnNumber": {
+    "description": "Header of the cost-tracking table's poste-number column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table, detailed header only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnPoste": "Poste",
+  "@budgetCostTrackingColumnPoste": {
+    "description": "Header of the cost-tracking table's poste column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnQuote": "Quote",
+  "@budgetCostTrackingColumnQuote": {
+    "description": "Header of the cost-tracking table's quote column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnPaid": "Paid",
+  "@budgetCostTrackingColumnPaid": {
+    "description": "Header of the cost-tracking table's paid column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnCommitted": "Committed",
+  "@budgetCostTrackingColumnCommitted": {
+    "description": "Header of the cost-tracking table's committed column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnRemaining": "Remaining",
+  "@budgetCostTrackingColumnRemaining": {
+    "description": "Header of the cost-tracking table's remaining column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnVariance": "Variance",
+  "@budgetCostTrackingColumnVariance": {
+    "description": "Header of the cost-tracking table's variance column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnConsumed": "Consumed",
+  "@budgetCostTrackingColumnConsumed": {
+    "description": "Header of the cost-tracking table's consumed column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteUnnamed": "Unnamed poste",
+  "@budgetPosteUnnamed": {
+    "description": "Placeholder name of a poste with an empty label",
+    "context": "Displayed wherever a poste's own empty label would otherwise be shown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteRenameAction": "Rename",
+  "@budgetPosteRenameAction": {
+    "description": "Entry of a poste row's own ⋮ menu opening its inspector to rename it",
+    "context": "Displayed in the budget mode's cost-tracking table row menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteMoveUpAction": "Move up",
+  "@budgetPosteMoveUpAction": {
+    "description": "Entry of a poste row's own ⋮ menu moving it up one position",
+    "context": "Displayed in the budget mode's cost-tracking table row menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteMoveDownAction": "Move down",
+  "@budgetPosteMoveDownAction": {
+    "description": "Entry of a poste row's own ⋮ menu moving it down one position",
+    "context": "Displayed in the budget mode's cost-tracking table row menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteDeleteAction": "Delete",
+  "@budgetPosteDeleteAction": {
+    "description": "Entry of a poste row's own ⋮ menu deleting it",
+    "context": "Displayed in the budget mode's cost-tracking table row menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteCreationAction": "+ Poste",
+  "@budgetPosteCreationAction": {
+    "description": "Label of the cost-tracking table's own poste creation footer",
+    "context": "Displayed under the last row of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingTotalRowLabel": "Total",
+  "@budgetCostTrackingTotalRowLabel": {
+    "description": "Label of the cost-tracking table's own total row",
+    "context": "Displayed in the poste column of the budget mode's cost-tracking table's total row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingCoverageReadOut": "{amount} · over {coveredCount} of the {posteCount} postes",
+  "@budgetCostTrackingCoverageReadOut": {
+    "description": "The cost-tracking table's total row own coverage read-out, while some postes carry no known rate",
+    "context": "Displayed in place of the plain total once every poste declares a rate, this disappears",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "coveredCount": {
+        "type": "int"
+      },
+      "posteCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetDashboardEmptyHint": "Add a poste to start the quote.",
+  "@budgetDashboardEmptyHint": {
+    "description": "Hint shown on the dashboard while the project holds no poste at all",
+    "context": "Displayed centred in the budget mode's dashboard",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardQuotedTotalLabel": "Quoted total",
+  "@budgetDashboardQuotedTotalLabel": {
+    "description": "Label of the dashboard's own quoted-total KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardExcludingTaxTotalLabel": "Excluding tax",
+  "@budgetDashboardExcludingTaxTotalLabel": {
+    "description": "Label of the dashboard's own excluding-tax-total KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardCoverageCaption": "over {coveredCount} of {lineCount} lines",
+  "@budgetDashboardCoverageCaption": {
+    "description": "Caption under the dashboard's excluding-tax-total KPI, while some lines carry no known rate",
+    "context": "Displayed under the excluding-tax-total figure; disappears once every line declares a rate",
+    "type": "text",
+    "placeholders": {
+      "coveredCount": {
+        "type": "int"
+      },
+      "lineCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetDashboardPosteCountLabel": "Postes",
+  "@budgetDashboardPosteCountLabel": {
+    "description": "Label of the dashboard's own poste-count KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardLineCountLabel": "Quote lines",
+  "@budgetDashboardLineCountLabel": {
+    "description": "Label of the dashboard's own line-count KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardPostesSectionTitle": "Postes",
+  "@budgetDashboardPostesSectionTitle": {
+    "description": "Title of the dashboard's own poste-by-poste section",
+    "context": "Displayed above the budget mode's dashboard poste rows",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorEmptyHint": "Select a poste to see its quote.",
+  "@budgetInspectorEmptyHint": {
+    "description": "Hint shown in the Inspector tab while no poste is selected",
+    "context": "Displayed in the budget mode's right dock Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorPosteLabelFieldLabel": "Label",
+  "@budgetInspectorPosteLabelFieldLabel": {
+    "description": "Label of the poste inspector's own label field",
+    "context": "Displayed above the poste's label field in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorPosteCodeFieldLabel": "Code",
+  "@budgetInspectorPosteCodeFieldLabel": {
+    "description": "Label of the poste inspector's own code field",
+    "context": "Displayed above the poste's code field in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorFigureQuote": "Quote",
+  "@budgetInspectorFigureQuote": {
+    "description": "Label of the poste inspector's own quote figure",
+    "context": "Displayed above the poste's quoted amount in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorFigurePaid": "Paid",
+  "@budgetInspectorFigurePaid": {
+    "description": "Label of the poste inspector's own paid figure",
+    "context": "Displayed above the poste's paid amount in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorFigureCommitted": "Committed",
+  "@budgetInspectorFigureCommitted": {
+    "description": "Label of the poste inspector's own committed figure",
+    "context": "Displayed above the poste's committed amount in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorFigureRemaining": "Remaining",
+  "@budgetInspectorFigureRemaining": {
+    "description": "Label of the poste inspector's own remaining figure",
+    "context": "Displayed above the poste's remaining amount in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorFigureConsumed": "Consumed",
+  "@budgetInspectorFigureConsumed": {
+    "description": "Label of the poste inspector's own consumed figure",
+    "context": "Displayed above the poste's consumed ratio in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorQuoteLinesSectionTitle": "Quote lines",
+  "@budgetInspectorQuoteLinesSectionTitle": {
+    "description": "Title of the poste inspector's own quote lines section",
+    "context": "Displayed above the poste's quote line cards in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorNoLineHint": "This poste has no quote line yet.",
+  "@budgetInspectorNoLineHint": {
+    "description": "Hint shown in the poste inspector while the poste holds no quote line",
+    "context": "Displayed under the Quote lines title in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorRelatedEntriesSectionTitle": "Related entries",
+  "@budgetInspectorRelatedEntriesSectionTitle": {
+    "description": "Title of the poste inspector's own related entries section",
+    "context": "Displayed under the quote lines in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorRelatedEntriesEmptyHint": "No cash entry is attached to this poste yet.",
+  "@budgetInspectorRelatedEntriesEmptyHint": {
+    "description": "Hint shown under the Related entries title, drawn and empty until M2",
+    "context": "Displayed under the Related entries title in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineCreationAction": "+ Add",
+  "@budgetLineCreationAction": {
+    "description": "Label of the poste inspector's own quote line creation action",
+    "context": "Displayed beside the Quote lines title in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineUnnamed": "Unnamed line",
+  "@budgetLineUnnamed": {
+    "description": "Placeholder name of a quote line with an empty label",
+    "context": "Displayed wherever a quote line's own empty label would otherwise be shown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineLabelFieldLabel": "Label",
+  "@budgetLineLabelFieldLabel": {
+    "description": "Label of a quote line card's own label field",
+    "context": "Displayed above a quote line's label field, expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineQuantityFieldLabel": "Quantity",
+  "@budgetLineQuantityFieldLabel": {
+    "description": "Label of a quote line card's own quantity field",
+    "context": "Displayed above a quote line's quantity field, expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineUnitFieldLabel": "Unit",
+  "@budgetLineUnitFieldLabel": {
+    "description": "Label of a quote line card's own unit field",
+    "context": "Displayed above a quote line's unit field, expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineUnitPriceFieldLabel": "Unit price",
+  "@budgetLineUnitPriceFieldLabel": {
+    "description": "Label of a quote line card's own unit price field",
+    "context": "Displayed above a quote line's unit price field, expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineTaxInclusiveOption": "Tax included",
+  "@budgetLineTaxInclusiveOption": {
+    "description": "Label of a quote line card's own tax-inclusive choice",
+    "context": "Displayed beside the radio picking whether the unit price includes tax",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineTaxExclusiveOption": "Tax excluded",
+  "@budgetLineTaxExclusiveOption": {
+    "description": "Label of a quote line card's own tax-exclusive choice",
+    "context": "Displayed beside the radio picking whether the unit price excludes tax",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineVatRateFieldLabel": "VAT",
+  "@budgetLineVatRateFieldLabel": {
+    "description": "Label of a quote line card's own VAT rate override field",
+    "context": "Displayed above a quote line's VAT rate field, expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineVatRateSuffix": "%",
+  "@budgetLineVatRateSuffix": {
+    "description": "Suffix of a quote line card's own VAT rate field",
+    "context": "Displayed inside a quote line's VAT rate field, after the typed figure",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineVatRateInheritedHint": "inherited {percent} %",
+  "@budgetLineVatRateInheritedHint": {
+    "description": "Placeholder of a quote line's own VAT rate field while it carries no override",
+    "context": "Shown greyed inside the VAT rate field while it is empty, naming the project's own rate",
+    "type": "text",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetLineVatRateInheritAction": "Inherit",
+  "@budgetLineVatRateInheritAction": {
+    "description": "Action putting a quote line's own VAT rate back to inheriting the project's default",
+    "context": "Displayed beside a quote line's VAT rate field, expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineVatRateOverriddenLabel": "Overridden: {percent} %",
+  "@budgetLineVatRateOverriddenLabel": {
+    "description": "Small annotation reading a quote line's own overridden VAT rate, in the accent colour",
+    "context": "Displayed under a quote line's VAT rate field, expanded card",
+    "type": "text",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetLineVatRateInheritedLabel": "Inherited: {percent} %",
+  "@budgetLineVatRateInheritedLabel": {
+    "description": "Small annotation reading a quote line's own inherited VAT rate, in grey",
+    "context": "Displayed under a quote line's VAT rate field, expanded card",
+    "type": "text",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetLineNotesFieldLabel": "Notes",
+  "@budgetLineNotesFieldLabel": {
+    "description": "Label of a quote line card's own notes field",
+    "context": "Displayed above a quote line's notes field, expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineDeleteAction": "Delete",
+  "@budgetLineDeleteAction": {
+    "description": "Action deleting a quote line for good",
+    "context": "Displayed at the bottom of a quote line's own expanded card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportPanelTitle": "Export",
+  "@budgetExportPanelTitle": {
+    "description": "Title of the budget mode's own export panel",
+    "context": "Displayed at the top of the dialog the budget mode's toolbar Export control opens",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportPanelMessage": "The budget mode prints no document yet; the project itself still travels as a portable package.",
+  "@budgetExportPanelMessage": {
+    "description": "Message of the budget mode's own export panel",
+    "context": "Displayed under the title of the dialog the budget mode's toolbar Export control opens",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeletePosteConfirmTitle": "Delete this poste?",
+  "@budgetDeletePosteConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a poste",
+    "context": "Shown by OcptConfirmDialog before a poste is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeletePosteConfirmMessage": "Its own quote lines are removed with it. This cannot be undone.",
+  "@budgetDeletePosteConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a poste",
+    "context": "Shown by OcptConfirmDialog before a poste is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteLineConfirmTitle": "Delete this quote line?",
+  "@budgetDeleteLineConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a quote line",
+    "context": "Shown by OcptConfirmDialog before a quote line is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteLineConfirmMessage": "This cannot be undone.",
+  "@budgetDeleteLineConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a quote line",
+    "context": "Shown by OcptConfirmDialog before a quote line is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteCancelAction": "Cancel",
+  "@budgetDeleteCancelAction": {
+    "description": "Cancel action of the budget mode's own deletion confirmation dialogs",
+    "context": "Shown by OcptConfirmDialog before a poste or a quote line is deleted",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteConfirmAction": "Delete",
+  "@budgetDeleteConfirmAction": {
+    "description": "Confirm action of the budget mode's own deletion confirmation dialogs",
+    "context": "Shown by OcptConfirmDialog before a poste or a quote line is deleted",
     "type": "text",
     "placeholders": {}
   }

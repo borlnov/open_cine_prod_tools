@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 
@@ -182,6 +183,80 @@ void main() {
       for (final basisPoints in [0, 550, 1000, 2000, 2115]) {
         expect(ocptVatRateBasisPointsOf(ocptVatRatePercentTextOf(basisPoints)), basisPoints);
       }
+    });
+  });
+
+  group("ocptBudgetPosteUniformVatRateOf", () {
+    OcptBudgetLine buildLine({required String id, int? vatRateBasisPoints}) => OcptBudgetLine(
+      id: id,
+      posteId: "poste-1",
+      label: "A line",
+      quantityMilli: 1000,
+      unit: "unit",
+      unitPrice: OcptMoney(
+        amountCents: 1000,
+        isTaxInclusive: true,
+        vatRateBasisPoints: vatRateBasisPoints,
+      ),
+      elementId: null,
+      notes: "",
+      sortKey: "a",
+    );
+
+    test("answers the rate every line agrees on, and says it was overridden", () {
+      final rate = ocptBudgetPosteUniformVatRateOf(
+        [
+          buildLine(id: "a", vatRateBasisPoints: 550),
+          buildLine(id: "b", vatRateBasisPoints: 550),
+        ],
+        projectVatRateBasisPoints: 2000,
+      );
+
+      expect(rate?.basisPoints, 550);
+      expect(rate?.isOverridden, isTrue);
+    });
+
+    test("answers the project's own rate when every line inherits it", () {
+      final rate = ocptBudgetPosteUniformVatRateOf(
+        [buildLine(id: "a"), buildLine(id: "b")],
+        projectVatRateBasisPoints: 2000,
+      );
+
+      expect(rate?.basisPoints, 2000);
+      expect(rate?.isOverridden, isFalse);
+    });
+
+    test("answers nothing while the lines disagree about the figure", () {
+      expect(
+        ocptBudgetPosteUniformVatRateOf(
+          [
+            buildLine(id: "a", vatRateBasisPoints: 550),
+            buildLine(id: "b", vatRateBasisPoints: 2000),
+          ],
+          projectVatRateBasisPoints: null,
+        ),
+        isNull,
+      );
+    });
+
+    test("answers nothing when one line overrides what another merely inherits", () {
+      // The figure is the same either way; where it comes from is not, and the sub-line would have
+      // no one colour to be painted in.
+      expect(
+        ocptBudgetPosteUniformVatRateOf(
+          [buildLine(id: "a", vatRateBasisPoints: 2000), buildLine(id: "b")],
+          projectVatRateBasisPoints: 2000,
+        ),
+        isNull,
+      );
+    });
+
+    test("answers nothing while no rate is known at all, and for a poste with no line", () {
+      expect(
+        ocptBudgetPosteUniformVatRateOf([buildLine(id: "a")], projectVatRateBasisPoints: null),
+        isNull,
+      );
+      expect(ocptBudgetPosteUniformVatRateOf(const [], projectVatRateBasisPoints: 2000), isNull);
     });
   });
 }

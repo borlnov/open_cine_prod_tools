@@ -71,8 +71,10 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   final String? modeLabel;
 
   /// The `Export` control, shown after [modeLabel] and before [dockToggles], or null when the mode
-  /// prints nothing — no control is rendered at all then, rather than a disabled one (the budget
-  /// mode's whole answer here, it having neither bloc nor data).
+  /// prints nothing — no control is rendered at all then, rather than a disabled one. Every
+  /// implemented mode wires it today, the budget mode included: even at M1, before it prints a
+  /// document of its own, the panel it opens still offers the project package export every mode's
+  /// panel carries as its own standing card (`OcptWorkspaceExportDialog`'s own doc comment).
   final Widget? exportAction;
 
   /// The dock toggles, shown after [exportAction]. An empty list renders none of them (a mode with

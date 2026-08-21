@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_mode_switcher.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
 import 'package:path/path.dart' as p;
@@ -140,8 +140,16 @@ void main() {
   });
 
   testWidgets(
-    'switching to Budget shows its empty state and no dock; switching back shows the editor',
+    'switching to Budget shows the budget mode; switching back shows the editor',
     (tester) async {
+      // Wide enough that the budget mode's own header shows every one of its controls without
+      // overflowing — `flutter_test`'s own substituted test font renders its short labels far
+      // wider than any real font does.
+      tester.view.physicalSize = const Size(1600, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
       await tester.pumpAndSettle();
 
@@ -151,19 +159,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(EditorPage), findsNothing);
-      expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
+      expect(find.byType(OcptBudgetMode), findsOneWidget);
       expect(find.byType(OcptEditorSourceField), findsNothing);
 
       await tester.tap(find.text(tr.workspaceModeScreenplay));
       await tester.pumpAndSettle();
 
       expect(find.byType(EditorPage), findsOneWidget);
-      expect(find.byType(OcptWorkspaceEmptyMode), findsNothing);
+      expect(find.byType(OcptBudgetMode), findsNothing);
     },
   );
 
   testWidgets('an edit survives a round trip through another mode', (tester) async {
     const editedText = "INT. HOUSE - DAY\n\nAction.\n";
+
+    // Wide enough that the budget mode's own header — this test passes through it too — never
+    // overflows under `flutter_test`'s own substituted test font; see the Budget test above.
+    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
     await tester.pumpAndSettle();

@@ -1,0 +1,292 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+
+/// The horizontal padding of every segmented switch's own segments, in logical pixels — mirrors
+/// `OcptBreakdownHeader`'s own `_ocptBreakdownSegmentPadding`.
+const double _ocptBudgetSegmentPadding = 12;
+
+/// The narrowest the header is drawn with its title and subtitle at all, in logical pixels. Under
+/// this, only the three controls are left — they are the only way to change what the centre shows,
+/// exactly the reasoning `OcptBreakdownHeader`'s own doc comment gives for shedding its own hint
+/// and progress bar first.
+const double _ocptBudgetHeaderTitleMinWidth = 980;
+
+/// The budget mode's own header band, sitting above the centre: the mode's own title and a muted
+/// subtitle, the `Dashboard`/`Cost tracking` view chips, the simplified/detailed switch and the
+/// excluding/including-tax switch.
+///
+/// Purely presentational: it renders and reports every click upward, reading nothing off a
+/// manager. **Nothing here writes to the project** — the view, the simplified/detailed reading and
+/// the tax basis are all display preferences the mode itself holds in memory, never a project
+/// column — so, like `OcptBreakdownHeader`, this widget needs no `isReadOnly` flag: a previewed
+/// version withholds nothing this header offers.
+///
+/// **Both toggles are always offered.** Neither is ever withheld or disabled according to what the
+/// project currently holds (`docs/plans/budget-mode.md` §2): there is no conditional branch here,
+/// only a value that may turn out empty once the centre reads it. The three controls (the view
+/// chips and the two switches) are never dropped even on a narrow window — see
+/// [_ocptBudgetHeaderTitleMinWidth] — since, exactly as `OcptBreakdownHeader` argues for its own
+/// switch and search field, they are the only way to change what the centre shows.
+class OcptBudgetHeader extends StatelessWidget {
+  /// Which of the two centre views is currently active.
+  final OcptBudgetCentreView centreView;
+
+  /// Called with the view just picked, when a chip is clicked.
+  final ValueChanged<OcptBudgetCentreView> onCentreViewSelected;
+
+  /// Whether the simplified/detailed switch currently reads simplified.
+  final bool isSimplified;
+
+  /// Called with the switch's new value, when a segment is clicked.
+  final ValueChanged<bool> onSimplifiedChanged;
+
+  /// Which basis the excluding/including-tax switch currently reads every amount in.
+  final OcptBudgetTaxBasis taxBasis;
+
+  /// Called with the basis just picked, when a segment is clicked.
+  final ValueChanged<OcptBudgetTaxBasis> onTaxBasisChanged;
+
+  /// Class constructor
+  const OcptBudgetHeader({
+    super.key,
+    required this.centreView,
+    required this.onCentreViewSelected,
+    required this.isSimplified,
+    required this.onSimplifiedChanged,
+    required this.taxBasis,
+    required this.onTaxBasisChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTitleShown = constraints.maxWidth >= _ocptBudgetHeaderTitleMinWidth;
+
+          return Row(
+            children: [
+              if (isTitleShown) ...[
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        tr.budgetHeaderTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      Text(
+                        tr.budgetHeaderSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
+              _OcptBudgetCentreViewSwitch(value: centreView, onChanged: onCentreViewSelected),
+              const SizedBox(width: 12),
+              _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
+              const SizedBox(width: 12),
+              _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// One segment of any of this header's three switches — a small bordered rounded container, the
+/// active segment filled `primary` and bolder, mirroring `OcptBreakdownHeader`'s own
+/// `_OcptBreakdownViewSwitch._buildSegment`.
+class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
+  /// This segment's own value.
+  final T value;
+
+  /// The switch's current value.
+  final T current;
+
+  /// This segment's label.
+  final String label;
+
+  /// Called with [value] when this segment is clicked and isn't already the active one.
+  final ValueChanged<T> onChanged;
+
+  /// Class constructor
+  const _OcptBudgetSwitchSegment({
+    required this.value,
+    required this.current,
+    required this.label,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isActive = value == current;
+
+    return InkWell(
+      onTap: isActive ? null : () => onChanged(value),
+      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: _ocptBudgetSegmentPadding, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The bordered rounded shell every one of this header's three switches shares, mirroring
+/// `OcptBreakdownHeader`'s own `_OcptBreakdownViewSwitch` container.
+class _OcptBudgetSwitchShell extends StatelessWidget {
+  /// The switch's own segments.
+  final List<Widget> children;
+
+  /// Class constructor
+  const _OcptBudgetSwitchShell({required this.children});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(2),
+    decoration: BoxDecoration(
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+    ),
+    child: Row(mainAxisSize: MainAxisSize.min, children: children),
+  );
+}
+
+/// The `Dashboard`/`Cost tracking` view chips.
+class _OcptBudgetCentreViewSwitch extends StatelessWidget {
+  /// The switch's own current value.
+  final OcptBudgetCentreView value;
+
+  /// Called with the view just clicked.
+  final ValueChanged<OcptBudgetCentreView> onChanged;
+
+  /// Class constructor
+  const _OcptBudgetCentreViewSwitch({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return _OcptBudgetSwitchShell(
+      children: [
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.dashboard,
+          current: value,
+          label: tr.budgetHeaderDashboardSegmentLabel,
+          onChanged: onChanged,
+        ),
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.costTracking,
+          current: value,
+          label: tr.budgetHeaderCostTrackingSegmentLabel,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// The simplified/detailed switch.
+class _OcptBudgetSimplifiedSwitch extends StatelessWidget {
+  /// The switch's own current value.
+  final bool value;
+
+  /// Called with the value just clicked.
+  final ValueChanged<bool> onChanged;
+
+  /// Class constructor
+  const _OcptBudgetSimplifiedSwitch({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return _OcptBudgetSwitchShell(
+      children: [
+        _OcptBudgetSwitchSegment(
+          value: true,
+          current: value,
+          label: tr.budgetHeaderSimplifiedSegmentLabel,
+          onChanged: onChanged,
+        ),
+        _OcptBudgetSwitchSegment(
+          value: false,
+          current: value,
+          label: tr.budgetHeaderDetailedSegmentLabel,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// The excluding/including-tax switch.
+class _OcptBudgetTaxBasisSwitch extends StatelessWidget {
+  /// The switch's own current value.
+  final OcptBudgetTaxBasis value;
+
+  /// Called with the basis just clicked.
+  final ValueChanged<OcptBudgetTaxBasis> onChanged;
+
+  /// Class constructor
+  const _OcptBudgetTaxBasisSwitch({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return _OcptBudgetSwitchShell(
+      children: [
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetTaxBasis.excludingTax,
+          current: value,
+          label: tr.budgetHeaderExcludingTaxSegmentLabel,
+          onChanged: onChanged,
+        ),
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetTaxBasis.includingTax,
+          current: value,
+          label: tr.budgetHeaderIncludingTaxSegmentLabel,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
