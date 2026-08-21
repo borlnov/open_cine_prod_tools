@@ -180,7 +180,7 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
                 decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
               ),
               const SizedBox(height: 12),
-              _buildPosteField(context, tr, theme),
+              _buildPosteField(tr),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _amountController,
@@ -242,53 +242,25 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
     );
   }
 
-  /// The `Poste` field: a picker while creating, a plain muted label while editing — see the class
-  /// doc comment for why this is the one field never editable once a commitment exists.
-  Widget _buildPosteField(BuildContext context, Tr tr, ThemeData theme) {
-    if (widget.existing != null) {
-      final posteId = _posteId;
-      final poste = posteId == null ? null : _posteById(posteId);
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tr.budgetEntryDialogPosteFieldLabel.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            poste == null ? ocptBudgetEmptyValue : ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified),
-            style: theme.textTheme.bodyMedium,
-          ),
-        ],
-      );
-    }
-
-    return DropdownButtonFormField<String>(
-      initialValue: _posteId,
-      decoration: InputDecoration(labelText: tr.budgetEntryDialogPosteFieldLabel),
-      items: [
-        for (final poste in widget.postes)
-          DropdownMenuItem(
-            value: poste.id,
-            child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified)),
-          ),
-      ],
-      onChanged: (value) => setState(() => _posteId = value),
-    );
-  }
-
-  /// `widget.postes`' own entry naming [posteId], or null while it names no live poste.
-  OcptBudgetPoste? _posteById(String posteId) {
-    for (final poste in widget.postes) {
-      if (poste.id == posteId) {
-        return poste;
-      }
-    }
-
-    return null;
-  }
+  /// The `Poste` field: a picker, whether the dialog is creating a commitment or editing one.
+  ///
+  /// **Editable in both, unlike a quote line's own poste** — see
+  /// `OcptBudgetJournalService.updateCommitment`'s own doc comment: a commitment's poste is an
+  /// attribution typed once against a ten-poste nomenclature, exactly the field somebody gets
+  /// wrong, and this table's flat `sortKey` makes changing it an ordinary field write rather than
+  /// the regrouping a line's own would be.
+  Widget _buildPosteField(Tr tr) => DropdownButtonFormField<String>(
+    initialValue: _posteId,
+    decoration: InputDecoration(labelText: tr.budgetEntryDialogPosteFieldLabel),
+    items: [
+      for (final poste in widget.postes)
+        DropdownMenuItem(
+          value: poste.id,
+          child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified)),
+        ),
+    ],
+    onChanged: (value) => setState(() => _posteId = value),
+  );
 
   /// The `VAT` field's own hint while it is left empty — mirrors `OcptBudgetEntryDialog`'s own
   /// reading exactly.

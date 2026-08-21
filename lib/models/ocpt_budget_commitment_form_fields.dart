@@ -9,12 +9,10 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 /// for both creating and editing a `budget_commitments` row, shaped after
 /// `OcptBudgetEntryFormFields`'s own reading for the journal's own entries.
 ///
-/// **[posteId] is only ever read by the mode's own creation handler.**
-/// `OcptBudgetJournalService.updateCommitment` carries no `posteId` parameter at all: a
-/// commitment's own poste is fixed the moment it is created, exactly as a quote line's `posteId` is
-/// (`OcptBudgetQuoteService.updateLine`'s own doc comment) — so `OcptBudgetCommitmentDialog` only
-/// ever offers the poste picker while creating, showing it as a plain, uneditable label while
-/// editing, and the mode's own update handler never passes this field on.
+/// **[posteId] is read by both handlers, creating and updating alike** — unlike
+/// `OcptBudgetLine`'s own, which a quote line can never change: see
+/// `OcptBudgetJournalService.updateCommitment`'s own doc comment for why a commitment's poste is an
+/// attribution somebody retypes rather than the parent that gives the row its place.
 ///
 /// [vatRateBasisPoints] carries the very same "null means inherit the project's rate" reading
 /// `OcptBudgetEntryFormFields.vatRateBasisPoints`'s own doc comment argues for, and for the same

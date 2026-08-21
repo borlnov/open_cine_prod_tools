@@ -161,9 +161,7 @@ void main() {
     expect(fields.posteId, "poste-1");
   });
 
-  testWidgets("editing pre-fills every field and shows the poste as a plain label, not a picker", (
-    tester,
-  ) async {
+  testWidgets("editing pre-fills every field, the poste picker included", (tester) async {
     final existing = _existingCommitment(vatRateBasisPoints: 550, status: OcptBudgetCommitmentStatus.declared);
     final poste = _poste(id: "poste-1", label: "Camera");
     final tr = await pumpDialog(tester, existing: existing, postes: [poste]);
@@ -171,7 +169,7 @@ void main() {
     expect(find.widgetWithText(TextFormField, "Camera deposit"), findsOneWidget);
     expect(find.widgetWithText(TextFormField, "12.50"), findsOneWidget);
     expect(find.text("Camera"), findsOneWidget);
-    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
 
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
     await tester.pumpAndSettle();
@@ -182,6 +180,26 @@ void main() {
     expect(fields.posteId, "poste-1");
     expect(fields.vatRateBasisPoints, 550);
     expect(fields.status, OcptBudgetCommitmentStatus.declared);
+  });
+
+  testWidgets("editing can move a commitment to another poste", (tester) async {
+    final existing = _existingCommitment();
+    final tr = await pumpDialog(
+      tester,
+      existing: existing,
+      postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Sound")],
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Sound").last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+    await tester.pumpAndSettle();
+
+    final fields = routerManager.poppedValue! as OcptBudgetCommitmentFormFields;
+    expect(fields.posteId, "poste-2");
   });
 
   testWidgets("an empty due date is a real state, not a placeholder for today", (tester) async {

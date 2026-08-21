@@ -847,6 +847,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       commitmentId: event.commitmentId,
       dueDate: Value(fields.dueDate),
       label: Value(fields.label),
+      posteId: Value(fields.posteId),
       amountCents: Value(fields.amountCents),
       isTaxInclusive: Value(fields.isTaxInclusive),
       vatRateBasisPoints: Value(fields.vatRateBasisPoints),

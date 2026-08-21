@@ -381,6 +381,27 @@ void main() {
       expect(commitment.status, OcptBudgetCommitmentStatus.contractSigned);
     });
 
+    test("updateCommitment moves a commitment to another poste", () async {
+      final otherPosteId = (await quoteService.createPoste(
+        database: database,
+        label: "Moyens techniques",
+      ))!;
+      final id = (await service.createCommitment(
+        database: database,
+        posteId: posteId,
+        label: "Location optiques",
+      ))!;
+
+      await service.updateCommitment(
+        database: database,
+        commitmentId: id,
+        posteId: Value(otherPosteId),
+      );
+
+      final commitment = (await service.loadCommitments(database: database)).single;
+      expect(commitment.posteId, otherPosteId);
+    });
+
     test("updateCommitment can set and then clear settledEntryId", () async {
       final entryId = (await service.createEntry(
         database: database,

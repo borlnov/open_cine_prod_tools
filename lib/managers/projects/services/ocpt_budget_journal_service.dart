@@ -306,10 +306,19 @@ class OcptBudgetJournalService {
   /// Updates the fields of commitment [commitmentId] in [database] that are passed as something
   /// other than [Value.absent]. [settledEntryId] can be both set (a payment just settled it) and
   /// **cleared** (`Value(null)`, a settlement undone) through this one method — there is no separate
-  /// "unsettle" gesture, since clearing the link is exactly as ordinary a write as setting it. Never
-  /// touches `sortKey`, `isDeleted` or `posteId`: this table carries no "move to another poste" of
-  /// its own, exactly the reading `OcptBudgetQuoteService.updateLine` already gives its own
-  /// `posteId`.
+  /// "unsettle" gesture, since clearing the link is exactly as ordinary a write as setting it.
+  /// Never touches `sortKey` or `isDeleted`: those only change through [reorderCommitment] and
+  /// [deleteCommitment].
+  ///
+  /// **[posteId] *is* updatable here, unlike `OcptBudgetQuoteService.updateLine`'s own.** That
+  /// method withholds it because a line's `sortKey` is fractional **within its own `posteId`**, so
+  /// moving a line to another poste would need its position recomputed against a different group
+  /// entirely — a real second operation wearing the name of a field write. This table's `sortKey`
+  /// is flat, so no such thing is true of a commitment, and a commitment's poste is exactly the
+  /// field somebody gets wrong: it is an attribution typed once against a ten-poste nomenclature,
+  /// not the parent that gives the row its place. Refusing it would leave a mistyped commitment
+  /// correctable only by deleting it — and a delete here is a tombstone kept forever (ADR 0010),
+  /// which is a heavy price for a slip of the mouse.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateCommitment({
@@ -317,6 +326,7 @@ class OcptBudgetJournalService {
     required String commitmentId,
     Value<DateTime?> dueDate = const Value.absent(),
     Value<String> label = const Value.absent(),
+    Value<String> posteId = const Value.absent(),
     Value<int> amountCents = const Value.absent(),
     Value<bool> isTaxInclusive = const Value.absent(),
     Value<int?> vatRateBasisPoints = const Value.absent(),
@@ -333,6 +343,7 @@ class OcptBudgetJournalService {
       OcptBudgetCommitmentsTableCompanion(
         dueDate: dueDate,
         label: label,
+        posteId: posteId,
         amountCents: amountCents,
         isTaxInclusive: isTaxInclusive,
         vatRateBasisPoints: vatRateBasisPoints,
