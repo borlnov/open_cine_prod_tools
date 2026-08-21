@@ -812,11 +812,6 @@ class OcptExportManager extends AbsWithLifeCycle {
       return plan.personById[personId]?.displayName ?? "";
     }
 
-    final roleCandidateId = convocation.roleCandidateId;
-    if (roleCandidateId != null) {
-      return plan.roleCandidateById[roleCandidateId]?.person.displayName ?? "";
-    }
-
     return plan.roleById[convocation.roleId]?.name ?? "";
   }
 

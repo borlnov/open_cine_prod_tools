@@ -298,6 +298,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// at all after that filter is left out entirely rather than passed in empty — it convokes nobody
   /// either way, and an audition nobody has been named on yet is an ordinary state.
   ///
+  /// Each surviving candidacy is resolved to **the person behind it** here, which is what lets
+  /// `ocptComputeDayConvocations` join an audition onto whatever else the day already asks of that
+  /// person: one person, one call, one sheet.
+  ///
   /// A block the timelines have no entry for cannot happen — every live block of the day is chained
   /// by [timelinesOfDay] — but is skipped rather than asserted about, the reading every other
   /// dangling link in this file gets.
@@ -318,11 +322,21 @@ class OcptSchedulePlanSnapshot extends Equatable {
         continue;
       }
 
-      final roleCandidateIds = <String>{
-        for (final candidate in block.candidates)
-          if (roleCandidateById.containsKey(candidate.roleCandidateId)) candidate.roleCandidateId,
-      };
-      if (roleCandidateIds.isEmpty) {
+      final candidacies = <OcptConvocationCandidacy>[];
+      final seenCandidacyIds = <String>{};
+      for (final link in block.candidates) {
+        final candidate = roleCandidateById[link.roleCandidateId];
+        if (candidate == null || !seenCandidacyIds.add(link.roleCandidateId)) {
+          continue;
+        }
+        candidacies.add(
+          OcptConvocationCandidacy(
+            roleCandidateId: candidate.id,
+            personId: candidate.person.id,
+          ),
+        );
+      }
+      if (candidacies.isEmpty) {
         continue;
       }
 
@@ -331,7 +345,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
           slotId: block.slotId,
           startMinute: entry.startMinute,
           endMinute: entry.endMinute,
-          roleCandidateIds: roleCandidateIds,
+          candidacies: candidacies,
         ),
       );
     }

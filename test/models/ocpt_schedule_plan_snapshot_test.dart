@@ -700,8 +700,8 @@ void main() {
 
       // Every figure comes off the audition itself, never off the slot: the fifteen minutes of
       // preparation before it belong to the unit, not to the candidate expected at 09:15.
-      expect(convocation.isCandidate, isTrue);
-      expect(convocation.roleCandidateId, "candidacy-1");
+      expect(convocation.isSeenForAPart, isTrue);
+      expect(convocation.roleCandidateIds, {"candidacy-1"});
       expect(convocation.arrivalMinute, 555);
       expect(convocation.patStartMinute, 555);
       expect(convocation.patEndMinute, 575);
@@ -1115,7 +1115,7 @@ void main() {
       expect(snapshot.alerts, isEmpty);
       // And they are convoked all the same: the reading the `Convocations` tab gives is untouched
       // by the alerts saying nothing about them.
-      expect(snapshot.convocationsOfDay("day-1").single.roleCandidateId, "candidacy-1");
+      expect(snapshot.convocationsOfDay("day-1").single.roleCandidateIds, {"candidacy-1"});
     });
 
     test("a location's dated permit document not covering the day surfaces the permit alert", () {

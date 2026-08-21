@@ -11,7 +11,6 @@ import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart'
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_selection_list.dart';
@@ -71,9 +70,6 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
   /// candidate is coming to be seen for.
   final Map<String, OcptRole> roleById;
 
-  /// Every candidacy of the project, keyed by id — resolves a candidate convocation's own name and
-  /// the part behind it, `shooting_block_candidates` naming a candidacy rather than a person.
-  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// Class constructor
   const OcptScheduleNamedCallSheetsExportDialog({
@@ -83,7 +79,6 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
     required this.recipientsOfDay,
     required this.personById,
     required this.roleById,
-    required this.roleCandidateById,
     super.key,
   });
 
@@ -97,7 +92,6 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
     required List<OcptDayConvocation> Function(String dayId) recipientsOfDay,
     required Map<String, OcptPerson> personById,
     required Map<String, OcptRole> roleById,
-    required Map<String, OcptRoleCandidate> roleCandidateById,
   }) => showDialog<OcptCallSheetExportOptions>(
     context: context,
     builder: (context) => OcptScheduleNamedCallSheetsExportDialog(
@@ -107,7 +101,6 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
       recipientsOfDay: recipientsOfDay,
       personById: personById,
       roleById: roleById,
-      roleCandidateById: roleCandidateById,
     ),
   );
 
@@ -217,7 +210,6 @@ class _OcptScheduleNamedCallSheetsExportDialogState
                             convocation,
                             widget.personById,
                             widget.roleById,
-                            roleCandidateById: widget.roleCandidateById,
                           ),
                         ),
                         // The hint belongs to an **uncast role** alone, which is the one recipient

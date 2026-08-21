@@ -8,10 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
@@ -101,20 +99,6 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   guests: const [],
 );
 
-/// Builds a candidacy — somebody seen for a part — with the few fields these tests read.
-OcptRoleCandidate _buildCandidacy({
-  required String id,
-  required String roleId,
-  required OcptPerson person,
-}) => OcptRoleCandidate(
-  id: id,
-  roleId: roleId,
-  person: person,
-  status: OcptRoleCandidateStatus.seen,
-  auditionedOn: null,
-  notes: "",
-);
-
 /// Pumps [OcptScheduleConvocationsPanel] with the given lookups, everything else defaulting to
 /// empty.
 Future<void> _pumpPanel(
@@ -122,7 +106,6 @@ Future<void> _pumpPanel(
   List<OcptDayConvocation>? convocations,
   Map<String, OcptPerson> personById = const {},
   Map<String, OcptRole> roleById = const {},
-  Map<String, OcptRoleCandidate> roleCandidateById = const {},
   Map<String, OcptShootingSlot> slotById = const {},
 }) => tester.pumpWidget(
   _wrapInApp(
@@ -131,7 +114,6 @@ Future<void> _pumpPanel(
       personById: personById,
       roleById: roleById,
       slotById: slotById,
-      roleCandidateById: roleCandidateById,
     ),
   ),
 );
@@ -161,7 +143,8 @@ void main() {
           isPatBand: true,
           departureMinute: 1200,
           slotIds: ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
       ],
       personById: {"person-1": person},
@@ -193,7 +176,8 @@ void main() {
           isPatBand: true,
           departureMinute: 1200,
           slotIds: ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
       ],
       personById: {"person-1": person},
@@ -221,7 +205,8 @@ void main() {
           isPatBand: true,
           departureMinute: 1200,
           slotIds: ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
       ],
       roleById: {"role-1": role},
@@ -250,7 +235,8 @@ void main() {
           isPatBand: true,
           departureMinute: 1260,
           slotIds: ["slot-1", "slot-2"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
       ],
       personById: {"person-1": person},
@@ -283,7 +269,8 @@ void main() {
           isPatBand: true,
           departureMinute: 600,
           slotIds: const ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
         OcptDayConvocation(
           personId: early.id,
@@ -296,7 +283,8 @@ void main() {
           isPatBand: true,
           departureMinute: 600,
           slotIds: const ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
         OcptDayConvocation(
           personId: tiedTwo.id,
@@ -309,7 +297,8 @@ void main() {
           isPatBand: true,
           departureMinute: 600,
           slotIds: const ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
       ],
       personById: {early.id: early, tiedOne.id: tiedOne, tiedTwo.id: tiedTwo},
@@ -348,7 +337,8 @@ void main() {
           isPatBand: true,
           departureMinute: 360,
           slotIds: const ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
         OcptDayConvocation(
           personId: crewPerson.id,
@@ -361,7 +351,8 @@ void main() {
           isPatBand: true,
           departureMinute: 600,
           slotIds: const ["slot-1"],
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
         ),
       ],
       personById: {crewPerson.id: crewPerson, guestPerson.id: guestPerson},
@@ -393,7 +384,8 @@ void main() {
           roleId: null,
           guestPersonId: null,
           guestFreeName: null,
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
           arrivalMinute: 480,
           patStartMinute: 540,
           patEndMinute: 600,
@@ -406,7 +398,8 @@ void main() {
           roleId: null,
           guestPersonId: "person-3",
           guestFreeName: null,
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
           arrivalMinute: 480,
           patStartMinute: null,
           patEndMinute: null,
@@ -415,33 +408,31 @@ void main() {
           slotIds: ["slot-1"],
         ),
         OcptDayConvocation(
-          personId: null,
+          personId: "person-1",
           roleId: null,
           guestPersonId: null,
           guestFreeName: null,
-          roleCandidateId: "candidacy-1",
+          roleCandidateIds: {"candidacy-1"},
+          hasSlotConvocation: false,
           arrivalMinute: 540,
           patStartMinute: 555,
           patEndMinute: 575,
-          isPatBand: true,
+          isPatBand: false,
           departureMinute: 600,
           slotIds: ["slot-1"],
         ),
       ],
-      personById: {"person-2": crewPerson, "person-3": guestPerson},
+      personById: {"person-1": person, "person-2": crewPerson, "person-3": guestPerson},
       roleById: {"role-1": _buildRole(id: "role-1", name: "MARIE")},
-      roleCandidateById: {
-        "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", person: person),
-      },
       slotById: {"slot-1": _buildSlot(id: "slot-1", label: "Casting")},
     );
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleConvocationsPanel)));
 
-    // The card names who is coming and the part they are coming to be seen for: two candidacies of
-    // one person are two convocations, and a name alone could not tell them apart.
-    expect(find.text(tr.scheduleAuditionBlockLabel("Camille", "MARIE")), findsOneWidget);
+    // The card names the person, like every other card: one person, one card, whatever the day
+    // wants of them. Which part each audition is for is on the audition's own row.
+    expect(find.text("Camille"), findsOneWidget);
     // A candidate is working: their band is read, unlike a guest's em dash.
     expect(find.textContaining("09:15"), findsOneWidget);
 
@@ -465,7 +456,8 @@ void main() {
           roleId: null,
           guestPersonId: null,
           guestFreeName: null,
-          roleCandidateId: null,
+          roleCandidateIds: {},
+          hasSlotConvocation: true,
           arrivalMinute: 480,
           patStartMinute: null,
           patEndMinute: null,

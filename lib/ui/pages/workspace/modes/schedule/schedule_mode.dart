@@ -368,7 +368,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
       recipientsOfDay: (dayId) => _namedCallSheetRecipientsOf(state, dayId),
       personById: state.personById,
       roleById: state.roleById,
-      roleCandidateById: state.roleCandidateById,
     );
     if (options == null) {
       return;
@@ -1161,7 +1160,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
       convocations: selectedDayId == null ? null : state.convocationsOfDay(selectedDayId),
       personById: state.personById,
       roleById: state.roleById,
-      roleCandidateById: state.roleCandidateById,
       slotById: {for (final slot in state.selectedDaySlots) slot.id: slot},
     );
   }

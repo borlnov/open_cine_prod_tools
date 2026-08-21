@@ -442,7 +442,9 @@ void main() {
         slotId: "slot-1",
         startMinute: 560,
         endMinute: 580,
-        roleCandidateIds: {"candidacy-1"},
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-seen"),
+        ],
       );
 
       final result = ocptComputeDayConvocations(
@@ -450,8 +452,8 @@ void main() {
         auditions: const [audition],
       );
 
-      expect(result.firstWhere((c) => c.personId != null).isPatBand, isTrue);
-      expect(result.firstWhere((c) => c.isCandidate).isPatBand, isFalse);
+      expect(result.firstWhere((c) => c.personId == "person-1").isPatBand, isTrue);
+      expect(result.firstWhere((c) => c.personId == "person-seen").isPatBand, isFalse);
     });
   });
 
@@ -475,7 +477,7 @@ void main() {
         slotId: "slot-1",
         startMinute: 560, // 09:20
         endMinute: 580, // 09:40
-        roleCandidateIds: {"candidacy-1"},
+        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
       );
 
       final result = ocptComputeDayConvocations(
@@ -484,10 +486,11 @@ void main() {
       );
 
       final convocation = result.single;
-      expect(convocation.isCandidate, isTrue);
+      expect(convocation.isSeenForAPart, isTrue);
+      expect(convocation.isOnlySeenForAPart, isTrue);
       expect(convocation.isGuest, isFalse);
-      expect(convocation.roleCandidateId, "candidacy-1");
-      expect(convocation.personId, isNull);
+      expect(convocation.roleCandidateIds, {"candidacy-1"});
+      expect(convocation.personId, "person-1");
       expect(convocation.arrivalMinute, 560);
       expect(convocation.patStartMinute, 560);
       expect(convocation.patEndMinute, 580);
@@ -501,7 +504,10 @@ void main() {
         slotId: "slot-1",
         startMinute: 600,
         endMinute: 640,
-        roleCandidateIds: {"candidacy-marie", "candidacy-julien"},
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-marie", personId: "person-marie"),
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-julien", personId: "person-julien"),
+        ],
       );
 
       final result = ocptComputeDayConvocations(slots: const [], auditions: const [audition]);
@@ -521,13 +527,13 @@ void main() {
         slotId: "slot-1",
         startMinute: 560,
         endMinute: 580,
-        roleCandidateIds: {"candidacy-1"},
+        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
       );
       const afternoon = OcptConvocationAudition(
         slotId: "slot-1",
         startMinute: 900,
         endMinute: 930,
-        roleCandidateIds: {"candidacy-1"},
+        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
       );
 
       final result = ocptComputeDayConvocations(
@@ -544,20 +550,24 @@ void main() {
       expect(convocation.slotIds, ["slot-1"]);
     });
 
-    test("two candidacies of one person on one day are two convocations", () {
-      // The whole reason this arm names a candidacy rather than a person: somebody seen for two
-      // parts is coming twice, at two different hours, about two different things.
+    test("two candidacies of one person on one day are one call carrying both", () {
+      // They are seen twice and called once: two hours, two parts, one arrival and one departure —
+      // which is what stopped them receiving two call sheets for one day.
       const morning = OcptConvocationAudition(
         slotId: "slot-morning",
         startMinute: 540,
         endMinute: 600,
-        roleCandidateIds: {"candidacy-marie"},
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-marie", personId: "person-1"),
+        ],
       );
       const afternoon = OcptConvocationAudition(
         slotId: "slot-afternoon",
         startMinute: 900,
         endMinute: 960,
-        roleCandidateIds: {"candidacy-julie"},
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-julie", personId: "person-1"),
+        ],
       );
 
       final result = ocptComputeDayConvocations(
@@ -565,13 +575,56 @@ void main() {
         auditions: const [morning, afternoon],
       );
 
-      expect(result, hasLength(2));
-      expect(result.map((convocation) => convocation.roleCandidateId), [
-        "candidacy-marie",
-        "candidacy-julie",
-      ]);
-      expect(result.first.slotIds, ["slot-morning"]);
-      expect(result.last.slotIds, ["slot-afternoon"]);
+      final convocation = result.single;
+      expect(convocation.personId, "person-1");
+      expect(convocation.roleCandidateIds, {"candidacy-marie", "candidacy-julie"});
+      expect(convocation.arrivalMinute, 540);
+      expect(convocation.departureMinute, 960);
+      expect(convocation.slotIds, ["slot-morning", "slot-afternoon"]);
+    });
+
+    test("crewing the day and being seen for a part is one call, not two", () {
+      // A person arrives once and leaves once, whatever brings them in: the earlier of the two
+      // starts their day and the later of the two ends it.
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480, // 08:00 — they are on the unit from the start
+        endMinute: 1080, // 18:00
+        shootingStartMinute: 540,
+        shootingEndMinute: 1050,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+      const audition = OcptConvocationAudition(
+        slotId: "slot-2",
+        startMinute: 1100, // 18:20 — seen after wrap, on another unit
+        endMinute: 1120,
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1"),
+        ],
+      );
+
+      final result = ocptComputeDayConvocations(
+        slots: const [slot],
+        auditions: const [audition],
+      );
+
+      final convocation = result.single;
+      expect(convocation.personId, "person-1");
+      expect(convocation.roleCandidateIds, {"candidacy-1"});
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.departureMinute, 1120);
+      // Both units are theirs, so a named sheet narrows the timetable to both.
+      expect(convocation.slotIds, ["slot-1", "slot-2"]);
+      // The day still films, so the band keeps its name — and now covers the audition too.
+      expect(convocation.isPatBand, isTrue);
+      expect(convocation.patEndMinute, 1120);
+      // And they belong among the crew rather than under the panel's own candidates group.
+      expect(convocation.isSeenForAPart, isTrue);
+      expect(convocation.isOnlySeenForAPart, isFalse);
     });
 
     test("a slot carrying auditions convokes nobody by itself", () {

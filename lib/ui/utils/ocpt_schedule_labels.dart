@@ -15,7 +15,6 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -285,18 +284,16 @@ String ocptScheduleConvocationBandLabel(OcptDayConvocation convocation) {
 /// The convocations panel's own card title for [convocation]: [personById]'s own display name for
 /// a person, [roleById]'s own name read through [Tr.scheduleConvocationsUncastRoleLabel] for an
 /// uncast role, [personById]'s own display name again for an address-book guest, the guest's own
-/// verbatim free name, or — for a candidate — **who is coming and the part they are coming to be
-/// seen for**, read through [roleCandidateById] and printed in the very shape an audition block's
-/// own timetable row already prints it. Exactly one of [OcptDayConvocation.personId]/
-/// [OcptDayConvocation.roleId]/[OcptDayConvocation.guestPersonId]/
-/// [OcptDayConvocation.guestFreeName]/[OcptDayConvocation.roleCandidateId] is ever non-null (the
-/// same discriminator `breakdown_tags` uses, ADR 0014), so there is never a choice to make between
-/// the five readings, only which one applies. No suffix marks a guest's or a candidate's title: the
+/// verbatim free name. Exactly one of [OcptDayConvocation.personId]/[OcptDayConvocation.roleId]/
+/// [OcptDayConvocation.guestPersonId]/[OcptDayConvocation.guestFreeName] is ever non-null (the same
+/// discriminator `breakdown_tags` uses, ADR 0014), so there is never a choice to make between the
+/// four readings, only which one applies. No suffix marks a guest's or a candidate's title: the
 /// panel groups each under its own trailing heading instead of decorating every row.
 ///
-/// A candidate's title names the part **because nobody plays it yet**: two candidacies of one person
-/// are two convocations, and a name alone could not tell an assistant director which of the two they
-/// are looking at.
+/// **A candidate is titled by their name and nothing else**, exactly like everybody else: they are a
+/// person, one card holds their whole day, and somebody seen for two parts has no single part a
+/// title could name. Which part each of their auditions is for is on that audition's own timetable
+/// row, and on the printed candidates directory beside their phone number.
 ///
 /// An uncast role's own suffix is what keeps a role's row from reading as a person's: the question
 /// this panel answers is "when does this human arrive", and a role nobody is cast in is still a
@@ -305,9 +302,8 @@ String ocptScheduleConvocationTitle(
   Tr tr,
   OcptDayConvocation convocation,
   Map<String, OcptPerson> personById,
-  Map<String, OcptRole> roleById, {
-  Map<String, OcptRoleCandidate> roleCandidateById = const {},
-}) {
+  Map<String, OcptRole> roleById,
+) {
   final personId = convocation.personId;
   if (personId != null) {
     final person = personById[personId];
@@ -325,20 +321,6 @@ String ocptScheduleConvocationTitle(
   final guestFreeName = convocation.guestFreeName;
   if (guestFreeName != null) {
     return guestFreeName.isEmpty ? tr.resourcesUnnamedPerson : guestFreeName;
-  }
-
-  final roleCandidateId = convocation.roleCandidateId;
-  if (roleCandidateId != null) {
-    final candidate = roleCandidateById[roleCandidateId];
-    final candidateName = candidate == null || candidate.person.displayName.isEmpty
-        ? tr.resourcesUnnamedPerson
-        : candidate.person.displayName;
-    final role = candidate == null ? null : roleById[candidate.roleId];
-
-    return tr.scheduleAuditionBlockLabel(
-      candidateName,
-      role == null || role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
-    );
   }
 
   return tr.scheduleConvocationsUncastRoleLabel(roleById[convocation.roleId]?.name ?? "");

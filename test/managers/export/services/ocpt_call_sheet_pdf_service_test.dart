@@ -1806,8 +1806,8 @@ void main() {
 
       // The candidate's own hours come off the audition that sees them, not off the unit's day
       // (ADR 0024) — here they happen to be the same, the slot holding that one block.
-      final convocation = with_.convocationsOfDay("day-1").firstWhere((c) => c.isCandidate);
-      expect(convocation.roleCandidateId, "candidate-1");
+      final convocation = with_.convocationsOfDay("day-1").firstWhere((c) => c.isSeenForAPart);
+      expect(convocation.roleCandidateIds, {"candidate-1"});
       expect(convocation.patStartMinute, 540);
       expect(convocation.patEndMinute, 660);
 
@@ -1956,7 +1956,7 @@ void main() {
         ],
       );
 
-      final candidateConvocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.isCandidate);
+      final candidateConvocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.isSeenForAPart);
       final bytes = await service.generateNamedCallSheet(
         plan: plan,
         dayId: "day-1",
@@ -2033,7 +2033,7 @@ void main() {
             projectName: "My Movie",
             convocation: plan
                 .convocationsOfDay("day-1")
-                .firstWhere((c) => c.roleCandidateId == "candidate-1"),
+                .firstWhere((c) => c.roleCandidateIds.contains("candidate-1")),
             exportDate: _pinnedExportDate,
           );
 
@@ -2059,8 +2059,8 @@ void main() {
       // Each candidate is expected at their own twenty minutes, off their own block rather than off
       // the unit's whole session.
       final convocations = withAlice.convocationsOfDay("day-1");
-      final camilleCall = convocations.firstWhere((c) => c.roleCandidateId == "candidate-1");
-      final aliceCall = convocations.firstWhere((c) => c.roleCandidateId == "candidate-2");
+      final camilleCall = convocations.firstWhere((c) => c.roleCandidateIds.contains("candidate-1"));
+      final aliceCall = convocations.firstWhere((c) => c.roleCandidateIds.contains("candidate-2"));
       expect(camilleCall.arrivalMinute, 540);
       expect(camilleCall.departureMinute, 560);
       expect(aliceCall.arrivalMinute, 560);
@@ -2096,7 +2096,7 @@ void main() {
 
       final call = auditions
           .convocationsOfDay("day-1")
-          .firstWhere((c) => c.roleCandidateId == "candidate-1");
+          .firstWhere((c) => c.roleCandidateIds.contains("candidate-1"));
       expect(call.patStartMinute, 540);
       expect(call.isPatBand, isFalse);
 
@@ -2155,7 +2155,62 @@ void main() {
 
       final convocations = plan.convocationsOfDay("day-1");
       expect(convocations.firstWhere((c) => c.personId == "person-lea").isPatBand, isTrue);
-      expect(convocations.firstWhere((c) => c.isCandidate).isPatBand, isFalse);
+      expect(convocations.firstWhere((c) => c.isSeenForAPart).isPatBand, isFalse);
+    });
+
+    test("crewing the day and being seen for a part is one recipient, one sheet", () async {
+      // The fault reading the exports showed: a person held two convocations and received two
+      // sheets. They arrive once and leave once, and the one sheet says everything they do.
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [
+            _buildSlot(
+              id: "slot-1",
+              label: "Casting",
+              anchorMinute: 480, // 08:00 — on the unit from the start
+              crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-camille")],
+            ),
+          ],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(id: "block-1", slotId: "slot-1", durationMinutes: 120),
+            _buildBlock(
+              id: "block-2",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+              candidates: [namedOn("block-2")],
+            ),
+          ],
+        },
+        roles: [_buildRole(id: "role-1", name: "Marie", number: 3)],
+        people: [camille],
+        roleCandidates: [candidate],
+      );
+
+      // One convocation, not two, and it spans both reasons.
+      final convocation = plan.convocationsOfDay("day-1").single;
+      expect(convocation.personId, camille.id);
+      expect(convocation.roleCandidateIds, {"candidate-1"});
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.departureMinute, 620);
+      // The day films nothing, so their band is a presence one however they got there.
+      expect(convocation.isPatBand, isFalse);
+
+      final bytes = await service.generateNamedCallSheet(
+        plan: plan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocation,
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
+      expect(_pageCount(bytes), 1);
     });
 
     test("a candidate carries a selection key, so the named export can be narrowed to them", () async {
@@ -2171,10 +2226,12 @@ void main() {
         ],
       );
 
-      // A guest is the one convocation kind carrying none — which is what keeps them out of the
-      // named sheets dialog without that dialog needing a rule of its own.
+      // Keyed by their **person**: a sheet is addressed to somebody, so somebody crewing the day
+      // and seen for a part is one recipient and one PDF. A guest is the one convocation kind
+      // carrying no key at all, which is what keeps them out of the named sheets dialog without
+      // that dialog needing a rule of its own.
       final convocations = plan.convocationsOfDay("day-1");
-      expect(convocations.single.selectionKey, "candidate-1");
+      expect(convocations.single.selectionKey, camille.id);
     });
   });
 

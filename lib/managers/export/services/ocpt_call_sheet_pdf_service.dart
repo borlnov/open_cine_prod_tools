@@ -446,20 +446,20 @@ class OcptCallSheetPdfService {
       dayId: dayId,
       unnamedPersonLabel: labels.unnamedPersonLabel,
     );
-    // The one directory a named sheet narrows, and only when its recipient is a candidate: who else
-    // is being seen for a part, and on what phone number, is the production's business and not
-    // another candidate's. Null for every other recipient, which leaves both readings day-wide.
-    final recipientRoleCandidateId = convocation.roleCandidateId;
+    // The one directory a named sheet narrows, and only when the day sees its recipient for a part:
+    // who else is being seen, and on what phone number, is the production's business and not another
+    // candidate's. Null for every other recipient, which leaves both readings day-wide.
+    final recipientRoleCandidateIds = convocation.isSeenForAPart ? convocation.roleCandidateIds : null;
     final auditionRows = _auditionRowsOfDay(
       plan: plan,
       orderedEntries: orderedEntries,
-      onlyRoleCandidateId: recipientRoleCandidateId,
+      onlyRoleCandidateIds: recipientRoleCandidateIds,
     );
     final candidateEntries = _candidateListEntries(
       plan: plan,
       dayId: dayId,
       labels: labels,
-      onlyRoleCandidateId: recipientRoleCandidateId,
+      onlyRoleCandidateIds: recipientRoleCandidateIds,
     );
     final displayName = _convocationDisplayNameOf(convocation, plan, labels);
     final positionsOrRole = _convocationPositionsLabel(
@@ -1943,18 +1943,18 @@ List<_CastRow> _castRowsOfDay({
 /// audition table with it: it is a reading of the timetable, and the timetable is the one thing a
 /// named sheet narrows.
 ///
-/// **[onlyRoleCandidateId], when given, narrows it to that one candidacy** — the reading a named
-/// sheet addressed to a **candidate** gets, and the one place a block-level link narrows something
-/// a slot-level one could not. The reason is not tidiness: who else is being seen for a part is the
-/// production's business and not another candidate's. Every other directory on their sheet stays
-/// day-wide.
+/// **[onlyRoleCandidateIds], when given, narrows it to that recipient's own candidacies** — the
+/// reading a named sheet whose recipient the day sees for a part gets, and the one place a
+/// block-level link narrows something a slot-level one could not. The reason is not tidiness: who
+/// else is being seen for a part is the production's business and not another candidate's. Every
+/// other directory on their sheet stays day-wide.
 ///
 /// A candidacy [OcptSchedulePlanSnapshot.roleCandidateById] no longer holds is dropped rather than
 /// printed nameless — the same reading the convocations panel already gives a vanished candidacy.
 List<_AuditionRow> _auditionRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required List<OcptOrderedScheduleEntry> orderedEntries,
-  String? onlyRoleCandidateId,
+  Set<String>? onlyRoleCandidateIds,
 }) {
   final rows = <_AuditionRow>[];
 
@@ -1965,7 +1965,7 @@ List<_AuditionRow> _auditionRowsOfDay({
 
     final candidacies = <OcptRoleCandidate>[];
     for (final link in ordered.block.candidates) {
-      if (onlyRoleCandidateId != null && link.roleCandidateId != onlyRoleCandidateId) {
+      if (onlyRoleCandidateIds != null && !onlyRoleCandidateIds.contains(link.roleCandidateId)) {
         continue;
       }
       final candidate = plan.roleCandidateById[link.roleCandidateId];
@@ -1974,10 +1974,10 @@ List<_AuditionRow> _auditionRowsOfDay({
       }
     }
 
-    // A block narrowed away entirely by [onlyRoleCandidateId] is another candidate's hour, and says
+    // A block narrowed away entirely by [onlyRoleCandidateIds] is somebody else's hour, and says
     // nothing to this recipient — unlike a block that genuinely names nobody, which is this day's
     // own plan and keeps its empty row.
-    if (candidacies.isEmpty && onlyRoleCandidateId != null) {
+    if (candidacies.isEmpty && onlyRoleCandidateIds != null) {
       continue;
     }
 
@@ -2010,18 +2010,23 @@ List<_AuditionRow> _auditionRowsOfDay({
   return rows;
 }
 
-/// The day's own candidates list: one row per candidate convoked on [dayId]
-/// ([OcptDayConvocation.isCandidate]), their name, the part they are coming to be seen for, their
-/// phone, their email and their arrival – departure band.
+/// The day's own candidates list: **one row per candidacy** the day sees
+/// ([OcptDayConvocation.roleCandidateIds]), carrying the person's name, the part they are coming to
+/// be seen for, their phone, their email and their arrival – departure band.
+///
+/// One row per candidacy rather than per person, unlike the sheet itself: somebody read for two
+/// parts is one call and two things to look up, and this list is what an assistant director looks
+/// things up in. Their two rows carry the same hours — one person, one call — and differ by the
+/// part, which is the whole of what the reader came for.
 ///
 /// **Day-wide on both sheets**, printed under the cast table: this is a directory, and it answers
 /// "who is expected today for a part and how do I reach them" — a question about the day rather than
 /// about which of its slots happens to convoke the reader, exactly as the crew list, the
 /// cast-and-extras list and the trailing guest table already are.
 ///
-/// **[onlyRoleCandidateId] is the one exception in this whole file**, and a named sheet addressed to
-/// a *candidate* is the only thing that ever passes it: their sheet prints their own line and no
-/// other. The reason is not tidiness — who else is being seen for a part, and on what phone number,
+/// **[onlyRoleCandidateIds] is the one exception in this whole file**, and a named sheet whose
+/// recipient the day sees for a part is the only thing that ever passes it: their sheet prints their
+/// own lines and no other. The reason is not tidiness — who else is being seen for a part, and on what phone number,
 /// is the production's business and not another candidate's. Every other directory on that same
 /// sheet stays day-wide, a candidate reading the crew and cast lists exactly as any other recipient
 /// does.
@@ -2039,31 +2044,31 @@ List<_PeopleListEntry> _candidateListEntries({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,
   required OcptCallSheetLabels labels,
-  String? onlyRoleCandidateId,
+  Set<String>? onlyRoleCandidateIds,
 }) {
   final entries = <_PeopleListEntry>[];
 
   for (final convocation in plan.convocationsOfDay(dayId)) {
-    final roleCandidateId = convocation.roleCandidateId;
-    if (roleCandidateId == null ||
-        (onlyRoleCandidateId != null && roleCandidateId != onlyRoleCandidateId)) {
-      continue;
-    }
-    final candidate = plan.roleCandidateById[roleCandidateId];
-    if (candidate == null) {
-      continue;
-    }
+    for (final roleCandidateId in convocation.roleCandidateIds) {
+      if (onlyRoleCandidateIds != null && !onlyRoleCandidateIds.contains(roleCandidateId)) {
+        continue;
+      }
+      final candidate = plan.roleCandidateById[roleCandidateId];
+      if (candidate == null) {
+        continue;
+      }
 
-    final name = candidate.person.displayName.trim();
-    entries.add(
-      _PeopleListEntry(
-        name: name.isEmpty ? labels.unnamedPersonLabel : name,
-        positionOrRole: ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]) ?? "",
-        phone: candidate.person.phone,
-        email: candidate.person.email,
-        scheduleLabel: ocptScheduleArrivalDepartureLabel(convocation),
-      ),
-    );
+      final name = candidate.person.displayName.trim();
+      entries.add(
+        _PeopleListEntry(
+          name: name.isEmpty ? labels.unnamedPersonLabel : name,
+          positionOrRole: ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]) ?? "",
+          phone: candidate.person.phone,
+          email: candidate.person.email,
+          scheduleLabel: ocptScheduleArrivalDepartureLabel(convocation),
+        ),
+      );
+    }
   }
 
   entries.sort((a, b) => a.name.compareTo(b.name));
@@ -2267,9 +2272,9 @@ String? _mapsUrlOf(OcptLocation location) {
   return "https://www.google.com/maps?q=$latitude,$longitude";
 }
 
-/// [convocation]'s own display name: the person's, the **candidate's** — read through their own
-/// candidacy, which is what `shooting_block_candidates` names — the uncast role's, or
-/// [OcptCallSheetLabels.unnamedPersonLabel] while none of them names anybody printable.
+/// [convocation]'s own display name: the person's — a candidate being a person like any other, so
+/// there is nothing extra to resolve — the uncast role's, or
+/// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable.
 String _convocationDisplayNameOf(
   OcptDayConvocation convocation,
   OcptSchedulePlanSnapshot plan,
@@ -2278,14 +2283,6 @@ String _convocationDisplayNameOf(
   final personId = convocation.personId;
   if (personId != null) {
     final name = plan.personById[personId]?.displayName.trim() ?? "";
-    if (name.isNotEmpty) {
-      return name;
-    }
-  }
-
-  final roleCandidateId = convocation.roleCandidateId;
-  if (roleCandidateId != null) {
-    final name = plan.roleCandidateById[roleCandidateId]?.person.displayName.trim() ?? "";
     if (name.isNotEmpty) {
       return name;
     }
@@ -2302,22 +2299,25 @@ String _convocationDisplayNameOf(
   return labels.unnamedPersonLabel;
 }
 
-/// [convocation]'s own positions (a crew person's, comma-joined), or the part behind it — the role
-/// an uncast convocation names, or the one a **candidate** is coming to be seen for, which is the
-/// only thing that tells two candidacies of one person apart. Read off [ownSlots] alone.
+/// **Everything the day asks of [convocation]**, comma-joined: the positions they crew under, the
+/// parts they play, and the parts they are coming to be seen for — or, for an uncast convocation,
+/// the role it names and nothing else.
+///
+/// One line rather than one reason, because a sheet is addressed to a **person**: somebody
+/// gaffering the morning and read for Marie at eleven holds both that day, and a header naming one
+/// of the two would be picking which half of their day counts. Read off [ownSlots] for the work and
+/// off [OcptDayConvocation.roleCandidateIds] for the auditions, so it can never name something the
+/// timetable below it does not.
+///
+/// Each part is prefixed by [OcptCallSheetLabels.roleHeader] and printed in the shape the cast table
+/// names a role in, so a reader holding both can match them; a crew position carries no prefix,
+/// being unambiguous on its own.
 String _convocationPositionsLabel({
   required OcptDayConvocation convocation,
   required List<OcptShootingSlot> ownSlots,
   required OcptSchedulePlanSnapshot plan,
   required OcptCallSheetLabels labels,
 }) {
-  final roleCandidateId = convocation.roleCandidateId;
-  if (roleCandidateId != null) {
-    final candidate = plan.roleCandidateById[roleCandidateId];
-    final label = candidate == null ? null : ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]);
-    return label == null ? "" : "${labels.roleHeader} $label";
-  }
-
   final personId = convocation.personId;
   if (personId == null) {
     final roleId = convocation.roleId;
@@ -2327,21 +2327,49 @@ String _convocationPositionsLabel({
 
   final positionById = {for (final position in ocptCrewPositions) position.id: position};
   final seen = <String>{};
-  final positions = <String>[];
+  final parts = <String>[];
+
+  void add(String label) {
+    if (label.isNotEmpty && seen.add(label)) {
+      parts.add(label);
+    }
+  }
+
   for (final slot in ownSlots) {
     for (final member in slot.crew) {
       if (member.personId != personId) {
         continue;
       }
       final position = member.positionId.isEmpty ? null : positionById[member.positionId];
-      final label = position != null ? labels.crewPositionLabelOf(position.id) : member.customLabel;
-      if (label.isNotEmpty && seen.add(label)) {
-        positions.add(label);
+      add(position != null ? labels.crewPositionLabelOf(position.id) : member.customLabel);
+    }
+
+    // The parts they play on this unit: a cast row names a role, and the actor behind it is
+    // `roles.personId` — the same join the cast table itself makes.
+    for (final member in slot.cast) {
+      final role = plan.roleById[member.roleId];
+      if (role == null || role.personId != personId) {
+        continue;
+      }
+      if (ocptScheduleRoleLabelOf(role) case final label?) {
+        add("${labels.roleHeader} $label");
       }
     }
   }
 
-  return positions.join(", ");
+  // And the parts they are being seen for, which is the one thing on this line that is not work
+  // they already hold.
+  for (final roleCandidateId in convocation.roleCandidateIds) {
+    final candidate = plan.roleCandidateById[roleCandidateId];
+    if (candidate == null) {
+      continue;
+    }
+    if (ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]) case final label?) {
+      add("${labels.roleHeader} $label");
+    }
+  }
+
+  return parts.join(", ");
 }
 
 /// Turns [value] into a safe fragment of a file name: diacritics folded (through

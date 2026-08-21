@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -55,11 +54,6 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
   /// resolved to a name through this map, and so is the part a candidate is coming to be seen for.
   final Map<String, OcptRole> roleById;
 
-  /// Every live candidacy, keyed by id — a candidate convocation's own
-  /// [OcptDayConvocation.roleCandidateId] is resolved to a person and a part through this map.
-  /// Empty on a project that has auditioned nobody, which draws no candidate group at all.
-  final Map<String, OcptRoleCandidate> roleCandidateById;
-
   /// The selected day's own live slots, keyed by id — every entry of an
   /// [OcptDayConvocation.slotIds] is resolved to a label through this map.
   final Map<String, OcptShootingSlot> slotById;
@@ -70,7 +64,6 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     required this.convocations,
     required this.personById,
     required this.roleById,
-    required this.roleCandidateById,
     required this.slotById,
   });
 
@@ -86,12 +79,12 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     final mainRows = _sortedRows(
       tr,
       convocations.where(
-        (convocation) => !convocation.isGuest && !convocation.isCandidate,
+        (convocation) => !convocation.isGuest && !convocation.isOnlySeenForAPart,
       ),
     );
     final candidateRows = _sortedRows(
       tr,
-      convocations.where((convocation) => convocation.isCandidate),
+      convocations.where((convocation) => convocation.isOnlySeenForAPart),
     );
     final guestRows = _sortedRows(tr, convocations.where((convocation) => convocation.isGuest));
     if (mainRows.isEmpty && candidateRows.isEmpty && guestRows.isEmpty) {
@@ -154,7 +147,6 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
             convocation,
             personById,
             roleById,
-            roleCandidateById: roleCandidateById,
           ),
         ),
     ];
