@@ -886,6 +886,8 @@ void main() {
                   projectDictionaryWords: payload.projectDictionaryWords,
                   budgetPostes: payload.budgetPostes,
                   budgetLines: payload.budgetLines,
+                  budgetEntries: payload.budgetEntries,
+                  budgetCommitments: payload.budgetCommitments,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,

@@ -73,6 +73,8 @@ class OcptProjectVersionsService {
     'project_dictionary_words',
     'budget_postes',
     'budget_lines',
+    'budget_entries',
+    'budget_commitments',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -392,9 +394,16 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
         // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
         // (just above) and, optionally, `elements` (already inserted above): neither is a forward
-        // reference.
+        // reference. `budget_entries` references `budget_postes` too, and `budget_commitments`
+        // references `budget_postes` and `budget_entries` (just above it) — and `assets.
+        // budgetEntryId`, inserted well above this, names a `budget_entries` row inserted only
+        // here: a genuine forward reference, but `insertAll` defers foreign-key checking to the end
+        // of this batch's own transaction, exactly what already lets the person/location/element
+        // trio point at an `assets` row inserted after them.
         ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
         ..insertAll(database.ocptBudgetLinesTable, payload.budgetLines)
+        ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
+        ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -642,6 +651,8 @@ class OcptProjectVersionsService {
           .get(),
       budgetPostes: await database.select(database.ocptBudgetPostesTable).get(),
       budgetLines: await database.select(database.ocptBudgetLinesTable).get(),
+      budgetEntries: await database.select(database.ocptBudgetEntriesTable).get(),
+      budgetCommitments: await database.select(database.ocptBudgetCommitmentsTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
@@ -724,10 +735,18 @@ class OcptProjectVersionsService {
   /// references nothing, and nothing else in the schema references it back, so there is no
   /// dependency order for it to respect.
   ///
-  /// `budget_postes` and `budget_lines` are restored last: `budget_postes` references nothing, and
+  /// `budget_postes` and `budget_lines` are restored next: `budget_postes` references nothing, and
   /// `budget_lines` references `budget_postes` (restored immediately above it) and, optionally,
   /// `elements` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — so
   /// neither is a forward reference, and this pair closes no cycle of its own either.
+  ///
+  /// `budget_entries` and `budget_commitments` are restored last: `budget_entries` references
+  /// `budget_postes` (restored just above), and `budget_commitments` references `budget_postes` and
+  /// `budget_entries` (restored immediately above it) — neither is a forward reference either.
+  /// `assets.budgetEntryId`, restored well above this pair, names a `budget_entries` row that only
+  /// exists once this method reaches here: a genuine forward reference, closed the same way the
+  /// asset trio's own cycle is, by this whole restore running under `PRAGMA defer_foreign_keys =
+  /// ON` (see [restoreVersion]).
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
   /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
@@ -1031,6 +1050,24 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetEntriesTable,
+      payloadRows: payload.budgetEntries,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetCommitmentsTable,
+      payloadRows: payload.budgetCommitments,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await stamps.flush(database);
   }
 
@@ -1157,6 +1194,11 @@ class OcptProjectVersionsService {
       // optionally, an element, never at the address book. Both travel through unchanged.
       budgetPostes: payload.budgetPostes,
       budgetLines: payload.budgetLines,
+      // Nor does a journal entry or a commitment: an entry points at a poste, at most, and a
+      // commitment at a poste and, at most, at the entry that settled it — never at the address
+      // book. Both travel through unchanged too.
+      budgetEntries: payload.budgetEntries,
+      budgetCommitments: payload.budgetCommitments,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,

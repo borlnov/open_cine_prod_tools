@@ -10,6 +10,8 @@ import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_commitments_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
@@ -51,13 +53,15 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptElementStatusConverter, OcptAssetKindConverter, OcptDayPartSlotConverter,
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
 // OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
-// OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter), but
+// OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter,
+// OcptBudgetCommitmentStatusConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -139,6 +143,10 @@ part 'ocpt_project_database.g.dart';
 /// three nullable [OcptProjectInfoTable] columns the mode reads (`defaultVatRateBasisPoints`,
 /// `mealPriceCents`, `snackPriceCents`) — nobody has recorded any of the three until a production
 /// says otherwise, the same reading `screenplayLanguage` above already carries.
+/// Schema version 21 adds the budget mode's cash journal: [OcptBudgetEntriesTable], the movements
+/// that actually left or entered the account, and [OcptBudgetCommitmentsTable], money committed
+/// against a poste but not yet paid — plus [OcptAssetsTable.budgetEntryId], naming the entry a
+/// receipt asset ([OcptAssetKind.receipt]) stands as the voucher for.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -178,6 +186,8 @@ part 'ocpt_project_database.g.dart';
     OcptProjectDictionaryWordsTable,
     OcptBudgetPostesTable,
     OcptBudgetLinesTable,
+    OcptBudgetEntriesTable,
+    OcptBudgetCommitmentsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -251,7 +261,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 20;
+  static const currentSchemaVersion = 21;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -616,6 +626,23 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.defaultVatRateBasisPoints);
         await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.mealPriceCents);
         await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.snackPriceCents);
+      }
+
+      if (from < 21) {
+        // `budget_entries` references `budget_postes` (created fresh above for a file older than
+        // 20, or already in place otherwise), and `budget_commitments` references `budget_postes`
+        // and `budget_entries` (created just above it): neither `createTable` is ever a forward
+        // reference.
+        await m.createTable(ocptBudgetEntriesTable);
+        await m.createTable(ocptBudgetCommitmentsTable);
+
+        // `assets` has existed, and been alterable, since version 6 — a file older than that has
+        // just had it created fresh above, from the current declaration, and already carries this
+        // column. Guarded `from >= 6` for the same reason `assets.validFrom`/`assets.validUntil`
+        // are above.
+        if (from >= 6) {
+          await m.addColumn(ocptAssetsTable, ocptAssetsTable.budgetEntryId);
+        }
       }
     },
     beforeOpen: (details) async {

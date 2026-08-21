@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -532,6 +533,16 @@ void main() {
         sortKey: "k",
         isDeleted: true,
       ),
+      OcptAssetRow(
+        id: "asset-3",
+        kind: OcptAssetKind.receipt,
+        path: "/home/user/Documents/facture-camion.pdf",
+        label: "Facture location camion",
+        addedAt: DateTime.utc(2026, 3, 10, 9),
+        sortKey: "m",
+        isDeleted: false,
+        budgetEntryId: "entry-1",
+      ),
     ],
     breakdownTags: const [
       OcptBreakdownTagRow(
@@ -804,6 +815,57 @@ void main() {
         notes: "",
       ),
     ],
+    budgetEntries: [
+      OcptBudgetEntryRow(
+        id: "entry-1",
+        sortKey: "V",
+        isDeleted: false,
+        date: DateTime.utc(2026, 3, 10),
+        label: "Location camion",
+        posteId: "poste-1",
+        debitCents: 15000,
+        creditCents: 0,
+        isTaxInclusive: true,
+        vatRateBasisPoints: 550,
+        voucherNumber: "J-001",
+      ),
+      OcptBudgetEntryRow(
+        id: "entry-2",
+        sortKey: "k",
+        isDeleted: true,
+        date: DateTime.utc(2026, 3, 11),
+        label: "",
+        debitCents: 0,
+        creditCents: 0,
+        isTaxInclusive: true,
+        voucherNumber: "",
+      ),
+    ],
+    budgetCommitments: [
+      OcptBudgetCommitmentRow(
+        id: "commitment-1",
+        sortKey: "V",
+        isDeleted: false,
+        dueDate: DateTime.utc(2026, 4, 15),
+        label: "Assurance tournage",
+        posteId: "poste-1",
+        amountCents: 45000,
+        isTaxInclusive: false,
+        vatRateBasisPoints: 2000,
+        status: OcptBudgetCommitmentStatus.contractSigned,
+        settledEntryId: "entry-1",
+      ),
+      const OcptBudgetCommitmentRow(
+        id: "commitment-2",
+        sortKey: "k",
+        isDeleted: true,
+        label: "",
+        posteId: "poste-1",
+        amountCents: 0,
+        isTaxInclusive: true,
+        status: OcptBudgetCommitmentStatus.quoteAccepted,
+      ),
+    ],
     rowFieldVersions: const [
       OcptRowFieldVersionRow(
         targetTableName: "shots",
@@ -914,7 +976,7 @@ void main() {
       expect(roundTripped.sceneSets.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.elements.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.sceneElements.map((row) => row.isDeleted), [false, true]);
-      expect(roundTripped.assets.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.assets.map((row) => row.isDeleted), [false, true, false]);
 
       // sortKey, not position, is what orders a group after ADR 0010.
       expect(roundTripped.shots.map((row) => row.sortKey), ["V", "k"]);
@@ -1264,6 +1326,51 @@ void main() {
       expect(asset.validUntil, DateTime.utc(2027, 1, 10));
     });
 
+    test("a receipt asset's budgetEntryId comes back", () {
+      final asset = roundTrip(buildRichPayload()).assets.firstWhere((row) => row.id == "asset-3");
+      expect(asset.kind, OcptAssetKind.receipt);
+      expect(asset.budgetEntryId, "entry-1");
+    });
+
+    test('every column of the cash journal round trips, tombstones and nulls included', () {
+      final roundTripped = roundTrip(buildRichPayload());
+
+      final liveEntry = roundTripped.budgetEntries.firstWhere((row) => row.id == "entry-1");
+      expect(liveEntry.date, DateTime.utc(2026, 3, 10));
+      expect(liveEntry.label, "Location camion");
+      expect(liveEntry.posteId, "poste-1");
+      expect(liveEntry.debitCents, 15000);
+      expect(liveEntry.creditCents, 0);
+      expect(liveEntry.isTaxInclusive, isTrue);
+      expect(liveEntry.vatRateBasisPoints, 550);
+      expect(liveEntry.voucherNumber, "J-001");
+      expect(liveEntry.isDeleted, isFalse);
+
+      final tombstonedEntry = roundTripped.budgetEntries.firstWhere((row) => row.id == "entry-2");
+      expect(tombstonedEntry.posteId, isNull);
+      expect(tombstonedEntry.isDeleted, isTrue);
+
+      final liveCommitment = roundTripped.budgetCommitments.firstWhere(
+        (row) => row.id == "commitment-1",
+      );
+      expect(liveCommitment.dueDate, DateTime.utc(2026, 4, 15));
+      expect(liveCommitment.label, "Assurance tournage");
+      expect(liveCommitment.posteId, "poste-1");
+      expect(liveCommitment.amountCents, 45000);
+      expect(liveCommitment.isTaxInclusive, isFalse);
+      expect(liveCommitment.vatRateBasisPoints, 2000);
+      expect(liveCommitment.status, OcptBudgetCommitmentStatus.contractSigned);
+      expect(liveCommitment.settledEntryId, "entry-1");
+      expect(liveCommitment.isDeleted, isFalse);
+
+      final tombstonedCommitment = roundTripped.budgetCommitments.firstWhere(
+        (row) => row.id == "commitment-2",
+      );
+      expect(tombstonedCommitment.dueDate, isNull);
+      expect(tombstonedCommitment.settledEntryId, isNull);
+      expect(tombstonedCommitment.isDeleted, isTrue);
+    });
+
     test('a project with no shot list at all round trips as an empty one', () {
       const payload = OcptProjectVersionPayload(
         screenplays: [],
@@ -1286,6 +1393,8 @@ void main() {
         roleElements: [],
         budgetPostes: [],
         budgetLines: [],
+        budgetEntries: [],
+        budgetCommitments: [],
         assets: [],
         breakdownTags: [],
         sceneBreakdowns: [],
@@ -1346,6 +1455,8 @@ void main() {
         roleElements: payload.roleElements.reversed.toList(),
         budgetPostes: payload.budgetPostes.reversed.toList(),
         budgetLines: payload.budgetLines.reversed.toList(),
+        budgetEntries: payload.budgetEntries.reversed.toList(),
+        budgetCommitments: payload.budgetCommitments.reversed.toList(),
         assets: payload.assets.reversed.toList(),
         breakdownTags: payload.breakdownTags.reversed.toList(),
         sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
@@ -1394,6 +1505,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1450,6 +1563,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1509,6 +1624,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1557,6 +1674,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1605,6 +1724,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1655,6 +1776,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1711,6 +1834,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1765,6 +1890,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1816,6 +1943,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1866,6 +1995,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: [
           ...payload.breakdownTags,
@@ -1929,6 +2060,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(
@@ -1984,6 +2117,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(isDeleted: true),
@@ -2035,6 +2170,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: [
@@ -2089,6 +2226,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2139,6 +2278,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2201,6 +2342,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2252,6 +2395,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2303,6 +2448,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2362,6 +2509,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2413,6 +2562,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2461,6 +2612,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2509,6 +2662,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2557,6 +2712,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2614,6 +2771,8 @@ void main() {
           payload.budgetPostes.last,
         ],
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2667,6 +2826,8 @@ void main() {
           payload.budgetLines.first.copyWith(isDeleted: true),
           payload.budgetLines.last,
         ],
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2715,6 +2876,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2740,6 +2903,126 @@ void main() {
       // Two projects agreeing on every quote line but disagreeing on the rate they read against are
       // not the same project.
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(rerated)));
+    });
+
+    test('changes when a journal entry is added', () {
+      final payload = buildRichPayload();
+      final withNewEntry = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
+        budgetEntries: [
+          ...payload.budgetEntries,
+          OcptBudgetEntryRow(
+            id: "entry-3",
+            sortKey: "m",
+            isDeleted: false,
+            date: DateTime.utc(2026, 3, 12),
+            label: "Acompte",
+            debitCents: 0,
+            creditCents: 50000,
+            isTaxInclusive: true,
+            voucherNumber: "J-002",
+          ),
+        ],
+        budgetCommitments: payload.budgetCommitments,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      // A digest that left the journal out would let the working-copy card claim no drift after an
+      // afternoon spent recording the cash journal.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewEntry)));
+    });
+
+    test('changes when a commitment is settled', () {
+      final payload = buildRichPayload();
+      final settled = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: [
+          payload.budgetCommitments.first.copyWith(settledEntryId: const drift.Value(null)),
+          payload.budgetCommitments.last,
+        ],
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      // A digest that left the commitments out would let a settlement — or the lack of one — go
+      // unnoticed.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(settled)));
     });
 
     test("changes when a block's crew note is typed", () {
@@ -2769,6 +3052,8 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3831,6 +4116,42 @@ void main() {
           buildRichPayload().projectDictionaryWords,
         );
         expect(result.value!.screenplayLanguage, buildRichPayload().screenplayLanguage);
+      },
+    );
+
+    test(
+      'a stored format-16 payload decodes with no cash journal at all',
+      () {
+        // Format 16 predates `budget_entries`/`budget_commitments` entirely, so
+        // [_upgradeFormat16To17] materialises both as **empty lists** — [_upgradeFormat1To2]'s
+        // kind: a version captured this early truthfully had no journal at all. Every `assets` row
+        // also gains a **null** `budgetEntryId` — [_upgradeFormat3To4]'s kind, not the empty-list
+        // one, since the asset rows themselves are not new here. The fixture is the current
+        // encoding with the keys taken back out and the format wound back, rather than a second
+        // hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("budgetEntries");
+        encoded.remove("budgetCommitments");
+        final assets = [
+          for (final row in encoded["assets"] as List)
+            ({...row as Map<String, dynamic>}..remove("budgetEntryId")),
+        ];
+        encoded["assets"] = assets;
+        encoded["payloadFormat"] = 16;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.budgetEntries, isEmpty);
+        expect(result.value!.budgetCommitments, isEmpty);
+        expect(result.value!.assets.map((row) => row.budgetEntryId), everyElement(isNull));
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(result.value!.budgetPostes, buildRichPayload().budgetPostes);
+        expect(result.value!.budgetLines, buildRichPayload().budgetLines);
+        expect(
+          result.value!.assets.map((row) => row.path),
+          buildRichPayload().assets.map((row) => row.path),
+        );
       },
     );
   });

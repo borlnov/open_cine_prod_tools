@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
@@ -82,9 +83,9 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [screenplayService], [sceneIndexService], [shotListService], [shotCoverageService],
 /// [projectVersionsService], [peopleService], [roleIndexService], [locationsService],
 /// [elementsService], [breakdownService], [scheduleService], [assetsService],
-/// [projectDictionaryService], [projectPackageService], [projectFileCompatibilityService] and
-/// [budgetQuoteService], the sixteen services this manager owns and wires together (RFL18): this
-/// manager itself is only
+/// [projectDictionaryService], [projectPackageService], [projectFileCompatibilityService],
+/// [budgetQuoteService] and [budgetJournalService], the seventeen services this manager owns and
+/// wires together (RFL18): this manager itself is only
 /// responsible for the lifecycle of the project file (create/open/close), for keeping the
 /// properties manager's recent-projects list in sync, and for handing those services the facts
 /// only it holds — the open project's database, the app version, this replica's device id and the
@@ -155,6 +156,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// The service used for CRUD over the budget mode's quote: the `budget_postes` catalogue and the
   /// `budget_lines` inside each one.
   final OcptBudgetQuoteService budgetQuoteService;
+
+  /// The service used for CRUD over the budget mode's cash journal: the `budget_entries` movements
+  /// and the `budget_commitments` still owed against a poste.
+  final OcptBudgetJournalService budgetJournalService;
 
   /// The service used to tag a screenplay passage against an element, a role or a set, and to
   /// track a scene's own breakdown status.
@@ -251,6 +256,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
        locationsService = const OcptLocationsService(),
        elementsService = const OcptElementsService(),
        budgetQuoteService = const OcptBudgetQuoteService(),
+       budgetJournalService = const OcptBudgetJournalService(),
        assetsService = const OcptAssetsService(),
        projectDictionaryService = const OcptProjectDictionaryService(),
        projectPackageService = const OcptProjectPackageService(),

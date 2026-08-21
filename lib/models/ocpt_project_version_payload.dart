@@ -138,6 +138,14 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `budget_lines` rows of the project: the quote lines inside each poste.
   final List<OcptBudgetLineRow> budgetLines;
 
+  /// The `budget_entries` rows of the project: the cash journal's own movements, tombstones
+  /// included.
+  final List<OcptBudgetEntryRow> budgetEntries;
+
+  /// The `budget_commitments` rows of the project: money committed against a poste but not yet
+  /// paid.
+  final List<OcptBudgetCommitmentRow> budgetCommitments;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -239,6 +247,8 @@ class OcptProjectVersionPayload extends Equatable {
     required this.projectDictionaryWords,
     required this.budgetPostes,
     required this.budgetLines,
+    required this.budgetEntries,
+    required this.budgetCommitments,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -271,6 +281,7 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingDayEvents: ${shootingDayEvents.length}, "
       "projectDictionaryWords: ${projectDictionaryWords.length}, "
       "budgetPostes: ${budgetPostes.length}, budgetLines: ${budgetLines.length}, "
+      "budgetEntries: ${budgetEntries.length}, budgetCommitments: ${budgetCommitments.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
       "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage, "
@@ -311,6 +322,8 @@ class OcptProjectVersionPayload extends Equatable {
     projectDictionaryWords,
     budgetPostes,
     budgetLines,
+    budgetEntries,
+    budgetCommitments,
     rowFieldVersions,
     pageSetup,
     settingsJson,

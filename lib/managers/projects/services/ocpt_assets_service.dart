@@ -29,8 +29,8 @@ class OcptAssetsService {
 
   /// Inserts one `assets` row of [kind] pointing at [path] and returns its freshly generated id.
   ///
-  /// Exactly one of [personId], [locationId] and [elementId] names the subject; the caller is what
-  /// knows which, and passing none would produce a row nothing can ever list.
+  /// Exactly one of [personId], [locationId], [elementId] and [budgetEntryId] names the subject;
+  /// the caller is what knows which, and passing none would produce a row nothing can ever list.
   ///
   /// [validFrom] and [validUntil] are the document's own validity window — a filming permit runs
   /// from a date to a date — and are null by default, exactly as `OcptAssetsTable.validFrom`'s own
@@ -49,6 +49,7 @@ class OcptAssetsService {
     String? personId,
     String? locationId,
     String? elementId,
+    String? budgetEntryId,
     DateTime? validFrom,
     DateTime? validUntil,
   }) async {
@@ -67,6 +68,7 @@ class OcptAssetsService {
             personId: Value(personId),
             locationId: Value(locationId),
             elementId: Value(elementId),
+            budgetEntryId: Value(budgetEntryId),
             validFrom: Value(validFrom),
             validUntil: Value(validUntil),
           ),

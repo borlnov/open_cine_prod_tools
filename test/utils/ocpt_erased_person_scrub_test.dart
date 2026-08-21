@@ -178,6 +178,8 @@ void main() {
     projectDictionaryWords: const [],
     budgetPostes: const [],
     budgetLines: const [],
+    budgetEntries: const [],
+    budgetCommitments: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup(
       format: OcptPageFormat.a4,
