@@ -759,6 +759,51 @@ void main() {
       OcptProjectDictionaryWordRow(id: "word-1", word: "Séquence", isDeleted: false),
       OcptProjectDictionaryWordRow(id: "word-2", word: "Marc", isDeleted: true),
     ],
+    budgetPostes: const [
+      OcptBudgetPosteRow(
+        id: "poste-1",
+        sortKey: "V",
+        isDeleted: false,
+        code: "2",
+        label: "Personnel",
+        simpleLabel: "Crew",
+      ),
+      OcptBudgetPosteRow(
+        id: "poste-2",
+        sortKey: "k",
+        isDeleted: true,
+        code: "",
+        label: "Abandoned poste",
+      ),
+    ],
+    budgetLines: const [
+      OcptBudgetLineRow(
+        id: "line-1",
+        sortKey: "V",
+        isDeleted: false,
+        posteId: "poste-1",
+        label: "First assistant camera",
+        quantityMilli: 1500,
+        unit: "day",
+        unitAmountCents: 20000,
+        isTaxInclusive: true,
+        vatRateBasisPoints: 550,
+        elementId: "element-1",
+        notes: "Confirmed",
+      ),
+      OcptBudgetLineRow(
+        id: "line-2",
+        sortKey: "k",
+        isDeleted: true,
+        posteId: "poste-1",
+        label: "",
+        quantityMilli: 1000,
+        unit: "",
+        unitAmountCents: 0,
+        isTaxInclusive: true,
+        notes: "",
+      ),
+    ],
     rowFieldVersions: const [
       OcptRowFieldVersionRow(
         targetTableName: "shots",
@@ -788,6 +833,9 @@ void main() {
     currencyCode: "GBP",
     minimumRestMinutes: 660,
     screenplayLanguage: OcptScreenplayLanguage.fr,
+    defaultVatRateBasisPoints: 2000,
+    mealPriceCents: 1250,
+    snackPriceCents: 350,
   );
 
   /// [buildRichPayload] serialized and read back.
@@ -1236,6 +1284,8 @@ void main() {
         elements: [],
         sceneElements: [],
         roleElements: [],
+        budgetPostes: [],
+        budgetLines: [],
         assets: [],
         breakdownTags: [],
         sceneBreakdowns: [],
@@ -1253,6 +1303,9 @@ void main() {
         currencyCode: null,
         minimumRestMinutes: null,
         screenplayLanguage: null,
+        defaultVatRateBasisPoints: null,
+        mealPriceCents: null,
+        snackPriceCents: null,
       );
 
       expect(roundTrip(payload), payload);
@@ -1291,6 +1344,8 @@ void main() {
         elements: payload.elements.reversed.toList(),
         sceneElements: payload.sceneElements.reversed.toList(),
         roleElements: payload.roleElements.reversed.toList(),
+        budgetPostes: payload.budgetPostes.reversed.toList(),
+        budgetLines: payload.budgetLines.reversed.toList(),
         assets: payload.assets.reversed.toList(),
         breakdownTags: payload.breakdownTags.reversed.toList(),
         sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
@@ -1308,6 +1363,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(reordered));
@@ -1334,6 +1392,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1359,6 +1419,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
@@ -1385,6 +1448,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1410,6 +1475,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
@@ -1439,6 +1507,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1456,6 +1526,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
@@ -1482,6 +1555,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1499,6 +1574,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1525,6 +1603,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1542,6 +1622,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       // Without the resources tables in the digest, an afternoon of typing people, locations and
@@ -1570,6 +1653,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1587,6 +1672,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1621,6 +1709,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1638,6 +1728,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -1670,6 +1763,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1687,6 +1782,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1716,6 +1814,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1733,6 +1833,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       // A role recast onto a different episode changes the project even though every row's own id
@@ -1761,6 +1864,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: [
           ...payload.breakdownTags,
@@ -1791,6 +1896,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       // Without the breakdown tables in the digest, an afternoon of tagging the script would leave
@@ -1819,6 +1927,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(
@@ -1843,6 +1953,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reanchored)));
@@ -1869,6 +1982,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(isDeleted: true),
@@ -1889,6 +2004,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1915,6 +2033,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: [
@@ -1935,6 +2055,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(marked)));
@@ -1964,6 +2087,8 @@ void main() {
         ],
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1981,6 +2106,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       // elements.status is new too, and it lives inside the digest exactly like every other
@@ -2009,6 +2137,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2038,6 +2168,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       // Without the seven schedule tables in the digest, planning a whole shooting day would leave
@@ -2066,6 +2199,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2086,6 +2221,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recalled)));
@@ -2112,6 +2250,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2132,6 +2272,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2158,6 +2301,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2186,6 +2331,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewGuest)));
@@ -2212,6 +2360,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2232,6 +2382,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
@@ -2258,6 +2411,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2275,6 +2430,9 @@ void main() {
         currencyCode: "USD",
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recurrencied)));
@@ -2301,6 +2459,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2318,6 +2478,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: 720,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(rerested)));
@@ -2344,6 +2507,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2361,6 +2526,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: OcptScreenplayLanguage.enGb,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(relanguaged)));
@@ -2387,6 +2555,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2407,12 +2577,169 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       // Two projects agreeing on everything else but disagreeing on what the checker has been
       // taught are not the same project: a digest that left the lexicon out would let the
       // working-copy card claim no drift after a whole afternoon of teaching it names.
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(relearned)));
+    });
+
+    test('changes when a budget poste is renamed', () {
+      final payload = buildRichPayload();
+      final renamed = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        budgetPostes: [
+          payload.budgetPostes.first.copyWith(label: "Personnel technique"),
+          payload.budgetPostes.last,
+        ],
+        budgetLines: payload.budgetLines,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      // A digest that left the budget out would let the working-copy card claim no drift after an
+      // afternoon spent building the quote.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(renamed)));
+    });
+
+    test('changes when a budget line is tombstoned', () {
+      final payload = buildRichPayload();
+      final tombstoned = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: [
+          payload.budgetLines.first.copyWith(isDeleted: true),
+          payload.budgetLines.last,
+        ],
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
+    });
+
+    test('changes when the default VAT rate changes', () {
+      final payload = buildRichPayload();
+      final rerated = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: 550,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      // Two projects agreeing on every quote line but disagreeing on the rate they read against are
+      // not the same project.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(rerated)));
     });
 
     test("changes when a block's crew note is typed", () {
@@ -2440,6 +2767,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2457,6 +2786,9 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(renoted)));
@@ -3462,6 +3794,42 @@ void main() {
         expect(result.value!.projectDictionaryWords, isEmpty);
         // And nothing else was disturbed on the way through: the rest of the project came back.
         expect(result.value!.roleEpisodes, buildRichPayload().roleEpisodes);
+        expect(result.value!.screenplayLanguage, buildRichPayload().screenplayLanguage);
+      },
+    );
+
+    test(
+      'a stored format-15 payload decodes with no budget at all',
+      () {
+        // Format 15 predates `budget_postes`/`budget_lines` entirely, so [_upgradeFormat15To16]
+        // materialises both as **empty lists** — [_upgradeFormat1To2]'s kind: a version captured
+        // this early truthfully had no budget at all. The default VAT rate and the two catering
+        // prices materialise as **null**, [_upgradeFormat13To14]'s kind, not the currency's "leave
+        // the live value alone" one: all three columns are nullable by design. The fixture is the
+        // current encoding with the keys taken back out and the format wound back, rather than a
+        // second hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("budgetPostes");
+        encoded.remove("budgetLines");
+        (encoded["projectSettings"] as Map<String, dynamic>)
+          ..remove("defaultVatRateBasisPoints")
+          ..remove("mealPriceCents")
+          ..remove("snackPriceCents");
+        encoded["payloadFormat"] = 15;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.budgetPostes, isEmpty);
+        expect(result.value!.budgetLines, isEmpty);
+        expect(result.value!.defaultVatRateBasisPoints, isNull);
+        expect(result.value!.mealPriceCents, isNull);
+        expect(result.value!.snackPriceCents, isNull);
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(
+          result.value!.projectDictionaryWords,
+          buildRichPayload().projectDictionaryWords,
+        );
         expect(result.value!.screenplayLanguage, buildRichPayload().screenplayLanguage);
       },
     );

@@ -60,7 +60,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 15;
+  static const currentPayloadFormat = 16;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -752,6 +752,52 @@ class OcptProjectVersionCodec {
   /// JSON object
   static const _wordKey = "word";
 
+  /// This is the key used to stringify or parse the `budget_postes` rows from a JSON object, from
+  /// payload format 16: the budget mode's own catalogue.
+  static const _budgetPostesKey = "budgetPostes";
+
+  /// This is the key used to stringify or parse the `budget_lines` rows from a JSON object, from
+  /// payload format 16: the quote lines inside each poste.
+  static const _budgetLinesKey = "budgetLines";
+
+  /// This is the key used to stringify or parse a `budget_postes.simpleLabel` column from a JSON
+  /// object
+  static const _simpleLabelKey = "simpleLabel";
+
+  /// This is the key used to stringify or parse a `budget_lines.posteId` column from a JSON object
+  static const _posteIdKey = "posteId";
+
+  /// This is the key used to stringify or parse a `budget_lines.quantityMilli` column from a JSON
+  /// object
+  static const _quantityMilliKey = "quantityMilli";
+
+  /// This is the key used to stringify or parse a `budget_lines.unit` column from a JSON object
+  static const _unitKey = "unit";
+
+  /// This is the key used to stringify or parse a `budget_lines.unitAmountCents` column from a JSON
+  /// object
+  static const _unitAmountCentsKey = "unitAmountCents";
+
+  /// This is the key used to stringify or parse a `budget_lines.isTaxInclusive` column from a JSON
+  /// object
+  static const _isTaxInclusiveKey = "isTaxInclusive";
+
+  /// This is the key used to stringify or parse a `budget_lines.vatRateBasisPoints` column from a
+  /// JSON object
+  static const _vatRateBasisPointsKey = "vatRateBasisPoints";
+
+  /// This is the key used to stringify or parse the project's `defaultVatRateBasisPoints` from a
+  /// JSON object, from payload format 16
+  static const _defaultVatRateBasisPointsKey = "defaultVatRateBasisPoints";
+
+  /// This is the key used to stringify or parse the project's `mealPriceCents` from a JSON object,
+  /// from payload format 16
+  static const _mealPriceCentsKey = "mealPriceCents";
+
+  /// This is the key used to stringify or parse the project's `snackPriceCents` from a JSON object,
+  /// from payload format 16
+  static const _snackPriceCentsKey = "snackPriceCents";
+
   /// This is the key used to stringify or parse the left page margin from a JSON object
   static const _marginLeftKey = "leftInches";
 
@@ -785,6 +831,7 @@ class OcptProjectVersionCodec {
     12: _upgradeFormat12To13,
     13: _upgradeFormat13To14,
     14: _upgradeFormat14To15,
+    15: _upgradeFormat15To16,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1242,6 +1289,38 @@ class OcptProjectVersionCodec {
     _projectDictionaryWordsKey: const <dynamic>[],
   };
 
+  /// Turns a format-**15** JSON object into a format-**16** one: the budget mode's foundations,
+  /// doing both of the two kinds `docs/architecture/foundations.md` documents at once.
+  ///
+  /// - [_budgetPostesKey] and [_budgetLinesKey] materialise as **empty lists**
+  ///   ([_upgradeFormat1To2]'s kind, the first of the codec's two kinds a table can arrive by): a
+  ///   version written in format 15 predates the budget mode entirely, so "this project had no
+  ///   postes, no lines" is a truthful statement about that moment, and
+  ///   `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
+  ///   doesn't hold — so restoring a format-15 version correctly drops whatever budget has been
+  ///   typed since, with no special case written for it;
+  /// - [_projectSettingsKey] gains a **null** [_defaultVatRateBasisPointsKey],
+  ///   [_mealPriceCentsKey] and [_snackPriceCentsKey] — [_upgradeFormat13To14]'s kind (the second of
+  ///   the two, not the currency's "leave the live value alone" one): all three columns are
+  ///   nullable by design, so a version captured in format 15 or earlier truthfully recorded
+  ///   nothing for any of them, and that nothing is written back onto the working copy on restore
+  ///   like any other changed column.
+  static Map<String, dynamic> _upgradeFormat15To16(Map<String, dynamic> json) {
+    final projectSettings = {
+      ..._object(json, _projectSettingsKey),
+      _defaultVatRateBasisPointsKey: null,
+      _mealPriceCentsKey: null,
+      _snackPriceCentsKey: null,
+    };
+
+    return {
+      ...json,
+      _budgetPostesKey: const <dynamic>[],
+      _budgetLinesKey: const <dynamic>[],
+      _projectSettingsKey: projectSettings,
+    };
+  }
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1325,6 +1404,8 @@ class OcptProjectVersionCodec {
     _shootingDayEventsKey: [
       for (final row in payload.shootingDayEvents) _shootingDayEventToJson(row),
     ],
+    _budgetPostesKey: [for (final row in payload.budgetPostes) _budgetPosteToJson(row)],
+    _budgetLinesKey: [for (final row in payload.budgetLines) _budgetLineToJson(row)],
     _projectDictionaryWordsKey: [
       for (final row in payload.projectDictionaryWords) _projectDictionaryWordToJson(row),
     ],
@@ -1335,6 +1416,9 @@ class OcptProjectVersionCodec {
       _currencyCodeKey: payload.currencyCode,
       _minimumRestMinutesKey: payload.minimumRestMinutes,
       _screenplayLanguageKey: payload.screenplayLanguage?.name,
+      _defaultVatRateBasisPointsKey: payload.defaultVatRateBasisPoints,
+      _mealPriceCentsKey: payload.mealPriceCents,
+      _snackPriceCentsKey: payload.snackPriceCents,
     },
     _pageMarginsKey: {
       _marginLeftKey: payload.pageSetup.margins.leftInches,
@@ -1399,8 +1483,8 @@ class OcptProjectVersionCodec {
   ///   `sceneSets`, `elements`, `sceneElements`, `roleElements`, `assets`, `breakdownTags`,
   ///   `sceneBreakdowns`,
   ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
-  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingDayEvents`, `projectDictionaryWords` —
-  ///   every
+  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingDayEvents`, `projectDictionaryWords`,
+  ///   `budgetPostes`, `budgetLines` — every
   ///   column of each — plus `pageSetup.format`,
   ///   `settingsJson` and `currencyCode`. This is
   ///   "the project", as a user would describe it, and the resources tables are not optional here:
@@ -1436,7 +1520,14 @@ class OcptProjectVersionCodec {
   ///   `screenplayLanguage` is the same case again, for the same reason: two projects agreeing on
   ///   everything else but disagreeing on the language their screenplays are written in are not the
   ///   same project — one of them would be spell-checked and the other would not — so it stays in,
-  ///   null exactly as legitimately as `minimumRestMinutes`;
+  ///   null exactly as legitimately as `minimumRestMinutes`. `budgetPostes` and `budgetLines` are
+  ///   the same case once more, from payload format 16 on: leave them out and a whole quote typed in
+  ///   would hash identically to a project with no budget at all — the working-copy card would
+  ///   claim no drift, and a restore over that afternoon's work would skip the safety version it
+  ///   owes. `defaultVatRateBasisPoints`, `mealPriceCents` and `snackPriceCents` are
+  ///   `minimumRestMinutes`'s own case again: nullable by design, in rather than out alongside the
+  ///   margins, since two projects agreeing on every quote line but disagreeing on the rate or the
+  ///   catering prices they read against are not the same project;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -1584,11 +1675,24 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _projectDictionaryWordToJson,
       ),
+      _budgetPostesKey: _canonicalRows(
+        payload.budgetPostes,
+        primaryKeyOf: (row) => row.id,
+        toJson: _budgetPosteToJson,
+      ),
+      _budgetLinesKey: _canonicalRows(
+        payload.budgetLines,
+        primaryKeyOf: (row) => row.id,
+        toJson: _budgetLineToJson,
+      ),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
       _minimumRestMinutesKey: payload.minimumRestMinutes,
       _screenplayLanguageKey: payload.screenplayLanguage?.name,
+      _defaultVatRateBasisPointsKey: payload.defaultVatRateBasisPoints,
+      _mealPriceCentsKey: payload.mealPriceCents,
+      _snackPriceCentsKey: payload.snackPriceCents,
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
@@ -1689,6 +1793,8 @@ class OcptProjectVersionCodec {
         for (final row in _rows(json, _projectDictionaryWordsKey))
           _projectDictionaryWordFromJson(row),
       ],
+      budgetPostes: [for (final row in _rows(json, _budgetPostesKey)) _budgetPosteFromJson(row)],
+      budgetLines: [for (final row in _rows(json, _budgetLinesKey)) _budgetLineFromJson(row)],
       rowFieldVersions: [
         for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
       ],
@@ -1709,6 +1815,9 @@ class OcptProjectVersionCodec {
         _screenplayLanguageKey,
         OcptScreenplayLanguage.values.asNameMap(),
       ),
+      defaultVatRateBasisPoints: _nullableInt(projectSettings, _defaultVatRateBasisPointsKey),
+      mealPriceCents: _nullableInt(projectSettings, _mealPriceCentsKey),
+      snackPriceCents: _nullableInt(projectSettings, _snackPriceCentsKey),
     );
   }
 
@@ -2065,6 +2174,58 @@ class OcptProjectVersionCodec {
         word: _string(json, _wordKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
+
+  /// Serializes one `budget_postes` row.
+  static Map<String, dynamic> _budgetPosteToJson(OcptBudgetPosteRow row) => {
+    _idKey: row.id,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _codeKey: row.code,
+    _labelKey: row.label,
+    _simpleLabelKey: row.simpleLabel,
+  };
+
+  /// Parses one `budget_postes` row.
+  static OcptBudgetPosteRow _budgetPosteFromJson(Map<String, dynamic> json) => OcptBudgetPosteRow(
+    id: _string(json, _idKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    code: _string(json, _codeKey),
+    label: _string(json, _labelKey),
+    simpleLabel: _nullableString(json, _simpleLabelKey),
+  );
+
+  /// Serializes one `budget_lines` row.
+  static Map<String, dynamic> _budgetLineToJson(OcptBudgetLineRow row) => {
+    _idKey: row.id,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _posteIdKey: row.posteId,
+    _labelKey: row.label,
+    _quantityMilliKey: row.quantityMilli,
+    _unitKey: row.unit,
+    _unitAmountCentsKey: row.unitAmountCents,
+    _isTaxInclusiveKey: row.isTaxInclusive,
+    _vatRateBasisPointsKey: row.vatRateBasisPoints,
+    _elementIdKey: row.elementId,
+    _notesKey: row.notes,
+  };
+
+  /// Parses one `budget_lines` row.
+  static OcptBudgetLineRow _budgetLineFromJson(Map<String, dynamic> json) => OcptBudgetLineRow(
+    id: _string(json, _idKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    posteId: _string(json, _posteIdKey),
+    label: _string(json, _labelKey),
+    quantityMilli: _int(json, _quantityMilliKey),
+    unit: _string(json, _unitKey),
+    unitAmountCents: _int(json, _unitAmountCentsKey),
+    isTaxInclusive: _bool(json, _isTaxInclusiveKey),
+    vatRateBasisPoints: _nullableInt(json, _vatRateBasisPointsKey),
+    elementId: _nullableString(json, _elementIdKey),
+    notes: _string(json, _notesKey),
+  );
 
   /// Serializes one `locations` row.
   static Map<String, dynamic> _locationToJson(OcptLocationRow row) => {

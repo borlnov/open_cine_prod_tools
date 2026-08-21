@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
@@ -81,8 +82,9 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [screenplayService], [sceneIndexService], [shotListService], [shotCoverageService],
 /// [projectVersionsService], [peopleService], [roleIndexService], [locationsService],
 /// [elementsService], [breakdownService], [scheduleService], [assetsService],
-/// [projectDictionaryService], [projectPackageService] and [projectFileCompatibilityService], the
-/// fifteen services this manager owns and wires together (RFL18): this manager itself is only
+/// [projectDictionaryService], [projectPackageService], [projectFileCompatibilityService] and
+/// [budgetQuoteService], the sixteen services this manager owns and wires together (RFL18): this
+/// manager itself is only
 /// responsible for the lifecycle of the project file (create/open/close), for keeping the
 /// properties manager's recent-projects list in sync, and for handing those services the facts
 /// only it holds — the open project's database, the app version, this replica's device id and the
@@ -149,6 +151,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// The service used for CRUD over the physical elements catalogue.
   final OcptElementsService elementsService;
+
+  /// The service used for CRUD over the budget mode's quote: the `budget_postes` catalogue and the
+  /// `budget_lines` inside each one.
+  final OcptBudgetQuoteService budgetQuoteService;
 
   /// The service used to tag a screenplay passage against an element, a role or a set, and to
   /// track a scene's own breakdown status.
@@ -244,6 +250,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
        roleIndexService = const OcptRoleIndexService(),
        locationsService = const OcptLocationsService(),
        elementsService = const OcptElementsService(),
+       budgetQuoteService = const OcptBudgetQuoteService(),
        assetsService = const OcptAssetsService(),
        projectDictionaryService = const OcptProjectDictionaryService(),
        projectPackageService = const OcptProjectPackageService(),
@@ -672,6 +679,110 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await project.database
         .update(project.database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(screenplayLanguage: Value(language)));
+  }
+
+  /// Loads the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
+  /// table, or null.
+  ///
+  /// The two reasons for a null answer are indistinguishable here, exactly as
+  /// [loadCurrentProjectMinimumRestMinutes]'s are: no project is open, or one is and nobody has
+  /// recorded a rate for it — the column's own truthful "nobody has said"
+  /// (`OcptProjectInfoTable.defaultVatRateBasisPoints`).
+  Future<int?> loadCurrentProjectDefaultVatRateBasisPoints() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.defaultVatRateBasisPoints;
+  }
+
+  /// Updates the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
+  /// table, or clears it when [basisPoints] is null — a production putting the rate back to "not
+  /// recorded" is as real a gesture as setting it (`OcptProjectSettingsBudgetSection`'s `No rate`
+  /// button). Does nothing if no project is currently open.
+  ///
+  /// Modelled on [saveCurrentProjectMinimumRestMinutes]: [basisPoints] is written whichever it is,
+  /// including null, rather than only ever holding a value the way a page format or a currency
+  /// always does.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectDefaultVatRateBasisPoints(int? basisPoints) async {
+    final project = currentProject;
+    if (project == null ||
+        project.database.refusesUserWrite("saveCurrentProjectDefaultVatRateBasisPoints")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(defaultVatRateBasisPoints: Value(basisPoints)));
+  }
+
+  /// Loads the price of one meal, in cents, stored in the [currentProject]'s `project_info` table,
+  /// or null — the same "nobody has said" reading [loadCurrentProjectDefaultVatRateBasisPoints]
+  /// gets.
+  Future<int?> loadCurrentProjectMealPriceCents() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.mealPriceCents;
+  }
+
+  /// Updates the price of one meal, in cents, stored in the [currentProject]'s `project_info`
+  /// table, or clears it when [cents] is null. Does nothing if no project is currently open.
+  ///
+  /// Modelled on [saveCurrentProjectDefaultVatRateBasisPoints]: [cents] is written whichever it is,
+  /// including null.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectMealPriceCents(int? cents) async {
+    final project = currentProject;
+    if (project == null || project.database.refusesUserWrite("saveCurrentProjectMealPriceCents")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(mealPriceCents: Value(cents)));
+  }
+
+  /// Loads the price of one snack, in cents, stored in the [currentProject]'s `project_info` table,
+  /// or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way.
+  Future<int?> loadCurrentProjectSnackPriceCents() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.snackPriceCents;
+  }
+
+  /// Updates the price of one snack, in cents, stored in the [currentProject]'s `project_info`
+  /// table, or clears it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectSnackPriceCents(int? cents) async {
+    final project = currentProject;
+    if (project == null ||
+        project.database.refusesUserWrite("saveCurrentProjectSnackPriceCents")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(snackPriceCents: Value(cents)));
   }
 
   /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.

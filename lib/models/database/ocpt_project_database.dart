@@ -10,6 +10,8 @@ import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_location_availabilities_table.dart';
@@ -132,6 +134,11 @@ part 'ocpt_project_database.g.dart';
 /// it was before it, exactly the reading [OcptProjectInfoTable.minimumRestMinutes] already carries
 /// — and, alongside it, [OcptProjectDictionaryWordsTable], the words a writer has taught this
 /// project's spell checker.
+/// Schema version 20 adds the budget mode's foundations: [OcptBudgetPostesTable] and
+/// [OcptBudgetLinesTable], the seeded-then-editable CNC nomenclature and its quote lines, plus
+/// three nullable [OcptProjectInfoTable] columns the mode reads (`defaultVatRateBasisPoints`,
+/// `mealPriceCents`, `snackPriceCents`) — nobody has recorded any of the three until a production
+/// says otherwise, the same reading `screenplayLanguage` above already carries.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -169,6 +176,8 @@ part 'ocpt_project_database.g.dart';
     OcptShootingSlotGuestsTable,
     OcptShootingDayEventsTable,
     OcptProjectDictionaryWordsTable,
+    OcptBudgetPostesTable,
+    OcptBudgetLinesTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -242,7 +251,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 19;
+  static const currentSchemaVersion = 20;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -369,7 +378,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `people.maxDailyPresenceMinutes` and `project_info.minimumRestMinutes` itself already carry.
   /// The same step also creates [OcptProjectDictionaryWordsTable], the words a writer has taught
   /// this project's spell checker — a plain `createTable` on a file coming from any version, since
-  /// nothing a project already held needs migrating into it. Every step is additive, as
+  /// nothing a project already held needs migrating into it. From 19 to 20 it creates
+  /// [OcptBudgetPostesTable] and [OcptBudgetLinesTable] — both plain `createTable`s on a file coming
+  /// from any version, since the tables either one references (`budget_postes` itself, created just
+  /// above it in this same step, and `elements`, which exists by version 6 at the latest and is
+  /// created fresh above for a file older than that) always exist by the time each runs — and adds
+  /// `project_info.defaultVatRateBasisPoints`, `project_info.mealPriceCents` and
+  /// `project_info.snackPriceCents` **unconditionally** (`project_info` has existed, and been
+  /// alterable, since version 1, exactly the reason `project_info.minimumRestMinutes` and
+  /// `project_info.screenplayLanguage` above needed no guard). None of the five gets a backfill: the
+  /// two tables come out empty, and all three columns are nullable by design, so a project that
+  /// predates the budget has no budget and has recorded none of the three figures, which stays as
+  /// true after the migration as it was before it. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -580,6 +600,22 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // one, with nothing to backfill — a project migrating onto this version has taught its
         // spell checker nothing yet.
         await m.createTable(ocptProjectDictionaryWordsTable);
+      }
+
+      if (from < 20) {
+        // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
+        // (created just above) and `elements` (which exists by version 6 at the latest, and is
+        // created fresh above for a file older than that): neither `createTable` is ever a forward
+        // reference.
+        await m.createTable(ocptBudgetPostesTable);
+        await m.createTable(ocptBudgetLinesTable);
+
+        // `project_info` has existed, and been alterable, since version 1: no guard needed, exactly
+        // as `project_info.minimumRestMinutes` and `project_info.screenplayLanguage` above needed
+        // none.
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.defaultVatRateBasisPoints);
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.mealPriceCents);
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.snackPriceCents);
       }
     },
     beforeOpen: (details) async {

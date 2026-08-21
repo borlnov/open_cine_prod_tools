@@ -837,8 +837,7 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Turns the project file at [filePath] back into the file the previous build would have
-    /// written: the version 19 step's two additions taken back out, and the format number with
-    /// them.
+    /// written: the version 20 step's additions taken back out, and the format number with them.
     ///
     /// Undoing the step rather than only stamping the number down is what makes this a real
     /// migration to run — `addColumn` on a column that is already there, and `createTable` on a
@@ -847,8 +846,12 @@ void main() {
     void demoteToPreviousFormat(String filePath) {
       final database = sqlite3.open(filePath);
       database
-        ..execute("DROP TABLE project_dictionary_words")
-        ..execute("ALTER TABLE project_info DROP COLUMN screenplay_language")
+        // `budget_lines` references `budget_postes`, so it goes first.
+        ..execute("DROP TABLE budget_lines")
+        ..execute("DROP TABLE budget_postes")
+        ..execute("ALTER TABLE project_info DROP COLUMN default_vat_rate_basis_points")
+        ..execute("ALTER TABLE project_info DROP COLUMN meal_price_cents")
+        ..execute("ALTER TABLE project_info DROP COLUMN snack_price_cents")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

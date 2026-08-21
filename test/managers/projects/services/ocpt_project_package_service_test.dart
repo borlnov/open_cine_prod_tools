@@ -108,6 +108,8 @@ void main() {
       shootingSlotGuests: const [],
       shootingDayEvents: const [],
       projectDictionaryWords: const [],
+      budgetPostes: const [],
+      budgetLines: const [],
       rowFieldVersions: const [],
       pageSetup: const OcptPageSetup(
         format: OcptPageFormat.a4,
@@ -122,6 +124,9 @@ void main() {
       currencyCode: "EUR",
       minimumRestMinutes: null,
       screenplayLanguage: null,
+      defaultVatRateBasisPoints: null,
+      mealPriceCents: null,
+      snackPriceCents: null,
     ),
   );
 

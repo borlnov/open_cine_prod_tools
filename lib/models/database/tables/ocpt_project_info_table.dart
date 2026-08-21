@@ -113,6 +113,31 @@ class OcptProjectInfoTable extends Table {
   TextColumn get screenplayLanguage =>
       text().nullable().map(const OcptScreenplayLanguageConverter())();
 
+  /// The default VAT rate the budget mode applies to a line that doesn't override it, in basis
+  /// points (550 for 5.5 %), or null.
+  ///
+  /// **Nullable, and deliberately not defaulted to any rate**: this app ships in more than one
+  /// country, so no single figure could be a rate anybody here validated — the same reasoning
+  /// [minimumRestMinutes] already carries. Null means "nobody has recorded a rate", never "no VAT
+  /// applies" — that second fact is an explicit **0** a project or a line can state just as well
+  /// (`OcptBudgetLinesTable.vatRateBasisPoints`'s own doc comment), and the two are different facts
+  /// with different totals. A new project is born with this null, and the excluding-tax and VAT
+  /// figures the budget mode shows are then simply empty, exactly as `minimumRestMinutes`'s own
+  /// rest alert stays silent when it is null.
+  IntColumn get defaultVatRateBasisPoints => integer().nullable()();
+
+  /// The price of one meal, in cents, the budget mode's catering view charges per head, or null.
+  ///
+  /// Nullable for the reason [defaultVatRateBasisPoints] is: no figure here would be one this app
+  /// could validate on the production's behalf, so null means "nobody has recorded a price" and the
+  /// catering view (a coming milestone) stays silent for a day it cannot cost, rather than
+  /// advancing a price nobody typed.
+  IntColumn get mealPriceCents => integer().nullable()();
+
+  /// The price of one snack, in cents, the budget mode's catering view charges per head, or null —
+  /// [mealPriceCents]'s sibling, read the same way and for the same reason.
+  IntColumn get snackPriceCents => integer().nullable()();
+
   /// The project version the working copy descends from, or null in a project which never had one.
   ///
   /// This is what tells the `Versions` panel which of its cards is the current one: it is set when

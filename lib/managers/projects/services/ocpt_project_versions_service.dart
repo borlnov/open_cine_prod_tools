@@ -71,6 +71,8 @@ class OcptProjectVersionsService {
     'shooting_slot_guests',
     'shooting_day_events',
     'project_dictionary_words',
+    'budget_postes',
+    'budget_lines',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -339,6 +341,11 @@ class OcptProjectVersionsService {
             // The same `minimumRestMinutes` reading, not the currency's: see
             // `OcptProjectVersionPayload.screenplayLanguage`.
             screenplayLanguage: Value(payload.screenplayLanguage),
+            // Same reading again: `OcptProjectVersionPayload.defaultVatRateBasisPoints`,
+            // `.mealPriceCents` and `.snackPriceCents`.
+            defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
+            mealPriceCents: Value(payload.mealPriceCents),
+            snackPriceCents: Value(payload.snackPriceCents),
           ),
         );
 
@@ -383,6 +390,11 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptShootingDayBlocksTable, payload.shootingDayBlocks)
         ..insertAll(database.ocptShootingDayEventsTable, payload.shootingDayEvents)
         ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
+        // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
+        // (just above) and, optionally, `elements` (already inserted above): neither is a forward
+        // reference.
+        ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
+        ..insertAll(database.ocptBudgetLinesTable, payload.budgetLines)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -450,11 +462,11 @@ class OcptProjectVersionsService {
   ///
   /// The currency is written here too, **except when the payload doesn't carry one** — a version
   /// captured before currencies existed — in which case the project's own currency is left exactly
-  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest, and the
-  /// screenplay language with it, are written **unconditionally**, null included: unlike the
-  /// currency, a null here is never "this payload predates the column" — both columns are nullable
-  /// by design and null is one of their truthful values on a live capture too — so there is no live
-  /// value to leave alone.
+  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest, the screenplay
+  /// language, the default VAT rate and the two catering prices are all written
+  /// **unconditionally**, null included: unlike the currency, a null here is never "this payload
+  /// predates the column" — every one of these five columns is nullable by design and null is one
+  /// of their truthful values on a live capture too — so there is no live value to leave alone.
   ///
   /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
   /// **A restore is an edit, not a reset**, and that distinction is what the whole of
@@ -538,6 +550,9 @@ class OcptProjectVersionsService {
                 },
                 minimumRestMinutes: Value(payload.minimumRestMinutes),
                 screenplayLanguage: Value(payload.screenplayLanguage),
+                defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
+                mealPriceCents: Value(payload.mealPriceCents),
+                snackPriceCents: Value(payload.snackPriceCents),
                 currentVersionId: Value(id),
               ),
             );
@@ -625,12 +640,17 @@ class OcptProjectVersionsService {
       projectDictionaryWords: await database
           .select(database.ocptProjectDictionaryWordsTable)
           .get(),
+      budgetPostes: await database.select(database.ocptBudgetPostesTable).get(),
+      budgetLines: await database.select(database.ocptBudgetLinesTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
       currencyCode: info.currencyCode,
       minimumRestMinutes: info.minimumRestMinutes,
       screenplayLanguage: info.screenplayLanguage,
+      defaultVatRateBasisPoints: info.defaultVatRateBasisPoints,
+      mealPriceCents: info.mealPriceCents,
+      snackPriceCents: info.snackPriceCents,
     );
   }
 
@@ -700,9 +720,14 @@ class OcptProjectVersionsService {
   /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
   /// needs, not this group.
   ///
-  /// `project_dictionary_words` is restored last of all, and could just as well go anywhere else:
-  /// it references nothing, and nothing else in the schema references it back, so there is no
+  /// `project_dictionary_words` is restored next, and could just as well go anywhere else: it
+  /// references nothing, and nothing else in the schema references it back, so there is no
   /// dependency order for it to respect.
+  ///
+  /// `budget_postes` and `budget_lines` are restored last: `budget_postes` references nothing, and
+  /// `budget_lines` references `budget_postes` (restored immediately above it) and, optionally,
+  /// `elements` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — so
+  /// neither is a forward reference, and this pair closes no cycle of its own either.
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
   /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
@@ -985,6 +1010,27 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    // `budget_postes` references nothing, and `budget_lines` references `budget_postes` (restored
+    // just above) and, optionally, `elements` (restored well above, inside the asset trio's own
+    // deferred-foreign-key cycle) — neither is a forward reference.
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetPostesTable,
+      payloadRows: payload.budgetPostes,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetLinesTable,
+      payloadRows: payload.budgetLines,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await stamps.flush(database);
   }
 
@@ -1107,12 +1153,19 @@ class OcptProjectVersionsService {
       // A dictionary word names no person — only the word itself and its tombstone — so there is
       // nothing here for this scrub to reach either.
       projectDictionaryWords: payload.projectDictionaryWords,
+      // Neither a budget poste nor a budget line names a person: a line points at a poste and,
+      // optionally, an element, never at the address book. Both travel through unchanged.
+      budgetPostes: payload.budgetPostes,
+      budgetLines: payload.budgetLines,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,
       currencyCode: payload.currencyCode,
       minimumRestMinutes: payload.minimumRestMinutes,
       screenplayLanguage: payload.screenplayLanguage,
+      defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+      mealPriceCents: payload.mealPriceCents,
+      snackPriceCents: payload.snackPriceCents,
     );
   }
 
