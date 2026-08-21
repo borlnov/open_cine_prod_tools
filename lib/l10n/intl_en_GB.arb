@@ -2678,7 +2678,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectVersionsPanelSubtitle": "A version covers the screenplay, the shot list and the resources together.",
+  "projectVersionsPanelSubtitle": "A version covers the whole project at once, every mode's work together.",
   "@projectVersionsPanelSubtitle": {
     "description": "Line explaining what a project version holds",
     "context": "Displayed under the header of the versions tab of the right dock",
@@ -2851,7 +2851,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectVersionCreateDialogMessage": "This version keeps the whole project as it stands: screenplay, scene index, shot list, scenario coverage and resources.",
+  "projectVersionCreateDialogMessage": "This version keeps the whole project exactly as it stands, in every mode.",
   "@projectVersionCreateDialogMessage": {
     "description": "Message of the project version creation dialog, saying what is captured",
     "context": "Displayed in the project version creation dialog",
