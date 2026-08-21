@@ -10232,7 +10232,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCommittedSubtitle": "Money promised but not yet gone from the account.",
+  "budgetHeaderCommittedSubtitle": "What is still owed, and where the cash stands once it has all fallen due.",
   "@budgetHeaderCommittedSubtitle": {
     "description": "Subtitle of the budget mode's header band while the committed spending view is shown",
     "context": "Shown at the left of OcptBudgetHeader, under its own title",

@@ -1367,7 +1367,7 @@
   "budgetHeaderCashJournalTitle": "Trésorerie",
   "budgetHeaderCashJournalSubtitle": "Tous les mouvements passés sur le compte, par ordre de date.",
   "budgetHeaderCommittedTitle": "Engagé",
-  "budgetHeaderCommittedSubtitle": "L'argent promis mais pas encore parti du compte.",
+  "budgetHeaderCommittedSubtitle": "Ce qui reste dû, et où en est la trésorerie une fois tout échu.",
   "budgetHeaderTitle": "Devis",
   "budgetHeaderSubtitle": "Nomenclature CNC — renommez, réordonnez ou ajoutez des postes librement.",
   "budgetHeaderDashboardSegmentLabel": "Tableau de bord",

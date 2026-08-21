@@ -988,6 +988,80 @@ void main() {
       expect(restoredPerson2.isDeleted, isTrue);
     });
 
+    test("the cash journal comes back, and a movement recorded since is tombstoned", () async {
+      await database
+          .into(database.ocptBudgetPostesTable)
+          .insert(OcptBudgetPostesTableCompanion.insert(id: "poste-1", label: "Personnel"));
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry-1",
+              date: DateTime.utc(2026, 3, 12),
+              label: "Gaffer tape",
+              posteId: const Value("poste-1"),
+              debitCents: const Value(1250),
+              voucherNumber: const Value("J-001"),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetCommitmentsTable)
+          .insert(
+            OcptBudgetCommitmentsTableCompanion.insert(
+              id: "commitment-1",
+              posteId: "poste-1",
+              label: "Camera deposit",
+              amountCents: const Value(45000),
+            ),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured entry is edited, and a second one is recorded since.
+      await (database.update(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-1"))).write(
+        const OcptBudgetEntriesTableCompanion(debitCents: Value(9999)),
+      );
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry-2",
+              date: DateTime.utc(2026, 4),
+              label: "Recorded later",
+              voucherNumber: const Value("J-002"),
+            ),
+          );
+      await (database.update(
+        database.ocptBudgetCommitmentsTable,
+      )..where((table) => table.id.equals("commitment-1"))).write(
+        const OcptBudgetCommitmentsTableCompanion(amountCents: Value(1)),
+      );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // The amount comes back exactly as it was typed, to the cent.
+      final restoredEntry = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-1"))).getSingle();
+      expect(restoredEntry.debitCents, 1250);
+      expect(restoredEntry.voucherNumber, "J-001");
+
+      final restoredCommitment = await (database.select(
+        database.ocptBudgetCommitmentsTable,
+      )..where((table) => table.id.equals("commitment-1"))).getSingle();
+      expect(restoredCommitment.amountCents, 45000);
+
+      // The movement the version never held is tombstoned, not deleted.
+      final laterEntry = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-2"))).getSingle();
+      expect(laterEntry.isDeleted, isTrue);
+    });
+
     test("a role's things come back, and a link made since is tombstoned", () async {
       await database
           .into(database.ocptRolesTable)
