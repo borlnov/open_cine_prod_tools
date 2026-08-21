@@ -57,22 +57,30 @@ int ocptBudgetPosteQuotedTotalCents(OcptBudgetPoste poste) =>
 int ocptBudgetProjectQuotedTotalCents(List<OcptBudgetPoste> postes) =>
     postes.fold(0, (sum, poste) => sum + ocptBudgetPosteQuotedTotalCents(poste));
 
-/// An excluding-tax total, paired with how many of the lines it was asked to sum actually carried a
-/// known rate — `lib/utils/ocpt_budget_vat.dart`'s "null, never zero" rule applied to a whole table:
-/// a line whose rate nobody has recorded contributes to neither [amountCents] nor [coveredLineCount],
-/// so the coverage the UI reports (`10,349 € · over 2 of the 5 postes`) is a plain fact about the
-/// data, not a string this class formats.
+/// A total, paired with how many of the rows it was asked to sum actually carried a known rate —
+/// `lib/utils/ocpt_budget_vat.dart`'s "null, never zero" rule applied to a whole table: a row whose
+/// rate nobody has recorded contributes to neither [amountCents] nor [coveredLineCount], so the
+/// coverage the UI reports (`10,349 € · over 2 of the 5 postes`) is a plain fact about the data, not
+/// a string this class formats.
+///
+/// **A "line" here is any row a total was asked to sum** — a quote line
+/// (`ocptBudgetExcludingTaxTotalOf`/`ocptBudgetTotalOf`), a journal entry
+/// (`lib/utils/ocpt_budget_journal.dart`) or a commitment (`lib/utils/ocpt_budget_projection.dart`):
+/// this class is shared by all three rather than reimplemented per table, since the coverage
+/// arithmetic and the honesty it argues for are exactly the same regardless of what is being priced.
 ///
 /// **No `Tr` and no formatted string here** — `lib/utils/` is pure; the mode's own view resolves the
 /// words.
 class OcptBudgetCoveredTotal extends Equatable {
-  /// The sum of every covered line's own excluding-tax total, in cents.
+  /// The sum of every covered line's own total, in cents.
   final int amountCents;
 
-  /// How many of [lineCount] lines actually carried a known rate and were summed into [amountCents].
+  /// How many of [lineCount] lines — a quote line, a journal entry or a commitment — actually
+  /// carried a known rate and were summed into [amountCents].
   final int coveredLineCount;
 
-  /// How many lines this total was asked to sum, covered or not.
+  /// How many lines — quote lines, journal entries or commitments, whichever this total sums —
+  /// were asked for, covered or not.
   final int lineCount;
 
   /// Whether every line carried a known rate — [coveredLineCount] equals [lineCount]. Once true,
