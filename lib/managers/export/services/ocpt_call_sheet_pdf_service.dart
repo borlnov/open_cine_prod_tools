@@ -175,9 +175,13 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// to nobody in particular — printing it there would mean printing every recipient's own list on
 /// everybody else's sheet, or guessing which one the reader is.
 ///
-/// **What a named sheet narrows is the timetable, and only the timetable.** Its main table and its
-/// audition table both hold the blocks of its recipient's own slots, since that is what they are
-/// being told to turn up for — the audition table is a reading of the timetable, not a directory —
+/// **What a named sheet narrows is the timetable, and only the timetable** — twice over. Its main
+/// table and its audition table hold the blocks of its recipient's own slots, and then only the ones
+/// that recipient is actually **in**: an actor reads the shots calling a part they play, a
+/// technician reads their unit end to end, a candidate reads their own auditions, and every
+/// milestone stays for everybody ([_entriesOfRecipient]). A sheet is read down by one person to know
+/// their own day, and one handed the whole running order makes them work out which half is theirs.
+/// The audition table is a reading of that same timetable, not a directory —
 /// and **a sheet addressed to a candidate narrows both one step further, to that candidacy alone**:
 /// its audition table prints the auditions naming them and no other, and the candidates directory
 /// prints their line alone (ADR 0024). It is the one place a block-level link narrows something a
@@ -425,7 +429,17 @@ class OcptCallSheetPdfService {
     final allSlots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     final ownSlots = [for (final slot in allSlots) if (onlySlotIds.contains(slot.id)) slot];
     final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
-    final orderedEntries = ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId, onlySlotIds: onlySlotIds);
+    // Narrowed twice: to the units this recipient is on, then to what they are actually in on them
+    // ([_entriesOfRecipient]). A sheet is read down by one person to know their own day.
+    final orderedEntries = _entriesOfRecipient(
+      plan: plan,
+      convocation: convocation,
+      ownSlotEntries: ocptOrderedScheduleEntriesOfDay(
+        plan: plan,
+        dayId: dayId,
+        onlySlotIds: onlySlotIds,
+      ),
+    );
     final rows = _buildDayRows(
       plan: plan,
       orderedEntries: orderedEntries,
@@ -1930,6 +1944,90 @@ List<_CastRow> _castRowsOfDay({
 
   rows.sort((a, b) => a.role.number.compareTo(b.role.number));
   return rows;
+}
+
+/// The subset of [ownSlotEntries] a named sheet addressed to [convocation] actually prints: what
+/// its recipient is **in**, rather than everything happening on the units they are on.
+///
+/// A sheet is what one person reads down to know their own day, and an actor handed the whole
+/// running order has to work out which of its shots are theirs — which is the job the sheet was
+/// meant to do for them. Four rules, in this order:
+///
+/// - **Every milestone stays**, for everybody: preparation, hair and make-up, a meal, a break, a
+///   travel move, the wrap. Somebody who cannot see when they eat has been handed a worse sheet, not
+///   a shorter one.
+/// - **A technician keeps their whole unit.** A slot naming them as crew is a running order they
+///   work end to end, so every block of it stays whatever it plays.
+/// - **An audition stays when it names one of their own candidacies** — the same narrowing the
+///   audition table itself makes, and for the same reason: somebody else's twenty minutes is not
+///   their business.
+/// - **A shot, a hold or a rehearsal stays when it calls a part they play**, matched through
+///   `normalizeCharacterName` exactly as the main table's own `RÔLES` column and the cast table
+///   already match one.
+///
+/// **A block the app cannot resolve any part for stays**, which is the fourth rule's own escape
+/// hatch and not an oversight: a hold reserves the time of a sequence the shot list often cannot yet
+/// describe, and a scene with no shot on it names no character. Dropping it would be guessing that
+/// the recipient is not in a sequence nobody has broken down yet, and the truthful reading of "the
+/// app cannot say" is to leave the row where the production put it.
+List<OcptOrderedScheduleEntry> _entriesOfRecipient({
+  required OcptSchedulePlanSnapshot plan,
+  required OcptDayConvocation convocation,
+  required List<OcptOrderedScheduleEntry> ownSlotEntries,
+}) {
+  final personId = convocation.personId;
+
+  // The parts this recipient plays, by normalised character name: the roles cast in them, or — for
+  // an uncast convocation — the one role it names, nobody being cast in it to read through.
+  final playedNames = <String>{
+    for (final role in plan.roles)
+      if ((personId != null && role.personId == personId) || role.id == convocation.roleId)
+        normalizeCharacterName(role.name),
+  };
+
+  /// The characters a block calls, empty when the app cannot say — see the doc comment.
+  Set<String> charactersOf(OcptShootingDayBlock block) {
+    if (block.kind == OcptShootingBlockKind.shot) {
+      final shotId = block.shotId;
+      return shotId == null ? const {} : (plan.shotById(shotId)?.characters.toSet() ?? const {});
+    }
+
+    final sceneId = block.sceneId;
+    if (sceneId == null) {
+      return const {};
+    }
+
+    // A held or rehearsed sequence names no characters of its own: the app reads them off the shots
+    // it has been broken into, which is the only join `_calledRolesOfDay` makes either.
+    return {
+      for (final shot in plan.shotsById.values)
+        if (shot.sceneId == sceneId) ...shot.characters,
+    };
+  }
+
+  /// Whether [ordered] belongs on this recipient's own sheet — the four rules of the doc comment,
+  /// in order.
+  bool keeps(OcptOrderedScheduleEntry ordered) {
+    if (!ordered.block.kind.isShootingTime) {
+      return true;
+    }
+    if (personId != null && ordered.slot.crew.any((member) => member.personId == personId)) {
+      return true;
+    }
+    if (ordered.block.kind == OcptShootingBlockKind.audition) {
+      return ordered.block.candidates.any(
+        (link) => convocation.roleCandidateIds.contains(link.roleCandidateId),
+      );
+    }
+
+    final characters = charactersOf(ordered.block);
+    return characters.isEmpty || characters.intersection(playedNames).isNotEmpty;
+  }
+
+  return [
+    for (final ordered in ownSlotEntries)
+      if (keeps(ordered)) ordered,
+  ];
 }
 
 /// The audition rows of [orderedEntries]: one per candidacy every [OcptShootingBlockKind.audition]

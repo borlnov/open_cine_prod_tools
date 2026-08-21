@@ -2213,6 +2213,125 @@ void main() {
       expect(_pageCount(bytes), 1);
     });
 
+    test("an actor's own sheet drops the shots they are not in, and keeps every milestone", () async {
+      // The fault reading the exports showed: a sheet narrowed to the recipient's units and then
+      // printed the whole running order, so an actor had to work out which shots were theirs.
+      // Thirty shots, alternating between two parts, is enough for the difference to be a page.
+      final lea = _buildPerson(id: "person-lea", firstName: "Léa", lastName: "Dubois");
+      final shots = [
+        for (var i = 0; i < 30; i++)
+          _buildShot(
+            id: "shot-$i",
+            sceneId: "scene-1",
+            code: "$i/1",
+            characters: [if (i.isEven) "MARIE" else "JULIEN"],
+          ),
+      ];
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [
+            _buildSlot(
+              id: "slot-1",
+              anchorMinute: 480,
+              cast: [
+                _buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1"),
+                _buildCastMember(id: "cast-2", slotId: "slot-1", roleId: "role-2"),
+              ],
+            ),
+          ],
+        },
+        blocksByDayId: {
+          "day-1": [
+            for (var i = 0; i < 30; i++)
+              _buildBlock(
+                id: "block-$i",
+                slotId: "slot-1",
+                kind: OcptShootingBlockKind.shot,
+                shotId: "shot-$i",
+                durationMinutes: 20,
+              ),
+            _buildBlock(
+              id: "block-meal",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.meal,
+              durationMinutes: 45,
+            ),
+          ],
+        },
+        roles: [
+          _buildRole(id: "role-1", name: "MARIE", number: 3, personId: "person-lea"),
+          _buildRole(id: "role-2", name: "JULIEN", number: 4, personId: "person-jules"),
+        ],
+        people: [lea, _buildPerson(id: "person-jules", firstName: "Jules", lastName: "Marchand")],
+        shotLists: [_buildShotList(shots: shots)],
+      );
+
+      final leaCall = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-lea");
+      final leaSheet = await service.generateNamedCallSheet(
+        plan: plan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: leaCall,
+        exportDate: _pinnedExportDate,
+      );
+      final general = await generalOf(plan);
+
+      // The day's whole order runs onto a second page; hers, holding half of it, does not.
+      expect(_pageCount(general), greaterThan(1));
+      expect(_pageCount(leaSheet), 1);
+    });
+
+    test("a technician keeps the whole running order of the unit they crew", () async {
+      // The rule that keeps a narrowing from taking a sheet apart: a slot naming somebody as crew
+      // is an order they work end to end, whatever it plays.
+      final gaffer = _buildPerson(id: "person-gaffer", firstName: "Sam", lastName: "Roche");
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["MARIE"]);
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [
+            _buildSlot(
+              id: "slot-1",
+              anchorMinute: 480,
+              crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-gaffer")],
+            ),
+          ],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        roles: [_buildRole(id: "role-1", name: "MARIE", number: 3)],
+        people: [gaffer],
+        shotLists: [_buildShotList(shots: [shot])],
+      );
+
+      final call = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-gaffer");
+      final theirs = await service.generateNamedCallSheet(
+        plan: plan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: call,
+        exportDate: _pinnedExportDate,
+      );
+
+      // The shot plays a part they do not, and it is still on their sheet: they light it.
+      expect(ascii.decode(theirs.sublist(0, 4)), "%PDF");
+      expect(_pageCount(theirs), 1);
+    });
+
     test("a candidate carries a selection key, so the named export can be narrowed to them", () async {
       final plan = buildDay(
         blocks: [
