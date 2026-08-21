@@ -68,8 +68,11 @@ const List<double> _ocptCommittedStatusFillAlphas = [0, 0.12, 0.2, 1];
 /// `ocptBudgetProjectionOf` already exclude it (their own doc comments), which is why this view
 /// never re-derives that exclusion itself.
 ///
-/// Empty state: a project carrying no commitment at all shows [OcptWorkspaceEmptyMode], mirroring
-/// `OcptBudgetCashJournal`'s own reading for a journal with no entry.
+/// Empty state: a project carrying no commitment at all shows [OcptWorkspaceEmptyMode] **where the
+/// table would be, under a heading band that stays drawn** — `OcptBudgetCashJournal`'s own reading,
+/// and for its reason: `+ Commitment` lives in that band, and a list nobody has written in yet is
+/// exactly when somebody reaches for it. The projection beside it needs no such care: with nothing
+/// outstanding it already shows the balance and stops there.
 class OcptBudgetCommittedSpending extends StatelessWidget {
   /// Every live commitment, in the due-date order `OcptBudgetJournalService.loadCommitments` gives
   /// them — never reordered here.
@@ -135,15 +138,6 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-
-    if (commitments.isEmpty) {
-      return OcptWorkspaceEmptyMode(
-        icon: Icons.request_quote_outlined,
-        message: tr.budgetCommittedEmptyHint,
-      );
-    }
-
     final commitmentsColumn = _OcptCommittedCommitmentsColumn(
       commitments: commitments,
       postes: postes,
@@ -233,31 +227,38 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
           onCommitmentCreationRequested: onCommitmentCreationRequested,
         ),
         const SizedBox(height: 12),
-        const _OcptCommittedHeaderRow(),
-        Expanded(
-          child: ListView.builder(
-            itemCount: commitments.length,
-            itemBuilder: (context, index) => _OcptCommittedRow(
-              commitment: commitments[index],
-              poste: _posteById(commitments[index].posteId),
-              isSimplified: isSimplified,
-              defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-              currencyCode: currencyCode,
-              onTap: onCommitmentTapped == null
-                  ? null
-                  : () => onCommitmentTapped?.call(commitments[index]),
-              onSettleRequested: onCommitmentSettleRequested == null
-                  ? null
-                  : () => onCommitmentSettleRequested?.call(commitments[index]),
-              onUnsettleRequested: onCommitmentUnsettleRequested == null
-                  ? null
-                  : () => onCommitmentUnsettleRequested?.call(commitments[index].id),
-              onDeletionRequested: onCommitmentDeletionRequested == null
-                  ? null
-                  : () => onCommitmentDeletionRequested?.call(commitments[index].id),
+        if (commitments.isEmpty)
+          Expanded(
+            child: OcptWorkspaceEmptyMode(
+              icon: Icons.request_quote_outlined,
+              message: Tr.of(context).budgetCommittedEmptyHint,
+            ),
+          )
+        else ...[
+          const _OcptCommittedHeaderRow(),
+          Expanded(
+            child: ListView.builder(
+              itemCount: commitments.length,
+              itemBuilder: (context, index) => _OcptCommittedRow(
+                commitment: commitments[index],
+                poste: _posteById(commitments[index].posteId),
+                isSimplified: isSimplified,
+                defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                currencyCode: currencyCode,
+                onTap: onCommitmentTapped == null ? null : () => onCommitmentTapped?.call(commitments[index]),
+                onSettleRequested: onCommitmentSettleRequested == null
+                    ? null
+                    : () => onCommitmentSettleRequested?.call(commitments[index]),
+                onUnsettleRequested: onCommitmentUnsettleRequested == null
+                    ? null
+                    : () => onCommitmentUnsettleRequested?.call(commitments[index].id),
+                onDeletionRequested: onCommitmentDeletionRequested == null
+                    ? null
+                    : () => onCommitmentDeletionRequested?.call(commitments[index].id),
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -524,7 +525,9 @@ class _OcptCommittedRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Text(
-                  poste == null ? ocptBudgetEmptyValue : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+                  poste == null
+                      ? ocptBudgetEmptyValue
+                      : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(color: mutedColor),
@@ -562,20 +565,14 @@ class _OcptCommittedRow extends StatelessWidget {
                       },
                       itemBuilder: (context) => [
                         if (!isSettled && onSettleRequested != null)
-                          PopupMenuItem<String>(
-                            value: "settle",
-                            child: Text(tr.budgetCommittedSettleAction),
-                          ),
+                          PopupMenuItem<String>(value: "settle", child: Text(tr.budgetCommittedSettleAction)),
                         if (isSettled && onUnsettleRequested != null)
                           PopupMenuItem<String>(
                             value: "unsettle",
                             child: Text(tr.budgetCommittedUnsettleAction),
                           ),
                         if (onDeletionRequested != null)
-                          PopupMenuItem<String>(
-                            value: "delete",
-                            child: Text(tr.budgetCommittedDeleteAction),
-                          ),
+                          PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
                       ],
                     ),
             ),
@@ -720,9 +717,7 @@ class _OcptCommittedProjectionColumn extends StatelessWidget {
                     child: Text(
                       tr.budgetCommittedProjectionNoStepsHint,
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   )
                 : _OcptCommittedProjectionSteps(steps: projection.steps, currencyCode: currencyCode),
@@ -795,7 +790,9 @@ class _OcptCommittedProjectionStepRow extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     final dueDate = step.dueDate;
     final isNegative = step.balanceAfterCents < 0;
-    final ratio = maxAbsBalanceCents <= 0 ? 0.0 : (step.balanceAfterCents.abs() / maxAbsBalanceCents).clamp(0.0, 1.0);
+    final ratio = maxAbsBalanceCents <= 0
+        ? 0.0
+        : (step.balanceAfterCents.abs() / maxAbsBalanceCents).clamp(0.0, 1.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -934,9 +931,7 @@ class _OcptCommittedProjectionBalanceOnly extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             ocptBudgetAmountLabel(balanceCents, currencyCode),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: isNegative ? theme.colorScheme.error : null,
-            ),
+            style: theme.textTheme.titleMedium?.copyWith(color: isNegative ? theme.colorScheme.error : null),
           ),
         ],
       ),

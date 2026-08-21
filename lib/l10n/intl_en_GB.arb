@@ -10197,6 +10197,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderDashboardTitle": "Overview",
+  "@budgetHeaderDashboardTitle": {
+    "description": "Title of the budget mode's header band while the dashboard is shown",
+    "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderDashboardSubtitle": "What the production has quoted, paid and committed so far.",
+  "@budgetHeaderDashboardSubtitle": {
+    "description": "Subtitle of the budget mode's header band while the dashboard is shown",
+    "context": "Shown at the left of OcptBudgetHeader, under its own title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCashJournalTitle": "Cash journal",
+  "@budgetHeaderCashJournalTitle": {
+    "description": "Title of the budget mode's header band while the cash journal is shown",
+    "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCashJournalSubtitle": "Every movement the account has actually seen, in date order.",
+  "@budgetHeaderCashJournalSubtitle": {
+    "description": "Subtitle of the budget mode's header band while the cash journal is shown",
+    "context": "Shown at the left of OcptBudgetHeader, under its own title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCommittedTitle": "Committed",
+  "@budgetHeaderCommittedTitle": {
+    "description": "Title of the budget mode's header band while the committed spending view is shown",
+    "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCommittedSubtitle": "Money promised but not yet gone from the account.",
+  "@budgetHeaderCommittedSubtitle": {
+    "description": "Subtitle of the budget mode's header band while the committed spending view is shown",
+    "context": "Shown at the left of OcptBudgetHeader, under its own title",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetHeaderTitle": "Quote",
   "@budgetHeaderTitle": {
     "description": "Title of the budget mode's own header band",

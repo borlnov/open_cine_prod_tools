@@ -97,6 +97,34 @@ void main() {
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
   });
 
+  testWidgets("an empty journal still offers the action that fills it", (tester) async {
+    var created = 0;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetCashJournal(
+          entries: const [],
+          postes: const [],
+          receiptsByEntryId: const {},
+          selectedPosteId: null,
+          isSimplified: false,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          isReadOnly: false,
+          onFilterCleared: () {},
+          onEntryCreationRequested: () => created++,
+          onEntryTapped: (_) {},
+          onEntryDeletionRequested: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+    await tester.tap(find.text(tr.budgetCashJournalEntryCreationAction));
+
+    expect(created, 1);
+  });
+
   testWidgets(
     "the running balance printed for a filtered row is the whole journal's, not the filtered "
     "subset's",

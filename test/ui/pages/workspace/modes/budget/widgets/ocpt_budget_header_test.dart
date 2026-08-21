@@ -126,24 +126,47 @@ void main() {
     expect(reported, OcptBudgetTaxBasis.excludingTax);
   });
 
-  testWidgets("shows the header's own title and subtitle on a wide window", (tester) async {
+  testWidgets("the title and subtitle name the view on screen, not the mode", (tester) async {
     useWideWindow(tester);
 
-    await tester.pumpWidget(
-      _wrap(
-        OcptBudgetHeader(
-          centreView: OcptBudgetCentreView.dashboard,
-          onCentreViewSelected: (_) {},
-          isSimplified: false,
-          onSimplifiedChanged: (_) {},
-          taxBasis: OcptBudgetTaxBasis.includingTax,
-          onTaxBasisChanged: (_) {},
+    /// Pumps the header on [view] and answers the words it drew.
+    Future<Tr> pumpOn(OcptBudgetCentreView view) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetHeader(
+            centreView: view,
+            onCentreViewSelected: (_) {},
+            isSimplified: false,
+            onSimplifiedChanged: (_) {},
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            onTaxBasisChanged: (_) {},
+          ),
         ),
-      ),
-    );
+      );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+      return Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    }
+
+    var tr = await pumpOn(OcptBudgetCentreView.dashboard);
+    expect(find.text(tr.budgetHeaderDashboardTitle), findsOneWidget);
+    expect(find.text(tr.budgetHeaderDashboardSubtitle), findsOneWidget);
+
+    tr = await pumpOn(OcptBudgetCentreView.costTracking);
     expect(find.text(tr.budgetHeaderTitle), findsOneWidget);
+    expect(find.text(tr.budgetHeaderSubtitle), findsOneWidget);
+
+    // `findsWidgets`, not `findsOneWidget`: these two titles are word for word their own view
+    // chip's label, which is drawn in the same band.
+    tr = await pumpOn(OcptBudgetCentreView.cashJournal);
+    expect(find.text(tr.budgetHeaderCashJournalTitle), findsWidgets);
+    expect(find.text(tr.budgetHeaderCashJournalSubtitle), findsOneWidget);
+    // The band must not go on announcing the nomenclature over a list of bank movements.
+    expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
+
+    tr = await pumpOn(OcptBudgetCentreView.committed);
+    expect(find.text(tr.budgetHeaderCommittedTitle), findsWidgets);
+    expect(find.text(tr.budgetHeaderCommittedSubtitle), findsOneWidget);
+    expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
   });
 
   // The narrow-window case (title/subtitle shed, the three controls kept) is

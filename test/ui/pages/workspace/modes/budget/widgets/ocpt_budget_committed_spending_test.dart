@@ -103,6 +103,21 @@ void main() {
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
   });
 
+  testWidgets("an empty list still offers the action that fills it", (tester) async {
+    var created = 0;
+
+    await pumpView(
+      tester,
+      commitments: const [],
+      onCommitmentCreationRequested: () => created++,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetCommittedSpending)));
+    await tester.tap(find.text(tr.budgetCommittedCreationAction));
+
+    expect(created, 1);
+  });
+
   testWidgets(
     "a settled commitment stays listed but is excluded from the outstanding total and the projection",
     (tester) async {

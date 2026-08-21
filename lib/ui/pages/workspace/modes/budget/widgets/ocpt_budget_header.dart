@@ -93,13 +93,13 @@ class OcptBudgetHeader extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        tr.budgetHeaderTitle,
+                        _titleOf(tr),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium,
                       ),
                       Text(
-                        tr.budgetHeaderSubtitle,
+                        _subtitleOf(tr),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -122,6 +122,31 @@ class OcptBudgetHeader extends StatelessWidget {
       ),
     );
   }
+
+  /// The band's own title, naming **the view currently on screen** rather than the mode.
+  ///
+  /// At M1 this was the single word `Quote`, which was true of both views the mode then had. It
+  /// stopped being true the moment the cash journal and the committed spending joined them: a band
+  /// announcing the CNC nomenclature over a list of bank movements states something the screen
+  /// plainly contradicts, and a reader trusts the band before they trust their own reading of the
+  /// table.
+  String _titleOf(Tr tr) => switch (centreView) {
+    OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardTitle,
+    OcptBudgetCentreView.costTracking => tr.budgetHeaderTitle,
+    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalTitle,
+    OcptBudgetCentreView.committed => tr.budgetHeaderCommittedTitle,
+  };
+
+  /// The band's own subtitle, following [_titleOf]'s own view — see its doc comment.
+  ///
+  /// `costTracking` keeps the pair the band has always carried: that view really is the CNC
+  /// nomenclature, and its wording was never the thing that went wrong.
+  String _subtitleOf(Tr tr) => switch (centreView) {
+    OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardSubtitle,
+    OcptBudgetCentreView.costTracking => tr.budgetHeaderSubtitle,
+    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalSubtitle,
+    OcptBudgetCentreView.committed => tr.budgetHeaderCommittedSubtitle,
+  };
 }
 
 /// One segment of any of this header's three switches — a small bordered rounded container, the

@@ -58,8 +58,11 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// withheld: it only clears a selection already held in memory, exactly as the header's own toggles
 /// write nothing to the project either.
 ///
-/// Empty state: a project carrying no entry at all shows [OcptWorkspaceEmptyMode], mirroring
-/// `OcptBudgetDashboard`'s own reading for a project with no poste.
+/// Empty state: a project carrying no entry at all shows [OcptWorkspaceEmptyMode] **in the table's
+/// place, under a top band that stays drawn**. The band is where `+ Entry` lives, and a journal
+/// that has never been written in is precisely the moment somebody needs it: withholding it would
+/// open this view onto a hint and no way to act on it. The dashboard can return the empty state as
+/// its whole body because it writes nothing at all; this view cannot.
 class OcptBudgetCashJournal extends StatelessWidget {
   /// Every live entry of the whole journal, in the chronological order
   /// `OcptBudgetJournalService.loadEntries` already gives them — never reordered or pre-filtered by
@@ -129,19 +132,15 @@ class OcptBudgetCashJournal extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    if (entries.isEmpty) {
-      return OcptWorkspaceEmptyMode(
-        icon: Icons.account_balance_wallet_outlined,
-        message: tr.budgetCashJournalEmptyHint,
-      );
-    }
-
     final rows = ocptBudgetJournalRowsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
     final totals = ocptBudgetCashTotalsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
     final selectedPosteId = this.selectedPosteId;
     final filteredRows = selectedPosteId == null
         ? rows
-        : [for (final row in rows) if (row.entry.posteId == selectedPosteId) row];
+        : [
+            for (final row in rows)
+              if (row.entry.posteId == selectedPosteId) row,
+          ];
     final selectedPoste = _posteById(selectedPosteId);
 
     return Column(
@@ -158,7 +157,12 @@ class OcptBudgetCashJournal extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: filteredRows.isEmpty
+          child: entries.isEmpty
+              ? OcptWorkspaceEmptyMode(
+                  icon: Icons.account_balance_wallet_outlined,
+                  message: tr.budgetCashJournalEmptyHint,
+                )
+              : filteredRows.isEmpty
               ? Center(
                   child: Text(
                     tr.budgetInspectorRelatedEntriesEmptyHint,
@@ -269,14 +273,15 @@ class _OcptCashJournalTopBand extends StatelessWidget {
               style: theme.textTheme.bodySmall,
             ),
           ),
-          TextButton(
-            onPressed: onFilterCleared,
-            child: Text(tr.budgetCashJournalRemoveFilterAction),
-          ),
+          TextButton(onPressed: onFilterCleared, child: Text(tr.budgetCashJournalRemoveFilterAction)),
         ] else
           const Spacer(),
         const SizedBox(width: 16),
-        _figure(context, tr.budgetCashJournalDebitLabel, ocptBudgetAmountLabel(totals.debitCents, currencyCode)),
+        _figure(
+          context,
+          tr.budgetCashJournalDebitLabel,
+          ocptBudgetAmountLabel(totals.debitCents, currencyCode),
+        ),
         const SizedBox(width: 20),
         _figure(
           context,
@@ -351,7 +356,10 @@ class _OcptCashJournalHeaderRow extends StatelessWidget {
         height: _ocptCashJournalHeaderRowHeight,
         child: Row(
           children: [
-            SizedBox(width: _ocptCashJournalDateColumnWidth, child: Text(tr.budgetCashJournalColumnDate.toUpperCase(), style: labelStyle)),
+            SizedBox(
+              width: _ocptCashJournalDateColumnWidth,
+              child: Text(tr.budgetCashJournalColumnDate.toUpperCase(), style: labelStyle),
+            ),
             SizedBox(
               width: _ocptCashJournalVoucherColumnWidth,
               child: Text(tr.budgetCashJournalColumnVoucher.toUpperCase(), style: labelStyle),
