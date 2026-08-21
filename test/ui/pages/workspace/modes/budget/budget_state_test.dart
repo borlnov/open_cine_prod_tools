@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
@@ -200,6 +202,58 @@ void main() {
 
       expect(state.paidCentsOf("poste-1"), 0);
       expect(state.committedCentsOf("poste-1"), 0);
+    });
+
+    test("excludes a settled commitment outright", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1")],
+        entries: const [],
+        commitments: [
+          const OcptBudgetCommitment(
+            id: "commitment-1",
+            dueDate: null,
+            label: "Camera deposit",
+            posteId: "poste-1",
+            amount: OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
+            status: OcptBudgetCommitmentStatus.quoteAccepted,
+            settledEntryId: "entry-1",
+            sortKey: "a0",
+          ),
+        ],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.committedCentsOf("poste-1"), 0);
+    });
+  });
+
+  group("OcptBudgetState.commitments", () {
+    test("reads the snapshot's own commitments, empty while nothing is loaded", () {
+      const emptyState = OcptBudgetState.init();
+      expect(emptyState.commitments, isEmpty);
+
+      final commitment = OcptBudgetCommitment(
+        id: "commitment-1",
+        dueDate: DateTime(2026),
+        label: "Camera deposit",
+        posteId: "poste-1",
+        amount: const OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
+        status: OcptBudgetCommitmentStatus.quoteAccepted,
+        settledEntryId: null,
+        sortKey: "a0",
+      );
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1")],
+        entries: const [],
+        commitments: [commitment],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.commitments, [commitment]);
     });
   });
 }

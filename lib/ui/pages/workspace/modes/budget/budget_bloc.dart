@@ -162,6 +162,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetEntryUpdateConfirmedEvent>(_onEntryUpdateConfirmed);
     on<OcptBudgetEntryDeletionConfirmedEvent>(_onEntryDeletionConfirmed);
     on<OcptBudgetCashJournalFilterClearedEvent>(_onCashJournalFilterCleared);
+    on<OcptBudgetCommitmentCreationConfirmedEvent>(_onCommitmentCreationConfirmed);
+    on<OcptBudgetCommitmentUpdateConfirmedEvent>(_onCommitmentUpdateConfirmed);
+    on<OcptBudgetCommitmentDeletionConfirmedEvent>(_onCommitmentDeletionConfirmed);
+    on<OcptBudgetCommitmentSettlementConfirmedEvent>(_onCommitmentSettlementConfirmed);
+    on<OcptBudgetCommitmentUnsettleRequestedEvent>(_onCommitmentUnsettleRequested);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -798,6 +803,132 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ) async {
     await _flushPendingFieldEdits(emitter);
     emitter(state.copyWith(clearSelectedPosteId: true, clearExpandedLineId: true));
+  }
+
+  /// Creates a new commitment from `event.fields`.
+  Future<void> _onCommitmentCreationConfirmed(
+    OcptBudgetCommitmentCreationConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    await _budgetJournalService.createCommitment(
+      database: project.database,
+      posteId: fields.posteId,
+      label: fields.label,
+      dueDate: fields.dueDate,
+      amountCents: fields.amountCents,
+      isTaxInclusive: fields.isTaxInclusive,
+      vatRateBasisPoints: fields.vatRateBasisPoints,
+      status: fields.status,
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes `event.fields` onto commitment `event.commitmentId` — `fields.posteId` is never sent
+  /// on, see `OcptBudgetCommitmentUpdateConfirmedEvent`'s own doc comment.
+  Future<void> _onCommitmentUpdateConfirmed(
+    OcptBudgetCommitmentUpdateConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    await _budgetJournalService.updateCommitment(
+      database: project.database,
+      commitmentId: event.commitmentId,
+      dueDate: Value(fields.dueDate),
+      label: Value(fields.label),
+      amountCents: Value(fields.amountCents),
+      isTaxInclusive: Value(fields.isTaxInclusive),
+      vatRateBasisPoints: Value(fields.vatRateBasisPoints),
+      status: Value(fields.status),
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Deletes commitment `event.commitmentId` for good, confirmed by the mode's own
+  /// `OcptConfirmDialog`.
+  Future<void> _onCommitmentDeletionConfirmed(
+    OcptBudgetCommitmentDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetJournalService.deleteCommitment(
+      database: project.database,
+      commitmentId: event.commitmentId,
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Records commitment `event.commitmentId`'s own payment: creates the journal entry
+  /// `event.fields` describes and, once it exists, points the commitment's own `settledEntryId` at
+  /// it — one dispatched event, two writes, then one reload. A write refused by the preview guard
+  /// (`createEntry` answering null) skips the second write rather than linking a commitment to an
+  /// entry that was never actually created.
+  Future<void> _onCommitmentSettlementConfirmed(
+    OcptBudgetCommitmentSettlementConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    final entryId = await _budgetJournalService.createEntry(
+      database: project.database,
+      date: fields.date,
+      label: fields.label,
+      posteId: fields.posteId,
+      debitCents: fields.isDebit ? fields.amountCents : 0,
+      creditCents: fields.isDebit ? 0 : fields.amountCents,
+      isTaxInclusive: fields.isTaxInclusive,
+      vatRateBasisPoints: fields.vatRateBasisPoints,
+    );
+
+    if (entryId != null) {
+      await _budgetJournalService.updateCommitment(
+        database: project.database,
+        commitmentId: event.commitmentId,
+        settledEntryId: Value(entryId),
+      );
+    }
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Undoes commitment `event.commitmentId`'s own settlement: clears `settledEntryId` back to null
+  /// alone, the journal entry it named untouched — see
+  /// `OcptBudgetCommitmentUnsettleRequestedEvent`'s own doc comment.
+  Future<void> _onCommitmentUnsettleRequested(
+    OcptBudgetCommitmentUnsettleRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetJournalService.updateCommitment(
+      database: project.database,
+      commitmentId: event.commitmentId,
+      settledEntryId: const Value(null),
+    );
+    await _applyBudgetSnapshot(emitter, project);
   }
 
   /// Re-reads the quote of [project] and applies it, reconciling

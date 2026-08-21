@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:flutter/material.dart' show Color, ColorScheme;
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
 /// The placeholder shown in place of a budget figure that cannot be read at all — this mode's own
 /// instance of `ocptResourcesEmptyValue`: an empty cell reads as a rendering bug, an em dash reads
@@ -97,6 +99,33 @@ List<OcptBudgetPosteSeed> ocptBudgetCncPosteSeeds(Tr tr) => [
 /// null, and false answers [OcptBudgetPoste.label] outright.
 String ocptBudgetPosteDisplayLabel(OcptBudgetPoste poste, {required bool isSimplified}) =>
     isSimplified ? (poste.simpleLabel ?? poste.label) : poste.label;
+
+/// [status]'s own localized word — shared between the committed-spending view's own status badge
+/// and the commitment dialog's own status picker, lifted here so both always agree on the wording
+/// rather than each resolving it independently.
+String ocptBudgetCommitmentStatusLabel(Tr tr, OcptBudgetCommitmentStatus status) => switch (status) {
+  OcptBudgetCommitmentStatus.quoteAccepted => tr.budgetCommittedStatusQuoteAcceptedLabel,
+  OcptBudgetCommitmentStatus.contractSigned => tr.budgetCommittedStatusContractSignedLabel,
+  OcptBudgetCommitmentStatus.invoiceReceived => tr.budgetCommittedStatusInvoiceReceivedLabel,
+  OcptBudgetCommitmentStatus.declared => tr.budgetCommittedStatusDeclaredLabel,
+};
+
+/// [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex — from the
+/// lightest step (a mere quote accepted) to the one nearest to being paid (declared).
+///
+/// Reads [OcptBudgetCommitmentStatus.index] as the weight to paint: that enum's own doc comment
+/// already orders its four values exactly as the mockup's own four steps do, each one further along
+/// the road to being money out of the door than the last, so this mirrors that declared order
+/// rather than re-deriving which of two statuses reads heavier.
+Color ocptBudgetCommitmentStatusAccentColor(
+  ColorScheme colorScheme,
+  OcptBudgetCommitmentStatus status,
+) => switch (status) {
+  OcptBudgetCommitmentStatus.quoteAccepted => colorScheme.onSurfaceVariant,
+  OcptBudgetCommitmentStatus.contractSigned => colorScheme.secondary,
+  OcptBudgetCommitmentStatus.invoiceReceived => colorScheme.tertiary,
+  OcptBudgetCommitmentStatus.declared => colorScheme.primary,
+};
 
 /// [cents] formatted as a **displayed** amount in [currencyCode]: grouped, carrying the currency
 /// symbol — `NumberFormat.simpleCurrency`, the precedent `OcptElementSheetSourcingCard` sets for

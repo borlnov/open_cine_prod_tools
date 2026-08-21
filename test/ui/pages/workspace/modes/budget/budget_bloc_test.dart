@@ -13,8 +13,10 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
@@ -584,6 +586,197 @@ void main() {
       final state = await waitForState(bloc, (state) => state.selectedPosteId == null);
 
       expect(state.selectedPosteId, isNull);
+    });
+  });
+
+  group("creating a commitment", () {
+    test("writes every field, defaulting settledEntryId to null", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetCommitmentCreationConfirmedEvent(
+          fields: OcptBudgetCommitmentFormFields(
+            dueDate: DateTime(2026, 6),
+            label: "Camera deposit",
+            posteId: posteId,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            status: OcptBudgetCommitmentStatus.quoteAccepted,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+
+      expect(state.commitments, hasLength(1));
+      final commitment = state.commitments.single;
+      expect(commitment.label, "Camera deposit");
+      expect(commitment.posteId, posteId);
+      expect(commitment.amount.amountCents, 5000);
+      expect(commitment.status, OcptBudgetCommitmentStatus.quoteAccepted);
+      expect(commitment.isSettled, isFalse);
+    });
+  });
+
+  group("editing a commitment", () {
+    test("writes every field back, never the poste", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId,
+        label: "Original",
+        amountCents: 1000,
+      );
+      expect(commitmentId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetCommitmentUpdateConfirmedEvent(
+          commitmentId: commitmentId!,
+          fields: OcptBudgetCommitmentFormFields(
+            dueDate: DateTime(2026, 3),
+            label: "Renamed",
+            posteId: posteId,
+            amountCents: 750,
+            isTaxInclusive: false,
+            vatRateBasisPoints: 2000,
+            status: OcptBudgetCommitmentStatus.invoiceReceived,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.commitments.single.label == "Renamed");
+
+      final commitment = state.commitments.single;
+      expect(commitment.posteId, posteId);
+      expect(commitment.amount.amountCents, 750);
+      expect(commitment.amount.isTaxInclusive, isFalse);
+      expect(commitment.amount.vatRateBasisPoints, 2000);
+      expect(commitment.status, OcptBudgetCommitmentStatus.invoiceReceived);
+    });
+  });
+
+  group("deleting a commitment", () {
+    test("tombstones it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId,
+        label: "To be deleted",
+        amountCents: 500,
+      );
+      expect(commitmentId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+
+      bloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitmentId!));
+      final state = await waitForState(bloc, (state) => state.commitments.isEmpty);
+
+      expect(state.commitments, isEmpty);
+    });
+  });
+
+  group("settling a commitment", () {
+    test("creates a debit entry and links it as settledEntryId", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId,
+        label: "Camera deposit",
+        amountCents: 5000,
+      );
+      expect(commitmentId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetCommitmentSettlementConfirmedEvent(
+          commitmentId: commitmentId!,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 4),
+            label: "Camera deposit",
+            posteId: posteId,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.commitments.single.isSettled);
+
+      expect(state.entries, hasLength(1));
+      final entry = state.entries.single;
+      expect(entry.debitCents, 5000);
+      expect(entry.creditCents, 0);
+      final commitment = state.commitments.single;
+      expect(commitment.settledEntryId, entry.id);
+      // Settled, it no longer counts as committed against the poste.
+      expect(state.committedCentsOf(posteId), 0);
+    });
+  });
+
+  group("unsettling a commitment", () {
+    test("clears the link but leaves the journal entry alone", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId,
+        label: "Camera deposit",
+        amountCents: 5000,
+      );
+      expect(commitmentId, isNotNull);
+      final entryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026, 4),
+        label: "Camera deposit",
+        posteId: posteId,
+        debitCents: 5000,
+      );
+      expect(entryId, isNotNull);
+      await projectsManager.budgetJournalService.updateCommitment(
+        database: project.database,
+        commitmentId: commitmentId!,
+        settledEntryId: drift.Value(entryId),
+      );
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.commitments.isNotEmpty && state.commitments.single.isSettled);
+
+      bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId));
+      final state = await waitForState(bloc, (state) => !state.commitments.single.isSettled);
+
+      expect(state.commitments.single.settledEntryId, isNull);
+      // The journal entry itself is untouched.
+      expect(state.entries, hasLength(1));
+      expect(state.entries.single.id, entryId);
     });
   });
 }

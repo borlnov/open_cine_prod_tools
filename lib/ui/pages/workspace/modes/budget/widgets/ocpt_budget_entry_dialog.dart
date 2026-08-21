@@ -40,9 +40,19 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// muted line says the reference is minted automatically — since `OcptBudgetJournalService
 /// .createEntry` mints one itself; editing an existing entry can retype it, since a user may need it
 /// to match a paper trail the minted reference doesn't.
+///
+/// **[prefill] seeds a fresh entry's own fields without editing one already stored.** The
+/// committed-spending view's own `Settle` action opens this dialog to record a commitment's
+/// payment: today's date, the commitment's own label, poste, amount, tax basis and rate, as a debit
+/// — [prefill] carries exactly that, read the moment `initState` runs, same as [existing] would be.
+/// [existing] wins whenever both are given, though the mode never actually hands in both: settling
+/// a commitment always opens a **fresh** entry, never an existing one.
 class OcptBudgetEntryDialog extends StatefulWidget {
   /// The entry being edited, or null while creating a new one.
   final OcptBudgetEntry? existing;
+
+  /// Seeds a fresh entry's own fields while [existing] is null — see the class doc comment.
+  final OcptBudgetEntryFormFields? prefill;
 
   /// Every live poste of the project, offered by the `Poste` picker alongside its own explicit "no
   /// poste" choice.
@@ -63,6 +73,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   const OcptBudgetEntryDialog({
     super.key,
     required this.existing,
+    this.prefill,
     required this.postes,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
@@ -73,6 +84,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   static Future<OcptBudgetEntryFormFields?> show(
     BuildContext context, {
     required OcptBudgetEntry? existing,
+    OcptBudgetEntryFormFields? prefill,
     required List<OcptBudgetPoste> postes,
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
@@ -81,6 +93,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetEntryDialog(
       existing: existing,
+      prefill: prefill,
       postes: postes,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -127,21 +140,22 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     super.initState();
 
     final existing = widget.existing;
+    final prefill = widget.prefill;
     final now = DateTime.now();
 
-    _date = existing == null ? DateTime(now.year, now.month, now.day) : existing.date;
-    _posteId = existing?.posteId;
-    _isDebit = existing == null || existing.debitCents > 0;
-    _isTaxInclusive = existing?.isTaxInclusive ?? true;
+    _date = existing?.date ?? prefill?.date ?? DateTime(now.year, now.month, now.day);
+    _posteId = existing?.posteId ?? prefill?.posteId;
+    _isDebit = existing != null ? existing.debitCents > 0 : (prefill?.isDebit ?? true);
+    _isTaxInclusive = existing?.isTaxInclusive ?? prefill?.isTaxInclusive ?? true;
 
-    _labelController = TextEditingController(text: existing?.label ?? "");
+    _labelController = TextEditingController(text: existing?.label ?? prefill?.label ?? "");
     _amountController = TextEditingController(
-      text: existing == null
-          ? ""
-          : ocptCostTextOf(existing.debitCents > 0 ? existing.debitCents : existing.creditCents),
+      text: existing != null
+          ? ocptCostTextOf(existing.debitCents > 0 ? existing.debitCents : existing.creditCents)
+          : ocptCostTextOf(prefill?.amountCents),
     );
     _vatRateController = TextEditingController(
-      text: ocptVatRatePercentTextOf(existing?.vatRateBasisPoints),
+      text: ocptVatRatePercentTextOf(existing?.vatRateBasisPoints ?? prefill?.vatRateBasisPoints),
     );
     if (existing != null) {
       _voucherController = TextEditingController(text: existing.voucherNumber);

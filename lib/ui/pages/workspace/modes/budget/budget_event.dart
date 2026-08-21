@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
@@ -345,4 +346,93 @@ class OcptBudgetEntryDeletionConfirmedEvent extends OcptBudgetEvent {
 class OcptBudgetCashJournalFilterClearedEvent extends OcptBudgetEvent {
   /// Class constructor
   const OcptBudgetCashJournalFilterClearedEvent();
+}
+
+/// Creates a new commitment from [fields], dispatched by the mode once
+/// `OcptBudgetCommitmentDialog` returned a result for a fresh commitment — mirrors
+/// `OcptBudgetEntryCreationConfirmedEvent`'s own "written the moment it is dispatched" reading.
+class OcptBudgetCommitmentCreationConfirmedEvent extends OcptBudgetEvent {
+  /// Every field the dialog collected.
+  final OcptBudgetCommitmentFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetCommitmentCreationConfirmedEvent({required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fields];
+}
+
+/// Writes [fields] onto commitment [commitmentId], dispatched by the mode once
+/// `OcptBudgetCommitmentDialog` returned a result for an existing commitment it was opened to edit.
+/// [fields]' own `posteId` is never sent on: `OcptBudgetJournalService.updateCommitment` carries no
+/// such parameter, a commitment's own poste being fixed the moment it is created
+/// (`OcptBudgetCommitmentFormFields.posteId`'s own doc comment).
+class OcptBudgetCommitmentUpdateConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the commitment being edited.
+  final String commitmentId;
+
+  /// Every field the dialog collected.
+  final OcptBudgetCommitmentFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetCommitmentUpdateConfirmedEvent({required this.commitmentId, required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, commitmentId, fields];
+}
+
+/// Deletes commitment [commitmentId] for good, dispatched by the mode once its own
+/// `OcptConfirmDialog` has already been answered — mirrors
+/// `OcptBudgetEntryDeletionConfirmedEvent`.
+class OcptBudgetCommitmentDeletionConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the commitment to delete.
+  final String commitmentId;
+
+  /// Class constructor
+  const OcptBudgetCommitmentDeletionConfirmedEvent({required this.commitmentId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, commitmentId];
+}
+
+/// Records commitment [commitmentId]'s own payment, dispatched by the mode once
+/// `OcptBudgetEntryDialog` returned a result for the fresh entry it was opened pre-filled with, from
+/// its row's own `Settle` action. The bloc creates the journal entry [fields] describes **and**
+/// points the commitment's own `settledEntryId` at it, in the one handler this event reaches, then
+/// reloads once — one dispatched event, two writes.
+class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the commitment being settled.
+  final String commitmentId;
+
+  /// Every field the entry dialog collected for the payment itself.
+  final OcptBudgetEntryFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetCommitmentSettlementConfirmedEvent({
+    required this.commitmentId,
+    required this.fields,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, commitmentId, fields];
+}
+
+/// Undoes commitment [commitmentId]'s own settlement, dispatched by its row's own `Undo settlement`
+/// action — clears `settledEntryId` back to null alone. **The journal entry it named is never
+/// touched**: it is a movement that either happened or did not, and the journal is where it is
+/// deleted, if it should be — this event only forgets the link, not the payment.
+class OcptBudgetCommitmentUnsettleRequestedEvent extends OcptBudgetEvent {
+  /// The id of the commitment to unsettle.
+  final String commitmentId;
+
+  /// Class constructor
+  const OcptBudgetCommitmentUnsettleRequestedEvent({required this.commitmentId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, commitmentId];
 }

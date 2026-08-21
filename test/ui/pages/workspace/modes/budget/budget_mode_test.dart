@@ -110,6 +110,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Switches the centre to the committed-spending view.
+  Future<void> openCommitted(WidgetTester tester) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tester.tap(find.text(tr.budgetHeaderCommittedSegmentLabel));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets("the ten CNC postes are seeded and shown on first entry", (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -321,6 +328,204 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
       expect(find.text(tr.budgetPosteCreationAction), findsNothing);
+      expect(find.byType(PopupMenuButton<String>), findsNothing);
+
+      // Leave the preview so the working copy is what the next test opens onto.
+      await projectsManager.exitPreview();
+    },
+  );
+
+  testWidgets("creating a commitment through its own dialog shows it in the table", (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // The committed-spending view's own empty state offers no `+ Commitment` action at all
+    // (mirrors the cash journal's own reading), so a commitment is seeded first to reach the
+    // working table this test actually exercises.
+    final project = projectsManager.currentProject!;
+    final posteId = await projectsManager.budgetQuoteService.createPoste(
+      database: project.database,
+      label: "Camera",
+    );
+    expect(posteId, isNotNull);
+    await projectsManager.budgetJournalService.createCommitment(
+      database: project.database,
+      posteId: posteId!,
+      label: "Seed commitment",
+      amountCents: 100,
+    );
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+    await openCommitted(tester);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tester.tap(find.text(tr.budgetCommittedCreationAction));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+      "Camera deposit",
+    );
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Camera").last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
+      "50.00",
+    );
+    await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Camera deposit"), findsOneWidget);
+  });
+
+  testWidgets("deleting a commitment asks through OcptConfirmDialog", (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final project = projectsManager.currentProject!;
+    final posteId = await projectsManager.budgetQuoteService.createPoste(
+      database: project.database,
+      label: "Camera",
+    );
+    expect(posteId, isNotNull);
+    await projectsManager.budgetJournalService.createCommitment(
+      database: project.database,
+      posteId: posteId!,
+      label: "To be deleted",
+      amountCents: 500,
+    );
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+    await openCommitted(tester);
+
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tester.tap(find.text(tr.budgetCommittedDeleteAction));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptConfirmDialog), findsOneWidget);
+    expect(find.text(tr.budgetDeleteCommitmentConfirmTitle), findsOneWidget);
+
+    // Cancelling leaves the commitment in place.
+    await tester.tap(find.text(tr.budgetDeleteCancelAction));
+    await tester.pumpAndSettle();
+    expect(find.text("To be deleted"), findsOneWidget);
+
+    // Confirming removes it, and the view falls back to the shared empty state.
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.budgetCommittedDeleteAction));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.budgetDeleteConfirmAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text("To be deleted"), findsNothing);
+    expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
+  });
+
+  testWidgets(
+    "settling a commitment records a debit entry and links it; unsettling leaves the entry alone",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final posteId = await projectsManager.budgetQuoteService.createPoste(
+        database: project.database,
+        label: "Camera",
+      );
+      expect(posteId, isNotNull);
+      await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId!,
+        label: "Camera deposit",
+        amountCents: 5000,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openCommitted(tester);
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      await tester.tap(find.byType(PopupMenuButton<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetCommittedSettleAction));
+      await tester.pumpAndSettle();
+
+      // The entry dialog opened pre-filled from the commitment.
+      expect(find.widgetWithText(TextFormField, "Camera deposit"), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, "50.00"), findsOneWidget);
+
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
+
+      // The commitment now reads Settled, and Settle is no longer offered.
+      expect(find.text(tr.budgetCommittedStatusSettledLabel), findsOneWidget);
+
+      // The journal now carries the debit this settlement created.
+      await openCashJournal(tester);
+      expect(find.text("Camera deposit"), findsOneWidget);
+
+      // Undoing the settlement leaves the entry in place.
+      await openCommitted(tester);
+      await tester.tap(find.byType(PopupMenuButton<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetCommittedUnsettleAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetCommittedStatusSettledLabel), findsNothing);
+
+      await openCashJournal(tester);
+      expect(find.text("Camera deposit"), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "withholds every committed-spending writing affordance under a previewed version",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final posteId = await projectsManager.budgetQuoteService.createPoste(
+        database: project.database,
+        label: "Camera",
+      );
+      expect(posteId, isNotNull);
+      await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId!,
+        label: "Frozen commitment",
+        amountCents: 500,
+      );
+
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+      final versionId = version!.id;
+      final previewResult = await projectsManager.previewVersion(versionId);
+      expect(previewResult.status.isSuccess, isTrue);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openCommitted(tester);
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      expect(find.text("Frozen commitment"), findsOneWidget);
+      expect(find.text(tr.budgetCommittedCreationAction), findsNothing);
       expect(find.byType(PopupMenuButton<String>), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.

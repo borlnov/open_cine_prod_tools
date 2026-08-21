@@ -9,7 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
@@ -20,6 +22,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_committed_spending.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
@@ -263,6 +267,7 @@ class _BudgetViewState extends State<_BudgetView> {
               OcptBudgetCentreView.dashboard => _buildDashboard(context, state),
               OcptBudgetCentreView.costTracking => _buildCostTracking(context, state),
               OcptBudgetCentreView.cashJournal => _buildCashJournal(context, state),
+              OcptBudgetCentreView.committed => _buildCommittedSpending(context, state),
             },
           ),
         ),
@@ -445,6 +450,152 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
+  }
+
+  /// Builds the committed-spending view.
+  Widget _buildCommittedSpending(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptBudgetCommittedSpending(
+      commitments: state.commitments,
+      postes: state.postes,
+      openingBalanceCents: state.cashTotals.balanceCents,
+      isSimplified: state.isSimplified,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      currencyCode: state.currencyCode,
+      isReadOnly: isReadOnly,
+      onCommitmentCreationRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleCommitmentCreationRequested(context, state)),
+      onCommitmentTapped: isReadOnly
+          ? null
+          : (commitment) => unawaited(_handleCommitmentEditRequested(context, state, commitment)),
+      onCommitmentSettleRequested: isReadOnly
+          ? null
+          : (commitment) => unawaited(_handleCommitmentSettleRequested(context, state, commitment)),
+      onCommitmentUnsettleRequested: isReadOnly
+          ? null
+          : (commitmentId) =>
+                bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId)),
+      onCommitmentDeletionRequested: isReadOnly
+          ? null
+          : (commitmentId) => unawaited(_handleCommitmentDeletionRequested(context, commitmentId)),
+    );
+  }
+
+  /// Opens the commitment dialog with nothing pre-filled, then dispatches the creation if the user
+  /// confirmed it.
+  Future<void> _handleCommitmentCreationRequested(BuildContext context, OcptBudgetState state) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetCommitmentDialog.show(
+      context,
+      existing: null,
+      postes: state.postes,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields));
+  }
+
+  /// Opens the commitment dialog pre-filled with [commitment], then dispatches the update if the
+  /// user confirmed it.
+  Future<void> _handleCommitmentEditRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetCommitment commitment,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetCommitmentDialog.show(
+      context,
+      existing: commitment,
+      postes: state.postes,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetCommitmentUpdateConfirmedEvent(commitmentId: commitment.id, fields: fields));
+  }
+
+  /// Asks `OcptConfirmDialog` whether commitment [commitmentId] really is to be deleted, then
+  /// dispatches the deletion if the user answered `Delete`.
+  Future<void> _handleCommitmentDeletionRequested(BuildContext context, String commitmentId) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetDeleteCommitmentConfirmTitle,
+      message: tr.budgetDeleteCommitmentConfirmMessage,
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetDeleteConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitmentId));
+  }
+
+  /// Opens the entry dialog pre-filled from [commitment] (today's date, its own label, poste,
+  /// amount, tax basis and rate, as a debit), then dispatches the settlement if the user confirmed
+  /// it — see `OcptBudgetCommitmentSettlementConfirmedEvent`'s own doc comment for the combined
+  /// write this produces.
+  Future<void> _handleCommitmentSettleRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetCommitment commitment,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final now = DateTime.now();
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(now.year, now.month, now.day),
+      label: commitment.label,
+      posteId: commitment.posteId,
+      isDebit: true,
+      amountCents: commitment.amount.amountCents,
+      isTaxInclusive: commitment.amount.isTaxInclusive,
+      vatRateBasisPoints: commitment.amount.vatRateBasisPoints,
+      voucherNumber: null,
+    );
+
+    final fields = await OcptBudgetEntryDialog.show(
+      context,
+      existing: null,
+      prefill: prefill,
+      postes: state.postes,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptBudgetCommitmentSettlementConfirmedEvent(commitmentId: commitment.id, fields: fields),
+    );
   }
 
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches
