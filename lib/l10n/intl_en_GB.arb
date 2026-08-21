@@ -10554,7 +10554,7 @@
   "budgetInspectorRelatedEntriesEmptyHint": "No cash entry is attached to this poste yet.",
   "@budgetInspectorRelatedEntriesEmptyHint": {
     "description": "Hint shown under the Related entries title for a poste with no entry at all",
-    "context": "Displayed under the Related entries title in the budget mode's Inspector tab",
+    "context": "Displayed under the Related entries title in the budget mode's Inspector tab, and in its cash journal view once a poste filter leaves no entry to show",
     "type": "text",
     "placeholders": {}
   },
