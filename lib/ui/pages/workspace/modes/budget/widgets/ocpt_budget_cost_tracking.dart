@@ -21,16 +21,49 @@ const double _ocptCostTrackingAmountColumnWidth = 108;
 /// The trailing `⋮` menu column's own fixed width, in logical pixels.
 const double _ocptCostTrackingMenuColumnWidth = 36;
 
-/// The narrowest the `Poste` column is ever drawn, in logical pixels — past this, the table
-/// scrolls horizontally rather than crushing the poste names, mirroring
-/// `OcptBreakdownRecapTable`'s own `_ocptRecapElementColumnMinWidth`.
+/// The narrowest the `Poste` column is ever drawn, in logical pixels — past this, the scrolling
+/// pane (the amount columns) scrolls horizontally under the pinned identity pane rather than
+/// crushing the poste names, mirroring `OcptBreakdownRecapTable`'s own
+/// `_ocptRecapElementColumnMinWidth`.
 const double _ocptCostTrackingPosteColumnMinWidth = 220;
 
-/// The narrowest the whole table is ever drawn, in logical pixels.
-const double _ocptCostTrackingMinTableWidth = 760;
+/// Every poste row's own fixed height, in logical pixels — tall enough for the `Quote` cell's own
+/// two stacked lines (the headline figure, then the other tax basis and, when a poste's lines all
+/// share one, the rate underneath it).
+///
+/// The table draws as two independently laid-out panes side by side — the pinned `N°`/`Poste`
+/// columns, the scrolling amount columns — each its own plain `Column`, sharing no `RenderObject`
+/// with the other. A row sized to its own content, the ordinary Flutter way, would let a poste
+/// whose lines carry a priced second basis (a taller `Quote` cell) sit a few pixels taller than a
+/// neighbour with none — and since the `Quote` cell lives in the *scrolling* pane while the poste
+/// name lives in the *pinned* one, the two panes would drift out of step by exactly that many
+/// pixels, row after row. Claiming this one named height, whatever a particular row actually holds,
+/// is what keeps a poste's own name level with its own figures with neither `IntrinsicHeight` nor a
+/// `ScrollController` shared between the panes' two `SingleChildScrollView`s.
+const double _ocptCostTrackingRowHeight = 48;
+
+/// The header row's own fixed height, in logical pixels — see [_ocptCostTrackingRowHeight]'s own
+/// doc comment for why the two panes need every row, the header included, to claim a named height
+/// rather than size to its own single-line content.
+const double _ocptCostTrackingHeaderRowHeight = 36;
+
+/// The total row's own fixed height, in logical pixels — tall enough for
+/// `tr.budgetCostTrackingCoverageReadOut`'s own two lines, printed here in place of the plain
+/// amount while the excluding-tax total does not yet cover every poste; see
+/// [_ocptCostTrackingRowHeight]'s own doc comment for why a named height, not the tallest cell's
+/// own, is what keeps this row's two panes aligned.
+const double _ocptCostTrackingTotalRowHeight = 48;
 
 /// The budget mode's cost-tracking view: one row per poste, a total row, then a `+ Poste`
 /// creation footer — this mode's own working surface.
+///
+/// **The `N°` and `Poste` columns are pinned**, drawn in their own pane at the left edge that
+/// never moves; only the six amount columns and the trailing `⋮` menu, in a second pane to their
+/// right, scroll horizontally once the centre dock narrows past
+/// [_ocptCostTrackingPosteColumnMinWidth] — a poste nobody can name is worse than a figure nobody
+/// can read yet, so a row's own identity survives the scroll even when its own numbers no longer
+/// fit. The two panes share one vertical scroll, so the whole table still moves together, and, row
+/// for row, the exact same height ([_ocptCostTrackingRowHeight]'s own doc comment argues why).
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and hands its own three writing affordances — the creation
@@ -136,76 +169,105 @@ class OcptBudgetCostTracking extends StatelessWidget {
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
+    final coveredPosteCount = _coveredPosteCountOf();
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final fixedWidth =
-            (isSimplified ? 0 : _ocptCostTrackingNumberColumnWidth) +
-            // Quote, Paid, Committed, Remaining, Variance, Consumed — six amount columns, the last
-            // five always drawn (`ocptBudgetEmptyValue` while `isCashDataAvailable` is false), so
-            // the table's own width never jumps once M2 starts feeding them.
-            6 * _ocptCostTrackingAmountColumnWidth +
-            _ocptCostTrackingMenuColumnWidth;
-        final posteWidth = (constraints.maxWidth - fixedWidth).clamp(
+        final identityFixedWidth = isSimplified ? 0.0 : _ocptCostTrackingNumberColumnWidth;
+        // Quote, Paid, Committed, Remaining, Variance, Consumed — six amount columns, the last
+        // five always drawn (`ocptBudgetEmptyValue` while `isCashDataAvailable` is false), so the
+        // scrolling pane's own width never jumps once M2 starts feeding them.
+        final amountsWidth = 6 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
+        final posteWidth = (constraints.maxWidth - identityFixedWidth - amountsWidth).clamp(
           _ocptCostTrackingPosteColumnMinWidth,
           double.infinity,
         );
-        final tableWidth = (posteWidth + fixedWidth).clamp(
-          _ocptCostTrackingMinTableWidth,
-          double.infinity,
-        );
+        final pinnedWidth = identityFixedWidth + posteWidth;
+        final showFooter = !isReadOnly && onPosteCreationRequested != null;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: tableWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _OcptCostTrackingHeaderRow(isSimplified: isSimplified, posteWidth: posteWidth),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      for (final poste in postes)
-                        _OcptCostTrackingRow(
-                          poste: poste,
-                          isSelected: poste.id == selectedPosteId,
-                          isSimplified: isSimplified,
-                          taxBasis: taxBasis,
-                          defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-                          currencyCode: currencyCode,
-                          isCashDataAvailable: isCashDataAvailable,
-                          paidCents: paidCentsOf(poste.id),
-                          committedCents: committedCentsOf(poste.id),
-                          posteWidth: posteWidth,
-                          onTap: () => onPosteSelected(poste.id),
-                          onRenameRequested: isReadOnly ? null : () => onPosteSelected(poste.id),
-                          onMoveUpRequested: isReadOnly
-                              ? null
-                              : () => onPosteReorderRequested?.call(poste.id, moveUp: true),
-                          onMoveDownRequested: isReadOnly
-                              ? null
-                              : () => onPosteReorderRequested?.call(poste.id, moveUp: false),
-                          onDeletionRequested: isReadOnly
-                              ? null
-                              : () => onPosteDeletionRequested?.call(poste.id),
-                        ),
-                      _OcptCostTrackingTotalRow(
-                        isSimplified: isSimplified,
-                        posteWidth: posteWidth,
-                        total: total,
-                        currencyCode: currencyCode,
-                        posteCount: postes.length,
-                        coveredPosteCount: _coveredPosteCountOf(),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: pinnedWidth,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _OcptCostTrackingIdentityHeaderCell(
+                            isSimplified: isSimplified,
+                            posteWidth: posteWidth,
+                          ),
+                          for (final poste in postes)
+                            _OcptCostTrackingIdentityRow(
+                              poste: poste,
+                              isSelected: poste.id == selectedPosteId,
+                              isSimplified: isSimplified,
+                              posteWidth: posteWidth,
+                              onTap: () => onPosteSelected(poste.id),
+                            ),
+                          _OcptCostTrackingIdentityTotalRow(
+                            isSimplified: isSimplified,
+                            posteWidth: posteWidth,
+                          ),
+                        ],
                       ),
-                      if (!isReadOnly && onPosteCreationRequested != null)
-                        _OcptCostTrackingCreationFooter(onTap: onPosteCreationRequested!),
-                    ],
-                  ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: amountsWidth,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const _OcptCostTrackingAmountsHeaderRow(),
+                              for (final poste in postes)
+                                _OcptCostTrackingAmountsRow(
+                                  poste: poste,
+                                  isSelected: poste.id == selectedPosteId,
+                                  taxBasis: taxBasis,
+                                  defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                                  currencyCode: currencyCode,
+                                  isCashDataAvailable: isCashDataAvailable,
+                                  paidCents: paidCentsOf(poste.id),
+                                  committedCents: committedCentsOf(poste.id),
+                                  onTap: () => onPosteSelected(poste.id),
+                                  onRenameRequested: isReadOnly
+                                      ? null
+                                      : () => onPosteSelected(poste.id),
+                                  onMoveUpRequested: isReadOnly
+                                      ? null
+                                      : () => onPosteReorderRequested?.call(poste.id, moveUp: true),
+                                  onMoveDownRequested: isReadOnly
+                                      ? null
+                                      : () =>
+                                            onPosteReorderRequested?.call(poste.id, moveUp: false),
+                                  onDeletionRequested: isReadOnly
+                                      ? null
+                                      : () => onPosteDeletionRequested?.call(poste.id),
+                                ),
+                              _OcptCostTrackingAmountsTotalRow(
+                                total: total,
+                                currencyCode: currencyCode,
+                                posteCount: postes.length,
+                                coveredPosteCount: coveredPosteCount,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+            if (showFooter) _OcptCostTrackingCreationFooter(onTap: onPosteCreationRequested!),
+          ],
         );
       },
     );
@@ -230,8 +292,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
   }
 }
 
-/// The table's own sticky header row.
-class _OcptCostTrackingHeaderRow extends StatelessWidget {
+/// The pinned pane's own header cell: the `N°` and `Poste` column headings.
+class _OcptCostTrackingIdentityHeaderCell extends StatelessWidget {
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
@@ -239,7 +301,7 @@ class _OcptCostTrackingHeaderRow extends StatelessWidget {
   final double posteWidth;
 
   /// Class constructor
-  const _OcptCostTrackingHeaderRow({required this.isSimplified, required this.posteWidth});
+  const _OcptCostTrackingIdentityHeaderCell({required this.isSimplified, required this.posteWidth});
 
   @override
   Widget build(BuildContext context) {
@@ -254,8 +316,8 @@ class _OcptCostTrackingHeaderRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SizedBox(
+        height: _ocptCostTrackingHeaderRowHeight,
         child: Row(
           children: [
             if (!isSimplified)
@@ -274,6 +336,36 @@ class _OcptCostTrackingHeaderRow extends StatelessWidget {
                 child: Text(tr.budgetCostTrackingColumnPoste.toUpperCase(), style: labelStyle),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The scrolling pane's own header row: the six amount column headings, then a blank cell over the
+/// `⋮` menu column.
+class _OcptCostTrackingAmountsHeaderRow extends StatelessWidget {
+  /// Class constructor
+  const _OcptCostTrackingAmountsHeaderRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: SizedBox(
+        height: _ocptCostTrackingHeaderRowHeight,
+        child: Row(
+          children: [
             _headerCell(tr.budgetCostTrackingColumnQuote, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnPaid, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnCommitted, labelStyle),
@@ -300,8 +392,14 @@ class _OcptCostTrackingHeaderRow extends StatelessWidget {
   );
 }
 
-/// One poste row of the table.
-class _OcptCostTrackingRow extends StatelessWidget {
+/// The pinned pane's own row: one poste's `N°` and `Poste` cells.
+///
+/// **This row is one half of the poste's own row** — [_OcptCostTrackingAmountsRow] draws the
+/// other, in the scrolling pane, for the very same [poste]. The two share [isSelected], so they
+/// paint the very same background, and each carries its own tap target calling the very same
+/// [onTap], so a click on either half selects the poste: together they read as one row to the
+/// user even though they are two separate widgets with no `RenderObject` in common.
+class _OcptCostTrackingIdentityRow extends StatelessWidget {
   /// The poste this row shows.
   final OcptBudgetPoste poste;
 
@@ -311,59 +409,19 @@ class _OcptCostTrackingRow extends StatelessWidget {
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
-  /// Which basis the header's excluding/including-tax switch currently reads every amount in.
-  final OcptBudgetTaxBasis taxBasis;
-
-  /// The project's default VAT rate, in basis points, or null.
-  final int? defaultVatRateBasisPoints;
-
-  /// The project's currency, an ISO 4217 code.
-  final String currencyCode;
-
-  /// Whether `budget_entries`/`budget_commitments` exist yet.
-  final bool isCashDataAvailable;
-
-  /// This poste's own paid total, in cents.
-  final int paidCents;
-
-  /// This poste's own committed total, in cents.
-  final int committedCents;
-
   /// The `Poste` column's own width, computed by the table.
   final double posteWidth;
 
   /// Called when this row is clicked.
   final VoidCallback onTap;
 
-  /// Called when the row's own `⋮` menu asks to rename this poste, or null while withheld.
-  final VoidCallback? onRenameRequested;
-
-  /// Called when the row's own `⋮` menu asks to move this poste up, or null while withheld.
-  final VoidCallback? onMoveUpRequested;
-
-  /// Called when the row's own `⋮` menu asks to move this poste down, or null while withheld.
-  final VoidCallback? onMoveDownRequested;
-
-  /// Called when the row's own `⋮` menu asks to delete this poste, or null while withheld.
-  final VoidCallback? onDeletionRequested;
-
   /// Class constructor
-  const _OcptCostTrackingRow({
+  const _OcptCostTrackingIdentityRow({
     required this.poste,
     required this.isSelected,
     required this.isSimplified,
-    required this.taxBasis,
-    required this.defaultVatRateBasisPoints,
-    required this.currencyCode,
-    required this.isCashDataAvailable,
-    required this.paidCents,
-    required this.committedCents,
     required this.posteWidth,
     required this.onTap,
-    required this.onRenameRequested,
-    required this.onMoveUpRequested,
-    required this.onMoveDownRequested,
-    required this.onDeletionRequested,
   });
 
   @override
@@ -371,23 +429,6 @@ class _OcptCostTrackingRow extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final label = isSimplified ? (poste.simpleLabel ?? poste.label) : poste.label;
-    final quoted = ocptBudgetTotalOf(
-      poste.lines,
-      basis: taxBasis,
-      projectVatRateBasisPoints: defaultVatRateBasisPoints,
-    );
-    final secondaryBasis = taxBasis == OcptBudgetTaxBasis.includingTax
-        ? OcptBudgetTaxBasis.excludingTax
-        : OcptBudgetTaxBasis.includingTax;
-    final secondary = ocptBudgetTotalOf(
-      poste.lines,
-      basis: secondaryBasis,
-      projectVatRateBasisPoints: defaultVatRateBasisPoints,
-    );
-    final uniformRate = ocptBudgetPosteUniformVatRateOf(
-      poste.lines,
-      projectVatRateBasisPoints: defaultVatRateBasisPoints,
-    );
 
     return InkWell(
       onTap: onTap,
@@ -396,8 +437,8 @@ class _OcptCostTrackingRow extends StatelessWidget {
         color: isSelected
             ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
             : Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 7),
+        child: SizedBox(
+          height: _ocptCostTrackingRowHeight,
           child: Row(
             children: [
               if (!isSimplified)
@@ -425,6 +466,107 @@ class _OcptCostTrackingRow extends StatelessWidget {
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The scrolling pane's own row: one poste's six amount cells and its own `⋮` menu — see
+/// [_OcptCostTrackingIdentityRow]'s own doc comment for why it shares [isSelected] and [onTap]
+/// with the pinned half of the very same row.
+class _OcptCostTrackingAmountsRow extends StatelessWidget {
+  /// The poste this row shows.
+  final OcptBudgetPoste poste;
+
+  /// Whether this poste is the currently selected one.
+  final bool isSelected;
+
+  /// Which basis the header's excluding/including-tax switch currently reads every amount in.
+  final OcptBudgetTaxBasis taxBasis;
+
+  /// The project's default VAT rate, in basis points, or null.
+  final int? defaultVatRateBasisPoints;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Whether `budget_entries`/`budget_commitments` exist yet.
+  final bool isCashDataAvailable;
+
+  /// This poste's own paid total, in cents.
+  final int paidCents;
+
+  /// This poste's own committed total, in cents.
+  final int committedCents;
+
+  /// Called when this row is clicked.
+  final VoidCallback onTap;
+
+  /// Called when the row's own `⋮` menu asks to rename this poste, or null while withheld.
+  final VoidCallback? onRenameRequested;
+
+  /// Called when the row's own `⋮` menu asks to move this poste up, or null while withheld.
+  final VoidCallback? onMoveUpRequested;
+
+  /// Called when the row's own `⋮` menu asks to move this poste down, or null while withheld.
+  final VoidCallback? onMoveDownRequested;
+
+  /// Called when the row's own `⋮` menu asks to delete this poste, or null while withheld.
+  final VoidCallback? onDeletionRequested;
+
+  /// Class constructor
+  const _OcptCostTrackingAmountsRow({
+    required this.poste,
+    required this.isSelected,
+    required this.taxBasis,
+    required this.defaultVatRateBasisPoints,
+    required this.currencyCode,
+    required this.isCashDataAvailable,
+    required this.paidCents,
+    required this.committedCents,
+    required this.onTap,
+    required this.onRenameRequested,
+    required this.onMoveUpRequested,
+    required this.onMoveDownRequested,
+    required this.onDeletionRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final quoted = ocptBudgetTotalOf(
+      poste.lines,
+      basis: taxBasis,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final secondaryBasis = taxBasis == OcptBudgetTaxBasis.includingTax
+        ? OcptBudgetTaxBasis.excludingTax
+        : OcptBudgetTaxBasis.includingTax;
+    final secondary = ocptBudgetTotalOf(
+      poste.lines,
+      basis: secondaryBasis,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final uniformRate = ocptBudgetPosteUniformVatRateOf(
+      poste.lines,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+
+    return InkWell(
+      onTap: onTap,
+      mouseCursor: ocptClickableCursor,
+      child: ColoredBox(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
+        child: SizedBox(
+          height: _ocptCostTrackingRowHeight,
+          child: Row(
+            children: [
               SizedBox(
                 width: _ocptCostTrackingAmountColumnWidth,
                 child: _OcptCostTrackingQuoteCell(
@@ -580,6 +722,7 @@ class _OcptCostTrackingQuoteCell extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
@@ -606,15 +749,54 @@ class _OcptCostTrackingQuoteCell extends StatelessWidget {
   }
 }
 
-/// The table's own total row: the grand `Quote` total (with its own coverage read-out), the five
-/// money-that-moved columns always reading [ocptBudgetEmptyValue] at M1.
-class _OcptCostTrackingTotalRow extends StatelessWidget {
+/// The pinned pane's own total row: just the `Total` label, spanning the `N°`/`Poste` cells' own
+/// width so it lines up with [_OcptCostTrackingAmountsTotalRow], the other half of the very same
+/// row, in the scrolling pane.
+class _OcptCostTrackingIdentityTotalRow extends StatelessWidget {
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
   /// The `Poste` column's own width, computed by the table.
   final double posteWidth;
 
+  /// Class constructor
+  const _OcptCostTrackingIdentityTotalRow({required this.isSimplified, required this.posteWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: SizedBox(
+        height: _ocptCostTrackingTotalRowHeight,
+        child: Row(
+          children: [
+            if (!isSimplified) const SizedBox(width: _ocptCostTrackingNumberColumnWidth),
+            SizedBox(
+              width: posteWidth,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Text(
+                  tr.budgetCostTrackingTotalRowLabel,
+                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The scrolling pane's own total row: the grand `Quote` total (with its own coverage read-out),
+/// the five money-that-moved columns always reading [ocptBudgetEmptyValue] at M1 — see
+/// [_OcptCostTrackingIdentityTotalRow]'s own doc comment for the pinned half of the very same row.
+class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   /// The grand total, in the header's own selected basis, and how many lines it covers.
   final OcptBudgetCoveredTotal total;
 
@@ -628,9 +810,7 @@ class _OcptCostTrackingTotalRow extends StatelessWidget {
   final int coveredPosteCount;
 
   /// Class constructor
-  const _OcptCostTrackingTotalRow({
-    required this.isSimplified,
-    required this.posteWidth,
+  const _OcptCostTrackingAmountsTotalRow({
     required this.total,
     required this.currencyCode,
     required this.posteCount,
@@ -650,21 +830,10 @@ class _OcptCostTrackingTotalRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SizedBox(
+        height: _ocptCostTrackingTotalRowHeight,
         child: Row(
           children: [
-            if (!isSimplified) const SizedBox(width: _ocptCostTrackingNumberColumnWidth),
-            SizedBox(
-              width: posteWidth,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: Text(
-                  tr.budgetCostTrackingTotalRowLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
             SizedBox(
               width: _ocptCostTrackingAmountColumnWidth,
               child: Text(
@@ -692,7 +861,9 @@ class _OcptCostTrackingTotalRow extends StatelessWidget {
   }
 }
 
-/// The table's own `+ Poste` creation footer.
+/// The table's own `+ Poste` creation footer, drawn below the table rather than as one of its own
+/// scrolling rows — left-aligned like the pinned pane above it, and, unlike it, never scrolled
+/// away by either the table's own vertical or horizontal scroll.
 class _OcptCostTrackingCreationFooter extends StatelessWidget {
   /// Called when this footer is clicked.
   final VoidCallback onTap;
@@ -711,6 +882,7 @@ class _OcptCostTrackingCreationFooter extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
             const SizedBox(width: 6),
