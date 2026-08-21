@@ -14,6 +14,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -41,6 +42,7 @@ void main() {
         endMinute: 720, // 12:00
         shootingStartMinute: 510, // 08:30
         shootingEndMinute: 690, // 11:30
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -52,6 +54,7 @@ void main() {
         endMinute: 1260, // 21:00
         shootingStartMinute: 1110, // 18:30
         shootingEndMinute: 1230, // 20:30
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -79,6 +82,7 @@ void main() {
         endMinute: 540,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -103,6 +107,7 @@ void main() {
         endMinute: null,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -125,6 +130,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {"role-1"},
         guestPersonIds: {},
@@ -148,6 +154,7 @@ void main() {
         endMinute: 1620, // 03:00 the next morning
         shootingStartMinute: 1140,
         shootingEndMinute: 1620,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -172,6 +179,7 @@ void main() {
         endMinute: 480,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-b"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -183,6 +191,7 @@ void main() {
         endMinute: 540,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-z"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -194,6 +203,7 @@ void main() {
         endMinute: 540,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-a"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -224,6 +234,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
@@ -254,6 +265,7 @@ void main() {
         endMinute: 720,
         shootingStartMinute: 510,
         shootingEndMinute: 690,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
@@ -265,6 +277,7 @@ void main() {
         endMinute: 1260,
         shootingStartMinute: 1110,
         shootingEndMinute: 1230,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
@@ -291,6 +304,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {"person-1"},
@@ -317,6 +331,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -332,6 +347,114 @@ void main() {
     });
   });
 
+  group("what a band is called", () {
+    test("a slot carrying a shot reads a PAT band", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: 1080,
+        shootingStartMinute: 510,
+        shootingEndMinute: 1050,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+
+      expect(ocptComputeDayConvocations(slots: const [slot]).single.isPatBand, isTrue);
+    });
+
+    test("a slot whose work is rehearsals alone reads a presence band, not a PAT one", () {
+      // *Prêt à tourner* is the hour somebody must be ready for a take, and a day of rehearsals has
+      // none to be ready for — the band is real, the word is not.
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: 720,
+        shootingStartMinute: 480,
+        shootingEndMinute: 720,
+        hasFilmingBlock: false,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+
+      final convocation = ocptComputeDayConvocations(slots: const [slot]).single;
+      expect(convocation.patStartMinute, 480);
+      expect(convocation.patEndMinute, 720);
+      expect(convocation.isPatBand, isFalse);
+    });
+
+    test("one filming slot among several makes the whole band a PAT one", () {
+      // The band spans both, so the word has to answer for both: somebody who rehearses in the
+      // morning and shoots in the afternoon is due ready to shoot.
+      const rehearsal = OcptConvocationSlot(
+        id: "slot-morning",
+        startMinute: 480,
+        endMinute: 720,
+        shootingStartMinute: 480,
+        shootingEndMinute: 720,
+        hasFilmingBlock: false,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+      const shooting = OcptConvocationSlot(
+        id: "slot-afternoon",
+        startMinute: 780,
+        endMinute: 1080,
+        shootingStartMinute: 780,
+        shootingEndMinute: 1080,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+
+      final convocation = ocptComputeDayConvocations(
+        slots: const [rehearsal, shooting],
+      ).single;
+      expect(convocation.patStartMinute, 480);
+      expect(convocation.patEndMinute, 1080);
+      expect(convocation.isPatBand, isTrue);
+    });
+
+    test("a candidate never reads a PAT band, whatever the day beside them shoots", () {
+      // The one case the day cannot answer for: the unit films all afternoon and this person is
+      // there for twenty minutes to be seen.
+      const shooting = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 540,
+        endMinute: 1080,
+        shootingStartMinute: 540,
+        shootingEndMinute: 1080,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+      const audition = OcptConvocationAudition(
+        slotId: "slot-1",
+        startMinute: 560,
+        endMinute: 580,
+        roleCandidateIds: {"candidacy-1"},
+      );
+
+      final result = ocptComputeDayConvocations(
+        slots: const [shooting],
+        auditions: const [audition],
+      );
+
+      expect(result.firstWhere((c) => c.personId != null).isPatBand, isTrue);
+      expect(result.firstWhere((c) => c.isCandidate).isPatBand, isFalse);
+    });
+  });
+
   group("a candidate seen for a part", () {
     test("every figure is read off the audition that sees them, not off the unit's day", () {
       // The whole point of ADR 0024: the slot runs 09:00 to 18:00 and sees eleven other people,
@@ -342,6 +465,7 @@ void main() {
         endMinute: 1080, // 18:00
         shootingStartMinute: 540,
         shootingEndMinute: 1080,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -459,6 +583,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 540,
         shootingEndMinute: 600,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {},

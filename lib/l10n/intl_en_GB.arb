@@ -9244,6 +9244,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportPresenceLabel": "PRESENCE",
+  "@scheduleExportPresenceLabel": {
+    "description": "Label printed in place of PAT when the band covers no filming at all — a day of auditions or of rehearsals — since \"ready to shoot\" presupposes a take",
+    "context": "Printed on every exported call sheet whose band covers no filming",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportArrivalHeader": "ARRIVAL",
   "@scheduleExportArrivalHeader": {
     "description": "Header of a person's arrival figure on a call sheet, printed as a table column header and as a named sheet's own band line",

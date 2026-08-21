@@ -105,6 +105,20 @@ class OcptCallSheetLabels extends Equatable {
   /// and as the `HORAIRES PAT :` band line alike.
   final String patLabel;
 
+  /// The label printed in place of [patLabel] when a band covers **no filming at all** — a day of
+  /// auditions or of rehearsals, or a candidate's own hours on a day that shoots beside them.
+  ///
+  /// *Prêt à tourner* is the hour a performer must be costumed, made up and on set, ready for a
+  /// take; it presupposes a take. Nothing in the trade stretches the word to mean "on site", so a
+  /// band read off auditions and rehearsals alone says *presence* instead — see
+  /// `OcptShootingBlockKind.isFilming` and `OcptDayConvocation.isPatBand`.
+  final String presenceLabel;
+
+  /// [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the one
+  /// place that choice is written, so a named sheet's own band line, the day's own time band and the
+  /// cast table's own column header can never name the same kind of band differently.
+  String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
+
   /// The header of a person's arrival figure — the cast table's own `ARRIVÉE` column, and a named
   /// sheet's own band line.
   final String arrivalHeader;
@@ -225,6 +239,7 @@ class OcptCallSheetLabels extends Equatable {
     required this.crewPositionLabels,
     required this.hoursLinePrefix,
     required this.patLabel,
+    required this.presenceLabel,
     required this.arrivalHeader,
     required this.departureLabel,
     required this.toBringSectionTitle,
@@ -295,6 +310,7 @@ class OcptCallSheetLabels extends Equatable {
     crewPositionLabels,
     hoursLinePrefix,
     patLabel,
+    presenceLabel,
     arrivalHeader,
     departureLabel,
     toBringSectionTitle,

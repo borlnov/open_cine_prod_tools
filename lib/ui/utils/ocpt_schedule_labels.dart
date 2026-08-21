@@ -457,6 +457,7 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     },
     hoursLinePrefix: tr.scheduleExportHoursLinePrefix,
     patLabel: tr.scheduleExportPatLabel,
+    presenceLabel: tr.scheduleExportPresenceLabel,
     arrivalHeader: tr.scheduleExportArrivalHeader,
     departureLabel: tr.scheduleExportDepartureLabel,
     toBringSectionTitle: tr.scheduleExportToBringSectionTitle,

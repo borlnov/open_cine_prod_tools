@@ -376,6 +376,52 @@ naming two candidacies of two parts, the codec round trip and the migration's de
 audition row's own widget test, the call sheet over a day of auditions, and the alerts still firing
 exactly as they did.
 
+### M6b — What reading the printed sheets showed
+
+Three faults M6's own exports made plain, settled with Benoit on the sheets themselves. All three
+are about **the named sheet and the band it prints**, and none of them changes what a candidate is
+linked to.
+
+1. **A band over nothing that films must not be called `PAT`.** *Prêt à tourner* is the hour a
+   performer must be costumed, made up and on set, ready for a take; it presupposes a take. A day of
+   auditions or of rehearsals has none, and no convention of the trade stretches the word to mean
+   "on site" — a casting day goes out as a convocation giving the hour and the length of the
+   passage. The fault is M4's: it added `audition` and `rehearsal` to
+   `OcptShootingBlockKind.isShootingTime`, which is right for **computing** the span, and nobody
+   then asked what the span should be **called**.
+
+   The label follows the band, **per convocation** rather than per day: `PAT` when the blocks it was
+   read off include a `shot` or a `hold`, `PRÉSENCE` otherwise. A day that auditions in the morning
+   and shoots in the afternoon therefore prints `PAT` for its cast and `PRÉSENCE` for its candidates,
+   on the one sheet. The two places that head a **column** of many bands — the cast table and the
+   day's own time band — read `PAT` when any band under them is one, and are computed over those
+   bands alone, so a `PAT` line never opens at the hour a candidate turned up.
+
+2. **A named sheet is addressed to a person, not to one of their reasons for being there.** A
+   convocation was keyed by candidacy, so somebody both crewing the day and seen for a part received
+   two sheets, and somebody seen for two parts received two more. A person arrives once and leaves
+   once: their candidacies join their crew and cast links into **one** convocation, whose arrival is
+   the earliest of all of them and whose departure is the latest.
+
+   `OcptDayConvocation` loses the candidate arm of its discriminator and gains `roleCandidateIds` —
+   the candidacies of this person the day sees, empty for everybody else. The joining stays where
+   ADR 0018 put it, in `ocptComputeDayConvocations`, so the `Convocations` panel and the printed
+   sheet cannot come to disagree about when somebody is due. The panel keeps its candidates group,
+   which now holds the people the day sees **only** for a part.
+
+3. **A named sheet shows the blocks its recipient is in, not every block of their slots.** It
+   narrowed to the recipient's own **slots** and then printed the whole running order, so an actor
+   read the shots they are not in. A block reaches the sheet when the recipient is **crew on its
+   slot** (a technician works the whole order), when it is a shot, hold or rehearsal calling a part
+   they play, or when it is an audition naming one of their candidacies — and every milestone
+   (preparation, hair and make-up, meal, break, travel, wrap) stays for everybody, because a person
+   who cannot see when they eat has been handed a worse sheet.
+
+Tests: the band label over a day of auditions, over a day of rehearsals and over a mixed one; the
+merged convocation of somebody crewing and auditioning the same day, and of somebody seen for two
+parts; the named sheet of an actor on a slot playing two roles; and the milestones surviving every
+narrowing.
+
 ### M7 — The record
 
 The documentation of §8 and ADR 0024. This plan file is deleted in the same commit.

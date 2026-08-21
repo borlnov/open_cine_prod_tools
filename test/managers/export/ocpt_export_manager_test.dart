@@ -665,6 +665,7 @@ void main() {
       crewPositionLabels: {},
       hoursLinePrefix: "HOURS",
       patLabel: "PAT",
+      presenceLabel: "PRESENCE",
       arrivalHeader: "ARRIVAL",
       departureLabel: "Departure",
       toBringSectionTitle: "To bring",

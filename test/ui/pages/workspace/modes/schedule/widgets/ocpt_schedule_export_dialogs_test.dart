@@ -135,6 +135,7 @@ OcptDayConvocation _buildConvocation({String? personId, String? roleId, String? 
       arrivalMinute: 480,
       patStartMinute: 540,
       patEndMinute: 1020,
+      isPatBand: true,
       departureMinute: 1080,
       slotIds: const ["slot-1"],
       roleCandidateId: roleCandidateId,

@@ -83,6 +83,7 @@ const _callSheetLabels = OcptCallSheetLabels(
   crewPositionLabels: {},
   hoursLinePrefix: "Hours",
   patLabel: "PAT",
+  presenceLabel: "PRESENCE",
   arrivalHeader: "Arrival",
   departureLabel: "Departure",
   toBringSectionTitle: "To bring",

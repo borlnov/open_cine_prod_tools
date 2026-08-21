@@ -84,6 +84,7 @@ const _labels = OcptCallSheetLabels(
   },
   hoursLinePrefix: "HOURS",
   patLabel: "PAT",
+  presenceLabel: "PRESENCE",
   arrivalHeader: "ARRIVAL",
   departureLabel: "Departure",
   toBringSectionTitle: "To bring",
@@ -2076,6 +2077,85 @@ void main() {
         _contentStreams(await generalOf(withAlice)),
         isNot(_contentStreams(await generalOf(withJonas))),
       );
+    });
+
+    test("a day that films nothing heads its band PRESENCE rather than PAT", () async {
+      // The label follows the band, not the day's paperwork: a day of auditions has no take for
+      // anybody to be ready for, so the word `PAT` cannot appear on it at all.
+      final auditions = buildDay(
+        blocks: [
+          _buildBlock(
+            id: "block-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.audition,
+            durationMinutes: 20,
+            candidates: [namedOn("block-1")],
+          ),
+        ],
+      );
+
+      final call = auditions
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.roleCandidateId == "candidate-1");
+      expect(call.patStartMinute, 540);
+      expect(call.isPatBand, isFalse);
+
+      final bytes = await service.generateNamedCallSheet(
+        plan: auditions,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: call,
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
+    });
+
+    test("a candidate and an actor read different words on the one mixed sheet", () async {
+      // The whole reason the label is per convocation: the unit is due ready to shoot at 13:00 and
+      // the candidate is due to be seen at 09:00, and one word cannot be both.
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [
+            _buildSlot(
+              id: "slot-1",
+              label: "Casting",
+              anchorMinute: 540,
+              cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
+            ),
+          ],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+              candidates: [namedOn("block-1")],
+            ),
+            _buildBlock(
+              id: "block-2",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        roles: [_buildRole(id: "role-1", name: "Marie", number: 3, personId: "person-lea")],
+        people: [camille, _buildPerson(id: "person-lea", firstName: "Léa", lastName: "Dubois")],
+        roleCandidates: [candidate],
+        shotLists: [_buildShotList(shots: [shot])],
+      );
+
+      final convocations = plan.convocationsOfDay("day-1");
+      expect(convocations.firstWhere((c) => c.personId == "person-lea").isPatBand, isTrue);
+      expect(convocations.firstWhere((c) => c.isCandidate).isPatBand, isFalse);
     });
 
     test("a candidate carries a selection key, so the named export can be narrowed to them", () async {

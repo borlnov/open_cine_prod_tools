@@ -761,8 +761,12 @@ class OcptCallSheetPdfService {
     );
   }
 
-  /// A named sheet's own single band line: arrival, PAT band, departure — three figures the general
+  /// A named sheet's own single band line: arrival, band, departure — three figures the general
   /// sheet only ever prints per person inside its cast table or its two closing lists.
+  ///
+  /// The middle line is headed by [OcptCallSheetLabels.bandLabelOf] rather than by `PAT` outright:
+  /// this recipient's band may cover no filming at all — a candidate seen for twenty minutes, an
+  /// actor at a day of rehearsals — and *prêt à tourner* presupposes a take.
   pw.Widget _ownBandSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -770,7 +774,7 @@ class OcptCallSheetPdfService {
   }) {
     final lines = [
       "${labels.arrivalHeader} : ${ocptFormatDayMinute(convocation.arrivalMinute)}",
-      "${labels.patLabel} : ${_patCellOf(convocation)}",
+      "${labels.bandLabelOf(isPatBand: convocation.isPatBand)} : ${_patCellOf(convocation)}",
       "${labels.departureLabel} : ${ocptFormatDayMinute(convocation.departureMinute)}",
     ];
 
@@ -1032,21 +1036,33 @@ class OcptCallSheetPdfService {
       }
     }
 
-    int? patStart;
-    int? patEnd;
+    // Read over the **filming** bands alone whenever the day has any, and over the presence ones
+    // only when it has none: a mixed day whose candidates turn up at 09:00 and whose unit shoots
+    // from 13:00 must not print a `PAT` line opening at 09:00, which would claim the camera was
+    // ready four hours before it was.
+    final hasPatBand = convocations.any((convocation) => convocation.isPatBand);
+    int? bandStart;
+    int? bandEnd;
     for (final convocation in convocations) {
+      if (convocation.isPatBand != hasPatBand) {
+        continue;
+      }
       final start = convocation.patStartMinute;
       final end = convocation.patEndMinute;
-      if (start != null && (patStart == null || start < patStart)) {
-        patStart = start;
+      if (start != null && (bandStart == null || start < bandStart)) {
+        bandStart = start;
       }
-      if (end != null && (patEnd == null || end > patEnd)) {
-        patEnd = end;
+      if (end != null && (bandEnd == null || end > bandEnd)) {
+        bandEnd = end;
       }
     }
-    if (patStart != null && patEnd != null) {
+    if (bandStart != null && bandEnd != null) {
       lines.add(
-        _timeBandLine(label: "${labels.hoursLinePrefix} ${labels.patLabel}", startMinute: patStart, endMinute: patEnd),
+        _timeBandLine(
+          label: "${labels.hoursLinePrefix} ${labels.bandLabelOf(isPatBand: hasPatBand)}",
+          startMinute: bandStart,
+          endMinute: bandEnd,
+        ),
       );
     }
 
@@ -1276,7 +1292,12 @@ class OcptCallSheetPdfService {
                   labels.actorHeader,
                   labels.seqHeader,
                   labels.arrivalHeader,
-                  labels.patLabel,
+                  // One header over many bands: `PAT` the moment any row's own band covers filming,
+                  // `PRÉSENCE` on a day that films nothing at all — a day of rehearsals heads a
+                  // column of hours nobody is due ready to shoot for.
+                  labels.bandLabelOf(
+                    isPatBand: rows.any((row) => row.convocation?.isPatBand ?? false),
+                  ),
                 ])
                   _textCell(painter: painter, text: header, isBold: true),
               ],

@@ -1241,6 +1241,7 @@
   "scheduleExportContactsSectionTitle": "Contacts",
   "scheduleExportHoursLinePrefix": "HORAIRES",
   "scheduleExportPatLabel": "PAT",
+  "scheduleExportPresenceLabel": "PRÉSENCE",
   "scheduleExportArrivalHeader": "ARRIVÉE",
   "scheduleExportDepartureLabel": "DÉPART",
   "scheduleExportSeqHeader": "SEQ",
