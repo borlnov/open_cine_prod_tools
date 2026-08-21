@@ -10553,10 +10553,24 @@
   },
   "budgetInspectorRelatedEntriesEmptyHint": "No cash entry is attached to this poste yet.",
   "@budgetInspectorRelatedEntriesEmptyHint": {
-    "description": "Hint shown under the Related entries title, drawn and empty until M2",
+    "description": "Hint shown under the Related entries title for a poste with no entry at all",
     "context": "Displayed under the Related entries title in the budget mode's Inspector tab",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetInspectorRelatedEntriesCoverageReadOut": "{coveredCount} of {entryCount} entries carry a known rate",
+  "@budgetInspectorRelatedEntriesCoverageReadOut": {
+    "description": "The related entries list's own coverage read-out, while some entries carry no known rate",
+    "context": "Displayed beneath the related entries list in the budget mode's Inspector tab, once every entry carries a known rate this disappears",
+    "type": "text",
+    "placeholders": {
+      "coveredCount": {
+        "type": "int"
+      },
+      "entryCount": {
+        "type": "int"
+      }
+    }
   },
   "budgetLineCreationAction": "+ Add",
   "@budgetLineCreationAction": {

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
@@ -278,10 +279,6 @@ class _BudgetViewState extends State<_BudgetView> {
   );
 
   /// Builds the cost-tracking table.
-  ///
-  /// `isCashDataAvailable` is always false at M1 — `budget_entries`/`budget_commitments` don't
-  /// exist yet — so `paidCentsOf`/`committedCentsOf` are always zero; see
-  /// `OcptBudgetCostTracking`'s own class doc comment.
   Widget _buildCostTracking(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
@@ -293,9 +290,8 @@ class _BudgetViewState extends State<_BudgetView> {
       taxBasis: state.taxBasis,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
-      isCashDataAvailable: false,
-      paidCentsOf: (posteId) => 0,
-      committedCentsOf: (posteId) => 0,
+      paidCentsOf: state.paidCentsOf,
+      committedCentsOf: state.committedCentsOf,
       isReadOnly: isReadOnly,
       onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
       onPosteCreationRequested: isReadOnly
@@ -393,21 +389,30 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Builds the `Inspector` tab's own content.
   ///
-  /// `isCashDataAvailable`/`paidCents`/`committedCents` are always false/zero at M1 — mirrors
-  /// [_buildCostTracking]'s own reasoning.
+  /// The selected poste's own related entries are read out of [OcptBudgetState.entries] here,
+  /// rather than in the widget itself: filtered down to the selected poste's own id and handed to
+  /// [OcptBudgetPosteInspector] in reverse — [OcptBudgetState.entries] is chronological (the
+  /// journal's own order), so reversing it once here is what puts the newest entry at the top of
+  /// the inspector's own list, which never reorders what it is given.
   Widget _buildInspector(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
     final selectedPoste = state.selectedPoste;
+    final relatedEntries = selectedPoste == null
+        ? const <OcptBudgetEntry>[]
+        : [
+            for (final entry in state.entries.reversed)
+              if (entry.posteId == selectedPoste.id) entry,
+          ];
 
     return OcptBudgetPosteInspector(
       poste: selectedPoste,
       taxBasis: state.taxBasis,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
-      isCashDataAvailable: false,
-      paidCents: 0,
-      committedCents: 0,
+      paidCents: selectedPoste == null ? 0 : state.paidCentsOf(selectedPoste.id),
+      committedCents: selectedPoste == null ? 0 : state.committedCentsOf(selectedPoste.id),
+      entries: relatedEntries,
       expandedLineId: state.expandedLineId,
       isReadOnly: isReadOnly,
       fieldValueOf: state.fieldValueOf,

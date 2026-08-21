@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
@@ -29,6 +30,22 @@ OcptBudgetLine _buildLine({required String id, required String posteId, String l
 OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = const []}) =>
     OcptBudgetPoste(id: id, code: "1", label: "Poste $id", simpleLabel: null, sortKey: "a0", lines: lines);
 
+/// Builds a minimal journal entry naming [posteId], everything else neutral (a debit of
+/// [debitCents], tax-inclusive, no VAT rate override).
+OcptBudgetEntry _buildEntry({required String id, required String posteId, int debitCents = 0}) =>
+    OcptBudgetEntry(
+      id: id,
+      date: DateTime(2026),
+      label: "Entry $id",
+      posteId: posteId,
+      debitCents: debitCents,
+      creditCents: 0,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: "J-001",
+      sortKey: "a0",
+    );
+
 void main() {
   group("OcptBudgetState.init", () {
     test("starts loading, with no snapshot and the default right dock tab", () {
@@ -51,6 +68,8 @@ void main() {
       final state = const OcptBudgetState.init().copyWith(
         snapshot: OcptBudgetSnapshot.build(
           postes: [poste],
+          entries: const [],
+          commitments: const [],
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
@@ -64,6 +83,8 @@ void main() {
       final state = const OcptBudgetState.init().copyWith(
         snapshot: OcptBudgetSnapshot.build(
           postes: [_buildPoste(id: "poste-1")],
+          entries: const [],
+          commitments: const [],
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
@@ -134,6 +155,8 @@ void main() {
           ),
           _buildPoste(id: "poste-2"),
         ],
+        entries: const [],
+        commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
       );
@@ -141,6 +164,42 @@ void main() {
 
       expect(state.posteCount, 2);
       expect(state.lineCount, 2);
+    });
+  });
+
+  group("OcptBudgetState.paidCentsOf / committedCentsOf", () {
+    test("reads zero for a poste with no entry against it, rather than a hole", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1"), _buildPoste(id: "poste-2")],
+        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.paidCentsOf("poste-2"), 0);
+      expect(state.committedCentsOf("poste-2"), 0);
+    });
+
+    test("reads the real amount once an entry has actually been paid against the poste", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.paidCentsOf("poste-1"), 1000);
+    });
+
+    test("answers zero while nothing at all is loaded yet", () {
+      const state = OcptBudgetState.init();
+
+      expect(state.paidCentsOf("poste-1"), 0);
+      expect(state.committedCentsOf("poste-1"), 0);
     });
   });
 }

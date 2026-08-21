@@ -1410,6 +1410,7 @@
   "budgetInspectorNoLineHint": "Ce poste n'a pas encore de ligne de devis.",
   "budgetInspectorRelatedEntriesSectionTitle": "Écritures liées",
   "budgetInspectorRelatedEntriesEmptyHint": "Aucune écriture n'est encore rattachée à ce poste.",
+  "budgetInspectorRelatedEntriesCoverageReadOut": "{coveredCount} écritures sur {entryCount} portent un taux connu",
   "budgetLineCreationAction": "+ Ajouter",
   "budgetLineUnnamed": "Ligne sans nom",
   "budgetLineLabelFieldLabel": "Intitulé",

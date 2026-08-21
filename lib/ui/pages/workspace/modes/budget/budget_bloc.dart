@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
@@ -34,8 +35,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 ///
 /// It loads the current project's title and the mode's own whole read on entry: the quote itself
 /// ([_budgetQuoteService], seeding [_seed]'s ten CNC postes on the first read of an empty table),
-/// the project's currency and default VAT rate. It mixes in [MixinOcptProjectVersionsBloc],
-/// answering its two hooks through [flushPendingProjectWrites] and [reloadFromProjectDatabase].
+/// the cash journal ([_budgetJournalService]: every live entry and commitment), and the project's
+/// currency and default VAT rate. It mixes in [MixinOcptProjectVersionsBloc], answering its two
+/// hooks through [flushPendingProjectWrites] and [reloadFromProjectDatabase].
 ///
 /// **[_seed] is a constructor argument, captured once, rather than watched.** No bloc or service
 /// may ever see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves `ocptBudgetCncPosteSeeds(Tr.of
@@ -87,6 +89,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// The service used to read and write the quote: the postes and their lines.
   final OcptBudgetQuoteService _budgetQuoteService;
 
+  /// The service used to read the cash journal: every live entry and commitment.
+  final OcptBudgetJournalService _budgetJournalService;
+
   /// The ten CNC postes, already localized — see the class doc comment for why this is a
   /// constructor argument captured once rather than watched.
   final List<OcptBudgetPosteSeed> _seed;
@@ -109,6 +114,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
     OcptBudgetQuoteService? budgetQuoteService,
+    OcptBudgetJournalService? budgetJournalService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _seed = seed,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
@@ -118,6 +124,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
        _budgetQuoteService =
            budgetQuoteService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetQuoteService,
+       _budgetJournalService =
+           budgetJournalService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetJournalService,
        _fieldEditDebounce = fieldEditDebounce,
        super(const OcptBudgetState.init()) {
     add(const OcptBudgetLoadRequestedEvent());
@@ -231,17 +240,21 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Reads [project]'s whole quote: the postes with their lines, the currency and the default VAT
-  /// rate, joined into one [OcptBudgetSnapshot].
+  /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
+  /// commitments, the currency and the default VAT rate, joined into one [OcptBudgetSnapshot].
   Future<OcptBudgetSnapshot> _loadBudgetSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
     final postes = await _budgetQuoteService.loadPostes(database: database, seed: _seed);
+    final entries = await _budgetJournalService.loadEntries(database: database);
+    final commitments = await _budgetJournalService.loadCommitments(database: database);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final defaultVatRateBasisPoints = await _projectsManager
         .loadCurrentProjectDefaultVatRateBasisPoints();
 
     return OcptBudgetSnapshot.build(
       postes: postes,
+      entries: entries,
+      commitments: commitments,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
     );

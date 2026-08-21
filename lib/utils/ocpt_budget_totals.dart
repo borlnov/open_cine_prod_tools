@@ -156,9 +156,11 @@ enum OcptBudgetPosteStrain {
 /// What is left of a poste quoted at [quotedAmountCents], having paid [paidCents] and committed
 /// [committedCents] against it — negative once the poste has gone over its quote.
 ///
-/// [paidCents] and [committedCents] are **parameters, not reads of their own**: `budget_entries` and
-/// `budget_commitments` are M2's tables and do not exist yet, so this whole file is written against
-/// the shape they will have rather than left to be rewritten once they land.
+/// [paidCents] and [committedCents] are **parameters, not reads of their own**: this file stays
+/// free of any database access, exactly like every other one under `lib/utils/` — reading
+/// `budget_entries` and `budget_commitments` (`lib/utils/ocpt_budget_journal.dart`,
+/// `lib/utils/ocpt_budget_projection.dart`) into the two per-poste totals a caller hands in here is
+/// the mode's own job (`OcptBudgetSnapshot.build`).
 int ocptBudgetRemainingCents({
   required int quotedAmountCents,
   required int paidCents,

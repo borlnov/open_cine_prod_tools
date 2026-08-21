@@ -353,6 +353,24 @@ void main() {
         vatRateBasisPoints: const drift.Value(550),
       );
 
+      // The write above went straight through the service, bypassing the bloc, so its own cached
+      // state hasn't caught up yet — its line still (stale) reads a null override, exactly the
+      // value the Inherit action is about to produce for real. Reloading first, and waiting for
+      // the override to actually show up as 550, is what keeps the assertion below honest: without
+      // it, `waitForState` would resolve against this stale cached `null` the instant the Inherit
+      // event is dispatched, never actually waiting for its own reload to land.
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(
+        bloc,
+        (state) => state.postes
+            .firstWhere((poste) => poste.id == posteId)
+            .lines
+            .single
+            .unitPrice
+            .vatRateBasisPoints ==
+            550,
+      );
+
       bloc.add(OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId));
       final state = await waitForState(
         bloc,
@@ -385,6 +403,33 @@ void main() {
       bloc.add(const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.versions));
       await waitForState(bloc, (state) => state.rightDockTab == OcptBudgetRightDockTab.versions);
       expect(await propertiesManager.budgetLastRightDockTab.load(), OcptBudgetRightDockTab.versions);
+    });
+  });
+
+  group("the cash journal", () {
+    test("loads its entries, and paidCentsOf reflects a poste that has actually been paid", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final otherPosteId = loaded.postes[1].id;
+      final project = projectsManager.currentProject!;
+
+      await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026),
+        label: "Camera rental",
+        posteId: posteId,
+        debitCents: 5000,
+      );
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      expect(state.entries, hasLength(1));
+      expect(state.paidCentsOf(posteId), 5000);
+      // A poste with no entry against it reads a real zero, not a hole.
+      expect(state.paidCentsOf(otherPosteId), 0);
     });
   });
 }

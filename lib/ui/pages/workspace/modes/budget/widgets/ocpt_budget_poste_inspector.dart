@@ -3,30 +3,34 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' show NumberFormat;
+import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 
 /// The right dock's own `Inspector` tab: the selected poste's figures, its quote lines — each a
 /// card collapsed to one summary row and expanding in place into its own editable fields, Benoit's
-/// own decision on this view — and, drawn and empty at M1, its related entries.
+/// own decision on this view — and its related entries: the cash journal's own movements naming
+/// this poste.
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] and hands
 /// its own parts (every field, the tax-basis choice, the `Inherit` action, `+ Add`, `Delete`) the
 /// null callbacks that withhold them under a version preview.
 ///
 /// The poste's own figures are read exactly as `OcptBudgetCostTracking` reads its row: `Quote` in
-/// [taxBasis], `Paid`/`Committed`/`Remaining`/`Consumed` as [ocptBudgetEmptyValue] while
-/// [isCashDataAvailable] is false — see that widget's own class doc comment for why.
+/// [taxBasis], [paidCents]/[committedCents] real amounts (0 while the journal carries nothing
+/// against this poste), `Consumed` alone still printing [ocptBudgetEmptyValue] for a poste with no
+/// quote at all — see that widget's own class doc comment for why.
 class OcptBudgetPosteInspector extends StatelessWidget {
   /// The selected poste, or null while none is — the tab then shows a plain hint.
   final OcptBudgetPoste? poste;
@@ -40,16 +44,17 @@ class OcptBudgetPosteInspector extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// Whether `budget_entries`/`budget_commitments` exist yet — see the class doc comment.
-  final bool isCashDataAvailable;
-
-  /// The selected poste's own paid total, in cents — always zero while [isCashDataAvailable] is
-  /// false.
+  /// The selected poste's own paid total, in cents, tax-inclusive — see the class doc comment.
   final int paidCents;
 
-  /// The selected poste's own committed total, in cents — always zero while [isCashDataAvailable]
-  /// is false.
+  /// The selected poste's own committed total, in cents, tax-inclusive — see the class doc
+  /// comment.
   final int committedCents;
+
+  /// The selected poste's own related entries — the cash journal's own live entries naming its
+  /// id, in whatever order the caller hands them in (never reordered by this widget): empty while
+  /// [poste] is null or the journal carries nothing against it.
+  final List<OcptBudgetEntry> entries;
 
   /// The id of the quote line whose card is currently expanded, or null while none is.
   final String? expandedLineId;
@@ -90,9 +95,9 @@ class OcptBudgetPosteInspector extends StatelessWidget {
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
-    required this.isCashDataAvailable,
     required this.paidCents,
     required this.committedCents,
+    required this.entries,
     required this.expandedLineId,
     required this.isReadOnly,
     required this.fieldValueOf,
@@ -147,7 +152,6 @@ class OcptBudgetPosteInspector extends StatelessWidget {
           _OcptBudgetInspectorFiguresRow(
             quotedAmountCents: quoted.amountCents,
             currencyCode: currencyCode,
-            isCashDataAvailable: isCashDataAvailable,
             paidCents: paidCents,
             committedCents: committedCents,
           ),
@@ -199,19 +203,54 @@ class OcptBudgetPosteInspector extends StatelessWidget {
               ),
           const SizedBox(height: 16),
           Text(tr.budgetInspectorRelatedEntriesSectionTitle, style: Theme.of(context).textTheme.titleSmall),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              tr.budgetInspectorRelatedEntriesEmptyHint,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ),
+          if (entries.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                tr.budgetInspectorRelatedEntriesEmptyHint,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            )
+          else ...[
+            for (final entry in entries)
+              _OcptBudgetRelatedEntryRow(
+                entry: entry,
+                defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                currencyCode: currencyCode,
+              ),
+            if (_coveredEntryCount(entries) != entries.length)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  tr.budgetInspectorRelatedEntriesCoverageReadOut(
+                    _coveredEntryCount(entries),
+                    entries.length,
+                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ),
+          ],
         ],
       ),
     );
   }
+
+  /// How many of [entries] carry a readable amount — [_ocptBudgetRelatedEntryAmountCentsOf]
+  /// answering something rather than null — what the coverage read-out counts against
+  /// `entries.length`.
+  int _coveredEntryCount(List<OcptBudgetEntry> entries) => entries
+      .where(
+        (entry) => _ocptBudgetRelatedEntryAmountCentsOf(
+              entry,
+              projectVatRateBasisPoints: defaultVatRateBasisPoints,
+            ) !=
+            null,
+      )
+      .length;
 
   /// One editable text field of the poste header, bound to [fieldValueOf]/[onFieldChanged] exactly
   /// as `OcptResourcesSheetField` is.
@@ -237,20 +276,16 @@ class _OcptBudgetInspectorFiguresRow extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// Whether `budget_entries`/`budget_commitments` exist yet.
-  final bool isCashDataAvailable;
-
-  /// The poste's own paid total, in cents.
+  /// The poste's own paid total, in cents, tax-inclusive.
   final int paidCents;
 
-  /// The poste's own committed total, in cents.
+  /// The poste's own committed total, in cents, tax-inclusive.
   final int committedCents;
 
   /// Class constructor
   const _OcptBudgetInspectorFiguresRow({
     required this.quotedAmountCents,
     required this.currencyCode,
-    required this.isCashDataAvailable,
     required this.paidCents,
     required this.committedCents,
   });
@@ -274,25 +309,21 @@ class _OcptBudgetInspectorFiguresRow extends StatelessWidget {
       runSpacing: 10,
       children: [
         _figure(context, tr.budgetInspectorFigureQuote, ocptBudgetAmountLabel(quotedAmountCents, currencyCode)),
-        _figure(
-          context,
-          tr.budgetInspectorFigurePaid,
-          isCashDataAvailable ? ocptBudgetAmountLabel(paidCents, currencyCode) : null,
-        ),
+        _figure(context, tr.budgetInspectorFigurePaid, ocptBudgetAmountLabel(paidCents, currencyCode)),
         _figure(
           context,
           tr.budgetInspectorFigureCommitted,
-          isCashDataAvailable ? ocptBudgetAmountLabel(committedCents, currencyCode) : null,
+          ocptBudgetAmountLabel(committedCents, currencyCode),
         ),
         _figure(
           context,
           tr.budgetInspectorFigureRemaining,
-          isCashDataAvailable ? ocptBudgetAmountLabel(remainingCents, currencyCode) : null,
+          ocptBudgetAmountLabel(remainingCents, currencyCode),
         ),
         _figure(
           context,
           tr.budgetInspectorFigureConsumed,
-          isCashDataAvailable && consumedRatio != null ? "${(consumedRatio * 100).round()} %" : null,
+          consumedRatio == null ? null : "${(consumedRatio * 100).round()} %",
         ),
       ],
     );
@@ -313,6 +344,87 @@ class _OcptBudgetInspectorFiguresRow extends StatelessWidget {
         ),
         Text(value ?? ocptBudgetEmptyValue, style: theme.textTheme.bodyMedium),
       ],
+    );
+  }
+}
+
+/// [entry]'s own amount, read tax-inclusive, on whichever side actually carries money: its own
+/// [OcptBudgetEntry.debitCents] when positive, its [OcptBudgetEntry.creditCents] otherwise — or
+/// null when that reading is impossible ([ocptBudgetEntryDebitCentsOf]/
+/// [ocptBudgetEntryCreditCentsOf] answering null together, exactly as their own doc comments
+/// argue). Shared by [_OcptBudgetRelatedEntryRow] and the coverage read-out counting how many of a
+/// poste's own entries carry a readable amount.
+int? _ocptBudgetRelatedEntryAmountCentsOf(
+  OcptBudgetEntry entry, {
+  required int? projectVatRateBasisPoints,
+}) => entry.debitCents > 0
+    ? ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints)
+    : ocptBudgetEntryCreditCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+
+/// One related-entry row: the voucher number and the date, muted, the entry's own label beside
+/// them, and its own amount, read tax-inclusive, trailing — a debit painted in
+/// [ColorScheme.error], a credit in [ColorScheme.primary], so the two are told apart without a
+/// hard-coded colour. An entry whose amount cannot be read tax-inclusive prints
+/// [ocptBudgetEmptyValue] instead, painted like any other muted figure rather than either colour.
+class _OcptBudgetRelatedEntryRow extends StatelessWidget {
+  /// The entry this row shows.
+  final OcptBudgetEntry entry;
+
+  /// The project's default VAT rate, in basis points, or null.
+  final int? defaultVatRateBasisPoints;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Class constructor
+  const _OcptBudgetRelatedEntryRow({
+    required this.entry,
+    required this.defaultVatRateBasisPoints,
+    required this.currencyCode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final dateLabel = DateFormat.yMMMd(locale).format(entry.date);
+    final isDebit = entry.debitCents > 0;
+    final amountCents = _ocptBudgetRelatedEntryAmountCentsOf(
+      entry,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            "${entry.voucherNumber} · $dateLabel",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              entry.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            amountCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(amountCents, currencyCode),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: amountCents == null
+                  ? null
+                  : (isDebit ? theme.colorScheme.error : theme.colorScheme.primary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

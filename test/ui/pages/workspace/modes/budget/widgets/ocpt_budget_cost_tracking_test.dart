@@ -16,103 +16,114 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a
 /// [width]×[height] band — wide enough by default that every column of the table is drawn with
 /// no horizontal scroll at all; a test of the scrolling pane itself passes a narrower [width].
-Widget _wrap(Widget child, {double width = 1400, double height = 600}) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
-  supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, height: height, child: child)),
-);
+Widget _wrap(Widget child, {double width = 1400, double height = 600}) =>
+    MaterialApp(
+      localizationsDelegates: const [
+        Tr.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: Tr.delegate.supportedLocales,
+      home: Scaffold(
+        body: SizedBox(width: width, height: height, child: child),
+      ),
+    );
 
 /// The scrolling pane's own horizontal [SingleChildScrollView] — the vertical one, wrapping the
 /// whole two-pane [Row], is the only other [SingleChildScrollView] in the tree, so filtering on
 /// [Axis.horizontal] picks this one out uniquely.
 final Finder _amountsPaneScrollFinder = find.byWidgetPredicate(
-  (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.horizontal,
+  (widget) =>
+      widget is SingleChildScrollView &&
+      widget.scrollDirection == Axis.horizontal,
 );
 
 /// A quote line priced at 10.00 €, tax-inclusive, whose rate is known only when
 /// `vatRateBasisPoints` is given.
-OcptBudgetLine _line({required String id, required String posteId, int? vatRateBasisPoints}) =>
-    OcptBudgetLine(
-      id: id,
-      posteId: posteId,
-      label: "Line $id",
-      quantityMilli: 1000,
-      unit: "u",
-      unitPrice: OcptMoney(
-        amountCents: 1000,
-        isTaxInclusive: true,
-        vatRateBasisPoints: vatRateBasisPoints,
-      ),
-      elementId: null,
-      notes: "",
-      sortKey: "a0",
-    );
+OcptBudgetLine _line({
+  required String id,
+  required String posteId,
+  int? vatRateBasisPoints,
+}) => OcptBudgetLine(
+  id: id,
+  posteId: posteId,
+  label: "Line $id",
+  quantityMilli: 1000,
+  unit: "u",
+  unitPrice: OcptMoney(
+    amountCents: 1000,
+    isTaxInclusive: true,
+    vatRateBasisPoints: vatRateBasisPoints,
+  ),
+  elementId: null,
+  notes: "",
+  sortKey: "a0",
+);
 
 void main() {
-  testWidgets("the detailed header shows the poste code; the simplified one hides it and uses the "
-      "simple label", (tester) async {
-    final poste = OcptBudgetPoste(
-      id: "poste-1",
-      code: "7",
-      label: "Technical equipment",
-      simpleLabel: "Camera and lighting gear",
-      sortKey: "a0",
-      lines: [_line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
-    );
+  testWidgets(
+    "the detailed header shows the poste code; the simplified one hides it and uses the "
+    "simple label",
+    (tester) async {
+      final poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "7",
+        label: "Technical equipment",
+        simpleLabel: "Camera and lighting gear",
+        sortKey: "a0",
+        lines: [
+          _line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000),
+        ],
+      );
 
-    await tester.pumpWidget(
-      _wrap(
-        OcptBudgetCostTracking(
-          postes: [poste],
-          selectedPosteId: null,
-          isSimplified: false,
-          taxBasis: OcptBudgetTaxBasis.includingTax,
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-          isCashDataAvailable: false,
-          paidCentsOf: (_) => 0,
-          committedCentsOf: (_) => 0,
-          isReadOnly: false,
-          onPosteSelected: (_) {},
-          onPosteCreationRequested: () {},
-          onPosteReorderRequested: (_, {required moveUp}) {},
-          onPosteDeletionRequested: (_) {},
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [poste],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidCentsOf: (_) => 0,
+            committedCentsOf: (_) => 0,
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text("7"), findsOneWidget);
-    expect(find.text("Technical equipment"), findsOneWidget);
+      expect(find.text("7"), findsOneWidget);
+      expect(find.text("Technical equipment"), findsOneWidget);
 
-    await tester.pumpWidget(
-      _wrap(
-        OcptBudgetCostTracking(
-          postes: [poste],
-          selectedPosteId: null,
-          isSimplified: true,
-          taxBasis: OcptBudgetTaxBasis.includingTax,
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-          isCashDataAvailable: false,
-          paidCentsOf: (_) => 0,
-          committedCentsOf: (_) => 0,
-          isReadOnly: false,
-          onPosteSelected: (_) {},
-          onPosteCreationRequested: () {},
-          onPosteReorderRequested: (_, {required moveUp}) {},
-          onPosteDeletionRequested: (_) {},
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [poste],
+            selectedPosteId: null,
+            isSimplified: true,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidCentsOf: (_) => 0,
+            committedCentsOf: (_) => 0,
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text("7"), findsNothing);
-    expect(find.text("Camera and lighting gear"), findsOneWidget);
-  });
+      expect(find.text("7"), findsNothing);
+      expect(find.text("Camera and lighting gear"), findsOneWidget);
+    },
+  );
 
   testWidgets(
     "the total row reports how many postes its coverage reaches while a line carries no known "
@@ -125,7 +136,9 @@ void main() {
           label: "Covered",
           simpleLabel: null,
           sortKey: "a0",
-          lines: [_line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
+          lines: [
+            _line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000),
+          ],
         ),
         OcptBudgetPoste(
           id: "poste-2",
@@ -148,7 +161,6 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.excludingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            isCashDataAvailable: false,
             paidCentsOf: (_) => 0,
             committedCentsOf: (_) => 0,
             isReadOnly: false,
@@ -192,7 +204,6 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            isCashDataAvailable: false,
             paidCentsOf: (_) => 0,
             committedCentsOf: (_) => 0,
             isReadOnly: true,
@@ -235,7 +246,6 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            isCashDataAvailable: false,
             paidCentsOf: (_) => 0,
             committedCentsOf: (_) => 0,
             isReadOnly: false,
@@ -287,7 +297,6 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            isCashDataAvailable: false,
             paidCentsOf: (_) => 0,
             committedCentsOf: (_) => 0,
             isReadOnly: false,
@@ -330,7 +339,6 @@ void main() {
         taxBasis: OcptBudgetTaxBasis.includingTax,
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
-        isCashDataAvailable: false,
         paidCentsOf: (_) => 0,
         committedCentsOf: (_) => 0,
         isReadOnly: false,
@@ -344,17 +352,161 @@ void main() {
       // pane's own width changes by exactly the `N°` column's width rather than the `Poste`
       // column silently absorbing the difference (which it does the moment there is room to
       // spare).
-      await tester.pumpWidget(_wrap(buildTable(isSimplified: false), width: 620));
-      final detailedAmountsPaneLeftEdge = tester.getTopLeft(_amountsPaneScrollFinder).dx;
+      await tester.pumpWidget(
+        _wrap(buildTable(isSimplified: false), width: 620),
+      );
+      final detailedAmountsPaneLeftEdge = tester
+          .getTopLeft(_amountsPaneScrollFinder)
+          .dx;
 
-      await tester.pumpWidget(_wrap(buildTable(isSimplified: true), width: 620));
-      final simplifiedAmountsPaneLeftEdge = tester.getTopLeft(_amountsPaneScrollFinder).dx;
+      await tester.pumpWidget(
+        _wrap(buildTable(isSimplified: true), width: 620),
+      );
+      final simplifiedAmountsPaneLeftEdge = tester
+          .getTopLeft(_amountsPaneScrollFinder)
+          .dx;
 
       expect(find.text("1"), findsNothing);
       expect(find.text("Simple"), findsOneWidget);
       // 44 px — `_ocptCostTrackingNumberColumnWidth` in the widget file, the `N°` column's own
       // fixed width.
       expect(detailedAmountsPaneLeftEdge - simplifiedAmountsPaneLeftEdge, 44);
+    },
+  );
+
+  /// A poste quoted at 50.00 € (one line: 1 × 50.00 €), so `Consumed` reads a real percentage
+  /// rather than the em dash whatever is paid or committed against it.
+  OcptBudgetPoste quotedPoste() => const OcptBudgetPoste(
+    id: "poste-1",
+    code: "1",
+    label: "Poste one",
+    simpleLabel: null,
+    sortKey: "a0",
+    lines: [
+      OcptBudgetLine(
+        id: "line-1",
+        posteId: "poste-1",
+        label: "Line one",
+        quantityMilli: 1000,
+        unit: "u",
+        unitPrice: OcptMoney(
+          amountCents: 5000,
+          isTaxInclusive: true,
+          vatRateBasisPoints: null,
+        ),
+        elementId: null,
+        notes: "",
+        sortKey: "a0",
+      ),
+    ],
+  );
+
+  testWidgets(
+    "a poste whose entries have been paid shows the real figures for Paid, Committed, Remaining "
+    "and Variance",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [quotedPoste()],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidCentsOf: (_) => 1200,
+            committedCentsOf: (_) => 300,
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      // Quoted 50.00 €, Paid 12.00 €, Committed 3.00 €, Remaining 35.00 € (50 - 12 - 3), Variance
+      // -35.00 € (12 + 3 - 50), Consumed 30 % ((12 + 3) / 50) — none of them the em dash.
+      expect(find.text(ocptBudgetAmountLabel(1200, "EUR")), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(300, "EUR")), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(-3500, "EUR")), findsOneWidget);
+      expect(find.text("30 %"), findsOneWidget);
+      // The total row's own five money-that-moved cells always print the em dash (no grand
+      // Paid/Committed total is drawn there yet — the total row's own class doc comment argues
+      // why); this poste's own row contributes none of its own.
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
+    },
+  );
+
+  testWidgets(
+    "a poste with no entry or commitment against it shows zero rather than a hole for Paid and "
+    "Committed",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [quotedPoste()],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidCentsOf: (_) => 0,
+            committedCentsOf: (_) => 0,
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      // Paid and Committed both read a real zero — nothing having moved against this poste is a
+      // known fact now that the journal exists, not a stand-in for an unknown figure.
+      expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsNWidgets(2));
+      // Only the total row's own five money-that-moved cells print the em dash here (see the
+      // previous test's own comment) — this poste's own row contributes none.
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
+    },
+  );
+
+  testWidgets(
+    "the Consumed column reads the em dash for a poste carrying no quote at all",
+    (tester) async {
+      const poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "No quote",
+        simpleLabel: null,
+        sortKey: "a0",
+        lines: [],
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [poste],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidCentsOf: (_) => 0,
+            committedCentsOf: (_) => 0,
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      // Six dashes: this poste's own Consumed cell (no quote to divide by), plus the total row's
+      // own five money-that-moved cells (see the earlier tests' own comment on that row).
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(6));
     },
   );
 }

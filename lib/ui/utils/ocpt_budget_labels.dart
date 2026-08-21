@@ -7,11 +7,12 @@ import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 
-/// The placeholder shown in place of a budget figure that has no value yet — this mode's own
+/// The placeholder shown in place of a budget figure that cannot be read at all — this mode's own
 /// instance of `ocptResourcesEmptyValue`: an empty cell reads as a rendering bug, an em dash reads
 /// as "nothing here yet". Used for the excluding-tax sub-line a poste's lines carry no known rate
-/// for, and for the paid/committed/remaining/variance/consumed columns before M2 gives them content
-/// — never `0 €`, which would claim a figure the data does not support.
+/// for, for the `Consumed` column of a poste with no quote at all (a ratio would be a division by
+/// zero, not a figure), and for a cash-journal amount that cannot be read tax-inclusive — never
+/// `0 €`/`0 %`, which would claim a figure the data does not support.
 const ocptBudgetEmptyValue = "—";
 
 /// The pattern [ocptBudgetQuantityLabel] and [ocptBudgetQuantityMilliOf] read and write a quantity

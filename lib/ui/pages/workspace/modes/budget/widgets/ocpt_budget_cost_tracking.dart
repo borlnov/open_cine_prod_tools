@@ -73,17 +73,17 @@ const double _ocptCostTrackingTotalRowHeight = 48;
 ///
 /// [isSimplified] switches every poste's own displayed name between [OcptBudgetPoste.simpleLabel]
 /// (falling back to [OcptBudgetPoste.label] when null) and [OcptBudgetPoste.label] itself, and
-/// hides the `N°` column and [isCashDataAvailable]'s five columns — a display switch over the same
-/// data, never a second read.
+/// hides the `N°` column — a display switch over the same data, never a second read.
 ///
-/// [isCashDataAvailable] is `false` at M1: `budget_entries`/`budget_commitments` don't exist yet
-/// (`docs/plans/budget-mode.md` §5, M2), so [paidCentsOf]/[committedCentsOf] are always zero —
-/// which this table reads honestly, printing [ocptBudgetEmptyValue] for `Paid`, `Committed`,
-/// `Remaining`, `Variance` and `Consumed` rather than a `0 €`/`0 %` nobody's cash has actually
-/// confirmed. The five columns are still **wired** through `lib/utils/ocpt_budget_totals.dart`'s
-/// own functions against whatever [paidCentsOf]/[committedCentsOf] answer, so M2 only has to start
-/// answering them for real and flip [isCashDataAvailable] — this widget's own reading of the figures
-/// changes with it, nothing else does.
+/// [paidCentsOf] and [committedCentsOf] read the cash journal's own per-poste totals
+/// (`OcptBudgetState.paidCentsOf`/`committedCentsOf`, backed by
+/// `lib/utils/ocpt_budget_journal.dart`/`ocpt_budget_projection.dart`): a poste with no entry or
+/// commitment against it answers **0**, honestly, rather than a stand-in for an unknown figure —
+/// the journal exists and is kept, so "nothing has moved" is a fact this table can state outright.
+/// `Paid`, `Committed`, `Remaining` and `Variance` therefore always print a real amount. `Consumed`
+/// is the one column that still prints [ocptBudgetEmptyValue]: it is a ratio, and
+/// [ocptBudgetConsumedRatioOf] answers null for a poste carrying no quote at all, where a
+/// percentage would be a division by zero rather than a figure.
 ///
 /// **A row's own `Rename` menu entry selects it and opens the `Inspector` tab rather than editing
 /// its name in place.** This app has no precedent for renaming a record inline inside a plain list
@@ -112,15 +112,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// Whether `budget_entries`/`budget_commitments` exist yet — see the class doc comment.
-  final bool isCashDataAvailable;
-
-  /// A poste's own paid total, in cents, tax-inclusive — always zero while [isCashDataAvailable]
-  /// is false.
+  /// A poste's own paid total, in cents, tax-inclusive — see the class doc comment.
   final int Function(String posteId) paidCentsOf;
 
-  /// A poste's own committed total, in cents, tax-inclusive — always zero while
-  /// [isCashDataAvailable] is false.
+  /// A poste's own committed total, in cents, tax-inclusive — see the class doc comment.
   final int Function(String posteId) committedCentsOf;
 
   /// Whether the mode shows a project version being previewed read-only — see the class doc
@@ -151,7 +146,6 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
-    required this.isCashDataAvailable,
     required this.paidCentsOf,
     required this.committedCentsOf,
     required this.isReadOnly,
@@ -174,9 +168,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final identityFixedWidth = isSimplified ? 0.0 : _ocptCostTrackingNumberColumnWidth;
-        // Quote, Paid, Committed, Remaining, Variance, Consumed — six amount columns, the last
-        // five always drawn (`ocptBudgetEmptyValue` while `isCashDataAvailable` is false), so the
-        // scrolling pane's own width never jumps once M2 starts feeding them.
+        // Quote, Paid, Committed, Remaining, Variance, Consumed — six amount columns.
         final amountsWidth = 6 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
         final posteWidth = (constraints.maxWidth - identityFixedWidth - amountsWidth).clamp(
           _ocptCostTrackingPosteColumnMinWidth,
@@ -233,7 +225,6 @@ class OcptBudgetCostTracking extends StatelessWidget {
                                   taxBasis: taxBasis,
                                   defaultVatRateBasisPoints: defaultVatRateBasisPoints,
                                   currencyCode: currencyCode,
-                                  isCashDataAvailable: isCashDataAvailable,
                                   paidCents: paidCentsOf(poste.id),
                                   committedCents: committedCentsOf(poste.id),
                                   onTap: () => onPosteSelected(poste.id),
@@ -493,9 +484,6 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// Whether `budget_entries`/`budget_commitments` exist yet.
-  final bool isCashDataAvailable;
-
   /// This poste's own paid total, in cents.
   final int paidCents;
 
@@ -524,7 +512,6 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
-    required this.isCashDataAvailable,
     required this.paidCents,
     required this.committedCents,
     required this.onTap,
@@ -576,41 +563,31 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
                   currencyCode: currencyCode,
                 ),
               ),
+              _amountCell(context, ocptBudgetAmountLabel(paidCents, currencyCode)),
+              _amountCell(context, ocptBudgetAmountLabel(committedCents, currencyCode)),
               _amountCell(
                 context,
-                isCashDataAvailable ? ocptBudgetAmountLabel(paidCents, currencyCode) : null,
+                ocptBudgetAmountLabel(
+                  ocptBudgetRemainingCents(
+                    quotedAmountCents: quoted.amountCents,
+                    paidCents: paidCents,
+                    committedCents: committedCents,
+                  ),
+                  currencyCode,
+                ),
               ),
               _amountCell(
                 context,
-                isCashDataAvailable ? ocptBudgetAmountLabel(committedCents, currencyCode) : null,
+                ocptBudgetAmountLabel(
+                  ocptBudgetVarianceCents(
+                    quotedAmountCents: quoted.amountCents,
+                    paidCents: paidCents,
+                    committedCents: committedCents,
+                  ),
+                  currencyCode,
+                ),
               ),
-              _amountCell(
-                context,
-                isCashDataAvailable
-                    ? ocptBudgetAmountLabel(
-                        ocptBudgetRemainingCents(
-                          quotedAmountCents: quoted.amountCents,
-                          paidCents: paidCents,
-                          committedCents: committedCents,
-                        ),
-                        currencyCode,
-                      )
-                    : null,
-              ),
-              _amountCell(
-                context,
-                isCashDataAvailable
-                    ? ocptBudgetAmountLabel(
-                        ocptBudgetVarianceCents(
-                          quotedAmountCents: quoted.amountCents,
-                          paidCents: paidCents,
-                          committedCents: committedCents,
-                        ),
-                        currencyCode,
-                      )
-                    : null,
-              ),
-              _amountCell(context, isCashDataAvailable ? _consumedTextOf(quoted.amountCents) : null),
+              _amountCell(context, _consumedTextOf(quoted.amountCents)),
               SizedBox(
                 width: _ocptCostTrackingMenuColumnWidth,
                 child: (onRenameRequested == null &&
@@ -652,9 +629,8 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
     );
   }
 
-  /// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [text] is null — see the
-  /// table's own class doc comment for why [OcptBudgetCostTracking.isCashDataAvailable] gates every
-  /// one of the five money-that-moved columns this way.
+  /// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [text] is null — only the
+  /// `Consumed` column ever hands this null, see [_consumedTextOf]'s own doc comment.
   Widget _amountCell(BuildContext context, String? text) => SizedBox(
     width: _ocptCostTrackingAmountColumnWidth,
     child: Text(
@@ -793,8 +769,11 @@ class _OcptCostTrackingIdentityTotalRow extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own total row: the grand `Quote` total (with its own coverage read-out),
-/// the five money-that-moved columns always reading [ocptBudgetEmptyValue] at M1 — see
+/// The scrolling pane's own total row: the grand `Quote` total (with its own coverage read-out).
+/// The five money-that-moved columns are left blank here: summing `paidCentsOf`/`committedCentsOf`
+/// across every poste is not the same reduction those two per-poste maps answer (an entry naming
+/// no poste moves cash without pricing any one poste's total), so a grand `Paid`/`Committed`
+/// total is not drawn until a view actually reads the journal as a whole. See
 /// [_OcptCostTrackingIdentityTotalRow]'s own doc comment for the pinned half of the very same row.
 class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   /// The grand total, in the header's own selected basis, and how many lines it covers.

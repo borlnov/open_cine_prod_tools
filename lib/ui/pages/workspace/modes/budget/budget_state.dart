@@ -4,6 +4,8 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
@@ -18,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 
 /// The key [OcptBudgetState.pendingFieldEdits] is stored under: which poste or line, and which of
 /// its own [OcptBudgetField]s — mirrors `OcptSchedulePendingFieldKey`.
@@ -123,6 +126,28 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// The total number of quote lines across every poste — the status bar's own second counter.
   int get lineCount => snapshot?.lineCount ?? 0;
+
+  /// Every live journal entry of [snapshot], in chronological order (empty while nothing is
+  /// loaded).
+  List<OcptBudgetEntry> get entries => snapshot?.entries ?? const [];
+
+  /// Every live commitment of [snapshot], in due-date order (empty while nothing is loaded).
+  List<OcptBudgetCommitment> get commitments => snapshot?.commitments ?? const [];
+
+  /// The cash journal's own debit, credit and balance — a zero-everything total while nothing is
+  /// loaded, mirroring [postes]' own empty default.
+  OcptBudgetCashTotals get cashTotals =>
+      snapshot?.cashTotals ??
+      const OcptBudgetCashTotals(debitCents: 0, creditCents: 0, coveredEntryCount: 0, entryCount: 0);
+
+  /// `posteId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
+  /// entry against it. See `OcptBudgetSnapshot.paidCentsOf`'s own doc comment for why this is now
+  /// honestly zero rather than a stand-in for an unknown figure.
+  int paidCentsOf(String posteId) => snapshot?.paidCentsOf(posteId) ?? 0;
+
+  /// `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
+  int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
 
   /// The project's default VAT rate, in basis points, or null while nobody has recorded one.
   int? get defaultVatRateBasisPoints => snapshot?.defaultVatRateBasisPoints;
