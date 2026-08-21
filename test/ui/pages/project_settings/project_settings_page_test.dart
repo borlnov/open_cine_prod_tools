@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_dictionary_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_budget_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
@@ -128,7 +129,9 @@ void main() {
   /// the same thing): every affordance below has to actually be tappable, not merely present in
   /// the tree.
   Future<OcptProjectSettingsBloc> pumpView(WidgetTester tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    // Tall enough for the episodes card's own rows to sit fully on screen, even with the budget
+    // defaults card now sharing the page above it.
+    await tester.binding.setSurfaceSize(const Size(800, 1750));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final bloc = OcptProjectSettingsBloc(projectsManager: projectsManager);
@@ -175,6 +178,12 @@ void main() {
     matching: find.byType(TextField),
   );
 
+  /// A finder scoped to the budget defaults section's own VAT rate field — the first of its three
+  /// `TextField`s, so it can't collide with the meal and snack price fields sharing the same card.
+  Finder budgetVatRateField() => find
+      .descendant(of: find.byType(OcptProjectSettingsBudgetSection), matching: find.byType(TextField))
+      .first;
+
   /// A finder scoped to the episodes card, matching [inner] inside it alone.
   Finder inEpisodesSection(Finder inner) =>
       find.descendant(of: find.byType(OcptProjectSettingsEpisodesSection), matching: inner);
@@ -196,6 +205,7 @@ void main() {
     await pumpView(tester);
 
     expect(find.byType(OcptProjectSettingsCurrencySection), findsOneWidget);
+    expect(find.byType(OcptProjectSettingsBudgetSection), findsOneWidget);
     expect(find.byType(OcptProjectSettingsPageFormatSection), findsOneWidget);
     expect(find.byType(OcptProjectSettingsScreenplayLanguageSection), findsOneWidget);
     expect(find.byType(OcptProjectSettingsMinimumRestSection), findsOneWidget);
@@ -463,6 +473,33 @@ void main() {
     expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 90);
     // The field reverts to the last committed value's own reading.
     expect(find.text(ocptMinimumRestHoursTextOf(90)), findsOneWidget);
+  });
+
+  testWidgets("typing a default VAT rate in per cent writes the basis points it makes", (
+    tester,
+  ) async {
+    final bloc = await pumpView(tester);
+
+    await tester.enterText(budgetVatRateField(), "20");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.defaultVatRateBasisPoints, 2000);
+    expect(bloc.state.hasChanged, isTrue);
+    expect(await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints(), 2000);
+  });
+
+  testWidgets("the No rate button clears a recorded default VAT rate", (tester) async {
+    await projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(2000);
+    final bloc = await pumpView(tester);
+    final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+
+    await tester.tap(find.widgetWithText(TextButton, tr.projectSettingsBudgetVatRateNoRateAction));
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.defaultVatRateBasisPoints, isNull);
+    expect(bloc.state.hasChanged, isTrue);
+    expect(await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints(), isNull);
   });
 
   testWidgets("tapping the back arrow pops with whether anything changed", (tester) async {

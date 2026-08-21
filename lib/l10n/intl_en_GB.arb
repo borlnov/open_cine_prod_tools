@@ -10004,6 +10004,209 @@
     "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
     "type": "text",
     "placeholders": {}
+  },
+  "projectSettingsBudgetSectionTitle": "Budget defaults",
+  "@projectSettingsBudgetSectionTitle": {
+    "description": "Title of the project settings page's budget defaults section",
+    "context": "Displayed at the top of the budget defaults section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetVatRateLabel": "Default VAT rate",
+  "@projectSettingsBudgetVatRateLabel": {
+    "description": "Label of the default VAT rate field",
+    "context": "Displayed next to the default VAT rate field in the budget defaults section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetVatRateFieldHint": "e.g. 20",
+  "@projectSettingsBudgetVatRateFieldHint": {
+    "description": "Placeholder of the default VAT rate field while it is empty",
+    "context": "Displayed in the default VAT rate field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetVatRateSuffix": "%",
+  "@projectSettingsBudgetVatRateSuffix": {
+    "description": "Unit suffix of the default VAT rate field, which is typed in per cent",
+    "context": "Displayed at the end of the default VAT rate field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetVatRateNoRateAction": "No rate",
+  "@projectSettingsBudgetVatRateNoRateAction": {
+    "description": "Label of the button that puts the default VAT rate back to \"not recorded\"",
+    "context": "Displayed beside the default VAT rate field in the budget defaults section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetVatRateHint": "Leave empty, or use No rate, if nobody has recorded a rate — that is different from 0 %, which wages and a copyright assignment carry for real. Without the button, a rate typed by mistake could never be removed.",
+  "@projectSettingsBudgetVatRateHint": {
+    "description": "Explanation under the default VAT rate field, what an empty value and 0 % each mean",
+    "context": "Displayed under the default VAT rate field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetMealPriceLabel": "Meal price",
+  "@projectSettingsBudgetMealPriceLabel": {
+    "description": "Label of the meal price field",
+    "context": "Displayed next to the meal price field in the budget defaults section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetSnackPriceLabel": "Snack price",
+  "@projectSettingsBudgetSnackPriceLabel": {
+    "description": "Label of the snack price field",
+    "context": "Displayed next to the snack price field in the budget defaults section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsBudgetCateringPriceHint": "Leave either price empty if it hasn't been recorded yet — that isn't the same as free, it just means nobody has typed a figure.",
+  "@projectSettingsBudgetCateringPriceHint": {
+    "description": "Explanation under the meal and snack price fields, what an empty value means",
+    "context": "Displayed under the snack price field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteArtisticRights": "Artistic rights",
+  "@budgetCncPosteArtisticRights": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 1",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleArtisticRights": "Script and music",
+  "@budgetCncPosteSimpleArtisticRights": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 1",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPostePersonnel": "Personnel",
+  "@budgetCncPostePersonnel": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 2",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimplePersonnel": "Crew",
+  "@budgetCncPosteSimplePersonnel": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 2",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteCast": "Cast",
+  "@budgetCncPosteCast": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 3",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleCast": "Cast and extras",
+  "@budgetCncPosteSimpleCast": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 3",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSocialCharges": "Social charges",
+  "@budgetCncPosteSocialCharges": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 4",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleSocialCharges": "Social contributions",
+  "@budgetCncPosteSimpleSocialCharges": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 4",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSetsAndCostumes": "Sets and costumes",
+  "@budgetCncPosteSetsAndCostumes": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 5",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleSetsAndCostumes": "Sets, props and costumes",
+  "@budgetCncPosteSimpleSetsAndCostumes": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 5",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteTransportPerDiemsLogistics": "Transport, per diems and logistics",
+  "@budgetCncPosteTransportPerDiemsLogistics": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 6",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleTransportPerDiemsLogistics": "Travel and meals",
+  "@budgetCncPosteSimpleTransportPerDiemsLogistics": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 6",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteTechnicalEquipment": "Technical equipment",
+  "@budgetCncPosteTechnicalEquipment": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 7",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleTechnicalEquipment": "Camera, sound and lighting gear",
+  "@budgetCncPosteSimpleTechnicalEquipment": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 7",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteLaboratoryAndPostProduction": "Laboratory and post-production",
+  "@budgetCncPosteLaboratoryAndPostProduction": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 8",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleLaboratoryAndPostProduction": "Editing, sound and grading",
+  "@budgetCncPosteSimpleLaboratoryAndPostProduction": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 8",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteInsuranceAndMiscellaneous": "Insurance and miscellaneous",
+  "@budgetCncPosteInsuranceAndMiscellaneous": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 9",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleInsuranceAndMiscellaneous": "Insurance and admin",
+  "@budgetCncPosteSimpleInsuranceAndMiscellaneous": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 9",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteOverheads": "Overheads",
+  "@budgetCncPosteOverheads": {
+    "description": "Detailed-header label of the CNC nomenclature's poste 10",
+    "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCncPosteSimpleOverheads": "Overheads",
+  "@budgetCncPosteSimpleOverheads": {
+    "description": "Simplified-header label of the CNC nomenclature's poste 10",
+    "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

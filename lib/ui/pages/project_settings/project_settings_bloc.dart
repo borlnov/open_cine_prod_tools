@@ -15,9 +15,10 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 
 /// This is the bloc class for the project settings page.
 ///
-/// It loads the current project's currency, page format, minimum rest, screenplay language,
-/// episodes and learned dictionary words from [OcptProjectsManager] on entry, and writes each
-/// field back to the project the moment it changes — there is no
+/// It loads the current project's currency, page format, minimum rest, default VAT rate, meal and
+/// snack prices, screenplay language, episodes and learned dictionary words from
+/// [OcptProjectsManager] on entry, and writes each field back to the project the moment it changes
+/// — there is no
 /// separate save step, exactly like the appearance and language sections of the app-wide settings
 /// page. The page format is written through the very same
 /// `OcptProjectsManager.saveCurrentProjectPageFormat` the screenplay editor's own page-setup
@@ -52,6 +53,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsCurrencyChangedEvent>(_onCurrencyChanged);
     on<OcptProjectSettingsPageFormatChangedEvent>(_onPageFormatChanged);
     on<OcptProjectSettingsMinimumRestMinutesChangedEvent>(_onMinimumRestMinutesChanged);
+    on<OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent>(
+      _onDefaultVatRateBasisPointsChanged,
+    );
+    on<OcptProjectSettingsMealPriceCentsChangedEvent>(_onMealPriceCentsChanged);
+    on<OcptProjectSettingsSnackPriceCentsChangedEvent>(_onSnackPriceCentsChanged);
     on<OcptProjectSettingsScreenplayLanguageChangedEvent>(_onScreenplayLanguageChanged);
     on<OcptProjectSettingsDictionaryEditedEvent>(_onDictionaryEdited);
     on<OcptProjectSettingsEpisodeAddedEvent>(_onEpisodeAdded);
@@ -74,6 +80,10 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
     final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+    final defaultVatRateBasisPoints = await _projectsManager
+        .loadCurrentProjectDefaultVatRateBasisPoints();
+    final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
+    final snackPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
@@ -87,6 +97,12 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
         minimumRestMinutes: minimumRestMinutes,
         clearMinimumRestMinutes: minimumRestMinutes == null,
+        defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+        clearDefaultVatRateBasisPoints: defaultVatRateBasisPoints == null,
+        mealPriceCents: mealPriceCents,
+        clearMealPriceCents: mealPriceCents == null,
+        snackPriceCents: snackPriceCents,
+        clearSnackPriceCents: snackPriceCents == null,
         screenplayLanguage: screenplayLanguage,
         clearScreenplayLanguage: screenplayLanguage == null,
         episodes: episodes,
@@ -127,6 +143,56 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       state.copyWith(
         minimumRestMinutes: event.minutes,
         clearMinimumRestMinutes: event.minutes == null,
+        hasChanged: true,
+      ),
+    );
+  }
+
+  /// Writes the newly committed default VAT rate to the project, then reflects it in the state.
+  ///
+  /// `event.basisPoints` is written whichever it is, including null and including `0` — the same
+  /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field, `0` being as real a
+  /// figure here as any other (`OcptProjectSettingsBudgetSection`'s own doc comment).
+  Future<void> _onDefaultVatRateBasisPointsChanged(
+    OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(event.basisPoints);
+    emitter(
+      state.copyWith(
+        defaultVatRateBasisPoints: event.basisPoints,
+        clearDefaultVatRateBasisPoints: event.basisPoints == null,
+        hasChanged: true,
+      ),
+    );
+  }
+
+  /// Writes the newly committed meal price to the project, then reflects it in the state.
+  Future<void> _onMealPriceCentsChanged(
+    OcptProjectSettingsMealPriceCentsChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectMealPriceCents(event.cents);
+    emitter(
+      state.copyWith(
+        mealPriceCents: event.cents,
+        clearMealPriceCents: event.cents == null,
+        hasChanged: true,
+      ),
+    );
+  }
+
+  /// Writes the newly committed snack price to the project, then reflects it in the state —
+  /// [_onMealPriceCentsChanged]'s sibling.
+  Future<void> _onSnackPriceCentsChanged(
+    OcptProjectSettingsSnackPriceCentsChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
+    emitter(
+      state.copyWith(
+        snackPriceCents: event.cents,
+        clearSnackPriceCents: event.cents == null,
         hasChanged: true,
       ),
     );

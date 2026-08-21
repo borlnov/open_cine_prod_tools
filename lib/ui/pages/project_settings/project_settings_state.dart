@@ -22,6 +22,18 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// (`project_info.minimumRestMinutes`), or null while nobody has recorded one.
   final int? minimumRestMinutes;
 
+  /// The current project's default VAT rate, in basis points
+  /// (`project_info.defaultVatRateBasisPoints`), or null while nobody has recorded one.
+  final int? defaultVatRateBasisPoints;
+
+  /// The current project's price of one meal, in cents (`project_info.mealPriceCents`), or null
+  /// while nobody has recorded one.
+  final int? mealPriceCents;
+
+  /// The current project's price of one snack, in cents (`project_info.snackPriceCents`), or null
+  /// while nobody has recorded one.
+  final int? snackPriceCents;
+
   /// The current project's screenplay language (`project_info.screenplayLanguage`), or null while
   /// nobody has recorded one.
   final OcptScreenplayLanguage? screenplayLanguage;
@@ -54,6 +66,9 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.currencyCode,
     required this.pageFormat,
     required this.minimumRestMinutes,
+    required this.defaultVatRateBasisPoints,
+    required this.mealPriceCents,
+    required this.snackPriceCents,
     required this.screenplayLanguage,
     required this.episodes,
     required this.dictionaryWords,
@@ -68,6 +83,9 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       currencyCode = "",
       pageFormat = OcptPageFormat.usLetter,
       minimumRestMinutes = null,
+      defaultVatRateBasisPoints = null,
+      mealPriceCents = null,
+      snackPriceCents = null,
       screenplayLanguage = null,
       episodes = const [],
       dictionaryWords = const [],
@@ -80,7 +98,8 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// parameter, which could never tell "leave it alone" apart from "clear it".
   /// [screenplayLanguage] carries exactly the same problem — picking "None" in the dropdown is as
   /// real a gesture as clearing the rest field is — so it gets the same treatment,
-  /// [clearScreenplayLanguage].
+  /// [clearScreenplayLanguage]. [defaultVatRateBasisPoints], [mealPriceCents] and [snackPriceCents]
+  /// all get the identical treatment for the identical reason, one clearing flag each.
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,
@@ -88,6 +107,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     OcptPageFormat? pageFormat,
     int? minimumRestMinutes,
     bool clearMinimumRestMinutes = false,
+    int? defaultVatRateBasisPoints,
+    bool clearDefaultVatRateBasisPoints = false,
+    int? mealPriceCents,
+    bool clearMealPriceCents = false,
+    int? snackPriceCents,
+    bool clearSnackPriceCents = false,
     OcptScreenplayLanguage? screenplayLanguage,
     bool clearScreenplayLanguage = false,
     List<OcptEpisode>? episodes,
@@ -100,6 +125,11 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     minimumRestMinutes: clearMinimumRestMinutes
         ? null
         : (minimumRestMinutes ?? this.minimumRestMinutes),
+    defaultVatRateBasisPoints: clearDefaultVatRateBasisPoints
+        ? null
+        : (defaultVatRateBasisPoints ?? this.defaultVatRateBasisPoints),
+    mealPriceCents: clearMealPriceCents ? null : (mealPriceCents ?? this.mealPriceCents),
+    snackPriceCents: clearSnackPriceCents ? null : (snackPriceCents ?? this.snackPriceCents),
     screenplayLanguage: clearScreenplayLanguage
         ? null
         : (screenplayLanguage ?? this.screenplayLanguage),
@@ -116,6 +146,9 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     currencyCode,
     pageFormat,
     minimumRestMinutes,
+    defaultVatRateBasisPoints,
+    mealPriceCents,
+    snackPriceCents,
     screenplayLanguage,
     episodes,
     dictionaryWords,

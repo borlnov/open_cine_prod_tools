@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_dictionary_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_budget_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_dictionary_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
@@ -121,6 +122,18 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
                       OcptProjectSettingsCurrencySection(
                         currencyCode: state.currencyCode,
                         onCurrencyCodeChanged: (code) => _onCurrencyChanged(context, code),
+                      ),
+                      const SizedBox(height: 16),
+                      OcptProjectSettingsBudgetSection(
+                        defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+                        onDefaultVatRateBasisPointsChanged: (basisPoints) =>
+                            _onDefaultVatRateBasisPointsChanged(context, basisPoints),
+                        mealPriceCents: state.mealPriceCents,
+                        onMealPriceCentsChanged: (cents) => _onMealPriceCentsChanged(context, cents),
+                        snackPriceCents: state.snackPriceCents,
+                        onSnackPriceCentsChanged: (cents) =>
+                            _onSnackPriceCentsChanged(context, cents),
+                        currencyCode: state.currencyCode,
                       ),
                       const SizedBox(height: 16),
                       OcptProjectSettingsPageFormatSection(
@@ -263,6 +276,28 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   void _onMinimumRestMinutesChanged(BuildContext context, int? minutes) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsMinimumRestMinutesChangedEvent(minutes: minutes),
+    );
+  }
+
+  /// Dispatches the event that writes the newly committed default VAT rate to the project, or
+  /// clears it — whether that comes from the field's own submission or the card's `No rate` button.
+  void _onDefaultVatRateBasisPointsChanged(BuildContext context, int? basisPoints) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent(basisPoints: basisPoints),
+    );
+  }
+
+  /// Dispatches the event that writes the newly committed meal price to the project.
+  void _onMealPriceCentsChanged(BuildContext context, int? cents) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsMealPriceCentsChangedEvent(cents: cents),
+    );
+  }
+
+  /// Dispatches the event that writes the newly committed snack price to the project.
+  void _onSnackPriceCentsChanged(BuildContext context, int? cents) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsSnackPriceCentsChangedEvent(cents: cents),
     );
   }
 

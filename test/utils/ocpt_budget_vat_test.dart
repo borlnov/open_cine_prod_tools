@@ -141,4 +141,47 @@ void main() {
       expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), 95);
     });
   });
+
+  group("ocptVatRateBasisPointsOf", () {
+    test("reads a whole number of per cent as basis points", () {
+      expect(ocptVatRateBasisPointsOf("20"), 2000);
+    });
+
+    test("accepts both decimal separators, and the spaces a paste carries", () {
+      expect(ocptVatRateBasisPointsOf("5,5"), 550);
+      expect(ocptVatRateBasisPointsOf("5.5"), 550);
+      expect(ocptVatRateBasisPointsOf(" 5,5 "), 550);
+    });
+
+    test("reads an explicit zero as the value it is, never as no rate at all", () {
+      expect(ocptVatRateBasisPointsOf("0"), 0);
+    });
+
+    test("reads an empty, unparseable or negative figure as no rate", () {
+      expect(ocptVatRateBasisPointsOf(""), isNull);
+      expect(ocptVatRateBasisPointsOf("twenty"), isNull);
+      expect(ocptVatRateBasisPointsOf("-3"), isNull);
+    });
+  });
+
+  group("ocptVatRatePercentTextOf", () {
+    test("writes a whole number of per cent bare", () {
+      expect(ocptVatRatePercentTextOf(2000), "20");
+      expect(ocptVatRatePercentTextOf(0), "0");
+    });
+
+    test("writes a fractional rate with its trailing zeroes dropped", () {
+      expect(ocptVatRatePercentTextOf(550), "5.5");
+    });
+
+    test("writes no rate at all as an empty field", () {
+      expect(ocptVatRatePercentTextOf(null), "");
+    });
+
+    test("writes what it reads back, to the basis point", () {
+      for (final basisPoints in [0, 550, 1000, 2000, 2115]) {
+        expect(ocptVatRateBasisPointsOf(ocptVatRatePercentTextOf(basisPoints)), basisPoints);
+      }
+    });
+  });
 }

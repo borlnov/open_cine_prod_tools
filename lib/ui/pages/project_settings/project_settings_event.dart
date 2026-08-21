@@ -60,6 +60,50 @@ class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSetti
   List<Object?> get props => [...super.props, minutes];
 }
 
+/// Reports that the user committed a new default VAT rate, in basis points, or cleared it —
+/// whether by submitting the field empty, submitting it negative, or tapping the card's own
+/// `No rate` button; [basisPoints] null meaning "not recorded", a real gesture as much as recording
+/// `0` (an explicit exemption) is.
+class OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent extends OcptProjectSettingsEvent {
+  /// The newly committed rate, in basis points, or null to clear it.
+  final int? basisPoints;
+
+  /// Class constructor
+  const OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent({required this.basisPoints});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, basisPoints];
+}
+
+/// Reports that the user committed a new meal price, in cents, or cleared it — [cents] null meaning
+/// the field was submitted empty, a real gesture as much as typing a figure is.
+class OcptProjectSettingsMealPriceCentsChangedEvent extends OcptProjectSettingsEvent {
+  /// The newly committed price, in cents, or null to clear it.
+  final int? cents;
+
+  /// Class constructor
+  const OcptProjectSettingsMealPriceCentsChangedEvent({required this.cents});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, cents];
+}
+
+/// Reports that the user committed a new snack price, in cents, or cleared it —
+/// [OcptProjectSettingsMealPriceCentsChangedEvent]'s sibling.
+class OcptProjectSettingsSnackPriceCentsChangedEvent extends OcptProjectSettingsEvent {
+  /// The newly committed price, in cents, or null to clear it.
+  final int? cents;
+
+  /// Class constructor
+  const OcptProjectSettingsSnackPriceCentsChangedEvent({required this.cents});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, cents];
+}
+
 /// Reports that the user picked a different screenplay language in the dropdown, including "None"
 /// (null) — a real gesture, turning the checker off for this screenplay, as much as picking one of
 /// the two bundled languages is.
