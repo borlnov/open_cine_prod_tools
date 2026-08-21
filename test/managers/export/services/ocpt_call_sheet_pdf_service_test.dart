@@ -95,6 +95,8 @@ const _labels = OcptCallSheetLabels(
     OcptShootingBlockKind.travel: "Travel",
     OcptShootingBlockKind.wrap: "Wrap",
     OcptShootingBlockKind.hold: "Reserved",
+    OcptShootingBlockKind.audition: "Audition",
+    OcptShootingBlockKind.rehearsal: "Rehearsal",
   },
   seqHeader: "SEQ",
   plansHeader: "SHOTS",
