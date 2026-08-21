@@ -378,6 +378,7 @@ class _BudgetViewState extends State<_BudgetView> {
     return OcptBudgetCashJournal(
       entries: state.entries,
       postes: state.postes,
+      receiptsByEntryId: state.receiptsByEntryId,
       selectedPosteId: state.selectedPosteId,
       isSimplified: state.isSimplified,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
@@ -429,6 +430,7 @@ class _BudgetViewState extends State<_BudgetView> {
     final fields = await OcptBudgetEntryDialog.show(
       context,
       existing: entry,
+      existingReceipt: state.receiptsByEntryId[entry.id],
       postes: state.postes,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
@@ -590,6 +592,8 @@ class _BudgetViewState extends State<_BudgetView> {
       isTaxInclusive: commitment.amount.isTaxInclusive,
       vatRateBasisPoints: commitment.amount.vatRateBasisPoints,
       voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
     );
 
     final fields = await OcptBudgetEntryDialog.show(

@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
@@ -67,6 +70,11 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// Every live poste of the project, used to resolve an entry's own poste name.
   final List<OcptBudgetPoste> postes;
 
+  /// Every live voucher, keyed by the entry it evidences — an entry with no key here carries no
+  /// voucher at all. Read by each row's own small marker (never a second column of text), which
+  /// also says when the referenced file no longer resolves.
+  final Map<String, OcptAssetRef> receiptsByEntryId;
+
   /// The id of the poste the table is currently filtered onto, or null while it shows every entry —
   /// `OcptBudgetState.selectedPosteId` itself, this view's only filter.
   final String? selectedPosteId;
@@ -105,6 +113,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
     super.key,
     required this.entries,
     required this.postes,
+    required this.receiptsByEntryId,
     required this.selectedPosteId,
     required this.isSimplified,
     required this.defaultVatRateBasisPoints,
@@ -168,6 +177,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                         itemBuilder: (context, index) => _OcptCashJournalRow(
                           row: filteredRows[index],
                           poste: _posteById(filteredRows[index].entry.posteId),
+                          receipt: receiptsByEntryId[filteredRows[index].entry.id],
                           isSimplified: isSimplified,
                           currencyCode: currencyCode,
                           onTap: isReadOnly || onEntryTapped == null
@@ -399,6 +409,9 @@ class _OcptCashJournalRow extends StatelessWidget {
   /// The poste [row]'s own entry names, or null while it names none.
   final OcptBudgetPoste? poste;
 
+  /// This entry's own voucher, or null while it carries none.
+  final OcptAssetRef? receipt;
+
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
@@ -415,6 +428,7 @@ class _OcptCashJournalRow extends StatelessWidget {
   const _OcptCashJournalRow({
     required this.row,
     required this.poste,
+    required this.receipt,
     required this.isSimplified,
     required this.currencyCode,
     required this.onTap,
@@ -462,11 +476,21 @@ class _OcptCashJournalRow extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: Text(
-                  entry.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                child: Row(
+                  children: [
+                    if (receipt != null) ...[
+                      _OcptCashJournalVoucherMarker(path: receipt!.path),
+                      const SizedBox(width: 6),
+                    ],
+                    Expanded(
+                      child: Text(
+                        entry.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -534,4 +558,54 @@ class _OcptCashJournalRow extends StatelessWidget {
       ).textTheme.bodySmall?.copyWith(color: color, fontWeight: bold ? FontWeight.w600 : null),
     ),
   );
+}
+
+/// The small marker a row carries next to its own label when its entry carries a voucher — never a
+/// second column of text, just an icon whose tooltip says whether the referenced file still
+/// resolves, mirroring `OcptAssetFileLine`'s own "file not found" reading (ADR 0013).
+///
+/// A [StatefulWidget] (the documented RFL1 exception) for the very reason `OcptAssetFileLine` is
+/// one: the answer belongs to nobody else and is worth asking once, not from `build`, which would
+/// run it on every frame the journal is rebuilt for an unrelated reason.
+class _OcptCashJournalVoucherMarker extends StatefulWidget {
+  /// The voucher's own referenced path.
+  final String path;
+
+  /// Class constructor
+  const _OcptCashJournalVoucherMarker({required this.path});
+
+  @override
+  State<_OcptCashJournalVoucherMarker> createState() => _OcptCashJournalVoucherMarkerState();
+}
+
+/// The state of [_OcptCashJournalVoucherMarker]: whether the referenced file was found, once asked.
+class _OcptCashJournalVoucherMarkerState extends State<_OcptCashJournalVoucherMarker> {
+  /// Whether the referenced file was there when it was last asked about.
+  late bool _exists = File(widget.path).existsSync();
+
+  @override
+  void didUpdateWidget(covariant _OcptCashJournalVoucherMarker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.path != oldWidget.path) {
+      _exists = File(widget.path).existsSync();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final isMissing = !_exists;
+
+    return Tooltip(
+      message: isMissing
+          ? tr.budgetCashJournalVoucherFileMissingTooltip
+          : tr.budgetCashJournalVoucherAttachedTooltip,
+      child: Icon(
+        isMissing ? Icons.error_outline : Icons.attach_file,
+        size: 14,
+        color: isMissing ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
 }

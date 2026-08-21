@@ -454,6 +454,8 @@ void main() {
             isTaxInclusive: true,
             vatRateBasisPoints: null,
             voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
           ),
         ),
       );
@@ -485,6 +487,8 @@ void main() {
             isTaxInclusive: true,
             vatRateBasisPoints: null,
             voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
           ),
         ),
       );
@@ -494,6 +498,176 @@ void main() {
       expect(entry.debitCents, 0);
       expect(entry.creditCents, 20000);
       expect(entry.posteId, isNull);
+    });
+  });
+
+  group("an entry's own voucher", () {
+    test("a fresh pick on creation is referenced against the new entry", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Camera rental",
+            posteId: posteId,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: "/tmp/receipt.pdf",
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.entries.isNotEmpty && state.receiptsByEntryId.isNotEmpty,
+      );
+
+      final entry = state.entries.single;
+      expect(state.receiptsByEntryId[entry.id]?.path, "/tmp/receipt.pdf");
+    });
+
+    test("a fresh pick on an edit replaces whatever the entry already referenced", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final entryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026),
+        label: "Original",
+        posteId: posteId,
+        debitCents: 1000,
+      );
+      await projectsManager.budgetJournalService.setEntryReceipt(
+        database: project.database,
+        entryId: entryId!,
+        path: "/tmp/first.pdf",
+      );
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.receiptsByEntryId.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetEntryUpdateConfirmedEvent(
+          entryId: entryId,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026),
+            label: "Original",
+            posteId: posteId,
+            isDebit: true,
+            amountCents: 1000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: "/tmp/second.pdf",
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.receiptsByEntryId[entryId]?.path == "/tmp/second.pdf",
+      );
+
+      expect(state.receiptsByEntryId, hasLength(1));
+    });
+
+    test("the dialog's own Detach action drops the reference on an edit", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final entryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026),
+        label: "Original",
+        posteId: posteId,
+        debitCents: 1000,
+      );
+      await projectsManager.budgetJournalService.setEntryReceipt(
+        database: project.database,
+        entryId: entryId!,
+        path: "/tmp/receipt.pdf",
+      );
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.receiptsByEntryId.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetEntryUpdateConfirmedEvent(
+          entryId: entryId,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026),
+            label: "Original",
+            posteId: posteId,
+            isDebit: true,
+            amountCents: 1000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: true,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.receiptsByEntryId.isEmpty);
+
+      expect(state.receiptsByEntryId, isEmpty);
+    });
+
+    test("settling a commitment can reference a voucher on the fresh entry it creates", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId,
+        label: "Camera deposit",
+        amountCents: 5000,
+      );
+      expect(commitmentId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetCommitmentSettlementConfirmedEvent(
+          commitmentId: commitmentId!,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 4),
+            label: "Camera deposit",
+            posteId: posteId,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: "/tmp/invoice.pdf",
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.commitments.single.isSettled && state.receiptsByEntryId.isNotEmpty,
+      );
+
+      final settledEntry = state.entries.single;
+      expect(state.receiptsByEntryId[settledEntry.id]?.path, "/tmp/invoice.pdf");
     });
   });
 
@@ -530,6 +704,8 @@ void main() {
             isTaxInclusive: false,
             vatRateBasisPoints: 2000,
             voucherNumber: "J-999",
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
           ),
         ),
       );
@@ -722,6 +898,8 @@ void main() {
             isTaxInclusive: true,
             vatRateBasisPoints: null,
             voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
           ),
         ),
       );

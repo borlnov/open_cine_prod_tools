@@ -4,6 +4,7 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
@@ -162,6 +163,10 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// The dashboard's own two alerts, empty while nothing is loaded or the project raises neither.
   List<OcptBudgetAlert> get alerts => snapshot?.alerts ?? const [];
+
+  /// Every live voucher, keyed by the `budget_entries` row it evidences — empty while nothing is
+  /// loaded or no entry carries one.
+  Map<String, OcptAssetRef> get receiptsByEntryId => snapshot?.receiptsByEntryId ?? const {};
 
   /// The project's default VAT rate, in basis points, or null while nobody has recorded one.
   int? get defaultVatRateBasisPoints => snapshot?.defaultVatRateBasisPoints;

@@ -5,8 +5,10 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
@@ -88,6 +90,28 @@ class OcptBudgetJournalService {
             .get();
 
     return [for (final row in rows) OcptBudgetCommitment.fromRow(row)];
+  }
+
+  /// Loads every live voucher of [database] — `OcptAssetKind.receipt`, `assets.budgetEntryId`
+  /// naming the journal entry it evidences — keyed by that entry's own id.
+  ///
+  /// **At most one per entry**, mirroring `OcptLocationsService.loadLocations`' own
+  /// `permitDocument` join but reading `assets` directly rather than through a stored owning
+  /// column: `budget_entries` carries no `receiptAssetId` of its own, `assets.budgetEntryId` being
+  /// the only place the link is recorded (`setEntryReceipt`'s own doc comment argues why a second,
+  /// redundant column on the entry itself would only be one more copy of the same fact to keep in
+  /// step).
+  Future<Map<String, OcptAssetRef>> loadReceipts({required OcptProjectDatabase database}) async {
+    final rows =
+        await (database.select(database.ocptAssetsTable)..where(
+              (table) => table.kind.equalsValue(OcptAssetKind.receipt) & table.isDeleted.not(),
+            ))
+            .get();
+
+    return {
+      for (final row in rows)
+        if (row.budgetEntryId case final entryId?) entryId: OcptAssetRef.fromRow(row),
+    };
   }
 
   /// Creates a new journal entry dated [date], appended at the end of the journal's own flat
@@ -222,12 +246,9 @@ class OcptBudgetJournalService {
   ///   commitment is ever left pointing at an entry that no longer exists as a settlement — settled
   ///   is read off that link ([OcptBudgetCommitment.isSettled]), and a dangling one would silently
   ///   misreport a commitment as still paid;
-  /// - tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt`: the
-  ///   voucher goes with the entry it stood for, exactly as `OcptElementsService` tombstones an
-  ///   element's photo alongside the element. Done here, in this transaction, rather than by asking
-  ///   `OcptAssetsService` for a bespoke "delete every asset of this entry" method: that service's
-  ///   own [OcptAssetsService.tombstoneAsset] already tombstones one row by id unguarded, which is
-  ///   exactly the shape this needs once the (possibly several) voucher ids are read here.
+  /// - tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt`
+  ///   ([_tombstoneEntryReceipt]): the voucher goes with the entry it stood for, exactly as
+  ///   `OcptElementsService` tombstones an element's photo alongside the element.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -244,14 +265,7 @@ class OcptBudgetJournalService {
         const OcptBudgetCommitmentsTableCompanion(settledEntryId: Value(null)),
       );
 
-      final vouchers =
-          await (database.select(database.ocptAssetsTable)..where(
-                (table) => table.budgetEntryId.equals(entryId) & table.isDeleted.not(),
-              ))
-              .get();
-      for (final voucher in vouchers) {
-        await _assetsService.tombstoneAsset(database: database, assetId: voucher.id);
-      }
+      await _tombstoneEntryReceipt(database: database, entryId: entryId);
 
       await (database.update(
         database.ocptBudgetEntriesTable,
@@ -259,6 +273,77 @@ class OcptBudgetJournalService {
         const OcptBudgetEntriesTableCompanion(isDeleted: Value(true)),
       );
     });
+  }
+
+  /// References the file at [path] as journal entry [entryId]'s own voucher, replacing whichever
+  /// receipt it referenced before — tombstoned in the same transaction, since an entry has at most
+  /// one voucher and a row nothing points at any more is not history worth keeping, it is an
+  /// orphan. Mirrors `OcptLocationsService.setPermitDocument`; see that method's own doc comment
+  /// (and `docs/adr/0013-binary-assets-referenced-by-path.md`) for why no byte of the file is ever
+  /// touched.
+  ///
+  /// **No `receiptAssetId` column exists on `budget_entries` to write back**: `assets
+  /// .budgetEntryId` is the only place this link is recorded — a second, redundant column on the
+  /// entry itself would only be one more copy of the same fact to keep in step, which is exactly
+  /// the argument `OcptBudgetPostesTable`'s own doc comment already makes against a stored
+  /// `quotedAmount`.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> setEntryReceipt({
+    required OcptProjectDatabase database,
+    required String entryId,
+    required String path,
+  }) async {
+    if (database.refusesUserWrite("setEntryReceipt")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      await _tombstoneEntryReceipt(database: database, entryId: entryId);
+
+      return _assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.receipt,
+        budgetEntryId: entryId,
+        path: path,
+      );
+    });
+  }
+
+  /// Drops journal entry [entryId]'s own reference to its voucher: the `assets` row is tombstoned.
+  /// The file itself is never touched.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> clearEntryReceipt({
+    required OcptProjectDatabase database,
+    required String entryId,
+  }) async {
+    if (database.refusesUserWrite("clearEntryReceipt")) {
+      return;
+    }
+
+    await _tombstoneEntryReceipt(database: database, entryId: entryId);
+  }
+
+  /// Tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt` voucher —
+  /// shared by [deleteEntry]'s own cascade, [setEntryReceipt] (replacing one) and
+  /// [clearEntryReceipt] (dropping one outright). Unguarded, like `OcptLocationsService
+  /// ._tombstonePermitDocument`: every caller has already refused the write on a previewed
+  /// database itself, or is running inside [deleteEntry]'s own transaction.
+  Future<void> _tombstoneEntryReceipt({
+    required OcptProjectDatabase database,
+    required String entryId,
+  }) async {
+    final vouchers =
+        await (database.select(database.ocptAssetsTable)..where(
+              (table) => table.budgetEntryId.equals(entryId) & table.isDeleted.not(),
+            ))
+            .get();
+    for (final voucher in vouchers) {
+      await _assetsService.tombstoneAsset(database: database, assetId: voucher.id);
+    }
   }
 
   /// Creates a new commitment against [posteId], appended at the end of the commitment list's own

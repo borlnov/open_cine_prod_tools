@@ -10947,6 +10947,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetCashJournalVoucherAttachedTooltip": "This entry carries a voucher.",
+  "@budgetCashJournalVoucherAttachedTooltip": {
+    "description": "Tooltip of a cash journal row's own small voucher marker, while the referenced file resolves",
+    "context": "Displayed on hover over the icon next to a row's own label in the budget mode's cash journal",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalVoucherFileMissingTooltip": "This entry carries a voucher, but its file cannot be found.",
+  "@budgetCashJournalVoucherFileMissingTooltip": {
+    "description": "Tooltip of a cash journal row's own small voucher marker, while the referenced file no longer resolves",
+    "context": "Displayed on hover over the icon next to a row's own label in the budget mode's cash journal",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetCashJournalColumnDebit": "Debit",
   "@budgetCashJournalColumnDebit": {
     "description": "Header of the cash journal table's debit column",
@@ -11119,6 +11133,34 @@
   "@budgetEntryDialogVoucherAutoHint": {
     "description": "Hint replacing the entry dialog's own voucher-number field while creating a new entry",
     "context": "Displayed in place of OcptBudgetEntryDialog's own voucher-number field while creating a new entry",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogReceiptFieldLabel": "Receipt",
+  "@budgetEntryDialogReceiptFieldLabel": {
+    "description": "Label of the entry dialog's own receipt-file field, and the file-type label shown to the native file selector it opens",
+    "context": "Displayed above OcptBudgetEntryDialog's own receipt field, offered whether creating or editing",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogReceiptEmptyHint": "No receipt attached.",
+  "@budgetEntryDialogReceiptEmptyHint": {
+    "description": "Hint shown in the entry dialog's own receipt field while no file is referenced",
+    "context": "Displayed in OcptBudgetEntryDialog's own receipt field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogReceiptAttachAction": "Attach receipt",
+  "@budgetEntryDialogReceiptAttachAction": {
+    "description": "Action opening the native file selector to reference a receipt, while none is referenced yet",
+    "context": "Displayed under OcptBudgetEntryDialog's own receipt field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogReceiptReplaceAction": "Replace receipt",
+  "@budgetEntryDialogReceiptReplaceAction": {
+    "description": "Action opening the native file selector to replace the receipt already referenced",
+    "context": "Displayed under OcptBudgetEntryDialog's own receipt field",
     "type": "text",
     "placeholders": {}
   },

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
@@ -70,6 +71,11 @@ class OcptBudgetSnapshot extends Equatable {
   /// data: **both computed, neither configured** (`docs/plans/budget-mode.md` §5, M2).
   final List<OcptBudgetAlert> alerts;
 
+  /// Every live voucher, keyed by the `OcptBudgetEntry.id` it evidences —
+  /// `OcptBudgetJournalService.loadReceipts` verbatim, at most one per entry. An entry with no key
+  /// here carries no voucher at all.
+  final Map<String, OcptAssetRef> receiptsByEntryId;
+
   /// Class constructor
   const OcptBudgetSnapshot({
     required this.postes,
@@ -85,10 +91,15 @@ class OcptBudgetSnapshot extends Equatable {
     required this.committedByPosteId,
     required this.cashTotals,
     required this.alerts,
+    required this.receiptsByEntryId,
   });
 
   /// Builds an [OcptBudgetSnapshot] from [postes], [entries] and [commitments], the project's
   /// [defaultVatRateBasisPoints] and [currencyCode], deriving every count and every map from them.
+  /// [receiptsByEntryId] is loaded the same way everything else here is
+  /// (`OcptBudgetJournalService.loadReceipts`) and simply carried through — defaulted to empty for
+  /// every caller unconcerned with vouchers, exactly as every one of this snapshot's own callers
+  /// before this milestone still may be.
   ///
   /// [paidByPosteId], [committedByPosteId], [cashTotals] and [alerts] are derived here exactly as
   /// [posteCount]/[lineCount] are: a pure function of the lists already loaded, reading them under
@@ -100,6 +111,7 @@ class OcptBudgetSnapshot extends Equatable {
     required List<OcptBudgetCommitment> commitments,
     required int? defaultVatRateBasisPoints,
     required String currencyCode,
+    Map<String, OcptAssetRef> receiptsByEntryId = const {},
   }) {
     final paidByPosteId = ocptBudgetPaidCentsByPosteId(
       entries,
@@ -135,6 +147,7 @@ class OcptBudgetSnapshot extends Equatable {
         cashTotals: cashTotals,
         projectVatRateBasisPoints: defaultVatRateBasisPoints,
       ),
+      receiptsByEntryId: receiptsByEntryId,
     );
   }
 
@@ -175,5 +188,6 @@ class OcptBudgetSnapshot extends Equatable {
     committedByPosteId,
     cashTotals,
     alerts,
+    receiptsByEntryId,
   ];
 }

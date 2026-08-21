@@ -296,4 +296,22 @@ void main() {
       expect(state.committedByPosteId, isEmpty);
     });
   });
+
+  group("OcptBudgetState.receiptsByEntryId", () {
+    test("is empty while nothing is loaded or no entry carries a voucher", () {
+      const emptyState = OcptBudgetState.init();
+      expect(emptyState.receiptsByEntryId, isEmpty);
+
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", posteId: "poste-1")],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.receiptsByEntryId, isEmpty);
+    });
+  });
 }

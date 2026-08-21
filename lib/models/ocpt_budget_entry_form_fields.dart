@@ -49,6 +49,24 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// `OcptBudgetEntryDialog` was opened to edit an existing entry.
   final String? voucherNumber;
 
+  /// The path of a voucher file just picked through the native selector, to reference against this
+  /// entry once it is written — null while nothing new was picked this dialog session, which is
+  /// **not** the same fact as [isReceiptDetached].
+  ///
+  /// Picked by `OcptBudgetEntryDialog` itself (a plain read of a path, no data write), but only
+  /// ever *written* by the bloc's own entry-writing handlers
+  /// (`OcptBudgetBloc._writeEntryReceiptChange`), in the same handler that creates or updates the
+  /// entry — the dialog never touches `assets` itself, exactly as it never touches
+  /// `budget_entries`.
+  final String? pickedReceiptPath;
+
+  /// Whether the dialog's own `Detach` action was used on the voucher already referenced — the
+  /// entry's current receipt, if it carries one, is to be dropped. **Never both this and
+  /// [pickedReceiptPath] meaningful at once**: attaching a fresh file already replaces whatever was
+  /// there, so a caller reads [pickedReceiptPath] first and only falls back to this flag once it is
+  /// null.
+  final bool isReceiptDetached;
+
   /// Class constructor
   const OcptBudgetEntryFormFields({
     required this.date,
@@ -59,6 +77,8 @@ class OcptBudgetEntryFormFields extends Equatable {
     required this.isTaxInclusive,
     required this.vatRateBasisPoints,
     required this.voucherNumber,
+    required this.pickedReceiptPath,
+    required this.isReceiptDetached,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -78,5 +98,7 @@ class OcptBudgetEntryFormFields extends Equatable {
     isTaxInclusive,
     vatRateBasisPoints,
     voucherNumber,
+    pickedReceiptPath,
+    isReceiptDetached,
   ];
 }

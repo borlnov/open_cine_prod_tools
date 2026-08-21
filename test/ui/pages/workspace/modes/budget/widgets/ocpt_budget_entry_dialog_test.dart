@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,9 +11,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
 
 /// A router manager whose [pop] only records the last call and its value — mirrors
@@ -28,6 +32,56 @@ class _RecordingRouterManager extends OcptRouterManager {
     popped = true;
     poppedValue = result;
   }
+}
+
+/// A file selector manager answering the picker with a file of its own, so a test never opens a
+/// native dialog — mirrors `resources_bloc_test.dart`'s own `_StubFileSelectorManager`.
+class _StubFileSelectorManager extends FileSelectorManager {
+  /// The path the next pick answers with, or null to answer as a cancelled dialog does.
+  final String? pickedPath;
+
+  /// Class constructor
+  const _StubFileSelectorManager({required this.pickedPath});
+
+  /// Answers with [pickedPath] instead of opening the platform's own dialog.
+  @override
+  Future<ResultWithBoolStatus<XFile>> openSelector({
+    required List<String> allowedExtensions,
+    required String label,
+    bool strictOnExtensions = true,
+  }) async {
+    final pickedPath = this.pickedPath;
+    if (pickedPath == null) {
+      return const ResultWithBoolStatus(status: BoolResultStatus.error);
+    }
+
+    return ResultWithBoolStatus(status: BoolResultStatus.success, value: XFile(pickedPath));
+  }
+}
+
+/// A minimal voucher, everything but [path] neutral.
+OcptAssetRef _receipt({String id = "asset-1", required String path}) => OcptAssetRef(
+  id: id,
+  kind: OcptAssetKind.receipt,
+  path: path,
+  label: "",
+  addedAt: DateTime(2026, 1, 15),
+  personId: null,
+  locationId: null,
+  elementId: null,
+  budgetEntryId: "entry-1",
+  validFrom: null,
+  validUntil: null,
+);
+
+/// Registers [_StubFileSelectorManager] answering [pickedPath], so a `Attach`/`Replace` tap never
+/// opens a native dialog.
+Future<void> _registerFileSelector(String? pickedPath) async {
+  final managers = globalGetIt();
+  if (managers.isRegistered<FileSelectorManager>()) {
+    await managers.unregister<FileSelectorManager>();
+  }
+  managers.registerSingleton<FileSelectorManager>(_StubFileSelectorManager(pickedPath: pickedPath));
 }
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests.
@@ -86,6 +140,10 @@ void main() {
 
     routerManager = _RecordingRouterManager();
     managers.registerSingleton<OcptRouterManager>(routerManager);
+
+    // Answers a `Attach`/`Replace` tap as a cancelled dialog by default; a test picking a receipt
+    // overrides it through `_registerFileSelector`.
+    await _registerFileSelector(null);
   });
 
   /// Pumps [OcptBudgetEntryDialog] directly (no `.show`), creating a new entry unless [existing] is
@@ -93,6 +151,7 @@ void main() {
   Future<Tr> pumpDialog(
     WidgetTester tester, {
     OcptBudgetEntry? existing,
+    OcptAssetRef? existingReceipt,
     List<OcptBudgetPoste> postes = const [],
     int? defaultVatRateBasisPoints,
     bool isSimplified = false,
@@ -101,6 +160,7 @@ void main() {
       _wrapWithLocalization(
         OcptBudgetEntryDialog(
           existing: existing,
+          existingReceipt: existingReceipt,
           postes: postes,
           currencyCode: "EUR",
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -240,5 +300,118 @@ void main() {
 
     expect(routerManager.popped, isTrue);
     expect(routerManager.poppedValue, isNull);
+  });
+
+  group("the receipt field", () {
+    testWidgets("creating a new entry with no receipt shows the empty hint and an Attach action", (
+      tester,
+    ) async {
+      final tr = await pumpDialog(tester);
+
+      expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogReceiptAttachAction), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsNothing);
+    });
+
+    testWidgets("editing an entry with a receipt shows its own file line and a Replace action", (
+      tester,
+    ) async {
+      final existing = _existingEntry(debitCents: 500);
+      final tr = await pumpDialog(
+        tester,
+        existing: existing,
+        existingReceipt: _receipt(path: "/tmp/facture.pdf"),
+      );
+
+      expect(find.text("facture.pdf"), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsNothing);
+    });
+
+    testWidgets("its own Detach action drops the reference, and Save reports it", (tester) async {
+      final existing = _existingEntry(debitCents: 500);
+      final tr = await pumpDialog(
+        tester,
+        existing: existing,
+        existingReceipt: _receipt(path: "/tmp/facture.pdf"),
+      );
+
+      // The remove control is an `IconButton` with a tooltip rather than visible text — reused
+      // straight off `OcptAssetFileLine`, so it is located by that tooltip. Scrolled into view
+      // first: the extra fields this dialog now carries push it below the default test surface.
+      final removeFinder = find.byTooltip(tr.resourcesRemoveDocumentTooltip);
+      await tester.ensureVisible(removeFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(removeFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsOneWidget);
+      expect(find.text("facture.pdf"), findsNothing);
+
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
+
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.isReceiptDetached, isTrue);
+      expect(fields.pickedReceiptPath, isNull);
+    });
+
+    testWidgets("picking a receipt through the native selector attaches it, and Save reports it", (
+      tester,
+    ) async {
+      await _registerFileSelector("/tmp/nouvelle-facture.pdf");
+      final tr = await pumpDialog(tester);
+
+      final attachFinder = find.text(tr.budgetEntryDialogReceiptAttachAction);
+      await tester.ensureVisible(attachFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(attachFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text("nouvelle-facture.pdf"), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsOneWidget);
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        "Camera rental",
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
+        "10",
+      );
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
+
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.pickedReceiptPath, "/tmp/nouvelle-facture.pdf");
+      expect(fields.isReceiptDetached, isFalse);
+    });
+
+    testWidgets("cancelling the native selector leaves whatever was referenced alone", (
+      tester,
+    ) async {
+      await _registerFileSelector(null);
+      final existing = _existingEntry(debitCents: 500);
+      final tr = await pumpDialog(
+        tester,
+        existing: existing,
+        existingReceipt: _receipt(path: "/tmp/facture.pdf"),
+      );
+
+      final replaceFinder = find.text(tr.budgetEntryDialogReceiptReplaceAction);
+      await tester.ensureVisible(replaceFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(replaceFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text("facture.pdf"), findsOneWidget);
+
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
+
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.pickedReceiptPath, isNull);
+      expect(fields.isReceiptDetached, isFalse);
+    });
   });
 }

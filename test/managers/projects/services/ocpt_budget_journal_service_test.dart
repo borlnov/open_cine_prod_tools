@@ -333,6 +333,107 @@ void main() {
     });
   });
 
+  group("vouchers", () {
+    test("setEntryReceipt references a fresh voucher and loadReceipts reads it back", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Essence",
+        debitCents: 6000,
+      ))!;
+
+      final assetId = await service.setEntryReceipt(
+        database: database,
+        entryId: entryId,
+        path: "/tmp/receipt.pdf",
+      );
+      expect(assetId, isNotNull);
+
+      final receipts = await service.loadReceipts(database: database);
+      expect(receipts, hasLength(1));
+      expect(receipts[entryId]?.id, assetId);
+      expect(receipts[entryId]?.path, "/tmp/receipt.pdf");
+      expect(receipts[entryId]?.kind, OcptAssetKind.receipt);
+    });
+
+    test("setEntryReceipt replaces whatever the entry already referenced, tombstoning it", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Essence",
+        debitCents: 6000,
+      ))!;
+
+      final firstAssetId = await service.setEntryReceipt(
+        database: database,
+        entryId: entryId,
+        path: "/tmp/first.pdf",
+      );
+      final secondAssetId = await service.setEntryReceipt(
+        database: database,
+        entryId: entryId,
+        path: "/tmp/second.pdf",
+      );
+
+      final receipts = await service.loadReceipts(database: database);
+      expect(receipts, hasLength(1));
+      expect(receipts[entryId]?.id, secondAssetId);
+      expect(receipts[entryId]?.path, "/tmp/second.pdf");
+
+      final firstRow = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(firstAssetId!))).getSingle();
+      expect(firstRow.isDeleted, isTrue);
+    });
+
+    test("clearEntryReceipt drops the reference, the file untouched", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Essence",
+        debitCents: 6000,
+      ))!;
+      final assetId = await service.setEntryReceipt(
+        database: database,
+        entryId: entryId,
+        path: "/tmp/receipt.pdf",
+      );
+
+      await service.clearEntryReceipt(database: database, entryId: entryId);
+
+      final receipts = await service.loadReceipts(database: database);
+      expect(receipts, isEmpty);
+      final row = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(assetId!))).getSingle();
+      expect(row.isDeleted, isTrue);
+      // The path itself is untouched — only the reference is dropped.
+      expect(row.path, "/tmp/receipt.pdf");
+    });
+
+    test("setEntryReceipt and clearEntryReceipt are both refused on a preview", () async {
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+      await preview
+          .into(preview.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(id: "entry1", date: DateTime.utc(2026, 3, 6), label: "A"),
+          );
+
+      final assetId = await service.setEntryReceipt(
+        database: preview,
+        entryId: "entry1",
+        path: "/tmp/receipt.pdf",
+      );
+      expect(assetId, isNull);
+      expect(await preview.select(preview.ocptAssetsTable).get(), isEmpty);
+
+      await service.clearEntryReceipt(database: preview, entryId: "entry1");
+      // Nothing to clear, and nothing thrown either.
+
+      await preview.close();
+    });
+  });
+
   group("commitment CRUD", () {
     test("createCommitment appends at the end and defaults to quoteAccepted", () async {
       final firstId = await service.createCommitment(

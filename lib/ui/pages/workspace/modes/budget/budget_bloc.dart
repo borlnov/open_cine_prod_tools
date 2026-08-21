@@ -36,9 +36,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 ///
 /// It loads the current project's title and the mode's own whole read on entry: the quote itself
 /// ([_budgetQuoteService], seeding [_seed]'s ten CNC postes on the first read of an empty table),
-/// the cash journal ([_budgetJournalService]: every live entry and commitment), and the project's
-/// currency and default VAT rate. It mixes in [MixinOcptProjectVersionsBloc], answering its two
-/// hooks through [flushPendingProjectWrites] and [reloadFromProjectDatabase].
+/// the cash journal ([_budgetJournalService]: every live entry and commitment, and every live
+/// voucher keyed by the entry it evidences), and the project's currency and default VAT rate. It
+/// mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
+/// [flushPendingProjectWrites] and [reloadFromProjectDatabase].
 ///
 /// **[_seed] is a constructor argument, captured once, rather than watched.** No bloc or service
 /// may ever see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves `ocptBudgetCncPosteSeeds(Tr.of
@@ -90,7 +91,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// The service used to read and write the quote: the postes and their lines.
   final OcptBudgetQuoteService _budgetQuoteService;
 
-  /// The service used to read the cash journal: every live entry and commitment.
+  /// The service used to read the cash journal: every live entry and commitment. Its own
+  /// [OcptBudgetJournalService.setEntryReceipt]/[OcptBudgetJournalService.clearEntryReceipt] are
+  /// what the bloc's own handlers write an entry's voucher through — never `OcptBudgetEntryDialog`
+  /// itself, exactly as every other write in this mode.
   final OcptBudgetJournalService _budgetJournalService;
 
   /// The ten CNC postes, already localized — see the class doc comment for why this is a
@@ -257,6 +261,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final postes = await _budgetQuoteService.loadPostes(database: database, seed: _seed);
     final entries = await _budgetJournalService.loadEntries(database: database);
     final commitments = await _budgetJournalService.loadCommitments(database: database);
+    final receipts = await _budgetJournalService.loadReceipts(database: database);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final defaultVatRateBasisPoints = await _projectsManager
         .loadCurrentProjectDefaultVatRateBasisPoints();
@@ -267,6 +272,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       commitments: commitments,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
+      receiptsByEntryId: receipts,
     );
   }
 
@@ -725,6 +731,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// Creates a new cash-journal entry from `event.fields`, writing its typed amount onto whichever
   /// of `debitCents`/`creditCents` [OcptBudgetEntryFormFields.isDebit] names and zero onto the
   /// other — the one reading no single database column mirrors, see that model's own doc comment.
+  ///
+  /// Writes whatever `event.fields` collected about the fresh entry's own voucher
+  /// ([_writeEntryReceiptChange]) once it exists, in this very handler, before the one reload at
+  /// its end.
   Future<void> _onEntryCreationConfirmed(
     OcptBudgetEntryCreationConfirmedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -735,7 +745,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     final fields = event.fields;
-    await _budgetJournalService.createEntry(
+    final entryId = await _budgetJournalService.createEntry(
       database: project.database,
       date: fields.date,
       label: fields.label,
@@ -745,6 +755,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       isTaxInclusive: fields.isTaxInclusive,
       vatRateBasisPoints: fields.vatRateBasisPoints,
     );
+    if (entryId != null) {
+      await _writeEntryReceiptChange(project, entryId, fields);
+    }
 
     await _applyBudgetSnapshot(emitter, project);
   }
@@ -752,6 +765,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// Writes `event.fields` onto entry `event.entryId`, including its own voucher number — see
   /// [OcptBudgetEntryFormFields.voucherNumber]'s own doc comment for why it is always set here, an
   /// entry dialog only ever being opened to edit with one already loaded.
+  ///
+  /// Writes whatever `event.fields` collected about the entry's own voucher
+  /// ([_writeEntryReceiptChange]) in this very handler too, before the one reload at its end.
   Future<void> _onEntryUpdateConfirmed(
     OcptBudgetEntryUpdateConfirmedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -775,8 +791,38 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       vatRateBasisPoints: Value(fields.vatRateBasisPoints),
       voucherNumber: voucherNumber == null ? const Value.absent() : Value(voucherNumber),
     );
+    await _writeEntryReceiptChange(project, event.entryId, fields);
 
     await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes whatever `fields` collected about a journal entry's own voucher, once the entry itself
+  /// exists: a fresh pick ([OcptBudgetEntryFormFields.pickedReceiptPath]) references it, replacing
+  /// whatever the entry already carried; the dialog's own `Detach` action
+  /// ([OcptBudgetEntryFormFields.isReceiptDetached]) drops it instead — never both at once, see that
+  /// field's own doc comment. A no-op when the dialog asked for neither.
+  ///
+  /// Shared by every handler that creates or writes a journal entry ([_onEntryCreationConfirmed],
+  /// [_onEntryUpdateConfirmed], [_onCommitmentSettlementConfirmed]), each already reloading the
+  /// snapshot once on its own right after calling this.
+  Future<void> _writeEntryReceiptChange(
+    OcptOpenProjectModel project,
+    String entryId,
+    OcptBudgetEntryFormFields fields,
+  ) async {
+    final pickedReceiptPath = fields.pickedReceiptPath;
+    if (pickedReceiptPath != null) {
+      await _budgetJournalService.setEntryReceipt(
+        database: project.database,
+        entryId: entryId,
+        path: pickedReceiptPath,
+      );
+      return;
+    }
+
+    if (fields.isReceiptDetached) {
+      await _budgetJournalService.clearEntryReceipt(database: project.database, entryId: entryId);
+    }
   }
 
   /// Deletes cash-journal entry `event.entryId` for good, confirmed by the mode's own
@@ -907,6 +953,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         commitmentId: event.commitmentId,
         settledEntryId: Value(entryId),
       );
+      await _writeEntryReceiptChange(project, entryId, fields);
     }
 
     await _applyBudgetSnapshot(emitter, project);

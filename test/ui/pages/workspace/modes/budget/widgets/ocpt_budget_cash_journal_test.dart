@@ -2,12 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
@@ -54,6 +58,21 @@ OcptBudgetEntry _entry({
   sortKey: sortKey,
 );
 
+/// A minimal voucher naming [path], everything else neutral.
+OcptAssetRef _receipt({String id = "asset-1", required String path}) => OcptAssetRef(
+  id: id,
+  kind: OcptAssetKind.receipt,
+  path: path,
+  label: "",
+  addedAt: DateTime(2026),
+  personId: null,
+  locationId: null,
+  elementId: null,
+  budgetEntryId: "e1",
+  validFrom: null,
+  validUntil: null,
+);
+
 void main() {
   testWidgets("a project with no entry at all shows the shared empty state", (tester) async {
     await tester.pumpWidget(
@@ -61,6 +80,7 @@ void main() {
         OcptBudgetCashJournal(
           entries: const [],
           postes: const [],
+          receiptsByEntryId: const {},
           selectedPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -94,6 +114,7 @@ void main() {
           OcptBudgetCashJournal(
             entries: entries,
             postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Grant")],
+            receiptsByEntryId: const {},
             selectedPosteId: "poste-1",
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -136,6 +157,7 @@ void main() {
           OcptBudgetCashJournal(
             entries: entries,
             postes: const [],
+            receiptsByEntryId: const {},
             selectedPosteId: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -168,6 +190,7 @@ void main() {
         OcptBudgetCashJournal(
           entries: entries,
           postes: const [],
+          receiptsByEntryId: const {},
           selectedPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -204,6 +227,7 @@ void main() {
         OcptBudgetCashJournal(
           entries: entries,
           postes: const [],
+          receiptsByEntryId: const {},
           selectedPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -238,6 +262,7 @@ void main() {
         OcptBudgetCashJournal(
           entries: entries,
           postes: const [],
+          receiptsByEntryId: const {},
           selectedPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -269,6 +294,7 @@ void main() {
             ),
           ],
           postes: const [],
+          receiptsByEntryId: const {},
           selectedPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -297,6 +323,7 @@ void main() {
         OcptBudgetCashJournal(
           entries: entries,
           postes: postes,
+          receiptsByEntryId: const {},
           selectedPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -317,6 +344,7 @@ void main() {
         OcptBudgetCashJournal(
           entries: entries,
           postes: postes,
+          receiptsByEntryId: const {},
           selectedPosteId: "poste-1",
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -353,6 +381,7 @@ void main() {
           OcptBudgetCashJournal(
             entries: entries,
             postes: postes,
+            receiptsByEntryId: const {},
             selectedPosteId: "poste-1",
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -381,4 +410,99 @@ void main() {
       expect(cleared, isTrue);
     },
   );
+
+  group("an entry's own voucher marker", () {
+    testWidgets("an entry with no voucher shows no marker at all", (tester) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            selectedPosteId: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onFilterCleared: () {},
+            onEntryCreationRequested: () {},
+            onEntryTapped: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.attach_file), findsNothing);
+      expect(find.byIcon(Icons.error_outline), findsNothing);
+    });
+
+    testWidgets("an entry whose voucher resolves shows the plain marker", (tester) async {
+      final tempFile = File(
+        "${Directory.systemTemp.path}/ocpt_budget_cash_journal_test_receipt.pdf",
+      )..writeAsStringSync("stub");
+      addTearDown(tempFile.deleteSync);
+
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: {"e1": _receipt(path: tempFile.path)},
+            selectedPosteId: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onFilterCleared: () {},
+            onEntryCreationRequested: () {},
+            onEntryTapped: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.byIcon(Icons.attach_file), findsOneWidget);
+      expect(find.byIcon(Icons.error_outline), findsNothing);
+
+      await tester.longPress(find.byIcon(Icons.attach_file));
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetCashJournalVoucherAttachedTooltip), findsOneWidget);
+    });
+
+    testWidgets("an entry whose voucher file no longer resolves says so", (tester) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: {"e1": _receipt(path: "/nowhere/facture.pdf")},
+            selectedPosteId: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onFilterCleared: () {},
+            onEntryCreationRequested: () {},
+            onEntryTapped: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.byIcon(Icons.attach_file), findsNothing);
+
+      await tester.longPress(find.byIcon(Icons.error_outline));
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetCashJournalVoucherFileMissingTooltip), findsOneWidget);
+    });
+  });
 }

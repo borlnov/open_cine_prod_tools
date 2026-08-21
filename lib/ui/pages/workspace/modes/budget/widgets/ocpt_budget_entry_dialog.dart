@@ -2,15 +2,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
+import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
@@ -41,6 +46,21 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// .createEntry` mints one itself; editing an existing entry can retype it, since a user may need it
 /// to match a paper trail the minted reference doesn't.
 ///
+/// **`Receipt` is a different thing from `Voucher number`**: the latter is a typed accounting
+/// reference (`J-014`), the former is the actual file — a till receipt, an invoice PDF, a bank slip
+/// — evidencing the movement (ADR 0013). Offered on both a fresh entry and an edit alike, unlike
+/// `Voucher number`. This dialog only ever **picks** the path, through
+/// `globalGetIt().get<FileSelectorManager>()` directly — a plain read of a file the OS dialog
+/// already reports, with nothing to decode and no `assets` row to mint — deferring the write itself
+/// to whichever of [OcptBudgetEntryFormFields.pickedReceiptPath]/`.isReceiptDetached` `_submit`
+/// hands back: the bloc's own entry-writing handlers are the only place a voucher is actually
+/// minted or tombstoned, in the very same handler that creates or updates the entry. This is the one
+/// place in the app calling that manager directly rather than through a bloc event — deliberately
+/// so, since every other field here already collects locally and writes once on `Save`, and a
+/// voucher pick is no different: the resources mode's own photo/document pickers
+/// (`OcptResourcesBloc._pickFilePath`) write immediately because *that* gesture has no `Save` step
+/// of its own to defer to.
+///
 /// **[prefill] seeds a fresh entry's own fields without editing one already stored.** The
 /// committed-spending view's own `Settle` action opens this dialog to record a commitment's
 /// payment: today's date, the commitment's own label, poste, amount, tax basis and rate, as a debit
@@ -53,6 +73,11 @@ class OcptBudgetEntryDialog extends StatefulWidget {
 
   /// Seeds a fresh entry's own fields while [existing] is null — see the class doc comment.
   final OcptBudgetEntryFormFields? prefill;
+
+  /// [existing]'s own voucher, if it carries one, or null — always null while [existing] is
+  /// itself null, there being nothing yet to reference. Read once, in `initState`, exactly as
+  /// [existing]'s own fields are.
+  final OcptAssetRef? existingReceipt;
 
   /// Every live poste of the project, offered by the `Poste` picker alongside its own explicit "no
   /// poste" choice.
@@ -74,6 +99,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     super.key,
     required this.existing,
     this.prefill,
+    this.existingReceipt,
     required this.postes,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
@@ -85,6 +111,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     BuildContext context, {
     required OcptBudgetEntry? existing,
     OcptBudgetEntryFormFields? prefill,
+    OcptAssetRef? existingReceipt,
     required List<OcptBudgetPoste> postes,
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
@@ -94,6 +121,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     builder: (context) => OcptBudgetEntryDialog(
       existing: existing,
       prefill: prefill,
+      existingReceipt: existingReceipt,
       postes: postes,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -134,6 +162,29 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
 
   /// Whether the amount currently picked includes tax.
   late bool _isTaxInclusive;
+
+  /// The path of a voucher file just picked through the native selector this dialog session, or
+  /// null while nothing new was picked — see `OcptBudgetEntryFormFields.pickedReceiptPath`'s own
+  /// doc comment for what this becomes once [_submit] hands it back.
+  String? _pickedReceiptPath;
+
+  /// Whether the `Detach` action was used on the voucher `widget.existingReceipt` already
+  /// referenced — see `OcptBudgetEntryFormFields.isReceiptDetached`'s own doc comment.
+  bool _isReceiptDetached = false;
+
+  /// The path currently shown for the `Receipt` field: a fresh pick first, then whatever
+  /// `widget.existingReceipt` carries unless [_isReceiptDetached] dropped it, or null while there is
+  /// nothing to show at all.
+  String? get _displayedReceiptPath {
+    final pickedReceiptPath = _pickedReceiptPath;
+    if (pickedReceiptPath != null) {
+      return pickedReceiptPath;
+    }
+    if (_isReceiptDetached) {
+      return null;
+    }
+    return widget.existingReceipt?.path;
+  }
 
   @override
   void initState() {
@@ -261,6 +312,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
               ),
               const SizedBox(height: 12),
               _buildVoucherField(context, tr, theme),
+              const SizedBox(height: 12),
+              _buildReceiptField(context, tr, theme),
             ],
           ),
         ),
@@ -319,6 +372,86 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     );
   }
 
+  /// The `Receipt` field: whichever file is currently shown ([_displayedReceiptPath]) — reusing
+  /// `OcptAssetFileLine` exactly as the resources mode's own permit card does, wrapping the path in
+  /// a transient `OcptAssetRef` since this file's own `existsSync` check needs nothing else off it
+  /// — with an `Attach`/`Replace` action underneath, offered whether creating or editing (unlike
+  /// `Voucher number`, see the class doc comment).
+  Widget _buildReceiptField(BuildContext context, Tr tr, ThemeData theme) {
+    final displayedReceiptPath = _displayedReceiptPath;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr.budgetEntryDialogReceiptFieldLabel.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 4),
+        if (displayedReceiptPath != null)
+          OcptAssetFileLine(
+            asset: OcptAssetRef(
+              id: widget.existingReceipt?.id ?? "",
+              kind: OcptAssetKind.receipt,
+              path: displayedReceiptPath,
+              label: "",
+              addedAt: widget.existingReceipt?.addedAt ?? DateTime.now(),
+              personId: null,
+              locationId: null,
+              elementId: null,
+              validFrom: null,
+              validUntil: null,
+            ),
+            onRemoved: () => setState(() {
+              _pickedReceiptPath = null;
+              _isReceiptDetached = true;
+            }),
+          )
+        else
+          Text(
+            tr.budgetEntryDialogReceiptEmptyHint,
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _pickReceipt,
+            child: Text(
+              displayedReceiptPath == null
+                  ? tr.budgetEntryDialogReceiptAttachAction
+                  : tr.budgetEntryDialogReceiptReplaceAction,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Shows the native "open" dialog and, if a file was picked, records its path locally — see the
+  /// class doc comment for why this dialog calls `FileSelectorManager` directly rather than through
+  /// a bloc event: nothing is written to the project until [_submit].
+  Future<void> _pickReceipt() async {
+    final label = Tr.of(context).budgetEntryDialogReceiptFieldLabel;
+    final selection = await globalGetIt().get<FileSelectorManager>().openSelector(
+      allowedExtensions: ocptDocumentFileExtensions,
+      label: label,
+    );
+
+    final file = selection.value;
+    if (!selection.status.isSuccess || file == null || file.path.isEmpty) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _pickedReceiptPath = file.path;
+      _isReceiptDetached = false;
+    });
+  }
+
   /// Validates the form and, if it passes, pops the dialog returning every field collected.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {
@@ -342,6 +475,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         isTaxInclusive: _isTaxInclusive,
         vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
         voucherNumber: voucherController?.text.trim(),
+        pickedReceiptPath: _pickedReceiptPath,
+        isReceiptDetached: _isReceiptDetached,
       ),
     );
   }
