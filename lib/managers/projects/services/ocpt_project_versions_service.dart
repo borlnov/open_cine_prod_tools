@@ -60,6 +60,7 @@ class OcptProjectVersionsService {
     'elements',
     'scene_elements',
     'role_elements',
+    'role_candidates',
     'assets',
     'breakdown_tags',
     'scene_breakdowns',
@@ -69,6 +70,7 @@ class OcptProjectVersionsService {
     'shooting_slot_cast',
     'shooting_day_blocks',
     'shooting_slot_guests',
+    'shooting_block_candidates',
     'shooting_day_events',
     'project_dictionary_words',
   ];
@@ -362,6 +364,7 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptElementsTable, payload.elements)
         ..insertAll(database.ocptSceneElementsTable, payload.sceneElements)
         ..insertAll(database.ocptRoleElementsTable, payload.roleElements)
+        ..insertAll(database.ocptRoleCandidatesTable, payload.roleCandidates)
         ..insertAll(database.ocptAssetsTable, payload.assets)
         // Both breakdown tables follow every table they may reference (scenes, roles, sets and
         // elements are all written above), so this is not a forward reference — unlike the
@@ -612,6 +615,7 @@ class OcptProjectVersionsService {
       elements: await database.select(database.ocptElementsTable).get(),
       sceneElements: await database.select(database.ocptSceneElementsTable).get(),
       roleElements: await database.select(database.ocptRoleElementsTable).get(),
+      roleCandidates: await database.select(database.ocptRoleCandidatesTable).get(),
       assets: await database.select(database.ocptAssetsTable).get(),
       breakdownTags: await database.select(database.ocptBreakdownTagsTable).get(),
       sceneBreakdowns: await database.select(database.ocptSceneBreakdownsTable).get(),
@@ -621,6 +625,9 @@ class OcptProjectVersionsService {
       shootingSlotCast: await database.select(database.ocptShootingSlotCastTable).get(),
       shootingDayBlocks: await database.select(database.ocptShootingDayBlocksTable).get(),
       shootingSlotGuests: await database.select(database.ocptShootingSlotGuestsTable).get(),
+      shootingBlockCandidates: await database
+          .select(database.ocptShootingBlockCandidatesTable)
+          .get(),
       shootingDayEvents: await database.select(database.ocptShootingDayEventsTable).get(),
       projectDictionaryWords: await database
           .select(database.ocptProjectDictionaryWordsTable)
@@ -659,13 +666,15 @@ class OcptProjectVersionsService {
   /// gives — the tombstoned shots and coverages still left over from the working copy reference it,
   /// and `PRAGMA foreign_keys` is on.
   ///
-  /// The eleven resources tables follow, in the same dependency order the schema's own migration
+  /// The twelve resources tables follow, in the same dependency order the schema's own migration
   /// creates them in: `people` (and its `person_positions`/`person_skills`/
   /// `person_unavailabilities` siblings, each pointing at it) before `roles` (which may cast one),
   /// before `locations` (whose contact may be one) before the `sets` inside them, before
   /// `scene_sets` linking a scene to one, before `elements` (whose owner and bringer may be a
   /// person) before `scene_elements` linking a scene to one and `role_elements` linking a role to
-  /// one, and `assets` last, since a person, a
+  /// one, then `role_candidates` — the other link a role carries, onto the people seen for it —
+  /// which names `roles` and `people` alike and so follows both, and `assets` last, since a person,
+  /// a
   /// location or an element may name one as its photo or document before that row itself exists.
   /// `role_episodes` — which episode each role is named in
   /// (`docs/adr/0019-one-project-several-episodes.md`) — is restored right after `roles`, the table
@@ -692,10 +701,14 @@ class OcptProjectVersionsService {
   /// (schema v17) slotted in beside the sibling each one follows: `shooting_days` (which may
   /// reference a screenplay already restored
   /// above) before `shooting_slots` (which may name a location or a set), before
-  /// `shooting_slot_crew`/`shooting_slot_cast`/`shooting_slot_guests` (which each point at a slot,
-  /// and at a person, a role, or — nullable — a person respectively) and `shooting_day_blocks`
+  /// `shooting_slot_crew`/`shooting_slot_cast`/`shooting_slot_guests`
+  /// (which each point at a slot, and at a person, a role or — nullable — a person respectively)
+  /// and `shooting_day_blocks`
   /// (which points at a slot and, for a shot block, at
-  /// a shot), and `shooting_day_events` last, referencing only a day. Every table it
+  /// a shot), then `shooting_block_candidates` (which points at a block, so it has to follow them,
+  /// and at a candidacy restored back among the resources tables long before this group runs), and
+  /// `shooting_day_events` last,
+  /// referencing only a day. Every table it
   /// could possibly reference is restored by this point, so this is not a forward reference and
   /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
   /// needs, not this group.
@@ -708,7 +721,8 @@ class OcptProjectVersionsService {
   /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
   /// tables holds a person's own data (a phone number, an address, an allergy) — only ids pointing
   /// at `people` and `roles`, `shooting_slot_guests.freeName` naming somebody the address book has
-  /// never heard of — so there is nothing in them for that scrub to touch.
+  /// never heard of — so there is nothing in them for that scrub to touch; `role_candidates`, above
+  /// them, is the one link table that does hold some, and that scrub has already emptied it.
   Future<void> _applyPayload({
     required OcptProjectDatabase database,
     required OcptProjectVersionPayload payload,
@@ -886,6 +900,15 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
+      table: database.ocptRoleCandidatesTable,
+      payloadRows: payload.roleCandidates,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
       table: database.ocptAssetsTable,
       payloadRows: payload.assets,
       rowIdOf: (row) => row.id,
@@ -960,6 +983,18 @@ class OcptProjectVersionsService {
       database: database,
       table: database.ocptShootingDayBlocksTable,
       payloadRows: payload.shootingDayBlocks,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    // After the blocks it hangs off, unlike every slot-level link above: a candidacy is named on an
+    // audition **block** (ADR 0024), so restoring it first would point at a row this very method
+    // has not written yet.
+    await _restoreTable(
+      database: database,
+      table: database.ocptShootingBlockCandidatesTable,
+      payloadRows: payload.shootingBlockCandidates,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -1073,6 +1108,18 @@ class OcptProjectVersionsService {
       // through `roles.personId`, which the `roles` list above already answers for. Nothing here
       // to scrub.
       roleElements: payload.roleElements,
+      // A `role_candidates` row is the one link table that *is* about a person: it names them, and
+      // its `notes` hold what somebody wrote about them at an audition. So a candidacy of an erased
+      // person is tombstoned **and blanked**, exactly as `OcptPeopleService.deletePerson` does it
+      // live — the mirror this method's own doc comment warns must be kept in step. `roles` is left
+      // alone, `roles.personId` staying valid against the blanked row it points at, exactly as
+      // every other reference to an erased person does.
+      roleCandidates: [
+        for (final row in payload.roleCandidates)
+          erasedPersonIds.contains(row.personId)
+              ? row.copyWith(isDeleted: true, notes: '')
+              : row,
+      ],
       // An asset's `path` is personal data in its own right: an absolute path routinely names the
       // person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a photograph of them
       // sits on this machine. So a row belonging to an erased person is tombstoned **and blanked**,
@@ -1095,14 +1142,17 @@ class OcptProjectVersionsService {
       // never dropped, so a `shooting_slot_crew.personId` or a `shooting_slot_guests.personId`
       // referencing it still resolves) — so all of them travel through unchanged too.
       // `shooting_slot_guests.freeName` names somebody who was never a `people` row in the first
-      // place, so there is nothing there for this scrub to reach either, and `shooting_day_events`
-      // carries nobody's data at all.
+      // place, so there is nothing there for this scrub to reach either, `shooting_block_candidates`
+      // names a **candidacy** rather than a person (the blanked `role_candidates` row above is what
+      // holds their name and what somebody wrote about them), and `shooting_day_events` carries
+      // nobody's data at all.
       shootingDays: payload.shootingDays,
       shootingSlots: payload.shootingSlots,
       shootingSlotCrew: payload.shootingSlotCrew,
       shootingSlotCast: payload.shootingSlotCast,
       shootingDayBlocks: payload.shootingDayBlocks,
       shootingSlotGuests: payload.shootingSlotGuests,
+      shootingBlockCandidates: payload.shootingBlockCandidates,
       shootingDayEvents: payload.shootingDayEvents,
       // A dictionary word names no person — only the word itself and its tombstone — so there is
       // nothing here for this scrub to reach either.

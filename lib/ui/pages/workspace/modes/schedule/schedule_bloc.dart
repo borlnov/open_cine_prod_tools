@@ -18,12 +18,15 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -48,10 +51,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// itself ([_scheduleService]), every live episode's own shot list ([_shotListService], through
 /// [_loadShotLists] — every placed or unplaced shot's own code, size, duration and characters,
 /// across the whole project rather than one screenplay, a shooting day belonging to no episode),
-/// and the four resources catalogues the slot cards and the call sheet exports read from
-/// ([_locationsService], [_roleIndexService], [_peopleService], [_elementsService] — the last of
-/// them read for a named call sheet's own "to bring" section alone, nothing here shows an element
-/// on screen).
+/// and the five resources catalogues the slot cards and the call sheet exports read from
+/// ([_locationsService], [_roleIndexService], [_peopleService], [_elementsService],
+/// [_roleCandidatesService] — the elements read for a named call sheet's own "to bring" section
+/// alone, nothing here shows an element on screen, and the candidacies read for the days that do
+/// not shoot: an audition block and a candidate's convocation are both resolved to a name and a
+/// part through them).
 /// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
 /// [_flushPendingFieldEdits] and [_onLoadRequested].
 ///
@@ -112,6 +117,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// section is joined from.
   final OcptElementsService _elementsService;
 
+  /// The service used to read the people seen for each part — what an audition block and a
+  /// candidate's own convocation are resolved through on a day that does not shoot.
+  final OcptRoleCandidatesService _roleCandidatesService;
+
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -139,6 +148,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptRoleIndexService? roleIndexService,
     OcptPeopleService? peopleService,
     OcptElementsService? elementsService,
+    OcptRoleCandidatesService? roleCandidatesService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -162,6 +172,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
+       _roleCandidatesService =
+           roleCandidatesService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleCandidatesService,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptScheduleState.init()) {
     add(const OcptScheduleLoadRequestedEvent());
@@ -200,6 +213,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleSlotCrewMemberRemovedEvent>(_onSlotCrewMemberRemoved);
     on<OcptScheduleSlotCastRoleAddedEvent>(_onSlotCastRoleAdded);
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
+    on<OcptScheduleBlockCandidateAddedEvent>(_onBlockCandidateAdded);
+    on<OcptScheduleBlockCandidateRemovedEvent>(_onBlockCandidateRemoved);
     on<OcptScheduleSlotGuestAddedEvent>(_onSlotGuestAdded);
     on<OcptScheduleSlotGuestRemovedEvent>(_onSlotGuestRemoved);
     on<OcptScheduleDayEventCreatedEvent>(_onDayEventCreated);
@@ -306,6 +321,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     final roles = await _roleIndexService.loadRoles(database: project.database);
     final people = await _peopleService.loadPeople(database: project.database);
     final elements = await _elementsService.loadElements(database: project.database);
+    // Read after the address book, and out of it: a candidacy travels with the person it names, and
+    // resolving one twice is how two readings of the same casting come to disagree.
+    final roleCandidates = await _loadRoleCandidates(project, people: people);
     final pageSetup = await _loadPageSetup(project);
     final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
 
@@ -324,6 +342,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         roles: roles,
         people: people,
         elements: elements,
+        roleCandidates: roleCandidates,
         pageSetup: pageSetup,
         minimumRestMinutes: minimumRestMinutes,
         clearMinimumRestMinutes: minimumRestMinutes == null,
@@ -390,6 +409,24 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// Reads [project]'s whole schedule.
   Future<OcptScheduleSnapshot> _loadScheduleSnapshot(OcptOpenProjectModel project) =>
       _scheduleService.loadSchedule(database: project.database);
+
+  /// Reads every live candidacy of [project], flattened out of the per-role map the service
+  /// answers with: this mode never asks "who was seen for this part" — it asks "who is this
+  /// convocation for", one candidacy at a time, which the state's own map answers.
+  ///
+  /// [people] is the address book this very load has already read, handed straight back in rather
+  /// than read a second time.
+  Future<List<OcptRoleCandidate>> _loadRoleCandidates(
+    OcptOpenProjectModel project, {
+    required List<OcptPerson> people,
+  }) async {
+    final candidatesByRoleId = await _roleCandidatesService.loadCandidatesByRoleId(
+      database: project.database,
+      people: people,
+    );
+
+    return [for (final candidates in candidatesByRoleId.values) ...candidates];
+  }
 
   /// Reads every live episode's own whole shot list, in the same order — the schedule reading
   /// across the whole project rather than one screenplay (`docs/adr/0019`): a shooting day belongs
@@ -895,6 +932,41 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.removeSlotCastRole(database: project.database, castRoleId: event.castRoleId);
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Names a candidacy on an **audition** block — the hour that candidate is expected at.
+  Future<void> _onBlockCandidateAdded(
+    OcptScheduleBlockCandidateAddedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.addBlockCandidate(
+      database: project.database,
+      blockId: event.blockId,
+      roleCandidateId: event.roleCandidateId,
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Takes a candidacy off an audition block, leaving the block and the candidacy alone.
+  Future<void> _onBlockCandidateRemoved(
+    OcptScheduleBlockCandidateRemovedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.removeBlockCandidate(
+      database: project.database,
+      blockCandidateId: event.blockCandidateId,
+    );
     await _applyScheduleSnapshot(emitter, project);
   }
 

@@ -395,6 +395,7 @@ void main() {
       roles: const [],
       locations: const [],
       elements: const [],
+      candidatesByRoleId: const {},
       scenes: const [],
     );
     const labels = OcptResourcesXlsxLabels(
@@ -493,6 +494,7 @@ void main() {
       roles: const [],
       locations: const [],
       elements: const [],
+      candidatesByRoleId: const {},
       scenes: const [],
     );
     const labels = OcptContactListLabels(
@@ -663,6 +665,7 @@ void main() {
       crewPositionLabels: {},
       hoursLinePrefix: "HOURS",
       patLabel: "PAT",
+      presenceLabel: "PRESENCE",
       arrivalHeader: "ARRIVAL",
       departureLabel: "Departure",
       toBringSectionTitle: "To bring",
@@ -684,6 +687,9 @@ void main() {
       emptyDayNote: "Nothing planned.",
       unnamedPersonLabel: "No name",
       eventsSectionTitle: "Events",
+      auditionsSectionTitle: "Auditions",
+      candidateHeader: "CANDIDAT",
+      candidatesSectionTitle: "Candidates",
       guestsSectionTitle: "Guests",
       guestReasonHeader: "Reason",
     );

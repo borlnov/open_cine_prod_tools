@@ -78,6 +78,8 @@ String ocptShootingBlockKindLabel(Tr tr, OcptShootingBlockKind kind) => switch (
   OcptShootingBlockKind.travel => tr.scheduleBlockKindTravel,
   OcptShootingBlockKind.wrap => tr.scheduleBlockKindWrap,
   OcptShootingBlockKind.hold => tr.scheduleBlockKindHold,
+  OcptShootingBlockKind.audition => tr.scheduleBlockKindAudition,
+  OcptShootingBlockKind.rehearsal => tr.scheduleBlockKindRehearsal,
 };
 
 /// The full display label of presence code [code], read by the presence grid's own cell tooltip.
@@ -187,6 +189,8 @@ IconData ocptShootingBlockKindIcon(OcptShootingBlockKind kind) => switch (kind) 
   OcptShootingBlockKind.travel => Icons.directions_car_outlined,
   OcptShootingBlockKind.wrap => Icons.inventory_2_outlined,
   OcptShootingBlockKind.hold => Icons.hourglass_empty_outlined,
+  OcptShootingBlockKind.audition => Icons.record_voice_over_outlined,
+  OcptShootingBlockKind.rehearsal => Icons.groups_outlined,
 };
 
 /// The sun/twilight summary line the day inspector and the day view's own summary band share:
@@ -279,12 +283,17 @@ String ocptScheduleConvocationBandLabel(OcptDayConvocation convocation) {
 
 /// The convocations panel's own card title for [convocation]: [personById]'s own display name for
 /// a person, [roleById]'s own name read through [Tr.scheduleConvocationsUncastRoleLabel] for an
-/// uncast role, [personById]'s own display name again for an address-book guest, or the guest's own
-/// verbatim free name — exactly one of [OcptDayConvocation.personId]/[OcptDayConvocation.roleId]/
+/// uncast role, [personById]'s own display name again for an address-book guest, the guest's own
+/// verbatim free name. Exactly one of [OcptDayConvocation.personId]/[OcptDayConvocation.roleId]/
 /// [OcptDayConvocation.guestPersonId]/[OcptDayConvocation.guestFreeName] is ever non-null (the same
 /// discriminator `breakdown_tags` uses, ADR 0014), so there is never a choice to make between the
-/// four readings, only which one applies. No suffix marks a guest's title: the panel groups guests
-/// under their own trailing heading instead of decorating each row.
+/// four readings, only which one applies. No suffix marks a guest's or a candidate's title: the
+/// panel groups each under its own trailing heading instead of decorating every row.
+///
+/// **A candidate is titled by their name and nothing else**, exactly like everybody else: they are a
+/// person, one card holds their whole day, and somebody seen for two parts has no single part a
+/// title could name. Which part each of their auditions is for is on that audition's own timetable
+/// row, and on the printed candidates directory beside their phone number.
 ///
 /// An uncast role's own suffix is what keeps a role's row from reading as a person's: the question
 /// this panel answers is "when does this human arrive", and a role nobody is cast in is still a
@@ -380,10 +389,16 @@ String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
 /// point is to be read at a glance pinned to a wall. [people] is read for
 /// [ocptScheduleDirectorLineOf] alone.
 ///
-/// [OcptCallSheetLabels.eventsSectionTitle] and [OcptCallSheetLabels.guestsSectionTitle] reuse the
-/// very `Tr` keys the day view and the `Convocations` dock panel already print those two words
-/// under (`scheduleDayEventsSectionTitle`, `scheduleConvocationsGuestsSectionTitle`): a printed
-/// sheet must not name a thing differently from the screen it was planned on.
+/// [OcptCallSheetLabels.eventsSectionTitle], [OcptCallSheetLabels.candidatesSectionTitle] and
+/// [OcptCallSheetLabels.guestsSectionTitle] reuse the very `Tr` keys the day view and the
+/// `Convocations` dock panel already print those three words under
+/// (`scheduleDayEventsSectionTitle`, `scheduleConvocationsCandidatesSectionTitle`,
+/// `scheduleConvocationsGuestsSectionTitle`): a printed sheet must not name a thing differently
+/// from the screen it was planned on. [OcptCallSheetLabels.auditionsSectionTitle] gets a key of its
+/// own because no screen carries that word in the plural: the timetable names one block at a time
+/// (`scheduleBlockKindAudition`), where the printed table heads a list of them.
+/// [OcptCallSheetLabels.candidateHeader] gets one for the mirror reason: the screen only ever names
+/// candidates as a group, where this heads a column naming one per row.
 OcptCallSheetLabels ocptCallSheetLabelsOf(
   BuildContext context, {
   required List<OcptShootingDay> days,
@@ -424,6 +439,7 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     },
     hoursLinePrefix: tr.scheduleExportHoursLinePrefix,
     patLabel: tr.scheduleExportPatLabel,
+    presenceLabel: tr.scheduleExportPresenceLabel,
     arrivalHeader: tr.scheduleExportArrivalHeader,
     departureLabel: tr.scheduleExportDepartureLabel,
     toBringSectionTitle: tr.scheduleExportToBringSectionTitle,
@@ -447,6 +463,9 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     emptyDayNote: tr.scheduleExportEmptyDayNote,
     unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
     eventsSectionTitle: tr.scheduleDayEventsSectionTitle,
+    auditionsSectionTitle: tr.scheduleExportAuditionsSectionTitle,
+    candidateHeader: tr.scheduleExportCandidateHeader,
+    candidatesSectionTitle: tr.scheduleConvocationsCandidatesSectionTitle,
     guestsSectionTitle: tr.scheduleConvocationsGuestsSectionTitle,
     guestReasonHeader: tr.scheduleExportGuestReasonHeader,
   );

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_erased_person_scrub.dart';
 
 void main() {
@@ -144,6 +145,27 @@ void main() {
     elements: const [],
     sceneElements: const [],
     roleElements: const [],
+    roleCandidates: [
+      OcptRoleCandidateRow(
+        id: "candidate-1",
+        roleId: "role-1",
+        personId: "person-1",
+        status: OcptRoleCandidateStatus.retained,
+        auditionedOn: DateTime.utc(2026, 2, 12),
+        notes: "Fragile in the audition, exactly right for the part",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      const OcptRoleCandidateRow(
+        id: "candidate-2",
+        roleId: "role-1",
+        personId: "person-2",
+        status: OcptRoleCandidateStatus.seen,
+        notes: "Too old for it",
+        sortKey: "k",
+        isDeleted: false,
+      ),
+    ],
     assets: [
       OcptAssetRow(
         id: "asset-1",
@@ -190,6 +212,7 @@ void main() {
     currencyCode: "EUR",
     minimumRestMinutes: null,
     screenplayLanguage: null,
+    shootingBlockCandidates: const [],
   );
 
   /// [payload] as the stored JSON of a version, which is what the scrub actually reads.
@@ -288,6 +311,21 @@ void main() {
       final position = rowOf(scrubbed.payload, "personPositions", "position-1");
       expect(position["positionId"], "director");
       expect(position["isDeleted"], isTrue);
+
+      // A candidacy is the one link table that holds something about the person: what somebody
+      // wrote about them at an audition goes with the rest of it.
+      final candidacy = rowOf(scrubbed.payload, "roleCandidates", "candidate-1");
+      expect(candidacy["notes"], "");
+      expect(candidacy["isDeleted"], isTrue);
+      // The status and the date stay: they say nothing about the person on a row that no longer
+      // names anybody, and nothing in this schema is ever hard-deleted.
+      expect(candidacy["status"], "retained");
+      expect(candidacy["auditionedOn"], isNotNull);
+
+      // Somebody else's candidacy for the very same part travels through untouched.
+      final otherCandidacy = rowOf(scrubbed.payload, "roleCandidates", "candidate-2");
+      expect(otherCandidacy["notes"], "Too old for it");
+      expect(otherCandidacy["isDeleted"], isFalse);
     });
 
     test("blanks the path and the label of their assets, and leaves a location's alone", () {

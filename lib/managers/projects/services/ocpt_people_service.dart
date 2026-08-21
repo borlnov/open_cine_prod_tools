@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -32,8 +33,18 @@ class OcptPeopleService {
   /// `OcptLocationsService` holds its own.
   final OcptAssetsService assetsService;
 
+  /// The service owning the `role_candidates` rows, held so [deletePerson] can carry this person's
+  /// candidacies — and what was written about them at an audition — off with them.
+  ///
+  /// Held for the same reason [assetsService] is, and the edge runs the same way: that service
+  /// never reads `people`, so nothing here closes a circle.
+  final OcptRoleCandidatesService roleCandidatesService;
+
   /// Class constructor
-  const OcptPeopleService({this.assetsService = const OcptAssetsService()});
+  const OcptPeopleService({
+    this.assetsService = const OcptAssetsService(),
+    this.roleCandidatesService = const OcptRoleCandidatesService(),
+  });
 
   /// The write [deletePerson] uses to blank a person's personal columns.
   ///
@@ -297,6 +308,13 @@ class OcptPeopleService {
   /// the person as readily as a field does, and says where a photograph of them sits. The
   /// referenced files themselves are not touched, being the user's own and never copied in.
   ///
+  /// The `role_candidates` rows naming them — the parts they were seen for — go the same way,
+  /// through `OcptRoleCandidatesService.eraseCandidaciesOfPerson`: tombstoned, with the `notes`
+  /// somebody wrote about them at an audition blanked. **The `roles` they may be cast in are left
+  /// alone**, `roles.personId` still pointing at the blanked row exactly as every other reference
+  /// to an erased person does: the schema hard-deletes nothing, so every one of them still
+  /// resolves, and a part is not uncast by the address book losing a name.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> deletePerson({
     required OcptProjectDatabase database,
@@ -338,6 +356,8 @@ class OcptPeopleService {
       );
 
       await assetsService.erasePersonAssets(database: database, personId: personId);
+
+      await roleCandidatesService.eraseCandidaciesOfPerson(database: database, personId: personId);
 
       await database
           .into(database.ocptLocalErasuresTable)

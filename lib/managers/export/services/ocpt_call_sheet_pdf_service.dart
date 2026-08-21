@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -88,6 +89,17 @@ const Map<int, pw.TableColumnWidth> _peopleColumnWidths = {
   4: pw.FlexColumnWidth(1.4),
 };
 
+/// The audition table's `HORAIRES / RÔLE / CANDIDAT` columns — three, the third one arriving with
+/// the link that can fill it: an audition block names the **candidacies** it sees (ADR 0024), so it
+/// knows both who is expected and at what hour, which is exactly what this table is read for. No
+/// phone number among them: this is a reading of the timetable, and a contact belongs in the day's
+/// own candidates directory beside everybody else's.
+const Map<int, pw.TableColumnWidth> _auditionColumnWidths = {
+  0: pw.FlexColumnWidth(1.2),
+  1: pw.FlexColumnWidth(1.8),
+  2: pw.FlexColumnWidth(1.8),
+};
+
 /// The trailing guest table's `NOM / MOTIF / HORAIRES` columns — wider on the reason column than
 /// [_peopleColumnWidths]' own `POSTE(S)` since a guest's own reason is prose rather than a job
 /// title, and with no phone/email pair to make room for.
@@ -140,10 +152,20 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// painter, for the page geometry every export of this app measures a sheet with and the Courier
 /// Prime variants all four of them print in.
 ///
+/// **One composition, whatever the day holds.** There is no such thing as a casting sheet or a
+/// rehearsal sheet: a day is never given a kind, so this service reads the **blocks the day
+/// actually holds** and lets the paper follow (ADR 0024). A day carrying an audition block adds an
+/// audition table beside — never instead of — the main table its shots print, and a day convoking
+/// candidates adds their own directory under the cast table; a day carrying neither prints neither,
+/// no heading and no em dash, exactly as the events, guest and crew-note sections are already
+/// skipped rather than drawn empty. A day that auditions in the morning and shoots in the afternoon
+/// is one day, and gets one piece of paper carrying both tables in that order.
+///
 /// **One composition, two audiences**: every section a general and a named sheet share
 /// (the title block, the day heading, the crew note, the day's own events, the location(s), the sun
-/// block, the key contacts, the main table, the cast table, the two closing directories and the
-/// trailing guest table) is built by one shared private widget builder, called from both
+/// block, the key contacts, the main table, the audition table, the cast table, the candidates
+/// list, the two closing directories and the trailing guest table) is built by one shared private
+/// widget builder, called from both
 /// [generateGeneralCallSheet] and [generateNamedCallSheet] rather than duplicated between them. Only
 /// **three** sections belong to one sheet alone, none of them with a counterpart to share: a named
 /// sheet's own recipient line, its own arrival/PAT/departure band, and its own "to bring" section
@@ -153,11 +175,21 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// to nobody in particular — printing it there would mean printing every recipient's own list on
 /// everybody else's sheet, or guessing which one the reader is.
 ///
-/// **What a named sheet narrows is the timetable, and only the timetable.** Its main table holds the
-/// blocks of its recipient's own slots, since that is what they are being told to turn up for; the
-/// cast table and the two closing directories are day-wide on both sheets, because they answer "who
-/// else is on this day and how do I reach them", which is a question about the day rather than about
-/// the reader — and a crew that cannot phone each other on the morning of a shoot is a crew that
+/// **What a named sheet narrows is the timetable, and only the timetable** — twice over. Its main
+/// table and its audition table hold the blocks of its recipient's own slots, and then only the ones
+/// that recipient is actually **in**: an actor reads the shots calling a part they play, a
+/// technician reads their unit end to end, a candidate reads their own auditions, and every
+/// milestone stays for everybody ([_entriesOfRecipient]). A sheet is read down by one person to know
+/// their own day, and one handed the whole running order makes them work out which half is theirs.
+/// The audition table is a reading of that same timetable, not a directory —
+/// and **a sheet addressed to a candidate narrows both one step further, to that candidacy alone**:
+/// its audition table prints the auditions naming them and no other, and the candidates directory
+/// prints their line alone (ADR 0024). It is the one place a block-level link narrows something a
+/// slot-level one could not, and the reason is not tidiness: who else is being seen for a part, and
+/// on what phone number, is the production's business and not another candidate's. The cast table,
+/// the candidates list for every other recipient and the two closing directories are day-wide,
+/// because they answer "who else is on this day and how do I reach them", which is a question about
+/// the day rather than about the reader — and a crew that cannot phone each other on the morning of a shoot is a crew that
 /// stops. The cast table is day-wide in a second sense too: it lists every role the day **calls
 /// for**, including the ones a placed shot plays that nobody convoked, so a role number printed in
 /// the main table's own `RÔLES` column can always be looked up on the same sheet
@@ -269,6 +301,8 @@ class OcptCallSheetPdfService {
       dayId: dayId,
       unnamedPersonLabel: labels.unnamedPersonLabel,
     );
+    final auditionRows = _auditionRowsOfDay(plan: plan, orderedEntries: orderedEntries);
+    final candidateEntries = _candidateListEntries(plan: plan, dayId: dayId, labels: labels);
 
     pdfDocument.addPage(
       _page(
@@ -309,8 +343,22 @@ class OcptCallSheetPdfService {
           ),
           pw.SizedBox(height: 10),
           _mainTableSection(painter: painter, labels: labels, rows: rows, roles: plan.roles),
+          if (auditionRows.isNotEmpty) ...[
+            pw.SizedBox(height: 10),
+            _auditionTableSection(painter: painter, labels: labels, rows: auditionRows),
+          ],
           pw.SizedBox(height: 10),
           _castTableSection(painter: painter, labels: labels, rows: castRows),
+          if (candidateEntries.isNotEmpty) ...[
+            pw.SizedBox(height: 10),
+            _peopleListSection(
+              painter: painter,
+              labels: labels,
+              title: labels.candidatesSectionTitle,
+              entries: candidateEntries,
+              secondColumnHeader: labels.roleHeader,
+            ),
+          ],
           pw.SizedBox(height: 10),
           _peopleListSection(
             painter: painter,
@@ -381,7 +429,17 @@ class OcptCallSheetPdfService {
     final allSlots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     final ownSlots = [for (final slot in allSlots) if (onlySlotIds.contains(slot.id)) slot];
     final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
-    final orderedEntries = ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId, onlySlotIds: onlySlotIds);
+    // Narrowed twice: to the units this recipient is on, then to what they are actually in on them
+    // ([_entriesOfRecipient]). A sheet is read down by one person to know their own day.
+    final orderedEntries = _entriesOfRecipient(
+      plan: plan,
+      convocation: convocation,
+      ownSlotEntries: ocptOrderedScheduleEntriesOfDay(
+        plan: plan,
+        dayId: dayId,
+        onlySlotIds: onlySlotIds,
+      ),
+    );
     final rows = _buildDayRows(
       plan: plan,
       orderedEntries: orderedEntries,
@@ -401,6 +459,21 @@ class OcptCallSheetPdfService {
       plan: plan,
       dayId: dayId,
       unnamedPersonLabel: labels.unnamedPersonLabel,
+    );
+    // The one directory a named sheet narrows, and only when the day sees its recipient for a part:
+    // who else is being seen, and on what phone number, is the production's business and not another
+    // candidate's. Null for every other recipient, which leaves both readings day-wide.
+    final recipientRoleCandidateIds = convocation.isSeenForAPart ? convocation.roleCandidateIds : null;
+    final auditionRows = _auditionRowsOfDay(
+      plan: plan,
+      orderedEntries: orderedEntries,
+      onlyRoleCandidateIds: recipientRoleCandidateIds,
+    );
+    final candidateEntries = _candidateListEntries(
+      plan: plan,
+      dayId: dayId,
+      labels: labels,
+      onlyRoleCandidateIds: recipientRoleCandidateIds,
     );
     final displayName = _convocationDisplayNameOf(convocation, plan, labels);
     final positionsOrRole = _convocationPositionsLabel(
@@ -457,8 +530,22 @@ class OcptCallSheetPdfService {
           ),
           pw.SizedBox(height: 10),
           _mainTableSection(painter: painter, labels: labels, rows: rows, roles: plan.roles),
+          if (auditionRows.isNotEmpty) ...[
+            pw.SizedBox(height: 10),
+            _auditionTableSection(painter: painter, labels: labels, rows: auditionRows),
+          ],
           pw.SizedBox(height: 10),
           _castTableSection(painter: painter, labels: labels, rows: castRows),
+          if (candidateEntries.isNotEmpty) ...[
+            pw.SizedBox(height: 10),
+            _peopleListSection(
+              painter: painter,
+              labels: labels,
+              title: labels.candidatesSectionTitle,
+              entries: candidateEntries,
+              secondColumnHeader: labels.roleHeader,
+            ),
+          ],
           pw.SizedBox(height: 10),
           _peopleListSection(
             painter: painter,
@@ -688,8 +775,12 @@ class OcptCallSheetPdfService {
     );
   }
 
-  /// A named sheet's own single band line: arrival, PAT band, departure — three figures the general
+  /// A named sheet's own single band line: arrival, band, departure — three figures the general
   /// sheet only ever prints per person inside its cast table or its two closing lists.
+  ///
+  /// The middle line is headed by [OcptCallSheetLabels.bandLabelOf] rather than by `PAT` outright:
+  /// this recipient's band may cover no filming at all — a candidate seen for twenty minutes, an
+  /// actor at a day of rehearsals — and *prêt à tourner* presupposes a take.
   pw.Widget _ownBandSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -697,7 +788,7 @@ class OcptCallSheetPdfService {
   }) {
     final lines = [
       "${labels.arrivalHeader} : ${ocptFormatDayMinute(convocation.arrivalMinute)}",
-      "${labels.patLabel} : ${_patCellOf(convocation)}",
+      "${labels.bandLabelOf(isPatBand: convocation.isPatBand)} : ${_patCellOf(convocation)}",
       "${labels.departureLabel} : ${ocptFormatDayMinute(convocation.departureMinute)}",
     ];
 
@@ -959,21 +1050,33 @@ class OcptCallSheetPdfService {
       }
     }
 
-    int? patStart;
-    int? patEnd;
+    // Read over the **filming** bands alone whenever the day has any, and over the presence ones
+    // only when it has none: a mixed day whose candidates turn up at 09:00 and whose unit shoots
+    // from 13:00 must not print a `PAT` line opening at 09:00, which would claim the camera was
+    // ready four hours before it was.
+    final hasPatBand = convocations.any((convocation) => convocation.isPatBand);
+    int? bandStart;
+    int? bandEnd;
     for (final convocation in convocations) {
+      if (convocation.isPatBand != hasPatBand) {
+        continue;
+      }
       final start = convocation.patStartMinute;
       final end = convocation.patEndMinute;
-      if (start != null && (patStart == null || start < patStart)) {
-        patStart = start;
+      if (start != null && (bandStart == null || start < bandStart)) {
+        bandStart = start;
       }
-      if (end != null && (patEnd == null || end > patEnd)) {
-        patEnd = end;
+      if (end != null && (bandEnd == null || end > bandEnd)) {
+        bandEnd = end;
       }
     }
-    if (patStart != null && patEnd != null) {
+    if (bandStart != null && bandEnd != null) {
       lines.add(
-        _timeBandLine(label: "${labels.hoursLinePrefix} ${labels.patLabel}", startMinute: patStart, endMinute: patEnd),
+        _timeBandLine(
+          label: "${labels.hoursLinePrefix} ${labels.bandLabelOf(isPatBand: hasPatBand)}",
+          startMinute: bandStart,
+          endMinute: bandEnd,
+        ),
       );
     }
 
@@ -983,7 +1086,16 @@ class OcptCallSheetPdfService {
       }
       lines.add(
         _timeBandLine(
-          label: _captionOf(block: ordered.block, labels: labels, headingBySceneId: const {}),
+          // All three resolvers are empty on purpose: only a `meal` block reaches this line, and a
+          // meal break names neither a sequence nor a candidacy — its caption is its own label or
+          // the kind's.
+          label: _captionOf(
+            block: ordered.block,
+            labels: labels,
+            headingBySceneId: const {},
+            roleById: const {},
+            roleCandidateById: const {},
+          ),
           startMinute: ordered.entry.startMinute,
           endMinute: ordered.entry.endMinute,
         ),
@@ -1194,7 +1306,12 @@ class OcptCallSheetPdfService {
                   labels.actorHeader,
                   labels.seqHeader,
                   labels.arrivalHeader,
-                  labels.patLabel,
+                  // One header over many bands: `PAT` the moment any row's own band covers filming,
+                  // `PRÉSENCE` on a day that films nothing at all — a day of rehearsals heads a
+                  // column of hours nobody is due ready to shoot for.
+                  labels.bandLabelOf(
+                    isPatBand: rows.any((row) => row.convocation?.isPatBand ?? false),
+                  ),
                 ])
                   _textCell(painter: painter, text: header, isBold: true),
               ],
@@ -1220,13 +1337,22 @@ class OcptCallSheetPdfService {
     ],
   );
 
-  /// The crew list or the cast-and-extras list — the same `NOM / POSTE(S) / TEL. / MAIL / HORAIRES`
-  /// shape for both.
+  /// The crew list, the cast-and-extras list or the day's own candidates list — the same
+  /// `NOM / <second column> / TEL. / MAIL / HORAIRES` shape for all three, since all three answer
+  /// the one question a directory exists for: who is on this day, under what, and how do I reach
+  /// them.
+  ///
+  /// [secondColumnHeader] is the only thing that differs between them, and it is a heading rather
+  /// than a shape: the two lists that read a *position* head it [OcptCallSheetLabels.positionsHeader]
+  /// (their default), while the candidates list heads it [OcptCallSheetLabels.roleHeader], somebody
+  /// seen for a part holding no position at all. [_PeopleListEntry.positionOrRole] has carried both
+  /// readings since the cast-and-extras list joined the crew list.
   pw.Widget _peopleListSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
     required String title,
     required List<_PeopleListEntry> entries,
+    String? secondColumnHeader,
   }) => pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
@@ -1245,7 +1371,7 @@ class OcptCallSheetPdfService {
               children: [
                 for (final header in [
                   labels.nameHeader,
-                  labels.positionsHeader,
+                  secondColumnHeader ?? labels.positionsHeader,
                   labels.phoneHeader,
                   labels.emailHeader,
                   labels.hoursLinePrefix,
@@ -1265,6 +1391,62 @@ class OcptCallSheetPdfService {
               ),
           ],
         ),
+    ],
+  );
+
+  /// The day's own audition table (`HORAIRES / RÔLE / CANDIDAT`): one row per candidacy an audition
+  /// block names, in the running order the timetable resolved, saying at what hour which part is
+  /// being seen and by whom.
+  ///
+  /// Printed **beside** the main table rather than instead of it, and only on a day whose own blocks
+  /// hold an audition: a production that auditions in the morning and shoots in the afternoon gets
+  /// one piece of paper carrying both tables, in that order, and a day that auditions nobody has no
+  /// heading for it at all — the rule the events, guest and crew-note sections already follow.
+  ///
+  /// Both generators call this on their **own** [rows], the general sheet's read off the whole day
+  /// and a named sheet's off its recipient's own slots alone: this is a reading of the timetable,
+  /// and the timetable is the one thing a named sheet narrows. The day's own candidates list
+  /// ([_candidateListEntries]) is day-wide on both, being a directory.
+  pw.Widget _auditionTableSection({
+    required OcptScriptPagePainter painter,
+    required OcptCallSheetLabels labels,
+    required List<_AuditionRow> rows,
+  }) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      _sectionTitle(painter: painter, title: labels.auditionsSectionTitle),
+      pw.SizedBox(height: 4),
+      pw.Table(
+        border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
+        columnWidths: _auditionColumnWidths,
+        children: [
+          pw.TableRow(
+            repeat: true,
+            decoration: const pw.BoxDecoration(color: _bandColor),
+            children: [
+              for (final header in [
+                labels.hoursLinePrefix,
+                labels.roleHeader,
+                labels.candidateHeader,
+              ])
+                _textCell(painter: painter, text: header, isBold: true),
+            ],
+          ),
+          for (final row in rows)
+            pw.TableRow(
+              children: [
+                _textCell(
+                  painter: painter,
+                  text:
+                      "${ocptFormatDayMinute(row.startMinute)} – "
+                      "${ocptFormatDayMinute(row.endMinute)}",
+                ),
+                _textCell(painter: painter, text: row.roleLabel ?? ocptScheduleEmptyValue),
+                _textCell(painter: painter, text: row.candidateName ?? ocptScheduleEmptyValue),
+              ],
+            ),
+        ],
+      ),
     ],
   );
 
@@ -1485,6 +1667,38 @@ class _CastRow {
   final OcptDayConvocation? convocation;
 }
 
+/// One printed row of the day's own audition table: an audition block's resolved hours, the part it
+/// sees, and who is being seen for it.
+///
+/// **One row per candidacy, not per block**: two actors of two different parts read together are two
+/// rows sharing one hour (ADR 0024), and a block naming nobody yet is one row carrying its hour
+/// alone.
+class _AuditionRow {
+  const _AuditionRow({
+    required this.startMinute,
+    required this.endMinute,
+    required this.roleLabel,
+    required this.candidateName,
+  });
+
+  /// Where this audition starts, resolved off the timeline like every other hour on this sheet.
+  final int startMinute;
+
+  /// Where it ends, resolved off the same timeline.
+  final int endMinute;
+
+  /// The part being seen, as `<number> · <name>` ([ocptScheduleRoleLabelOf]), or null while the
+  /// block names nobody — an ordinary state, exactly as a hold with no sequence is — or while the
+  /// candidacy names a part the project has since deleted. The caller prints
+  /// [ocptScheduleEmptyValue] for it.
+  final String? roleLabel;
+
+  /// Who is being seen, or null under the same conditions as [roleLabel]. Their phone number is
+  /// deliberately not here: it sits in the day's own candidates directory, where a directory
+  /// belongs.
+  final String? candidateName;
+}
+
 /// One crew member's own contact: who they are, what they hold that day, and which department that
 /// position belongs to (null for a free-text `OcptShootingSlotCrewMember.customLabel` the catalogue
 /// has no department for).
@@ -1599,7 +1813,13 @@ List<_DayRow> _buildDayRows({
 
     rows.add(
       _DayRow.milestone(
-        caption: _captionOf(block: block, labels: labels, headingBySceneId: headingBySceneId),
+        caption: _captionOf(
+          block: block,
+          labels: labels,
+          headingBySceneId: headingBySceneId,
+          roleById: plan.roleById,
+          roleCandidateById: plan.roleCandidateById,
+        ),
         roleNumbers: ocptScheduleBlockRoleNumbersOf(
           block: block,
           slot: slot,
@@ -1615,9 +1835,10 @@ List<_DayRow> _buildDayRows({
   return rows;
 }
 
-/// The caption a non-shot [block] prints: its own free-text label when it has one, a
-/// [OcptShootingBlockKind.hold]'s own sequence heading when it names one and carries no free-text
-/// label, or [OcptCallSheetLabels.blockKindLabelOf] as the final fallback.
+/// The caption a non-shot [block] prints: its own free-text label when it has one, then whatever
+/// that kind of block names — a sequence's heading for a hold or a rehearsal, the parts an audition
+/// sees, each as its own `<number> · <name>` — or [OcptCallSheetLabels.blockKindLabelOf] as the
+/// final fallback.
 ///
 /// A thin alias over [ocptScheduleBlockCaptionOf] (`ocpt_schedule_pdf_shared.dart`), shared with
 /// `OcptShootingPlanPdfService` — see that function's own doc comment for why. The roles a
@@ -1627,9 +1848,13 @@ String _captionOf({
   required OcptShootingDayBlock block,
   required OcptCallSheetLabels labels,
   required Map<String, String> headingBySceneId,
+  required Map<String, OcptRole> roleById,
+  required Map<String, OcptRoleCandidate> roleCandidateById,
 }) => ocptScheduleBlockCaptionOf(
   block: block,
   headingBySceneId: headingBySceneId,
+  roleById: roleById,
+  roleCandidateById: roleCandidateById,
   blockKindLabelOf: labels.blockKindLabelOf,
 );
 
@@ -1719,6 +1944,233 @@ List<_CastRow> _castRowsOfDay({
 
   rows.sort((a, b) => a.role.number.compareTo(b.role.number));
   return rows;
+}
+
+/// The subset of [ownSlotEntries] a named sheet addressed to [convocation] actually prints: what
+/// its recipient is **in**, rather than everything happening on the units they are on.
+///
+/// A sheet is what one person reads down to know their own day, and an actor handed the whole
+/// running order has to work out which of its shots are theirs — which is the job the sheet was
+/// meant to do for them. Four rules, in this order:
+///
+/// - **Every milestone stays**, for everybody: preparation, hair and make-up, a meal, a break, a
+///   travel move, the wrap. Somebody who cannot see when they eat has been handed a worse sheet, not
+///   a shorter one.
+/// - **A technician keeps their whole unit.** A slot naming them as crew is a running order they
+///   work end to end, so every block of it stays whatever it plays.
+/// - **An audition stays when it names one of their own candidacies** — the same narrowing the
+///   audition table itself makes, and for the same reason: somebody else's twenty minutes is not
+///   their business.
+/// - **A shot, a hold or a rehearsal stays when it calls a part they play**, matched through
+///   `normalizeCharacterName` exactly as the main table's own `RÔLES` column and the cast table
+///   already match one.
+///
+/// **A block the app cannot resolve any part for stays**, which is the fourth rule's own escape
+/// hatch and not an oversight: a hold reserves the time of a sequence the shot list often cannot yet
+/// describe, and a scene with no shot on it names no character. Dropping it would be guessing that
+/// the recipient is not in a sequence nobody has broken down yet, and the truthful reading of "the
+/// app cannot say" is to leave the row where the production put it.
+List<OcptOrderedScheduleEntry> _entriesOfRecipient({
+  required OcptSchedulePlanSnapshot plan,
+  required OcptDayConvocation convocation,
+  required List<OcptOrderedScheduleEntry> ownSlotEntries,
+}) {
+  final personId = convocation.personId;
+
+  // The parts this recipient plays, by normalised character name: the roles cast in them, or — for
+  // an uncast convocation — the one role it names, nobody being cast in it to read through.
+  final playedNames = <String>{
+    for (final role in plan.roles)
+      if ((personId != null && role.personId == personId) || role.id == convocation.roleId)
+        normalizeCharacterName(role.name),
+  };
+
+  /// The characters a block calls, empty when the app cannot say — see the doc comment.
+  Set<String> charactersOf(OcptShootingDayBlock block) {
+    if (block.kind == OcptShootingBlockKind.shot) {
+      final shotId = block.shotId;
+      return shotId == null ? const {} : (plan.shotById(shotId)?.characters.toSet() ?? const {});
+    }
+
+    final sceneId = block.sceneId;
+    if (sceneId == null) {
+      return const {};
+    }
+
+    // A held or rehearsed sequence names no characters of its own: the app reads them off the shots
+    // it has been broken into, which is the only join `_calledRolesOfDay` makes either.
+    return {
+      for (final shot in plan.shotsById.values)
+        if (shot.sceneId == sceneId) ...shot.characters,
+    };
+  }
+
+  /// Whether [ordered] belongs on this recipient's own sheet — the four rules of the doc comment,
+  /// in order.
+  bool keeps(OcptOrderedScheduleEntry ordered) {
+    if (!ordered.block.kind.isShootingTime) {
+      return true;
+    }
+    if (personId != null && ordered.slot.crew.any((member) => member.personId == personId)) {
+      return true;
+    }
+    if (ordered.block.kind == OcptShootingBlockKind.audition) {
+      return ordered.block.candidates.any(
+        (link) => convocation.roleCandidateIds.contains(link.roleCandidateId),
+      );
+    }
+
+    final characters = charactersOf(ordered.block);
+    return characters.isEmpty || characters.intersection(playedNames).isNotEmpty;
+  }
+
+  return [
+    for (final ordered in ownSlotEntries)
+      if (keeps(ordered)) ordered,
+  ];
+}
+
+/// The audition rows of [orderedEntries]: one per candidacy every [OcptShootingBlockKind.audition]
+/// block names, in the timetable's own resolved order and, within a block, in its candidacies' own
+/// `sortKey` order — each carrying that block's hours, the part being seen and who is being seen for
+/// it. A block naming nobody yet still prints **one** row, carrying its hour alone: the day plans
+/// something at that time, and a table that hid it would be a running order with a gap in it.
+///
+/// Read off the very entries the main table is built from, so the two tables of one sheet can never
+/// order the day differently — which is also why a named sheet's own narrowed entries narrow the
+/// audition table with it: it is a reading of the timetable, and the timetable is the one thing a
+/// named sheet narrows.
+///
+/// **[onlyRoleCandidateIds], when given, narrows it to that recipient's own candidacies** — the
+/// reading a named sheet whose recipient the day sees for a part gets, and the one place a
+/// block-level link narrows something a slot-level one could not. The reason is not tidiness: who
+/// else is being seen for a part is the production's business and not another candidate's. Every
+/// other directory on their sheet stays day-wide.
+///
+/// A candidacy [OcptSchedulePlanSnapshot.roleCandidateById] no longer holds is dropped rather than
+/// printed nameless — the same reading the convocations panel already gives a vanished candidacy.
+List<_AuditionRow> _auditionRowsOfDay({
+  required OcptSchedulePlanSnapshot plan,
+  required List<OcptOrderedScheduleEntry> orderedEntries,
+  Set<String>? onlyRoleCandidateIds,
+}) {
+  final rows = <_AuditionRow>[];
+
+  for (final ordered in orderedEntries) {
+    if (ordered.block.kind != OcptShootingBlockKind.audition) {
+      continue;
+    }
+
+    final candidacies = <OcptRoleCandidate>[];
+    for (final link in ordered.block.candidates) {
+      if (onlyRoleCandidateIds != null && !onlyRoleCandidateIds.contains(link.roleCandidateId)) {
+        continue;
+      }
+      final candidate = plan.roleCandidateById[link.roleCandidateId];
+      if (candidate != null) {
+        candidacies.add(candidate);
+      }
+    }
+
+    // A block narrowed away entirely by [onlyRoleCandidateIds] is somebody else's hour, and says
+    // nothing to this recipient — unlike a block that genuinely names nobody, which is this day's
+    // own plan and keeps its empty row.
+    if (candidacies.isEmpty && onlyRoleCandidateIds != null) {
+      continue;
+    }
+
+    if (candidacies.isEmpty) {
+      rows.add(
+        _AuditionRow(
+          startMinute: ordered.entry.startMinute,
+          endMinute: ordered.entry.endMinute,
+          roleLabel: null,
+          candidateName: null,
+        ),
+      );
+      continue;
+    }
+
+    for (final candidate in candidacies) {
+      rows.add(
+        _AuditionRow(
+          startMinute: ordered.entry.startMinute,
+          endMinute: ordered.entry.endMinute,
+          roleLabel: ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]),
+          candidateName: candidate.person.displayName.trim().isEmpty
+              ? null
+              : candidate.person.displayName.trim(),
+        ),
+      );
+    }
+  }
+
+  return rows;
+}
+
+/// The day's own candidates list: **one row per candidacy** the day sees
+/// ([OcptDayConvocation.roleCandidateIds]), carrying the person's name, the part they are coming to
+/// be seen for, their phone, their email and their arrival – departure band.
+///
+/// One row per candidacy rather than per person, unlike the sheet itself: somebody read for two
+/// parts is one call and two things to look up, and this list is what an assistant director looks
+/// things up in. Their two rows carry the same hours — one person, one call — and differ by the
+/// part, which is the whole of what the reader came for.
+///
+/// **Day-wide on both sheets**, printed under the cast table: this is a directory, and it answers
+/// "who is expected today for a part and how do I reach them" — a question about the day rather than
+/// about which of its slots happens to convoke the reader, exactly as the crew list, the
+/// cast-and-extras list and the trailing guest table already are.
+///
+/// **[onlyRoleCandidateIds] is the one exception in this whole file**, and a named sheet whose
+/// recipient the day sees for a part is the only thing that ever passes it: their sheet prints their
+/// own lines and no other. The reason is not tidiness — who else is being seen for a part, and on what phone number,
+/// is the production's business and not another candidate's. Every other directory on that same
+/// sheet stays day-wide, a candidate reading the crew and cast lists exactly as any other recipient
+/// does.
+///
+/// The part is named through the **candidacy** rather than through the person, which is the whole
+/// reason `shooting_block_candidates` points at a `role_candidates` row: two candidacies of one
+/// person are two convocations, and a list naming the person alone could not tell an assistant
+/// director which of the two they are looking at. A convocation whose candidacy
+/// [OcptSchedulePlanSnapshot.roleCandidateById] no longer holds is left out entirely rather than
+/// printed nameless — the same reading the convocations panel already gives a vanished candidacy.
+///
+/// Sorted by name, as the two lists beside it are, rather than by arrival: a directory is read by
+/// looking somebody up.
+List<_PeopleListEntry> _candidateListEntries({
+  required OcptSchedulePlanSnapshot plan,
+  required String dayId,
+  required OcptCallSheetLabels labels,
+  Set<String>? onlyRoleCandidateIds,
+}) {
+  final entries = <_PeopleListEntry>[];
+
+  for (final convocation in plan.convocationsOfDay(dayId)) {
+    for (final roleCandidateId in convocation.roleCandidateIds) {
+      if (onlyRoleCandidateIds != null && !onlyRoleCandidateIds.contains(roleCandidateId)) {
+        continue;
+      }
+      final candidate = plan.roleCandidateById[roleCandidateId];
+      if (candidate == null) {
+        continue;
+      }
+
+      final name = candidate.person.displayName.trim();
+      entries.add(
+        _PeopleListEntry(
+          name: name.isEmpty ? labels.unnamedPersonLabel : name,
+          positionOrRole: ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]) ?? "",
+          phone: candidate.person.phone,
+          email: candidate.person.email,
+          scheduleLabel: ocptScheduleArrivalDepartureLabel(convocation),
+        ),
+      );
+    }
+  }
+
+  entries.sort((a, b) => a.name.compareTo(b.name));
+  return entries;
 }
 
 /// A named sheet's own "to bring" rows: [OcptSchedulePlanSnapshot.elementsToBringOnDay] for
@@ -1918,7 +2370,8 @@ String? _mapsUrlOf(OcptLocation location) {
   return "https://www.google.com/maps?q=$latitude,$longitude";
 }
 
-/// [convocation]'s own display name: the person's, the uncast role's, or
+/// [convocation]'s own display name: the person's — a candidate being a person like any other, so
+/// there is nothing extra to resolve — the uncast role's, or
 /// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable.
 String _convocationDisplayNameOf(
   OcptDayConvocation convocation,
@@ -1944,8 +2397,19 @@ String _convocationDisplayNameOf(
   return labels.unnamedPersonLabel;
 }
 
-/// [convocation]'s own positions (a crew person's, comma-joined) or role label (an uncast or cast
-/// role's own number and name), read off [ownSlots] alone.
+/// **Everything the day asks of [convocation]**, comma-joined: the positions they crew under, the
+/// parts they play, and the parts they are coming to be seen for — or, for an uncast convocation,
+/// the role it names and nothing else.
+///
+/// One line rather than one reason, because a sheet is addressed to a **person**: somebody
+/// gaffering the morning and read for Marie at eleven holds both that day, and a header naming one
+/// of the two would be picking which half of their day counts. Read off [ownSlots] for the work and
+/// off [OcptDayConvocation.roleCandidateIds] for the auditions, so it can never name something the
+/// timetable below it does not.
+///
+/// Each part is prefixed by [OcptCallSheetLabels.roleHeader] and printed in the shape the cast table
+/// names a role in, so a reader holding both can match them; a crew position carries no prefix,
+/// being unambiguous on its own.
 String _convocationPositionsLabel({
   required OcptDayConvocation convocation,
   required List<OcptShootingSlot> ownSlots,
@@ -1955,27 +2419,55 @@ String _convocationPositionsLabel({
   final personId = convocation.personId;
   if (personId == null) {
     final roleId = convocation.roleId;
-    final role = roleId == null ? null : plan.roleById[roleId];
-    return role == null ? "" : "${labels.roleHeader} ${role.number} · ${role.name}";
+    final label = ocptScheduleRoleLabelOf(roleId == null ? null : plan.roleById[roleId]);
+    return label == null ? "" : "${labels.roleHeader} $label";
   }
 
   final positionById = {for (final position in ocptCrewPositions) position.id: position};
   final seen = <String>{};
-  final positions = <String>[];
+  final parts = <String>[];
+
+  void add(String label) {
+    if (label.isNotEmpty && seen.add(label)) {
+      parts.add(label);
+    }
+  }
+
   for (final slot in ownSlots) {
     for (final member in slot.crew) {
       if (member.personId != personId) {
         continue;
       }
       final position = member.positionId.isEmpty ? null : positionById[member.positionId];
-      final label = position != null ? labels.crewPositionLabelOf(position.id) : member.customLabel;
-      if (label.isNotEmpty && seen.add(label)) {
-        positions.add(label);
+      add(position != null ? labels.crewPositionLabelOf(position.id) : member.customLabel);
+    }
+
+    // The parts they play on this unit: a cast row names a role, and the actor behind it is
+    // `roles.personId` — the same join the cast table itself makes.
+    for (final member in slot.cast) {
+      final role = plan.roleById[member.roleId];
+      if (role == null || role.personId != personId) {
+        continue;
+      }
+      if (ocptScheduleRoleLabelOf(role) case final label?) {
+        add("${labels.roleHeader} $label");
       }
     }
   }
 
-  return positions.join(", ");
+  // And the parts they are being seen for, which is the one thing on this line that is not work
+  // they already hold.
+  for (final roleCandidateId in convocation.roleCandidateIds) {
+    final candidate = plan.roleCandidateById[roleCandidateId];
+    if (candidate == null) {
+      continue;
+    }
+    if (ocptScheduleRoleLabelOf(plan.roleById[candidate.roleId]) case final label?) {
+      add("${labels.roleHeader} $label");
+    }
+  }
+
+  return parts.join(", ");
 }
 
 /// Turns [value] into a safe fragment of a file name: diacritics folded (through

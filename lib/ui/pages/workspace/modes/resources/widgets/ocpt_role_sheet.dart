@@ -9,6 +9,8 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_removed_role_banner.dart';
@@ -16,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_person_picker.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_candidates_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_elements_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_episodes_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
@@ -26,18 +29,20 @@ const String _otherRolesSeparator = ", ";
 
 /// The resources mode's centre, once a role is selected: the whole role sheet, a single scrolling
 /// column edited in place — the header (avatar, name, cast member, kind, rank), the removed-role
-/// alert when this very role is the orphaned one, the casting card, the episodes card naming where
-/// the role speaks, the things card naming what the role wears, carries and is made up with, the
-/// casting notes card, and `Delete this role` at the very bottom.
+/// alert when this very role is the orphaned one, the casting card, the candidates card naming who
+/// was seen for the part, the episodes card naming where the role speaks, the things card naming
+/// what the role wears, carries and is made up with, the casting notes card, and `Delete this role`
+/// at the very bottom.
 ///
 /// It is `OcptPersonSheet`'s sibling and follows the same grammar deliberately: the two tabs of the
 /// resources mode answer the same gesture — pick a record on the left, edit it in the centre — so
 /// they share the header-then-cards shape and the same card and field chrome
 /// (`OcptResourcesSheetCard`, `OcptResourcesSheetField`).
 ///
-/// The episodes card ([OcptRoleSheetEpisodesCard]) sits between the casting and the things cards
-/// because that is the order the questions are asked in: who plays them, where they appear, then
-/// what they wear — and it is drawn at all only while the project holds more than one episode (a
+/// The candidates card ([OcptRoleSheetCandidatesCard]) sits right under the casting card and the
+/// episodes card ([OcptRoleSheetEpisodesCard]) right under that, because that is the order the
+/// questions are asked in: who plays them, who was seen, where they appear, then what they wear —
+/// and the episodes card is drawn at all only while the project holds more than one episode (a
 /// single-episode project names no episode anywhere, `docs/adr/0019-one-project-several-episodes.md`
 /// §8).
 ///
@@ -62,8 +67,17 @@ class OcptRoleSheet extends StatelessWidget {
   /// only this one.
   final List<OcptRole> otherRoles;
 
-  /// The whole address book, offered by the cast member picker.
+  /// The whole address book, offered by the cast member picker and, once the role's own
+  /// candidates are excluded, by the candidates card's own picker.
   final List<OcptPerson> people;
+
+  /// This role's own live candidacies, in their own `sortKey` order — what the candidates card
+  /// draws.
+  final List<OcptRoleCandidate> candidates;
+
+  /// A candidacy's current note: a pending edit still sitting in the bloc's debounce, or the
+  /// candidacy's own stored value. Mirrors [fieldValueOf], one level down.
+  final String Function(String candidateId) candidateNotesValueOf;
 
   /// The whole elements catalogue: what the things card reads this role's links out of, and what
   /// its picker offers.
@@ -103,6 +117,23 @@ class OcptRoleSheet extends StatelessWidget {
   /// Called with a person's id when the header's cast member line is clicked.
   final ValueChanged<String> onPersonSheetOpenRequested;
 
+  /// Called with a person's id when the candidates card's own picker adds them.
+  final ValueChanged<String> onCandidateAdded;
+
+  /// Called with a candidacy's id and its newly picked status — every status gesture the
+  /// candidates card's `⋮` menu offers, `Retain` and `Drop` included.
+  final void Function(String candidateId, OcptRoleCandidateStatus status) onCandidateStatusChanged;
+
+  /// Called with a candidacy's id and its newly picked audition date (or null, once cleared).
+  final void Function(String candidateId, DateTime? auditionedOn) onCandidateAuditionDateChanged;
+
+  /// Called with a candidacy's id and its note's raw text on every keystroke.
+  final void Function(String candidateId, String rawValue) onCandidateNotesChanged;
+
+  /// Called with a candidacy's id when the candidates card's `⋮` menu's `Remove this candidate`
+  /// entry is picked — only asks, the confirmation dialog being the caller's to open.
+  final ValueChanged<String> onCandidateRemoveRequested;
+
   /// Called with an element's id when the things card's picker links it to this role.
   final ValueChanged<String> onElementLinked;
 
@@ -123,6 +154,8 @@ class OcptRoleSheet extends StatelessWidget {
     required this.castMember,
     required this.otherRoles,
     required this.people,
+    required this.candidates,
+    required this.candidateNotesValueOf,
     required this.elements,
     required this.episodes,
     required this.removedRoleAlert,
@@ -134,6 +167,11 @@ class OcptRoleSheet extends StatelessWidget {
     required this.onDeleteRequested,
     required this.onOrphanedRoleKept,
     required this.onPersonSheetOpenRequested,
+    required this.onCandidateAdded,
+    required this.onCandidateStatusChanged,
+    required this.onCandidateAuditionDateChanged,
+    required this.onCandidateNotesChanged,
+    required this.onCandidateRemoveRequested,
     required this.onElementLinked,
     required this.onRoleElementUpdated,
     required this.onRoleElementRemoved,
@@ -201,6 +239,17 @@ class OcptRoleSheet extends StatelessWidget {
           ],
           const SizedBox(height: 16),
           _buildCastingCard(context, tr),
+          const SizedBox(height: 12),
+          OcptRoleSheetCandidatesCard(
+            candidates: candidates,
+            people: people,
+            notesValueOf: candidateNotesValueOf,
+            onCandidateAdded: isReadOnly ? null : onCandidateAdded,
+            onStatusChanged: isReadOnly ? null : onCandidateStatusChanged,
+            onAuditionDateChanged: isReadOnly ? null : onCandidateAuditionDateChanged,
+            onNotesChanged: isReadOnly ? null : onCandidateNotesChanged,
+            onCandidateRemoveRequested: isReadOnly ? null : onCandidateRemoveRequested,
+          ),
           const SizedBox(height: 12),
           if (episodes.length > 1) ...[
             OcptRoleSheetEpisodesCard(

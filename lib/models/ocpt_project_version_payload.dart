@@ -89,6 +89,10 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `role_elements` rows of the project: what each role wears, carries and is made up with.
   final List<OcptRoleElementRow> roleElements;
 
+  /// The `role_candidates` rows of the project: who was seen for each part, and where the casting
+  /// of it stands.
+  final List<OcptRoleCandidateRow> roleCandidates;
+
   /// The `assets` rows of the project: the binary asset references, never the bytes they point at
   /// (`docs/adr/0013-binary-assets-referenced-by-path.md`). Restoring a version restores the
   /// reference, and the file it names may now be dangling — a normal state, not an error.
@@ -119,6 +123,11 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `shooting_day_blocks` rows of the project: a day's timetable, in order — the heart of the
   /// schedule mode.
   final List<OcptShootingDayBlockRow> shootingDayBlocks;
+
+  /// The `shooting_block_candidates` rows of the project: which candidacies each audition block
+  /// sees — the one convocation read off a block rather than off a slot, and what a casting day is
+  /// planned with.
+  final List<OcptShootingBlockCandidateRow> shootingBlockCandidates;
 
   /// The `shooting_slot_guests` rows of the project: who attends a slot without being crew or cast.
   final List<OcptShootingSlotGuestRow> shootingSlotGuests;
@@ -203,6 +212,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.elements,
     required this.sceneElements,
     required this.roleElements,
+    required this.roleCandidates,
     required this.assets,
     required this.breakdownTags,
     required this.sceneBreakdowns,
@@ -211,6 +221,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingSlotCrew,
     required this.shootingSlotCast,
     required this.shootingDayBlocks,
+    required this.shootingBlockCandidates,
     required this.shootingSlotGuests,
     required this.shootingDayEvents,
     required this.projectDictionaryWords,
@@ -234,11 +245,13 @@ class OcptProjectVersionPayload extends Equatable {
       "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
       "roleElements: ${roleElements.length}, "
+      "roleCandidates: ${roleCandidates.length}, "
       "assets: ${assets.length}, breakdownTags: ${breakdownTags.length}, "
       "sceneBreakdowns: ${sceneBreakdowns.length}, shootingDays: ${shootingDays.length}, "
       "shootingSlots: ${shootingSlots.length}, shootingSlotCrew: ${shootingSlotCrew.length}, "
       "shootingSlotCast: ${shootingSlotCast.length}, "
       "shootingDayBlocks: ${shootingDayBlocks.length}, "
+      "shootingBlockCandidates: ${shootingBlockCandidates.length}, "
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
       "projectDictionaryWords: ${projectDictionaryWords.length}, "
@@ -267,6 +280,7 @@ class OcptProjectVersionPayload extends Equatable {
     elements,
     sceneElements,
     roleElements,
+    roleCandidates,
     assets,
     breakdownTags,
     sceneBreakdowns,
@@ -275,6 +289,7 @@ class OcptProjectVersionPayload extends Equatable {
     shootingSlotCrew,
     shootingSlotCast,
     shootingDayBlocks,
+    shootingBlockCandidates,
     shootingSlotGuests,
     shootingDayEvents,
     projectDictionaryWords,

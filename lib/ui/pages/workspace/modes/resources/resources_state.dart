@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
@@ -66,9 +68,10 @@ class OcptResourcesIoNotice extends Equatable {
 /// person's discrete fields (colour, birth date, transport autonomy, image rights status/date)
 /// and every sub-list (positions, skills, unavailabilities) write straight to the project database
 /// the moment they change, and so do a role's cast member and kind, a location's colour, permit
-/// status and date, and every scene ↔ set link. The four `pending…FieldEdits` maps are the
-/// exception — the typed free-text fields of the person, role, location and set sheets all go
-/// through the same 2 s autosave debounce, mirroring `OcptShotListState.pendingFieldEdits`.
+/// status and date, a candidacy's status and audition date, and every scene ↔ set link. The six
+/// `pending…FieldEdits` maps are the exception — the typed free-text fields of the person, role,
+/// location, set, element and candidates card sheets all go through the same 2 s autosave
+/// debounce, mirroring `OcptShotListState.pendingFieldEdits`.
 class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsState<OcptResourcesState>,
@@ -196,6 +199,15 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// comment).
   final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
+  /// Every candidacy field edit currently sitting in the field-edit autosave debounce, keyed by the
+  /// **candidacy** id (`role_candidates.id`) and the field, holding the raw text last typed for it.
+  ///
+  /// Keyed by the candidacy rather than by the role it names, for the same reason
+  /// [pendingSetFieldEdits] is keyed by the set: a role's candidates card shows every one of its
+  /// candidates at once, each with its own note, so two candidates being typed into are two pending
+  /// edits (see `OcptRoleCandidateField`). Rides the same debounce timer as [pendingFieldEdits].
+  final Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
   final List<OcptProjectVersion> projectVersions;
@@ -287,6 +299,22 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return OcptRemovedRoleAlert.of(selectedRole);
   }
 
+  /// Every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own group, or
+  /// the empty list while nothing is loaded or [roleId] has none.
+  List<OcptRoleCandidate> candidatesOfRole(String roleId) =>
+      snapshot?.candidatesByRoleId[roleId] ?? const [];
+
+  /// [candidatesOfRole] of [selectedRoleId], or the empty list while no role is selected — what
+  /// the candidates card of the selected role's sheet draws.
+  List<OcptRoleCandidate> get selectedRoleCandidates {
+    final selectedRoleId = this.selectedRoleId;
+    if (selectedRoleId == null) {
+      return const [];
+    }
+
+    return candidatesOfRole(selectedRoleId);
+  }
+
   /// Every location of [snapshot], in display order (empty while nothing is loaded).
   List<OcptLocation> get locations => snapshot?.locations ?? const [];
 
@@ -372,6 +400,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.pendingLocationFieldEdits,
     required this.pendingSetFieldEdits,
     required this.pendingElementFieldEdits,
+    required this.pendingCandidateFieldEdits,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -408,6 +437,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       pendingLocationFieldEdits = const {},
       pendingSetFieldEdits = const {},
       pendingElementFieldEdits = const {},
+      pendingCandidateFieldEdits = const {},
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -456,6 +486,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
     Map<(String, OcptSetField), String>? pendingSetFieldEdits,
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
+    Map<(String, OcptRoleCandidateField), String>? pendingCandidateFieldEdits,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
@@ -501,6 +532,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
     pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
     pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
+    pendingCandidateFieldEdits: pendingCandidateFieldEdits ?? this.pendingCandidateFieldEdits,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId: clearPreviewedVersionId
         ? null
@@ -599,5 +631,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingLocationFieldEdits,
     pendingSetFieldEdits,
     pendingElementFieldEdits,
+    pendingCandidateFieldEdits,
   ];
 }

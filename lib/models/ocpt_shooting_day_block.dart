@@ -4,12 +4,15 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_block_candidate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 
 /// One block of a shooting day's timetable, in `sortKey` order. **This is the heart of the schedule
 /// mode.**
 ///
-/// [shotId] is non-null **iff** [kind] is [OcptShootingBlockKind.shot]. [slotId] is never null: a
+/// [shotId] is non-null **iff** [kind] is [OcptShootingBlockKind.shot], and [candidates] is only
+/// ever non-empty on [OcptShootingBlockKind.audition] — the candidacies this block sees, each
+/// somebody read for a part. [slotId] is never null: a
 /// block belongs to exactly one slot, and its own chain of blocks is that slot's own. How a slot's
 /// blocks chain into actual clock times is stated once and implemented once, in
 /// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended) — nothing here re-derives it,
@@ -30,10 +33,20 @@ class OcptShootingDayBlock extends Equatable {
   /// The shot this block places, non-null iff [kind] is [OcptShootingBlockKind.shot].
   final String? shotId;
 
-  /// The scene a [OcptShootingBlockKind.hold] block reserves time for, or null — either because
-  /// this block is of another kind, or because the sequence hasn't been settled yet. It is what
-  /// says which roles a held sequence calls for, `label` being free text that answers nobody.
+  /// The scene a [OcptShootingBlockKind.hold] block reserves time for, or a
+  /// [OcptShootingBlockKind.rehearsal] block works, or null — either because this block is of
+  /// another kind, or because the sequence hasn't been settled yet. It is what says which roles a
+  /// held or rehearsed sequence calls for, `label` being free text that answers nobody.
   final String? sceneId;
+
+  /// The candidacies this [OcptShootingBlockKind.audition] block sees, in `sortKey` order — empty
+  /// on every other kind, and on an audition nobody has been named on yet, which is an ordinary
+  /// state exactly as a hold with no sequence is.
+  ///
+  /// **Several at once is the point**: two actors of two different parts are regularly read
+  /// together. Read defensively: a candidacy removed under one of these rows drops out at display
+  /// time rather than being cascaded away — see `OcptShootingBlockCandidatesTable`.
+  final List<OcptShootingBlockCandidate> candidates;
 
   /// The wording of a non-shot block — a caption typed onto it, never what names which sequence a
   /// [OcptShootingBlockKind.hold] reserves: that is [sceneId]'s own job, since free text answers
@@ -65,6 +78,7 @@ class OcptShootingDayBlock extends Equatable {
     required this.kind,
     required this.shotId,
     required this.sceneId,
+    required this.candidates,
     required this.label,
     required this.durationMinutes,
     required this.anchorMinute,
@@ -72,14 +86,18 @@ class OcptShootingDayBlock extends Equatable {
     required this.crewNote,
   });
 
-  /// Builds an [OcptShootingDayBlock] from its stored [row].
-  factory OcptShootingDayBlock.fromRow(OcptShootingDayBlockRow row) => OcptShootingDayBlock(
+  /// Builds an [OcptShootingDayBlock] from its stored [row] and the live [candidates] it sees.
+  factory OcptShootingDayBlock.fromRow({
+    required OcptShootingDayBlockRow row,
+    required List<OcptShootingBlockCandidate> candidates,
+  }) => OcptShootingDayBlock(
     id: row.id,
     shootingDayId: row.shootingDayId,
     slotId: row.slotId,
     kind: row.kind,
     shotId: row.shotId,
     sceneId: row.sceneId,
+    candidates: candidates,
     label: row.label,
     durationMinutes: row.durationMinutes,
     anchorMinute: row.anchorMinute,
@@ -101,6 +119,7 @@ class OcptShootingDayBlock extends Equatable {
     kind,
     shotId,
     sceneId,
+    candidates,
     label,
     durationMinutes,
     anchorMinute,

@@ -122,15 +122,24 @@ OcptRole _buildRole({required String id, required String name, String? personId}
   episodeIds: const [],
 );
 
-/// A convocation of [personId] (or of the uncast [roleId]), with clocks these dialogs never read.
-OcptDayConvocation _buildConvocation({String? personId, String? roleId}) => OcptDayConvocation(
+/// A convocation of [personId] or of the uncast [roleId], seen for [roleCandidateIds] if the day
+/// sees them for a part at all, with clocks these dialogs never read.
+OcptDayConvocation _buildConvocation({
+  String? personId,
+  String? roleId,
+  Set<String> roleCandidateIds = const {},
+  bool hasSlotConvocation = true,
+}) => OcptDayConvocation(
   personId: personId,
   roleId: roleId,
   guestPersonId: null,
   guestFreeName: null,
+  roleCandidateIds: roleCandidateIds,
+  hasSlotConvocation: hasSlotConvocation,
   arrivalMinute: 480,
   patStartMinute: 540,
   patEndMinute: 1020,
+  isPatBand: true,
   departureMinute: 1080,
   slotIds: const ["slot-1"],
 );
@@ -310,6 +319,46 @@ void main() {
       expect(
         (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
         {"role-1"},
+      );
+    });
+
+    testWidgets("a candidate is listed by their own name, a recipient like anybody else", (
+      tester,
+    ) async {
+      final camille = _buildPerson(id: "person-camille", firstName: "Camille", lastName: "Renard");
+
+      await pumpDialog(
+        tester,
+        days: [dayOne],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [
+            _buildConvocation(
+              personId: "person-camille",
+              roleCandidateIds: const {"candidate-1"},
+              hasSlotConvocation: false,
+            ),
+          ],
+        },
+        personById: {"person-camille": camille},
+        roleById: {"role-1": _buildRole(id: "role-1", name: "MARIE")},
+      );
+
+      // Their own name and nothing else: a sheet is addressed to a person, and somebody seen for two
+      // parts has no single part this line could name.
+      expect(find.text("Camille Renard"), findsOneWidget);
+      // The "nobody to send this to" hint belongs to an uncast role alone — a candidate names a
+      // person as squarely as a crew member does.
+      expect(find.text(Tr.current.scheduleExportNamedCallSheetsUncastRoleHint), findsNothing);
+
+      await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
+
+      // Ticked by their **person** id: a sheet is addressed to somebody, so somebody seen for two
+      // parts is one line here and one PDF out of it.
+      expect(
+        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
+        {"person-camille"},
       );
     });
 

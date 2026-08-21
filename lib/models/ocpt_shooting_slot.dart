@@ -13,6 +13,11 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// — joined with its live [crew], [cast] and [guests], all three in `sortKey` order, exactly as
 /// `OcptLocation.sets` nests a location's live sets.
 ///
+/// **A candidate is not one of them**, deliberately: somebody seen for a part is expected at twenty
+/// past ten rather than "on this unit today", so they are linked to the **audition block** that
+/// sees them and nothing else (ADR 0024, `OcptShootingBlockCandidatesTable`) — the one convocation
+/// in this app read off a block.
+///
 /// **[anchorEdge] plus exactly one of [anchorMinute]/[anchorSlotId] is the whole of what this slot
 /// says about time**, and a stored minute may exceed 1440. See `OcptShootingSlotsTable`'s own doc
 /// comment: where this slot actually starts and ends is computed, never read off a column here —

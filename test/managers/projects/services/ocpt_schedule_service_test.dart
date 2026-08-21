@@ -130,6 +130,25 @@ void main() {
             ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
           .get();
 
+  /// Every candidate row of block [blockId], tombstoned or not, in `sortKey` order.
+  Future<List<OcptShootingBlockCandidateRow>> readAllBlockCandidates(String blockId) =>
+      (database.select(database.ocptShootingBlockCandidatesTable)
+            ..where((row) => row.blockId.equals(blockId))
+            ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
+          .get();
+
+  /// Inserts a candidacy — somebody seen for a part — satisfying the foreign keys
+  /// `shooting_block_candidates` needs, without going through
+  /// `OcptRoleCandidatesService`, whose own retained rule this service has no business exercising.
+  Future<String> createCandidacy(String id, {required String roleId, required String personId}) async {
+    await database
+        .into(database.ocptRoleCandidatesTable)
+        .insert(
+          OcptRoleCandidatesTableCompanion.insert(id: id, roleId: roleId, personId: personId),
+        );
+    return id;
+  }
+
   /// Every event row of day [dayId], tombstoned or not, in `sortKey` order.
   Future<List<OcptShootingDayEventRow>> readAllEvents(String dayId) =>
       (database.select(database.ocptShootingDayEventsTable)
@@ -1355,6 +1374,401 @@ void main() {
       await scheduleService.deleteDayEvent(database: database, eventId: eventId);
 
       expect((await readAllEvents(dayId)).single.isDeleted, isTrue);
+    });
+  });
+
+  group("auditions and the candidates convoked for them", () {
+    setUp(insertScreenplay);
+
+    /// A day carrying one slot, with a part and somebody seen for it: what every test below plans
+    /// an audition on.
+    Future<(String dayId, String slotId, String roleId, String candidacyId)> createCastingDay({
+      String suffix = "",
+    }) async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final roleId = await createRole("role$suffix");
+      final personId = (await peopleService.createPerson(database: database))!;
+      final candidacyId = await createCandidacy(
+        "candidacy$suffix",
+        roleId: roleId,
+        personId: personId,
+      );
+
+      return (dayId, slotId, roleId, candidacyId);
+    }
+
+    test("createBlock mints an audition naming nobody, which is an ordinary state", () async {
+      final (dayId, slotId, _, _) = await createCastingDay();
+
+      final blockId = await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+        durationMinutes: 20,
+      );
+
+      expect(blockId, isNotNull);
+      final block = await readBlock(blockId!);
+      expect(block.kind, OcptShootingBlockKind.audition);
+      expect(block.shootingDayId, dayId);
+      expect(await readAllBlockCandidates(blockId), isEmpty);
+    });
+
+    test("createBlock keeps a rehearsal's own sequence, exactly as a hold's", () async {
+      final (_, slotId, _, _) = await createCastingDay();
+      final sceneId = await createScene("scene-1");
+
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.rehearsal,
+        sceneId: sceneId,
+      ))!;
+
+      expect((await readBlock(blockId)).sceneId, sceneId);
+    });
+
+    test("updateBlock turning a hold into a rehearsal keeps the sequence it was holding", () async {
+      final (_, slotId, _, _) = await createCastingDay();
+      final sceneId = await createScene("scene-1");
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.hold,
+        sceneId: sceneId,
+      ))!;
+
+      await scheduleService.updateBlock(
+        database: database,
+        blockId: blockId,
+        kind: const Value(OcptShootingBlockKind.rehearsal),
+      );
+
+      expect((await readBlock(blockId)).sceneId, sceneId);
+    });
+
+    test("addBlockCandidate mints a convocation, reloaded by loadSchedule", () async {
+      final (dayId, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+
+      final convocationId = await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      expect(convocationId, isNotNull);
+      final snapshot = await scheduleService.loadSchedule(database: database);
+      final candidate = snapshot.blocksByDayId[dayId]!.single.candidates.single;
+      expect(candidate.id, convocationId);
+      expect(candidate.blockId, blockId);
+      expect(candidate.roleCandidateId, candidacyId);
+    });
+
+    test("addBlockCandidate names two candidacies on one block, in the order given", () async {
+      // Two actors of two different parts read together, which is the whole reason several rows
+      // may hang off one block.
+      final (dayId, slotId, _, first) = await createCastingDay();
+      final second = await createCandidacy(
+        "candidacy-2",
+        roleId: await createRole("role-2"),
+        personId: (await peopleService.createPerson(database: database))!,
+      );
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: first,
+      );
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: second,
+      );
+
+      final snapshot = await scheduleService.loadSchedule(database: database);
+      expect(
+        snapshot.blocksByDayId[dayId]!.single.candidates
+            .map((candidate) => candidate.roleCandidateId),
+        [first, second],
+      );
+    });
+
+    test("addBlockCandidate refuses a block that is not an audition", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.meal,
+      ))!;
+
+      final convocationId = await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      expect(convocationId, isNull);
+      expect(await readAllBlockCandidates(blockId), isEmpty);
+    });
+
+    test("addBlockCandidate refuses a second row for a pair the block already names", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+
+      final first = await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+      final second = await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      expect(second, first);
+      expect(await readAllBlockCandidates(blockId), hasLength(1));
+    });
+
+    test("addBlockCandidate revives a convocation removed earlier rather than duplicating", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      final convocationId = (await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      ))!;
+      await scheduleService.removeBlockCandidate(
+        database: database,
+        blockCandidateId: convocationId,
+      );
+
+      final revived = await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      expect(revived, convocationId);
+      final rows = await readAllBlockCandidates(blockId);
+      expect(rows, hasLength(1));
+      expect(rows.single.isDeleted, isFalse);
+    });
+
+    test("reorderBlockCandidate writes one row and re-reads in the new order", () async {
+      final (dayId, slotId, _, first) = await createCastingDay();
+      final second = await createCandidacy(
+        "candidacy-2",
+        roleId: await createRole("role-2"),
+        personId: (await peopleService.createPerson(database: database))!,
+      );
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: first,
+      );
+      final secondConvocationId = (await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: second,
+      ))!;
+
+      await scheduleService.reorderBlockCandidate(
+        database: database,
+        blockCandidateId: secondConvocationId,
+        newPosition: 0,
+      );
+
+      final snapshot = await scheduleService.loadSchedule(database: database);
+      expect(
+        snapshot.blocksByDayId[dayId]!.single.candidates
+            .map((candidate) => candidate.roleCandidateId),
+        [second, first],
+      );
+    });
+
+    test("removeBlockCandidate tombstones the link and leaves the audition alone", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      final convocationId = (await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      ))!;
+
+      await scheduleService.removeBlockCandidate(
+        database: database,
+        blockCandidateId: convocationId,
+      );
+
+      expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
+      expect((await readBlock(blockId)).isDeleted, isFalse);
+    });
+
+    test("updateBlock turning an audition into anything else drops its candidacies", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      await scheduleService.updateBlock(
+        database: database,
+        blockId: blockId,
+        kind: const Value(OcptShootingBlockKind.pause),
+      );
+
+      expect((await readBlock(blockId)).kind, OcptShootingBlockKind.pause);
+      expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
+    });
+
+    test("updateBlock editing an audition's own duration leaves its candidacies alone", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      await scheduleService.updateBlock(
+        database: database,
+        blockId: blockId,
+        durationMinutes: const Value(25),
+      );
+
+      expect((await readBlock(blockId)).durationMinutes, 25);
+      expect((await readAllBlockCandidates(blockId)).single.isDeleted, isFalse);
+    });
+
+    test("deleteBlock carries the candidacies it named off with it", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      await scheduleService.deleteBlock(database: database, blockId: blockId);
+
+      expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
+      // The candidacy itself outlives the audition that was going to see it.
+      expect(
+        (await database.select(database.ocptRoleCandidatesTable).getSingle()).isDeleted,
+        isFalse,
+      );
+    });
+
+    test("deleting a day's last slot carries its auditions' candidacies off too", () async {
+      final (_, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      await scheduleService.deleteSlot(database: database, slotId: slotId);
+
+      expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
+    });
+
+    test("deleting a day carries every candidacy of its auditions off with it", () async {
+      final (dayId, slotId, _, candidacyId) = await createCastingDay();
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      );
+
+      await scheduleService.deleteDay(database: database, dayId: dayId);
+
+      expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
+    });
+
+    test("every candidate write is refused on a preview database", () async {
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(preview.close);
+
+      expect(
+        await scheduleService.addBlockCandidate(
+          database: preview,
+          blockId: "missing-block",
+          roleCandidateId: "missing-candidacy",
+        ),
+        isNull,
+      );
+      await scheduleService.updateBlockCandidate(
+        database: preview,
+        blockCandidateId: "missing-convocation",
+        notes: const Value("nope"),
+      );
+      await scheduleService.reorderBlockCandidate(
+        database: preview,
+        blockCandidateId: "missing-convocation",
+        newPosition: 0,
+      );
+      await scheduleService.removeBlockCandidate(
+        database: preview,
+        blockCandidateId: "missing-convocation",
+      );
+
+      expect(await preview.select(preview.ocptShootingBlockCandidatesTable).get(), isEmpty);
     });
   });
 

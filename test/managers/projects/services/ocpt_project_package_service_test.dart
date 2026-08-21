@@ -97,6 +97,7 @@ void main() {
       elements: const [],
       sceneElements: const [],
       roleElements: const [],
+      roleCandidates: const [],
       assets: const [],
       breakdownTags: const [],
       sceneBreakdowns: const [],
@@ -122,6 +123,7 @@ void main() {
       currencyCode: "EUR",
       minimumRestMinutes: null,
       screenplayLanguage: null,
+      shootingBlockCandidates: const [],
     ),
   );
 

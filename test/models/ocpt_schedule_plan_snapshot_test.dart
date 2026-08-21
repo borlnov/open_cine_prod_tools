@@ -9,9 +9,11 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_block_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
@@ -30,6 +32,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -75,6 +78,32 @@ OcptShootingSlot _buildSlot({
   guests: guests,
 );
 
+/// Builds a candidacy — somebody seen for a part — with the few fields these tests read.
+OcptRoleCandidate _buildCandidacy({
+  required String id,
+  required String roleId,
+  required OcptPerson person,
+}) => OcptRoleCandidate(
+  id: id,
+  roleId: roleId,
+  person: person,
+  status: OcptRoleCandidateStatus.seen,
+  auditionedOn: null,
+  notes: "",
+);
+
+/// Builds a candidacy's own convocation on an audition block, with the few fields these tests read.
+OcptShootingBlockCandidate _buildBlockCandidate({
+  required String id,
+  required String blockId,
+  required String roleCandidateId,
+}) => OcptShootingBlockCandidate(
+  id: id,
+  blockId: blockId,
+  roleCandidateId: roleCandidateId,
+  notes: "",
+);
+
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
 OcptShootingDayBlock _buildBlock({
   required String id,
@@ -82,6 +111,7 @@ OcptShootingDayBlock _buildBlock({
   OcptShootingBlockKind kind = OcptShootingBlockKind.preparation,
   String? shotId,
   int? durationMinutes = 30,
+  List<OcptShootingBlockCandidate> candidates = const [],
 }) => OcptShootingDayBlock(
   id: id,
   shootingDayId: "day-1",
@@ -89,6 +119,7 @@ OcptShootingDayBlock _buildBlock({
   kind: kind,
   shotId: shotId,
   sceneId: null,
+  candidates: candidates,
   label: "",
   durationMinutes: durationMinutes,
   anchorMinute: null,
@@ -418,6 +449,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
   List<OcptElement> elements = const [],
+  List<OcptRoleCandidate> roleCandidates = const [],
   int? minimumRestMinutes,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
@@ -432,6 +464,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   roles: roles,
   people: people,
   elements: elements,
+  roleCandidates: roleCandidates,
   minimumRestMinutes: minimumRestMinutes,
 );
 
@@ -626,6 +659,164 @@ void main() {
       expect(convocation.patStartMinute, isNull);
       expect(convocation.patEndMinute, isNull);
     });
+
+    test("a candidate convoked on a day reads a band over its auditions", () {
+      final person = _buildPerson(id: "person-1", firstName: "Camille");
+      final candidacy = _buildCandidacy(id: "candidacy-1", roleId: "role-1", person: person);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 540);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-arrival",
+              slotId: "slot-1",
+              durationMinutes: 15,
+            ),
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+              candidates: [
+                _buildBlockCandidate(
+                  id: "convocation-1",
+                  blockId: "block-audition",
+                  roleCandidateId: "candidacy-1",
+                ),
+              ],
+            ),
+          ],
+        },
+        people: [person],
+        roleCandidates: [candidacy],
+      );
+
+      final convocation = snapshot.convocationsOfDay("day-1").single;
+
+      // Every figure comes off the audition itself, never off the slot: the fifteen minutes of
+      // preparation before it belong to the unit, not to the candidate expected at 09:15.
+      expect(convocation.isSeenForAPart, isTrue);
+      expect(convocation.roleCandidateIds, {"candidacy-1"});
+      expect(convocation.arrivalMinute, 555);
+      expect(convocation.patStartMinute, 555);
+      expect(convocation.patEndMinute, 575);
+      expect(convocation.departureMinute, 575);
+    });
+
+    test("two candidacies on one block share its hour, each their own convocation", () {
+      // Two actors of two different parts read together: one block, two rows, two convocations.
+      final marie = _buildPerson(id: "person-1", firstName: "Camille");
+      final julien = _buildPerson(id: "person-2", firstName: "Alice");
+      final snapshot = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [_buildSlot(id: "slot-1", anchorMinute: 600)],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 40,
+              candidates: [
+                _buildBlockCandidate(
+                  id: "convocation-1",
+                  blockId: "block-audition",
+                  roleCandidateId: "candidacy-marie",
+                ),
+                _buildBlockCandidate(
+                  id: "convocation-2",
+                  blockId: "block-audition",
+                  roleCandidateId: "candidacy-julien",
+                ),
+              ],
+            ),
+          ],
+        },
+        people: [marie, julien],
+        roleCandidates: [
+          _buildCandidacy(id: "candidacy-marie", roleId: "role-1", person: marie),
+          _buildCandidacy(id: "candidacy-julien", roleId: "role-2", person: julien),
+        ],
+      );
+
+      final convocations = snapshot.convocationsOfDay("day-1");
+
+      expect(convocations, hasLength(2));
+      for (final convocation in convocations) {
+        expect(convocation.arrivalMinute, 600);
+        expect(convocation.departureMinute, 640);
+      }
+    });
+
+    test("a rehearsal block opens a band exactly as a shot does", () {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 540,
+        cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-rehearsal",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.rehearsal,
+              durationMinutes: 90,
+            ),
+          ],
+        },
+        roles: [_buildRole(id: "role-1", name: "MARIE", personId: "person-1")],
+      );
+
+      final convocation = snapshot.convocationsOfDay("day-1").single;
+
+      expect(convocation.personId, "person-1");
+      expect(convocation.patStartMinute, 540);
+      expect(convocation.patEndMinute, 630);
+    });
+
+    test("a convocation onto a candidacy that has since been removed convokes nobody", () {
+      // No cascade drops a `shooting_block_candidates` row when its candidacy is removed — the row
+      // is read defensively instead, and drops out here.
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [_buildSlot(id: "slot-1", anchorMinute: 540)],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+              candidates: [
+                _buildBlockCandidate(
+                  id: "convocation-1",
+                  blockId: "block-audition",
+                  roleCandidateId: "gone",
+                ),
+              ],
+            ),
+          ],
+        },
+      );
+
+      expect(snapshot.convocationsOfDay("day-1"), isEmpty);
+    });
   });
 
   group("sunTimesOfDay", () {
@@ -738,6 +929,7 @@ void main() {
               kind: OcptShootingBlockKind.hold,
               shotId: null,
               sceneId: "scene-1",
+              candidates: [],
               label: "",
               durationMinutes: 60,
               anchorMinute: null,
@@ -814,6 +1006,116 @@ void main() {
       expect(alert.dayId, "day-1");
       expect(alert.roleId, "role-1");
       expect(alert.shotId, "shot-1");
+    });
+
+    test("a day spent rehearsing double-books a person exactly as a shooting one does", () {
+      // Every alert about people is blind to what a day holds, and deliberately: a rehearsal eats
+      // a person's day like a shoot does, and the plan is just as broken either way.
+      final slotA = _buildSlot(
+        id: "slot-a",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-a", personId: "person-1")],
+      );
+      final slotB = _buildSlot(
+        id: "slot-b",
+        anchorMinute: 550,
+        crew: [_buildCrewMember(id: "crew-2", slotId: "slot-b", personId: "person-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slotA, slotB],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-a",
+              slotId: "slot-a",
+              kind: OcptShootingBlockKind.rehearsal,
+              durationMinutes: 200,
+            ),
+            _buildBlock(
+              id: "block-b",
+              slotId: "slot-b",
+              kind: OcptShootingBlockKind.rehearsal,
+              durationMinutes: 200,
+            ),
+          ],
+        },
+      );
+
+      final alert = snapshot.alerts.whereType<OcptSchedulePersonDoubleBookedAlert>().single;
+      expect(alert.dayId, "day-1");
+      expect(alert.personId, "person-1");
+    });
+
+    test("a day of auditions raises no role-not-convoked alert, carrying no shot to call one", () {
+      // The rule is about a role a **placed shot** plays, so it finds nothing on a day whose
+      // timetable holds auditions alone: it needs no special case of its own, and gets none.
+      final role = _buildRole(id: "role-1", name: "Alice");
+      final shot = _buildShot(id: "shot-1", characters: const ["ALICE"]);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 540);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+            ),
+          ],
+        },
+        shotLists: [_buildShotList(shots: [shot])],
+        roles: [role],
+      );
+
+      expect(snapshot.alerts.whereType<OcptScheduleRoleNotConvokedAlert>(), isEmpty);
+    });
+
+    test("a candidate's own convocation raises nothing at all", () {
+      // Deliberately, and on the guests' own argument: a candidate holds no position to lose, has
+      // no daily maximum of the production's making and is not cast. Their convocation is read
+      // everywhere it is owed an hour, and nowhere a rule is about somebody's work.
+      final person = _buildPerson(id: "person-1", firstName: "Camille");
+      final candidacy = _buildCandidacy(id: "candidacy-1", roleId: "role-1", person: person);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [_buildSlot(id: "slot-1", anchorMinute: 540)],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 20,
+              candidates: [
+                _buildBlockCandidate(
+                  id: "convocation-1",
+                  blockId: "block-audition",
+                  roleCandidateId: "candidacy-1",
+                ),
+              ],
+            ),
+          ],
+        },
+        people: [person],
+        roleCandidates: [candidacy],
+      );
+
+      expect(snapshot.alerts, isEmpty);
+      // And they are convoked all the same: the reading the `Convocations` tab gives is untouched
+      // by the alerts saying nothing about them.
+      expect(snapshot.convocationsOfDay("day-1").single.roleCandidateIds, {"candidacy-1"});
     });
 
     test("a location's dated permit document not covering the day surfaces the permit alert", () {

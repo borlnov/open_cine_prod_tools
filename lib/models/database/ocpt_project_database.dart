@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
-
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -21,6 +20,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_unavaila
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_dictionary_words_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_candidates_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_episodes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.da
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snapshots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_block_candidates_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_events_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
@@ -49,7 +50,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptElementStatusConverter, OcptAssetKindConverter, OcptDayPartSlotConverter,
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
 // OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
-// OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter), but
+// OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter,
+// OcptRoleCandidateStatusConverter, OcptShootingDayKindConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -64,6 +66,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -131,7 +134,17 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptScreenplayLanguage]) — nullable, since "nobody has said" is as true after the migration as
 /// it was before it, exactly the reading [OcptProjectInfoTable.minimumRestMinutes] already carries
 /// — and, alongside it, [OcptProjectDictionaryWordsTable], the words a writer has taught this
-/// project's spell checker.
+/// project's spell checker. Schema version 20 adds [OcptRoleCandidatesTable], the people seen for a
+/// part before `roles.personId` can be filled in — a link between `roles` and `people` carrying the
+/// status, the audition date and the notes a casting decision is made on. Schema version 24 is what
+/// a day puts in its timetable when it is not shooting: [OcptShootingBlockCandidatesTable], the
+/// candidacies an `audition` block sees — the one convocation in this app read off a block rather
+/// than off a slot (ADR 0024). It is additive and nothing is backfilled: a project reaching this
+/// version has no audition planned anywhere, this app having had no way to plan one. Versions 23
+/// and 24 also take back the four columns and the one table intermediate builds of that same,
+/// unmerged work briefly carried — `shooting_days.kind`, `shooting_day_blocks.role_candidate_id`,
+/// `shooting_day_blocks.role_id` and `shooting_slot_candidates` — see the migration's own
+/// comments.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -157,6 +170,7 @@ part 'ocpt_project_database.g.dart';
     OcptSceneElementsTable,
     OcptRoleElementsTable,
     OcptRoleEpisodesTable,
+    OcptRoleCandidatesTable,
     OcptAssetsTable,
     OcptLocalErasuresTable,
     OcptBreakdownTagsTable,
@@ -167,6 +181,7 @@ part 'ocpt_project_database.g.dart';
     OcptShootingSlotCastTable,
     OcptShootingDayBlocksTable,
     OcptShootingSlotGuestsTable,
+    OcptShootingBlockCandidatesTable,
     OcptShootingDayEventsTable,
     OcptProjectDictionaryWordsTable,
   ],
@@ -242,7 +257,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 19;
+  static const currentSchemaVersion = 24;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -369,7 +384,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `people.maxDailyPresenceMinutes` and `project_info.minimumRestMinutes` itself already carry.
   /// The same step also creates [OcptProjectDictionaryWordsTable], the words a writer has taught
   /// this project's spell checker — a plain `createTable` on a file coming from any version, since
-  /// nothing a project already held needs migrating into it. Every step is additive, as
+  /// nothing a project already held needs migrating into it. From 19 to 20 it creates
+  /// [OcptRoleCandidatesTable], the people seen for a part: another plain `createTable` on a file
+  /// coming from any version, both tables it references (`roles` and `people`) existing by version
+  /// 6 and being created fresh above for a file older than that — and nothing to backfill either, a
+  /// project migrating onto this version having kept its casting somewhere this app has never been
+  /// able to read. From 23 to 24 it creates
+  /// `shooting_block_candidates`, the candidacies an `audition` block sees — a plain `createTable`
+  /// on a file coming from any version, with nothing to backfill, a project reaching this version
+  /// having had no way to plan an audition. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -581,11 +604,94 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // spell checker nothing yet.
         await m.createTable(ocptProjectDictionaryWordsTable);
       }
+
+      if (from < 20) {
+        // Both tables it references — `roles` and `people` — exist by version 6, and a file older
+        // than that has just had them created above, so this is never a forward reference. Nothing
+        // to backfill: a project reaching this version kept the people it saw for a part somewhere
+        // this app has never been able to read.
+        await m.createTable(ocptRoleCandidatesTable);
+      }
+
+      if (from < 23) {
+        // The two columns a **build that never merged** wrote, and nothing else: `shooting_days
+        // .kind` and `shooting_day_blocks.role_candidate_id` were added by intermediate versions of
+        // this very branch and taken back out before it landed — a day mixes casting, rehearsal and
+        // shooting, and says so through its blocks, so neither column had anything left to say. No
+        // released build ever wrote either, so the only files carrying them are the ones this
+        // branch was developed against; [_dropColumnIfPresent] is what makes running this against
+        // any other file a no-op rather than an error.
+        await _dropColumnIfPresent(table: 'shooting_days', column: 'kind');
+        await _dropColumnIfPresent(
+          table: 'shooting_day_blocks',
+          column: 'role_candidate_id',
+        );
+      }
+
+      if (from < 24) {
+        // The same **build that never merged** as the `from < 23` step above, one round later: a
+        // candidate was briefly convoked on the whole slot, and an audition block briefly named the
+        // single part it saw. Both are gone — somebody is expected at twenty past ten, and a block
+        // reading two actors of two different parts could never have named one part. No released
+        // build ever wrote either, so these too are dropped defensively rather than migrated, and
+        // nothing carries their rows over. Dropped *before* the table below is created, so nothing
+        // new ever references a shape still being reshaped.
+        await _dropTableIfPresent(table: 'shooting_slot_candidates');
+        await _dropColumnIfPresent(table: 'shooting_day_blocks', column: 'role_id');
+
+        // Follows every table it references: `shooting_day_blocks` exists by version 11 (or was
+        // created fresh above for a file older than that), and `role_candidates` by version 20 —
+        // created by the `from < 20` step above for every file that had not reached it. Nothing to
+        // backfill: a project migrating onto this version has convoked no candidate anywhere, this
+        // app having had no way to convoke one.
+        await m.createTable(ocptShootingBlockCandidatesTable);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Drops [column] from [table], if that table actually carries it, and does nothing at all
+  /// otherwise.
+  ///
+  /// The one migration helper in this file that **asks the file what it holds** rather than
+  /// deducing it from the version it states, and deliberately: the two columns it is used on were
+  /// written by intermediate builds of one unmerged branch, so the version number a file states
+  /// says nothing about whether it has them — one project made against that branch does, one made
+  /// against the release before it does not, and both state a number below 23.
+  ///
+  /// Written in raw SQL for the reason [_backfillSortKeys] gives, and because a column that is no
+  /// longer declared in Dart cannot be named through the generated API at all.
+  Future<void> _dropColumnIfPresent({required String table, required String column}) async {
+    final columns = await customSelect('PRAGMA table_info($table)').get();
+    final hasColumn = columns.any((row) => row.data['name'] == column);
+    if (!hasColumn) {
+      return;
+    }
+
+    await customStatement('ALTER TABLE "$table" DROP COLUMN "$column"');
+  }
+
+  /// Drops [table] entirely, if this file actually carries it, and does nothing at all otherwise.
+  ///
+  /// [_dropColumnIfPresent]'s sibling, there for exactly the same reason and used on exactly the
+  /// same kind of thing: `shooting_slot_candidates` was created by an intermediate build of one
+  /// unmerged branch and taken back out before it landed, so the version a file states says nothing
+  /// about whether it holds the table. `DROP TABLE IF EXISTS` would do here, but asking
+  /// `sqlite_master` keeps this reading the same way its sibling does — and says in one place what
+  /// "if present" means.
+  Future<void> _dropTableIfPresent({required String table}) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable<String>(table)],
+    ).get();
+    if (rows.isEmpty) {
+      return;
+    }
+
+    await customStatement('DROP TABLE "$table"');
+  }
 
   /// Writes a code onto every live `sets` row that has none, in the order the sets are already
   /// read in, so a project made before schema version 10 comes out of the migration looking exactly
@@ -955,7 +1061,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
     if (from >= 11) {
       await m.alterTable(
-        // Same as above.
+        // Same as above: `shooting_days` loses its own `screenplay_id`, every other column being
+        // copied straight across.
         // ignore: experimental_member_use
         TableMigration(ocptShootingDaysTable),
       );

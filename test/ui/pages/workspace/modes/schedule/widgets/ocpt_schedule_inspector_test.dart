@@ -94,6 +94,7 @@ OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Pre
       kind: OcptShootingBlockKind.hold,
       shotId: null,
       sceneId: null,
+      candidates: const [],
       label: label,
       durationMinutes: null,
       anchorMinute: null,

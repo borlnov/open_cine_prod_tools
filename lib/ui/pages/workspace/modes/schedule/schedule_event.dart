@@ -483,6 +483,48 @@ class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, castRoleId];
 }
 
+/// Names candidacy [roleCandidateId] on **audition** block [blockId], dispatched by that row's own
+/// `+` picker — the one convocation in this app read off a block rather than off a slot (ADR 0024),
+/// because a candidate is expected at twenty past ten rather than "on the unit today".
+///
+/// It names a **candidacy**, never a person: the convocation is about somebody being seen *for a
+/// part*, and one person read for two parts on one day is two convocations. Several on one block is
+/// ordinary — two actors of two different parts read together.
+class OcptScheduleBlockCandidateAddedEvent extends OcptScheduleEvent {
+  /// The id of the audition block the candidate is seen at.
+  final String blockId;
+
+  /// The id of the candidacy named — who, for which part.
+  final String roleCandidateId;
+
+  /// Class constructor
+  const OcptScheduleBlockCandidateAddedEvent({
+    required this.blockId,
+    required this.roleCandidateId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, roleCandidateId];
+}
+
+/// Removes candidate convocation [blockCandidateId] for good, dispatched by its own chip's remove
+/// control.
+///
+/// **Touches neither the block nor the candidacy**: the audition stays exactly where it is and the
+/// `role_candidates` row outlives it — see `OcptScheduleService.removeBlockCandidate`.
+class OcptScheduleBlockCandidateRemovedEvent extends OcptScheduleEvent {
+  /// The id of the candidate convocation to remove.
+  final String blockCandidateId;
+
+  /// Class constructor
+  const OcptScheduleBlockCandidateRemovedEvent({required this.blockCandidateId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockCandidateId];
+}
+
 /// Adds [personId] to slot [slotId]'s own guests, dispatched by the guest band's own `+ Guest`
 /// footer — the address book alone, per Benoit's own decision: nobody is created from this mode, so
 /// there is no free-named counterpart of this event.

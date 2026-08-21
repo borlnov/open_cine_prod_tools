@@ -96,6 +96,7 @@ OcptShootingDayBlock _buildBlock({
   kind: kind,
   shotId: shotId,
   sceneId: sceneId,
+  candidates: const [],
   label: "",
   durationMinutes: durationMinutes,
   anchorMinute: null,

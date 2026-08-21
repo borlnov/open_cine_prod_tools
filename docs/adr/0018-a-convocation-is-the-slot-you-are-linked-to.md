@@ -113,3 +113,23 @@ convocation with no content yet, not a zero-length error.
 - **Make the PAT band per slot rather than per day**: rejected — a person reads their own day as one
   arrival and one wrap, and a call sheet prints it that way; per-slot bands would put the same
   person on three lines of the cast table with no way to say which one is their call.
+
+## Amendment — a candidate is convoked by the audition that sees them
+
+The decision above is amended in **one** place, and the rest of it stands untouched: a candidate
+seen for a part is convoked by the **audition block** that sees them
+(`shooting_block_candidates`), not by a slot. See ADR 0024, which argues it.
+
+This is the rule of this record applied rather than bent — you are convoked by what you are linked
+to, and every clock about you is read off it. What a candidate is linked to happens to be twenty
+minutes rather than a working unit: they are expected at twenty past ten, and a slot-wide link could
+only ever have said "09:00 – 18:00" to all twelve people a casting day sees.
+`ocptComputeDayConvocations` therefore takes the day's auditions beside its slots, and a person's
+own auditions **join the same walk** as their slots — one arrival, one band, one departure, whether
+the day crews them, casts them, sees them for a part, or all three. `OcptDayConvocation` gains no
+fifth arm for it: it carries `roleCandidateIds`, the candidacies of this person the day sees.
+
+The four figures of the table above are otherwise unchanged, and so is everything this record says
+about lead times, groups, guests and per-day bands. One word is: the band a convocation carries is
+called `PAT` only when the blocks it was read off include **filming**, `PRÉSENCE` otherwise —
+*prêt à tourner* presupposes a take, and a day of auditions or of rehearsals has none.

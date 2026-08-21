@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -30,6 +31,8 @@ import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
@@ -80,6 +83,7 @@ const _callSheetLabels = OcptCallSheetLabels(
   crewPositionLabels: {},
   hoursLinePrefix: "Hours",
   patLabel: "PAT",
+  presenceLabel: "PRESENCE",
   arrivalHeader: "Arrival",
   departureLabel: "Departure",
   toBringSectionTitle: "To bring",
@@ -101,6 +105,9 @@ const _callSheetLabels = OcptCallSheetLabels(
   emptyDayNote: "Nothing planned.",
   unnamedPersonLabel: "Unnamed",
   eventsSectionTitle: "Events",
+  auditionsSectionTitle: "Auditions",
+  candidateHeader: "CANDIDAT",
+  candidatesSectionTitle: "Candidates",
   guestsSectionTitle: "Guests",
   guestReasonHeader: "Reason",
 );
@@ -612,6 +619,97 @@ void main() {
         ["INT. HOUSE - DAY", "EXT. STREET - NIGHT"],
         reason: "the unplaced-shots grouping lists episode 1's sequences before episode 2's",
       );
+
+      await bloc.close();
+    });
+  });
+
+  group("planning an audition", () {
+    /// A part, somebody seen for it, and a day with one slot: what an audition is planned on.
+    /// Returns the slot and the candidacy.
+    Future<(String slotId, String roleCandidateId)> seedCastingDay() async {
+      final project = projectsManager.currentProject!;
+
+      final roleId = await projectsManager.roleIndexService.addRole(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        name: "MARIE",
+        kind: OcptRoleKind.silent,
+      );
+      final personId = await projectsManager.peopleService.createPerson(
+        database: project.database,
+      );
+      await projectsManager.peopleService.updatePerson(
+        database: project.database,
+        personId: personId!,
+        firstName: const Value("Camille"),
+      );
+      final roleCandidateId = await projectsManager.roleCandidatesService.addCandidate(
+        database: project.database,
+        roleId: roleId!,
+        personId: personId,
+      );
+
+      final dayId = await projectsManager.scheduleService.createDay(
+        database: project.database,
+        date: DateTime(2026, 8, 10),
+      );
+      final schedule = await projectsManager.scheduleService.loadSchedule(
+        database: project.database,
+      );
+
+      return (schedule.slotsByDayId[dayId]!.single.id, roleCandidateId!);
+    }
+
+    test("reads every live candidacy of the project into the state", () async {
+      final (_, roleCandidateId) = await seedCastingDay();
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.roleCandidates.map((candidate) => candidate.id), [roleCandidateId]);
+      expect(state.roleCandidateById[roleCandidateId]!.person.displayName, contains("Camille"));
+
+      await bloc.close();
+    });
+
+    test("an audition block is created in place, and its candidacies named onto it after", () async {
+      final (slotId, roleCandidateId) = await seedCastingDay();
+
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      // Created like every other block that names no row of another table: nothing is asked at
+      // creation, and an audition naming nobody yet is an ordinary state.
+      bloc.add(
+        OcptScheduleBlockCreatedEvent(slotId: slotId, kind: OcptShootingBlockKind.audition),
+      );
+      final created = await waitForState(bloc, (state) => state.selectedDayBlocks.isNotEmpty);
+      final block = created.selectedDayBlocks.single;
+      expect(block.kind, OcptShootingBlockKind.audition);
+      expect(block.candidates, isEmpty);
+
+      // Then the row's own picker says who is seen at that hour, and for which part.
+      bloc.add(
+        OcptScheduleBlockCandidateAddedEvent(
+          blockId: block.id,
+          roleCandidateId: roleCandidateId,
+        ),
+      );
+      final named = await waitForState(
+        bloc,
+        (state) => state.selectedDayBlocks.single.candidates.isNotEmpty,
+      );
+      final link = named.selectedDayBlocks.single.candidates.single;
+      expect(link.roleCandidateId, roleCandidateId);
+
+      // And taking them back off leaves the audition exactly where it is.
+      bloc.add(OcptScheduleBlockCandidateRemovedEvent(blockCandidateId: link.id));
+      final emptied = await waitForState(
+        bloc,
+        (state) => state.selectedDayBlocks.single.candidates.isEmpty,
+      );
+      expect(emptied.selectedDayBlocks.single.kind, OcptShootingBlockKind.audition);
 
       await bloc.close();
     });

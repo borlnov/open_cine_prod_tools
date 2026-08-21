@@ -30,6 +30,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
@@ -820,6 +822,149 @@ void main() {
     expect(state.roles, isEmpty);
 
     await bloc.close();
+  });
+
+  group("role candidates", () {
+    /// Creates a hand-added role, a person, and a live candidacy pairing the two, through the
+    /// bloc's own events. Returns the role's id, the person's id and the candidacy's own id.
+    Future<(String roleId, String personId, String candidateId)> addCandidate(
+      OcptResourcesBloc bloc,
+    ) async {
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+      final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+      final roleId = withRole.selectedRoleId!;
+
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
+      final personId = withPerson.selectedPersonId!;
+
+      bloc.add(OcptResourcesRoleCandidateAddedEvent(roleId: roleId, personId: personId));
+      final withCandidate = await waitForState(
+        bloc,
+        (state) => state.candidatesOfRole(roleId).length == 1,
+      );
+
+      return (roleId, personId, withCandidate.candidatesOfRole(roleId).single.id);
+    }
+
+    test("adding a candidate reloads the snapshot with the new candidacy", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final (roleId, personId, _) = await addCandidate(bloc);
+
+      expect(bloc.state.candidatesOfRole(roleId).single.person.id, personId);
+      expect(bloc.state.candidatesOfRole(roleId).single.status, OcptRoleCandidateStatus.seen);
+
+      await bloc.close();
+    });
+
+    test("a status change goes through the service, keeping roles.personId in step", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final (roleId, personId, candidateId) = await addCandidate(bloc);
+
+      bloc.add(
+        OcptResourcesRoleCandidateStatusChangedEvent(
+          candidateId: candidateId,
+          status: OcptRoleCandidateStatus.retained,
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.candidatesOfRole(roleId).single.status == OcptRoleCandidateStatus.retained,
+      );
+
+      // The retained rule lives in OcptRoleCandidatesService alone: this event only asked for the
+      // status change, and the role's own casting followed it.
+      expect(state.roles.firstWhere((role) => role.id == roleId).personId, personId);
+
+      await bloc.close();
+    });
+
+    test(
+      "a debounced note edit lands in pendingCandidateFieldEdits and is written once flushed",
+      () async {
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+
+        final (roleId, _, candidateId) = await addCandidate(bloc);
+
+        bloc.add(
+          OcptResourcesRoleCandidateFieldChangedEvent(
+            candidateId: candidateId,
+            field: OcptRoleCandidateField.notes,
+            rawValue: "Great look for the part",
+          ),
+        );
+        final pending = await waitForState(
+          bloc,
+          (state) =>
+              state.pendingCandidateFieldEdits[(candidateId, OcptRoleCandidateField.notes)] ==
+              "Great look for the part",
+        );
+        // Not written yet: still the field's default empty value.
+        expect(pending.candidatesOfRole(roleId).single.notes, isEmpty);
+
+        final flushed = await waitForState(
+          bloc,
+          (state) => state.candidatesOfRole(roleId).single.notes == "Great look for the part",
+        );
+        expect(flushed.pendingCandidateFieldEdits, isEmpty);
+
+        await bloc.close();
+      },
+    );
+
+    test("removing a candidate drops its pending edit and its row", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final (roleId, _, candidateId) = await addCandidate(bloc);
+
+      bloc.add(
+        OcptResourcesRoleCandidateFieldChangedEvent(
+          candidateId: candidateId,
+          field: OcptRoleCandidateField.notes,
+          rawValue: "typing…",
+        ),
+      );
+      await waitForState(bloc, (state) => state.pendingCandidateFieldEdits.isNotEmpty);
+
+      bloc.add(OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.candidatesOfRole(roleId).isEmpty,
+      );
+
+      expect(state.pendingCandidateFieldEdits, isEmpty);
+
+      await bloc.close();
+    });
+
+    test("a candidate's audition date is written immediately", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final (roleId, _, candidateId) = await addCandidate(bloc);
+      final auditionedOn = DateTime(2026, 3, 12);
+
+      bloc.add(
+        OcptResourcesRoleCandidateAuditionDateChangedEvent(
+          candidateId: candidateId,
+          auditionedOn: auditionedOn,
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.candidatesOfRole(roleId).single.auditionedOn == auditionedOn,
+      );
+
+      expect(state.candidatesOfRole(roleId).single.auditionedOn, auditionedOn);
+
+      await bloc.close();
+    });
   });
 
   test("opening a person's sheet from the roles tab selects them on the people tab at once",

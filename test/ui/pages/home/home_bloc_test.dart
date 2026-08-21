@@ -398,7 +398,9 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Creates a project at [filePath] and hands it back as the previous build would have left
-    /// it: the version 19 step's two additions taken back out, and the format number with them.
+    /// it: the two columns version 23 **drops** put back — `shooting_days.kind` and
+    /// `shooting_day_blocks.role_candidate_id`, which only a build that never merged ever wrote —
+    /// and the format number with them.
     ///
     /// The additions really are undone rather than the number merely relabelled, so the migration
     /// the user is about to confirm is one that actually runs.
@@ -408,8 +410,8 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        ..execute("DROP TABLE project_dictionary_words")
-        ..execute("ALTER TABLE project_info DROP COLUMN screenplay_language")
+        ..execute("ALTER TABLE shooting_days ADD COLUMN kind TEXT NOT NULL DEFAULT 'shoot'")
+        ..execute("ALTER TABLE shooting_day_blocks ADD COLUMN role_candidate_id TEXT NULL")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }
