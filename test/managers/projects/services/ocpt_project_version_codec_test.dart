@@ -200,6 +200,8 @@ void main() {
         colorIndex: 2,
         minorNotes: "",
         maxDailyPresenceMinutes: 480,
+        commuteKmMilli: 1484000,
+        mileageRateId: "rate-1",
         isTransportAutonomous: true,
         accommodationNotes: "Chez Camille",
         travelNotes: "Carte jeune SNCF",
@@ -865,6 +867,7 @@ void main() {
         isTaxInclusive: true,
         vatRateBasisPoints: 550,
         voucherNumber: "J-001",
+        resourceId: "resource-1",
         revenueId: "revenue-1",
         shareId: "share-1",
       ),
@@ -4678,7 +4681,19 @@ void main() {
         // when it was captured comes back, `roles.personId` included, which is the honest answer
         // for a moment nothing recorded who else had been seen.
         expect(result.value!.roles, buildRichPayload().roles);
-        expect(result.value!.people, buildRichPayload().people);
+        // Compared column by column rather than row by row: a payload this old also predates the
+        // financing plan, so `people.commuteKmMilli` and `.mileageRateId` truthfully come back
+        // null on the way up — which is [_upgradeFormat22To23] doing its job, not this step
+        // disturbing anything.
+        expect(
+          result.value!.people.map((row) => row.firstName),
+          buildRichPayload().people.map((row) => row.firstName),
+        );
+        expect(
+          result.value!.people.map((row) => row.notes),
+          buildRichPayload().people.map((row) => row.notes),
+        );
+        expect(result.value!.people.map((row) => row.commuteKmMilli), everyElement(isNull));
       },
     );
 
@@ -4843,6 +4858,53 @@ void main() {
           result.value!.assets.map((row) => row.path),
           buildRichPayload().assets.map((row) => row.path),
         );
+      },
+    );
+
+    test(
+      'a stored format-22 payload decodes with no financing plan at all',
+      () {
+        // Format 22 predates `budget_resources`/`budget_mileage_rates` entirely, so
+        // [_upgradeFormat22To23] materialises both as **empty lists** — [_upgradeFormat1To2]'s
+        // kind: a version captured this early truthfully named no subsidy, no contribution and no
+        // rate at all. Three columns also arrive **null**, [_upgradeFormat3To4]'s kind rather than
+        // the empty-list one, the rows carrying them not being new here: `budget_entries
+        // .resourceId`, and `people.commuteKmMilli`/`.mileageRateId`. This step is the busiest of
+        // the budget's four — two tables and three columns at once — which is exactly why it is
+        // worth pinning on its own rather than leaving to the whole-chain test alone.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("budgetResources");
+        encoded.remove("budgetMileageRates");
+        encoded["budgetEntries"] = [
+          for (final row in encoded["budgetEntries"] as List)
+            ({...row as Map<String, dynamic>}..remove("resourceId")),
+        ];
+        encoded["people"] = [
+          for (final row in encoded["people"] as List)
+            ({...row as Map<String, dynamic>}
+              ..remove("commuteKmMilli")
+              ..remove("mileageRateId")),
+        ];
+        encoded["payloadFormat"] = 22;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.budgetResources, isEmpty);
+        expect(result.value!.budgetMileageRates, isEmpty);
+        expect(result.value!.budgetEntries.map((row) => row.resourceId), everyElement(isNull));
+        expect(result.value!.people.map((row) => row.commuteKmMilli), everyElement(isNull));
+        expect(result.value!.people.map((row) => row.mileageRateId), everyElement(isNull));
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(
+          result.value!.budgetEntries.map((row) => row.label),
+          buildRichPayload().budgetEntries.map((row) => row.label),
+        );
+        expect(
+          result.value!.people.map((row) => row.firstName),
+          buildRichPayload().people.map((row) => row.firstName),
+        );
+        expect(result.value!.budgetCommitments, buildRichPayload().budgetCommitments);
       },
     );
 
