@@ -6,12 +6,12 @@
 /// chips.
 ///
 /// **Only the views shipped so far.** The mockup validates seven (`docs/plans/budget-mode.md` §1):
-/// financing, catering and travel, and revenue sharing still read tables no milestone so far holds
-/// (`budget_resources`, `budget_revenues`, `budget_shares`), so a value for any of them would draw
-/// a chip that opens onto nothing. Each joins this enum, **always at the end** so a stored
-/// preference never points at a view that has moved, as the milestone that gives it real content
-/// lands — this is exactly what M2 did for [cashJournal] and now does again for [committed], and
-/// the reading a later milestone adding one of the remaining views must repeat.
+/// catering and travel, and revenue sharing still read tables no milestone so far holds
+/// (`budget_revenues`, `budget_shares`), so a value for either of them would draw a chip that opens
+/// onto nothing. Each joins this enum, **always at the end** so a stored preference never points at
+/// a view that has moved, as the milestone that gives it real content lands — this is exactly what
+/// M2 did for [cashJournal] and [committed], and now does again for [financing], and the reading a
+/// later milestone adding one of the two remaining views must repeat.
 enum OcptBudgetCentreView {
   /// The read-only overview: the quote's own totals and, poste by poste, its share of them — this
   /// milestone's honest reading of what a project holds, becoming the mockup's full dashboard as
@@ -33,4 +33,10 @@ enum OcptBudgetCentreView {
   /// status and its own outstanding total, next to the cash projection those very commitments
   /// build — `lib/utils/ocpt_budget_projection.dart`, opened at the cash journal's own balance.
   committed,
+
+  /// The financing plan: every live `budget_resources` row, grouped by
+  /// `OcptBudgetResourceGroupKind`, with its own status and what has actually come in against it —
+  /// read off the very same journal `cashJournal` and `committed` already read, through
+  /// `budget_entries.resourceId`, rather than a stored figure of its own.
+  financing,
 }

@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
@@ -63,6 +64,12 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// The id of the currently selected poste, or null while none is.
   final String? selectedPosteId;
+
+  /// The id of the currently selected financing resource, or null while none is — the financing
+  /// view's own selection, read and written exactly as [selectedPosteId] is, but drawn as a plain
+  /// highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc comment
+  /// for why this view carries no inspector of its own.
+  final String? selectedResourceId;
 
   /// The id of the quote line whose card is currently expanded in the poste inspector, or null
   /// while none is — at most one line is ever expanded at a time.
@@ -137,6 +144,19 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// Every live commitment of [snapshot], in due-date order (empty while nothing is loaded).
   List<OcptBudgetCommitment> get commitments => snapshot?.commitments ?? const [];
 
+  /// Every live financing resource of [snapshot], in `sortKey` order (empty while nothing is
+  /// loaded).
+  List<OcptBudgetResource> get resources => snapshot?.resources ?? const [];
+
+  /// The number of live financing resources — mirrors [posteCount].
+  int get resourceCount => snapshot?.resourceCount ?? 0;
+
+  /// What has actually come in against each financing resource of [snapshot], keyed by its own id
+  /// — empty while nothing is loaded. `OcptBudgetFinancing` reads this map itself, raw, for the one
+  /// reading `receivedCentsOf` cannot answer — see [OcptBudgetSnapshot.receivedCentsOf]'s own doc
+  /// comment.
+  Map<String, OcptBudgetCoveredTotal> get receivedByResourceId => snapshot?.receivedByResourceId ?? const {};
+
   /// The cash journal's own debit, credit and balance — a zero-everything total while nothing is
   /// loaded, mirroring [postes]' own empty default.
   OcptBudgetCashTotals get cashTotals =>
@@ -151,6 +171,12 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
   int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
+
+  /// `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for
+  /// why this `?? 0` is the ordinary reading, and why the financing view reads [receivedByResourceId]
+  /// itself for the one row kind that needs the other one.
+  int receivedCentsOf(String resourceId) => snapshot?.receivedCentsOf(resourceId) ?? 0;
 
   /// What has actually been paid against each poste of [snapshot], empty while nothing is loaded —
   /// the dashboard's own `Paid` KPI reads this rather than recomputing it.
@@ -188,6 +214,23 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     return null;
   }
 
+  /// The selected financing resource, or null while none is selected (or the selected one
+  /// disappeared from a freshly loaded [snapshot]) — mirrors [selectedPoste].
+  OcptBudgetResource? get selectedResource {
+    final selectedResourceId = this.selectedResourceId;
+    if (selectedResourceId == null) {
+      return null;
+    }
+
+    for (final resource in resources) {
+      if (resource.id == selectedResourceId) {
+        return resource;
+      }
+    }
+
+    return null;
+  }
+
   /// [targetId]'s current value for [field] — a pending edit still sitting in [pendingFieldEdits],
   /// or [storedValue] (the record's own value, read off the call site) otherwise, exactly as
   /// `OcptScheduleState.fieldValueOf` resolves a day's, a slot's or a block's own fields.
@@ -204,6 +247,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.isSimplified,
     required this.taxBasis,
     required this.selectedPosteId,
+    required this.selectedResourceId,
     required this.expandedLineId,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -230,6 +274,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selectedPosteId = null,
+      selectedResourceId = null,
       expandedLineId = null,
       rightDockTab = null,
       lastRightDockTab = OcptBudgetRightDockTab.inspector,
@@ -248,9 +293,10 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
-  /// [selectedPosteId], [expandedLineId] and [rightDockTab] all legitimately go back to null while
-  /// the mode is alive, so each has its own clear flag. [pendingFieldEdits] is always replaced
-  /// wholesale — the caller (the bloc's own field-edit handler) always computes the full next map.
+  /// [selectedPosteId], [selectedResourceId], [expandedLineId] and [rightDockTab] all legitimately
+  /// go back to null while the mode is alive, so each has its own clear flag. [pendingFieldEdits]
+  /// is always replaced wholesale — the caller (the bloc's own field-edit handler) always computes
+  /// the full next map.
   @override
   OcptBudgetState copyWith({
     bool? isLoading,
@@ -262,6 +308,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     OcptBudgetTaxBasis? taxBasis,
     String? selectedPosteId,
     bool clearSelectedPosteId = false,
+    String? selectedResourceId,
+    bool clearSelectedResourceId = false,
     String? expandedLineId,
     bool clearExpandedLineId = false,
     OcptBudgetRightDockTab? rightDockTab,
@@ -295,6 +343,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     isSimplified: isSimplified ?? this.isSimplified,
     taxBasis: taxBasis ?? this.taxBasis,
     selectedPosteId: clearSelectedPosteId ? null : (selectedPosteId ?? this.selectedPosteId),
+    selectedResourceId: clearSelectedResourceId ? null : (selectedResourceId ?? this.selectedResourceId),
     expandedLineId: clearExpandedLineId ? null : (expandedLineId ?? this.expandedLineId),
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -381,6 +430,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     isSimplified,
     taxBasis,
     selectedPosteId,
+    selectedResourceId,
     expandedLineId,
     rightDockTab,
     lastRightDockTab,

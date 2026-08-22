@@ -9,6 +9,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 
 /// The placeholder shown in place of a budget figure that cannot be read at all — this mode's own
 /// instance of `ocptResourcesEmptyValue`: an empty cell reads as a rendering bug, an em dash reads
@@ -126,6 +128,38 @@ Color ocptBudgetCommitmentStatusAccentColor(
   OcptBudgetCommitmentStatus.invoiceReceived => colorScheme.tertiary,
   OcptBudgetCommitmentStatus.declared => colorScheme.primary,
 };
+
+/// [kind]'s own localized word — the financing view's own group card headers, and the resource
+/// dialog's own group-kind picker, always reading the same three words.
+String ocptBudgetResourceGroupKindLabel(Tr tr, OcptBudgetResourceGroupKind kind) => switch (kind) {
+  OcptBudgetResourceGroupKind.subsidy => tr.budgetFinancingGroupSubsidyLabel,
+  OcptBudgetResourceGroupKind.cash => tr.budgetFinancingGroupCashLabel,
+  OcptBudgetResourceGroupKind.inKind => tr.budgetFinancingGroupInKindLabel,
+};
+
+/// [status]'s own localized word — shared between the financing view's own status pill and the
+/// resource dialog's own status picker, lifted here for the very reason
+/// [ocptBudgetCommitmentStatusLabel] already is: both always agree on the wording rather than each
+/// resolving it independently.
+String ocptBudgetResourceStatusLabel(Tr tr, OcptBudgetResourceStatus status) => switch (status) {
+  OcptBudgetResourceStatus.applied => tr.budgetFinancingStatusAppliedLabel,
+  OcptBudgetResourceStatus.notified => tr.budgetFinancingStatusNotifiedLabel,
+  OcptBudgetResourceStatus.secured => tr.budgetFinancingStatusSecuredLabel,
+  OcptBudgetResourceStatus.valued => tr.budgetFinancingStatusValuedLabel,
+};
+
+/// [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex — mirroring
+/// [ocptBudgetCommitmentStatusAccentColor]'s own reading: [OcptBudgetResourceStatus.index] already
+/// orders its four values from the lightest step (merely applied for) to the one nearest to
+/// actually financing the production (given a figure), so this mirrors that declared order rather
+/// than re-deriving which of two statuses reads heavier.
+Color ocptBudgetResourceStatusAccentColor(ColorScheme colorScheme, OcptBudgetResourceStatus status) =>
+    switch (status) {
+      OcptBudgetResourceStatus.applied => colorScheme.onSurfaceVariant,
+      OcptBudgetResourceStatus.notified => colorScheme.secondary,
+      OcptBudgetResourceStatus.secured => colorScheme.tertiary,
+      OcptBudgetResourceStatus.valued => colorScheme.primary,
+    };
 
 /// [cents] formatted as a **displayed** amount in [currencyCode]: grouped, carrying the currency
 /// symbol — `NumberFormat.simpleCurrency`, the precedent `OcptElementSheetSourcingCard` sets for

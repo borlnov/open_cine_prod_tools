@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -435,4 +436,68 @@ class OcptBudgetCommitmentUnsettleRequestedEvent extends OcptBudgetEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, commitmentId];
+}
+
+/// Selects financing resource [resourceId] — a row of the financing view — dispatched by its row's
+/// own click. Draws as a plain highlight, never an inspector: see `OcptBudgetFinancing`'s own class
+/// doc comment. A [resourceId] naming no live resource is ignored, mirroring
+/// `OcptBudgetPosteSelectedEvent`.
+class OcptBudgetResourceSelectedEvent extends OcptBudgetEvent {
+  /// The id of the resource to select.
+  final String resourceId;
+
+  /// Class constructor
+  const OcptBudgetResourceSelectedEvent({required this.resourceId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, resourceId];
+}
+
+/// Creates a new financing resource from [fields], dispatched by the mode once
+/// `OcptBudgetResourceDialog` returned a result for a fresh resource — mirrors
+/// `OcptBudgetCommitmentCreationConfirmedEvent`'s own "written the moment it is dispatched"
+/// reading.
+class OcptBudgetResourceCreationConfirmedEvent extends OcptBudgetEvent {
+  /// Every field the dialog collected.
+  final OcptBudgetResourceFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetResourceCreationConfirmedEvent({required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fields];
+}
+
+/// Writes [fields] onto resource [resourceId], dispatched by the mode once
+/// `OcptBudgetResourceDialog` returned a result for an existing resource it was opened to edit.
+class OcptBudgetResourceUpdateConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the resource being edited.
+  final String resourceId;
+
+  /// Every field the dialog collected.
+  final OcptBudgetResourceFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetResourceUpdateConfirmedEvent({required this.resourceId, required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, resourceId, fields];
+}
+
+/// Deletes financing resource [resourceId] for good, dispatched by the mode once its own
+/// `OcptConfirmDialog` has already been answered — mirrors
+/// `OcptBudgetCommitmentDeletionConfirmedEvent`.
+class OcptBudgetResourceDeletionConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the resource to delete.
+  final String resourceId;
+
+  /// Class constructor
+  const OcptBudgetResourceDeletionConfirmedEvent({required this.resourceId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, resourceId];
 }

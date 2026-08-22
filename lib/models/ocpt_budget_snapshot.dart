@@ -7,20 +7,23 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The whole budget mode's read, in one object: the [postes] with their lines, the cash journal's
-/// own [entries] and [commitments], the project's own [defaultVatRateBasisPoints] and
-/// [currencyCode], and the counts the status bar and the mode's own reads need.
+/// own [entries] and [commitments], the financing plan's own [resources], the project's own
+/// [defaultVatRateBasisPoints] and [currencyCode], and the counts the status bar and the mode's own
+/// reads need.
 ///
 /// Built the same way `OcptResourcesSnapshot.build` is: a pure function of already-loaded lists,
 /// with no database access of its own. `OcptBudgetQuoteService.loadPostes` is what loads [postes],
 /// `OcptBudgetJournalService.loadEntries`/`loadCommitments` are what load [entries] and
-/// [commitments]; combining those reads with the project's own settings into this one object is
-/// the mode's job.
+/// [commitments], `OcptBudgetFinancingService.loadResources` is what loads [resources]; combining
+/// those reads with the project's own settings into this one object is the mode's job.
 class OcptBudgetSnapshot extends Equatable {
   /// Every poste of the project, in display order, each with its own quote lines.
   final List<OcptBudgetPoste> postes;
@@ -32,6 +35,12 @@ class OcptBudgetSnapshot extends Equatable {
   /// Every live commitment, in the due-date order `OcptBudgetJournalService.loadCommitments` gives
   /// them — never reordered here.
   final List<OcptBudgetCommitment> commitments;
+
+  /// Every live financing resource, in the `sortKey` order `OcptBudgetFinancingService
+  /// .loadResources` gives them — never reordered here. Defaults to empty for every caller
+  /// unconcerned with the financing plan, exactly as [receiptsByEntryId] already does for a caller
+  /// unconcerned with vouchers.
+  final List<OcptBudgetResource> resources;
 
   /// The project's default VAT rate, in basis points, or null meaning "nobody has recorded a
   /// rate" — `OcptProjectInfoTable.defaultVatRateBasisPoints`.
@@ -52,6 +61,9 @@ class OcptBudgetSnapshot extends Equatable {
   /// `commitments.length`.
   final int commitmentCount;
 
+  /// `resources.length`.
+  final int resourceCount;
+
   /// What has actually been paid against each poste, keyed by `OcptBudgetPoste.id` — a poste with
   /// no key here has had nothing move against it at all, which is different from a key present
   /// whose own amount is zero (`ocptBudgetPaidCentsByPosteId`'s own doc comment). [paidCentsOf] is
@@ -65,6 +77,15 @@ class OcptBudgetSnapshot extends Equatable {
 
   /// The cash journal's own debit, credit and balance, over [entries].
   final OcptBudgetCashTotals cashTotals;
+
+  /// What has actually come in against each financing resource, keyed by `OcptBudgetResource.id` —
+  /// a resource with no key here has had no entry name it at all, which is different from a key
+  /// present whose own amount is zero (`ocptBudgetReceivedByResourceId`'s own doc comment, the same
+  /// discipline [paidByPosteId] already keeps). [receivedCentsOf] is what the mode reads instead of
+  /// this map directly for the ordinary reading; the financing view reads this map itself too, for
+  /// the one reading that needs to tell the two facts apart — see [receivedCentsOf]'s own doc
+  /// comment.
+  final Map<String, OcptBudgetCoveredTotal> receivedByResourceId;
 
   /// The dashboard's own two alerts — a poste over its quote, the cash projection going negative —
   /// computed once, here, by [ocptComputeBudgetAlerts] over this snapshot's own already-loaded
@@ -81,34 +102,40 @@ class OcptBudgetSnapshot extends Equatable {
     required this.postes,
     required this.entries,
     required this.commitments,
+    required this.resources,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
     required this.posteCount,
     required this.lineCount,
     required this.entryCount,
     required this.commitmentCount,
+    required this.resourceCount,
     required this.paidByPosteId,
     required this.committedByPosteId,
     required this.cashTotals,
+    required this.receivedByResourceId,
     required this.alerts,
     required this.receiptsByEntryId,
   });
 
-  /// Builds an [OcptBudgetSnapshot] from [postes], [entries] and [commitments], the project's
-  /// [defaultVatRateBasisPoints] and [currencyCode], deriving every count and every map from them.
-  /// [receiptsByEntryId] is loaded the same way everything else here is
+  /// Builds an [OcptBudgetSnapshot] from [postes], [entries], [commitments] and [resources], the
+  /// project's [defaultVatRateBasisPoints] and [currencyCode], deriving every count and every map
+  /// from them. [receiptsByEntryId] is loaded the same way everything else here is
   /// (`OcptBudgetJournalService.loadReceipts`) and simply carried through — defaulted to empty for
   /// every caller unconcerned with vouchers, exactly as every one of this snapshot's own callers
-  /// before this milestone still may be.
+  /// before this milestone still may be; [resources] is defaulted the same way, for every caller
+  /// unconcerned with the financing plan.
   ///
-  /// [paidByPosteId], [committedByPosteId], [cashTotals] and [alerts] are derived here exactly as
-  /// [posteCount]/[lineCount] are: a pure function of the lists already loaded, reading them under
-  /// [defaultVatRateBasisPoints] — the project's own rate, which moves the whole reading with it
-  /// exactly as every silent line already does — with no database access of its own.
+  /// [paidByPosteId], [committedByPosteId], [cashTotals], [receivedByResourceId] and [alerts] are
+  /// derived here exactly as [posteCount]/[lineCount] are: a pure function of the lists already
+  /// loaded, reading them under [defaultVatRateBasisPoints] — the project's own rate, which moves
+  /// the whole reading with it exactly as every silent line already does — with no database access
+  /// of its own.
   factory OcptBudgetSnapshot.build({
     required List<OcptBudgetPoste> postes,
     required List<OcptBudgetEntry> entries,
     required List<OcptBudgetCommitment> commitments,
+    List<OcptBudgetResource> resources = const [],
     required int? defaultVatRateBasisPoints,
     required String currencyCode,
     Map<String, OcptAssetRef> receiptsByEntryId = const {},
@@ -125,20 +152,27 @@ class OcptBudgetSnapshot extends Equatable {
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
+    final receivedByResourceId = ocptBudgetReceivedByResourceId(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
 
     return OcptBudgetSnapshot(
       postes: postes,
       entries: entries,
       commitments: commitments,
+      resources: resources,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode,
       posteCount: postes.length,
       lineCount: postes.fold(0, (sum, poste) => sum + poste.lines.length),
       entryCount: entries.length,
       commitmentCount: commitments.length,
+      resourceCount: resources.length,
       paidByPosteId: paidByPosteId,
       committedByPosteId: committedByPosteId,
       cashTotals: cashTotals,
+      receivedByResourceId: receivedByResourceId,
       alerts: ocptComputeBudgetAlerts(
         postes: postes,
         paidCentsOf: (posteId) => paidByPosteId[posteId]?.amountCents ?? 0,
@@ -165,11 +199,23 @@ class OcptBudgetSnapshot extends Equatable {
   /// `?? 0` is the honest reading now that the journal exists.
   int committedCentsOf(String posteId) => committedByPosteId[posteId]?.amountCents ?? 0;
 
+  /// [resourceId]'s own received total, in cents, tax-inclusive — [receivedByResourceId]'s own
+  /// entry for [resourceId], or **0** while it carries none.
+  ///
+  /// **This `?? 0` is the ordinary reading, not the one an in-kind resource's own row needs.** A
+  /// subsidy or a cash contribution with no entry naming it genuinely has had nothing come in yet —
+  /// zero is the true answer, the same honesty [paidCentsOf]'s own doc comment argues for a poste
+  /// with no entry against it. An in-kind contribution is different: it is valued, not collected,
+  /// so "how much has come in" is not a question with an answer until an entry actually names it —
+  /// which is exactly why the financing view reads [receivedByResourceId] itself, raw, for that one
+  /// row kind, rather than through this method (`OcptBudgetFinancing`'s own class doc comment).
+  int receivedCentsOf(String resourceId) => receivedByResourceId[resourceId]?.amountCents ?? 0;
+
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetSnapshot(posteCount: $posteCount, lineCount: $lineCount, "
-      "entryCount: $entryCount, commitmentCount: $commitmentCount, "
+      "entryCount: $entryCount, commitmentCount: $commitmentCount, resourceCount: $resourceCount, "
       "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, currencyCode: $currencyCode)";
 
   /// Object properties
@@ -178,15 +224,18 @@ class OcptBudgetSnapshot extends Equatable {
     postes,
     entries,
     commitments,
+    resources,
     defaultVatRateBasisPoints,
     currencyCode,
     posteCount,
     lineCount,
     entryCount,
     commitmentCount,
+    resourceCount,
     paidByPosteId,
     committedByPosteId,
     cashTotals,
+    receivedByResourceId,
     alerts,
     receiptsByEntryId,
   ];

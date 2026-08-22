@@ -157,9 +157,10 @@ void main() {
     expect(find.text(tr.budgetHeaderCommittedSimpleSegmentLabel), findsWidgets);
     expect(find.text(tr.budgetHeaderCommittedSegmentLabel), findsNothing);
 
-    // The other two chips carry one wording only: they already say the plain thing they are.
+    // The other three chips carry one wording only: they already say the plain thing they are.
     expect(find.text(tr.budgetHeaderDashboardSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderCostTrackingSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderFinancingSegmentLabel), findsOneWidget);
 
     tr = await pumpOn(OcptBudgetCentreView.cashJournal, isSimplified: false);
     expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsWidgets);
@@ -207,6 +208,34 @@ void main() {
     expect(find.text(tr.budgetHeaderCommittedTitle), findsWidgets);
     expect(find.text(tr.budgetHeaderCommittedSubtitle), findsOneWidget);
     expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
+
+    tr = await pumpOn(OcptBudgetCentreView.financing);
+    expect(find.text(tr.budgetHeaderFinancingTitle), findsWidgets);
+    expect(find.text(tr.budgetHeaderFinancingSubtitle), findsOneWidget);
+    expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
+  });
+
+  testWidgets("offers the Financing chip whatever the project holds", (tester) async {
+    useWideWindow(tester);
+    OcptBudgetCentreView? reported;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (view) => reported = view,
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    await tester.tap(find.text(tr.budgetHeaderFinancingSegmentLabel));
+
+    expect(reported, OcptBudgetCentreView.financing);
   });
 
   // The narrow-window case (title/subtitle shed, the three controls kept) is

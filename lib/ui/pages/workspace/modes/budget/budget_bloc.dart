@@ -13,11 +13,13 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
@@ -37,7 +39,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// It loads the current project's title and the mode's own whole read on entry: the quote itself
 /// ([_budgetQuoteService], seeding [_seed]'s ten CNC postes on the first read of an empty table),
 /// the cash journal ([_budgetJournalService]: every live entry and commitment, and every live
-/// voucher keyed by the entry it evidences), and the project's currency and default VAT rate. It
+/// voucher keyed by the entry it evidences), the financing plan ([_budgetFinancingService]: every
+/// live resource), and the project's currency and default VAT rate. It
 /// mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
 /// [flushPendingProjectWrites] and [reloadFromProjectDatabase].
 ///
@@ -97,6 +100,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// itself, exactly as every other write in this mode.
   final OcptBudgetJournalService _budgetJournalService;
 
+  /// The service used to read and write the financing plan: the `budget_resources` catalogue.
+  final OcptBudgetFinancingService _budgetFinancingService;
+
   /// The ten CNC postes, already localized — see the class doc comment for why this is a
   /// constructor argument captured once rather than watched.
   final List<OcptBudgetPosteSeed> _seed;
@@ -120,6 +126,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptExportManager? exportManager,
     OcptBudgetQuoteService? budgetQuoteService,
     OcptBudgetJournalService? budgetJournalService,
+    OcptBudgetFinancingService? budgetFinancingService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _seed = seed,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
@@ -132,6 +139,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
        _budgetJournalService =
            budgetJournalService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetJournalService,
+       _budgetFinancingService =
+           budgetFinancingService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetFinancingService,
        _fieldEditDebounce = fieldEditDebounce,
        super(const OcptBudgetState.init()) {
     add(const OcptBudgetLoadRequestedEvent());
@@ -171,6 +181,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetCommitmentDeletionConfirmedEvent>(_onCommitmentDeletionConfirmed);
     on<OcptBudgetCommitmentSettlementConfirmedEvent>(_onCommitmentSettlementConfirmed);
     on<OcptBudgetCommitmentUnsettleRequestedEvent>(_onCommitmentUnsettleRequested);
+    on<OcptBudgetResourceSelectedEvent>(_onResourceSelected);
+    on<OcptBudgetResourceCreationConfirmedEvent>(_onResourceCreationConfirmed);
+    on<OcptBudgetResourceUpdateConfirmedEvent>(_onResourceUpdateConfirmed);
+    on<OcptBudgetResourceDeletionConfirmedEvent>(_onResourceDeletionConfirmed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -191,7 +205,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(clearSelectedPosteId: true, clearExpandedLineId: true));
+    emitter(
+      state.copyWith(
+        clearSelectedPosteId: true,
+        clearSelectedResourceId: true,
+        clearExpandedLineId: true,
+      ),
+    );
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -227,6 +247,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           lastRightDockTab: lastRightDockTab,
           clearPreviewedVersionId: true,
           clearSelectedPosteId: true,
+          clearSelectedResourceId: true,
           clearExpandedLineId: true,
           pendingFieldEdits: const {},
         ),
@@ -246,6 +267,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         snapshot: snapshot,
         currencyCode: snapshot.currencyCode,
         clearSelectedPosteId: true,
+        clearSelectedResourceId: true,
         clearExpandedLineId: true,
         pendingFieldEdits: const {},
         rightDockFraction: rightDockFraction,
@@ -255,12 +277,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
-  /// commitments, the currency and the default VAT rate, joined into one [OcptBudgetSnapshot].
+  /// commitments, the financing plan's own resources, the currency and the default VAT rate,
+  /// joined into one [OcptBudgetSnapshot].
   Future<OcptBudgetSnapshot> _loadBudgetSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
     final postes = await _budgetQuoteService.loadPostes(database: database, seed: _seed);
     final entries = await _budgetJournalService.loadEntries(database: database);
     final commitments = await _budgetJournalService.loadCommitments(database: database);
+    final resources = await _budgetFinancingService.loadResources(database: database);
     final receipts = await _budgetJournalService.loadReceipts(database: database);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final defaultVatRateBasisPoints = await _projectsManager
@@ -270,6 +294,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       postes: postes,
       entries: entries,
       commitments: commitments,
+      resources: resources,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
       receiptsByEntryId: receipts,
@@ -750,6 +775,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       date: fields.date,
       label: fields.label,
       posteId: fields.posteId,
+      resourceId: fields.resourceId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
@@ -785,6 +811,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       date: Value(fields.date),
       label: Value(fields.label),
       posteId: Value(fields.posteId),
+      resourceId: Value(fields.resourceId),
       debitCents: Value(fields.isDebit ? fields.amountCents : 0),
       creditCents: Value(fields.isDebit ? 0 : fields.amountCents),
       isTaxInclusive: Value(fields.isTaxInclusive),
@@ -941,6 +968,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       date: fields.date,
       label: fields.label,
       posteId: fields.posteId,
+      resourceId: fields.resourceId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
@@ -980,9 +1008,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Re-reads the quote of [project] and applies it, reconciling
-  /// [OcptBudgetState.selectedPosteId]/[OcptBudgetState.expandedLineId] against what the fresh
-  /// snapshot still holds — a selected poste or an expanded line that disappeared is dropped rather
-  /// than trusted to still mean something.
+  /// [OcptBudgetState.selectedPosteId]/[OcptBudgetState.expandedLineId]/
+  /// [OcptBudgetState.selectedResourceId] against what the fresh snapshot still holds — a selected
+  /// poste, an expanded line or a selected resource that disappeared is dropped rather than trusted
+  /// to still mean something.
   ///
   /// Every handler that writes to the quote tables ends here, which is also the mode's own
   /// stand-in for "a save landing while the `Versions` tab is open": [OcptProjectWorkingCopyRefreshRequestedEvent]
@@ -1001,6 +1030,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         posteStillExists &&
         state.expandedLineId != null &&
         snapshot.postes.any((poste) => poste.lines.any((line) => line.id == state.expandedLineId));
+    final resourceStillExists =
+        state.selectedResourceId == null ||
+        snapshot.resources.any((resource) => resource.id == state.selectedResourceId);
 
     emitter(
       state.copyWith(
@@ -1008,11 +1040,108 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         currencyCode: snapshot.currencyCode,
         clearSelectedPosteId: !posteStillExists,
         clearExpandedLineId: !lineStillExists,
+        clearSelectedResourceId: !resourceStillExists,
       ),
     );
 
     if (state.rightDockTab == OcptBudgetRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
+  }
+
+  /// Selects financing resource `event.resourceId`, drawn as a plain highlight by the financing
+  /// view rather than opening a dock tab — see `OcptBudgetFinancing`'s own class doc comment for
+  /// why this mode grows no second inspector concept for it. A resource id naming no live resource
+  /// is ignored, mirroring [_onPosteSelected].
+  Future<void> _onResourceSelected(
+    OcptBudgetResourceSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    if (!state.resources.any((resource) => resource.id == event.resourceId)) {
+      return;
+    }
+
+    emitter(state.copyWith(selectedResourceId: event.resourceId));
+  }
+
+  /// Creates a new financing resource from `event.fields` and selects it.
+  ///
+  /// [OcptBudgetFinancingService.createResource] mints the row from a label alone (mirroring
+  /// `OcptBudgetQuoteService.createPoste`'s own shape, unlike `createCommitment`'s single insert):
+  /// every other field `event.fields` collected is written straight after, in the very same
+  /// [OcptBudgetFinancingService.updateResource] call [_onResourceUpdateConfirmed] itself uses, so
+  /// there is exactly one place that turns a whole [OcptBudgetResourceFormFields] into a write.
+  Future<void> _onResourceCreationConfirmed(
+    OcptBudgetResourceCreationConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    final resourceId = await _budgetFinancingService.createResource(
+      database: project.database,
+      label: fields.label,
+    );
+    if (resourceId != null) {
+      await _writeResourceFields(project, resourceId, fields);
+    }
+
+    await _applyBudgetSnapshot(emitter, project);
+    if (resourceId != null) {
+      emitter(state.copyWith(selectedResourceId: resourceId));
+    }
+  }
+
+  /// Writes `event.fields` onto resource `event.resourceId`.
+  Future<void> _onResourceUpdateConfirmed(
+    OcptBudgetResourceUpdateConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _writeResourceFields(project, event.resourceId, event.fields);
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes every field of `fields` onto resource `resourceId` — shared by
+  /// [_onResourceCreationConfirmed] (right after minting the row) and
+  /// [_onResourceUpdateConfirmed].
+  Future<void> _writeResourceFields(
+    OcptOpenProjectModel project,
+    String resourceId,
+    OcptBudgetResourceFormFields fields,
+  ) => _budgetFinancingService.updateResource(
+    database: project.database,
+    resourceId: resourceId,
+    groupKind: Value(fields.groupKind),
+    label: Value(fields.label),
+    amountCents: Value(fields.amountCents),
+    status: Value(fields.status),
+    isReimbursable: Value(fields.isReimbursable),
+    notes: Value(fields.notes),
+  );
+
+  /// Deletes financing resource `event.resourceId` for good, confirmed by the mode's own
+  /// `OcptConfirmDialog`.
+  Future<void> _onResourceDeletionConfirmed(
+    OcptBudgetResourceDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetFinancingService.deleteResource(
+      database: project.database,
+      resourceId: event.resourceId,
+    );
+    await _applyBudgetSnapshot(emitter, project);
   }
 }

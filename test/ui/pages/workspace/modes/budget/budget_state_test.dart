@@ -7,10 +7,13 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
@@ -48,6 +51,22 @@ OcptBudgetEntry _buildEntry({required String id, required String posteId, int de
       sortKey: "a0",
       resourceId: null,
     );
+
+/// Builds a minimal financing resource, everything but [id] neutral.
+OcptBudgetResource _buildResource({
+  required String id,
+  OcptBudgetResourceGroupKind groupKind = OcptBudgetResourceGroupKind.subsidy,
+  int amountCents = 0,
+}) => OcptBudgetResource(
+  id: id,
+  groupKind: groupKind,
+  label: "Resource $id",
+  amountCents: amountCents,
+  status: OcptBudgetResourceStatus.applied,
+  isReimbursable: false,
+  notes: "",
+  sortKey: "a0",
+);
 
 void main() {
   group("OcptBudgetState.init", () {
@@ -295,6 +314,144 @@ void main() {
 
       expect(state.paidByPosteId["poste-1"]?.amountCents, 1000);
       expect(state.committedByPosteId, isEmpty);
+    });
+  });
+
+  group("OcptBudgetState.resources / resourceCount", () {
+    test("read the snapshot's own resources, empty while nothing is loaded", () {
+      const emptyState = OcptBudgetState.init();
+      expect(emptyState.resources, isEmpty);
+      expect(emptyState.resourceCount, 0);
+
+      final resource = _buildResource(id: "resource-1");
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: const [],
+        entries: const [],
+        commitments: const [],
+        resources: [resource],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.resources, [resource]);
+      expect(state.resourceCount, 1);
+    });
+  });
+
+  group("OcptBudgetState.selectedResource", () {
+    test("resolves the resource named by selectedResourceId out of the snapshot", () {
+      final resource = _buildResource(id: "resource-1");
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: OcptBudgetSnapshot.build(
+          postes: const [],
+          entries: const [],
+          commitments: const [],
+          resources: [resource],
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+        ),
+        selectedResourceId: "resource-1",
+      );
+
+      expect(state.selectedResource, resource);
+    });
+
+    test("is null while selectedResourceId names no live resource", () {
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: OcptBudgetSnapshot.build(
+          postes: const [],
+          entries: const [],
+          commitments: const [],
+          resources: [_buildResource(id: "resource-1")],
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+        ),
+        selectedResourceId: "gone",
+      );
+
+      expect(state.selectedResource, isNull);
+    });
+  });
+
+  group("OcptBudgetState.copyWith clears selectedResourceId", () {
+    test("only through its own clear flag", () {
+      final withSelection = const OcptBudgetState.init().copyWith(selectedResourceId: "resource-1");
+      expect(withSelection.selectedResourceId, "resource-1");
+
+      final stillSelected = withSelection.copyWith(centreView: withSelection.centreView);
+      expect(stillSelected.selectedResourceId, "resource-1");
+
+      final cleared = withSelection.copyWith(clearSelectedResourceId: true);
+      expect(cleared.selectedResourceId, isNull);
+    });
+  });
+
+  group("OcptBudgetState.receivedCentsOf / receivedByResourceId", () {
+    test("reads zero for a resource with no entry naming it, rather than a hole", () {
+      final resource = _buildResource(id: "resource-1", amountCents: 5000);
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: const [],
+        entries: const [],
+        commitments: const [],
+        resources: [resource],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.receivedCentsOf("resource-1"), 0);
+      expect(state.receivedByResourceId, isEmpty);
+    });
+
+    test("reads the real amount once an entry credits the resource", () {
+      final resource = _buildResource(id: "resource-1", amountCents: 5000);
+      final entry = OcptBudgetEntry(
+        id: "entry-1",
+        date: DateTime(2026),
+        label: "Grant instalment",
+        posteId: null,
+        debitCents: 0,
+        creditCents: 2000,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+        voucherNumber: "J-001",
+        sortKey: "a0",
+        resourceId: "resource-1",
+      );
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: const [],
+        entries: [entry],
+        commitments: const [],
+        resources: [resource],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.receivedCentsOf("resource-1"), 2000);
+      expect(state.receivedByResourceId["resource-1"]?.amountCents, 2000);
+    });
+
+    test("answers zero while nothing at all is loaded yet", () {
+      const state = OcptBudgetState.init();
+
+      expect(state.receivedCentsOf("resource-1"), 0);
+    });
+  });
+
+  group("OcptBudgetSnapshot.resourceCount", () {
+    test("counts every live resource", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: const [],
+        entries: const [],
+        commitments: const [],
+        resources: [_buildResource(id: "resource-1"), _buildResource(id: "resource-2")],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+
+      expect(snapshot.resourceCount, 2);
     });
   });
 

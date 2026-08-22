@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
@@ -67,6 +68,14 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// — [prefill] carries exactly that, read the moment `initState` runs, same as [existing] would be.
 /// [existing] wins whenever both are given, though the mode never actually hands in both: settling
 /// a commitment always opens a **fresh** entry, never an existing one.
+///
+/// **`Resource` is a second picker beside `Poste`**, offering [resources] alongside its own
+/// explicit "no resource" choice — null, the normal case for the great majority of entries, since
+/// only a movement actually settling a financing resource ever names one. Read and written exactly
+/// like `Poste`: an entry may carry both, either or neither, the two questions ("what does this
+/// price?" and "what does this settle?") being independent of one another. This is what lets the
+/// financing view's own `Record a receipt` gesture open this very dialog pre-filled with a resource
+/// already picked, and lets an ordinary entry be edited to name one after the fact.
 class OcptBudgetEntryDialog extends StatefulWidget {
   /// The entry being edited, or null while creating a new one.
   final OcptBudgetEntry? existing;
@@ -82,6 +91,10 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   /// Every live poste of the project, offered by the `Poste` picker alongside its own explicit "no
   /// poste" choice.
   final List<OcptBudgetPoste> postes;
+
+  /// Every live financing resource of the project, offered by the `Resource` picker alongside its
+  /// own explicit "no resource" choice — see the class doc comment.
+  final List<OcptBudgetResource> resources;
 
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
@@ -101,6 +114,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     this.prefill,
     this.existingReceipt,
     required this.postes,
+    required this.resources,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
     required this.isSimplified,
@@ -113,6 +127,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     OcptBudgetEntryFormFields? prefill,
     OcptAssetRef? existingReceipt,
     required List<OcptBudgetPoste> postes,
+    required List<OcptBudgetResource> resources,
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
     required bool isSimplified,
@@ -123,6 +138,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
       prefill: prefill,
       existingReceipt: existingReceipt,
       postes: postes,
+      resources: resources,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       isSimplified: isSimplified,
@@ -156,6 +172,10 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
 
   /// The poste currently picked, or null for "no poste".
   String? _posteId;
+
+  /// The financing resource currently picked, or null for "no resource" — the normal case, see the
+  /// class doc comment.
+  String? _resourceId;
 
   /// Whether the direction currently picked is a debit (money that left the account).
   late bool _isDebit;
@@ -196,6 +216,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
 
     _date = existing?.date ?? prefill?.date ?? DateTime(now.year, now.month, now.day);
     _posteId = existing?.posteId ?? prefill?.posteId;
+    _resourceId = existing?.resourceId ?? prefill?.resourceId;
     _isDebit = existing != null ? existing.debitCents > 0 : (prefill?.isDebit ?? true);
     _isTaxInclusive = existing?.isTaxInclusive ?? prefill?.isTaxInclusive ?? true;
 
@@ -283,6 +304,17 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
                     ),
                 ],
                 onChanged: (value) => setState(() => _posteId = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: _resourceId,
+                decoration: InputDecoration(labelText: tr.budgetEntryDialogResourceFieldLabel),
+                items: [
+                  DropdownMenuItem(child: Text(tr.budgetEntryDialogNoResourceLabel)),
+                  for (final resource in widget.resources)
+                    DropdownMenuItem(value: resource.id, child: Text(resource.label)),
+                ],
+                onChanged: (value) => setState(() => _resourceId = value),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -470,7 +502,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         date: _date,
         label: _labelController.text.trim(),
         posteId: _posteId,
-        resourceId: null,
+        resourceId: _resourceId,
         isDebit: _isDebit,
         amountCents: amountCents,
         isTaxInclusive: _isTaxInclusive,

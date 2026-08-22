@@ -15,7 +15,10 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
 
 /// A router manager whose [pop] only records the last call and its value — mirrors
@@ -100,6 +103,18 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 OcptBudgetPoste _poste({required String id, required String label}) =>
     OcptBudgetPoste(id: id, code: "1", label: label, simpleLabel: null, sortKey: "a0", lines: const []);
 
+/// A minimal financing resource, everything but [id]/[label] neutral.
+OcptBudgetResource _resource({required String id, required String label}) => OcptBudgetResource(
+  id: id,
+  groupKind: OcptBudgetResourceGroupKind.subsidy,
+  label: label,
+  amountCents: 10000,
+  status: OcptBudgetResourceStatus.applied,
+  isReimbursable: false,
+  notes: "",
+  sortKey: "a0",
+);
+
 /// A minimal existing entry, its debit or credit set by whichever of [debitCents]/[creditCents] is
 /// non-zero.
 OcptBudgetEntry _existingEntry({
@@ -154,6 +169,7 @@ void main() {
     OcptBudgetEntry? existing,
     OcptAssetRef? existingReceipt,
     List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetResource> resources = const [],
     int? defaultVatRateBasisPoints,
     bool isSimplified = false,
   }) async {
@@ -163,6 +179,7 @@ void main() {
           existing: existing,
           existingReceipt: existingReceipt,
           postes: postes,
+          resources: resources,
           currencyCode: "EUR",
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           isSimplified: isSimplified,
@@ -273,7 +290,9 @@ void main() {
 
     expect(find.text(tr.budgetCashJournalNoPosteLabel), findsOneWidget);
 
-    await tester.tap(find.byType(DropdownButtonFormField<String?>));
+    // The Poste picker is the first of the dialog's two DropdownButtonFormField<String?>s, the
+    // Resource picker sitting right underneath it.
+    await tester.tap(find.byType(DropdownButtonFormField<String?>).first);
     await tester.pumpAndSettle();
     await tester.tap(find.text("Camera").last);
     await tester.pumpAndSettle();
@@ -291,6 +310,96 @@ void main() {
 
     final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
     expect(fields.posteId, "poste-1");
+  });
+
+  group("the resource picker", () {
+    testWidgets("offers an explicit no-resource choice alongside every live resource, defaulting to null", (
+      tester,
+    ) async {
+      final resource = _resource(id: "resource-1", label: "Regional grant");
+      final tr = await pumpDialog(tester, resources: [resource]);
+
+      expect(find.text(tr.budgetEntryDialogNoResourceLabel), findsOneWidget);
+
+      // The Resource picker is the second of the dialog's two DropdownButtonFormField<String?>s.
+      await tester.tap(find.byType(DropdownButtonFormField<String?>).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Regional grant").last);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        "Grant instalment",
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
+        "10",
+      );
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
+
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.resourceId, "resource-1");
+    });
+
+    testWidgets("submitting with no pick reports a null resourceId, the normal case", (tester) async {
+      final resource = _resource(id: "resource-1", label: "Regional grant");
+      final tr = await pumpDialog(tester, resources: [resource]);
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        "Camera rental",
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
+        "10",
+      );
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
+
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.resourceId, isNull);
+    });
+
+    testWidgets("a prefill naming a resource round-trips it on Save", (tester) async {
+      final resource = _resource(id: "resource-1", label: "Regional grant");
+
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          OcptBudgetEntryDialog(
+            existing: null,
+            prefill: OcptBudgetEntryFormFields(
+              date: DateTime(2026, 3),
+              label: "Grant instalment",
+              posteId: null,
+              resourceId: "resource-1",
+              isDebit: false,
+              amountCents: 5000,
+              isTaxInclusive: true,
+              vatRateBasisPoints: null,
+              voucherNumber: null,
+              pickedReceiptPath: null,
+              isReceiptDetached: false,
+            ),
+            postes: const [],
+            resources: [resource],
+            currencyCode: "EUR",
+            defaultVatRateBasisPoints: null,
+            isSimplified: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetEntryDialog)));
+
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
+
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.resourceId, "resource-1");
+      expect(fields.isDebit, isFalse);
+      expect(fields.amountCents, 5000);
+    });
   });
 
   testWidgets("cancelling pops with nothing", (tester) async {

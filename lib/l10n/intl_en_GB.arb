@@ -11601,6 +11601,218 @@
     "context": "Displayed next to OcptBudgetCommitmentDialog's own Save action while it is withheld",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetHeaderFinancingSegmentLabel": "Financing",
+  "@budgetHeaderFinancingSegmentLabel": {
+    "description": "Label of the header's Financing view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderFinancingTitle": "Financing",
+  "@budgetHeaderFinancingTitle": {
+    "description": "Title of the header band while the financing view is on screen",
+    "context": "Displayed above the budget mode's own financing view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderFinancingSubtitle": "Subsidies, cash and in-kind contributions, and what has actually come in against each.",
+  "@budgetHeaderFinancingSubtitle": {
+    "description": "Subtitle of the header band while the financing view is on screen",
+    "context": "Displayed above the budget mode's own financing view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingEmptyHint": "Add a subsidy, a cash contribution or an in-kind contribution to start the financing plan.",
+  "@budgetFinancingEmptyHint": {
+    "description": "Message shown in place of the financing plan while the project holds no resource at all",
+    "context": "Displayed by OcptBudgetFinancing's own empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingTotalResourcesLabel": "Total resources",
+  "@budgetFinancingTotalResourcesLabel": {
+    "description": "Label of the financing view's own first KPI: the whole plan's own total",
+    "context": "Displayed at the top of the budget mode's own financing view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingCashLabel": "Cash",
+  "@budgetFinancingCashLabel": {
+    "description": "Label of the financing view's own second KPI: the subsidy and cash groups combined",
+    "context": "Displayed at the top of the budget mode's own financing view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingCashCaption": "{received} received · {outstanding} to come",
+  "@budgetFinancingCashCaption": {
+    "description": "Caption under the Cash KPI, naming what has come in and what is still owed",
+    "context": "Displayed at the top of the budget mode's own financing view",
+    "type": "text",
+    "placeholders": {
+      "received": {
+        "description": "The received amount, already formatted with its currency symbol",
+        "type": "String"
+      },
+      "outstanding": {
+        "description": "The outstanding amount, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
+  "budgetFinancingInKindLabel": "In-kind contributions",
+  "@budgetFinancingInKindLabel": {
+    "description": "Label of the financing view's own third KPI: the in-kind group's own total",
+    "context": "Displayed at the top of the budget mode's own financing view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingInKindHint": "Valued on both sides of the budget.",
+  "@budgetFinancingInKindHint": {
+    "description": "Caption under the In-kind contributions KPI, explaining what that figure means",
+    "context": "Displayed at the top of the budget mode's own financing view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingCreationAction": "+ Resource",
+  "@budgetFinancingCreationAction": {
+    "description": "Action opening OcptBudgetResourceDialog on a fresh financing resource",
+    "context": "Displayed at the end of the budget mode's own financing view's KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingEditAction": "Edit",
+  "@budgetFinancingEditAction": {
+    "description": "Action opening OcptBudgetResourceDialog on the resource its own row names",
+    "context": "Displayed on a financing resource row's own ⋮ menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingRecordReceiptAction": "Record a receipt",
+  "@budgetFinancingRecordReceiptAction": {
+    "description": "Action opening OcptBudgetEntryDialog pre-filled from the resource its own row names, as a credit",
+    "context": "Displayed on a financing resource row's own ⋮ menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingGroupSubsidyLabel": "Subsidies",
+  "@budgetFinancingGroupSubsidyLabel": {
+    "description": "Name of the subsidy group of OcptBudgetResourceGroupKind",
+    "context": "Displayed as a group card's own header in the budget mode's own financing view, and in OcptBudgetResourceDialog's own group picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingGroupCashLabel": "Cash",
+  "@budgetFinancingGroupCashLabel": {
+    "description": "Name of the cash group of OcptBudgetResourceGroupKind",
+    "context": "Displayed as a group card's own header in the budget mode's own financing view, and in OcptBudgetResourceDialog's own group picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingGroupInKindLabel": "In kind",
+  "@budgetFinancingGroupInKindLabel": {
+    "description": "Name of the in-kind group of OcptBudgetResourceGroupKind",
+    "context": "Displayed as a group card's own header in the budget mode's own financing view, and in OcptBudgetResourceDialog's own group picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusAppliedLabel": "Applied",
+  "@budgetFinancingStatusAppliedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.applied",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusNotifiedLabel": "Notified",
+  "@budgetFinancingStatusNotifiedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.notified",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusSecuredLabel": "Secured",
+  "@budgetFinancingStatusSecuredLabel": {
+    "description": "Word for OcptBudgetResourceStatus.secured",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusValuedLabel": "Valued",
+  "@budgetFinancingStatusValuedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.valued",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteResourceConfirmTitle": "Delete this resource?",
+  "@budgetDeleteResourceConfirmTitle": {
+    "description": "Title of the confirm dialog asked before a financing resource is deleted",
+    "context": "Displayed by OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteResourceConfirmMessage": "This cannot be undone.",
+  "@budgetDeleteResourceConfirmMessage": {
+    "description": "Message of the confirm dialog asked before a financing resource is deleted",
+    "context": "Displayed by OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogCreateTitle": "New resource",
+  "@budgetResourceDialogCreateTitle": {
+    "description": "Title of the resource dialog while creating a new financing resource",
+    "context": "Displayed at the top of OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogEditTitle": "Edit resource",
+  "@budgetResourceDialogEditTitle": {
+    "description": "Title of the resource dialog while editing an existing financing resource",
+    "context": "Displayed at the top of OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogGroupFieldLabel": "Group",
+  "@budgetResourceDialogGroupFieldLabel": {
+    "description": "Label above the resource dialog's own group-kind picker",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogReimbursableFieldLabel": "Reimbursable",
+  "@budgetResourceDialogReimbursableFieldLabel": {
+    "description": "Label above the resource dialog's own reimbursable choice",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogReimbursableOption": "Reimbursable",
+  "@budgetResourceDialogReimbursableOption": {
+    "description": "The resource dialog's own reimbursable choice, true segment",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogNotReimbursableOption": "Not reimbursable",
+  "@budgetResourceDialogNotReimbursableOption": {
+    "description": "The resource dialog's own reimbursable choice, false segment",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogResourceFieldLabel": "Resource",
+  "@budgetEntryDialogResourceFieldLabel": {
+    "description": "Label of the entry dialog's own Resource picker",
+    "context": "Displayed inside OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogNoResourceLabel": "No resource",
+  "@budgetEntryDialogNoResourceLabel": {
+    "description": "The entry dialog's own Resource picker's explicit \"no resource\" choice",
+    "context": "Displayed inside OcptBudgetEntryDialog's own Resource picker",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

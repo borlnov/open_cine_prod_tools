@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
@@ -27,8 +28,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_inspector.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
@@ -45,6 +48,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The budget production mode: the quote, poste by poste — the dashboard and the cost-tracking
@@ -268,6 +272,7 @@ class _BudgetViewState extends State<_BudgetView> {
               OcptBudgetCentreView.costTracking => _buildCostTracking(context, state),
               OcptBudgetCentreView.cashJournal => _buildCashJournal(context, state),
               OcptBudgetCentreView.committed => _buildCommittedSpending(context, state),
+              OcptBudgetCentreView.financing => _buildFinancing(context, state),
             },
           ),
         ),
@@ -405,6 +410,7 @@ class _BudgetViewState extends State<_BudgetView> {
       context,
       existing: null,
       postes: state.postes,
+      resources: state.resources,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -432,6 +438,7 @@ class _BudgetViewState extends State<_BudgetView> {
       existing: entry,
       existingReceipt: state.receiptsByEntryId[entry.id],
       postes: state.postes,
+      resources: state.resources,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -602,6 +609,7 @@ class _BudgetViewState extends State<_BudgetView> {
       existing: null,
       prefill: prefill,
       postes: state.postes,
+      resources: state.resources,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -616,6 +624,151 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(
       OcptBudgetCommitmentSettlementConfirmedEvent(commitmentId: commitment.id, fields: fields),
     );
+  }
+
+  /// Builds the financing view.
+  Widget _buildFinancing(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptBudgetFinancing(
+      resources: state.resources,
+      receivedByResourceId: state.receivedByResourceId,
+      receivedCentsOf: state.receivedCentsOf,
+      currencyCode: state.currencyCode,
+      selectedResourceId: state.selectedResourceId,
+      isReadOnly: isReadOnly,
+      onResourceCreationRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleResourceCreationRequested(context, state)),
+      onResourceSelected: (resourceId) =>
+          bloc.add(OcptBudgetResourceSelectedEvent(resourceId: resourceId)),
+      onResourceEditRequested: isReadOnly
+          ? null
+          : (resource) => unawaited(_handleResourceEditRequested(context, state, resource)),
+      onResourceReceiptRequested: isReadOnly
+          ? null
+          : (resource) => unawaited(_handleResourceReceiptRequested(context, state, resource)),
+      onResourceDeletionRequested: isReadOnly
+          ? null
+          : (resourceId) => unawaited(_handleResourceDeletionRequested(context, resourceId)),
+    );
+  }
+
+  /// Opens the resource dialog with nothing pre-filled, then dispatches the creation if the user
+  /// confirmed it.
+  Future<void> _handleResourceCreationRequested(BuildContext context, OcptBudgetState state) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetResourceDialog.show(
+      context,
+      existing: null,
+      currencyCode: state.currencyCode,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetResourceCreationConfirmedEvent(fields: fields));
+  }
+
+  /// Opens the resource dialog pre-filled with [resource], then dispatches the update if the user
+  /// confirmed it.
+  Future<void> _handleResourceEditRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetResource resource,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetResourceDialog.show(
+      context,
+      existing: resource,
+      currencyCode: state.currencyCode,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetResourceUpdateConfirmedEvent(resourceId: resource.id, fields: fields));
+  }
+
+  /// Asks `OcptConfirmDialog` whether financing resource [resourceId] really is to be deleted, then
+  /// dispatches the deletion if the user answered `Delete`.
+  Future<void> _handleResourceDeletionRequested(BuildContext context, String resourceId) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetDeleteResourceConfirmTitle,
+      message: tr.budgetDeleteResourceConfirmMessage,
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetDeleteConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
+  }
+
+  /// Opens the entry dialog pre-filled from [resource] (today's date, its own label, as a credit,
+  /// for whatever is still outstanding against it, the resource already named), then dispatches the
+  /// creation if the user confirmed it — mirrors `_handleCommitmentSettleRequested`'s own gesture:
+  /// see "A commitment settles by naming the entry that paid it" in `docs/architecture/budget.md`
+  /// for the reading this mirrors, a receipt naming the resource that earned it instead of a
+  /// commitment being paid.
+  Future<void> _handleResourceReceiptRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetResource resource,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final now = DateTime.now();
+    final outstandingCents = ocptBudgetResourceOutstandingCents(
+      amountCents: resource.amountCents,
+      receivedCents: state.receivedCentsOf(resource.id),
+    );
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(now.year, now.month, now.day),
+      label: resource.label,
+      posteId: null,
+      resourceId: resource.id,
+      isDebit: false,
+      amountCents: outstandingCents < 0 ? 0 : outstandingCents,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
+
+    final fields = await OcptBudgetEntryDialog.show(
+      context,
+      existing: null,
+      prefill: prefill,
+      postes: state.postes,
+      resources: state.resources,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
   }
 
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches

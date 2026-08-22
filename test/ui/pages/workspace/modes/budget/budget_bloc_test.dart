@@ -16,8 +16,11 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
@@ -963,6 +966,229 @@ void main() {
       // The journal entry itself is untouched.
       expect(state.entries, hasLength(1));
       expect(state.entries.single.id, entryId);
+    });
+  });
+
+  group("the financing plan", () {
+    test("loads every live resource alongside the quote", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "Regional grant",
+      );
+      expect(resourceId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      final state = await waitForState(bloc, (state) => state.resources.isNotEmpty);
+
+      expect(state.resources, hasLength(1));
+      expect(state.resources.single.label, "Regional grant");
+      expect(state.resourceCount, 1);
+    });
+  });
+
+  group("selecting a resource", () {
+    test("highlights it, ignoring an id naming no live resource", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "Regional grant",
+      );
+      expect(resourceId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.resources.isNotEmpty);
+
+      bloc.add(const OcptBudgetResourceSelectedEvent(resourceId: "gone"));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(bloc.state.selectedResourceId, isNull);
+
+      bloc.add(OcptBudgetResourceSelectedEvent(resourceId: resourceId!));
+      final state = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      expect(state.selectedResourceId, resourceId);
+    });
+  });
+
+  group("creating a resource", () {
+    test("writes every field and selects it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.valued,
+            isReimbursable: false,
+            notes: "Lent by the lab",
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.selectedResourceId != null);
+
+      expect(state.resources, hasLength(1));
+      final resource = state.resources.single;
+      expect(resource.groupKind, OcptBudgetResourceGroupKind.inKind);
+      expect(resource.label, "Camera loan");
+      expect(resource.amountCents, 250000);
+      expect(resource.status, OcptBudgetResourceStatus.valued);
+      expect(resource.notes, "Lent by the lab");
+      expect(state.selectedResourceId, resource.id);
+    });
+  });
+
+  group("editing a resource", () {
+    test("writes every field back", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "Original",
+      );
+      expect(resourceId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.resources.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetResourceUpdateConfirmedEvent(
+          resourceId: resourceId!,
+          fields: const OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.cash,
+            label: "Renamed",
+            amountCents: 500,
+            status: OcptBudgetResourceStatus.secured,
+            isReimbursable: true,
+            notes: "Repaid before the split",
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.resources.single.label == "Renamed");
+
+      final resource = state.resources.single;
+      expect(resource.groupKind, OcptBudgetResourceGroupKind.cash);
+      expect(resource.amountCents, 500);
+      expect(resource.status, OcptBudgetResourceStatus.secured);
+      expect(resource.isReimbursable, isTrue);
+      expect(resource.notes, "Repaid before the split");
+    });
+  });
+
+  group("deleting a resource", () {
+    test("tombstones it, and clears the selection when it was selected", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "To be deleted",
+      );
+      expect(resourceId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.resources.isNotEmpty);
+      bloc.add(OcptBudgetResourceSelectedEvent(resourceId: resourceId!));
+      await waitForState(bloc, (state) => state.selectedResourceId == resourceId);
+
+      bloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
+      final state = await waitForState(bloc, (state) => state.resources.isEmpty);
+
+      expect(state.resources, isEmpty);
+      expect(state.selectedResourceId, isNull);
+    });
+  });
+
+  group("an entry naming a resource", () {
+    test("writes resourceId, and it shows up in receivedByResourceId once credited", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "Regional grant",
+      );
+      expect(resourceId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.resources.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Grant instalment",
+            posteId: null,
+            resourceId: resourceId,
+            isDebit: false,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      expect(state.entries.single.resourceId, resourceId);
+      expect(state.receivedByResourceId[resourceId]?.amountCents, 5000);
+      expect(state.receivedCentsOf(resourceId!), 5000);
+    });
+
+    test("an edit can also name a resource, wiring it the very same way", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "Regional grant",
+      );
+      expect(resourceId, isNotNull);
+      final entryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Grant instalment",
+        creditCents: 5000,
+      );
+      expect(entryId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.entries.isNotEmpty && state.resources.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetEntryUpdateConfirmedEvent(
+          entryId: entryId!,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Grant instalment",
+            posteId: null,
+            resourceId: resourceId,
+            isDebit: false,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: "J-001",
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.entries.single.resourceId == resourceId,
+      );
+
+      expect(state.receivedCentsOf(resourceId!), 5000);
     });
   });
 }
