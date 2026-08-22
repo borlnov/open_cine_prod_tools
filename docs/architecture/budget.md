@@ -7,9 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 # Architecture — the budget mode
 
 The production's money, read honestly in whichever tax basis it was typed in: the quote against
-the CNC nomenclature, and the cash journal it is measured against — every entry the account has
-actually seen, and every commitment still owed but not yet paid — with the financing plan, the
-catering and travel pass and the revenue sharing still ahead of it (`docs/plans/budget-mode.md`).
+the CNC nomenclature, the cash journal it is measured against — every entry the account has
+actually seen, and every commitment still owed but not yet paid — the financing plan that says what
+pays for all of it, and the catering and travel a shooting day actually costs, read off the
+schedule rather than typed a second time. The revenue sharing alone is still ahead of it
+(`docs/plans/budget-mode.md`).
 
 ## Who it serves, and what the mode now shows
 
@@ -225,18 +227,35 @@ catering and travel pass and the revenue sharing still ahead of it (`docs/plans/
   `posteId` — money coming in prices no poste, so this is a real fact rather than an omission — the
   money triple, and `voucherNumber`) and `budget_commitments` (`dueDate?`, `label`, a **non-nullable**
   `posteId` — a commitment is always a cost against the quote — the money triple, `status` and a
-  nullable `settledEntryId` referencing `budget_entries`). `budget_entries` carries no `resourceId`
-  yet, even though `docs/plans/budget-mode.md` names one: `budget_resources` is a later table, and
-  the nullable foreign key onto it arrives with `Migrator.addColumn` the day that table lands,
-  exactly the way `budget_entries.posteId` itself was added onto an already-existing
-  `budget_postes`. `assets` gains one column, `budgetEntryId`, and one kind, `OcptAssetKind.receipt`,
-  for a voucher file — see "The voucher" below. This is schema **v21**. `OcptProjectVersionCodec`
+  nullable `settledEntryId` referencing `budget_entries`). `assets` gains one column,
+  `budgetEntryId`, and one kind, `OcptAssetKind.receipt`, for a voucher file — see "The voucher"
+  below. This is schema **v21**. `OcptProjectVersionCodec`
   gains both tables and the `assets` column in all three of its required places under **payload
   format 17**, whose upgrade from format 16 **materialises** `budgetEntries` and `budgetCommitments`
   as empty lists and every `assets` row's `budgetEntryId` as null — a version sealed before the
   journal existed truthfully had no entry and no commitment, and no asset could yet reference one
   that didn't exist, exactly the reading format 16's own upgrade already gives the tables it
   materialises.
+  Two last synchronised tables complete the plan: `budget_resources` (`groupKind` — a subsidy, a
+  cash contribution or a contribution in kind — `label`, `amountCents`, `status`, `isReimbursable`
+  and `notes`) and `budget_mileage_rates` (`label` and `ratePerKmMilliCents`). Neither carries the
+  money triple, and `budget_resources` carries **no `receivedCents` counter**: see "A resource is
+  received by being named, and a rate is nobody's to seed" below for both arguments. `budget_entries`
+  gains the `resourceId` it was always going to gain, a nullable foreign key onto `budget_resources`
+  added with `Migrator.addColumn` exactly the way `budget_entries.posteId` was added onto an
+  already-existing `budget_postes`; and `people` gains `commuteKmMilli` — a **one-way** commute, in
+  thousandths of a kilometre, for the reason `budget_lines.quantityMilli` is in thousandths — and
+  `mileageRateId`, the rate that applies to that person. Both are **personal data**: a one-way
+  commute says roughly where somebody lives, so both are nulled by every one of the three erasure
+  paths a person's row travels (`ocpt_erased_person_scrub.dart`, `OcptPeopleService`'s own live
+  erasure, and `OcptProjectVersionsService`'s own on a restored payload), beside
+  `maxDailyPresenceMinutes`. This is schema **v22**. `OcptProjectVersionCodec` gains both tables and
+  all three columns in all three of its required places under **payload format 18**, whose upgrade
+  from format 17 **materialises** `budgetResources` and `budgetMileageRates` as empty lists and every
+  `budget_entries.resourceId`, `people.commuteKmMilli` and `people.mileageRateId` as null — a version
+  sealed before the financing plan existed truthfully named no resource and no rate, and no entry
+  could name a resource that did not exist, exactly the reading format 17's own upgrade already
+  gives what it materialises.
 
 ## The mode's own shape
 
@@ -253,13 +272,23 @@ catering and travel pass and the revenue sharing still ahead of it (`docs/plans/
   entries naming this poste, newest first, a debit and a credit told apart by
   `ColorScheme.error`/`.primary`, printing the em dash for an entry it cannot read and a coverage
   read-out the moment some of them are; and the shared `Versions` tab every mode carries.
-  The header's four view chips (`Dashboard`, `Cost tracking`, `Trésorerie` in French — `Cash
-  journal` in English, deliberately renamed off "Journal de caisse" once that first choice turned
-  out to name a petty-cash book rather than the bank account the view actually reads — and
-  `Committed`) and its two further toggles, simplified/detailed and excluding/including-tax, are
+  The header's six view chips (`Dashboard`, `Cost tracking`, `Financing`, `Trésorerie` in French —
+  `Cash journal` in English, deliberately renamed off "Journal de caisse" once that first choice
+  turned out to name a petty-cash book rather than the bank account the view actually reads —
+  `Committed`, and `Régie` in French — `Catering & travel` in English, the same asymmetry and for the
+  same reason: the trade word has no one-word English equivalent) and its two further toggles,
+  simplified/detailed and excluding/including-tax, are
   **always offered, whatever the project holds**: neither is ever withheld or disabled according to
   the state of the data, there is no conditional branch in
-  `OcptBudgetHeader` at all, only a value that may turn out empty once the centre reads it. Every
+  `OcptBudgetHeader` at all, only a value that may turn out empty once the centre reads it.
+  **The chips are deliberately not in `OcptBudgetCentreView`'s own order.** That enum grows strictly
+  by the end, so a value never moves under a reader who stored one; the header, by contrast, lists
+  its segments explicitly and orders them the way the money actually reads — the quote, then what
+  pays for it, then what has moved, then what is still owed, then what the shoot eats and drives.
+  `_OcptBudgetCentreViewSwitch` says so where the segments are listed, since a divergence nobody
+  argued for would look like a mistake the next time somebody adds a view. Each chip also widens
+  that one switch, so `_ocptBudgetHeaderTitleMinWidth` — the width under which the header sheds its
+  title rather than crowd its controls — moves out by a segment's own width every time one lands. Every
   other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder, a
   delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
   code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
@@ -355,6 +384,95 @@ catering and travel pass and the revenue sharing still ahead of it (`docs/plans/
   and the split itself. It reads no byte the schema holds today, is argued in full in
   `docs/plans/budget-mode.md`, and joins `OcptBudgetCentreView` the day its own milestone gives it
   something real to show.
+
+## A resource is received by being named, and a rate is nobody's to seed
+
+- `budget_resources` carries **no `receivedCents` column**, and that is the third time this mode has
+  refused the same shape for the same reason: a poste keeps no `quotedAmount` and a commitment keeps
+  no `settled` flag, because a stored second copy of one truth has to be kept in step by a write
+  nobody can guarantee never to forget. What has come in against a resource is the sum of the
+  `budget_entries` **credits** naming it through `budget_entries.resourceId`
+  (`ocptBudgetReceivedByResourceId`, `lib/utils/ocpt_budget_financing.dart`), read through
+  `ocptBudgetEntryCreditCentsOf` like every other movement rather than off `creditCents` raw, so a
+  resource whose entries are missing the rate they would need is *covered-but-incomplete* rather
+  than wrong. That link is also what makes `resourceId` earn its place: `OcptBudgetFinancing`'s own
+  **`Record a receipt`** gesture mirrors the commitment's `Settle` exactly — it opens
+  `OcptBudgetEntryDialog` pre-filled as a **credit**, dated today, for whatever is still outstanding,
+  with the resource already named, so a receipt can never exist as a figure with no movement behind
+  it.
+  **A debit naming a resource is deliberately not subtracted.** Repaying a reimbursable contribution
+  does not un-receive it — the money did come in — and what a production has paid back is the
+  revenue-sharing view's own subject, not a correction to this figure.
+  `budget_resources` carries **no money triple** either: a financing resource is money coming in,
+  which "Money that has moved is read tax-inclusive, always" (above) already settles once for the
+  whole mode.
+  `budget_mileage_rates` exists for the symmetrical reason: **this app states no regulatory figure
+  of its own.** A mileage scale depends on the vehicle and on the country, and the app ships in more
+  than one — the very argument `project_info.minimumRestMinutes` already settled for a single column,
+  applied here to a whole table. So no scale is seeded, not even a greyed example, and the project
+  settings page's own rates card says as much rather than pre-filling anything. The rate is stored as
+  `ratePerKmMilliCents`, in **thousandths of a cent** per kilometre (`0.529 €/km` is `52900`), read
+  and written by `ocptMileageRateMilliCentsOf`/`ocptMileageRateTextOf`
+  (`lib/utils/ocpt_mileage_rate_amount.dart`) rather than by `ocptCostCentsOf`: a real scale is
+  quoted to three decimals, and whole cents cannot state the figure the user has in front of them —
+  which is the money rule at the top of this file, applied to a rate.
+
+## An in-kind contribution is valued, not collected
+
+- `OcptBudgetFinancing` groups the plan by `OcptBudgetResourceGroupKind` — subsidies, cash
+  contributions, contributions in kind — one bordered card each, a group holding no resource simply
+  not drawn, since an empty card with a zero subtotal states nothing. `OcptBudgetResourceStatus` is
+  **flat and four-valued** (`applied`, `notified`, `secured`, `valued`), nothing hidden or disabled
+  according to which group a row sits in: `valued` is what an in-kind contribution normally wears,
+  but it is the user who says so, not a branch in the code — the mode's standing rule that the UI
+  carries no conditional branch on the state of the data.
+  The one silence this view keeps is a different thing from a withheld affordance: an `inKind`
+  resource prints `ocptBudgetEmptyValue` for both *received* and *outstanding* **while no journal
+  entry names it**, because a contribution in kind is valued rather than collected — no cash will
+  ever move for it, so "how much of it has arrived" is not a question with an answer, exactly the
+  silence `Consumed` already keeps for a poste with no quote (see "What the mode still does not
+  show"). The moment an entry does name such a resource the real figures are printed instead: the
+  app never hides a movement that actually happened.
+  A resource row is **selected and highlighted, and opens no inspector**. The right dock's
+  `Inspector` tab is built entirely around a poste's own quote lines, and a resource has none;
+  growing a conditional branch onto that dock, or inventing a second inspector concept beside it,
+  would both cost more than the reading is worth. `OcptBudgetState.selectedResourceId` is therefore
+  a plain highlight, reconciled against a freshly loaded snapshot exactly as `selectedPosteId` is.
+
+## The catering and travel pass types nothing at all
+
+- `OcptBudgetRegie` is the one centre view that **writes nothing, and therefore carries no
+  `isReadOnly` flag at all** — a previewed version withholds nothing here, exactly the argument
+  `OcptBudgetDashboard` already makes for itself. Every figure on it is typed somewhere else and
+  read here: the head counts come from the schedule, the two unit prices from the project settings,
+  and each traveller's distance and rate from their own sheet in the resources mode. That is the
+  whole promise — nothing is entered twice — and it is why the view's three cross-links matter as
+  much as its figures: each row reports upward and `budget_mode.dart` dispatches through
+  `OcptWorkspaceBloc`, never navigation of the mode's own making, so a reader who disagrees with a
+  number is sent to the one place it can be changed.
+  **It reads `OcptScheduleSnapshot`, deliberately not `OcptSchedulePlanSnapshot`.** The plan snapshot
+  is the obvious-looking type and the wrong one: it requires every episode's own shot list and the
+  episode list, neither of which counting heads needs, and building one here would make the budget
+  mode load the whole découpage to count meals. The schedule snapshot — the very field a plan
+  snapshot wraps — carries days and slots, and a slot already carries its own live crew, cast and
+  guests, which is everything `ocpt_budget_regie.dart` reads.
+  The counting rules are all in that pure file and all stated on screen rather than hidden: a person
+  convoked to three slots of one day **eats once**; a role counts as an extra exactly when its own
+  `OcptRoleKind` says so, and a role the read cannot resolve counts as cast rather than as nothing,
+  since it is still a convocation the production has to feed; and **a guest is not counted at all**
+  — a visitor is not somebody the production convoked to work, which is the distinction ADR 0018
+  already draws by refusing a guest a shooting band. One meal and one snack per head per shooting day
+  is the only rule here a production might reasonably want to change, so the view prints it in the
+  table's own caption rather than burying it in the arithmetic.
+  A travel row crosses the presence grid with a person's **one-way** `commuteKmMilli`, doubled where
+  the journey is counted rather than stored doubled, and the rate their own sheet names; the whole
+  computation is integer arithmetic with a single rounding at the end, for the reason `quantityMilli`
+  exists at all. A traveller who claims nothing — no distance, or no rate, or a rate id naming a row
+  since tombstoned — is **still listed**, with the money silent and the trip count showing: that is
+  how somebody discovers a distance nobody filled in, and dropping the row would make an absent
+  figure indistinguishable from an absent person. Both of the view's totals are
+  `OcptBudgetCoveredTotal`s printing the very same coverage read-out the cost-tracking table already
+  does, for as long as a price, a distance or a rate is missing.
 
 ## The dashboard reads the financing plan once it exists
 

@@ -204,23 +204,35 @@ reads them:
   different subject, read by different views, and keeping them apart kept each file about one
   thing.
 
-### M3 — Financing, catering and travel
+### M3 — Financing, catering and travel — shipped
 
-- `budget_resources`, `budget_mileage_rates`, `OcptBudgetFinancingService`.
-- **Financing** view: subsidies, cash contributions and in-kind contributions grouped, each with its
-  status, what has been received and what is left to receive; the in-kind ones valued on both sides
-  of the budget.
-- **Catering and travel** view: **nothing is typed twice here**. The head counts per shooting day
-  (crew, cast, extras) come from `OcptSchedulePlanSnapshot`, the unit prices from the project
-  settings, and `ocpt_budget_regie.dart` (pure, tested) does the arithmetic. The travel allowances
-  cross the presence grid (how many return trips) with each person's own `commuteKm` and **the rate
-  their sheet names**. A missing price, distance or rate leaves the line silent rather than counting
-  it as zero.
-- The dashboard gains its needs/resources balance bar and its "what feeds this budget" card, with the
-  cross-mode links to the breakdown and the schedule (`OcptWorkspaceRevealRequest`, never navigation
-  of its own making).
-- `budget_lines.elementId` becomes visible: the breakdown elements attached to no quote line are the
-  "unpriced needs" alert, and `elements.cost` seeds the unit price of a line created from one.
+`budget_resources`, `budget_mileage_rates`, `OcptBudgetFinancingService`, the **financing** and
+**catering and travel** views, the dashboard's needs/resources balance and its "what feeds this
+budget" card, and `budget_lines.elementId` made visible have all shipped;
+`docs/architecture/budget.md` is the record from here on and this section is not re-described. Four
+points are kept here rather than only there, each being a place this plan and the code deliberately
+part company:
+
+- **`budget_resources` carries no `receivedCents` column.** The table above lists one, but a stored
+  counter beside `budget_entries.resourceId` would be the second copy of one truth this mode has
+  already refused twice (a poste's `quotedAmount`, a commitment's `settled` flag). What a resource
+  has received is summed from the journal's own credits naming it, and the financing view's
+  `Record a receipt` gesture — the mirror of a commitment's `Settle` — is what writes them.
+- **`ratePerKmMilliCents`, not `ratePerKmCents`.** Real mileage scales are quoted to three decimals
+  (0.529 €/km, 0.601, 0.395); whole cents cannot state the figure the user has in front of them,
+  and the money rule of §3 is that an amount is stored exactly as it was typed. The rate is
+  therefore in thousandths of a cent per kilometre, and `people.commuteKm` shipped as
+  `commuteKmMilli` for the same reason §3 already gives for `quantityMilli`.
+- **The catering pass reads `OcptScheduleSnapshot`, not `OcptSchedulePlanSnapshot`.** §5 names the
+  plan snapshot, but building one needs every episode's shot list and the episode list, neither of
+  which counting heads reads — the budget mode would load the whole découpage to count meals. The
+  schedule snapshot is the field a plan snapshot wraps, and it carries days, slots and each slot's
+  own crew, cast and guests, which is all the pass reads.
+- **The unpriced needs are a reading, not an alert.** §5 calls them "the unpriced needs alert", but
+  the two alerts this mode raises are each a standing fact that something is *wrong*, while a dozen
+  elements still to be priced during preparation is the normal state of a production still building
+  its breakdown — true for months. They are counted in the dashboard's "what feeds this budget"
+  card, which is where the validated mockup puts them and which is the register they belong to.
 
 ### M4 — Sharing and the exports
 
@@ -291,6 +303,7 @@ Wait for a green CI before opening each milestone's pull request.
   common case and the only one that asks nothing of anybody, but it is a choice: a new project could
   instead inherit the rate of its locale's country, the way the page format and the currency already
   do. One line in `OcptProjectsManager`.
-- **The mileage rates start empty**: the app offers none, not even a greyed example. A new project
-  could be born with one or two typical entries to rename — but then somebody has to choose which
-  figures go in them, which is precisely what the third ADR above exists to refuse.
+- **The mileage rates start empty**, and that is what shipped: the app offers none, not even a
+  greyed example, and the settings card says so rather than pre-filling anything. A new project
+  could still be born with one or two typical entries to rename — but somebody would then have to
+  choose which figures go in them, which is precisely what the third ADR above exists to refuse.
