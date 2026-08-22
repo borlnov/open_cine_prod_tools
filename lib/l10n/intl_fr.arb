@@ -1448,6 +1448,8 @@
   "budgetPosteCreationAction": "+ Poste",
   "budgetCostTrackingTotalRowLabel": "Total",
   "budgetCostTrackingCoverageReadOut": "{amount} · sur {coveredCount} des {posteCount} postes",
+  "budgetCostTrackingOffQuoteLabel": "Hors devis",
+  "budgetCostTrackingPaidCoverageReadOut": "{amount} · sur {coveredCount} des {lineCount} lignes",
   "budgetDashboardEmptyHint": "Ajoutez un poste pour démarrer le devis.",
   "budgetDashboardQuotedTotalLabel": "Total du devis",
   "budgetDashboardExcludingTaxTotalLabel": "Total HT",

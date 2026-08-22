@@ -514,8 +514,9 @@ class _BudgetViewState extends State<_BudgetView> {
       taxBasis: state.taxBasis,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
-      paidCentsOf: state.paidCentsOf,
+      paidByPosteId: state.paidByPosteId,
       committedCentsOf: state.committedCentsOf,
+      offQuoteTotal: state.offQuotePaidTotal,
       isReadOnly: isReadOnly,
       onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
       onPosteCreationRequested: isReadOnly

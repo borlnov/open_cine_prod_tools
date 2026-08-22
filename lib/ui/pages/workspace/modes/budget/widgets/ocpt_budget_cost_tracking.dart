@@ -75,8 +75,8 @@ const double _ocptCostTrackingTotalRowHeight = 48;
 /// (falling back to [OcptBudgetPoste.label] when null) and [OcptBudgetPoste.label] itself, and
 /// hides the `N°` column — a display switch over the same data, never a second read.
 ///
-/// [paidCentsOf] and [committedCentsOf] read the cash journal's own per-poste totals
-/// (`OcptBudgetState.paidCentsOf`/`committedCentsOf`, backed by
+/// [paidByPosteId] and [committedCentsOf] read the cash journal's own per-poste totals
+/// (`OcptBudgetState.paidByPosteId`/`committedCentsOf`, backed by
 /// `lib/utils/ocpt_budget_journal.dart`/`ocpt_budget_projection.dart`): a poste with no entry or
 /// commitment against it answers **0**, honestly, rather than a stand-in for an unknown figure —
 /// the journal exists and is kept, so "nothing has moved" is a fact this table can state outright.
@@ -84,6 +84,16 @@ const double _ocptCostTrackingTotalRowHeight = 48;
 /// is the one column that still prints [ocptBudgetEmptyValue]: it is a ratio, and
 /// [ocptBudgetConsumedRatioOf] answers null for a poste carrying no quote at all, where a
 /// percentage would be a division by zero rather than a figure.
+///
+/// **[offQuoteTotal] draws one extra row, `Off quote`, between the last poste and the `Total`
+/// row** — the total of every debit naming no poste at all
+/// (`ocptBudgetOffQuotePaidTotalOf`, `lib/utils/ocpt_budget_journal.dart`), which
+/// [paidByPosteId] never keys at all. It is drawn only while [offQuoteTotal] actually holds
+/// something ([OcptBudgetCoveredTotal.lineCount] above zero) and only its own `Paid` cell carries a
+/// figure; it is not a poste, so it carries no `N°`, no `⋮` menu and no selection of its own — see
+/// `_OcptCostTrackingOffQuoteIdentityRow`'s own doc comment. The total row's own `Paid` cell then
+/// folds [paidByPosteId] and [offQuoteTotal] together
+/// ([ocptBudgetCoveredTotalsFoldOf]), since together they are what actually left the account.
 ///
 /// **A row's own `Rename` menu entry selects it and opens the `Inspector` tab rather than editing
 /// its name in place.** This app has no precedent for renaming a record inline inside a plain list
@@ -112,11 +122,15 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// A poste's own paid total, in cents, tax-inclusive — see the class doc comment.
-  final int Function(String posteId) paidCentsOf;
+  /// What has actually been paid against each poste, keyed by its own id — see the class doc
+  /// comment.
+  final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
 
   /// A poste's own committed total, in cents, tax-inclusive — see the class doc comment.
   final int Function(String posteId) committedCentsOf;
+
+  /// The total of every debit that names no poste at all — see the class doc comment.
+  final OcptBudgetCoveredTotal offQuoteTotal;
 
   /// Whether the mode shows a project version being previewed read-only — see the class doc
   /// comment.
@@ -146,8 +160,9 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
-    required this.paidCentsOf,
+    required this.paidByPosteId,
     required this.committedCentsOf,
+    required this.offQuoteTotal,
     required this.isReadOnly,
     required this.onPosteSelected,
     required this.onPosteCreationRequested,
@@ -164,6 +179,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final coveredPosteCount = _coveredPosteCountOf();
+    final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuoteTotal]);
+    final showOffQuoteRow = offQuoteTotal.lineCount > 0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -202,6 +219,11 @@ class OcptBudgetCostTracking extends StatelessWidget {
                               posteWidth: posteWidth,
                               onTap: () => onPosteSelected(poste.id),
                             ),
+                          if (showOffQuoteRow)
+                            _OcptCostTrackingOffQuoteIdentityRow(
+                              isSimplified: isSimplified,
+                              posteWidth: posteWidth,
+                            ),
                           _OcptCostTrackingIdentityTotalRow(
                             isSimplified: isSimplified,
                             posteWidth: posteWidth,
@@ -225,7 +247,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
                                   taxBasis: taxBasis,
                                   defaultVatRateBasisPoints: defaultVatRateBasisPoints,
                                   currencyCode: currencyCode,
-                                  paidCents: paidCentsOf(poste.id),
+                                  paidCents: paidByPosteId[poste.id]?.amountCents ?? 0,
                                   committedCents: committedCentsOf(poste.id),
                                   onTap: () => onPosteSelected(poste.id),
                                   onRenameRequested: isReadOnly
@@ -242,8 +264,14 @@ class OcptBudgetCostTracking extends StatelessWidget {
                                       ? null
                                       : () => onPosteDeletionRequested?.call(poste.id),
                                 ),
+                              if (showOffQuoteRow)
+                                _OcptCostTrackingOffQuoteAmountsRow(
+                                  offQuoteTotal: offQuoteTotal,
+                                  currencyCode: currencyCode,
+                                ),
                               _OcptCostTrackingAmountsTotalRow(
                                 total: total,
+                                paidTotal: paidTotal,
                                 currencyCode: currencyCode,
                                 posteCount: postes.length,
                                 coveredPosteCount: coveredPosteCount,
@@ -658,6 +686,114 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
   }
 }
 
+/// The pinned pane's own off-quote row: just the `Off quote` label, in the `Poste` column's own
+/// place — the identity half of the very same row [_OcptCostTrackingOffQuoteAmountsRow] draws the
+/// other half of, exactly the way [_OcptCostTrackingIdentityRow] and [_OcptCostTrackingAmountsRow]
+/// split an ordinary poste's row.
+///
+/// **This row is not a poste, and draws nothing that would let it pass for one**: no `N°`, no
+/// selection highlight and — [_OcptCostTrackingOffQuoteAmountsRow]'s own doc comment argues why —
+/// no `⋮` menu either. Neither half carries an `onTap` at all: it is a reading over the journal, not
+/// a record anybody can rename, reorder or delete, so clicking it does nothing rather than quietly
+/// calling [OcptBudgetCostTracking.onPosteSelected] with nothing to select.
+class _OcptCostTrackingOffQuoteIdentityRow extends StatelessWidget {
+  /// Whether the header's simplified/detailed switch currently reads simplified.
+  final bool isSimplified;
+
+  /// The `Poste` column's own width, computed by the table.
+  final double posteWidth;
+
+  /// Class constructor
+  const _OcptCostTrackingOffQuoteIdentityRow({required this.isSimplified, required this.posteWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return SizedBox(
+      height: _ocptCostTrackingRowHeight,
+      child: Row(
+        children: [
+          // Never a poste code, whatever the width — this row is not a poste.
+          if (!isSimplified) const SizedBox(width: _ocptCostTrackingNumberColumnWidth),
+          SizedBox(
+            width: posteWidth,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12, right: 8),
+              child: Text(
+                tr.budgetCostTrackingOffQuoteLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The scrolling pane's own off-quote row: only the `Paid` cell carries a figure —
+/// [offQuoteTotal]'s own tax-inclusive amount, plain, exactly as an ordinary poste row's own `Paid`
+/// cell is. `Quote`, `Committed`, `Remaining`, `Variance` and `Consumed` all print
+/// [ocptBudgetEmptyValue]: there is no quote behind this row to measure any of them against, the
+/// same silence `Consumed` already keeps for a poste with no quote at all
+/// (`docs/architecture/budget.md`).
+///
+/// **No `⋮` menu column, unlike an ordinary poste's own amounts row.** Every one of that menu's
+/// entries — rename, move, delete — acts on a poste, and this row is not one: it is a reading over
+/// the journal's own poste-less debits, with no record of its own to rename, reorder or delete.
+class _OcptCostTrackingOffQuoteAmountsRow extends StatelessWidget {
+  /// The total of every debit naming no poste at all — this row's own `Paid` figure.
+  final OcptBudgetCoveredTotal offQuoteTotal;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Class constructor
+  const _OcptCostTrackingOffQuoteAmountsRow({required this.offQuoteTotal, required this.currencyCode});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      height: _ocptCostTrackingRowHeight,
+      child: Row(
+        children: [
+          _emptyCell(theme), // Quote
+          _amountCell(theme, ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode)), // Paid
+          _emptyCell(theme), // Committed
+          _emptyCell(theme), // Remaining
+          _emptyCell(theme), // Variance
+          _emptyCell(theme), // Consumed
+          const SizedBox(width: _ocptCostTrackingMenuColumnWidth), // no ⋮ menu at all
+        ],
+      ),
+    );
+  }
+
+  /// One amount cell, right-aligned, printing [text] as typed.
+  Widget _amountCell(ThemeData theme, String text) => SizedBox(
+    width: _ocptCostTrackingAmountColumnWidth,
+    child: Text(
+      text,
+      textAlign: TextAlign.right,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodySmall,
+    ),
+  );
+
+  /// One amount cell reading [ocptBudgetEmptyValue] — every column this row has no reading for.
+  Widget _emptyCell(ThemeData theme) => SizedBox(
+    width: _ocptCostTrackingAmountColumnWidth,
+    child: Text(ocptBudgetEmptyValue, textAlign: TextAlign.right, style: theme.textTheme.bodySmall),
+  );
+}
+
 /// The `Quote` column's own cell: the primary figure, then, in small type, the other basis' own
 /// figure and — only when the poste's lines all share one — the rate it reads under.
 class _OcptCostTrackingQuoteCell extends StatelessWidget {
@@ -769,15 +905,22 @@ class _OcptCostTrackingIdentityTotalRow extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own total row: the grand `Quote` total (with its own coverage read-out).
-/// The five money-that-moved columns are left blank here: summing `paidCentsOf`/`committedCentsOf`
-/// across every poste is not the same reduction those two per-poste maps answer (an entry naming
-/// no poste moves cash without pricing any one poste's total), so a grand `Paid`/`Committed`
-/// total is not drawn until a view actually reads the journal as a whole. See
-/// [_OcptCostTrackingIdentityTotalRow]'s own doc comment for the pinned half of the very same row.
+/// The scrolling pane's own total row: the grand `Quote` total (with its own coverage read-out) and
+/// the grand `Paid` total — [paidTotal], [ocptBudgetCoveredTotalsFoldOf]'s own fold of every
+/// poste's own paid total and the off-quote total (`OcptBudgetCostTracking`'s own class doc
+/// comment), so this column adds up to what has actually left the account, off-quote spending
+/// included. `Committed`, `Remaining`, `Variance` and `Consumed` are left blank: summing
+/// `committedCentsOf` across every poste is not a reduction this table has a reading for (a
+/// commitment is always against a poste, so there is no off-quote committed total to fold in), and
+/// `Remaining`/`Variance`/`Consumed` are each read against a poste's own quote, which a grand total
+/// has none of. See [_OcptCostTrackingIdentityTotalRow]'s own doc comment for the pinned half of
+/// the very same row.
 class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   /// The grand total, in the header's own selected basis, and how many lines it covers.
   final OcptBudgetCoveredTotal total;
+
+  /// The grand `Paid` total — every poste's own paid total folded with the off-quote total.
+  final OcptBudgetCoveredTotal paidTotal;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
@@ -791,6 +934,7 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   /// Class constructor
   const _OcptCostTrackingAmountsTotalRow({
     required this.total,
+    required this.paidTotal,
     required this.currencyCode,
     required this.posteCount,
     required this.coveredPosteCount,
@@ -804,6 +948,14 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
     final coverageText = total.isComplete
         ? null
         : tr.budgetCostTrackingCoverageReadOut(amountText, coveredPosteCount, posteCount);
+    final paidAmountText = ocptBudgetAmountLabel(paidTotal.amountCents, currencyCode);
+    final paidCoverageText = paidTotal.isComplete
+        ? null
+        : tr.budgetCostTrackingPaidCoverageReadOut(
+            paidAmountText,
+            paidTotal.coveredLineCount,
+            paidTotal.lineCount,
+          );
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -823,7 +975,17 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            for (var i = 0; i < 5; i++)
+            SizedBox(
+              width: _ocptCostTrackingAmountColumnWidth,
+              child: Text(
+                paidCoverageText ?? paidAmountText,
+                textAlign: TextAlign.right,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            for (var i = 0; i < 4; i++)
               SizedBox(
                 width: _ocptCostTrackingAmountColumnWidth,
                 child: Text(

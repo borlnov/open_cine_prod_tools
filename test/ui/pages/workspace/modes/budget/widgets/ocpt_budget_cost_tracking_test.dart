@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a
 /// [width]×[height] band — wide enough by default that every column of the table is drawn with
@@ -86,8 +87,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -109,8 +111,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -161,8 +164,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.excludingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -204,8 +208,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: true,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -246,8 +251,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -297,8 +303,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -339,8 +346,9 @@ void main() {
         taxBasis: OcptBudgetTaxBasis.includingTax,
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
-        paidCentsOf: (_) => 0,
+        paidByPosteId: const {},
         committedCentsOf: (_) => 0,
+        offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
         isReadOnly: false,
         onPosteSelected: (_) {},
         onPosteCreationRequested: () {},
@@ -414,8 +422,15 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 1200,
+            paidByPosteId: {
+              "poste-1": const OcptBudgetCoveredTotal(
+                amountCents: 1200,
+                coveredLineCount: 1,
+                lineCount: 1,
+              ),
+            },
             committedCentsOf: (_) => 300,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -426,16 +441,18 @@ void main() {
       );
 
       // Quoted 50.00 €, Paid 12.00 €, Committed 3.00 €, Remaining 35.00 € (50 - 12 - 3), Variance
-      // -35.00 € (12 + 3 - 50), Consumed 30 % ((12 + 3) / 50) — none of them the em dash.
-      expect(find.text(ocptBudgetAmountLabel(1200, "EUR")), findsOneWidget);
+      // -35.00 € (12 + 3 - 50), Consumed 30 % ((12 + 3) / 50) — none of them the em dash. The
+      // single poste's own Paid figure is also the whole table's grand Paid total (no off-quote
+      // spending here), so 12.00 € is drawn twice: this poste's own row, and the total row.
+      expect(find.text(ocptBudgetAmountLabel(1200, "EUR")), findsNWidgets(2));
       expect(find.text(ocptBudgetAmountLabel(300, "EUR")), findsOneWidget);
       expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsOneWidget);
       expect(find.text(ocptBudgetAmountLabel(-3500, "EUR")), findsOneWidget);
       expect(find.text("30 %"), findsOneWidget);
-      // The total row's own five money-that-moved cells always print the em dash (no grand
-      // Paid/Committed total is drawn there yet — the total row's own class doc comment argues
-      // why); this poste's own row contributes none of its own.
-      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
+      // The total row's own `Committed`, `Remaining`, `Variance` and `Consumed` cells always print
+      // the em dash (there is no grand reading for any of them — the total row's own class doc
+      // comment argues why); this poste's own row contributes none of its own.
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(4));
     },
   );
 
@@ -452,8 +469,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -464,11 +482,13 @@ void main() {
       );
 
       // Paid and Committed both read a real zero — nothing having moved against this poste is a
-      // known fact now that the journal exists, not a stand-in for an unknown figure.
-      expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsNWidgets(2));
-      // Only the total row's own five money-that-moved cells print the em dash here (see the
-      // previous test's own comment) — this poste's own row contributes none.
-      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
+      // known fact now that the journal exists, not a stand-in for an unknown figure. The grand
+      // Paid total in the total row is the very same real zero, once more.
+      expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsNWidgets(3));
+      // Only the total row's own `Committed`, `Remaining`, `Variance` and `Consumed` cells print
+      // the em dash here (see the previous test's own comment) — this poste's own row contributes
+      // none.
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(4));
     },
   );
 
@@ -493,8 +513,9 @@ void main() {
             taxBasis: OcptBudgetTaxBasis.includingTax,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
-            paidCentsOf: (_) => 0,
+            paidByPosteId: const {},
             committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
             isReadOnly: false,
             onPosteSelected: (_) {},
             onPosteCreationRequested: () {},
@@ -504,9 +525,115 @@ void main() {
         ),
       );
 
-      // Six dashes: this poste's own Consumed cell (no quote to divide by), plus the total row's
-      // own five money-that-moved cells (see the earlier tests' own comment on that row).
-      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(6));
+      // Five dashes: this poste's own Consumed cell (no quote to divide by), plus the total row's
+      // own `Committed`, `Remaining`, `Variance` and `Consumed` cells (see the earlier tests' own
+      // comment on that row). The total row's own `Quote` and `Paid` cells both read a real
+      // 0.00 € here (an empty quote and no off-quote spending), not the em dash.
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
     },
   );
+
+  group("the off-quote row", () {
+    /// 25.00 € worth of debits naming no poste at all, fully covered.
+    const offQuoteTotal = OcptBudgetCoveredTotal(amountCents: 2500, coveredLineCount: 1, lineCount: 1);
+
+    testWidgets("is drawn between the last poste and the Total row while there is off-quote spending", (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [quotedPoste()],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidByPosteId: const {},
+            committedCentsOf: (_) => 0,
+            offQuoteTotal: offQuoteTotal,
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
+      // Its own Paid cell reads the off-quote total, and, since no poste itself was paid, the
+      // total row's own grand Paid figure reads the very same amount — drawn twice.
+      expect(find.text(ocptBudgetAmountLabel(2500, "EUR")), findsNWidgets(2));
+    });
+
+    testWidgets("is absent while there is no off-quote spending at all", (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [quotedPoste()],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidByPosteId: const {},
+            committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsNothing);
+    });
+
+    testWidgets(
+      "carries no ⋮ menu, prints the em dash in every column it has no reading for, and a tap on "
+      "it does not select a poste",
+      (tester) async {
+        String? selectedPosteId;
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptBudgetCostTracking(
+              postes: [quotedPoste()],
+              selectedPosteId: null,
+              isSimplified: false,
+              taxBasis: OcptBudgetTaxBasis.includingTax,
+              defaultVatRateBasisPoints: null,
+              currencyCode: "EUR",
+              paidByPosteId: const {},
+              committedCentsOf: (_) => 0,
+              offQuoteTotal: offQuoteTotal,
+              isReadOnly: false,
+              onPosteSelected: (posteId) => selectedPosteId = posteId,
+              onPosteCreationRequested: () {},
+              onPosteReorderRequested: (_, {required moveUp}) {},
+              onPosteDeletionRequested: (_) {},
+            ),
+          ),
+        );
+
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+        // Exactly one ⋮ menu on screen: the single poste's own — none for the off-quote row.
+        expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+
+        // Quote, Committed, Remaining, Variance, Consumed: five em dashes on the off-quote row's
+        // own line, its `Paid` cell the one cell that is not one of them.
+        expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+
+        await tester.tap(find.text(tr.budgetCostTrackingOffQuoteLabel));
+        await tester.pumpAndSettle();
+
+        expect(selectedPosteId, isNull);
+      },
+    );
+  });
 }

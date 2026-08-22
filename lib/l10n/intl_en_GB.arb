@@ -10832,6 +10832,30 @@
       }
     }
   },
+  "budgetCostTrackingOffQuoteLabel": "Off quote",
+  "@budgetCostTrackingOffQuoteLabel": {
+    "description": "Identity cell of the cost-tracking table's own off-quote row — the total of every debit naming no poste",
+    "context": "Displayed in the Poste column, between the last poste and the Total row, only while there is off-quote spending",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingPaidCoverageReadOut": "{amount} · over {coveredCount} of the {lineCount} lines",
+  "@budgetCostTrackingPaidCoverageReadOut": {
+    "description": "The cost-tracking table's total row own Paid-cell coverage read-out, folding the per-poste totals and the off-quote total, while some of them carry no known rate",
+    "context": "Displayed in place of the plain Paid total once every one of them declares a rate, this disappears",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "coveredCount": {
+        "type": "int"
+      },
+      "lineCount": {
+        "type": "int"
+      }
+    }
+  },
   "budgetDashboardEmptyHint": "Add a poste to start the quote.",
   "@budgetDashboardEmptyHint": {
     "description": "Hint shown on the dashboard while the project holds no poste at all",
