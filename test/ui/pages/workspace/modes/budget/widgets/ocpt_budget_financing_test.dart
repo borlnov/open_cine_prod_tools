@@ -286,4 +286,25 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets("the column header names every column, once, above every group card", (
+    tester,
+  ) async {
+    final resources = [
+      _resource(id: "r1"),
+      _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash),
+    ];
+
+    await pumpView(tester, resources: resources);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    // Two group cards are drawn (subsidy and cash), but each of the five column headings appears
+    // once: the header sits above every card, not inside each one. Drawn upper-case, mirroring
+    // `OcptBudgetCostTracking`'s own header row.
+    expect(find.text(tr.budgetFinancingColumnLabel.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.budgetFinancingColumnStatus.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.budgetFinancingColumnAmount.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.budgetFinancingColumnReceived.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.budgetFinancingColumnOutstanding.toUpperCase()), findsOneWidget);
+  });
 }

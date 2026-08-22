@@ -55,6 +55,15 @@ const double _ocptFinancingMenuColumnWidth = 36;
 /// writing affordances under it: the `+ Resource` action and a row's own `⋮` menu entries
 /// (`Edit`/`Record a receipt`/`Delete`).
 ///
+/// **One column header, above every group card, rather than one per card.** The five columns
+/// (`Label`, `Status`, `Amount`, `Received`, `Outstanding`) read identically whichever group a row
+/// sits in, so naming them once, in [_OcptFinancingColumnHeaderRow], is what
+/// `OcptBudgetCostTracking`'s own header row already does for a table with one pinned pane rather
+/// than several bordered cards; repeating the same five words inside every card, above a group
+/// heading that already names the card itself, would be noise a reader has to skip past group after
+/// group. It sits between the KPI row and the list of cards, aligned to a row's own five columns by
+/// sharing their exact widths.
+///
 /// Empty states, both mirroring the mode's own established readings: a group holding no resource of
 /// its own draws no card at all — an empty bordered card stating a zero subtotal says nothing a
 /// reader needs — and a project holding no resource whatsoever shows [OcptWorkspaceEmptyMode]
@@ -136,10 +145,19 @@ class OcptBudgetFinancing extends StatelessWidget {
         Expanded(
           child: resources.isEmpty
               ? OcptWorkspaceEmptyMode(icon: Icons.savings_outlined, message: tr.budgetFinancingEmptyHint)
-              : ListView(
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final groupKind in OcptBudgetResourceGroupKind.values)
-                      _buildGroupCard(context, groupKind),
+                    const _OcptFinancingColumnHeaderRow(),
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          for (final groupKind in OcptBudgetResourceGroupKind.values)
+                            _buildGroupCard(context, groupKind),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
         ),
@@ -326,6 +344,76 @@ class _OcptFinancingKpi extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
       ],
+    );
+  }
+}
+
+/// The column header naming a resource row's own five columns — `Label`, `Status`, `Amount`,
+/// `Received`, `Outstanding` — sitting once above every group card, `OcptBudgetCostTracking`'s own
+/// header row read over `OcptBudgetFinancing`'s own layout: a plain [Row] rather than that table's
+/// two independently scrolling panes, since a resource row is never pinned or scrolled apart from
+/// its own figures. Its own widths mirror [_OcptFinancingResourceRow]'s own cells exactly, so a
+/// column lines up with its own heading whichever group card sits beneath it — see
+/// [OcptBudgetFinancing]'s own class doc comment for why one header rather than one per card.
+class _OcptFinancingColumnHeaderRow extends StatelessWidget {
+  /// Class constructor
+  const _OcptFinancingColumnHeaderRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(tr.budgetFinancingColumnLabel.toUpperCase(), style: labelStyle),
+              ),
+            ),
+            SizedBox(
+              width: _ocptFinancingStatusColumnWidth,
+              child: Text(tr.budgetFinancingColumnStatus.toUpperCase(), style: labelStyle),
+            ),
+            SizedBox(
+              width: _ocptFinancingAmountColumnWidth,
+              child: Text(
+                tr.budgetFinancingColumnAmount.toUpperCase(),
+                textAlign: TextAlign.right,
+                style: labelStyle,
+              ),
+            ),
+            SizedBox(
+              width: _ocptFinancingAmountColumnWidth,
+              child: Text(
+                tr.budgetFinancingColumnReceived.toUpperCase(),
+                textAlign: TextAlign.right,
+                style: labelStyle,
+              ),
+            ),
+            SizedBox(
+              width: _ocptFinancingAmountColumnWidth,
+              child: Text(
+                tr.budgetFinancingColumnOutstanding.toUpperCase(),
+                textAlign: TextAlign.right,
+                style: labelStyle,
+              ),
+            ),
+            const SizedBox(width: _ocptFinancingMenuColumnWidth),
+          ],
+        ),
+      ),
     );
   }
 }

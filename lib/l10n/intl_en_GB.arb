@@ -12161,6 +12161,41 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetFinancingColumnLabel": "Label",
+  "@budgetFinancingColumnLabel": {
+    "description": "Column heading for a financing resource's own label",
+    "context": "Displayed above the budget mode's own financing plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingColumnStatus": "Status",
+  "@budgetFinancingColumnStatus": {
+    "description": "Column heading for a financing resource's own status",
+    "context": "Displayed above the budget mode's own financing plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingColumnAmount": "Amount",
+  "@budgetFinancingColumnAmount": {
+    "description": "Column heading for a financing resource's own amount",
+    "context": "Displayed above the budget mode's own financing plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingColumnReceived": "Received",
+  "@budgetFinancingColumnReceived": {
+    "description": "Column heading for what has actually come in against a financing resource",
+    "context": "Displayed above the budget mode's own financing plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingColumnOutstanding": "Outstanding",
+  "@budgetFinancingColumnOutstanding": {
+    "description": "Column heading for what is still outstanding against a financing resource",
+    "context": "Displayed above the budget mode's own financing plan",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetFinancingGroupSubsidyLabel": "Subsidies",
   "@budgetFinancingGroupSubsidyLabel": {
     "description": "Name of the subsidy group of OcptBudgetResourceGroupKind",
