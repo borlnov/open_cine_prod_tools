@@ -85,6 +85,32 @@ class OcptBudgetHeader extends StatelessWidget {
         builder: (context, constraints) {
           final isTitleShown = constraints.maxWidth >= _ocptBudgetHeaderTitleMinWidth;
 
+          final controls = [
+            _OcptBudgetCentreViewSwitch(
+              value: centreView,
+              isSimplified: isSimplified,
+              onChanged: onCentreViewSelected,
+            ),
+            _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
+            _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
+          ];
+
+          // Under the title's own threshold the three controls **wrap onto a second line** rather
+          // than sitting in a `Row` that runs off the edge, exactly as `OcptScheduleHeader` already
+          // lays its own out. Dropping the title is not enough on its own: the centre pane narrows
+          // for a reason the header cannot see — the right dock opening takes roughly 580 px of it
+          // — and a plain `Row` then clips silently, taking the tax-basis switch off the screen
+          // altogether. A control that has scrolled out of a clipped row is worse than a disabled
+          // one, since nothing on screen says it exists at all.
+          if (!isTitleShown) {
+            return Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
+              children: controls,
+            );
+          }
+
           return Row(
             children: [
               if (isTitleShown) ...[
@@ -113,15 +139,11 @@ class OcptBudgetHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
               ],
-              _OcptBudgetCentreViewSwitch(
-                value: centreView,
-                isSimplified: isSimplified,
-                onChanged: onCentreViewSelected,
-              ),
+              controls[0],
               const SizedBox(width: 12),
-              _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
+              controls[1],
               const SizedBox(width: 12),
-              _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
+              controls[2],
             ],
           );
         },
@@ -239,7 +261,13 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
       border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(ocptRadiusMedium),
     ),
-    child: Row(mainAxisSize: MainAxisSize.min, children: children),
+    // A `Wrap` rather than a `Row`, so the seven view chips flow onto a second line inside their
+    // own border when the centre is too narrow to hold them side by side — the right dock opening
+    // on a 1280 px window is enough to cause it. Handed an unbounded width, as the wide branch's
+    // own `Row` hands it, a `Wrap` lays everything out on one line, so the comfortable case is
+    // untouched. These segments are `InkWell`s, not `MenuItemButton`s, so `AGENTS.md`'s standing
+    // pitfall about a menu item inside a `Wrap` does not apply here.
+    child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: children),
   );
 }
 

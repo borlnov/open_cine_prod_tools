@@ -32,6 +32,44 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
+  testWidgets("a centre too narrow for one line wraps the controls rather than clipping them", (
+    tester,
+  ) async {
+    // The width the right dock leaves the centre on a 1280 px window — the case that used to take
+    // the tax-basis switch off the screen entirely, a plain Row clipping silently rather than
+    // overflowing loudly in release.
+    tester.view.physicalSize = const Size(700, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (_) {},
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+
+    // Every control is still on screen, the last one included.
+    expect(find.text(tr.budgetHeaderDashboardSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderSharingSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderIncludingTaxSegmentLabel), findsOneWidget);
+
+    // And it is still tappable, which a clipped one would not be.
+    await tester.tap(find.text(tr.budgetHeaderExcludingTaxSegmentLabel));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets("tapping the Cost tracking chip reports the view it names", (tester) async {
     useWideWindow(tester);
     OcptBudgetCentreView? reported;
