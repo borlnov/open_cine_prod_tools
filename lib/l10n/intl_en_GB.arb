@@ -11147,14 +11147,14 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportPanelTitle": "Export",
+  "budgetExportPanelTitle": "Export the budget",
   "@budgetExportPanelTitle": {
     "description": "Title of the budget mode's own export panel",
     "context": "Displayed at the top of the dialog the budget mode's toolbar Export control opens",
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportPanelMessage": "The budget mode prints no document yet; the project itself still travels as a portable package.",
+  "budgetExportPanelMessage": "The quote, the financing plan, the cash journal and the financial report it's measured against.",
   "@budgetExportPanelMessage": {
     "description": "Message of the budget mode's own export panel",
     "context": "Displayed under the title of the dialog the budget mode's toolbar Export control opens",
@@ -12531,6 +12531,473 @@
     "context": "Displayed in OcptBudgetShareDialog",
     "type": "text",
     "placeholders": {}
+  },
+
+  "budgetExportQuoteTitle": "Quote",
+  "@budgetExportQuoteTitle": {
+    "description": "Title of the quote's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteDescription": "The full CNC nomenclature, poste by poste.",
+  "@budgetExportQuoteDescription": {
+    "description": "One-line description of the quote's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanTitle": "Financing plan",
+  "@budgetExportFinancingPlanTitle": {
+    "description": "Title of the financing plan's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanDescription": "Every resource, grouped by kind, against the plan's own total.",
+  "@budgetExportFinancingPlanDescription": {
+    "description": "One-line description of the financing plan's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalTitle": "Cash journal",
+  "@budgetExportCashJournalTitle": {
+    "description": "Title of the cash journal's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalDescription": "Every entry, in chronological order, with its running balance.",
+  "@budgetExportCashJournalDescription": {
+    "description": "One-line description of the cash journal's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportTitle": "Financial report",
+  "@budgetExportFinancialReportTitle": {
+    "description": "Title of the financial report's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportDescription": "The quote read against what has actually moved, poste by poste.",
+  "@budgetExportFinancialReportDescription": {
+    "description": "One-line description of the financial report's own card in the budget mode's export panel",
+    "context": "Displayed on a card of OcptWorkspaceExportDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportUnavailableNoPosteReason": "No poste is quoted yet.",
+  "@budgetExportUnavailableNoPosteReason": {
+    "description": "Reason shown in place of the quote's (or the financial report's) own card description while the project holds no live poste",
+    "context": "Displayed on a card of the budget mode's export panel while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportUnavailableNoResourceReason": "No resource is planned yet.",
+  "@budgetExportUnavailableNoResourceReason": {
+    "description": "Reason shown in place of the financing plan's own card description while the project holds no live resource",
+    "context": "Displayed on a card of the budget mode's export panel while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportUnavailableNoEntryReason": "No entry is recorded yet.",
+  "@budgetExportUnavailableNoEntryReason": {
+    "description": "Reason shown in place of the cash journal's own card description while the project holds no live entry",
+    "context": "Displayed on a card of the budget mode's export panel while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFileTypeLabel": "PDF document",
+  "@budgetExportFileTypeLabel": {
+    "description": "Label of the native save dialog's own type filter, shown when saving one of the mode's three PDFs",
+    "context": "Passed to the OS save dialog opened by the quote, financing plan or financial report export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportXlsxFileTypeLabel": "Excel workbook",
+  "@budgetExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the cash journal workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFileSuccessMessage": "Exported to {path}",
+  "@budgetExportFileSuccessMessage": {
+    "description": "Message shown when one of the budget mode's four exports was successfully written",
+    "context": "Displayed as a SnackBar over the budget mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetExportError": "The export could not be completed.",
+  "@budgetExportError": {
+    "description": "Error shown when one of the budget mode's four exports failed outright",
+    "context": "Displayed as a SnackBar over the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportVersionLabel": "Version",
+  "@budgetExportVersionLabel": {
+    "description": "Label the moment one of the budget mode's exports was produced is printed under",
+    "context": "Printed on the title page of the quote, the financing plan and the financial report",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteDialogTitle": "Export the quote",
+  "@budgetExportQuoteDialogTitle": {
+    "description": "Title of the quote export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanDialogTitle": "Export the financing plan",
+  "@budgetExportFinancingPlanDialogTitle": {
+    "description": "Title of the financing plan export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportDialogTitle": "Export the financial report",
+  "@budgetExportFinancialReportDialogTitle": {
+    "description": "Title of the financial report export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteFileNameSuffix": "quote",
+  "@budgetExportQuoteFileNameSuffix": {
+    "description": "The word telling the exported quote apart from the other files the app writes",
+    "context": "OcptBudgetQuoteLabels.fileNameSuffix",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteDocumentTitle": "Quote",
+  "@budgetExportQuoteDocumentTitle": {
+    "description": "The quote's own generic name, printed as the title page's own document name and in every page's own running head",
+    "context": "OcptBudgetQuoteLabels.documentTitle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteLineLabelHeader": "Label",
+  "@budgetExportQuoteLineLabelHeader": {
+    "description": "The header of a quote line's own label column",
+    "context": "OcptBudgetQuoteLabels.lineLabelHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteQuantityHeader": "Quantity",
+  "@budgetExportQuoteQuantityHeader": {
+    "description": "The header of a quote line's own quantity-and-unit column",
+    "context": "OcptBudgetQuoteLabels.quantityHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteUnitPriceHeader": "Unit price",
+  "@budgetExportQuoteUnitPriceHeader": {
+    "description": "The header of a quote line's own unit-price column",
+    "context": "OcptBudgetQuoteLabels.unitPriceHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteLineTotalHeader": "Total",
+  "@budgetExportQuoteLineTotalHeader": {
+    "description": "The header of a quote line's own total column",
+    "context": "OcptBudgetQuoteLabels.lineTotalHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuotePosteSubtotalLabel": "Subtotal",
+  "@budgetExportQuotePosteSubtotalLabel": {
+    "description": "The label printed beside a poste's own subtotal row",
+    "context": "OcptBudgetQuoteLabels.posteSubtotalLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteProjectTotalLabel": "Grand total",
+  "@budgetExportQuoteProjectTotalLabel": {
+    "description": "The label printed beside the project's own grand total, at the very end of the quote",
+    "context": "OcptBudgetQuoteLabels.projectTotalLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteIncludingTaxCaption": "Amounts include tax.",
+  "@budgetExportQuoteIncludingTaxCaption": {
+    "description": "Caption stating every amount is printed including tax",
+    "context": "OcptBudgetQuoteLabels.includingTaxCaption",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteExcludingTaxCaption": "Amounts exclude tax.",
+  "@budgetExportQuoteExcludingTaxCaption": {
+    "description": "Caption stating every amount is printed excluding tax",
+    "context": "OcptBudgetQuoteLabels.excludingTaxCaption",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteNoLinesLabel": "This poste has no quote line yet.",
+  "@budgetExportQuoteNoLinesLabel": {
+    "description": "Note a poste holding no line at all prints in place of its own table",
+    "context": "OcptBudgetQuoteLabels.noLinesLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportQuoteEmptyDocumentNote": "No poste is quoted yet.",
+  "@budgetExportQuoteEmptyDocumentNote": {
+    "description": "Note the whole quote prints in place of every poste when the project holds none at all",
+    "context": "OcptBudgetQuoteLabels.emptyDocumentNote",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanFileNameSuffix": "financing plan",
+  "@budgetExportFinancingPlanFileNameSuffix": {
+    "description": "The word telling the exported financing plan apart from the other files the app writes",
+    "context": "OcptBudgetFinancingPlanLabels.fileNameSuffix",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanDocumentTitle": "Financing plan",
+  "@budgetExportFinancingPlanDocumentTitle": {
+    "description": "The financing plan's own generic name, printed as the title page's own document name and in every page's own running head",
+    "context": "OcptBudgetFinancingPlanLabels.documentTitle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanLabelHeader": "Label",
+  "@budgetExportFinancingPlanLabelHeader": {
+    "description": "The header of a resource's own label column",
+    "context": "OcptBudgetFinancingPlanLabels.labelHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanStatusHeader": "Status",
+  "@budgetExportFinancingPlanStatusHeader": {
+    "description": "The header of a resource's own status column",
+    "context": "OcptBudgetFinancingPlanLabels.statusHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanAmountHeader": "Amount",
+  "@budgetExportFinancingPlanAmountHeader": {
+    "description": "The header of a resource's own amount column",
+    "context": "OcptBudgetFinancingPlanLabels.amountHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanReceivedHeader": "Received",
+  "@budgetExportFinancingPlanReceivedHeader": {
+    "description": "The header of what has come in against a resource",
+    "context": "OcptBudgetFinancingPlanLabels.receivedHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanOutstandingHeader": "Outstanding",
+  "@budgetExportFinancingPlanOutstandingHeader": {
+    "description": "The header of what is still outstanding against a resource",
+    "context": "OcptBudgetFinancingPlanLabels.outstandingHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanGroupSubtotalLabel": "Subtotal",
+  "@budgetExportFinancingPlanGroupSubtotalLabel": {
+    "description": "The label printed beside a group's own subtotal row",
+    "context": "OcptBudgetFinancingPlanLabels.groupSubtotalLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanProjectTotalLabel": "Grand total",
+  "@budgetExportFinancingPlanProjectTotalLabel": {
+    "description": "The label printed beside the plan's own grand total, at the very end of the document",
+    "context": "OcptBudgetFinancingPlanLabels.projectTotalLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancingPlanEmptyDocumentNote": "No resource is planned yet.",
+  "@budgetExportFinancingPlanEmptyDocumentNote": {
+    "description": "Note the whole document prints when the project holds no live resource at all",
+    "context": "OcptBudgetFinancingPlanLabels.emptyDocumentNote",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportFileNameSuffix": "financial report",
+  "@budgetExportFinancialReportFileNameSuffix": {
+    "description": "The word telling the exported financial report apart from the other files the app writes",
+    "context": "OcptBudgetFinancialReportLabels.fileNameSuffix",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportDocumentTitle": "Financial report",
+  "@budgetExportFinancialReportDocumentTitle": {
+    "description": "The financial report's own generic name, printed as the title page's own document name and in every page's own running head",
+    "context": "OcptBudgetFinancialReportLabels.documentTitle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportPosteHeader": "Poste",
+  "@budgetExportFinancialReportPosteHeader": {
+    "description": "The header of the poste column",
+    "context": "OcptBudgetFinancialReportLabels.posteHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportQuotedHeader": "Quoted",
+  "@budgetExportFinancialReportQuotedHeader": {
+    "description": "The header of a poste's own quoted total column",
+    "context": "OcptBudgetFinancialReportLabels.quotedHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportPaidHeader": "Paid",
+  "@budgetExportFinancialReportPaidHeader": {
+    "description": "The header of a poste's own paid total column",
+    "context": "OcptBudgetFinancialReportLabels.paidHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportCommittedHeader": "Committed",
+  "@budgetExportFinancialReportCommittedHeader": {
+    "description": "The header of a poste's own committed total column",
+    "context": "OcptBudgetFinancialReportLabels.committedHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportRemainingHeader": "Remaining",
+  "@budgetExportFinancialReportRemainingHeader": {
+    "description": "The header of a poste's own remaining column",
+    "context": "OcptBudgetFinancialReportLabels.remainingHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportVarianceHeader": "Variance",
+  "@budgetExportFinancialReportVarianceHeader": {
+    "description": "The header of a poste's own variance column",
+    "context": "OcptBudgetFinancialReportLabels.varianceHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportProjectTotalsLabel": "Grand total",
+  "@budgetExportFinancialReportProjectTotalsLabel": {
+    "description": "The label printed beside the project's own totals row, at the very end of the table",
+    "context": "OcptBudgetFinancialReportLabels.projectTotalsLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportFinancingPlanTotalLabel": "Financing plan total",
+  "@budgetExportFinancialReportFinancingPlanTotalLabel": {
+    "description": "The label printed beside the financing plan's own grand total, under the table",
+    "context": "OcptBudgetFinancialReportLabels.financingPlanTotalLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportFinancialReportEmptyDocumentNote": "No poste is quoted yet.",
+  "@budgetExportFinancialReportEmptyDocumentNote": {
+    "description": "Note the whole document prints when the project holds no poste at all",
+    "context": "OcptBudgetFinancialReportLabels.emptyDocumentNote",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalSheetName": "Cash journal",
+  "@budgetExportCashJournalSheetName": {
+    "description": "The name given to the exported cash journal workbook's single sheet",
+    "context": "OcptBudgetCashJournalXlsxLabels.sheetName",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalDateHeader": "Date",
+  "@budgetExportCashJournalDateHeader": {
+    "description": "The header of the entry's own date column",
+    "context": "OcptBudgetCashJournalXlsxLabels.dateHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalVoucherHeader": "Voucher",
+  "@budgetExportCashJournalVoucherHeader": {
+    "description": "The header of the entry's own voucher number column",
+    "context": "OcptBudgetCashJournalXlsxLabels.voucherHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalLabelHeader": "Label",
+  "@budgetExportCashJournalLabelHeader": {
+    "description": "The header of the entry's own label column",
+    "context": "OcptBudgetCashJournalXlsxLabels.labelHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalPosteHeader": "Poste",
+  "@budgetExportCashJournalPosteHeader": {
+    "description": "The header of the entry's own poste column",
+    "context": "OcptBudgetCashJournalXlsxLabels.posteHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalSettlesHeader": "Settles",
+  "@budgetExportCashJournalSettlesHeader": {
+    "description": "The header of what the entry settles",
+    "context": "OcptBudgetCashJournalXlsxLabels.settlesHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalDebitHeader": "Debit",
+  "@budgetExportCashJournalDebitHeader": {
+    "description": "The header of the entry's own debit column",
+    "context": "OcptBudgetCashJournalXlsxLabels.debitHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalCreditHeader": "Credit",
+  "@budgetExportCashJournalCreditHeader": {
+    "description": "The header of the entry's own credit column",
+    "context": "OcptBudgetCashJournalXlsxLabels.creditHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalBalanceHeader": "Balance",
+  "@budgetExportCashJournalBalanceHeader": {
+    "description": "The header of the running balance column",
+    "context": "OcptBudgetCashJournalXlsxLabels.balanceHeader",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCashJournalTotalsRowLabel": "Total",
+  "@budgetExportCashJournalTotalsRowLabel": {
+    "description": "The label of the trailing totals row",
+    "context": "OcptBudgetCashJournalXlsxLabels.totalsRowLabel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetExportCoverageReadOutTemplate": "{amount} · {coveredCount} of {totalCount} known",
+  "@budgetExportCoverageReadOutTemplate": {
+    "description": "A raw, still-localizable template a total's own coverage read-out is built from by the manager layer, which cannot ask Tr to interpolate the real figures itself: resolved once through Tr with the three placeholder names themselves as its own arguments (so the current locale's own word order is kept) then handed to the manager as a plain string, which replaces {amount}, {coveredCount} and {totalCount} with the real figures at export time",
+    "context": "OcptBudgetQuoteLabels.coverageReadOutTemplate, OcptBudgetFinancingPlanLabels.coverageReadOutTemplate and OcptBudgetFinancialReportLabels.coverageReadOutTemplate",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "coveredCount": {
+        "type": "String"
+      },
+      "totalCount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetExportBalanceShortfallMessageTemplate": "Short by {amount}.",
+  "@budgetExportBalanceShortfallMessageTemplate": {
+    "description": "A raw, still-localizable template mirroring tr.budgetDashboardBalanceShortfallMessage, resolved the same indirect way budgetExportCoverageReadOutTemplate is (see its own description) since the manager layer cannot ask Tr to interpolate the real figure itself",
+    "context": "OcptBudgetFinancingPlanLabels.balanceShortfallMessageTemplate and OcptBudgetFinancialReportLabels.balanceShortfallMessageTemplate",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
   }
 
 }

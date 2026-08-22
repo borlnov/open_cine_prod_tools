@@ -117,6 +117,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// A finder scoped to the export panel's own `AlertDialog`, so its card titles can't collide
+  /// with anything else on screen — mirrors `schedule_mode_test.dart`'s own `inPanel`.
+  Finder inPanel(Finder matching) =>
+      find.descendant(of: find.byType(AlertDialog), matching: matching);
+
   testWidgets("the ten CNC postes are seeded and shown on first entry", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -530,6 +535,46 @@ void main() {
 
       // Leave the preview so the working copy is what the next test opens onto.
       await projectsManager.exitPreview();
+    },
+  );
+
+  testWidgets(
+    "the export panel draws all four documents plus the standing project-package card",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetExportPanelTitle), findsOneWidget);
+      expect(inPanel(find.text(tr.budgetExportQuoteTitle)), findsOneWidget);
+      expect(inPanel(find.text(tr.budgetExportFinancingPlanTitle)), findsOneWidget);
+      expect(inPanel(find.text(tr.budgetExportCashJournalTitle)), findsOneWidget);
+      expect(inPanel(find.text(tr.budgetExportFinancialReportTitle)), findsOneWidget);
+      expect(inPanel(find.text(tr.workspaceExportProjectPackageTitle)), findsOneWidget);
+
+      // The ten CNC postes are seeded on first entry, so the quote and the financial report are
+      // both available; a fresh project holds no live resource and no live entry yet, so the
+      // financing plan and the cash journal are both greyed and inert with their own reason.
+      expect(inPanel(find.text(tr.budgetExportQuoteDescription)), findsOneWidget);
+      expect(inPanel(find.text(tr.budgetExportFinancialReportDescription)), findsOneWidget);
+      expect(inPanel(find.text(tr.budgetExportUnavailableNoResourceReason)), findsOneWidget);
+      expect(inPanel(find.text(tr.budgetExportUnavailableNoEntryReason)), findsOneWidget);
+
+      // Picking the quote card opens its own options dialog.
+      await tester.tap(inPanel(find.text(tr.budgetExportQuoteTitle)));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetExportPanelTitle), findsNothing);
+      expect(find.text(tr.budgetExportQuoteDialogTitle), findsOneWidget);
     },
   );
 }

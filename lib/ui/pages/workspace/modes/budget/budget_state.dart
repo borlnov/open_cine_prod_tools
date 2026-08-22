@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
@@ -37,6 +39,38 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// The key [OcptBudgetState.pendingFieldEdits] is stored under: which poste or line, and which of
 /// its own [OcptBudgetField]s — mirrors `OcptSchedulePendingFieldKey`.
 typedef OcptBudgetPendingFieldKey = (String targetId, OcptBudgetField field);
+
+/// The kind of transient notice [OcptBudgetIoNotice] carries — one shared pair reused across the
+/// mode's four exports (three PDFs and one XLSX), exactly as `OcptScheduleIoNoticeKind` shares its
+/// own `fileExportSucceeded`/`exportFailed` pair across the schedule mode's own heterogeneous
+/// documents rather than growing one kind per document.
+enum OcptBudgetIoNoticeKind {
+  /// One of the four exports was written successfully.
+  fileExportSucceeded,
+
+  /// One of the four exports failed outright (an exception was thrown while rendering or writing
+  /// it). A cancelled save dialog is a silent no-op instead, exactly as every other export in the
+  /// app treats it.
+  exportFailed,
+}
+
+/// A transient notice, produced by `OcptBudgetBloc`, reporting the outcome of one of the mode's
+/// four exports, shown as a SnackBar then dismissed. Modelled on `OcptScheduleIoNotice`.
+class OcptBudgetIoNotice extends Equatable {
+  /// The outcome this notice reports.
+  final OcptBudgetIoNoticeKind kind;
+
+  /// The path the export was written to, only set when [kind] is [OcptBudgetIoNoticeKind
+  /// .fileExportSucceeded].
+  final String? path;
+
+  /// Class constructor
+  const OcptBudgetIoNotice({required this.kind, this.path});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [kind, path];
+}
 
 /// The state of `OcptBudgetBloc`.
 ///
@@ -172,6 +206,15 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
+
+  /// The page setup the mode's own three PDF exports are pre-filled with: the open project's own
+  /// page format, paired with the app-wide margins preference — loaded exactly as
+  /// `OcptResourcesState.pageSetup` is, this mode carrying no screenplay of its own to typeset.
+  final OcptPageSetup pageSetup;
+
+  /// A transient notice reporting the outcome of one of the mode's four exports, shown as a
+  /// SnackBar then dismissed, or null while none is pending.
+  final OcptBudgetIoNotice? ioNotice;
 
   /// Every live poste of [snapshot], in display order (empty while nothing is loaded).
   List<OcptBudgetPoste> get postes => snapshot?.postes ?? const [];
@@ -435,6 +478,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.pageSetup,
+    required this.ioNotice,
   });
 
   /// Init class constructor
@@ -467,7 +512,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      pageSetup = const OcptPageSetup.standard(),
+      ioNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -521,6 +568,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     bool clearProjectPackagePendingExport = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool clearProjectPackageNotice = false,
+    OcptPageSetup? pageSetup,
+    OcptBudgetIoNotice? ioNotice,
+    bool clearIoNotice = false,
   }) => OcptBudgetState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -563,6 +613,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     projectPackageNotice: clearProjectPackageNotice
         ? null
         : (projectPackageNotice ?? this.projectPackageNotice),
+    pageSetup: pageSetup ?? this.pageSetup,
+    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -635,5 +687,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     people,
     elements,
     regieDecorNameByDayId,
+    pageSetup,
+    ioNotice,
   ];
 }

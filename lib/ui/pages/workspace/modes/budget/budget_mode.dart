@@ -16,9 +16,11 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -34,9 +36,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_element_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financial_report_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_inspector.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_quote_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_revenue_dialog.dart';
@@ -70,17 +75,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// catalogue naming no episode at all, exactly the schedule mode's own reason — not for want of a
 /// bloc.
 ///
-/// **The `Export` control is wired even though this milestone prints nothing.** The panel it opens
-/// (`OcptWorkspaceExportDialog<Never>`) is generic over `Never` because there is no document enum
-/// yet to be generic over — `entries` is `const []`, so the panel opens onto its own standing
-/// project-package card alone, which is the panel's card rather than any mode's
-/// (`OcptWorkspaceExportDialog`'s own doc comment): a colleague can still receive this project as a
-/// portable package before the mode prints a single PDF. The exhaustive switch in
-/// `_BudgetViewState._requestExport` still has to name the case
-/// `OcptWorkspaceExportDocumentPick<Never>` reaches — a `Never` payload
-/// can never actually arrive, `entries` being empty, but the switch says so honestly rather than
-/// falling back to a bare `default` that would silently swallow a real one the day M4 adds an enum
-/// here and forgets to widen this generic.
+/// **The `Export` control now opens onto four real documents**: the quote, the financing plan, the
+/// cash journal and the financial report (`OcptBudgetExportDocument`), each with its own card in
+/// `_BudgetViewState._buildExportEntries` — the panel's standing project-package card sits under
+/// them exactly as `exports.md` describes it. A card the underlying data cannot yet support is
+/// greyed and inert with the reason in its own description's place, never hidden: the quote and the
+/// financial report while the project holds no live poste at all, the financing plan while it holds
+/// no live resource, and the cash journal while it holds no live entry — each a real, reachable
+/// state (every poste can be deleted one by one, a fresh project starts with no resource and no
+/// entry) rather than one invented for the sake of drawing a greyed card.
 class OcptBudgetMode extends StatelessWidget {
   /// Creates the budget mode.
   const OcptBudgetMode({super.key});
@@ -182,15 +185,57 @@ class _BudgetViewState extends State<_BudgetView> {
     },
   );
 
-  /// Opens the toolbar's `Export` panel — see the class doc comment for why it opens onto the
-  /// project-package card alone.
+  /// Builds the four entries the toolbar's `Export` button offers — see the class doc comment for
+  /// which of them is greyed and inert, and why.
+  List<OcptWorkspaceExportEntry<OcptBudgetExportDocument>> _buildExportEntries(
+    BuildContext context,
+    OcptBudgetState state,
+  ) {
+    final tr = Tr.of(context);
+    final noPosteReason = state.postes.isEmpty ? tr.budgetExportUnavailableNoPosteReason : null;
+
+    return [
+      OcptWorkspaceExportEntry<OcptBudgetExportDocument>(
+        value: OcptBudgetExportDocument.quote,
+        title: tr.budgetExportQuoteTitle,
+        description: tr.budgetExportQuoteDescription,
+        formatLabel: "PDF",
+        unavailableReason: noPosteReason,
+      ),
+      OcptWorkspaceExportEntry<OcptBudgetExportDocument>(
+        value: OcptBudgetExportDocument.financingPlan,
+        title: tr.budgetExportFinancingPlanTitle,
+        description: tr.budgetExportFinancingPlanDescription,
+        formatLabel: "PDF",
+        unavailableReason: state.resources.isEmpty ? tr.budgetExportUnavailableNoResourceReason : null,
+      ),
+      OcptWorkspaceExportEntry<OcptBudgetExportDocument>(
+        value: OcptBudgetExportDocument.cashJournal,
+        title: tr.budgetExportCashJournalTitle,
+        description: tr.budgetExportCashJournalDescription,
+        formatLabel: "XLSX",
+        unavailableReason: state.entries.isEmpty ? tr.budgetExportUnavailableNoEntryReason : null,
+      ),
+      OcptWorkspaceExportEntry<OcptBudgetExportDocument>(
+        value: OcptBudgetExportDocument.financialReport,
+        title: tr.budgetExportFinancialReportTitle,
+        description: tr.budgetExportFinancialReportDescription,
+        formatLabel: "PDF",
+        unavailableReason: noPosteReason,
+      ),
+    ];
+  }
+
+  /// Opens the toolbar's `Export` panel, then dispatches the picked document's own request onto its
+  /// own `_request…Export` method — each one opens its own options dialog first, the cash journal
+  /// alone taking none, exactly as `OcptScheduleMode._requestExport` does for its own six documents.
   Future<void> _requestExport(BuildContext context, OcptBudgetState state) async {
     final tr = Tr.of(context);
-    final picked = await OcptWorkspaceExportDialog.show<Never>(
+    final picked = await OcptWorkspaceExportDialog.show<OcptBudgetExportDocument>(
       context,
       title: tr.budgetExportPanelTitle,
       message: tr.budgetExportPanelMessage,
-      entries: const [],
+      entries: _buildExportEntries(context, state),
       isPreviewingVersion: state.isPreviewingVersion,
     );
     if (picked == null) {
@@ -201,15 +246,135 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     switch (picked) {
-      case OcptWorkspaceExportDocumentPick<Never>():
-        // Unreachable: `entries` is `const []`, so no card the panel drew could ever produce a
-        // document pick — see the class doc comment. Named explicitly rather than folded into a
-        // bare `default` all the same, so a real document enum added here later has to be handled
-        // rather than silently falling through this branch.
-        break;
-      case OcptWorkspaceExportProjectPackagePick<Never>():
+      case OcptWorkspaceExportDocumentPick<OcptBudgetExportDocument>(:final document):
+        switch (document) {
+          case OcptBudgetExportDocument.quote:
+            await _requestQuoteExport(context, state);
+          case OcptBudgetExportDocument.financingPlan:
+            await _requestFinancingPlanExport(context, state);
+          case OcptBudgetExportDocument.cashJournal:
+            _requestCashJournalExport(context, state);
+          case OcptBudgetExportDocument.financialReport:
+            await _requestFinancialReportExport(context, state);
+        }
+      case OcptWorkspaceExportProjectPackagePick<OcptBudgetExportDocument>():
         _requestProjectPackageExport(context);
     }
+  }
+
+  /// Shows the quote export options dialog, then dispatches the export request if the user applied
+  /// it, resolving here — the last place with a [BuildContext] — the labels, the breakdown element
+  /// names and the localized string the native save dialog carries.
+  Future<void> _requestQuoteExport(BuildContext context, OcptBudgetState state) async {
+    final options = await OcptBudgetQuoteExportDialog.show(
+      context,
+      current: state.pageSetup,
+      taxBasis: state.taxBasis,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    context.read<OcptBudgetBloc>().add(
+      OcptBudgetQuoteExportRequestedEvent(
+        options: options,
+        labels: ocptBudgetQuoteLabelsOf(context),
+        elementNameById: {for (final element in state.elements) element.id: element.name},
+        fileTypeLabel: tr.budgetExportFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Shows the financing plan export options dialog, then dispatches the export request if the user
+  /// applied it — mirrors [_requestQuoteExport].
+  Future<void> _requestFinancingPlanExport(BuildContext context, OcptBudgetState state) async {
+    final options = await OcptBudgetFinancingPlanExportDialog.show(context, current: state.pageSetup);
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    context.read<OcptBudgetBloc>().add(
+      OcptBudgetFinancingPlanExportRequestedEvent(
+        options: options,
+        labels: ocptBudgetFinancingPlanLabelsOf(context),
+        fileTypeLabel: tr.budgetExportFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Dispatches the cash journal export request straight away — this document takes no options
+  /// dialog of its own, mirroring every other options-free export in the app.
+  void _requestCashJournalExport(BuildContext context, OcptBudgetState state) {
+    final tr = Tr.of(context);
+    context.read<OcptBudgetBloc>().add(
+      OcptBudgetCashJournalExportRequestedEvent(
+        labels: ocptBudgetCashJournalXlsxLabelsOf(context),
+        linkLabelByEntryId: _linkLabelByEntryIdOf(state),
+        fileTypeLabel: tr.budgetExportXlsxFileTypeLabel,
+      ),
+    );
+  }
+
+  /// What each live entry of [state] settles, keyed by its own id — a resource's, a taking's or a
+  /// share's own label read straight off the entry naming it, or the label of the commitment this
+  /// entry itself settles (`OcptBudgetCommitment.settledEntryId`), an entry naming none of them
+  /// getting no key here at all. `OcptBudgetCashJournalXlsxExportService` resolves nothing of this
+  /// itself (its own doc comment), which is what keeps it independent of `budget_revenues`/
+  /// `budget_shares`.
+  Map<String, String> _linkLabelByEntryIdOf(OcptBudgetState state) {
+    final resourceById = {for (final resource in state.resources) resource.id: resource};
+    final revenueById = {for (final revenue in state.revenues) revenue.id: revenue};
+    final shareById = {for (final share in state.shares) share.id: share};
+    final commitmentBySettledEntryId = {
+      for (final commitment in state.commitments)
+        if (commitment.settledEntryId != null) commitment.settledEntryId!: commitment,
+    };
+
+    final linkLabelByEntryId = <String, String>{};
+    for (final entry in state.entries) {
+      final resourceLabel = resourceById[entry.resourceId]?.label;
+      final revenueLabel = revenueById[entry.revenueId]?.label;
+      final shareLabel = shareById[entry.shareId]?.label;
+      final settledCommitmentLabel = commitmentBySettledEntryId[entry.id]?.label;
+      final label = resourceLabel ?? revenueLabel ?? shareLabel ?? settledCommitmentLabel;
+      if (label != null) {
+        linkLabelByEntryId[entry.id] = label;
+      }
+    }
+
+    return linkLabelByEntryId;
+  }
+
+  /// Shows the financial report export options dialog, then dispatches the export request if the
+  /// user applied it — mirrors [_requestFinancingPlanExport].
+  Future<void> _requestFinancialReportExport(BuildContext context, OcptBudgetState state) async {
+    final options = await OcptBudgetFinancialReportExportDialog.show(
+      context,
+      current: state.pageSetup,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    context.read<OcptBudgetBloc>().add(
+      OcptBudgetFinancialReportExportRequestedEvent(
+        options: options,
+        labels: ocptBudgetFinancialReportLabelsOf(context),
+        fileTypeLabel: tr.budgetExportFileTypeLabel,
+      ),
+    );
   }
 
   /// Dispatches the project package export, resolving here — the last place with a
@@ -1391,5 +1556,25 @@ class _BudgetViewState extends State<_BudgetView> {
         ..showSnackBar(SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))));
       context.read<OcptBudgetBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
+
+    final ioNotice = state.ioNotice;
+    if (ioNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+      context.read<OcptBudgetBloc>().add(const OcptBudgetIoNoticeDismissedEvent());
+    }
+  }
+
+  /// The SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`.
+  String _ioNoticeMessage(BuildContext context, OcptBudgetIoNotice notice) {
+    final tr = Tr.of(context);
+
+    return switch (notice.kind) {
+      OcptBudgetIoNoticeKind.fileExportSucceeded => tr.budgetExportFileSuccessMessage(
+        notice.path ?? "",
+      ),
+      OcptBudgetIoNoticeKind.exportFailed => tr.budgetExportError,
+    };
   }
 }

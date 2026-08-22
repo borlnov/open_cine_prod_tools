@@ -2,12 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart' show Color, ColorScheme;
+import 'package:flutter/material.dart' show BuildContext, Color, ColorScheme;
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
@@ -231,3 +235,134 @@ int? ocptBudgetQuantityMilliOf(String text) {
 /// `%` sign appended the very same way [ocptBudgetAmountLabel] appends a currency symbol
 /// `ocptCostTextOf` never carries.
 String ocptBudgetSharePercentLabel(int permille) => "${ocptPermillePercentTextOf(permille)}%";
+
+/// A total's own coverage read-out template, still fully localizable and yet handed to the
+/// manager layer as a plain string it can `.replaceAll` the real figures into
+/// (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`'s own `ocptBudgetExportCoveredAmountText`,
+/// which no service under `lib/managers/` may ask `Tr` to interpolate itself).
+///
+/// Calling [Tr.budgetExportCoverageReadOutTemplate] with the placeholder names themselves as its
+/// own string arguments resolves the current locale's own word order around them (a French
+/// translation may read the figures in a different order than the English one) while leaving the
+/// literal `{amount}`/`{coveredCount}`/`{totalCount}` tokens in the returned string exactly where
+/// that word order puts them — which is what the manager's own second pass replaces with the real
+/// figures at export time. Shared by [ocptBudgetQuoteLabelsOf], [ocptBudgetFinancingPlanLabelsOf]
+/// and [ocptBudgetFinancialReportLabelsOf], all three documents reading the very same template.
+String _ocptBudgetExportCoverageReadOutTemplate(Tr tr) =>
+    tr.budgetExportCoverageReadOutTemplate("{amount}", "{coveredCount}", "{totalCount}");
+
+/// The needs/resources balance's own shortfall verdict template, still fully localizable — mirrors
+/// [_ocptBudgetExportCoverageReadOutTemplate]'s own reasoning and reused by both
+/// [ocptBudgetFinancingPlanLabelsOf] and [ocptBudgetFinancialReportLabelsOf].
+String _ocptBudgetExportBalanceShortfallMessageTemplate(Tr tr) =>
+    tr.budgetExportBalanceShortfallMessageTemplate("{amount}");
+
+/// Every localized string the exported quote carries, resolved once here so `OcptBudgetMode` hands
+/// the manager a labels object rather than a `Tr` it must never see (`AGENTS.md`).
+OcptBudgetQuoteLabels ocptBudgetQuoteLabelsOf(BuildContext context) {
+  final tr = Tr.of(context);
+
+  return OcptBudgetQuoteLabels(
+    fileNameSuffix: tr.budgetExportQuoteFileNameSuffix,
+    documentTitle: tr.budgetExportQuoteDocumentTitle,
+    versionLabel: tr.budgetExportVersionLabel,
+    lineLabelHeader: tr.budgetExportQuoteLineLabelHeader,
+    quantityHeader: tr.budgetExportQuoteQuantityHeader,
+    unitPriceHeader: tr.budgetExportQuoteUnitPriceHeader,
+    lineTotalHeader: tr.budgetExportQuoteLineTotalHeader,
+    posteSubtotalLabel: tr.budgetExportQuotePosteSubtotalLabel,
+    projectTotalLabel: tr.budgetExportQuoteProjectTotalLabel,
+    includingTaxCaption: tr.budgetExportQuoteIncludingTaxCaption,
+    excludingTaxCaption: tr.budgetExportQuoteExcludingTaxCaption,
+    noLinesLabel: tr.budgetExportQuoteNoLinesLabel,
+    emptyDocumentNote: tr.budgetExportQuoteEmptyDocumentNote,
+    coverageReadOutTemplate: _ocptBudgetExportCoverageReadOutTemplate(tr),
+  );
+}
+
+/// Every localized string the exported financing plan carries — mirrors [ocptBudgetQuoteLabelsOf].
+///
+/// `groupTitles`/`statusLabels` reuse [ocptBudgetResourceGroupKindLabel]/
+/// [ocptBudgetResourceStatusLabel] rather than resolving their own words, so the exported document
+/// never disagrees with the screen about what a group or a status is called.
+/// `balanceNeedsLabel`/`balanceResourcesLabel`/`balanceNoQuoteMessage`/`balanceBalancedMessage`
+/// reuse the dashboard's own balance bar strings for the same reason — see
+/// `OcptBudgetFinancingPlanLabels`'s own doc comment.
+OcptBudgetFinancingPlanLabels ocptBudgetFinancingPlanLabelsOf(BuildContext context) {
+  final tr = Tr.of(context);
+
+  return OcptBudgetFinancingPlanLabels(
+    fileNameSuffix: tr.budgetExportFinancingPlanFileNameSuffix,
+    documentTitle: tr.budgetExportFinancingPlanDocumentTitle,
+    versionLabel: tr.budgetExportVersionLabel,
+    groupTitles: {
+      for (final kind in OcptBudgetResourceGroupKind.values)
+        kind: ocptBudgetResourceGroupKindLabel(tr, kind),
+    },
+    statusLabels: {
+      for (final status in OcptBudgetResourceStatus.values)
+        status: ocptBudgetResourceStatusLabel(tr, status),
+    },
+    labelHeader: tr.budgetExportFinancingPlanLabelHeader,
+    statusHeader: tr.budgetExportFinancingPlanStatusHeader,
+    amountHeader: tr.budgetExportFinancingPlanAmountHeader,
+    receivedHeader: tr.budgetExportFinancingPlanReceivedHeader,
+    outstandingHeader: tr.budgetExportFinancingPlanOutstandingHeader,
+    groupSubtotalLabel: tr.budgetExportFinancingPlanGroupSubtotalLabel,
+    projectTotalLabel: tr.budgetExportFinancingPlanProjectTotalLabel,
+    emptyDocumentNote: tr.budgetExportFinancingPlanEmptyDocumentNote,
+    balanceNeedsLabel: tr.budgetDashboardBalanceNeedsLabel,
+    balanceResourcesLabel: tr.budgetDashboardBalanceResourcesLabel,
+    balanceNoQuoteMessage: tr.budgetDashboardBalanceNoQuoteMessage,
+    balanceBalancedMessage: tr.budgetDashboardBalanceBalancedMessage,
+    balanceShortfallMessageTemplate: _ocptBudgetExportBalanceShortfallMessageTemplate(tr),
+    coverageReadOutTemplate: _ocptBudgetExportCoverageReadOutTemplate(tr),
+  );
+}
+
+/// Every localized string the exported cash journal workbook carries — mirrors
+/// [ocptBudgetQuoteLabelsOf].
+OcptBudgetCashJournalXlsxLabels ocptBudgetCashJournalXlsxLabelsOf(BuildContext context) {
+  final tr = Tr.of(context);
+
+  return OcptBudgetCashJournalXlsxLabels(
+    sheetName: tr.budgetExportCashJournalSheetName,
+    dateHeader: tr.budgetExportCashJournalDateHeader,
+    voucherHeader: tr.budgetExportCashJournalVoucherHeader,
+    labelHeader: tr.budgetExportCashJournalLabelHeader,
+    posteHeader: tr.budgetExportCashJournalPosteHeader,
+    settlesHeader: tr.budgetExportCashJournalSettlesHeader,
+    debitHeader: tr.budgetExportCashJournalDebitHeader,
+    creditHeader: tr.budgetExportCashJournalCreditHeader,
+    balanceHeader: tr.budgetExportCashJournalBalanceHeader,
+    totalsRowLabel: tr.budgetExportCashJournalTotalsRowLabel,
+  );
+}
+
+/// Every localized string the exported financial report carries — mirrors
+/// [ocptBudgetFinancingPlanLabelsOf], reusing the very same dashboard balance strings for the very
+/// same reason.
+OcptBudgetFinancialReportLabels ocptBudgetFinancialReportLabelsOf(BuildContext context) {
+  final tr = Tr.of(context);
+
+  return OcptBudgetFinancialReportLabels(
+    fileNameSuffix: tr.budgetExportFinancialReportFileNameSuffix,
+    documentTitle: tr.budgetExportFinancialReportDocumentTitle,
+    versionLabel: tr.budgetExportVersionLabel,
+    posteHeader: tr.budgetExportFinancialReportPosteHeader,
+    quotedHeader: tr.budgetExportFinancialReportQuotedHeader,
+    paidHeader: tr.budgetExportFinancialReportPaidHeader,
+    committedHeader: tr.budgetExportFinancialReportCommittedHeader,
+    remainingHeader: tr.budgetExportFinancialReportRemainingHeader,
+    varianceHeader: tr.budgetExportFinancialReportVarianceHeader,
+    projectTotalsLabel: tr.budgetExportFinancialReportProjectTotalsLabel,
+    financingPlanTotalLabel: tr.budgetExportFinancialReportFinancingPlanTotalLabel,
+    emptyDocumentNote: tr.budgetExportFinancialReportEmptyDocumentNote,
+    coverageReadOutTemplate: _ocptBudgetExportCoverageReadOutTemplate(tr),
+    balanceNeedsLabel: tr.budgetDashboardBalanceNeedsLabel,
+    balanceResourcesLabel: tr.budgetDashboardBalanceResourcesLabel,
+    balanceNoQuoteMessage: tr.budgetDashboardBalanceNoQuoteMessage,
+    balanceBalancedMessage: tr.budgetDashboardBalanceBalancedMessage,
+    balanceShortfallMessageTemplate: _ocptBudgetExportBalanceShortfallMessageTemplate(tr),
+  );
+}

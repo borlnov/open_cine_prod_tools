@@ -7,32 +7,242 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_quote_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+/// A minimal, arbitrary set of localized strings for the quote export — only the shape matters to
+/// these tests, not the words themselves, mirroring `_callSheetLabels` in
+/// `schedule_bloc_test.dart`.
+const _quoteLabels = OcptBudgetQuoteLabels(
+  fileNameSuffix: "quote",
+  documentTitle: "Quote",
+  versionLabel: "Version",
+  lineLabelHeader: "Label",
+  quantityHeader: "Quantity",
+  unitPriceHeader: "Unit price",
+  lineTotalHeader: "Total",
+  posteSubtotalLabel: "Subtotal",
+  projectTotalLabel: "Grand total",
+  includingTaxCaption: "Including tax",
+  excludingTaxCaption: "Excluding tax",
+  noLinesLabel: "No line yet",
+  emptyDocumentNote: "No poste yet",
+  coverageReadOutTemplate: "{amount} · {coveredCount} of {totalCount} known",
+);
+
+/// A minimal, arbitrary set of localized strings for the financing plan export — mirrors
+/// [_quoteLabels]' own doc comment.
+const _financingPlanLabels = OcptBudgetFinancingPlanLabels(
+  fileNameSuffix: "financing plan",
+  documentTitle: "Financing plan",
+  versionLabel: "Version",
+  groupTitles: {},
+  statusLabels: {},
+  labelHeader: "Label",
+  statusHeader: "Status",
+  amountHeader: "Amount",
+  receivedHeader: "Received",
+  outstandingHeader: "Outstanding",
+  groupSubtotalLabel: "Subtotal",
+  projectTotalLabel: "Grand total",
+  emptyDocumentNote: "No resource yet",
+  balanceNeedsLabel: "Needs",
+  balanceResourcesLabel: "Resources",
+  balanceNoQuoteMessage: "No quote yet",
+  balanceBalancedMessage: "Balanced",
+  balanceShortfallMessageTemplate: "Short by {amount}",
+  coverageReadOutTemplate: "{amount} · {coveredCount} of {totalCount} known",
+);
+
+/// A minimal, arbitrary set of localized strings for the cash journal export — mirrors
+/// [_quoteLabels]' own doc comment.
+const _cashJournalLabels = OcptBudgetCashJournalXlsxLabels(
+  sheetName: "Cash journal",
+  dateHeader: "Date",
+  voucherHeader: "Voucher",
+  labelHeader: "Label",
+  posteHeader: "Poste",
+  settlesHeader: "Settles",
+  debitHeader: "Debit",
+  creditHeader: "Credit",
+  balanceHeader: "Balance",
+  totalsRowLabel: "Total",
+);
+
+/// A minimal, arbitrary set of localized strings for the financial report export — mirrors
+/// [_quoteLabels]' own doc comment.
+const _financialReportLabels = OcptBudgetFinancialReportLabels(
+  fileNameSuffix: "financial report",
+  documentTitle: "Financial report",
+  versionLabel: "Version",
+  posteHeader: "Poste",
+  quotedHeader: "Quoted",
+  paidHeader: "Paid",
+  committedHeader: "Committed",
+  remainingHeader: "Remaining",
+  varianceHeader: "Variance",
+  projectTotalsLabel: "Grand total",
+  financingPlanTotalLabel: "Financing plan total",
+  emptyDocumentNote: "No poste yet",
+  coverageReadOutTemplate: "{amount} · {coveredCount} of {totalCount} known",
+  balanceNeedsLabel: "Needs",
+  balanceResourcesLabel: "Resources",
+  balanceNoQuoteMessage: "No quote yet",
+  balanceBalancedMessage: "Balanced",
+  balanceShortfallMessageTemplate: "Short by {amount}",
+);
+
+/// A fake `OcptExportManager` recording the last call to each of the budget mode's four export
+/// methods and returning a caller-chosen path (or throwing, or answering null to simulate a
+/// cancelled save dialog) — mirrors `_FakeScheduleExportManager` in `schedule_bloc_test.dart`.
+class _FakeBudgetExportManager extends OcptExportManager {
+  /// Class constructor
+  _FakeBudgetExportManager({
+    this.quoteResult,
+    this.financingPlanResult,
+    this.cashJournalResult,
+    this.financialReportResult,
+    this.quoteFails = false,
+    this.financingPlanFails = false,
+    this.cashJournalFails = false,
+    this.financialReportFails = false,
+  }) : super(fileSelectorManager: const FileSelectorManager());
+
+  /// The path [exportBudgetQuote] returns, or null to simulate a cancelled save dialog.
+  final String? quoteResult;
+
+  /// The path [exportBudgetFinancingPlan] returns, or null to simulate a cancelled save dialog.
+  final String? financingPlanResult;
+
+  /// The path [exportBudgetCashJournalXlsx] returns, or null to simulate a cancelled save dialog.
+  final String? cashJournalResult;
+
+  /// The path [exportBudgetFinancialReport] returns, or null to simulate a cancelled save dialog.
+  final String? financialReportResult;
+
+  /// Whether [exportBudgetQuote] throws, to exercise the bloc's export-failed path.
+  final bool quoteFails;
+
+  /// Whether [exportBudgetFinancingPlan] throws, to exercise the bloc's export-failed path.
+  final bool financingPlanFails;
+
+  /// Whether [exportBudgetCashJournalXlsx] throws, to exercise the bloc's export-failed path.
+  final bool cashJournalFails;
+
+  /// Whether [exportBudgetFinancialReport] throws, to exercise the bloc's export-failed path.
+  final bool financialReportFails;
+
+  /// The snapshot of the last [exportBudgetQuote] call.
+  OcptBudgetSnapshot? lastQuoteSnapshot;
+
+  /// The tax basis of the last [exportBudgetQuote] call.
+  OcptBudgetTaxBasis? lastQuoteTaxBasis;
+
+  /// The `linkLabelByEntryId` of the last [exportBudgetCashJournalXlsx] call.
+  Map<String, String>? lastCashJournalLinkLabelByEntryId;
+
+  @override
+  Future<String?> exportBudgetQuote({
+    required OcptBudgetSnapshot snapshot,
+    required Map<String, String> elementNameById,
+    required OcptPageSetup pageSetup,
+    required OcptBudgetTaxBasis taxBasis,
+    required OcptBudgetQuoteLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    lastQuoteSnapshot = snapshot;
+    lastQuoteTaxBasis = taxBasis;
+
+    if (quoteFails) {
+      throw StateError("quote export intentionally failed for the test");
+    }
+    return quoteResult;
+  }
+
+  @override
+  Future<String?> exportBudgetFinancingPlan({
+    required OcptBudgetSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBudgetFinancingPlanLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    if (financingPlanFails) {
+      throw StateError("financing plan export intentionally failed for the test");
+    }
+    return financingPlanResult;
+  }
+
+  @override
+  Future<String?> exportBudgetCashJournalXlsx({
+    required OcptBudgetSnapshot snapshot,
+    required Map<String, String> linkLabelByEntryId,
+    required OcptBudgetCashJournalXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) async {
+    lastCashJournalLinkLabelByEntryId = linkLabelByEntryId;
+
+    if (cashJournalFails) {
+      throw StateError("cash journal export intentionally failed for the test");
+    }
+    return cashJournalResult;
+  }
+
+  @override
+  Future<String?> exportBudgetFinancialReport({
+    required OcptBudgetSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBudgetFinancialReportLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    if (financialReportFails) {
+      throw StateError("financial report export intentionally failed for the test");
+    }
+    return financialReportResult;
+  }
+}
 
 /// A router manager that only records the call: these bloc tests never navigate for real.
 class _RecordingRouterManager extends OcptRouterManager {
@@ -95,12 +305,13 @@ void main() {
   OcptBudgetBloc buildBloc({
     List<OcptBudgetPosteSeed> seed = _smallSeed,
     Duration fieldEditDebounce = const Duration(milliseconds: 10),
+    OcptExportManager? exportManager,
   }) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: _RecordingRouterManager(),
-    exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+    exportManager: exportManager ?? _FakeBudgetExportManager(),
     fieldEditDebounce: fieldEditDebounce,
   );
 
@@ -1784,5 +1995,282 @@ void main() {
         expect(line.unitPrice.amountCents, 0);
       },
     );
+  });
+
+  group("exporting the quote", () {
+    test("hands the snapshot and the tax basis to the manager and raises the succeeded notice", () async {
+      final exportManager = _FakeBudgetExportManager(quoteResult: "/tmp/quote.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetQuoteExportRequestedEvent(
+          options: OcptBudgetQuoteExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+            taxBasis: OcptBudgetTaxBasis.excludingTax,
+          ),
+          labels: _quoteLabels,
+          elementNameById: {},
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(exportManager.lastQuoteSnapshot, isNotNull);
+      expect(exportManager.lastQuoteTaxBasis, OcptBudgetTaxBasis.excludingTax);
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.fileExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/quote.pdf");
+
+      await bloc.close();
+    });
+
+    test("is a silent no-op when the save dialog is cancelled", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetQuoteExportRequestedEvent(
+          options: OcptBudgetQuoteExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+          ),
+          labels: _quoteLabels,
+          elementNameById: {},
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.ioNotice, isNull);
+
+      await bloc.close();
+    });
+
+    test("raises the failed notice when the export throws", () async {
+      final bloc = buildBloc(exportManager: _FakeBudgetExportManager(quoteFails: true));
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetQuoteExportRequestedEvent(
+          options: OcptBudgetQuoteExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+          ),
+          labels: _quoteLabels,
+          elementNameById: {},
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
+  });
+
+  group("exporting the financing plan", () {
+    test("hands the snapshot to the manager and raises the succeeded notice", () async {
+      final exportManager = _FakeBudgetExportManager(financingPlanResult: "/tmp/financing.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetFinancingPlanExportRequestedEvent(
+          options: OcptBudgetFinancingPlanExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+          ),
+          labels: _financingPlanLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.fileExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/financing.pdf");
+
+      await bloc.close();
+    });
+
+    test("is a silent no-op when the save dialog is cancelled", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetFinancingPlanExportRequestedEvent(
+          options: OcptBudgetFinancingPlanExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+          ),
+          labels: _financingPlanLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.ioNotice, isNull);
+
+      await bloc.close();
+    });
+
+    test("raises the failed notice when the export throws", () async {
+      final bloc = buildBloc(exportManager: _FakeBudgetExportManager(financingPlanFails: true));
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetFinancingPlanExportRequestedEvent(
+          options: OcptBudgetFinancingPlanExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+          ),
+          labels: _financingPlanLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
+  });
+
+  group("exporting the cash journal", () {
+    test("hands the link labels to the manager and raises the succeeded notice", () async {
+      final exportManager = _FakeBudgetExportManager(cashJournalResult: "/tmp/journal.xlsx");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetCashJournalExportRequestedEvent(
+          labels: _cashJournalLabels,
+          linkLabelByEntryId: {"entry-1": "Regional grant"},
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(exportManager.lastCashJournalLinkLabelByEntryId, {"entry-1": "Regional grant"});
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.fileExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/journal.xlsx");
+
+      await bloc.close();
+    });
+
+    test("is a silent no-op when the save dialog is cancelled", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetCashJournalExportRequestedEvent(
+          labels: _cashJournalLabels,
+          linkLabelByEntryId: {},
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.ioNotice, isNull);
+
+      await bloc.close();
+    });
+
+    test("raises the failed notice when the export throws", () async {
+      final bloc = buildBloc(exportManager: _FakeBudgetExportManager(cashJournalFails: true));
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetCashJournalExportRequestedEvent(
+          labels: _cashJournalLabels,
+          linkLabelByEntryId: {},
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
+  });
+
+  group("exporting the financial report", () {
+    test("hands the snapshot to the manager and raises the succeeded notice", () async {
+      final exportManager = _FakeBudgetExportManager(financialReportResult: "/tmp/report.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetFinancialReportExportRequestedEvent(
+          options: OcptBudgetFinancialReportExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+          ),
+          labels: _financialReportLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.fileExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/report.pdf");
+
+      await bloc.close();
+    });
+
+    test("is a silent no-op when the save dialog is cancelled", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetFinancialReportExportRequestedEvent(
+          options: OcptBudgetFinancialReportExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+          ),
+          labels: _financialReportLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.ioNotice, isNull);
+
+      await bloc.close();
+    });
+
+    test("raises the failed notice when the export throws", () async {
+      final bloc = buildBloc(exportManager: _FakeBudgetExportManager(financialReportFails: true));
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetFinancialReportExportRequestedEvent(
+          options: OcptBudgetFinancialReportExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: FountainPageMargins.standard(),
+            includeTitlePage: true,
+          ),
+          labels: _financialReportLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
   });
 }

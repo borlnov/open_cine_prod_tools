@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -32,12 +33,14 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -266,6 +269,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetShareUpdateConfirmedEvent>(_onShareUpdateConfirmed);
     on<OcptBudgetShareReorderedEvent>(_onShareReordered);
     on<OcptBudgetShareDeletionConfirmedEvent>(_onShareDeletionConfirmed);
+    on<OcptBudgetQuoteExportRequestedEvent>(_onQuoteExportRequested);
+    on<OcptBudgetFinancingPlanExportRequestedEvent>(_onFinancingPlanExportRequested);
+    on<OcptBudgetCashJournalExportRequestedEvent>(_onCashJournalExportRequested);
+    on<OcptBudgetFinancialReportExportRequestedEvent>(_onFinancialReportExportRequested);
+    on<OcptBudgetIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -346,6 +354,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     final previewedVersion = project.previewedVersion;
     final loaded = await _loadBudgetSnapshot(project);
+    final pageSetup = await _loadPageSetup(project);
 
     emitter(
       state.copyWith(
@@ -367,9 +376,23 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
+        pageSetup: pageSetup,
       ),
     );
   }
+
+  /// Reads the page setup the mode's own three PDF export dialogs are pre-filled with: the open
+  /// project's own page format, paired with the app-wide margins preference, exactly as
+  /// `OcptResourcesBloc`'s own `_loadPageSetup` pairs them.
+  ///
+  /// A version being previewed is laid out with the setup it was written against instead, which
+  /// travels on the open project model and is never written anywhere.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
 
   /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
   /// commitments, the financing plan's own resources and mileage rates, the catering-and-travel
@@ -1605,5 +1628,183 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _budgetSharingService.deleteShare(database: project.database, shareId: event.shareId);
     await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Exports the quote as a single PDF, written through the native save dialog.
+  ///
+  /// Built exactly as every other mode's own export handlers are: flush whatever field edit is
+  /// still sitting in the debounce first — an export must never print a figure the user has typed
+  /// but the debounce has not yet written (`OcptBudgetMode`'s own class doc comment) — then hand
+  /// what [state] now carries to [OcptExportManager.exportBudgetQuote]. A cancelled save dialog is
+  /// a silent no-op; a failure raises the transient export-failed notice.
+  Future<void> _onQuoteExportRequested(
+    OcptBudgetQuoteExportRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportBudgetQuote(
+        snapshot: snapshot,
+        elementNameById: event.elementNameById,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        taxBasis: options.taxBasis,
+        labels: event.labels,
+        projectName: state.title,
+        includeTitlePage: options.includeTitlePage,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the quote of the project at "
+          "${_projectsManager.currentProject?.path}: $error");
+      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports the financing plan as a single PDF, written through the native save dialog. Mirrors
+  /// [_onQuoteExportRequested] — see its own doc comment for the flush and the cancellation
+  /// contract, identical here.
+  Future<void> _onFinancingPlanExportRequested(
+    OcptBudgetFinancingPlanExportRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportBudgetFinancingPlan(
+        snapshot: snapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        includeTitlePage: options.includeTitlePage,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the financing plan of the project at "
+          "${_projectsManager.currentProject?.path}: $error");
+      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports the cash journal as a single XLSX workbook, written through the native save dialog.
+  ///
+  /// Built exactly as [_onQuoteExportRequested] is: flush whatever is still pending, then hand what
+  /// [state] now carries to [OcptExportManager.exportBudgetCashJournalXlsx]. There is no options
+  /// dialog to read first — this export takes none.
+  Future<void> _onCashJournalExportRequested(
+    OcptBudgetCashJournalExportRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final path = await _exportManager.exportBudgetCashJournalXlsx(
+        snapshot: snapshot,
+        linkLabelByEntryId: event.linkLabelByEntryId,
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the cash journal of the project at "
+          "${_projectsManager.currentProject?.path}: $error");
+      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports the financial report as a single PDF, written through the native save dialog. Mirrors
+  /// [_onQuoteExportRequested] — see its own doc comment for the flush and the cancellation
+  /// contract, identical here.
+  Future<void> _onFinancialReportExportRequested(
+    OcptBudgetFinancialReportExportRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportBudgetFinancialReport(
+        snapshot: snapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        includeTitlePage: options.includeTitlePage,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the financial report of the project "
+          "at ${_projectsManager.currentProject?.path}: $error");
+      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Clears the transient export notice currently shown, if any.
+  Future<void> _onIoNoticeDismissed(
+    OcptBudgetIoNoticeDismissedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    emitter(state.copyWith(clearIoNotice: true));
   }
 }

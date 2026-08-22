@@ -3,8 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_quote_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
@@ -677,4 +684,117 @@ class OcptBudgetShareDeletionConfirmedEvent extends OcptBudgetEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, shareId];
+}
+
+/// Requests exporting the quote as a single PDF, written through the native save dialog —
+/// dispatched once `OcptBudgetQuoteExportDialog` returns its result.
+class OcptBudgetQuoteExportRequestedEvent extends OcptBudgetEvent {
+  /// The one-off options the export runs with (the page format/margins, the title page toggle and
+  /// the tax basis every line and total is printed in).
+  final OcptBudgetQuoteExportOptions options;
+
+  /// Every localized string the exported document carries.
+  final OcptBudgetQuoteLabels labels;
+
+  /// Every breakdown element a live quote line prices, keyed by its own id — resolved by the mode,
+  /// which has the whole catalogue on state; the bloc has no `Tr` of its own but does carry the
+  /// catalogue, so this still travels on the event exactly as `labels` does, for the same reason
+  /// nothing in this event ever needs a `BuildContext`.
+  final Map<String, String> elementNameById;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptBudgetQuoteExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.elementNameById,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, elementNameById, fileTypeLabel];
+}
+
+/// Requests exporting the financing plan as a single PDF, written through the native save dialog —
+/// dispatched once `OcptBudgetFinancingPlanExportDialog` returns its result.
+class OcptBudgetFinancingPlanExportRequestedEvent extends OcptBudgetEvent {
+  /// The one-off options the export runs with (the page format/margins and the title page toggle).
+  final OcptBudgetFinancingPlanExportOptions options;
+
+  /// Every localized string the exported document carries.
+  final OcptBudgetFinancingPlanLabels labels;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptBudgetFinancingPlanExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Requests exporting the cash journal as a single XLSX workbook, written through the native save
+/// dialog — dispatched the moment its own card is picked, this export taking no options dialog of
+/// its own.
+class OcptBudgetCashJournalExportRequestedEvent extends OcptBudgetEvent {
+  /// Every localized string the exported workbook carries.
+  final OcptBudgetCashJournalXlsxLabels labels;
+
+  /// What each live entry settles, keyed by its own id — a resource, a taking or a share's own
+  /// label, resolved by the mode: this service resolves nothing itself
+  /// (`OcptBudgetCashJournalXlsxExportService`'s own doc comment).
+  final Map<String, String> linkLabelByEntryId;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptBudgetCashJournalExportRequestedEvent({
+    required this.labels,
+    required this.linkLabelByEntryId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, labels, linkLabelByEntryId, fileTypeLabel];
+}
+
+/// Requests exporting the financial report as a single PDF, written through the native save
+/// dialog — dispatched once `OcptBudgetFinancialReportExportDialog` returns its result.
+class OcptBudgetFinancialReportExportRequestedEvent extends OcptBudgetEvent {
+  /// The one-off options the export runs with (the page format/margins and the title page toggle).
+  final OcptBudgetFinancialReportExportOptions options;
+
+  /// Every localized string the exported document carries.
+  final OcptBudgetFinancialReportLabels labels;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptBudgetFinancialReportExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Clears the transient export notice currently shown, if any.
+class OcptBudgetIoNoticeDismissedEvent extends OcptBudgetEvent {
+  /// Class constructor
+  const OcptBudgetIoNoticeDismissedEvent();
 }
