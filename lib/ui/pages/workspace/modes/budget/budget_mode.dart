@@ -15,8 +15,11 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
@@ -31,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_inspector.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
@@ -273,6 +277,7 @@ class _BudgetViewState extends State<_BudgetView> {
               OcptBudgetCentreView.cashJournal => _buildCashJournal(context, state),
               OcptBudgetCentreView.committed => _buildCommittedSpending(context, state),
               OcptBudgetCentreView.financing => _buildFinancing(context, state),
+              OcptBudgetCentreView.regie => _buildRegie(context, state),
             },
           ),
         ),
@@ -770,6 +775,32 @@ class _BudgetViewState extends State<_BudgetView> {
 
     bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
   }
+
+  /// Builds the catering-and-travel view. Writes nothing of its own — see `OcptBudgetRegie`'s own
+  /// class doc comment — so every callback here only ever reports where a figure was typed: the
+  /// schedule mode, the project settings page, or a traveller's own sheet in the resources mode.
+  Widget _buildRegie(BuildContext context, OcptBudgetState state) => OcptBudgetRegie(
+    days: state.regieDays,
+    cateringTotals: state.regieTotals,
+    decorNameByDayId: state.regieDecorNameByDayId,
+    mealPriceCents: state.mealPriceCents,
+    snackPriceCents: state.snackPriceCents,
+    travelRows: state.travelRows,
+    travelTotals: state.travelTotals,
+    roles: state.roles,
+    people: state.people,
+    currencyCode: state.currencyCode,
+    onScheduleOpenRequested: () => context.read<OcptWorkspaceBloc>().add(
+      const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
+    ),
+    onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
+    onPersonOpenRequested: (personId) => context.read<OcptWorkspaceBloc>().add(
+      OcptWorkspaceModeSelectedEvent(
+        mode: OcptWorkspaceMode.resources,
+        revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.people, recordId: personId),
+      ),
+    ),
+  );
 
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches
   /// the deletion if the user answered `Delete`.

@@ -26,7 +26,7 @@ void main() {
   /// Widens the test surface so the header's own title and subtitle are shown — see
   /// `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth`.
   void useWideWindow(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.physicalSize = const Size(1740, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -213,6 +213,11 @@ void main() {
     expect(find.text(tr.budgetHeaderFinancingTitle), findsWidgets);
     expect(find.text(tr.budgetHeaderFinancingSubtitle), findsOneWidget);
     expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
+
+    tr = await pumpOn(OcptBudgetCentreView.regie);
+    expect(find.text(tr.budgetHeaderRegieTitle), findsWidgets);
+    expect(find.text(tr.budgetHeaderRegieSubtitle), findsOneWidget);
+    expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
   });
 
   testWidgets("offers the Financing chip whatever the project holds", (tester) async {
@@ -236,6 +241,35 @@ void main() {
     await tester.tap(find.text(tr.budgetHeaderFinancingSegmentLabel));
 
     expect(reported, OcptBudgetCentreView.financing);
+  });
+
+  testWidgets("offers the Régie chip last, after Committed", (tester) async {
+    useWideWindow(tester);
+    OcptBudgetCentreView? reported;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (view) => reported = view,
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    await tester.tap(find.text(tr.budgetHeaderRegieSegmentLabel));
+
+    expect(reported, OcptBudgetCentreView.regie);
+
+    // Régie's own chip sits to the right of Committed's — the header's own class doc comment
+    // argues why, unlike Financing, this one segment does follow OcptBudgetCentreView's own order.
+    final committedChipCentre = tester.getCenter(find.text(tr.budgetHeaderCommittedSegmentLabel));
+    final regieChipCentre = tester.getCenter(find.text(tr.budgetHeaderRegieSegmentLabel));
+    expect(regieChipCentre.dx, greaterThan(committedChipCentre.dx));
   });
 
   // The narrow-window case (title/subtitle shed, the three controls kept) is

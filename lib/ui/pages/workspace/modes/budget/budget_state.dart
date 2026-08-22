@@ -10,10 +10,12 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -24,6 +26,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The key [OcptBudgetState.pendingFieldEdits] is stored under: which poste or line, and which of
@@ -91,6 +94,27 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// and which of its own fields. [fieldValueOf] is what a field reads instead of its own stored
   /// value while an edit is pending here.
   final Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits;
+
+  /// Every live role of the project, as last loaded — read by `OcptBudgetRegie` alone, to resolve a
+  /// traveller's own convocation (a role's own [OcptRole.name] for a cast row, its
+  /// [OcptRole.personId] to join a role back to the human playing it) and to tell cast from extras.
+  /// Not part of [snapshot]: unlike the catering-and-travel pass's own [OcptBudgetSnapshot.regieDays]
+  /// and [OcptBudgetSnapshot.travelRows], this is the raw read the view resolves a display string
+  /// from, exactly as `OcptScheduleState` carries its own roles beside its snapshot rather than
+  /// inside it.
+  final List<OcptRole> roles;
+
+  /// Every live person of the project's address book, as last loaded — read by `OcptBudgetRegie`
+  /// alone, for the same reason [roles] is: a traveller's own display name and declared crew
+  /// position.
+  final List<OcptPerson> people;
+
+  /// The decor name `OcptBudgetRegie` prints under each shooting day, keyed by the day's own id —
+  /// the first location or set the day's own slots name, resolved once at load time out of the
+  /// project's own locations catalogue (`OcptLocationsService.loadLocations`, read for this alone).
+  /// A day with no key here names neither in any of its slots, which the view reads as nothing
+  /// rather than a placeholder.
+  final Map<String, String> regieDecorNameByDayId;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -190,12 +214,47 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// The dashboard's own two alerts, empty while nothing is loaded or the project raises neither.
   List<OcptBudgetAlert> get alerts => snapshot?.alerts ?? const [];
 
+  /// Every live shooting day's own catering reading, empty while nothing is loaded or the project
+  /// holds no shooting day — `OcptBudgetRegie`'s own left column.
+  List<OcptBudgetRegieDay> get regieDays => snapshot?.regieDays ?? const [];
+
+  /// [regieDays] folded into one total — a zero-everything, fully-covered total while nothing is
+  /// loaded, mirroring [cashTotals]' own empty default.
+  OcptBudgetRegieTotals get regieTotals =>
+      snapshot?.regieTotals ??
+      const OcptBudgetRegieTotals(
+        headCount: 0,
+        mealCount: 0,
+        snackCount: 0,
+        cost: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+      );
+
+  /// Every traveller the schedule names, empty while nothing is loaded or the project holds nobody
+  /// to travel — `OcptBudgetRegie`'s own right column.
+  List<OcptBudgetTravelRow> get travelRows => snapshot?.travelRows ?? const [];
+
+  /// [travelRows] folded into one total — mirrors [regieTotals]' own empty default.
+  OcptBudgetTravelTotals get travelTotals =>
+      snapshot?.travelTotals ??
+      const OcptBudgetTravelTotals(
+        totalKmMilli: 0,
+        cost: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+      );
+
   /// Every live voucher, keyed by the `budget_entries` row it evidences — empty while nothing is
   /// loaded or no entry carries one.
   Map<String, OcptAssetRef> get receiptsByEntryId => snapshot?.receiptsByEntryId ?? const {};
 
   /// The project's default VAT rate, in basis points, or null while nobody has recorded one.
   int? get defaultVatRateBasisPoints => snapshot?.defaultVatRateBasisPoints;
+
+  /// The project's own meal price, in cents, or null while nobody has recorded one —
+  /// `OcptBudgetRegie`'s own caption.
+  int? get mealPriceCents => snapshot?.mealPriceCents;
+
+  /// The project's own snack price, in cents, or null while nobody has recorded one — mirrors
+  /// [mealPriceCents].
+  int? get snackPriceCents => snapshot?.snackPriceCents;
 
   /// The selected poste, or null while none is selected (or the selected one disappeared from a
   /// freshly loaded [snapshot]).
@@ -253,6 +312,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.lastRightDockTab,
     required this.rightDockFraction,
     required this.pendingFieldEdits,
+    required this.roles,
+    required this.people,
+    required this.regieDecorNameByDayId,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -280,6 +342,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       lastRightDockTab = OcptBudgetRightDockTab.inspector,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       pendingFieldEdits = const {},
+      roles = const [],
+      people = const [],
+      regieDecorNameByDayId = const {},
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -317,6 +382,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     OcptBudgetRightDockTab? lastRightDockTab,
     double? rightDockFraction,
     Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits,
+    List<OcptRole>? roles,
+    List<OcptPerson>? people,
+    Map<String, String>? regieDecorNameByDayId,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
@@ -349,6 +417,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
+    roles: roles ?? this.roles,
+    people: people ?? this.people,
+    regieDecorNameByDayId: regieDecorNameByDayId ?? this.regieDecorNameByDayId,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId: clearPreviewedVersionId ? null : (previewedVersionId ?? this.previewedVersionId),
     workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
@@ -436,5 +507,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     lastRightDockTab,
     rightDockFraction,
     pendingFieldEdits,
+    roles,
+    people,
+    regieDecorNameByDayId,
   ];
 }

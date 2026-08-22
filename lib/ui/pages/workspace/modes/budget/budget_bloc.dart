@@ -16,12 +16,21 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
@@ -40,9 +49,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// ([_budgetQuoteService], seeding [_seed]'s ten CNC postes on the first read of an empty table),
 /// the cash journal ([_budgetJournalService]: every live entry and commitment, and every live
 /// voucher keyed by the entry it evidences), the financing plan ([_budgetFinancingService]: every
-/// live resource), and the project's currency and default VAT rate. It
-/// mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
-/// [flushPendingProjectWrites] and [reloadFromProjectDatabase].
+/// live resource and mileage rate), the catering-and-travel pass's own reads ([_scheduleService]'s
+/// schedule, [_roleIndexService]'s roles, [_peopleService]'s people and [_locationsService]'s
+/// locations — the last read only to name the decor a day shoots at, never carried on state itself),
+/// and the project's currency, default VAT rate and meal/snack prices. It mixes in
+/// [MixinOcptProjectVersionsBloc], answering its two hooks through [flushPendingProjectWrites] and
+/// [reloadFromProjectDatabase].
 ///
 /// **[_seed] is a constructor argument, captured once, rather than watched.** No bloc or service
 /// may ever see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves `ocptBudgetCncPosteSeeds(Tr.of
@@ -100,8 +112,26 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// itself, exactly as every other write in this mode.
   final OcptBudgetJournalService _budgetJournalService;
 
-  /// The service used to read and write the financing plan: the `budget_resources` catalogue.
+  /// The service used to read and write the financing plan: the `budget_resources` catalogue and
+  /// the `budget_mileage_rates` [_loadBudgetSnapshot] resolves a traveller's own reimbursement
+  /// against.
   final OcptBudgetFinancingService _budgetFinancingService;
+
+  /// The service the catering-and-travel pass reads its own days and slots off — never an
+  /// `OcptSchedulePlanSnapshot`, see [_loadBudgetSnapshot]'s own doc comment.
+  final OcptScheduleService _scheduleService;
+
+  /// The service the catering-and-travel pass reads every role's own kind and `personId` off, to
+  /// split cast from extras and to join a convoked role back to the human playing it.
+  final OcptRoleIndexService _roleIndexService;
+
+  /// The service the catering-and-travel pass reads every person's own display name, commute
+  /// distance, mileage rate and declared crew positions off.
+  final OcptPeopleService _peopleService;
+
+  /// The service [_loadBudgetSnapshot] reads the project's locations and sets off, for the one
+  /// reading that needs them: naming the decor a shooting day plays at.
+  final OcptLocationsService _locationsService;
 
   /// The ten CNC postes, already localized — see the class doc comment for why this is a
   /// constructor argument captured once rather than watched.
@@ -127,6 +157,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetQuoteService? budgetQuoteService,
     OcptBudgetJournalService? budgetJournalService,
     OcptBudgetFinancingService? budgetFinancingService,
+    OcptScheduleService? scheduleService,
+    OcptRoleIndexService? roleIndexService,
+    OcptPeopleService? peopleService,
+    OcptLocationsService? locationsService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _seed = seed,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
@@ -142,6 +176,18 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
        _budgetFinancingService =
            budgetFinancingService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetFinancingService,
+       _scheduleService =
+           scheduleService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
+       _roleIndexService =
+           roleIndexService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleIndexService,
+       _peopleService =
+           peopleService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
+       _locationsService =
+           locationsService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
        _fieldEditDebounce = fieldEditDebounce,
        super(const OcptBudgetState.init()) {
     add(const OcptBudgetLoadRequestedEvent());
@@ -250,13 +296,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           clearSelectedResourceId: true,
           clearExpandedLineId: true,
           pendingFieldEdits: const {},
+          roles: const [],
+          people: const [],
+          regieDecorNameByDayId: const {},
         ),
       );
       return;
     }
 
     final previewedVersion = project.previewedVersion;
-    final snapshot = await _loadBudgetSnapshot(project);
+    final loaded = await _loadBudgetSnapshot(project);
 
     emitter(
       state.copyWith(
@@ -264,12 +313,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         title: project.name,
         previewedVersionId: previewedVersion?.id,
         clearPreviewedVersionId: previewedVersion == null,
-        snapshot: snapshot,
-        currencyCode: snapshot.currencyCode,
+        snapshot: loaded.snapshot,
+        currencyCode: loaded.snapshot.currencyCode,
         clearSelectedPosteId: true,
         clearSelectedResourceId: true,
         clearExpandedLineId: true,
         pendingFieldEdits: const {},
+        roles: loaded.roles,
+        people: loaded.people,
+        regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
       ),
@@ -277,9 +329,26 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
-  /// commitments, the financing plan's own resources, the currency and the default VAT rate,
-  /// joined into one [OcptBudgetSnapshot].
-  Future<OcptBudgetSnapshot> _loadBudgetSnapshot(OcptOpenProjectModel project) async {
+  /// commitments, the financing plan's own resources and mileage rates, the catering-and-travel
+  /// pass's own reads, the currency, the default VAT rate and the meal/snack prices, joined into one
+  /// [OcptBudgetSnapshot] alongside the raw roles/people and the decor name map the view reads
+  /// directly.
+  ///
+  /// **Reads `OcptScheduleService.loadSchedule`'s own `OcptScheduleSnapshot` directly, never an
+  /// `OcptSchedulePlanSnapshot`.** A plan snapshot additionally joins every episode's own shot list
+  /// and the episode list — neither of which a head count needs — so building one here would make
+  /// the budget mode load the whole découpage to count meals; the schedule snapshot alone already
+  /// carries the days and the slots (each with its own live crew, cast and guests already nested)
+  /// that `OcptBudgetSnapshot.build` reads the catering-and-travel pass from.
+  Future<
+    ({
+      OcptBudgetSnapshot snapshot,
+      List<OcptRole> roles,
+      List<OcptPerson> people,
+      Map<String, String> regieDecorNameByDayId,
+    })
+  >
+  _loadBudgetSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
     final postes = await _budgetQuoteService.loadPostes(database: database, seed: _seed);
     final entries = await _budgetJournalService.loadEntries(database: database);
@@ -290,7 +359,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final defaultVatRateBasisPoints = await _projectsManager
         .loadCurrentProjectDefaultVatRateBasisPoints();
 
-    return OcptBudgetSnapshot.build(
+    final scheduleSnapshot = await _scheduleService.loadSchedule(database: database);
+    final roles = await _roleIndexService.loadRoles(database: database);
+    final people = await _peopleService.loadPeople(database: database);
+    final locations = await _locationsService.loadLocations(database: database);
+    final mileageRates = await _budgetFinancingService.loadMileageRates(database: database);
+    final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
+    final snackPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
+
+    final snapshot = OcptBudgetSnapshot.build(
       postes: postes,
       entries: entries,
       commitments: commitments,
@@ -298,7 +375,63 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
       receiptsByEntryId: receipts,
+      scheduleDays: scheduleSnapshot.days,
+      slotsByDayId: scheduleSnapshot.slotsByDayId,
+      roles: roles,
+      people: people,
+      mileageRates: mileageRates,
+      mealPriceCents: mealPriceCents,
+      snackPriceCents: snackPriceCents,
     );
+
+    return (
+      snapshot: snapshot,
+      roles: roles,
+      people: people,
+      regieDecorNameByDayId: _regieDecorNameByDayId(
+        days: scheduleSnapshot.days,
+        slotsByDayId: scheduleSnapshot.slotsByDayId,
+        locations: locations,
+      ),
+    );
+  }
+
+  /// The decor name `OcptBudgetRegie` prints under each shooting day: the name of the first set, or
+  /// failing that the first location, that any of [days]' own [slotsByDayId] entries name, in slot
+  /// order — resolved out of [locations] (and their own live sets) alone. `lib/utils
+  /// /ocpt_budget_regie.dart`'s own pass reads no location or set at all, being pure arithmetic over
+  /// head counts, so this is a separate, purely presentational reading rather than a second
+  /// implementation of anything that file states. A day whose slots name neither carries no key
+  /// here, which the view reads as nothing rather than a placeholder.
+  Map<String, String> _regieDecorNameByDayId({
+    required List<OcptShootingDay> days,
+    required Map<String, List<OcptShootingSlot>> slotsByDayId,
+    required List<OcptLocation> locations,
+  }) {
+    final locationById = {for (final location in locations) location.id: location};
+    final setById = {
+      for (final location in locations)
+        for (final set in location.sets) set.id: set,
+    };
+
+    final decorNameByDayId = <String, String>{};
+    for (final day in days) {
+      for (final slot in slotsByDayId[day.id] ?? const <OcptShootingSlot>[]) {
+        final set = slot.setId == null ? null : setById[slot.setId];
+        if (set != null) {
+          decorNameByDayId[day.id] = set.name;
+          break;
+        }
+
+        final location = slot.locationId == null ? null : locationById[slot.locationId];
+        if (location != null) {
+          decorNameByDayId[day.id] = location.name;
+          break;
+        }
+      }
+    }
+
+    return decorNameByDayId;
   }
 
   /// Leaves the workspace: closes the current project and navigates back to the home page.
@@ -1021,7 +1154,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     Emitter<OcptBudgetState> emitter,
     OcptOpenProjectModel project,
   ) async {
-    final snapshot = await _loadBudgetSnapshot(project);
+    final loaded = await _loadBudgetSnapshot(project);
+    final snapshot = loaded.snapshot;
 
     final posteStillExists =
         state.selectedPosteId == null ||
@@ -1038,6 +1172,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       state.copyWith(
         snapshot: snapshot,
         currencyCode: snapshot.currencyCode,
+        roles: loaded.roles,
+        people: loaded.people,
+        regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         clearSelectedPosteId: !posteStillExists,
         clearExpandedLineId: !lineStillExists,
         clearSelectedResourceId: !resourceStillExists,

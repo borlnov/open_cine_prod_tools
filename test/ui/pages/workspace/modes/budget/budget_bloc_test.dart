@@ -1191,4 +1191,70 @@ void main() {
       expect(state.receivedCentsOf(resourceId!), 5000);
     });
   });
+
+  group("the catering-and-travel pass", () {
+    test("loads the schedule, the roles, the people and the prices, and computes the pass", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+
+      final personId = await projectsManager.peopleService.createPerson(database: project.database);
+      expect(personId, isNotNull);
+      await projectsManager.peopleService.updatePerson(
+        database: project.database,
+        personId: personId!,
+        commuteKmMilli: const drift.Value(10000),
+      );
+
+      final locationId = await projectsManager.locationsService.createLocation(
+        database: project.database,
+        name: "Studio A",
+      );
+      expect(locationId, isNotNull);
+
+      final dayId = await projectsManager.scheduleService.createDay(
+        database: project.database,
+        date: DateTime(2026, 3),
+      );
+      expect(dayId, isNotNull);
+
+      final scheduleSnapshot = await projectsManager.scheduleService.loadSchedule(
+        database: project.database,
+      );
+      final slotId = scheduleSnapshot.slotsByDayId[dayId]!.single.id;
+      await projectsManager.scheduleService.updateSlot(
+        database: project.database,
+        slotId: slotId,
+        locationId: drift.Value(locationId),
+      );
+      await projectsManager.scheduleService.addSlotCrewMember(
+        database: project.database,
+        slotId: slotId,
+        personId: personId,
+      );
+
+      await projectsManager.saveCurrentProjectMealPriceCents(1200);
+      await projectsManager.saveCurrentProjectSnackPriceCents(400);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      // Waits for the crew count itself, not merely for a day to exist: the bloc's own initial
+      // load (fired at construction, before any of the writes above) races these very writes, and
+      // a state it emits mid-way through them would still make `regieDays` non-empty on its own.
+      final state = await waitForState(
+        bloc,
+        (state) => state.regieDays.isNotEmpty && state.regieDays.single.crewCount == 1,
+      );
+
+      expect(state.regieDays.single.dayId, dayId);
+      expect(state.regieDays.single.crewCount, 1);
+      expect(state.regieDays.single.headCount, 1);
+      expect(state.regieDays.single.cost.isComplete, isTrue);
+      expect(state.regieDecorNameByDayId[dayId], "Studio A");
+
+      expect(state.travelRows, hasLength(1));
+      expect(state.travelRows.single.personId, personId);
+      expect(state.travelRows.single.totalKmMilli, 20000);
+      expect(state.people.map((person) => person.id), contains(personId));
+    });
+  });
 }

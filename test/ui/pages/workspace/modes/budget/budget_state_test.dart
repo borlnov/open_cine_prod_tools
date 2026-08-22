@@ -6,15 +6,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
 /// Builds a minimal quote line, everything but [id]/[posteId]/[label] neutral.
@@ -66,6 +77,126 @@ OcptBudgetResource _buildResource({
   isReimbursable: false,
   notes: "",
   sortKey: "a0",
+);
+
+/// Builds a shooting day with the few fields these tests read, everything else neutral.
+OcptShootingDay _buildDay({required String id, required int dayNumber, required DateTime date}) =>
+    OcptShootingDay(
+      id: id,
+      date: date,
+      dayNumber: dayNumber,
+      status: OcptShootingDayStatus.planned,
+      crewNote: "",
+      weatherNote: "",
+      notes: "",
+    );
+
+/// Builds a slot with the few fields these tests read, everything else neutral.
+OcptShootingSlot _buildSlot({
+  required String id,
+  required String dayId,
+  List<OcptShootingSlotCrewMember> crew = const [],
+  List<OcptShootingSlotCastMember> cast = const [],
+}) => OcptShootingSlot(
+  id: id,
+  shootingDayId: dayId,
+  label: "",
+  locationId: null,
+  setId: null,
+  anchorEdge: OcptShootingSlotAnchorEdge.start,
+  anchorMinute: 480,
+  anchorSlotId: null,
+  notes: "",
+  crew: crew,
+  cast: cast,
+  guests: const [],
+);
+
+/// Builds a crew assignment, the few fields these tests read, everything else neutral.
+OcptShootingSlotCrewMember _buildCrewMember({
+  required String id,
+  required String slotId,
+  required String personId,
+}) => OcptShootingSlotCrewMember(
+  id: id,
+  slotId: slotId,
+  personId: personId,
+  positionId: "",
+  customLabel: "",
+  notes: "",
+);
+
+/// Builds a cast convocation naming [roleId], the few fields these tests read.
+OcptShootingSlotCastMember _buildCastMember({
+  required String id,
+  required String slotId,
+  required String roleId,
+}) => OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
+
+/// Builds a role, the few fields these tests read, everything else neutral.
+OcptRole _buildRole({
+  required String id,
+  String name = "",
+  String? personId,
+  OcptRoleKind kind = OcptRoleKind.speaking,
+}) => OcptRole(
+  id: id,
+  name: name,
+  personId: personId,
+  kind: kind,
+  isFromScreenplay: false,
+  orphanedName: null,
+  castingNotes: "",
+  number: 1,
+  episodeIds: const [],
+);
+
+/// Builds a person, the few fields these tests read, everything else neutral.
+OcptPerson _buildPerson({
+  required String id,
+  int? commuteKmMilli,
+  String? mileageRateId,
+}) => OcptPerson(
+  id: id,
+  firstName: "Person $id",
+  lastName: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  imageRightsDocument: null,
+  photoAssetId: null,
+  photo: null,
+  notes: "",
+  commuteKmMilli: commuteKmMilli,
+  mileageRateId: mileageRateId,
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
 );
 
 void main() {
@@ -470,6 +601,86 @@ void main() {
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
       expect(state.receiptsByEntryId, isEmpty);
+    });
+  });
+
+  group("OcptBudgetState.regieDays / travelRows", () {
+    test("are empty while nothing is loaded", () {
+      const state = OcptBudgetState.init();
+
+      expect(state.regieDays, isEmpty);
+      expect(state.travelRows, isEmpty);
+      expect(state.regieTotals.cost.amountCents, 0);
+      expect(state.travelTotals.cost.amountCents, 0);
+    });
+
+    test("read the snapshot's own catering-and-travel pass, built from the schedule it was given", () {
+      final crewPerson = _buildPerson(id: "person-crew", commuteKmMilli: 10000, mileageRateId: "rate-1");
+      final castPerson = _buildPerson(id: "person-cast");
+      final role = _buildRole(id: "role-1", name: "Hero", personId: "person-cast");
+
+      final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 3));
+      final slot = _buildSlot(
+        id: "slot-1",
+        dayId: "day-1",
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-crew")],
+        cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
+      );
+
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: const [],
+        entries: const [],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+        scheduleDays: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        roles: [role],
+        people: [crewPerson, castPerson],
+        mileageRates: [
+          const OcptBudgetMileageRate(id: "rate-1", label: "Car", ratePerKmMilliCents: 50000, sortKey: "a0"),
+        ],
+        mealPriceCents: 1200,
+        snackPriceCents: 400,
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.regieDays, hasLength(1));
+      expect(state.regieDays.single.headCount, 2);
+      expect(state.regieDays.single.cost.isComplete, isTrue);
+      expect(state.mealPriceCents, 1200);
+      expect(state.snackPriceCents, 400);
+
+      expect(state.travelRows, hasLength(2));
+      final crewRow = state.travelRows.firstWhere((row) => row.personId == "person-crew");
+      expect(crewRow.totalKmMilli, 20000);
+      expect(crewRow.amountCents, 1000);
+      final castRow = state.travelRows.firstWhere((row) => row.personId == "person-cast");
+      expect(castRow.totalKmMilli, isNull);
+      expect(castRow.amountCents, isNull);
+    });
+  });
+
+  group("OcptBudgetState.roles / people / regieDecorNameByDayId", () {
+    test("default to empty and are carried through copyWith", () {
+      const emptyState = OcptBudgetState.init();
+      expect(emptyState.roles, isEmpty);
+      expect(emptyState.people, isEmpty);
+      expect(emptyState.regieDecorNameByDayId, isEmpty);
+
+      final role = _buildRole(id: "role-1");
+      final person = _buildPerson(id: "person-1");
+      final state = emptyState.copyWith(
+        roles: [role],
+        people: [person],
+        regieDecorNameByDayId: const {"day-1": "Kitchen"},
+      );
+
+      expect(state.roles, [role]);
+      expect(state.people, [person]);
+      expect(state.regieDecorNameByDayId, {"day-1": "Kitchen"});
     });
   });
 }

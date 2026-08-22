@@ -6,12 +6,12 @@
 /// chips.
 ///
 /// **Only the views shipped so far.** The mockup validates seven (`docs/plans/budget-mode.md` §1):
-/// catering and travel, and revenue sharing still read tables no milestone so far holds
-/// (`budget_revenues`, `budget_shares`), so a value for either of them would draw a chip that opens
-/// onto nothing. Each joins this enum, **always at the end** so a stored preference never points at
-/// a view that has moved, as the milestone that gives it real content lands — this is exactly what
-/// M2 did for [cashJournal] and [committed], and now does again for [financing], and the reading a
-/// later milestone adding one of the two remaining views must repeat.
+/// revenue sharing still reads a table no milestone so far holds (`budget_shares`), so a value for
+/// it would draw a chip that opens onto nothing. Each joins this enum, **always at the end** so a
+/// stored preference never points at a view that has moved, as the milestone that gives it real
+/// content lands — this is exactly what M2 did for [cashJournal] and [committed], what M3 then did
+/// for [financing] and now does again for [regie], and the reading the milestone adding the one
+/// remaining view must repeat.
 enum OcptBudgetCentreView {
   /// The read-only overview: the quote's own totals and, poste by poste, its share of them — this
   /// milestone's honest reading of what a project holds, becoming the mockup's full dashboard as
@@ -39,4 +39,10 @@ enum OcptBudgetCentreView {
   /// read off the very same journal `cashJournal` and `committed` already read, through
   /// `budget_entries.resourceId`, rather than a stored figure of its own.
   financing,
+
+  /// The catering-and-travel pass: what each shooting day costs in meals and snacks, and what each
+  /// traveller's own commute costs in mileage — read off the schedule, the project's own meal and
+  /// snack prices, and each person's own distance and rate, never typed here at all
+  /// (`lib/utils/ocpt_budget_regie.dart`).
+  regie,
 }

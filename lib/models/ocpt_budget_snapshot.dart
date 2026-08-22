@@ -6,24 +6,33 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The whole budget mode's read, in one object: the [postes] with their lines, the cash journal's
-/// own [entries] and [commitments], the financing plan's own [resources], the project's own
-/// [defaultVatRateBasisPoints] and [currencyCode], and the counts the status bar and the mode's own
-/// reads need.
+/// own [entries] and [commitments], the financing plan's own [resources], the catering-and-travel
+/// pass's own [regieDays] and [travelRows], the project's own [defaultVatRateBasisPoints] and
+/// [currencyCode], and the counts the status bar and the mode's own reads need.
 ///
 /// Built the same way `OcptResourcesSnapshot.build` is: a pure function of already-loaded lists,
 /// with no database access of its own. `OcptBudgetQuoteService.loadPostes` is what loads [postes],
 /// `OcptBudgetJournalService.loadEntries`/`loadCommitments` are what load [entries] and
-/// [commitments], `OcptBudgetFinancingService.loadResources` is what loads [resources]; combining
-/// those reads with the project's own settings into this one object is the mode's job.
+/// [commitments], `OcptBudgetFinancingService.loadResources`/`loadMileageRates` are what load
+/// [resources] and the rates [travelRows] read, `OcptScheduleService.loadSchedule`,
+/// `OcptRoleIndexService.loadRoles` and `OcptPeopleService.loadPeople` are what load the schedule,
+/// the roles and the people [regieDays] and [travelRows] are built from; combining those reads with
+/// the project's own settings into this one object is the mode's job.
 class OcptBudgetSnapshot extends Equatable {
   /// Every poste of the project, in display order, each with its own quote lines.
   final List<OcptBudgetPoste> postes;
@@ -45,6 +54,15 @@ class OcptBudgetSnapshot extends Equatable {
   /// The project's default VAT rate, in basis points, or null meaning "nobody has recorded a
   /// rate" — `OcptProjectInfoTable.defaultVatRateBasisPoints`.
   final int? defaultVatRateBasisPoints;
+
+  /// The project's own meal price, in cents, or null meaning "nobody has recorded one" —
+  /// `OcptProjectInfoTable.mealPriceCents`, the same price [regieDays]' own cost is priced from.
+  /// Carried here too, raw, for `OcptBudgetRegie`'s own caption naming the two unit prices in
+  /// force.
+  final int? mealPriceCents;
+
+  /// The project's own snack price, in cents, or null — [mealPriceCents]'s sibling.
+  final int? snackPriceCents;
 
   /// The ISO 4217 code of the currency the project counts its costs in.
   final String currencyCode;
@@ -97,6 +115,24 @@ class OcptBudgetSnapshot extends Equatable {
   /// here carries no voucher at all.
   final Map<String, OcptAssetRef> receiptsByEntryId;
 
+  /// Every live shooting day's own catering reading, in the schedule's own day-number order —
+  /// `ocptBudgetRegieDaysOf` (`lib/utils/ocpt_budget_regie.dart`), read over the schedule's own
+  /// days and slots, every role's own kind and the project's own meal and snack prices. Empty for
+  /// every caller unconcerned with the catering-and-travel pass, exactly as [resources] already
+  /// defaults for a caller unconcerned with the financing plan.
+  final List<OcptBudgetRegieDay> regieDays;
+
+  /// [regieDays] folded into one total — `ocptBudgetRegieTotalsOf`.
+  final OcptBudgetRegieTotals regieTotals;
+
+  /// Every traveller the schedule names, each with their own return-trip count and mileage
+  /// reimbursement — `ocptBudgetTravelRowsOf`, read over the same schedule days as [regieDays],
+  /// each person's own declared commute and mileage rate, and the project's own rate catalogue.
+  final List<OcptBudgetTravelRow> travelRows;
+
+  /// [travelRows] folded into one total — `ocptBudgetTravelTotalsOf`.
+  final OcptBudgetTravelTotals travelTotals;
+
   /// Class constructor
   const OcptBudgetSnapshot({
     required this.postes,
@@ -104,6 +140,8 @@ class OcptBudgetSnapshot extends Equatable {
     required this.commitments,
     required this.resources,
     required this.defaultVatRateBasisPoints,
+    required this.mealPriceCents,
+    required this.snackPriceCents,
     required this.currencyCode,
     required this.posteCount,
     required this.lineCount,
@@ -116,6 +154,10 @@ class OcptBudgetSnapshot extends Equatable {
     required this.receivedByResourceId,
     required this.alerts,
     required this.receiptsByEntryId,
+    required this.regieDays,
+    required this.regieTotals,
+    required this.travelRows,
+    required this.travelTotals,
   });
 
   /// Builds an [OcptBudgetSnapshot] from [postes], [entries], [commitments] and [resources], the
@@ -131,6 +173,15 @@ class OcptBudgetSnapshot extends Equatable {
   /// loaded, reading them under [defaultVatRateBasisPoints] — the project's own rate, which moves
   /// the whole reading with it exactly as every silent line already does — with no database access
   /// of its own.
+  ///
+  /// [regieDays] and [travelRows] are derived the same way, over [scheduleDays]/[slotsByDayId] —
+  /// `OcptScheduleService.loadSchedule`'s own `OcptScheduleSnapshot.days`/`.slotsByDayId`, **never**
+  /// an `OcptSchedulePlanSnapshot`: a head count needs no shot list and no episode list, which is
+  /// everything else that type joins in, and building one here would make this mode load the whole
+  /// découpage to count meals. [roles], [people] and [mileageRates] are turned into the id-keyed
+  /// maps `ocptBudgetRegieDaysOf`/`ocptBudgetTravelRowsOf` read, [mealPriceCents]/[snackPriceCents]
+  /// passed straight through — every one of the six defaults empty/null for every caller unconcerned
+  /// with the catering-and-travel pass, exactly as [resources] already does for the financing plan.
   factory OcptBudgetSnapshot.build({
     required List<OcptBudgetPoste> postes,
     required List<OcptBudgetEntry> entries,
@@ -139,6 +190,13 @@ class OcptBudgetSnapshot extends Equatable {
     required int? defaultVatRateBasisPoints,
     required String currencyCode,
     Map<String, OcptAssetRef> receiptsByEntryId = const {},
+    List<OcptShootingDay> scheduleDays = const [],
+    Map<String, List<OcptShootingSlot>> slotsByDayId = const {},
+    List<OcptRole> roles = const [],
+    List<OcptPerson> people = const [],
+    List<OcptBudgetMileageRate> mileageRates = const [],
+    int? mealPriceCents,
+    int? snackPriceCents,
   }) {
     final paidByPosteId = ocptBudgetPaidCentsByPosteId(
       entries,
@@ -157,12 +215,32 @@ class OcptBudgetSnapshot extends Equatable {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
 
+    final regieDays = ocptBudgetRegieDaysOf(
+      days: scheduleDays,
+      slotsByDayId: slotsByDayId,
+      roleKindById: {for (final role in roles) role.id: role.kind},
+      mealPriceCents: mealPriceCents,
+      snackPriceCents: snackPriceCents,
+    );
+    final travelRows = ocptBudgetTravelRowsOf(
+      days: scheduleDays,
+      slotsByDayId: slotsByDayId,
+      personIdByRoleId: {for (final role in roles) role.id: role.personId},
+      commuteKmMilliByPersonId: {for (final person in people) person.id: person.commuteKmMilli},
+      mileageRateIdByPersonId: {for (final person in people) person.id: person.mileageRateId},
+      ratePerKmMilliCentsByRateId: {
+        for (final rate in mileageRates) rate.id: rate.ratePerKmMilliCents,
+      },
+    );
+
     return OcptBudgetSnapshot(
       postes: postes,
       entries: entries,
       commitments: commitments,
       resources: resources,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+      mealPriceCents: mealPriceCents,
+      snackPriceCents: snackPriceCents,
       currencyCode: currencyCode,
       posteCount: postes.length,
       lineCount: postes.fold(0, (sum, poste) => sum + poste.lines.length),
@@ -182,6 +260,10 @@ class OcptBudgetSnapshot extends Equatable {
         projectVatRateBasisPoints: defaultVatRateBasisPoints,
       ),
       receiptsByEntryId: receiptsByEntryId,
+      regieDays: regieDays,
+      regieTotals: ocptBudgetRegieTotalsOf(regieDays),
+      travelRows: travelRows,
+      travelTotals: ocptBudgetTravelTotalsOf(travelRows),
     );
   }
 
@@ -216,7 +298,8 @@ class OcptBudgetSnapshot extends Equatable {
   String toString() =>
       "OcptBudgetSnapshot(posteCount: $posteCount, lineCount: $lineCount, "
       "entryCount: $entryCount, commitmentCount: $commitmentCount, resourceCount: $resourceCount, "
-      "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, currencyCode: $currencyCode)";
+      "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, currencyCode: $currencyCode, "
+      "regieDayCount: ${regieDays.length}, travelRowCount: ${travelRows.length})";
 
   /// Object properties
   @override
@@ -226,6 +309,8 @@ class OcptBudgetSnapshot extends Equatable {
     commitments,
     resources,
     defaultVatRateBasisPoints,
+    mealPriceCents,
+    snackPriceCents,
     currencyCode,
     posteCount,
     lineCount,
@@ -238,5 +323,9 @@ class OcptBudgetSnapshot extends Equatable {
     receivedByResourceId,
     alerts,
     receiptsByEntryId,
+    regieDays,
+    regieTotals,
+    travelRows,
+    travelTotals,
   ];
 }

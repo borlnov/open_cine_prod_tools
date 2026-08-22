@@ -65,7 +65,7 @@ void main() {
   }) async {
     // The default test surface is narrower than the KPI row's own fixed-width cells plus its own
     // `+ Resource` action need to lay out side by side without overflowing.
-    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.physicalSize = const Size(1600, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

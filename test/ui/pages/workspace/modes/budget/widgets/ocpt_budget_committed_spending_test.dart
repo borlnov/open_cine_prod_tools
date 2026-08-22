@@ -72,7 +72,7 @@ void main() {
     // The default test surface is narrower than `_ocptCommittedWrapWidth`, which would silently
     // switch every test onto the stacked layout instead of the side-by-side one this suite means
     // to exercise — widened here so the wrapping `SizedBox` below isn't itself clamped down.
-    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.physicalSize = const Size(1600, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
