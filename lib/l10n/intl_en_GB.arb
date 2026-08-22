@@ -6100,6 +6100,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "workspaceHelpTooltip": "Help",
+  "@workspaceHelpTooltip": {
+    "description": "Tooltip of the workspace toolbar's help button",
+    "context": "Shown on hover over the help button of the workspace toolbar, only the budget mode wires it in today",
+    "type": "text",
+    "placeholders": {}
+  },
   "workspaceExportAction": "Export",
   "@workspaceExportAction": {
     "description": "Label of the workspace toolbar's export button",

@@ -826,6 +826,7 @@
   "resourcesXlsxColumnCost": "Co\u00fbt ({currencyCode})",
   "resourcesXlsxColumnPurposeNotes": "Utilit\u00e9",
   "workspaceProjectSettingsTooltip": "Param\u00e8tres du projet",
+  "workspaceHelpTooltip": "Aide",
   "workspaceExportAction": "Exporter",
   "workspaceExportTooltip": "Ouvrir le panneau d'export de ce mode",
   "projectSettingsPageTitle": "Param\u00e8tres du projet",
