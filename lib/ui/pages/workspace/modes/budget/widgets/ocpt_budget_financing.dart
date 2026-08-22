@@ -27,6 +27,20 @@ const double _ocptFinancingMenuColumnWidth = 36;
 /// The budget mode's financing view: a KPI row across the top, then the plan itself, one bordered
 /// card per `OcptBudgetResourceGroupKind`, in enum order.
 ///
+/// **Creating a resource is three explicit gestures, one per `OcptBudgetResourceGroupKind`, not
+/// one.** The product owner's own words motivate the split: *"Ajouter une caméra qui est valorisée
+/// n'est pas la même chose que d'ajouter du vrai argent qui va servir à la production pour acheter à
+/// manger"* — a valuation and real money are not the same gesture, even though both end up as a row
+/// of the same table. `_OcptFinancingKpiRow`'s own `+ Resource` control is a `MenuAnchor` anchored
+/// on one button, offering the three kinds by name (`Subvention`/`Apport en numéraire`/`Apport en
+/// nature`) — chosen over three separate buttons, which the row has no width to spare for beside its
+/// three KPIs, and over a `Wrap` of `MenuItemButton`s, which throws the moment a `MenuAnchor` hands
+/// one an unbounded width (`AGENTS.md`'s own known pitfall). Picking one calls
+/// [onResourceCreationRequested] with the kind picked, and `OcptBudgetResourceDialog` opens on it
+/// already set, stated in the dialog's own title — see that dialog's own class doc comment for how
+/// the form itself is worded once the kind is known. The kind stays editable on an existing
+/// resource, exactly as it is today.
+///
 /// **No inspector.** A resource's row selects it ([onResourceSelected]) purely as a highlight —
 /// `OcptBudgetState.selectedResourceId`, read and written exactly as `selectedPosteId` already is —
 /// rather than opening a right-dock tab. `OcptBudgetRightDockTab` carries exactly two tabs,
@@ -109,8 +123,10 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// comment.
   final bool isReadOnly;
 
-  /// Called when the KPI row's own `+ Resource` action is clicked, or null while [isReadOnly].
-  final VoidCallback? onResourceCreationRequested;
+  /// Called with the kind picked when the KPI row's own `+ Resource` menu asks to create a fresh
+  /// resource, or null while [isReadOnly] — see the class doc comment for why this is a choice of
+  /// kind now, rather than one gesture opening one form for all three.
+  final ValueChanged<OcptBudgetResourceGroupKind>? onResourceCreationRequested;
 
   /// Called with a resource's id when its row is clicked — selects it, and only that.
   final ValueChanged<String> onResourceSelected;
@@ -267,7 +283,7 @@ class _OcptFinancingKpiRow extends StatelessWidget {
   final List<OcptBudgetResource> resources;
   final int Function(String resourceId) receivedCentsOf;
   final String currencyCode;
-  final VoidCallback? onResourceCreationRequested;
+  final ValueChanged<OcptBudgetResourceGroupKind>? onResourceCreationRequested;
 
   /// Class constructor
   const _OcptFinancingKpiRow({
@@ -326,12 +342,49 @@ class _OcptFinancingKpiRow extends StatelessWidget {
         ),
         const Spacer(),
         if (onResourceCreationRequested != null)
-          FilledButton.icon(
-            onPressed: onResourceCreationRequested,
-            icon: const Icon(Icons.add, size: 16),
-            label: Text(tr.budgetFinancingCreationAction),
-          ),
+          _OcptAddResourceButton(onGroupKindPicked: onResourceCreationRequested!),
       ],
+    );
+  }
+}
+
+/// The KPI row's own `+ Resource` control: a `MenuAnchor`/`MenuItemButton` menu offering the three
+/// `OcptBudgetResourceGroupKind` values by name, anchored on one `FilledButton` — see
+/// [OcptBudgetFinancing]'s own class doc comment for why three explicit gestures rather than one
+/// form. Built exactly the way `OcptResourcesMode`'s own `_OcptAddRoleButton`/`_OcptAddElementButton`
+/// are (`lib/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart`), so picking
+/// an entry closes the menu for free.
+class _OcptAddResourceButton extends StatelessWidget {
+  /// Called with the kind picked.
+  final ValueChanged<OcptBudgetResourceGroupKind> onGroupKindPicked;
+
+  /// Class constructor
+  const _OcptAddResourceButton({required this.onGroupKindPicked});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return MenuAnchor(
+      menuChildren: [
+        MenuItemButton(
+          onPressed: () => onGroupKindPicked(OcptBudgetResourceGroupKind.subsidy),
+          child: Text(tr.budgetFinancingAddSubsidyAction),
+        ),
+        MenuItemButton(
+          onPressed: () => onGroupKindPicked(OcptBudgetResourceGroupKind.cash),
+          child: Text(tr.budgetFinancingAddCashAction),
+        ),
+        MenuItemButton(
+          onPressed: () => onGroupKindPicked(OcptBudgetResourceGroupKind.inKind),
+          child: Text(tr.budgetFinancingAddInKindAction),
+        ),
+      ],
+      builder: (context, controller, child) => FilledButton.icon(
+        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+        icon: const Icon(Icons.add, size: 16),
+        label: Text(tr.budgetFinancingCreationAction),
+      ),
     );
   }
 }

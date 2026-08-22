@@ -40,6 +40,7 @@ OcptBudgetResource _resource({
 }) => OcptBudgetResource(
   id: id,
   groupKind: groupKind,
+  personId: null,
   label: label,
   amountCents: amountCents,
   status: status,
@@ -57,7 +58,7 @@ void main() {
     Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
     String? selectedResourceId,
     bool isReadOnly = false,
-    VoidCallback? onResourceCreationRequested,
+    ValueChanged<OcptBudgetResourceGroupKind>? onResourceCreationRequested,
     ValueChanged<String>? onResourceSelected,
     ValueChanged<OcptBudgetResource>? onResourceEditRequested,
     ValueChanged<OcptBudgetResource>? onResourceReceiptRequested,
@@ -80,7 +81,7 @@ void main() {
           currencyCode: "EUR",
           selectedResourceId: selectedResourceId,
           isReadOnly: isReadOnly,
-          onResourceCreationRequested: onResourceCreationRequested ?? () {},
+          onResourceCreationRequested: onResourceCreationRequested ?? (_) {},
           onResourceSelected: onResourceSelected ?? (_) {},
           onResourceEditRequested: onResourceEditRequested ?? (_) {},
           onResourceReceiptRequested: onResourceReceiptRequested ?? (_) {},
@@ -98,14 +99,33 @@ void main() {
   });
 
   testWidgets("an empty plan still offers the action that starts it", (tester) async {
-    var created = 0;
+    OcptBudgetResourceGroupKind? picked;
 
-    await pumpView(tester, resources: const [], onResourceCreationRequested: () => created++);
+    await pumpView(
+      tester,
+      resources: const [],
+      onResourceCreationRequested: (groupKind) => picked = groupKind,
+    );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
     await tester.tap(find.text(tr.budgetFinancingCreationAction));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.budgetFinancingAddCashAction));
+    await tester.pumpAndSettle();
 
-    expect(created, 1);
+    expect(picked, OcptBudgetResourceGroupKind.cash);
+  });
+
+  testWidgets("the + Resource menu offers all three kinds by name", (tester) async {
+    await pumpView(tester, resources: const []);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    await tester.tap(find.text(tr.budgetFinancingCreationAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.budgetFinancingAddSubsidyAction), findsOneWidget);
+    expect(find.text(tr.budgetFinancingAddCashAction), findsOneWidget);
+    expect(find.text(tr.budgetFinancingAddInKindAction), findsOneWidget);
   });
 
   testWidgets("a group with no resource of its own draws no card at all", (tester) async {

@@ -12154,8 +12154,29 @@
   },
   "budgetFinancingCreationAction": "+ Resource",
   "@budgetFinancingCreationAction": {
-    "description": "Action opening OcptBudgetResourceDialog on a fresh financing resource",
+    "description": "Button opening the menu of the three resource kinds at the end of the budget mode's own financing view's KPI row",
     "context": "Displayed at the end of the budget mode's own financing view's KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingAddSubsidyAction": "Subsidy",
+  "@budgetFinancingAddSubsidyAction": {
+    "description": "Menu entry opening OcptBudgetResourceDialog on a fresh subsidy",
+    "context": "Displayed in the budget mode's own financing view's + Resource menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingAddCashAction": "Cash contribution",
+  "@budgetFinancingAddCashAction": {
+    "description": "Menu entry opening OcptBudgetResourceDialog on a fresh cash contribution",
+    "context": "Displayed in the budget mode's own financing view's + Resource menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingAddInKindAction": "In-kind contribution",
+  "@budgetFinancingAddInKindAction": {
+    "description": "Menu entry opening OcptBudgetResourceDialog on a fresh contribution in kind",
+    "context": "Displayed in the budget mode's own financing view's + Resource menu",
     "type": "text",
     "placeholders": {}
   },
@@ -12292,9 +12313,23 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetResourceDialogCreateTitle": "New resource",
-  "@budgetResourceDialogCreateTitle": {
-    "description": "Title of the resource dialog while creating a new financing resource",
+  "budgetResourceDialogCreateSubsidyTitle": "New subsidy",
+  "@budgetResourceDialogCreateSubsidyTitle": {
+    "description": "Title of the resource dialog while creating a fresh subsidy",
+    "context": "Displayed at the top of OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogCreateCashTitle": "New cash contribution",
+  "@budgetResourceDialogCreateCashTitle": {
+    "description": "Title of the resource dialog while creating a fresh cash contribution",
+    "context": "Displayed at the top of OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogCreateInKindTitle": "New in-kind contribution",
+  "@budgetResourceDialogCreateInKindTitle": {
+    "description": "Title of the resource dialog while creating a fresh contribution in kind",
     "context": "Displayed at the top of OcptBudgetResourceDialog",
     "type": "text",
     "placeholders": {}
@@ -12309,6 +12344,55 @@
   "budgetResourceDialogGroupFieldLabel": "Group",
   "@budgetResourceDialogGroupFieldLabel": {
     "description": "Label above the resource dialog's own group-kind picker",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogValuedAtFieldLabel": "Valued at",
+  "@budgetResourceDialogValuedAtFieldLabel": {
+    "description": "Label of the resource dialog's own amount field while creating or editing an in-kind contribution, worded as a valuation rather than an amount to be received",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogAmountHelperSubsidy": "The amount this subsidy is expected to bring in.",
+  "@budgetResourceDialogAmountHelperSubsidy": {
+    "description": "Helper text under the resource dialog's own amount field while the kind is a subsidy",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogAmountHelperCash": "The cash this contribution brings in.",
+  "@budgetResourceDialogAmountHelperCash": {
+    "description": "Helper text under the resource dialog's own amount field while the kind is a cash contribution",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogAmountHelperInKind": "What this contribution is valued at — not what will be received in cash.",
+  "@budgetResourceDialogAmountHelperInKind": {
+    "description": "Helper text under the resource dialog's own amount field while the kind is a contribution in kind",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogStatusHelperSubsidy": "How far this subsidy's paperwork has progressed.",
+  "@budgetResourceDialogStatusHelperSubsidy": {
+    "description": "Helper text under the resource dialog's own status picker while the kind is a subsidy",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogStatusHelperCash": "How far this contribution has progressed.",
+  "@budgetResourceDialogStatusHelperCash": {
+    "description": "Helper text under the resource dialog's own status picker while the kind is a cash contribution",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogStatusHelperInKind": "An in-kind contribution is normally valued once its worth is agreed.",
+  "@budgetResourceDialogStatusHelperInKind": {
+    "description": "Helper text under the resource dialog's own status picker while the kind is a contribution in kind",
     "context": "Displayed inside OcptBudgetResourceDialog",
     "type": "text",
     "placeholders": {}

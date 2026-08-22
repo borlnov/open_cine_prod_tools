@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -846,7 +847,8 @@ class _BudgetViewState extends State<_BudgetView> {
       isReadOnly: isReadOnly,
       onResourceCreationRequested: isReadOnly
           ? null
-          : () => unawaited(_handleResourceCreationRequested(context, state)),
+          : (groupKind) =>
+                unawaited(_handleResourceCreationRequested(context, state, groupKind)),
       onResourceSelected: (resourceId) =>
           bloc.add(OcptBudgetResourceSelectedEvent(resourceId: resourceId)),
       onResourceEditRequested: isReadOnly
@@ -864,13 +866,20 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Opens the resource dialog with nothing pre-filled, then dispatches the creation if the user
-  /// confirmed it.
-  Future<void> _handleResourceCreationRequested(BuildContext context, OcptBudgetState state) async {
+  /// Opens the resource dialog with nothing pre-filled but its own [groupKind] — the kind the
+  /// financing view's own three explicit creation gestures each already picked before this ever
+  /// opens — then dispatches the creation if the user confirmed it.
+  Future<void> _handleResourceCreationRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetResourceGroupKind groupKind,
+  ) async {
     final bloc = context.read<OcptBudgetBloc>();
     final fields = await OcptBudgetResourceDialog.show(
       context,
       existing: null,
+      groupKind: groupKind,
+      people: state.people,
       currencyCode: state.currencyCode,
     );
     if (fields == null) {
@@ -894,6 +903,8 @@ class _BudgetViewState extends State<_BudgetView> {
     final fields = await OcptBudgetResourceDialog.show(
       context,
       existing: resource,
+      groupKind: resource.groupKind,
+      people: state.people,
       currencyCode: state.currencyCode,
     );
     if (fields == null) {

@@ -529,6 +529,30 @@ are all here, and this file is the whole record of them.
   silence `Consumed` already keeps for a poste with no quote (see "What the mode still does not
   show"). The moment an entry does name such a resource the real figures are printed instead: the
   app never hides a movement that actually happened.
+  **Creating a resource is three explicit gestures, one per `OcptBudgetResourceGroupKind`, not
+  one.** Adding a camera that is valued is not the same gesture as adding real money that is going
+  to buy the crew lunch, even though both end up as a `budget_resources` row — the product owner
+  could not tell a valuation from real money through the single `+ Resource` button this view used
+  to offer, which opened one form for all three kinds with no word said about which one was being
+  created. `_OcptAddResourceButton` replaces it: a `MenuAnchor` anchored on one button, naming the
+  three kinds (`Subvention`/`Apport en numéraire`/`Apport en nature` in French), chosen over three
+  separate buttons the KPI row has no width to spare for beside its own three figures, and over a
+  `Wrap` of `MenuItemButton`s, which throws the moment a `MenuAnchor` hands one an unbounded width
+  (`AGENTS.md`'s own known pitfall). Picking one opens `OcptBudgetResourceDialog` with that kind
+  already set and named in the dialog's own title (`New subsidy`/`New cash contribution`/`New
+  in-kind contribution`) — its own `Group` picker is not drawn while creating, since the kind is
+  already decided by the very gesture that opened the dialog, and offering it again one field later
+  would let that gesture be second-guessed for no reason a reader could name. **The kind stays
+  editable on an existing resource**: the picker returns the moment the dialog opens on one, exactly
+  as it always has, since a production is free to reclassify a resource it already created.
+  Once the kind is known, the `Amount` field's own label and helper text are worded for it — an
+  in-kind contribution's figure is `Valued at`, what it is *valued at*, never an amount that will be
+  received, while a subsidy or a cash contribution keeps the plain `Amount` label — and the `Status`
+  field keeps a helper of its own saying what progress means for that kind. **No status is ever
+  hidden or disabled by kind**: `valued` is what an in-kind contribution normally wears, but nothing
+  here stops a production from marking a subsidy `valued` too if that is genuinely what happened —
+  the mode's standing rule that the UI carries no conditional branch on the state of the data holds
+  exactly as it already does for `OcptBudgetResourceStatus` itself.
   A resource row is **selected and highlighted, and opens no inspector**. The right dock's
   `Inspector` tab is built entirely around a poste's own quote lines, and a resource has none;
   growing a conditional branch onto that dock, or inventing a second inspector concept beside it,
