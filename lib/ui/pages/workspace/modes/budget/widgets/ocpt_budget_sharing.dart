@@ -42,6 +42,15 @@ final DateFormat _ocptSharingDateFormat = DateFormat.yMd();
 /// once the centre narrows past [_ocptSharingWrapWidth] — the layout the validated mockup lays
 /// this view out as, mirroring `OcptBudgetRegie`'s own two-column reading.
 ///
+/// **Every card sizes to its own content and hugs the top of its own column — never stretched to
+/// fill the view's own height.** This is `OcptBudgetFinancing`'s own house style (its group cards
+/// size to their content, the page simply carrying empty space below them), so each column here is
+/// a plain, content-sized `Column` of cards, and it is *that* — not a card's own body — which sits
+/// inside the scroll view: [_OcptSharingLeftColumn]/[_OcptSharingDistributionColumn] carry no
+/// `Expanded` of their own, and neither does a card's own list of rows, which is a plain `Column`
+/// rather than a `ListView`. Wide, each column scrolls on its own (`SingleChildScrollView`,
+/// side by side in a `Row`); narrow, one scroll view carries both columns in sequence.
+///
 /// **Left column**: `Takings received` (one row per live [revenues]) above `Repaying the
 /// contributions` ([sharingPot]'s own four-line read-out, the order that card exists to make
 /// legible — the reimbursable contributions come before any sharing at all). **Right column**:
@@ -222,23 +231,27 @@ class OcptBudgetSharing extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth >= _ocptSharingWrapWidth) {
+                // Each column scrolls on its own, top-aligned: the cards inside size to their own
+                // content, exactly as `OcptBudgetFinancing`'s own group cards do — see the class
+                // doc comment for why this reads as one column stretching full height was the
+                // defect a screenshot against the validated mockup caught.
                 return Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: leftColumn),
+                    Expanded(child: SingleChildScrollView(child: leftColumn)),
                     const SizedBox(width: 16),
-                    Expanded(child: rightColumn),
+                    Expanded(child: SingleChildScrollView(child: rightColumn)),
                   ],
                 );
               }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: leftColumn),
-                  const SizedBox(height: 16),
-                  Expanded(child: rightColumn),
-                ],
+              // Narrow: one scroll view holding both columns in sequence, rather than splitting
+              // the height between two, each independently scrolling.
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [leftColumn, const SizedBox(height: 16), rightColumn],
+                ),
               );
             },
           ),
@@ -294,71 +307,68 @@ class _OcptSharingLeftColumn extends StatelessWidget {
       children: [
         Text(tr.budgetSharingTakingsReceivedTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
-        Expanded(
-          flex: 3,
-          child: Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: revenues.isEmpty
-                        ? Center(
-                            child: Text(
-                              tr.budgetSharingTakingsEmptyHint,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: revenues.length,
-                            itemBuilder: (context, index) => _OcptSharingRevenueRow(
-                              revenue: revenues[index],
-                              received: receivedByRevenueId[revenues[index].id],
-                              currencyCode: currencyCode,
-                              isSelected: revenues[index].id == selectedRevenueId,
-                              onTap: () => onRevenueSelected(revenues[index].id),
-                              onEditRequested: isReadOnly || onRevenueEditRequested == null
-                                  ? null
-                                  : () => onRevenueEditRequested?.call(revenues[index]),
-                              onReceiptRequested: isReadOnly || onRevenueReceiptRequested == null
-                                  ? null
-                                  : () => onRevenueReceiptRequested?.call(revenues[index]),
-                              onMoveUpRequested: isReadOnly || onRevenueReorderRequested == null || index == 0
-                                  ? null
-                                  : () => onRevenueReorderRequested?.call(revenues[index].id, moveUp: true),
-                              onMoveDownRequested:
-                                  isReadOnly || onRevenueReorderRequested == null || index == revenues.length - 1
-                                  ? null
-                                  : () => onRevenueReorderRequested?.call(revenues[index].id, moveUp: false),
-                              onDeletionRequested: isReadOnly || onRevenueDeletionRequested == null
-                                  ? null
-                                  : () => onRevenueDeletionRequested?.call(revenues[index].id),
-                            ),
-                          ),
-                  ),
-                  const Divider(height: 1),
-                  _OcptSharingTotalRow(
-                    label: tr.budgetCostTrackingTotalRowLabel,
-                    valueText: ocptBudgetAmountLabel(received.amountCents, currencyCode),
-                    caption: received.isComplete
-                        ? null
-                        : tr.budgetSharingTakingsCoverageReadOut(
-                            ocptBudgetAmountLabel(received.amountCents, currencyCode),
-                            received.coveredLineCount,
-                            received.lineCount,
-                          ),
-                  ),
-                  if (!isReadOnly && onRevenueCreationRequested != null)
-                    _OcptSharingCreationFooter(
-                      label: tr.budgetSharingRevenueCreationAction,
-                      onTap: onRevenueCreationRequested!,
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (revenues.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: Text(
+                        tr.budgetSharingTakingsEmptyHint,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
-                ],
-              ),
+                  )
+                else
+                  for (final (index, revenue) in revenues.indexed)
+                    _OcptSharingRevenueRow(
+                      revenue: revenue,
+                      received: receivedByRevenueId[revenue.id],
+                      currencyCode: currencyCode,
+                      isSelected: revenue.id == selectedRevenueId,
+                      onTap: () => onRevenueSelected(revenue.id),
+                      onEditRequested: isReadOnly || onRevenueEditRequested == null
+                          ? null
+                          : () => onRevenueEditRequested?.call(revenue),
+                      onReceiptRequested: isReadOnly || onRevenueReceiptRequested == null
+                          ? null
+                          : () => onRevenueReceiptRequested?.call(revenue),
+                      onMoveUpRequested: isReadOnly || onRevenueReorderRequested == null || index == 0
+                          ? null
+                          : () => onRevenueReorderRequested?.call(revenue.id, moveUp: true),
+                      onMoveDownRequested:
+                          isReadOnly || onRevenueReorderRequested == null || index == revenues.length - 1
+                          ? null
+                          : () => onRevenueReorderRequested?.call(revenue.id, moveUp: false),
+                      onDeletionRequested: isReadOnly || onRevenueDeletionRequested == null
+                          ? null
+                          : () => onRevenueDeletionRequested?.call(revenue.id),
+                    ),
+                const Divider(height: 1),
+                _OcptSharingTotalRow(
+                  label: tr.budgetCostTrackingTotalRowLabel,
+                  valueText: ocptBudgetAmountLabel(received.amountCents, currencyCode),
+                  caption: received.isComplete
+                      ? null
+                      : tr.budgetSharingTakingsCoverageReadOut(
+                          ocptBudgetAmountLabel(received.amountCents, currencyCode),
+                          received.coveredLineCount,
+                          received.lineCount,
+                        ),
+                ),
+                if (!isReadOnly && onRevenueCreationRequested != null)
+                  _OcptSharingCreationFooter(
+                    label: tr.budgetSharingRevenueCreationAction,
+                    onTap: onRevenueCreationRequested!,
+                  ),
+              ],
             ),
           ),
         ),
@@ -702,87 +712,77 @@ class _OcptSharingDistributionColumn extends StatelessWidget {
       children: [
         Text(tr.budgetSharingDistributionTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
-        Expanded(
-          child: Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _OcptSharingDistributionHeaderRow(),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: shareSplits.isEmpty
-                        ? Center(
-                            child: Text(
-                              tr.budgetSharingDistributionEmptyHint,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: shareSplits.length,
-                            itemBuilder: (context, index) => _OcptSharingShareRow(
-                              split: shareSplits[index],
-                              person: shareSplits[index].share.personId == null
-                                  ? null
-                                  : personById[shareSplits[index].share.personId],
-                              currencyCode: currencyCode,
-                              isSelected: shareSplits[index].share.id == selectedShareId,
-                              onTap: () => onShareSelected(shareSplits[index].share.id),
-                              onEditRequested: isReadOnly || onShareEditRequested == null
-                                  ? null
-                                  : () => onShareEditRequested?.call(shareSplits[index].share),
-                              onPayoutRequested: isReadOnly || onSharePayoutRequested == null
-                                  ? null
-                                  : () => onSharePayoutRequested?.call(shareSplits[index].share),
-                              onMoveUpRequested: isReadOnly || onShareReorderRequested == null || index == 0
-                                  ? null
-                                  : () => onShareReorderRequested?.call(
-                                      shareSplits[index].share.id,
-                                      moveUp: true,
-                                    ),
-                              onMoveDownRequested:
-                                  isReadOnly || onShareReorderRequested == null || index == shareSplits.length - 1
-                                  ? null
-                                  : () => onShareReorderRequested?.call(
-                                      shareSplits[index].share.id,
-                                      moveUp: false,
-                                    ),
-                              onDeletionRequested: isReadOnly || onShareDeletionRequested == null
-                                  ? null
-                                  : () => onShareDeletionRequested?.call(shareSplits[index].share.id),
-                            ),
-                          ),
-                  ),
-                  const Divider(height: 1),
-                  _OcptSharingTotalRow(
-                    label: tr.budgetSharingReinvestedTotalLabel,
-                    valueText: ocptBudgetAmountLabel(
-                      ocptBudgetReinvestedTotalCents(shareSplits),
-                      currencyCode,
-                    ),
-                  ),
-                  if (showsMismatch)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _OcptSharingDistributionHeaderRow(),
+                const Divider(height: 1),
+                if (shareSplits.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
                       child: Text(
-                        tr.budgetSharingSharesMismatchReadOut(
-                          ocptBudgetAmountLabel(ocptBudgetDueTotalCents(shareSplits), currencyCode),
-                          ocptBudgetAmountLabel(sharingPot.shareableCents, currencyCode),
+                        tr.budgetSharingDistributionEmptyHint,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error),
                       ),
                     ),
-                  if (!isReadOnly && onShareCreationRequested != null)
-                    _OcptSharingCreationFooter(
-                      label: tr.budgetSharingShareCreationAction,
-                      onTap: onShareCreationRequested!,
+                  )
+                else
+                  for (final (index, split) in shareSplits.indexed)
+                    _OcptSharingShareRow(
+                      split: split,
+                      person: split.share.personId == null ? null : personById[split.share.personId],
+                      currencyCode: currencyCode,
+                      isSelected: split.share.id == selectedShareId,
+                      onTap: () => onShareSelected(split.share.id),
+                      onEditRequested: isReadOnly || onShareEditRequested == null
+                          ? null
+                          : () => onShareEditRequested?.call(split.share),
+                      onPayoutRequested: isReadOnly || onSharePayoutRequested == null
+                          ? null
+                          : () => onSharePayoutRequested?.call(split.share),
+                      onMoveUpRequested: isReadOnly || onShareReorderRequested == null || index == 0
+                          ? null
+                          : () => onShareReorderRequested?.call(split.share.id, moveUp: true),
+                      onMoveDownRequested:
+                          isReadOnly || onShareReorderRequested == null || index == shareSplits.length - 1
+                          ? null
+                          : () => onShareReorderRequested?.call(split.share.id, moveUp: false),
+                      onDeletionRequested: isReadOnly || onShareDeletionRequested == null
+                          ? null
+                          : () => onShareDeletionRequested?.call(split.share.id),
                     ),
-                ],
-              ),
+                const Divider(height: 1),
+                _OcptSharingTotalRow(
+                  label: tr.budgetSharingReinvestedTotalLabel,
+                  valueText: ocptBudgetAmountLabel(
+                    ocptBudgetReinvestedTotalCents(shareSplits),
+                    currencyCode,
+                  ),
+                ),
+                if (showsMismatch)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      tr.budgetSharingSharesMismatchReadOut(
+                        ocptBudgetAmountLabel(ocptBudgetDueTotalCents(shareSplits), currencyCode),
+                        ocptBudgetAmountLabel(sharingPot.shareableCents, currencyCode),
+                      ),
+                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error),
+                    ),
+                  ),
+                if (!isReadOnly && onShareCreationRequested != null)
+                  _OcptSharingCreationFooter(
+                    label: tr.budgetSharingShareCreationAction,
+                    onTap: onShareCreationRequested!,
+                  ),
+              ],
             ),
           ),
         ),

@@ -150,8 +150,8 @@ void main() {
           paidByShareId: const {},
         );
 
-    // The default test surface is shorter than both columns' own cards need to lay out side by
-    // side without overflowing.
+    // The default test surface is narrower than `_ocptSharingWrapWidth`, which would stack the
+    // two columns instead of laying them out side by side.
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
