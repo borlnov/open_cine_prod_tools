@@ -53,6 +53,13 @@ class OcptBudgetFinancialReportLabels extends Equatable {
   /// The label printed beside the project's own totals row, at the very end of the table.
   final String projectTotalsLabel;
 
+  /// The identity cell of the table's own off-quote row — spending that names no poste at all,
+  /// printed only while there is some (`ocptBudgetOffQuotePaidTotalOf`). Reuses the very same word
+  /// the cost-tracking table's own off-quote row already carries
+  /// (`tr.budgetCostTrackingOffQuoteLabel`), so the paper and the screen never disagree about what
+  /// this line is called.
+  final String offQuoteLabel;
+
   /// The label printed beside the financing plan's own grand total, under the table.
   final String financingPlanTotalLabel;
 
@@ -90,6 +97,7 @@ class OcptBudgetFinancialReportLabels extends Equatable {
     required this.remainingHeader,
     required this.varianceHeader,
     required this.projectTotalsLabel,
+    required this.offQuoteLabel,
     required this.financingPlanTotalLabel,
     required this.emptyDocumentNote,
     required this.coverageReadOutTemplate,
@@ -117,6 +125,7 @@ class OcptBudgetFinancialReportLabels extends Equatable {
     remainingHeader,
     varianceHeader,
     projectTotalsLabel,
+    offQuoteLabel,
     financingPlanTotalLabel,
     emptyDocumentNote,
     coverageReadOutTemplate,

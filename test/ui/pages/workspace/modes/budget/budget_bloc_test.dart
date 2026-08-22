@@ -119,6 +119,7 @@ const _financialReportLabels = OcptBudgetFinancialReportLabels(
   remainingHeader: "Remaining",
   varianceHeader: "Variance",
   projectTotalsLabel: "Grand total",
+  offQuoteLabel: "Off quote",
   financingPlanTotalLabel: "Financing plan total",
   emptyDocumentNote: "No poste yet",
   coverageReadOutTemplate: "{amount} · {coveredCount} of {totalCount} known",

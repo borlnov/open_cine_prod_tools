@@ -132,8 +132,17 @@ class OcptBudgetFinancialReportPdfService {
     return pdfDocument.save();
   }
 
-  /// The document's own body: the poste-by-poste table with its own totals row, then the financing
-  /// plan's own total and the needs/resources balance.
+  /// The document's own body: the poste-by-poste table, an `Off quote` row while
+  /// `snapshot.offQuotePaidTotal` holds anything, its own totals row, then the financing plan's own
+  /// total and the needs/resources balance.
+  ///
+  /// **The off-quote row mirrors `OcptBudgetCostTracking`'s own reading exactly**
+  /// (`docs/architecture/budget.md`): drawn only while there is off-quote spending to show, its
+  /// `Quoted`/`Committed`/`Remaining`/`Variance` cells print [ocptBudgetExportEmptyValue] since there
+  /// is no quote behind it to measure any of them against, and the totals row's own `Paid` cell
+  /// folds it in alongside every poste's own paid total (`ocptBudgetCoveredTotalsFoldOf`) so that
+  /// column adds up to what actually left the account, printing the coverage read-out the moment
+  /// either side is incomplete.
   List<pw.Widget> _body({
     required OcptScriptPagePainter painter,
     required OcptBudgetSnapshot snapshot,
@@ -164,6 +173,10 @@ class OcptBudgetFinancialReportPdfService {
     final financingPlanTotalCents = ocptBudgetResourcesTotalCents(snapshot.resources);
     final balance = ocptBudgetNeedsResourcesBalanceOf(needs: quotedTotal, resourcesCents: financingPlanTotalCents);
 
+    final offQuoteTotal = snapshot.offQuotePaidTotal;
+    final showOffQuoteRow = offQuoteTotal.lineCount > 0;
+    final paidTotal = ocptBudgetCoveredTotalsFoldOf([...snapshot.paidByPosteId.values, offQuoteTotal]);
+
     return [
       pw.Table(
         border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
@@ -183,6 +196,13 @@ class OcptBudgetFinancialReportPdfService {
           ),
           for (final poste in snapshot.postes)
             _posteRow(painter: painter, poste: poste, snapshot: snapshot, labels: labels),
+          if (showOffQuoteRow)
+            _offQuoteRow(
+              painter: painter,
+              offQuoteTotal: offQuoteTotal,
+              labels: labels,
+              currencyCode: snapshot.currencyCode,
+            ),
           _totalsRow(
             painter: painter,
             label: labels.projectTotalsLabel,
@@ -191,7 +211,11 @@ class OcptBudgetFinancialReportPdfService {
               currencyCode: snapshot.currencyCode,
               coverageReadOutTemplate: labels.coverageReadOutTemplate,
             ),
-            paidCents: paidTotalCents,
+            paidText: ocptBudgetExportCoveredAmountText(
+              total: paidTotal,
+              currencyCode: snapshot.currencyCode,
+              coverageReadOutTemplate: labels.coverageReadOutTemplate,
+            ),
             committedCents: committedTotalCents,
             remainingCents: remainingTotalCents,
             varianceCents: varianceTotalCents,
@@ -273,12 +297,42 @@ class OcptBudgetFinancialReportPdfService {
     );
   }
 
-  /// The project's own totals row, closing the table.
+  /// The `Off quote` row: spending that names no poste at all, between the last poste and the
+  /// totals row, drawn only while [offQuoteTotal] holds something. Only its `Paid` cell carries a
+  /// figure — [offQuoteTotal]'s own tax-inclusive amount, plain, exactly as an ordinary poste row's
+  /// own `Paid` cell is — every other cell printing [ocptBudgetExportEmptyValue] since there is no
+  /// quote behind this row to measure any of them against, mirroring
+  /// `_OcptCostTrackingOffQuoteAmountsRow` on screen.
+  pw.TableRow _offQuoteRow({
+    required OcptScriptPagePainter painter,
+    required OcptBudgetCoveredTotal offQuoteTotal,
+    required OcptBudgetFinancialReportLabels labels,
+    required String currencyCode,
+  }) => pw.TableRow(
+    children: [
+      _textCell(painter: painter, text: labels.offQuoteLabel, align: pw.TextAlign.left),
+      _textCell(painter: painter, text: ocptBudgetExportEmptyValue, align: pw.TextAlign.right),
+      _textCell(
+        painter: painter,
+        text: ocptBudgetExportAmountLabel(offQuoteTotal.amountCents, currencyCode),
+        align: pw.TextAlign.right,
+      ),
+      _textCell(painter: painter, text: ocptBudgetExportEmptyValue, align: pw.TextAlign.right),
+      _textCell(painter: painter, text: ocptBudgetExportEmptyValue, align: pw.TextAlign.right),
+      _textCell(painter: painter, text: ocptBudgetExportEmptyValue, align: pw.TextAlign.right),
+    ],
+  );
+
+  /// The project's own totals row, closing the table. [paidText] is already resolved through
+  /// [ocptBudgetExportCoveredAmountText] by the caller, exactly as [quotedText] is, since the
+  /// `Paid` total folds every poste's own paid total with the off-quote total
+  /// (`ocptBudgetCoveredTotalsFoldOf`) and needs the very same coverage read-out the moment either
+  /// side is incomplete.
   pw.TableRow _totalsRow({
     required OcptScriptPagePainter painter,
     required String label,
     required String quotedText,
-    required int paidCents,
+    required String paidText,
     required int committedCents,
     required int remainingCents,
     required int varianceCents,
@@ -288,12 +342,7 @@ class OcptBudgetFinancialReportPdfService {
     children: [
       _textCell(painter: painter, text: label, align: pw.TextAlign.left, isBold: true),
       _textCell(painter: painter, text: quotedText, align: pw.TextAlign.right, isBold: true),
-      _textCell(
-        painter: painter,
-        text: ocptBudgetExportAmountLabel(paidCents, currencyCode),
-        align: pw.TextAlign.right,
-        isBold: true,
-      ),
+      _textCell(painter: painter, text: paidText, align: pw.TextAlign.right, isBold: true),
       _textCell(
         painter: painter,
         text: ocptBudgetExportAmountLabel(committedCents, currencyCode),

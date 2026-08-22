@@ -171,10 +171,9 @@ are all here, and this file is the whole record of them.
 - **`ocptBudgetPosteStrainOf` and `ocptComputeBudgetAlerts` never read the off-quote total.** Both
   are readings about a poste exceeding its own quote; off-quote spending prices no poste at all, so
   it cannot make one strained, and folding it into either would answer a question neither was asked.
-- The exported financial report shares the same gap `ocptBudgetOffQuotePaidTotalOf` closes on
-  screen — `lib/managers/export/services/ocpt_budget_financial_report_pdf_service.dart` still sums
-  `snapshot.paidCentsOf` poste by poste, off-quote spending included nowhere — left for a later step
-  to close rather than folded into this one.
+- The exported financial report reads the very same `snapshot.offQuotePaidTotal`
+  (`OcptBudgetFinancialReportPdfService`, "The four documents" below): the paper gives the same
+  reading the screen does, not less of one.
 
 ## A poste's quoted amount is not stored
 
@@ -695,6 +694,16 @@ are all here, and this file is the whole record of them.
   the empty-value mark for received and outstanding; and the needs/resources balance gives the same
   three-way verdict — no quote yet, covered, or short by an amount — rather than declaring a
   financing plan sufficient against a quote nobody has begun.
+  **The financial report reads the cost-tracking table's own off-quote reading too.** It draws an
+  `Off quote` row, reusing the cost-tracking table's own label
+  (`tr.budgetCostTrackingOffQuoteLabel`), between the last poste and the totals row, only while
+  `snapshot.offQuotePaidTotal` holds anything (`OcptBudgetFinancialReportPdfService._offQuoteRow`) —
+  its `Quoted`, `Committed`, `Remaining` and `Variance` cells print the empty-value mark, since there
+  is no quote behind it to measure any of them against, and only its `Paid` cell carries a figure.
+  The totals row's own `Paid` cell folds every poste's own paid total with the off-quote total
+  (`ocptBudgetCoveredTotalsFoldOf`, the very fold the dashboard's own `Paid` KPI and the
+  cost-tracking table's own total row already use), so that column adds up to what actually left
+  the account, printing the coverage read-out the moment either side is incomplete.
   **Only the quote offers a tax basis**, and its dialog opens on whichever one the header was
   already showing, so the document somebody exports is the one they were just reading. The other
   three are money that has moved or money coming in, which "Money that has moved is read

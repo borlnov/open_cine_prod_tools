@@ -30,6 +30,7 @@ const _labels = OcptBudgetFinancialReportLabels(
   remainingHeader: "Remaining",
   varianceHeader: "Variance",
   projectTotalsLabel: "Totals",
+  offQuoteLabel: "Off quote",
   financingPlanTotalLabel: "Financing plan total",
   emptyDocumentNote: "Nothing to report yet.",
   coverageReadOutTemplate: "{amount} · over {coveredCount} of {totalCount}",
@@ -75,6 +76,42 @@ OcptBudgetEntry _buildDebitEntry({required String id, required String posteId, r
       revenueId: null,
       shareId: null,
     );
+
+/// Builds a debit entry naming no poste at all — off-quote spending.
+OcptBudgetEntry _buildOffQuoteDebitEntry({required String id, required int debitCents}) => OcptBudgetEntry(
+  id: id,
+  date: DateTime(2026),
+  label: "",
+  posteId: null,
+  debitCents: debitCents,
+  creditCents: 0,
+  isTaxInclusive: true,
+  vatRateBasisPoints: null,
+  voucherNumber: "J-001",
+  sortKey: "a",
+  resourceId: null,
+  revenueId: null,
+  shareId: null,
+);
+
+/// Builds a credit entry naming no poste, no resource and no revenue — money coming in this report
+/// reads nowhere, used to prove a poste-less credit never draws the off-quote row (only a debit
+/// does).
+OcptBudgetEntry _buildOffQuoteCreditEntry({required String id, required int creditCents}) => OcptBudgetEntry(
+  id: id,
+  date: DateTime(2026),
+  label: "",
+  posteId: null,
+  debitCents: 0,
+  creditCents: creditCents,
+  isTaxInclusive: true,
+  vatRateBasisPoints: null,
+  voucherNumber: "J-001",
+  sortKey: "a",
+  resourceId: null,
+  revenueId: null,
+  shareId: null,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -163,6 +200,95 @@ void main() {
       );
 
       expect(_contentStreams(await generateFor(untouched)), isNot(_contentStreams(await generateFor(paid))));
+    });
+
+    test("draws an off-quote row once there is spending naming no poste", () async {
+      final withoutOffQuote = buildSnapshot(
+        postes: [
+          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        ],
+      );
+      final withOffQuote = buildSnapshot(
+        postes: [
+          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        ],
+        entries: [_buildOffQuoteDebitEntry(id: "entry-1", debitCents: 4000)],
+      );
+
+      Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+        snapshot: snapshot,
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+      );
+
+      expect(
+        _contentStreams(await generateFor(withoutOffQuote)),
+        isNot(_contentStreams(await generateFor(withOffQuote))),
+      );
+    });
+
+    test("a poste-less credit draws no off-quote row at all", () async {
+      final untouched = buildSnapshot(
+        postes: [
+          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        ],
+      );
+      // A credit naming no poste is money coming in, not off-quote spending
+      // (`ocptBudgetOffQuotePaidTotalOf`'s own doc comment) — it names no resource or revenue
+      // either, so nothing else in this report reads it, and the two documents must come out
+      // byte-identical.
+      final withPosteLessCredit = buildSnapshot(
+        postes: [
+          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        ],
+        entries: [_buildOffQuoteCreditEntry(id: "entry-1", creditCents: 4000)],
+      );
+
+      Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+        snapshot: snapshot,
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+      );
+
+      expect(
+        _contentStreams(await generateFor(untouched)),
+        _contentStreams(await generateFor(withPosteLessCredit)),
+      );
+    });
+
+    test("the totals row's own paid figure folds the off-quote total in", () async {
+      final posteOnlyPaid = buildSnapshot(
+        postes: [
+          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        ],
+        entries: [_buildDebitEntry(id: "entry-1", posteId: "poste-1", debitCents: 5000)],
+      );
+      final splitBetweenPosteAndOffQuote = buildSnapshot(
+        postes: [
+          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        ],
+        entries: [
+          _buildDebitEntry(id: "entry-1", posteId: "poste-1", debitCents: 3000),
+          _buildOffQuoteDebitEntry(id: "entry-2", debitCents: 2000),
+        ],
+      );
+
+      Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+        snapshot: snapshot,
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+      );
+
+      expect(
+        _contentStreams(await generateFor(posteOnlyPaid)),
+        isNot(_contentStreams(await generateFor(splitBetweenPosteAndOffQuote))),
+      );
     });
   });
 

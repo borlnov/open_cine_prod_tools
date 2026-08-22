@@ -341,7 +341,9 @@ OcptBudgetCashJournalXlsxLabels ocptBudgetCashJournalXlsxLabelsOf(BuildContext c
 
 /// Every localized string the exported financial report carries — mirrors
 /// [ocptBudgetFinancingPlanLabelsOf], reusing the very same dashboard balance strings for the very
-/// same reason.
+/// same reason, and reusing `tr.budgetCostTrackingOffQuoteLabel` — the cost-tracking table's own
+/// off-quote row label — so the report never invents a second word for the very row the screen
+/// already draws.
 OcptBudgetFinancialReportLabels ocptBudgetFinancialReportLabelsOf(BuildContext context) {
   final tr = Tr.of(context);
 
@@ -356,6 +358,7 @@ OcptBudgetFinancialReportLabels ocptBudgetFinancialReportLabelsOf(BuildContext c
     remainingHeader: tr.budgetExportFinancialReportRemainingHeader,
     varianceHeader: tr.budgetExportFinancialReportVarianceHeader,
     projectTotalsLabel: tr.budgetExportFinancialReportProjectTotalsLabel,
+    offQuoteLabel: tr.budgetCostTrackingOffQuoteLabel,
     financingPlanTotalLabel: tr.budgetExportFinancialReportFinancingPlanTotalLabel,
     emptyDocumentNote: tr.budgetExportFinancialReportEmptyDocumentNote,
     coverageReadOutTemplate: _ocptBudgetExportCoverageReadOutTemplate(tr),
