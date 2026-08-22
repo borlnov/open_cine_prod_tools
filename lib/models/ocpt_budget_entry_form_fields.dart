@@ -27,6 +27,16 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// read exactly the way [posteId]'s own null is.
   final String? resourceId;
 
+  /// The taking this entry is the actual cash for, or null meaning "no taking" — the normal case,
+  /// read exactly the way [resourceId]'s own null is. Set by the sharing view's own `Record a
+  /// receipt` gesture, which pre-fills this dialog with the revenue already named, exactly as
+  /// `OcptBudgetFinancing`'s own receipt gesture pre-fills [resourceId].
+  final String? revenueId;
+
+  /// The participant this entry actually pays, or null meaning "no participant" — mirrors
+  /// [revenueId], set instead by the sharing view's own `Record a payout` gesture.
+  final String? shareId;
+
   /// Whether [amountCents] left the account (`true`) or came into it (`false`).
   final bool isDebit;
 
@@ -77,6 +87,8 @@ class OcptBudgetEntryFormFields extends Equatable {
     required this.label,
     required this.posteId,
     required this.resourceId,
+    required this.revenueId,
+    required this.shareId,
     required this.isDebit,
     required this.amountCents,
     required this.isTaxInclusive,
@@ -99,6 +111,8 @@ class OcptBudgetEntryFormFields extends Equatable {
     label,
     posteId,
     resourceId,
+    revenueId,
+    shareId,
     isDebit,
     amountCents,
     isTaxInclusive,

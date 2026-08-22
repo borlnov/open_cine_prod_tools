@@ -6,6 +6,8 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -520,4 +522,159 @@ class OcptBudgetResourceDeletionConfirmedEvent extends OcptBudgetEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, resourceId];
+}
+
+/// Selects revenue sharing taking [revenueId] — a row of the sharing view's own left column —
+/// dispatched by its row's own click. Draws as a plain highlight, never an inspector, mirroring
+/// `OcptBudgetResourceSelectedEvent`. A [revenueId] naming no live revenue is ignored.
+class OcptBudgetRevenueSelectedEvent extends OcptBudgetEvent {
+  /// The id of the revenue to select.
+  final String revenueId;
+
+  /// Class constructor
+  const OcptBudgetRevenueSelectedEvent({required this.revenueId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, revenueId];
+}
+
+/// Creates a new taking from [fields], dispatched by the mode once `OcptBudgetRevenueDialog`
+/// returned a result for a fresh revenue — mirrors `OcptBudgetResourceCreationConfirmedEvent`'s own
+/// "written the moment it is dispatched" reading.
+class OcptBudgetRevenueCreationConfirmedEvent extends OcptBudgetEvent {
+  /// Every field the dialog collected.
+  final OcptBudgetRevenueFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetRevenueCreationConfirmedEvent({required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fields];
+}
+
+/// Writes [fields] onto revenue [revenueId], dispatched by the mode once
+/// `OcptBudgetRevenueDialog` returned a result for an existing revenue it was opened to edit.
+class OcptBudgetRevenueUpdateConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the revenue being edited.
+  final String revenueId;
+
+  /// Every field the dialog collected.
+  final OcptBudgetRevenueFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetRevenueUpdateConfirmedEvent({required this.revenueId, required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, revenueId, fields];
+}
+
+/// Moves revenue [revenueId] to [newPosition] (0-based) within the sharing view's own flat order,
+/// dispatched by a row's own `⋮` menu `▲`/`▼` entries — mirrors `OcptBudgetPosteReorderedEvent`.
+class OcptBudgetRevenueReorderedEvent extends OcptBudgetEvent {
+  /// The id of the revenue to reorder.
+  final String revenueId;
+
+  /// The 0-based position the revenue is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptBudgetRevenueReorderedEvent({required this.revenueId, required this.newPosition});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, revenueId, newPosition];
+}
+
+/// Deletes taking [revenueId] for good, dispatched by the mode once its own `OcptConfirmDialog`
+/// has already been answered — mirrors `OcptBudgetResourceDeletionConfirmedEvent`.
+class OcptBudgetRevenueDeletionConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the revenue to delete.
+  final String revenueId;
+
+  /// Class constructor
+  const OcptBudgetRevenueDeletionConfirmedEvent({required this.revenueId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, revenueId];
+}
+
+/// Selects share [shareId] — a row of the sharing view's own `Distribution` table — dispatched by
+/// its row's own click. Draws as a plain highlight, never an inspector, mirroring
+/// `OcptBudgetRevenueSelectedEvent`. A [shareId] naming no live share is ignored.
+class OcptBudgetShareSelectedEvent extends OcptBudgetEvent {
+  /// The id of the share to select.
+  final String shareId;
+
+  /// Class constructor
+  const OcptBudgetShareSelectedEvent({required this.shareId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shareId];
+}
+
+/// Creates a new share from [fields], dispatched by the mode once `OcptBudgetShareDialog` returned
+/// a result for a fresh share — mirrors `OcptBudgetRevenueCreationConfirmedEvent`.
+class OcptBudgetShareCreationConfirmedEvent extends OcptBudgetEvent {
+  /// Every field the dialog collected.
+  final OcptBudgetShareFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetShareCreationConfirmedEvent({required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fields];
+}
+
+/// Writes [fields] onto share [shareId], dispatched by the mode once `OcptBudgetShareDialog`
+/// returned a result for an existing share it was opened to edit.
+class OcptBudgetShareUpdateConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the share being edited.
+  final String shareId;
+
+  /// Every field the dialog collected.
+  final OcptBudgetShareFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetShareUpdateConfirmedEvent({required this.shareId, required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shareId, fields];
+}
+
+/// Moves share [shareId] to [newPosition] (0-based) within the sharing view's own flat order,
+/// dispatched by a row's own `⋮` menu `▲`/`▼` entries — mirrors `OcptBudgetRevenueReorderedEvent`.
+class OcptBudgetShareReorderedEvent extends OcptBudgetEvent {
+  /// The id of the share to reorder.
+  final String shareId;
+
+  /// The 0-based position the share is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptBudgetShareReorderedEvent({required this.shareId, required this.newPosition});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shareId, newPosition];
+}
+
+/// Deletes share [shareId] for good, dispatched by the mode once its own `OcptConfirmDialog` has
+/// already been answered — mirrors `OcptBudgetRevenueDeletionConfirmedEvent`.
+class OcptBudgetShareDeletionConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the share to delete.
+  final String shareId;
+
+  /// Class constructor
+  const OcptBudgetShareDeletionConfirmedEvent({required this.shareId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shareId];
 }

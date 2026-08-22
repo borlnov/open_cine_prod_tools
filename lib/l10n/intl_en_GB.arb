@@ -12205,6 +12205,332 @@
     "context": "Displayed in OcptBudgetRegie's own mileage table, in place of a person's own display name",
     "type": "text",
     "placeholders": {}
+  },
+
+  "budgetHeaderSharingSegmentLabel": "Revenue sharing",
+  "@budgetHeaderSharingSegmentLabel": {
+    "description": "Label of the header's own Revenue sharing view chip",
+    "context": "Displayed in OcptBudgetHeader's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderSharingTitle": "Revenue sharing",
+  "@budgetHeaderSharingTitle": {
+    "description": "Title of the header band while the sharing view is on screen",
+    "context": "Displayed in OcptBudgetHeader, above the sharing view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderSharingSubtitle": "What the finished film earns, and how it is shared once its own contributions are repaid.",
+  "@budgetHeaderSharingSubtitle": {
+    "description": "Subtitle of the header band while the sharing view is on screen",
+    "context": "Displayed in OcptBudgetHeader, under the sharing view's own title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingCaption": "The reimbursable contributions come back out of the takings before anything is split; what is left is shared by the agreed percentages, and each participant may reinvest theirs in the next production.",
+  "@budgetSharingCaption": {
+    "description": "The sharing view's own introductory caption, above both its columns",
+    "context": "Displayed at the top of OcptBudgetSharing",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingTakingsReceivedTitle": "Takings received",
+  "@budgetSharingTakingsReceivedTitle": {
+    "description": "Title of the sharing view's own left card listing every taking",
+    "context": "Displayed above OcptBudgetSharing's own takings card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingTakingsEmptyHint": "No taking has been recorded yet.",
+  "@budgetSharingTakingsEmptyHint": {
+    "description": "Hint shown in place of the takings table while the project holds no taking at all",
+    "context": "Displayed centred inside OcptBudgetSharing's own takings card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRevenueCreationAction": "+ Taking",
+  "@budgetSharingRevenueCreationAction": {
+    "description": "Label of the action that creates a new taking",
+    "context": "Displayed as the takings card's own footer action in OcptBudgetSharing",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingTakingsCoverageReadOut": "{amount} · over {coveredCount} of the {revenueCount} takings",
+  "@budgetSharingTakingsCoverageReadOut": {
+    "description": "The takings card's total row own coverage read-out, while some takings carry no known rate",
+    "context": "Displayed in place of the plain total once every taking's own figure is fully known, this disappears",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "coveredCount": {
+        "type": "int"
+      },
+      "revenueCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetSharingRepayingTitle": "Repaying the contributions",
+  "@budgetSharingRepayingTitle": {
+    "description": "Title of the sharing view's own left card reading the pot",
+    "context": "Displayed above OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingReimbursableTotalLabel": "Reimbursable contributions",
+  "@budgetSharingReimbursableTotalLabel": {
+    "description": "Label of the repayment card's own first line: the reimbursable total",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRepaidLabel": "Already repaid",
+  "@budgetSharingRepaidLabel": {
+    "description": "Label of the repayment card's own second line: what has already been repaid",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingOutstandingRepaymentLabel": "Still to repay",
+  "@budgetSharingOutstandingRepaymentLabel": {
+    "description": "Label of the repayment card's own third line: what is still owed to the contributors",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingLeftToShareLabel": "Left to share",
+  "@budgetSharingLeftToShareLabel": {
+    "description": "Label of the repayment card's own final, emphasized line: what is left to share",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingDistributionTitle": "Distribution",
+  "@budgetSharingDistributionTitle": {
+    "description": "Title of the sharing view's own right column table",
+    "context": "Displayed above OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingDistributionEmptyHint": "No share has been agreed yet.",
+  "@budgetSharingDistributionEmptyHint": {
+    "description": "Hint shown in place of the distribution table while the project holds no share at all",
+    "context": "Displayed centred inside OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingParticipantColumnLabel": "Participant",
+  "@budgetSharingParticipantColumnLabel": {
+    "description": "Header label of the distribution table's own Participant column",
+    "context": "Displayed in OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingShareColumnLabel": "Share",
+  "@budgetSharingShareColumnLabel": {
+    "description": "Header label of the distribution table's own Share column",
+    "context": "Displayed in OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingDueColumnLabel": "Due",
+  "@budgetSharingDueColumnLabel": {
+    "description": "Header label of the distribution table's own Due column",
+    "context": "Displayed in OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingPaidColumnLabel": "Paid",
+  "@budgetSharingPaidColumnLabel": {
+    "description": "Header label of the distribution table's own Paid column",
+    "context": "Displayed in OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingReinvestedColumnLabel": "Reinvested",
+  "@budgetSharingReinvestedColumnLabel": {
+    "description": "Header label of the distribution table's own Reinvested column",
+    "context": "Displayed in OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingReinvestedTotalLabel": "Reinvested in the next production",
+  "@budgetSharingReinvestedTotalLabel": {
+    "description": "Label of the distribution table's own footer total row",
+    "context": "Displayed in OcptBudgetSharing's own distribution table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingSharesMismatchReadOut": "The shares as written claim {dueAmount} to share, out of {shareableAmount} there is.",
+  "@budgetSharingSharesMismatchReadOut": {
+    "description": "Read-out shown when the live shares' own per mille do not sum to 1000",
+    "context": "Displayed under the distribution table's own footer in OcptBudgetSharing",
+    "type": "text",
+    "placeholders": {
+      "dueAmount": {
+        "type": "String"
+      },
+      "shareableAmount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetSharingShareCreationAction": "+ Participant",
+  "@budgetSharingShareCreationAction": {
+    "description": "Label of the action that creates a new share",
+    "context": "Displayed as the distribution table's own footer action in OcptBudgetSharing",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRecordPayoutAction": "Record a payout",
+  "@budgetSharingRecordPayoutAction": {
+    "description": "Label of a share row's own action that opens the entry dialog pre-filled as a payout",
+    "context": "Displayed in a distribution row's own ⋮ menu in OcptBudgetSharing",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRevenueStatusExpectedLabel": "Expected",
+  "@budgetSharingRevenueStatusExpectedLabel": {
+    "description": "Label of a taking's own expected status",
+    "context": "Displayed as a taking's own status pill and in the revenue dialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRevenueStatusConfirmedLabel": "Confirmed",
+  "@budgetSharingRevenueStatusConfirmedLabel": {
+    "description": "Label of a taking's own confirmed status",
+    "context": "Displayed as a taking's own status pill and in the revenue dialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRevenueStatusInvoicedLabel": "Invoiced",
+  "@budgetSharingRevenueStatusInvoicedLabel": {
+    "description": "Label of a taking's own invoiced status",
+    "context": "Displayed as a taking's own status pill and in the revenue dialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteRevenueConfirmTitle": "Delete this taking?",
+  "@budgetDeleteRevenueConfirmTitle": {
+    "description": "Title of the confirmation dialog asked before a taking is deleted",
+    "context": "Displayed in OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteRevenueConfirmMessage": "This cannot be undone.",
+  "@budgetDeleteRevenueConfirmMessage": {
+    "description": "Message of the confirmation dialog asked before a taking is deleted",
+    "context": "Displayed in OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteShareConfirmTitle": "Delete this share?",
+  "@budgetDeleteShareConfirmTitle": {
+    "description": "Title of the confirmation dialog asked before a share is deleted",
+    "context": "Displayed in OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteShareConfirmMessage": "This cannot be undone.",
+  "@budgetDeleteShareConfirmMessage": {
+    "description": "Message of the confirmation dialog asked before a share is deleted",
+    "context": "Displayed in OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogRevenueFieldLabel": "Taking",
+  "@budgetEntryDialogRevenueFieldLabel": {
+    "description": "Label of the entry dialog's own Taking picker",
+    "context": "Displayed in OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogNoRevenueLabel": "No taking",
+  "@budgetEntryDialogNoRevenueLabel": {
+    "description": "Label of the entry dialog's own Taking picker explicit no-taking choice",
+    "context": "Displayed in OcptBudgetEntryDialog's own Taking picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogShareFieldLabel": "Participant",
+  "@budgetEntryDialogShareFieldLabel": {
+    "description": "Label of the entry dialog's own Participant picker",
+    "context": "Displayed in OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogNoShareLabel": "No participant",
+  "@budgetEntryDialogNoShareLabel": {
+    "description": "Label of the entry dialog's own Participant picker explicit no-participant choice",
+    "context": "Displayed in OcptBudgetEntryDialog's own Participant picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRevenueDialogCreateTitle": "New taking",
+  "@budgetRevenueDialogCreateTitle": {
+    "description": "Title of the revenue dialog while creating a new taking",
+    "context": "Displayed in OcptBudgetRevenueDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRevenueDialogEditTitle": "Edit taking",
+  "@budgetRevenueDialogEditTitle": {
+    "description": "Title of the revenue dialog while editing an existing taking",
+    "context": "Displayed in OcptBudgetRevenueDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetShareDialogCreateTitle": "New share",
+  "@budgetShareDialogCreateTitle": {
+    "description": "Title of the share dialog while creating a new share",
+    "context": "Displayed in OcptBudgetShareDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetShareDialogEditTitle": "Edit share",
+  "@budgetShareDialogEditTitle": {
+    "description": "Title of the share dialog while editing an existing share",
+    "context": "Displayed in OcptBudgetShareDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetShareDialogPersonFieldLabel": "Person",
+  "@budgetShareDialogPersonFieldLabel": {
+    "description": "Label of the share dialog's own Person picker",
+    "context": "Displayed in OcptBudgetShareDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetShareDialogNoPersonLabel": "No person",
+  "@budgetShareDialogNoPersonLabel": {
+    "description": "Label of the share dialog's own Person picker explicit no-person choice",
+    "context": "Displayed in OcptBudgetShareDialog's own Person picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetShareDialogShareFieldLabel": "Share",
+  "@budgetShareDialogShareFieldLabel": {
+    "description": "Label of the share dialog's own Share field",
+    "context": "Displayed in OcptBudgetShareDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetShareDialogReinvestFieldLabel": "Reinvest",
+  "@budgetShareDialogReinvestFieldLabel": {
+    "description": "Label of the share dialog's own Reinvest field",
+    "context": "Displayed in OcptBudgetShareDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetShareDialogPercentInvalidError": "Enter a valid percentage.",
+  "@budgetShareDialogPercentInvalidError": {
+    "description": "Validation error shown under the Share/Reinvest fields when they hold no valid percentage",
+    "context": "Displayed in OcptBudgetShareDialog",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

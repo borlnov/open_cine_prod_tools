@@ -11,6 +11,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_percent_permille.dart';
 
 /// The placeholder shown in place of a budget figure that cannot be read at all — this mode's own
 /// instance of `ocptResourcesEmptyValue`: an empty cell reads as a rendering bug, an em dash reads
@@ -161,6 +163,26 @@ Color ocptBudgetResourceStatusAccentColor(ColorScheme colorScheme, OcptBudgetRes
       OcptBudgetResourceStatus.valued => colorScheme.primary,
     };
 
+/// [status]'s own localized word — the sharing view's own `Takings received` card and the revenue
+/// dialog's own status picker, always reading the same three words, mirroring
+/// [ocptBudgetResourceStatusLabel].
+String ocptBudgetRevenueStatusLabel(Tr tr, OcptBudgetRevenueStatus status) => switch (status) {
+  OcptBudgetRevenueStatus.expected => tr.budgetSharingRevenueStatusExpectedLabel,
+  OcptBudgetRevenueStatus.confirmed => tr.budgetSharingRevenueStatusConfirmedLabel,
+  OcptBudgetRevenueStatus.invoiced => tr.budgetSharingRevenueStatusInvoicedLabel,
+};
+
+/// [status]'s own accent colour, read off [colorScheme] alone — mirrors
+/// [ocptBudgetResourceStatusAccentColor]'s own reading, [OcptBudgetRevenueStatus.index] ordering
+/// its three values from the lightest step (merely announced) to the one nearest to being paid
+/// (invoiced).
+Color ocptBudgetRevenueStatusAccentColor(ColorScheme colorScheme, OcptBudgetRevenueStatus status) =>
+    switch (status) {
+      OcptBudgetRevenueStatus.expected => colorScheme.onSurfaceVariant,
+      OcptBudgetRevenueStatus.confirmed => colorScheme.secondary,
+      OcptBudgetRevenueStatus.invoiced => colorScheme.primary,
+    };
+
 /// [cents] formatted as a **displayed** amount in [currencyCode]: grouped, carrying the currency
 /// symbol — `NumberFormat.simpleCurrency`, the precedent `OcptElementSheetSourcingCard` sets for
 /// reaching into `intl` rather than an ARB key.
@@ -203,3 +225,9 @@ int? ocptBudgetQuantityMilliOf(String text) {
 
   return (quantity * _ocptBudgetQuantityMilliPerUnit).round();
 }
+
+/// [permille] formatted as a **displayed** percentage: `400` reads `40%`, `455` reads `45.5%` —
+/// the sharing view's own `Share` column, over [ocptPermillePercentTextOf]'s own bare figure, a
+/// `%` sign appended the very same way [ocptBudgetAmountLabel] appends a currency symbol
+/// `ocptCostTextOf` never carries.
+String ocptBudgetSharePercentLabel(int permille) => "${ocptPermillePercentTextOf(permille)}%";

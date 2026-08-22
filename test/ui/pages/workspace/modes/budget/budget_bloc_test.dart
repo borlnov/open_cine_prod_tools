@@ -17,10 +17,13 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.d
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -455,6 +458,8 @@ void main() {
             label: "Camera rental",
             posteId: posteId,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: true,
             amountCents: 5000,
             isTaxInclusive: true,
@@ -489,6 +494,8 @@ void main() {
             label: "Grant received",
             posteId: null,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: false,
             amountCents: 20000,
             isTaxInclusive: true,
@@ -522,6 +529,8 @@ void main() {
             label: "Camera rental",
             posteId: posteId,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: true,
             amountCents: 5000,
             isTaxInclusive: true,
@@ -572,6 +581,8 @@ void main() {
             label: "Original",
             posteId: posteId,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: true,
             amountCents: 1000,
             isTaxInclusive: true,
@@ -621,6 +632,8 @@ void main() {
             label: "Original",
             posteId: posteId,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: true,
             amountCents: 1000,
             isTaxInclusive: true,
@@ -662,6 +675,8 @@ void main() {
             label: "Camera deposit",
             posteId: posteId,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: true,
             amountCents: 5000,
             isTaxInclusive: true,
@@ -711,6 +726,8 @@ void main() {
             label: "Renamed",
             posteId: otherPosteId,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: false,
             amountCents: 750,
             isTaxInclusive: false,
@@ -906,6 +923,8 @@ void main() {
             label: "Camera deposit",
             posteId: posteId,
             resourceId: null,
+            revenueId: null,
+            shareId: null,
             isDebit: true,
             amountCents: 5000,
             isTaxInclusive: true,
@@ -1130,6 +1149,8 @@ void main() {
             label: "Grant instalment",
             posteId: null,
             resourceId: resourceId,
+            revenueId: null,
+            shareId: null,
             isDebit: false,
             amountCents: 5000,
             isTaxInclusive: true,
@@ -1175,6 +1196,8 @@ void main() {
             label: "Grant instalment",
             posteId: null,
             resourceId: resourceId,
+            revenueId: null,
+            shareId: null,
             isDebit: false,
             amountCents: 5000,
             isTaxInclusive: true,
@@ -1191,6 +1214,401 @@ void main() {
       );
 
       expect(state.receivedCentsOf(resourceId!), 5000);
+    });
+  });
+
+  group("the revenue sharing", () {
+    test("loads every live revenue and share alongside the quote", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+
+      final revenueId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Festival prize",
+      );
+      final shareId = await projectsManager.budgetSharingService.createShare(
+        database: project.database,
+        label: "Production",
+      );
+      expect(revenueId, isNotNull);
+      expect(shareId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      final state = await waitForState(
+        bloc,
+        (state) => state.revenues.isNotEmpty && state.shares.isNotEmpty,
+      );
+
+      expect(state.revenues, hasLength(1));
+      expect(state.revenues.single.label, "Festival prize");
+      expect(state.revenueCount, 1);
+      expect(state.shares, hasLength(1));
+      expect(state.shares.single.label, "Production");
+      expect(state.shareCount, 1);
+    });
+  });
+
+  group("selecting a revenue", () {
+    test("highlights it, ignoring an id naming no live revenue", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final revenueId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Festival prize",
+      );
+      expect(revenueId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.revenues.isNotEmpty);
+
+      bloc.add(const OcptBudgetRevenueSelectedEvent(revenueId: "gone"));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(bloc.state.selectedRevenueId, isNull);
+
+      bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId!));
+      final state = await waitForState(bloc, (state) => state.selectedRevenueId != null);
+      expect(state.selectedRevenueId, revenueId);
+    });
+  });
+
+  group("creating a revenue", () {
+    test("writes every field and selects it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptBudgetRevenueCreationConfirmedEvent(
+          fields: OcptBudgetRevenueFormFields(
+            date: DateTime(2026, 3),
+            label: "Festival prize",
+            amountCents: 250000,
+            status: OcptBudgetRevenueStatus.confirmed,
+            notes: "Announced at the closing ceremony",
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.selectedRevenueId != null);
+
+      expect(state.revenues, hasLength(1));
+      final revenue = state.revenues.single;
+      expect(revenue.label, "Festival prize");
+      expect(revenue.amountCents, 250000);
+      expect(revenue.status, OcptBudgetRevenueStatus.confirmed);
+      expect(revenue.notes, "Announced at the closing ceremony");
+      expect(state.selectedRevenueId, revenue.id);
+    });
+  });
+
+  group("editing a revenue", () {
+    test("writes every field back", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final revenueId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Original",
+      );
+      expect(revenueId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.revenues.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetRevenueUpdateConfirmedEvent(
+          revenueId: revenueId!,
+          fields: OcptBudgetRevenueFormFields(
+            date: DateTime(2026, 4),
+            label: "Renamed",
+            amountCents: 500,
+            status: OcptBudgetRevenueStatus.invoiced,
+            notes: "Billed",
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.revenues.single.label == "Renamed");
+
+      final revenue = state.revenues.single;
+      expect(revenue.amountCents, 500);
+      expect(revenue.status, OcptBudgetRevenueStatus.invoiced);
+      expect(revenue.notes, "Billed");
+    });
+  });
+
+  group("reordering a revenue", () {
+    test("moves it to the new position", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final firstId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "First",
+      );
+      await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Second",
+      );
+      expect(firstId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.revenues.length == 2);
+
+      bloc.add(OcptBudgetRevenueReorderedEvent(revenueId: firstId!, newPosition: 1));
+      final state = await waitForState(bloc, (state) => state.revenues.last.id == firstId);
+
+      expect(state.revenues.last.id, firstId);
+    });
+  });
+
+  group("deleting a revenue", () {
+    test("tombstones it, and clears the selection when it was selected", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final revenueId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "To be deleted",
+      );
+      expect(revenueId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.revenues.isNotEmpty);
+      bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId!));
+      await waitForState(bloc, (state) => state.selectedRevenueId == revenueId);
+
+      bloc.add(OcptBudgetRevenueDeletionConfirmedEvent(revenueId: revenueId));
+      final state = await waitForState(bloc, (state) => state.revenues.isEmpty);
+
+      expect(state.revenues, isEmpty);
+      expect(state.selectedRevenueId, isNull);
+    });
+  });
+
+  group("an entry naming a revenue", () {
+    test("writes revenueId, and it shows up in receivedByRevenueId once credited", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final revenueId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Festival prize",
+      );
+      expect(revenueId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.revenues.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Prize received",
+            posteId: null,
+            resourceId: null,
+            revenueId: revenueId,
+            shareId: null,
+            isDebit: false,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      expect(state.entries.single.revenueId, revenueId);
+      expect(state.receivedByRevenueId[revenueId]?.amountCents, 5000);
+      expect(state.receivedRevenueCentsOf(revenueId!), 5000);
+    });
+  });
+
+  group("selecting a share", () {
+    test("highlights it, ignoring an id naming no live share", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final shareId = await projectsManager.budgetSharingService.createShare(
+        database: project.database,
+        label: "Production",
+      );
+      expect(shareId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.shares.isNotEmpty);
+
+      bloc.add(const OcptBudgetShareSelectedEvent(shareId: "gone"));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(bloc.state.selectedShareId, isNull);
+
+      bloc.add(OcptBudgetShareSelectedEvent(shareId: shareId!));
+      final state = await waitForState(bloc, (state) => state.selectedShareId != null);
+      expect(state.selectedShareId, shareId);
+    });
+  });
+
+  group("creating a share", () {
+    test("writes every field and selects it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptBudgetShareCreationConfirmedEvent(
+          fields: OcptBudgetShareFormFields(
+            personId: null,
+            label: "Director",
+            sharePermille: 300,
+            reinvestPermille: 100,
+            notes: "Agreed by contract",
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.selectedShareId != null);
+
+      expect(state.shares, hasLength(1));
+      final share = state.shares.single;
+      expect(share.label, "Director");
+      expect(share.sharePermille, 300);
+      expect(share.reinvestPermille, 100);
+      expect(share.notes, "Agreed by contract");
+      expect(state.selectedShareId, share.id);
+    });
+  });
+
+  group("editing a share", () {
+    test("writes every field back", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final shareId = await projectsManager.budgetSharingService.createShare(
+        database: project.database,
+        label: "Original",
+      );
+      expect(shareId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.shares.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetShareUpdateConfirmedEvent(
+          shareId: shareId!,
+          fields: const OcptBudgetShareFormFields(
+            personId: null,
+            label: "Renamed",
+            sharePermille: 600,
+            reinvestPermille: 500,
+            notes: "Renegotiated",
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.shares.single.label == "Renamed");
+
+      final share = state.shares.single;
+      expect(share.sharePermille, 600);
+      expect(share.reinvestPermille, 500);
+      expect(share.notes, "Renegotiated");
+    });
+  });
+
+  group("reordering a share", () {
+    test("moves it to the new position", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final firstId = await projectsManager.budgetSharingService.createShare(
+        database: project.database,
+        label: "First",
+      );
+      await projectsManager.budgetSharingService.createShare(
+        database: project.database,
+        label: "Second",
+      );
+      expect(firstId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.shares.length == 2);
+
+      bloc.add(OcptBudgetShareReorderedEvent(shareId: firstId!, newPosition: 1));
+      final state = await waitForState(bloc, (state) => state.shares.last.id == firstId);
+
+      expect(state.shares.last.id, firstId);
+    });
+  });
+
+  group("deleting a share", () {
+    test("tombstones it, and clears the selection when it was selected", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final shareId = await projectsManager.budgetSharingService.createShare(
+        database: project.database,
+        label: "To be deleted",
+      );
+      expect(shareId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.shares.isNotEmpty);
+      bloc.add(OcptBudgetShareSelectedEvent(shareId: shareId!));
+      await waitForState(bloc, (state) => state.selectedShareId == shareId);
+
+      bloc.add(OcptBudgetShareDeletionConfirmedEvent(shareId: shareId));
+      final state = await waitForState(bloc, (state) => state.shares.isEmpty);
+
+      expect(state.shares, isEmpty);
+      expect(state.selectedShareId, isNull);
+    });
+  });
+
+  group("an entry naming a share", () {
+    test("writes shareId, and it shows up in paidByShareId once debited", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final shareId = await projectsManager.budgetSharingService.createShare(
+        database: project.database,
+        label: "Production",
+      );
+      expect(shareId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.shares.isNotEmpty);
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Payout",
+            posteId: null,
+            resourceId: null,
+            revenueId: null,
+            shareId: shareId,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      expect(state.entries.single.shareId, shareId);
+      expect(state.paidByShareId[shareId]?.amountCents, 5000);
+      expect(state.paidShareCentsOf(shareId!), 5000);
     });
   });
 

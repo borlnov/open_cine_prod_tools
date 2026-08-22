@@ -5,13 +5,11 @@
 /// Which of the budget mode's centre views is currently shown, toggled by the header's own view
 /// chips.
 ///
-/// **Only the views shipped so far.** The mockup validates seven (`docs/plans/budget-mode.md` §1):
-/// revenue sharing still reads a table no milestone so far holds (`budget_shares`), so a value for
-/// it would draw a chip that opens onto nothing. Each joins this enum, **always at the end** so a
-/// stored preference never points at a view that has moved, as the milestone that gives it real
-/// content lands — this is exactly what M2 did for [cashJournal] and [committed], what M3 then did
-/// for [financing] and now does again for [regie], and the reading the milestone adding the one
-/// remaining view must repeat.
+/// **All seven views the mockup validates now ship** (`docs/plans/budget-mode.md` §1). Each joined
+/// this enum **always at the end**, so a stored preference never points at a view that has moved,
+/// as the milestone that gave it real content landed — what M2 did for [cashJournal] and
+/// [committed], what M3 then did for [financing] and [regie], and what M4 now does one last time
+/// for [sharing]: nothing is added past it, this enum being complete.
 enum OcptBudgetCentreView {
   /// The read-only overview: the quote's own totals and, poste by poste, its share of them — this
   /// milestone's honest reading of what a project holds, becoming the mockup's full dashboard as
@@ -45,4 +43,9 @@ enum OcptBudgetCentreView {
   /// snack prices, and each person's own distance and rate, never typed here at all
   /// (`lib/utils/ocpt_budget_regie.dart`).
   regie,
+
+  /// The revenue sharing: what the takings have actually brought in, what the reimbursable
+  /// contributions take back out of that before anything is split, and what each participant is
+  /// then due, has been paid and reinvests (`lib/utils/ocpt_budget_shares.dart`).
+  sharing,
 }

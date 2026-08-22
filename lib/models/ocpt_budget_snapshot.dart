@@ -9,6 +9,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -18,6 +20,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The whole budget mode's read, in one object: the [postes] with their lines, the cash journal's
@@ -133,6 +136,40 @@ class OcptBudgetSnapshot extends Equatable {
   /// [travelRows] folded into one total — `ocptBudgetTravelTotalsOf`.
   final OcptBudgetTravelTotals travelTotals;
 
+  /// Every live taking of the revenue sharing, in the `sortKey` order `OcptBudgetSharingService
+  /// .loadRevenues` gives them — never reordered here. Defaults to empty for every caller
+  /// unconcerned with the revenue sharing, exactly as [resources] already does for a caller
+  /// unconcerned with the financing plan.
+  final List<OcptBudgetRevenue> revenues;
+
+  /// Every live share of the revenue sharing, in the `sortKey` order `OcptBudgetSharingService
+  /// .loadShares` gives them — never reordered here. Defaults to empty, mirroring [revenues].
+  final List<OcptBudgetShare> shares;
+
+  /// What has actually come in against each taking, keyed by `OcptBudgetRevenue.id` —
+  /// `ocptBudgetReceivedByRevenueId`, the sharing view's own mirror of [receivedByResourceId]. A
+  /// taking with no key here has had no entry name it at all.
+  final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
+
+  /// What has actually been paid against each share, keyed by `OcptBudgetShare.id` —
+  /// `ocptBudgetPaidByShareId`. A share with no key here has had nobody pay against it at all.
+  final Map<String, OcptBudgetCoveredTotal> paidByShareId;
+
+  /// What there is to share, and what stands between the takings and it —
+  /// `ocptBudgetSharingPotOf`, read over [receivedByRevenueId]/[revenues], [resources]' own
+  /// reimbursable total and the repayments already made against it.
+  final OcptBudgetSharingPot sharingPot;
+
+  /// The split of [sharingPot] across [shares], in the order they are handed in —
+  /// `ocptBudgetShareSplitsOf`.
+  final List<OcptBudgetShareSplit> shareSplits;
+
+  /// `revenues.length`.
+  final int revenueCount;
+
+  /// `shares.length`.
+  final int shareCount;
+
   /// Class constructor
   const OcptBudgetSnapshot({
     required this.postes,
@@ -158,6 +195,14 @@ class OcptBudgetSnapshot extends Equatable {
     required this.regieTotals,
     required this.travelRows,
     required this.travelTotals,
+    required this.revenues,
+    required this.shares,
+    required this.receivedByRevenueId,
+    required this.paidByShareId,
+    required this.sharingPot,
+    required this.shareSplits,
+    required this.revenueCount,
+    required this.shareCount,
   });
 
   /// Builds an [OcptBudgetSnapshot] from [postes], [entries], [commitments] and [resources], the
@@ -197,6 +242,8 @@ class OcptBudgetSnapshot extends Equatable {
     List<OcptBudgetMileageRate> mileageRates = const [],
     int? mealPriceCents,
     int? snackPriceCents,
+    List<OcptBudgetRevenue> revenues = const [],
+    List<OcptBudgetShare> shares = const [],
   }) {
     final paidByPosteId = ocptBudgetPaidCentsByPosteId(
       entries,
@@ -213,6 +260,32 @@ class OcptBudgetSnapshot extends Equatable {
     final receivedByResourceId = ocptBudgetReceivedByResourceId(
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+
+    final receivedByRevenueId = ocptBudgetReceivedByRevenueId(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final paidByShareId = ocptBudgetPaidByShareId(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final sharingPot = ocptBudgetSharingPotOf(
+      received: ocptBudgetRevenuesReceivedTotalOf(
+        revenues: revenues,
+        receivedByRevenueId: receivedByRevenueId,
+      ),
+      reimbursableCents: ocptBudgetReimbursableTotalCents(resources),
+      repaid: ocptBudgetRepaidContributionsTotalOf(
+        entries,
+        resources: resources,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      ),
+    );
+    final shareSplits = ocptBudgetShareSplitsOf(
+      shares: shares,
+      pot: sharingPot,
+      paidByShareId: paidByShareId,
     );
 
     final regieDays = ocptBudgetRegieDaysOf(
@@ -264,6 +337,14 @@ class OcptBudgetSnapshot extends Equatable {
       regieTotals: ocptBudgetRegieTotalsOf(regieDays),
       travelRows: travelRows,
       travelTotals: ocptBudgetTravelTotalsOf(travelRows),
+      revenues: revenues,
+      shares: shares,
+      receivedByRevenueId: receivedByRevenueId,
+      paidByShareId: paidByShareId,
+      sharingPot: sharingPot,
+      shareSplits: shareSplits,
+      revenueCount: revenues.length,
+      shareCount: shares.length,
     );
   }
 
@@ -293,13 +374,24 @@ class OcptBudgetSnapshot extends Equatable {
   /// row kind, rather than through this method (`OcptBudgetFinancing`'s own class doc comment).
   int receivedCentsOf(String resourceId) => receivedByResourceId[resourceId]?.amountCents ?? 0;
 
+  /// [revenueId]'s own received total, in cents, tax-inclusive — [receivedByRevenueId]'s own entry
+  /// for [revenueId], or **0** while it carries none. Mirrors [receivedCentsOf]'s own honest-zero
+  /// reading: a taking with no entry naming it genuinely has had nothing come in yet.
+  int receivedRevenueCentsOf(String revenueId) => receivedByRevenueId[revenueId]?.amountCents ?? 0;
+
+  /// [shareId]'s own paid total, in cents, tax-inclusive — [paidByShareId]'s own entry for
+  /// [shareId], or **0** while it carries none. Mirrors [receivedCentsOf]'s own honest-zero
+  /// reading: a share nobody has been paid against genuinely has had nothing move against it yet.
+  int paidShareCentsOf(String shareId) => paidByShareId[shareId]?.amountCents ?? 0;
+
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetSnapshot(posteCount: $posteCount, lineCount: $lineCount, "
       "entryCount: $entryCount, commitmentCount: $commitmentCount, resourceCount: $resourceCount, "
       "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, currencyCode: $currencyCode, "
-      "regieDayCount: ${regieDays.length}, travelRowCount: ${travelRows.length})";
+      "regieDayCount: ${regieDays.length}, travelRowCount: ${travelRows.length}, "
+      "revenueCount: $revenueCount, shareCount: $shareCount)";
 
   /// Object properties
   @override
@@ -327,5 +419,13 @@ class OcptBudgetSnapshot extends Equatable {
     regieTotals,
     travelRows,
     travelTotals,
+    revenues,
+    shares,
+    receivedByRevenueId,
+    paidByShareId,
+    sharingPot,
+    shareSplits,
+    revenueCount,
+    shareCount,
   ];
 }

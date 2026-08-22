@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
@@ -25,6 +26,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_ta
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -121,6 +124,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// against.
   final OcptBudgetFinancingService _budgetFinancingService;
 
+  /// The service used to read and write the revenue sharing: the `budget_revenues` takings and the
+  /// `budget_shares` splitting what they bring in.
+  final OcptBudgetSharingService _budgetSharingService;
+
   /// The service the catering-and-travel pass reads its own days and slots off — never an
   /// `OcptSchedulePlanSnapshot`, see [_loadBudgetSnapshot]'s own doc comment.
   final OcptScheduleService _scheduleService;
@@ -166,6 +173,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetQuoteService? budgetQuoteService,
     OcptBudgetJournalService? budgetJournalService,
     OcptBudgetFinancingService? budgetFinancingService,
+    OcptBudgetSharingService? budgetSharingService,
     OcptScheduleService? scheduleService,
     OcptRoleIndexService? roleIndexService,
     OcptPeopleService? peopleService,
@@ -186,6 +194,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
        _budgetFinancingService =
            budgetFinancingService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetFinancingService,
+       _budgetSharingService =
+           budgetSharingService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetSharingService,
        _scheduleService =
            scheduleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
@@ -245,6 +256,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetResourceCreationConfirmedEvent>(_onResourceCreationConfirmed);
     on<OcptBudgetResourceUpdateConfirmedEvent>(_onResourceUpdateConfirmed);
     on<OcptBudgetResourceDeletionConfirmedEvent>(_onResourceDeletionConfirmed);
+    on<OcptBudgetRevenueSelectedEvent>(_onRevenueSelected);
+    on<OcptBudgetRevenueCreationConfirmedEvent>(_onRevenueCreationConfirmed);
+    on<OcptBudgetRevenueUpdateConfirmedEvent>(_onRevenueUpdateConfirmed);
+    on<OcptBudgetRevenueReorderedEvent>(_onRevenueReordered);
+    on<OcptBudgetRevenueDeletionConfirmedEvent>(_onRevenueDeletionConfirmed);
+    on<OcptBudgetShareSelectedEvent>(_onShareSelected);
+    on<OcptBudgetShareCreationConfirmedEvent>(_onShareCreationConfirmed);
+    on<OcptBudgetShareUpdateConfirmedEvent>(_onShareUpdateConfirmed);
+    on<OcptBudgetShareReorderedEvent>(_onShareReordered);
+    on<OcptBudgetShareDeletionConfirmedEvent>(_onShareDeletionConfirmed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -269,6 +290,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       state.copyWith(
         clearSelectedPosteId: true,
         clearSelectedResourceId: true,
+        clearSelectedRevenueId: true,
+        clearSelectedShareId: true,
         clearExpandedLineId: true,
       ),
     );
@@ -308,6 +331,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           clearPreviewedVersionId: true,
           clearSelectedPosteId: true,
           clearSelectedResourceId: true,
+          clearSelectedRevenueId: true,
+          clearSelectedShareId: true,
           clearExpandedLineId: true,
           pendingFieldEdits: const {},
           roles: const [],
@@ -332,6 +357,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         currencyCode: loaded.snapshot.currencyCode,
         clearSelectedPosteId: true,
         clearSelectedResourceId: true,
+        clearSelectedRevenueId: true,
+        clearSelectedShareId: true,
         clearExpandedLineId: true,
         pendingFieldEdits: const {},
         roles: loaded.roles,
@@ -375,6 +402,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final entries = await _budgetJournalService.loadEntries(database: database);
     final commitments = await _budgetJournalService.loadCommitments(database: database);
     final resources = await _budgetFinancingService.loadResources(database: database);
+    final revenues = await _budgetSharingService.loadRevenues(database: database);
+    final shares = await _budgetSharingService.loadShares(database: database);
     final receipts = await _budgetJournalService.loadReceipts(database: database);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final defaultVatRateBasisPoints = await _projectsManager
@@ -404,6 +433,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       mileageRates: mileageRates,
       mealPriceCents: mealPriceCents,
       snackPriceCents: snackPriceCents,
+      revenues: revenues,
+      shares: shares,
     );
 
     return (
@@ -978,6 +1009,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       label: fields.label,
       posteId: fields.posteId,
       resourceId: fields.resourceId,
+      revenueId: fields.revenueId,
+      shareId: fields.shareId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
@@ -1014,6 +1047,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       label: Value(fields.label),
       posteId: Value(fields.posteId),
       resourceId: Value(fields.resourceId),
+      revenueId: Value(fields.revenueId),
+      shareId: Value(fields.shareId),
       debitCents: Value(fields.isDebit ? fields.amountCents : 0),
       creditCents: Value(fields.isDebit ? 0 : fields.amountCents),
       isTaxInclusive: Value(fields.isTaxInclusive),
@@ -1171,6 +1206,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       label: fields.label,
       posteId: fields.posteId,
       resourceId: fields.resourceId,
+      revenueId: fields.revenueId,
+      shareId: fields.shareId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
@@ -1236,6 +1273,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final resourceStillExists =
         state.selectedResourceId == null ||
         snapshot.resources.any((resource) => resource.id == state.selectedResourceId);
+    final revenueStillExists =
+        state.selectedRevenueId == null ||
+        snapshot.revenues.any((revenue) => revenue.id == state.selectedRevenueId);
+    final shareStillExists =
+        state.selectedShareId == null ||
+        snapshot.shares.any((share) => share.id == state.selectedShareId);
 
     emitter(
       state.copyWith(
@@ -1248,6 +1291,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         clearSelectedPosteId: !posteStillExists,
         clearExpandedLineId: !lineStillExists,
         clearSelectedResourceId: !resourceStillExists,
+        clearSelectedRevenueId: !revenueStillExists,
+        clearSelectedShareId: !shareStillExists,
       ),
     );
 
@@ -1349,6 +1394,216 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       database: project.database,
       resourceId: event.resourceId,
     );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Selects taking `event.revenueId`, drawn as a plain highlight by the sharing view rather than
+  /// opening a dock tab — mirrors [_onResourceSelected]. A revenue id naming no live revenue is
+  /// ignored.
+  Future<void> _onRevenueSelected(
+    OcptBudgetRevenueSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    if (!state.revenues.any((revenue) => revenue.id == event.revenueId)) {
+      return;
+    }
+
+    emitter(state.copyWith(selectedRevenueId: event.revenueId));
+  }
+
+  /// Creates a new taking from `event.fields` and selects it — mirrors
+  /// [_onResourceCreationConfirmed]: `OcptBudgetSharingService.createRevenue` mints the row from a
+  /// date and a label alone, every other field written straight after through
+  /// [_writeRevenueFields], the very same call [_onRevenueUpdateConfirmed] itself uses.
+  Future<void> _onRevenueCreationConfirmed(
+    OcptBudgetRevenueCreationConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    final revenueId = await _budgetSharingService.createRevenue(
+      database: project.database,
+      date: fields.date,
+      label: fields.label,
+    );
+    if (revenueId != null) {
+      await _writeRevenueFields(project, revenueId, fields);
+    }
+
+    await _applyBudgetSnapshot(emitter, project);
+    if (revenueId != null) {
+      emitter(state.copyWith(selectedRevenueId: revenueId));
+    }
+  }
+
+  /// Writes `event.fields` onto revenue `event.revenueId`.
+  Future<void> _onRevenueUpdateConfirmed(
+    OcptBudgetRevenueUpdateConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _writeRevenueFields(project, event.revenueId, event.fields);
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes every field of `fields` onto revenue `revenueId` — shared by
+  /// [_onRevenueCreationConfirmed] (right after minting the row) and [_onRevenueUpdateConfirmed].
+  Future<void> _writeRevenueFields(
+    OcptOpenProjectModel project,
+    String revenueId,
+    OcptBudgetRevenueFormFields fields,
+  ) => _budgetSharingService.updateRevenue(
+    database: project.database,
+    revenueId: revenueId,
+    date: Value(fields.date),
+    label: Value(fields.label),
+    amountCents: Value(fields.amountCents),
+    status: Value(fields.status),
+    notes: Value(fields.notes),
+  );
+
+  /// Moves revenue `event.revenueId` to `event.newPosition` within the sharing view's own flat
+  /// order — mirrors [_onPosteReordered].
+  Future<void> _onRevenueReordered(
+    OcptBudgetRevenueReorderedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetSharingService.reorderRevenue(
+      database: project.database,
+      revenueId: event.revenueId,
+      newPosition: event.newPosition,
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Deletes taking `event.revenueId` for good, confirmed by the mode's own `OcptConfirmDialog` —
+  /// mirrors [_onResourceDeletionConfirmed].
+  Future<void> _onRevenueDeletionConfirmed(
+    OcptBudgetRevenueDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetSharingService.deleteRevenue(database: project.database, revenueId: event.revenueId);
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Selects share `event.shareId`, drawn as a plain highlight — mirrors [_onRevenueSelected]. A
+  /// share id naming no live share is ignored.
+  Future<void> _onShareSelected(
+    OcptBudgetShareSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    if (!state.shares.any((share) => share.id == event.shareId)) {
+      return;
+    }
+
+    emitter(state.copyWith(selectedShareId: event.shareId));
+  }
+
+  /// Creates a new share from `event.fields` and selects it — mirrors
+  /// [_onRevenueCreationConfirmed].
+  Future<void> _onShareCreationConfirmed(
+    OcptBudgetShareCreationConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    final shareId = await _budgetSharingService.createShare(
+      database: project.database,
+      label: fields.label,
+    );
+    if (shareId != null) {
+      await _writeShareFields(project, shareId, fields);
+    }
+
+    await _applyBudgetSnapshot(emitter, project);
+    if (shareId != null) {
+      emitter(state.copyWith(selectedShareId: shareId));
+    }
+  }
+
+  /// Writes `event.fields` onto share `event.shareId`.
+  Future<void> _onShareUpdateConfirmed(
+    OcptBudgetShareUpdateConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _writeShareFields(project, event.shareId, event.fields);
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes every field of `fields` onto share `shareId` — shared by [_onShareCreationConfirmed]
+  /// (right after minting the row) and [_onShareUpdateConfirmed].
+  Future<void> _writeShareFields(
+    OcptOpenProjectModel project,
+    String shareId,
+    OcptBudgetShareFormFields fields,
+  ) => _budgetSharingService.updateShare(
+    database: project.database,
+    shareId: shareId,
+    personId: Value(fields.personId),
+    label: Value(fields.label),
+    sharePermille: Value(fields.sharePermille),
+    reinvestPermille: Value(fields.reinvestPermille),
+    notes: Value(fields.notes),
+  );
+
+  /// Moves share `event.shareId` to `event.newPosition` within the sharing view's own flat order —
+  /// mirrors [_onRevenueReordered].
+  Future<void> _onShareReordered(
+    OcptBudgetShareReorderedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetSharingService.reorderShare(
+      database: project.database,
+      shareId: event.shareId,
+      newPosition: event.newPosition,
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Deletes share `event.shareId` for good, confirmed by the mode's own `OcptConfirmDialog` —
+  /// mirrors [_onRevenueDeletionConfirmed].
+  Future<void> _onShareDeletionConfirmed(
+    OcptBudgetShareDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetSharingService.deleteShare(database: project.database, shareId: event.shareId);
     await _applyBudgetSnapshot(emitter, project);
   }
 }

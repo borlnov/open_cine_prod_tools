@@ -145,7 +145,7 @@ void main() {
       // Wide enough that the budget mode's own header shows every one of its controls without
       // overflowing — `flutter_test`'s own substituted test font renders its short labels far
       // wider than any real font does.
-      tester.view.physicalSize = const Size(1600, 900);
+      tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -175,7 +175,7 @@ void main() {
 
     // Wide enough that the budget mode's own header — this test passes through it too — never
     // overflows under `flutter_test`'s own substituted test font; see the Budget test above.
-    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.physicalSize = const Size(1750, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

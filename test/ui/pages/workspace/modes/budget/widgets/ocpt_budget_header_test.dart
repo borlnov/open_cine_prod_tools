@@ -26,7 +26,7 @@ void main() {
   /// Widens the test surface so the header's own title and subtitle are shown — see
   /// `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth`.
   void useWideWindow(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1740, 900);
+    tester.view.physicalSize = const Size(1950, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

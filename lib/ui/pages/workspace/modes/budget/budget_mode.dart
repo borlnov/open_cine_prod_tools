@@ -13,6 +13,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
@@ -37,7 +39,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_revenue_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_right_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_share_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_sharing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
@@ -54,6 +59,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The budget production mode: the quote, poste by poste — the dashboard and the cost-tracking
@@ -279,6 +285,7 @@ class _BudgetViewState extends State<_BudgetView> {
               OcptBudgetCentreView.committed => _buildCommittedSpending(context, state),
               OcptBudgetCentreView.financing => _buildFinancing(context, state),
               OcptBudgetCentreView.regie => _buildRegie(context, state),
+              OcptBudgetCentreView.sharing => _buildSharing(context, state),
             },
           ),
         ),
@@ -435,6 +442,8 @@ class _BudgetViewState extends State<_BudgetView> {
       existing: null,
       postes: state.postes,
       resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -463,6 +472,8 @@ class _BudgetViewState extends State<_BudgetView> {
       existingReceipt: state.receiptsByEntryId[entry.id],
       postes: state.postes,
       resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -619,6 +630,8 @@ class _BudgetViewState extends State<_BudgetView> {
       label: commitment.label,
       posteId: commitment.posteId,
       resourceId: null,
+      revenueId: null,
+      shareId: null,
       isDebit: true,
       amountCents: commitment.amount.amountCents,
       isTaxInclusive: commitment.amount.isTaxInclusive,
@@ -634,6 +647,8 @@ class _BudgetViewState extends State<_BudgetView> {
       prefill: prefill,
       postes: state.postes,
       resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -766,6 +781,8 @@ class _BudgetViewState extends State<_BudgetView> {
       label: resource.label,
       posteId: null,
       resourceId: resource.id,
+      revenueId: null,
+      shareId: null,
       isDebit: false,
       amountCents: outstandingCents < 0 ? 0 : outstandingCents,
       isTaxInclusive: true,
@@ -781,6 +798,8 @@ class _BudgetViewState extends State<_BudgetView> {
       prefill: prefill,
       postes: state.postes,
       resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -820,6 +839,327 @@ class _BudgetViewState extends State<_BudgetView> {
       ),
     ),
   );
+
+  /// Builds the revenue sharing view.
+  Widget _buildSharing(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptBudgetSharing(
+      revenues: state.revenues,
+      shares: state.shares,
+      receivedByRevenueId: state.receivedByRevenueId,
+      sharingPot: state.sharingPot,
+      shareSplits: state.shareSplits,
+      people: state.people,
+      currencyCode: state.currencyCode,
+      selectedRevenueId: state.selectedRevenueId,
+      selectedShareId: state.selectedShareId,
+      isReadOnly: isReadOnly,
+      onRevenueCreationRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleRevenueCreationRequested(context, state)),
+      onRevenueSelected: (revenueId) => bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId)),
+      onRevenueEditRequested: isReadOnly
+          ? null
+          : (revenue) => unawaited(_handleRevenueEditRequested(context, state, revenue)),
+      onRevenueReceiptRequested: isReadOnly
+          ? null
+          : (revenue) => unawaited(_handleRevenueReceiptRequested(context, state, revenue)),
+      onRevenueReorderRequested: isReadOnly
+          ? null
+          : (revenueId, {required moveUp}) => bloc.add(
+              OcptBudgetRevenueReorderedEvent(
+                revenueId: revenueId,
+                newPosition: _revenueReorderedPosition(state, revenueId, moveUp),
+              ),
+            ),
+      onRevenueDeletionRequested: isReadOnly
+          ? null
+          : (revenueId) => unawaited(_handleRevenueDeletionRequested(context, revenueId)),
+      onShareCreationRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleShareCreationRequested(context, state)),
+      onShareSelected: (shareId) => bloc.add(OcptBudgetShareSelectedEvent(shareId: shareId)),
+      onShareEditRequested: isReadOnly
+          ? null
+          : (share) => unawaited(_handleShareEditRequested(context, state, share)),
+      onSharePayoutRequested: isReadOnly
+          ? null
+          : (share) => unawaited(_handleSharePayoutRequested(context, state, share)),
+      onShareReorderRequested: isReadOnly
+          ? null
+          : (shareId, {required moveUp}) => bloc.add(
+              OcptBudgetShareReorderedEvent(
+                shareId: shareId,
+                newPosition: _shareReorderedPosition(state, shareId, moveUp),
+              ),
+            ),
+      onShareDeletionRequested: isReadOnly
+          ? null
+          : (shareId) => unawaited(_handleShareDeletionRequested(context, shareId)),
+    );
+  }
+
+  /// The 0-based position revenue [revenueId] moves to when its row's own `⋮` menu `▲`/`▼` entry
+  /// is clicked — mirrors `_posteReorderedPosition`.
+  int _revenueReorderedPosition(OcptBudgetState state, String revenueId, bool moveUp) {
+    final currentIndex = state.revenues.indexWhere((revenue) => revenue.id == revenueId);
+    if (currentIndex < 0) {
+      return 0;
+    }
+
+    return moveUp ? currentIndex - 1 : currentIndex + 1;
+  }
+
+  /// Opens the revenue dialog with nothing pre-filled, then dispatches the creation if the user
+  /// confirmed it.
+  Future<void> _handleRevenueCreationRequested(BuildContext context, OcptBudgetState state) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetRevenueDialog.show(
+      context,
+      existing: null,
+      currencyCode: state.currencyCode,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetRevenueCreationConfirmedEvent(fields: fields));
+  }
+
+  /// Opens the revenue dialog pre-filled with [revenue], then dispatches the update if the user
+  /// confirmed it.
+  Future<void> _handleRevenueEditRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetRevenue revenue,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetRevenueDialog.show(
+      context,
+      existing: revenue,
+      currencyCode: state.currencyCode,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetRevenueUpdateConfirmedEvent(revenueId: revenue.id, fields: fields));
+  }
+
+  /// Asks `OcptConfirmDialog` whether taking [revenueId] really is to be deleted, then dispatches
+  /// the deletion if the user answered `Delete`.
+  Future<void> _handleRevenueDeletionRequested(BuildContext context, String revenueId) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetDeleteRevenueConfirmTitle,
+      message: tr.budgetDeleteRevenueConfirmMessage,
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetDeleteConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetRevenueDeletionConfirmedEvent(revenueId: revenueId));
+  }
+
+  /// Opens the entry dialog pre-filled from [revenue] (today's date, its own label, as a credit,
+  /// for whatever is still outstanding against it, the taking already named), then dispatches the
+  /// creation if the user confirmed it — mirrors `_handleResourceReceiptRequested`'s own gesture: a
+  /// receipt can never exist as a figure with no movement behind it.
+  Future<void> _handleRevenueReceiptRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetRevenue revenue,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final now = DateTime.now();
+    final outstandingCents = ocptBudgetResourceOutstandingCents(
+      amountCents: revenue.amountCents,
+      receivedCents: state.receivedRevenueCentsOf(revenue.id),
+    );
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(now.year, now.month, now.day),
+      label: revenue.label,
+      posteId: null,
+      resourceId: null,
+      revenueId: revenue.id,
+      shareId: null,
+      isDebit: false,
+      amountCents: outstandingCents < 0 ? 0 : outstandingCents,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
+
+    final fields = await OcptBudgetEntryDialog.show(
+      context,
+      existing: null,
+      prefill: prefill,
+      postes: state.postes,
+      resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
+  }
+
+  /// The 0-based position share [shareId] moves to when its row's own `⋮` menu `▲`/`▼` entry is
+  /// clicked — mirrors `_revenueReorderedPosition`.
+  int _shareReorderedPosition(OcptBudgetState state, String shareId, bool moveUp) {
+    final currentIndex = state.shares.indexWhere((share) => share.id == shareId);
+    if (currentIndex < 0) {
+      return 0;
+    }
+
+    return moveUp ? currentIndex - 1 : currentIndex + 1;
+  }
+
+  /// Opens the share dialog with nothing pre-filled, then dispatches the creation if the user
+  /// confirmed it.
+  Future<void> _handleShareCreationRequested(BuildContext context, OcptBudgetState state) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetShareDialog.show(context, existing: null, people: state.people);
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetShareCreationConfirmedEvent(fields: fields));
+  }
+
+  /// Opens the share dialog pre-filled with [share], then dispatches the update if the user
+  /// confirmed it.
+  Future<void> _handleShareEditRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetShare share,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetShareDialog.show(context, existing: share, people: state.people);
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetShareUpdateConfirmedEvent(shareId: share.id, fields: fields));
+  }
+
+  /// Asks `OcptConfirmDialog` whether share [shareId] really is to be deleted, then dispatches the
+  /// deletion if the user answered `Delete`.
+  Future<void> _handleShareDeletionRequested(BuildContext context, String shareId) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetDeleteShareConfirmTitle,
+      message: tr.budgetDeleteShareConfirmMessage,
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetDeleteConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetShareDeletionConfirmedEvent(shareId: shareId));
+  }
+
+  /// Opens the entry dialog pre-filled from [share] (today's date, its own label, as a debit, for
+  /// whatever the participant is still owed — its own due less what it has already been paid, the
+  /// share already named), then dispatches the creation if the user confirmed it — mirrors
+  /// `_handleRevenueReceiptRequested`'s own gesture: a payout can never exist as a figure with no
+  /// movement behind it.
+  Future<void> _handleSharePayoutRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetShare share,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final now = DateTime.now();
+    final split = state.shareSplits.firstWhere(
+      (split) => split.share.id == share.id,
+      orElse: () => OcptBudgetShareSplit(
+        share: share,
+        dueCents: 0,
+        paid: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+        reinvestedCents: 0,
+      ),
+    );
+    final outstandingCents = ocptBudgetResourceOutstandingCents(
+      amountCents: split.dueCents,
+      receivedCents: split.paid.amountCents,
+    );
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(now.year, now.month, now.day),
+      label: share.label,
+      posteId: null,
+      resourceId: null,
+      revenueId: null,
+      shareId: share.id,
+      isDebit: true,
+      amountCents: outstandingCents < 0 ? 0 : outstandingCents,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
+
+    final fields = await OcptBudgetEntryDialog.show(
+      context,
+      existing: null,
+      prefill: prefill,
+      postes: state.postes,
+      resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
+  }
 
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches
   /// the deletion if the user answered `Delete`.

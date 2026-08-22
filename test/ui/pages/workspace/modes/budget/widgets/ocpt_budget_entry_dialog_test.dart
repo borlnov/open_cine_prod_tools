@@ -292,8 +292,8 @@ void main() {
 
     expect(find.text(tr.budgetCashJournalNoPosteLabel), findsOneWidget);
 
-    // The Poste picker is the first of the dialog's two DropdownButtonFormField<String?>s, the
-    // Resource picker sitting right underneath it.
+    // The Poste picker is the first of the dialog's four DropdownButtonFormField<String?>s
+    // (Poste, Resource, Taking, Participant, in that order).
     await tester.tap(find.byType(DropdownButtonFormField<String?>).first);
     await tester.pumpAndSettle();
     await tester.tap(find.text("Camera").last);
@@ -323,8 +323,9 @@ void main() {
 
       expect(find.text(tr.budgetEntryDialogNoResourceLabel), findsOneWidget);
 
-      // The Resource picker is the second of the dialog's two DropdownButtonFormField<String?>s.
-      await tester.tap(find.byType(DropdownButtonFormField<String?>).last);
+      // The Resource picker is the second of the dialog's four DropdownButtonFormField<String?>s —
+      // see the comment above.
+      await tester.tap(find.byType(DropdownButtonFormField<String?>).at(1));
       await tester.pumpAndSettle();
       await tester.tap(find.text("Regional grant").last);
       await tester.pumpAndSettle();
@@ -375,6 +376,8 @@ void main() {
               label: "Grant instalment",
               posteId: null,
               resourceId: "resource-1",
+              revenueId: null,
+              shareId: null,
               isDebit: false,
               amountCents: 5000,
               isTaxInclusive: true,

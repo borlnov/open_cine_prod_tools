@@ -14,6 +14,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
@@ -76,6 +78,13 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// price?" and "what does this settle?") being independent of one another. This is what lets the
 /// financing view's own `Record a receipt` gesture open this very dialog pre-filled with a resource
 /// already picked, and lets an ordinary entry be edited to name one after the fact.
+///
+/// **`Taking` and `Participant` are two further pickers, mirroring `Resource` exactly** — the
+/// sharing view's own `Record a receipt` (a taking) and `Record a payout` (a participant) gestures
+/// pre-fill this dialog with [revenues]/[shares] already picked, the normal case still being
+/// neither: a taking is money the finished film earns, a participant is who a share of that pot
+/// goes to, and both are independent of `Poste`/`Resource` for the very reason those two already
+/// are of one another.
 class OcptBudgetEntryDialog extends StatefulWidget {
   /// The entry being edited, or null while creating a new one.
   final OcptBudgetEntry? existing;
@@ -96,6 +105,14 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   /// own explicit "no resource" choice — see the class doc comment.
   final List<OcptBudgetResource> resources;
 
+  /// Every live taking of the project, offered by the `Taking` picker alongside its own explicit
+  /// "no taking" choice — see the class doc comment.
+  final List<OcptBudgetRevenue> revenues;
+
+  /// Every live share of the project, offered by the `Participant` picker alongside its own
+  /// explicit "no participant" choice — see the class doc comment.
+  final List<OcptBudgetShare> shares;
+
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
 
@@ -115,6 +132,8 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     this.existingReceipt,
     required this.postes,
     required this.resources,
+    this.revenues = const [],
+    this.shares = const [],
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
     required this.isSimplified,
@@ -128,6 +147,8 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     OcptAssetRef? existingReceipt,
     required List<OcptBudgetPoste> postes,
     required List<OcptBudgetResource> resources,
+    List<OcptBudgetRevenue> revenues = const [],
+    List<OcptBudgetShare> shares = const [],
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
     required bool isSimplified,
@@ -139,6 +160,8 @@ class OcptBudgetEntryDialog extends StatefulWidget {
       existingReceipt: existingReceipt,
       postes: postes,
       resources: resources,
+      revenues: revenues,
+      shares: shares,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       isSimplified: isSimplified,
@@ -176,6 +199,14 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// The financing resource currently picked, or null for "no resource" — the normal case, see the
   /// class doc comment.
   String? _resourceId;
+
+  /// The taking currently picked, or null for "no taking" — the normal case, see the class doc
+  /// comment.
+  String? _revenueId;
+
+  /// The share currently picked, or null for "no participant" — the normal case, see the class doc
+  /// comment.
+  String? _shareId;
 
   /// Whether the direction currently picked is a debit (money that left the account).
   late bool _isDebit;
@@ -217,6 +248,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     _date = existing?.date ?? prefill?.date ?? DateTime(now.year, now.month, now.day);
     _posteId = existing?.posteId ?? prefill?.posteId;
     _resourceId = existing?.resourceId ?? prefill?.resourceId;
+    _revenueId = existing?.revenueId ?? prefill?.revenueId;
+    _shareId = existing?.shareId ?? prefill?.shareId;
     _isDebit = existing != null ? existing.debitCents > 0 : (prefill?.isDebit ?? true);
     _isTaxInclusive = existing?.isTaxInclusive ?? prefill?.isTaxInclusive ?? true;
 
@@ -315,6 +348,28 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
                     DropdownMenuItem(value: resource.id, child: Text(resource.label)),
                 ],
                 onChanged: (value) => setState(() => _resourceId = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: _revenueId,
+                decoration: InputDecoration(labelText: tr.budgetEntryDialogRevenueFieldLabel),
+                items: [
+                  DropdownMenuItem(child: Text(tr.budgetEntryDialogNoRevenueLabel)),
+                  for (final revenue in widget.revenues)
+                    DropdownMenuItem(value: revenue.id, child: Text(revenue.label)),
+                ],
+                onChanged: (value) => setState(() => _revenueId = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: _shareId,
+                decoration: InputDecoration(labelText: tr.budgetEntryDialogShareFieldLabel),
+                items: [
+                  DropdownMenuItem(child: Text(tr.budgetEntryDialogNoShareLabel)),
+                  for (final share in widget.shares)
+                    DropdownMenuItem(value: share.id, child: Text(share.label)),
+                ],
+                onChanged: (value) => setState(() => _shareId = value),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -503,6 +558,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         label: _labelController.text.trim(),
         posteId: _posteId,
         resourceId: _resourceId,
+        revenueId: _revenueId,
+        shareId: _shareId,
         isDebit: _isDebit,
         amountCents: amountCents,
         isTaxInclusive: _isTaxInclusive,

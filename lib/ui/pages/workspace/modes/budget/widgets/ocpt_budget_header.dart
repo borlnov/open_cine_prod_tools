@@ -19,13 +19,14 @@ const double _ocptBudgetSegmentPadding = 12;
 ///
 /// **Raised from `980` to `1120` once the view switch grew a third segment** (`cashJournal`), from
 /// `1120` to `1260` once it grew a fourth (`committed`), from `1260` to `1400` once it grew a fifth
-/// (`financing`), and from `1400` to `1540` here, once it grew a sixth (`regie`,
-/// `OcptBudgetCentreView`'s own doc comment): each new chip widens that one switch by roughly a
-/// segment's own width, and letting the title claim the space that segment now needs would have
-/// squeezed the three controls together right at the edge this constant is meant to guarantee they
-/// never reach — so the threshold moves out by the same margin every time, keeping the controls
-/// exactly as comfortable against a real font as they were with fewer views.
-const double _ocptBudgetHeaderTitleMinWidth = 1540;
+/// (`financing`), from `1400` to `1540` once it grew a sixth (`regie`), and from `1540` to `1680`
+/// here, once it grew a seventh and last (`sharing`, `OcptBudgetCentreView`'s own doc comment):
+/// each new chip widens that one switch by roughly a segment's own width, and letting the title
+/// claim the space that segment now needs would have squeezed the three controls together right at
+/// the edge this constant is meant to guarantee they never reach — so the threshold moves out by
+/// the same margin every time, keeping the controls exactly as comfortable against a real font as
+/// they were with fewer views.
+const double _ocptBudgetHeaderTitleMinWidth = 1680;
 
 /// The budget mode's own header band, sitting above the centre: the mode's own title and a muted
 /// subtitle, the `Dashboard`/`Cost tracking` view chips, the simplified/detailed switch and the
@@ -151,6 +152,7 @@ class OcptBudgetHeader extends StatelessWidget {
         : tr.budgetHeaderCommittedTitle,
     OcptBudgetCentreView.financing => tr.budgetHeaderFinancingTitle,
     OcptBudgetCentreView.regie => tr.budgetHeaderRegieTitle,
+    OcptBudgetCentreView.sharing => tr.budgetHeaderSharingTitle,
   };
 
   /// The band's own subtitle, following [_titleOf]'s own view — see its doc comment.
@@ -164,6 +166,7 @@ class OcptBudgetHeader extends StatelessWidget {
     OcptBudgetCentreView.committed => tr.budgetHeaderCommittedSubtitle,
     OcptBudgetCentreView.financing => tr.budgetHeaderFinancingSubtitle,
     OcptBudgetCentreView.regie => tr.budgetHeaderRegieSubtitle,
+    OcptBudgetCentreView.sharing => tr.budgetHeaderSharingSubtitle,
   };
 }
 
@@ -240,26 +243,27 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
   );
 }
 
-/// The six view chips.
+/// The seven view chips.
 ///
-/// **Two of the six are worded by [isSimplified], and four are not.** `Cash journal` and
+/// **Two of the seven are worded by [isSimplified], and five are not.** `Cash journal` and
 /// `Committed` are trade words: they name what an accountant calls those two ledgers, and they are
 /// exactly what the simplified reading exists to spare a five-person crew, who know the same two
-/// things as `Spending` and `To pay`. `Dashboard`, `Cost tracking`, `Financing` and `Régie` (the
+/// things as `Spending` and `To pay`. `Dashboard`, `Cost tracking`, `Financing`, `Régie` (the
 /// French reading of the catering-and-travel view, kept as the trade word exactly as `cashJournal`
-/// keeps `Trésorerie` — `docs/architecture/budget.md`) need no such translation — they already say,
-/// in every reading, the plain thing they are — so giving them a second wording would be inventing
-/// a difference the words themselves don't carry.
+/// keeps `Trésorerie` — `docs/architecture/budget.md`) and `Revenue sharing` need no such
+/// translation — they already say, in every reading, the plain thing they are — so giving them a
+/// second wording would be inventing a difference the words themselves don't carry.
 ///
 /// **`Financing` sits third, between `Cost tracking` and `Cash journal` — not fifth, where
-/// `OcptBudgetCentreView` itself places it. `Régie` sits last, matching the enum after all.** The
-/// enum's own order is when each view shipped; this row's order is the order the money story itself
-/// reads in: the quote (`Cost tracking`), then what pays for it (`Financing`), then what has
-/// actually moved against either (`Cash journal`, `Committed`), then the catering-and-travel pass
-/// read off all of it (`Régie`) — which happens to land last both ways, the same coincidence that
-/// let `cashJournal` and `committed` sit in enum order before `financing` ever broke it. Listing the
-/// segments explicitly, rather than iterating `OcptBudgetCentreView.values`, is what lets the two
-/// orders diverge on purpose without one silently following the other.
+/// `OcptBudgetCentreView` itself places it. `Régie` and `Revenue sharing` sit last, in that order,
+/// matching the enum after all.** The enum's own order is when each view shipped; this row's order
+/// is the order the money story itself reads in: the quote (`Cost tracking`), then what pays for it
+/// (`Financing`), then what has actually moved against either (`Cash journal`, `Committed`), then
+/// the catering-and-travel pass read off all of it (`Régie`), then, long after all of it, what the
+/// finished film earns (`Revenue sharing`) — which happens to land last both ways, the same
+/// coincidence that let `cashJournal` and `committed` sit in enum order before `financing` ever
+/// broke it. Listing the segments explicitly, rather than iterating `OcptBudgetCentreView.values`,
+/// is what lets the two orders diverge on purpose without one silently following the other.
 class _OcptBudgetCentreViewSwitch extends StatelessWidget {
   /// The switch's own current value.
   final OcptBudgetCentreView value;
@@ -320,12 +324,18 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
               : tr.budgetHeaderCommittedSegmentLabel,
           onChanged: onChanged,
         ),
-        // Régie sits last — see the class doc comment for why this one segment does follow
-        // OcptBudgetCentreView's own order, unlike Financing just above.
+        // Régie and Revenue sharing sit last, in that order — see the class doc comment for why
+        // these two segments do follow OcptBudgetCentreView's own order, unlike Financing above.
         _OcptBudgetSwitchSegment(
           value: OcptBudgetCentreView.regie,
           current: value,
           label: tr.budgetHeaderRegieSegmentLabel,
+          onChanged: onChanged,
+        ),
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.sharing,
+          current: value,
+          label: tr.budgetHeaderSharingSegmentLabel,
           onChanged: onChanged,
         ),
       ],
