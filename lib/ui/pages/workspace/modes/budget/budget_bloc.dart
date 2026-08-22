@@ -397,15 +397,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
   /// commitments, the financing plan's own resources and mileage rates, the catering-and-travel
   /// pass's own reads, the breakdown's own elements catalogue, the currency, the default VAT rate
-  /// and the meal/snack prices, joined into one [OcptBudgetSnapshot] alongside the raw
+  /// and the meal/buffet prices, joined into one [OcptBudgetSnapshot] alongside the raw
   /// roles/people/elements and the decor name map the view reads directly.
   ///
   /// **Reads `OcptScheduleService.loadSchedule`'s own `OcptScheduleSnapshot` directly, never an
   /// `OcptSchedulePlanSnapshot`.** A plan snapshot additionally joins every episode's own shot list
   /// and the episode list — neither of which a head count needs — so building one here would make
   /// the budget mode load the whole découpage to count meals; the schedule snapshot alone already
-  /// carries the days and the slots (each with its own live crew, cast and guests already nested)
-  /// that `OcptBudgetSnapshot.build` reads the catering-and-travel pass from.
+  /// carries the days, the slots (each with its own live crew, cast and guests already nested) and
+  /// the blocks that `OcptBudgetSnapshot.build` reads the catering-and-travel pass's own meal
+  /// sittings from.
   ///
   /// `elements` is carried raw, beside `roles`/`people`, rather than folded into
   /// [OcptBudgetSnapshot]: `OcptBudgetPosteInspector`'s own `+ From breakdown` picker needs the
@@ -439,7 +440,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final locations = await _locationsService.loadLocations(database: database);
     final mileageRates = await _budgetFinancingService.loadMileageRates(database: database);
     final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
-    final snackPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
+    // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
+    // own name, but what it prices is the buffet, never a snack in the trade's own words.
+    final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
 
     final snapshot = OcptBudgetSnapshot.build(
       postes: postes,
@@ -451,11 +454,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       receiptsByEntryId: receipts,
       scheduleDays: scheduleSnapshot.days,
       slotsByDayId: scheduleSnapshot.slotsByDayId,
+      blocksByDayId: scheduleSnapshot.blocksByDayId,
       roles: roles,
       people: people,
       mileageRates: mileageRates,
       mealPriceCents: mealPriceCents,
-      snackPriceCents: snackPriceCents,
+      buffetPriceCents: buffetPriceCents,
       revenues: revenues,
       shares: shares,
     );

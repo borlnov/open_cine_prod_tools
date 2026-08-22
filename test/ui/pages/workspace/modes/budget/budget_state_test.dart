@@ -760,7 +760,7 @@ void main() {
           const OcptBudgetMileageRate(id: "rate-1", label: "Car", ratePerKmMilliCents: 50000, sortKey: "a0"),
         ],
         mealPriceCents: 1200,
-        snackPriceCents: 400,
+        buffetPriceCents: 400,
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
@@ -768,7 +768,7 @@ void main() {
       expect(state.regieDays.single.headCount, 2);
       expect(state.regieDays.single.cost.isComplete, isTrue);
       expect(state.mealPriceCents, 1200);
-      expect(state.snackPriceCents, 400);
+      expect(state.buffetPriceCents, 400);
 
       expect(state.travelRows, hasLength(2));
       final crewRow = state.travelRows.firstWhere((row) => row.personId == "person-crew");

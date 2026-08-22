@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
@@ -64,8 +65,12 @@ class OcptBudgetSnapshot extends Equatable {
   /// force.
   final int? mealPriceCents;
 
-  /// The project's own snack price, in cents, or null — [mealPriceCents]'s sibling.
-  final int? snackPriceCents;
+  /// The project's own buffet price, in cents, or null — [mealPriceCents]'s sibling.
+  /// `OcptProjectInfoTable.snackPriceCents` under its user-facing name: the column keeps the name
+  /// the schema gave it, but what it prices was never a snack in the trade's own words — it is
+  /// craft services (`buffet` in French), the permanently available table `OcptBudgetRegie`'s own
+  /// caption now names it as.
+  final int? buffetPriceCents;
 
   /// The ISO 4217 code of the currency the project counts its costs in.
   final String currencyCode;
@@ -128,9 +133,9 @@ class OcptBudgetSnapshot extends Equatable {
 
   /// Every live shooting day's own catering reading, in the schedule's own day-number order —
   /// `ocptBudgetRegieDaysOf` (`lib/utils/ocpt_budget_regie.dart`), read over the schedule's own
-  /// days and slots, every role's own kind and the project's own meal and snack prices. Empty for
-  /// every caller unconcerned with the catering-and-travel pass, exactly as [resources] already
-  /// defaults for a caller unconcerned with the financing plan.
+  /// days, slots and meal blocks, every role's own kind and person, and the project's own meal and
+  /// buffet prices. Empty for every caller unconcerned with the catering-and-travel pass, exactly
+  /// as [resources] already defaults for a caller unconcerned with the financing plan.
   final List<OcptBudgetRegieDay> regieDays;
 
   /// [regieDays] folded into one total — `ocptBudgetRegieTotalsOf`.
@@ -191,7 +196,7 @@ class OcptBudgetSnapshot extends Equatable {
     required this.resources,
     required this.defaultVatRateBasisPoints,
     required this.mealPriceCents,
-    required this.snackPriceCents,
+    required this.buffetPriceCents,
     required this.currencyCode,
     required this.posteCount,
     required this.lineCount,
@@ -235,14 +240,17 @@ class OcptBudgetSnapshot extends Equatable {
   /// the whole reading with it exactly as every silent line already does — with no database access
   /// of its own.
   ///
-  /// [regieDays] and [travelRows] are derived the same way, over [scheduleDays]/[slotsByDayId] —
-  /// `OcptScheduleService.loadSchedule`'s own `OcptScheduleSnapshot.days`/`.slotsByDayId`, **never**
-  /// an `OcptSchedulePlanSnapshot`: a head count needs no shot list and no episode list, which is
+  /// [regieDays] and [travelRows] are derived the same way, over
+  /// [scheduleDays]/[slotsByDayId]/[blocksByDayId] — `OcptScheduleService.loadSchedule`'s own
+  /// `OcptScheduleSnapshot.days`/`.slotsByDayId`/`.blocksByDayId`, **never** an
+  /// `OcptSchedulePlanSnapshot`: a head count needs no shot list and no episode list, which is
   /// everything else that type joins in, and building one here would make this mode load the whole
   /// découpage to count meals. [roles], [people] and [mileageRates] are turned into the id-keyed
-  /// maps `ocptBudgetRegieDaysOf`/`ocptBudgetTravelRowsOf` read, [mealPriceCents]/[snackPriceCents]
-  /// passed straight through — every one of the six defaults empty/null for every caller unconcerned
-  /// with the catering-and-travel pass, exactly as [resources] already does for the financing plan.
+  /// maps `ocptBudgetRegieDaysOf`/`ocptBudgetTravelRowsOf` read — [roles]' own `personId` resolved
+  /// once, into the very map both functions read to cross a cast role with the person playing it —
+  /// [mealPriceCents]/[buffetPriceCents] passed straight through — every one of the seven defaults
+  /// empty/null for every caller unconcerned with the catering-and-travel pass, exactly as
+  /// [resources] already does for the financing plan.
   factory OcptBudgetSnapshot.build({
     required List<OcptBudgetPoste> postes,
     required List<OcptBudgetEntry> entries,
@@ -253,11 +261,12 @@ class OcptBudgetSnapshot extends Equatable {
     Map<String, OcptAssetRef> receiptsByEntryId = const {},
     List<OcptShootingDay> scheduleDays = const [],
     Map<String, List<OcptShootingSlot>> slotsByDayId = const {},
+    Map<String, List<OcptShootingDayBlock>> blocksByDayId = const {},
     List<OcptRole> roles = const [],
     List<OcptPerson> people = const [],
     List<OcptBudgetMileageRate> mileageRates = const [],
     int? mealPriceCents,
-    int? snackPriceCents,
+    int? buffetPriceCents,
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
   }) {
@@ -313,17 +322,20 @@ class OcptBudgetSnapshot extends Equatable {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
 
+    final personIdByRoleId = {for (final role in roles) role.id: role.personId};
     final regieDays = ocptBudgetRegieDaysOf(
       days: scheduleDays,
       slotsByDayId: slotsByDayId,
+      blocksByDayId: blocksByDayId,
       roleKindById: {for (final role in roles) role.id: role.kind},
+      personIdByRoleId: personIdByRoleId,
       mealPriceCents: mealPriceCents,
-      snackPriceCents: snackPriceCents,
+      buffetPriceCents: buffetPriceCents,
     );
     final travelRows = ocptBudgetTravelRowsOf(
       days: scheduleDays,
       slotsByDayId: slotsByDayId,
-      personIdByRoleId: {for (final role in roles) role.id: role.personId},
+      personIdByRoleId: personIdByRoleId,
       commuteKmMilliByPersonId: {for (final person in people) person.id: person.commuteKmMilli},
       mileageRateIdByPersonId: {for (final person in people) person.id: person.mileageRateId},
       ratePerKmMilliCentsByRateId: {
@@ -338,7 +350,7 @@ class OcptBudgetSnapshot extends Equatable {
       resources: resources,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       mealPriceCents: mealPriceCents,
-      snackPriceCents: snackPriceCents,
+      buffetPriceCents: buffetPriceCents,
       currencyCode: currencyCode,
       posteCount: postes.length,
       lineCount: postes.fold(0, (sum, poste) => sum + poste.lines.length),
@@ -429,7 +441,7 @@ class OcptBudgetSnapshot extends Equatable {
     resources,
     defaultVatRateBasisPoints,
     mealPriceCents,
-    snackPriceCents,
+    buffetPriceCents,
     currencyCode,
     posteCount,
     lineCount,

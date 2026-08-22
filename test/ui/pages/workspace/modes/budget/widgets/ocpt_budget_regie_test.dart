@@ -9,12 +9,14 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
@@ -93,6 +95,23 @@ OcptShootingSlotCastMember _buildCastMember({
 OcptShootingSlotGuest _buildGuest({required String id, required String slotId, required String personId}) =>
     OcptShootingSlotGuest(id: id, slotId: slotId, personId: personId, freeName: "", reason: "", notes: "");
 
+/// Builds a meal block on [slotId], the few fields these tests read.
+OcptShootingDayBlock _buildMealBlock({required String id, required String dayId, required String slotId}) =>
+    OcptShootingDayBlock(
+      id: id,
+      shootingDayId: dayId,
+      slotId: slotId,
+      kind: OcptShootingBlockKind.meal,
+      shotId: null,
+      sceneId: null,
+      candidates: const [],
+      label: "",
+      durationMinutes: null,
+      anchorMinute: null,
+      notes: "",
+      crewNote: "",
+    );
+
 /// Builds a person, the few fields these tests read, everything else neutral.
 OcptPerson _buildPerson({
   required String id,
@@ -150,7 +169,7 @@ void main() {
     List<OcptBudgetTravelRow> travelRows = const [],
     Map<String, String> decorNameByDayId = const {},
     int? mealPriceCents,
-    int? snackPriceCents,
+    int? buffetPriceCents,
     List<OcptRole> roles = const [],
     List<OcptPerson> people = const [],
     ValueChanged<String>? onPersonOpenRequested,
@@ -172,7 +191,7 @@ void main() {
           cateringTotals: ocptBudgetRegieTotalsOf(days),
           decorNameByDayId: decorNameByDayId,
           mealPriceCents: mealPriceCents,
-          snackPriceCents: snackPriceCents,
+          buffetPriceCents: buffetPriceCents,
           travelRows: travelRows,
           travelTotals: ocptBudgetTravelTotalsOf(travelRows),
           roles: roles,
@@ -193,7 +212,7 @@ void main() {
   });
 
   testWidgets(
-    "a day's counts are rendered from its slots, a person convoked to three slots counted once",
+    "a day's buffet count is rendered from its slots, a person convoked to three slots counted once",
     (tester) async {
       final day = _buildDay(id: "day-1");
       final slots = [
@@ -217,9 +236,11 @@ void main() {
       final days = ocptBudgetRegieDaysOf(
         days: [day],
         slotsByDayId: {"day-1": slots},
+        blocksByDayId: const {},
         roleKindById: const {},
+        personIdByRoleId: const {},
         mealPriceCents: null,
-        snackPriceCents: null,
+        buffetPriceCents: null,
       );
 
       await pumpView(tester, days: days);
@@ -241,9 +262,11 @@ void main() {
     final days = ocptBudgetRegieDaysOf(
       days: [day],
       slotsByDayId: {"day-1": [slot]},
+      blocksByDayId: const {},
       roleKindById: const {"role-extra": OcptRoleKind.extra},
+      personIdByRoleId: const {},
       mealPriceCents: null,
-      snackPriceCents: null,
+      buffetPriceCents: null,
     );
 
     await pumpView(tester, days: days);
@@ -264,24 +287,85 @@ void main() {
     final withoutGuest = ocptBudgetRegieDaysOf(
       days: [day],
       slotsByDayId: {"day-1": [slotWithoutGuest]},
+      blocksByDayId: const {},
       roleKindById: const {},
+      personIdByRoleId: const {},
       mealPriceCents: null,
-      snackPriceCents: null,
+      buffetPriceCents: null,
     );
     final withGuest = ocptBudgetRegieDaysOf(
       days: [day],
       slotsByDayId: {"day-1": [slotWithGuest]},
+      blocksByDayId: const {},
       roleKindById: const {},
+      personIdByRoleId: const {},
       mealPriceCents: null,
-      snackPriceCents: null,
+      buffetPriceCents: null,
     );
 
-    expect(withGuest.single.headCount, withoutGuest.single.headCount);
-    expect(withGuest.single.headCount, 0);
+    expect(withGuest.single.buffetCount, withoutGuest.single.buffetCount);
+    expect(withGuest.single.buffetCount, 0);
+  });
+
+  testWidgets("a day with no meal block reads a dash in the Meals column, not a zero", (tester) async {
+    final day = _buildDay(id: "day-1");
+    final slot = _buildSlot(
+      id: "slot-1",
+      dayId: "day-1",
+      crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
+    );
+
+    final days = ocptBudgetRegieDaysOf(
+      days: [day],
+      slotsByDayId: {"day-1": [slot]},
+      blocksByDayId: const {},
+      roleKindById: const {},
+      personIdByRoleId: const {},
+      mealPriceCents: 1500,
+      buffetPriceCents: null,
+    );
+
+    await pumpView(tester, days: days, mealPriceCents: 1500);
+
+    expect(days.single.mealSittings, isEmpty);
+    expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+  });
+
+  testWidgets("a slot with a lunch and a dinner block joins both sittings in the Meals column", (
+    tester,
+  ) async {
+    final day = _buildDay(id: "day-1");
+    final slot = _buildSlot(
+      id: "slot-1",
+      dayId: "day-1",
+      crew: [
+        _buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1"),
+        _buildCrewMember(id: "crew-2", slotId: "slot-1", personId: "person-2"),
+      ],
+    );
+
+    final days = ocptBudgetRegieDaysOf(
+      days: [day],
+      slotsByDayId: {"day-1": [slot]},
+      blocksByDayId: {
+        "day-1": [
+          _buildMealBlock(id: "lunch", dayId: "day-1", slotId: "slot-1"),
+          _buildMealBlock(id: "dinner", dayId: "day-1", slotId: "slot-1"),
+        ],
+      },
+      roleKindById: const {},
+      personIdByRoleId: const {},
+      mealPriceCents: 1000,
+      buffetPriceCents: null,
+    );
+
+    await pumpView(tester, days: days, mealPriceCents: 1000);
+
+    expect(find.text("2 + 2"), findsOneWidget);
   });
 
   testWidgets(
-    "a meal price with no snack price prints a real partial total with its coverage read-out",
+    "a meal price with no buffet price prints a real partial total with its coverage read-out",
     (tester) async {
       final day = _buildDay(id: "day-1");
       final slot = _buildSlot(
@@ -293,9 +377,13 @@ void main() {
       final days = ocptBudgetRegieDaysOf(
         days: [day],
         slotsByDayId: {"day-1": [slot]},
+        blocksByDayId: {
+          "day-1": [_buildMealBlock(id: "meal-1", dayId: "day-1", slotId: "slot-1")],
+        },
         roleKindById: const {},
+        personIdByRoleId: const {},
         mealPriceCents: 1200,
-        snackPriceCents: null,
+        buffetPriceCents: null,
       );
 
       await pumpView(tester, days: days, mealPriceCents: 1200);
@@ -329,9 +417,11 @@ void main() {
     final days = ocptBudgetRegieDaysOf(
       days: [day],
       slotsByDayId: {"day-1": [slot]},
+      blocksByDayId: const {},
       roleKindById: const {},
+      personIdByRoleId: const {},
       mealPriceCents: null,
-      snackPriceCents: null,
+      buffetPriceCents: null,
     );
     final travelRows = ocptBudgetTravelRowsOf(
       days: [day],
@@ -368,9 +458,11 @@ void main() {
     final days = ocptBudgetRegieDaysOf(
       days: [day],
       slotsByDayId: {"day-1": [slot]},
+      blocksByDayId: const {},
       roleKindById: const {},
+      personIdByRoleId: const {},
       mealPriceCents: null,
-      snackPriceCents: null,
+      buffetPriceCents: null,
     );
     final travelRows = ocptBudgetTravelRowsOf(
       days: [day],

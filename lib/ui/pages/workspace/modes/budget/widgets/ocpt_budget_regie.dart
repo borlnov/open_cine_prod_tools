@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
@@ -22,13 +23,18 @@ const double _ocptRegieWrapWidth = 1000;
 /// The catering table's own `Day` column width, in logical pixels.
 const double _ocptRegieDayColumnWidth = 56;
 
-/// The catering table's own `Crew`/`Cast`/`Extras`/`Meals`/`Snacks` column width, in logical
-/// pixels — five narrow, numeric columns.
+/// The catering table's own `Crew`/`Cast`/`Extras` column width, in logical pixels — three narrow,
+/// numeric columns.
 const double _ocptRegieCountColumnWidth = 64;
 
 /// The catering table's own `Total` column width, in logical pixels — mirrors
 /// `OcptBudgetCommittedSpending`'s own amount column.
 const double _ocptRegieCateringTotalColumnWidth = 108;
+
+/// The catering table's own `Meals`/`Craft services` column width, in logical pixels — wider than
+/// [_ocptRegieCountColumnWidth]: the `Meals` cell can read several sittings joined together
+/// (`12 + 8`) and the `Craft services` header is two words.
+const double _ocptRegieWideCountColumnWidth = 96;
 
 /// The travel table's own `Return trips`/`Distance` column width, in logical pixels.
 const double _ocptRegieTravelNumberColumnWidth = 96;
@@ -48,8 +54,8 @@ const double _ocptRegieCateringRowHeight = 52;
 /// the traveller's own name-and-role pair.
 const double _ocptRegieTravelRowHeight = 52;
 
-/// The budget mode's catering-and-travel view: what each shooting day costs in meals and snacks,
-/// next to what each traveller's own commute costs the production in mileage — the layout the
+/// The budget mode's catering-and-travel view: what each shooting day costs in meals and at the
+/// buffet, next to what each traveller's own commute costs the production in mileage — the layout the
 /// validated mockup lays this view out as, **two columns side by side, the catering table taking
 /// roughly two thirds and the mileage table one third, wrapping onto one another once the centre
 /// narrows past [_ocptRegieWrapWidth]** rather than crushing either column unreadable.
@@ -60,12 +66,14 @@ const double _ocptRegieTravelRowHeight = 52;
 /// this view offers, exactly the argument `OcptBudgetDashboard`'s own class doc comment already
 /// makes for itself.
 ///
-/// **The one rule a production might reasonably want to change: one meal and one snack per person,
-/// per shooting day.** [ocptBudgetRegieDaysOf] (`lib/utils/ocpt_budget_regie.dart`) bakes that
-/// reading in rather than reading it from anywhere, and its own doc comment flags it as the one
-/// figure here that is a choice rather than an arithmetic fact — which is why this view states it
-/// on screen, in the catering column's own caption, rather than leaving a reader to infer it from
-/// the numbers alone.
+/// **A meal is read off the day's own timetable, one sitting per meal block.** [ocptBudgetRegieDaysOf]
+/// (`lib/utils/ocpt_budget_regie.dart`) reads every [OcptShootingBlockKind.meal] block of a day, over
+/// that block's own slot alone — a day with a lunch and a dinner block feeds its heads twice, and a
+/// day whose timetable holds no meal block at all feeds nobody. That absence prints as
+/// [ocptBudgetEmptyValue] in the `Meals` column rather than a `0` that would read as a confirmed
+/// "nobody eats today" — the catering column's own caption states the whole rule, so nobody has to
+/// read the arithmetic to know what it assumes. **Craft services (the buffet) is unaffected**: it is
+/// still one per head, per shooting day, deduplicated exactly as before.
 ///
 /// **Every figure here is typed somewhere else**, so every one of the three sources this view reads
 /// gets a way back to it, reported upward through a callback rather than navigated here: the head
@@ -92,8 +100,9 @@ class OcptBudgetRegie extends StatelessWidget {
   /// The project's own meal price, in cents, or null while nobody has recorded one.
   final int? mealPriceCents;
 
-  /// The project's own snack price, in cents, or null while nobody has recorded one.
-  final int? snackPriceCents;
+  /// The project's own buffet (craft services) price, in cents, or null while nobody has recorded
+  /// one.
+  final int? buffetPriceCents;
 
   /// Every traveller the schedule names, each with their own return-trip count and mileage
   /// reimbursement.
@@ -117,7 +126,7 @@ class OcptBudgetRegie extends StatelessWidget {
   final VoidCallback onScheduleOpenRequested;
 
   /// Called when either caption's own `Edit prices`/rate action is clicked — opens the project
-  /// settings, where the meal and snack prices are typed.
+  /// settings, where the meal and buffet prices are typed.
   final VoidCallback onProjectSettingsRequested;
 
   /// Called with a traveller's own person id when their row is clicked — opens their sheet in the
@@ -131,7 +140,7 @@ class OcptBudgetRegie extends StatelessWidget {
     required this.cateringTotals,
     required this.decorNameByDayId,
     required this.mealPriceCents,
-    required this.snackPriceCents,
+    required this.buffetPriceCents,
     required this.travelRows,
     required this.travelTotals,
     required this.roles,
@@ -156,7 +165,7 @@ class OcptBudgetRegie extends StatelessWidget {
       totals: cateringTotals,
       decorNameByDayId: decorNameByDayId,
       mealPriceCents: mealPriceCents,
-      snackPriceCents: snackPriceCents,
+      buffetPriceCents: buffetPriceCents,
       currencyCode: currencyCode,
       onScheduleOpenRequested: onScheduleOpenRequested,
       onProjectSettingsRequested: onProjectSettingsRequested,
@@ -207,7 +216,7 @@ class _OcptRegieCateringColumn extends StatelessWidget {
   final OcptBudgetRegieTotals totals;
   final Map<String, String> decorNameByDayId;
   final int? mealPriceCents;
-  final int? snackPriceCents;
+  final int? buffetPriceCents;
   final String currencyCode;
   final VoidCallback onScheduleOpenRequested;
   final VoidCallback onProjectSettingsRequested;
@@ -218,7 +227,7 @@ class _OcptRegieCateringColumn extends StatelessWidget {
     required this.totals,
     required this.decorNameByDayId,
     required this.mealPriceCents,
-    required this.snackPriceCents,
+    required this.buffetPriceCents,
     required this.currencyCode,
     required this.onScheduleOpenRequested,
     required this.onProjectSettingsRequested,
@@ -243,9 +252,9 @@ class _OcptRegieCateringColumn extends StatelessWidget {
                   mealPriceCents == null
                       ? ocptBudgetEmptyValue
                       : ocptBudgetAmountLabel(mealPriceCents!, currencyCode),
-                  snackPriceCents == null
+                  buffetPriceCents == null
                       ? ocptBudgetEmptyValue
-                      : ocptBudgetAmountLabel(snackPriceCents!, currencyCode),
+                      : ocptBudgetAmountLabel(buffetPriceCents!, currencyCode),
                 ),
                 style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
@@ -305,7 +314,7 @@ class _OcptRegieCateringColumn extends StatelessWidget {
 }
 
 /// The catering table's own header row: `Day`, `Decor`, `Crew`, `Cast`, `Extras`, `Meals`,
-/// `Snacks`, `Total`.
+/// `Craft services`, `Total`.
 class _OcptRegieCateringHeaderRow extends StatelessWidget {
   /// Class constructor
   const _OcptRegieCateringHeaderRow();
@@ -338,12 +347,12 @@ class _OcptRegieCateringHeaderRow extends StatelessWidget {
             child: Text(tr.budgetRegieColumnExtras.toUpperCase(), textAlign: TextAlign.right, style: labelStyle),
           ),
           SizedBox(
-            width: _ocptRegieCountColumnWidth,
+            width: _ocptRegieWideCountColumnWidth,
             child: Text(tr.budgetRegieColumnMeals.toUpperCase(), textAlign: TextAlign.right, style: labelStyle),
           ),
           SizedBox(
-            width: _ocptRegieCountColumnWidth,
-            child: Text(tr.budgetRegieColumnSnacks.toUpperCase(), textAlign: TextAlign.right, style: labelStyle),
+            width: _ocptRegieWideCountColumnWidth,
+            child: Text(tr.budgetRegieColumnBuffet.toUpperCase(), textAlign: TextAlign.right, style: labelStyle),
           ),
           SizedBox(
             width: _ocptRegieCateringTotalColumnWidth,
@@ -356,10 +365,19 @@ class _OcptRegieCateringHeaderRow extends StatelessWidget {
 }
 
 /// One shooting day's own catering row: its day tag in the accent colour, [decorName] with the
-/// day's own date underneath in small muted type, the five head counts, then the day's own money —
-/// [ocptBudgetEmptyValue] rather than a claimed zero the moment neither the meal nor the snack price
-/// is known (`OcptBudgetRegieDay.cost.coveredLineCount == 0`), mirroring
+/// day's own date underneath in small muted type, the three crew/cast/extras head counts, the
+/// `Meals` cell (see below), the buffet's own head count, then the day's own money —
+/// [ocptBudgetEmptyValue] rather than a claimed zero the moment neither the meal nor the buffet
+/// price is known (`OcptBudgetRegieDay.cost.coveredLineCount == 0`), mirroring
 /// `OcptBudgetCostTracking`'s own secondary-basis cell.
+///
+/// **The `Meals` cell reads [OcptBudgetRegieDay.mealSittings] itself, not the plain
+/// [OcptBudgetRegieDay.mealCount].** A day with no meal block in its own timetable prints
+/// [ocptBudgetEmptyValue] — a stated absence, never a `0` that would look exactly like a day whose
+/// timetable does hold a meal block feeding nobody. A day with more than one sitting (a lunch and a
+/// dinner block, say) joins every sitting's own head count with `+` rather than folding them into
+/// one number, so a reader sees that two feedings happened rather than reading a total that could
+/// just as well be one big one.
 class _OcptRegieCateringRow extends StatelessWidget {
   /// The day this row draws.
   final OcptBudgetRegieDay day;
@@ -419,8 +437,8 @@ class _OcptRegieCateringRow extends StatelessWidget {
           _countCell(context, day.crewCount),
           _countCell(context, day.castCount),
           _countCell(context, day.extraCount),
-          _countCell(context, day.mealCount),
-          _countCell(context, day.snackCount),
+          _mealsCell(context),
+          _wideCountCell(context, day.buffetCount),
           SizedBox(
             width: _ocptRegieCateringTotalColumnWidth,
             child: Text(
@@ -436,7 +454,7 @@ class _OcptRegieCateringRow extends StatelessWidget {
     );
   }
 
-  /// One of the five right-aligned head-count cells.
+  /// One of the three narrow, right-aligned head-count cells (`Crew`, `Cast`, `Extras`).
   Widget _countCell(BuildContext context, int count) => SizedBox(
     width: _ocptRegieCountColumnWidth,
     child: Text(
@@ -445,11 +463,42 @@ class _OcptRegieCateringRow extends StatelessWidget {
       style: Theme.of(context).textTheme.bodySmall,
     ),
   );
+
+  /// The `Craft services` cell — a plain head count, at the wider column width the `Meals` cell
+  /// beside it also needs.
+  Widget _wideCountCell(BuildContext context, int count) => SizedBox(
+    width: _ocptRegieWideCountColumnWidth,
+    child: Text(
+      "$count",
+      textAlign: TextAlign.right,
+      style: Theme.of(context).textTheme.bodySmall,
+    ),
+  );
+
+  /// The `Meals` cell — see the class doc comment for the dash-versus-joined-sittings reading.
+  Widget _mealsCell(BuildContext context) {
+    final sittings = day.mealSittings;
+    final text = sittings.isEmpty
+        ? ocptBudgetEmptyValue
+        : sittings.map((sitting) => "${sitting.headCount}").join(" + ");
+
+    return SizedBox(
+      width: _ocptRegieWideCountColumnWidth,
+      child: Text(
+        text,
+        textAlign: TextAlign.right,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
+  }
 }
 
-/// The catering table's own total row: the summed meals, snacks and money over every printed day —
-/// the coverage read-out in place of the plain amount for as long as the project has not recorded
-/// both prices, mirroring `OcptBudgetCostTracking`'s own total row.
+/// The catering table's own total row: the summed meals (every day's own sittings folded together,
+/// [OcptBudgetRegieDay.mealCount]'s own sum), buffet servings and money over every printed day — the
+/// coverage read-out in place of the plain amount for as long as the project has not recorded both
+/// prices, mirroring `OcptBudgetCostTracking`'s own total row.
 class _OcptRegieCateringTotalRow extends StatelessWidget {
   /// [OcptBudgetRegie.days] folded into one total.
   final OcptBudgetRegieTotals totals;
@@ -490,12 +539,12 @@ class _OcptRegieCateringTotalRow extends StatelessWidget {
           const SizedBox(width: _ocptRegieCountColumnWidth),
           const SizedBox(width: _ocptRegieCountColumnWidth),
           SizedBox(
-            width: _ocptRegieCountColumnWidth,
+            width: _ocptRegieWideCountColumnWidth,
             child: Text("${totals.mealCount}", textAlign: TextAlign.right, style: boldStyle),
           ),
           SizedBox(
-            width: _ocptRegieCountColumnWidth,
-            child: Text("${totals.snackCount}", textAlign: TextAlign.right, style: boldStyle),
+            width: _ocptRegieWideCountColumnWidth,
+            child: Text("${totals.buffetCount}", textAlign: TextAlign.right, style: boldStyle),
           ),
           SizedBox(
             width: _ocptRegieCateringTotalColumnWidth,
