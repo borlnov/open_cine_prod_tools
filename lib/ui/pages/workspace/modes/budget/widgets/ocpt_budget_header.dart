@@ -39,7 +39,7 @@ const double _ocptBudgetHeaderTitleMinWidth = 1680;
 /// version withholds nothing this header offers.
 ///
 /// **Both toggles are always offered.** Neither is ever withheld or disabled according to what the
-/// project currently holds (`docs/plans/budget-mode.md` §2): there is no conditional branch here,
+/// project currently holds (`docs/architecture/budget.md`): there is no conditional branch here,
 /// only a value that may turn out empty once the centre reads it. The three controls (the view
 /// chips and the two switches) are never dropped even on a narrow window — see
 /// [_ocptBudgetHeaderTitleMinWidth] — since, exactly as `OcptBreakdownHeader` argues for its own

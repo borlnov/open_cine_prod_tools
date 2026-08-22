@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 ///
 /// A commitment is money that has not yet moved, but it stands for the very cash a payment would
 /// take out of the account the day it falls due, so it is read exactly as `ocpt_budget_journal.dart`
-/// reads a movement — always tax-inclusive, with no basis to pick (`docs/plans/budget-mode.md` §2)
+/// reads a movement — always tax-inclusive, with no basis to pick (`docs/architecture/budget.md`)
 /// — through [ocptIncludingTaxAmountCentsOf] over [commitment]'s own
 /// [OcptBudgetCommitment.amount]: its own figure whenever that is already typed tax-inclusive, and
 /// null only when it is typed excluding tax and no rate, neither the commitment's own override nor

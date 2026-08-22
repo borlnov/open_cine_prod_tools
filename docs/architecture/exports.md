@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 
 How a document leaves the app — and how the project itself does: the panel every mode reaches its
 exports from, the card grid that panel and the home page's `Import…` modal are both built on, the
-manager owning the sixteen services, the door a foreign screenplay comes in through, and the
+manager owning the twenty services, the door a foreign screenplay comes in through, and the
 scenario coverage PDF. Each mode's own documents are described in that mode's file; the package a
 whole project travels as is `foundations.md`'s, this file covering only where the two gestures
 sit.
@@ -59,14 +59,12 @@ sit.
   a preview writes exactly what *is* — leaving it clickable with a caveat would make it the odd one
   out in the one way that matters, and a card that vanished would make the panel lie about what
   exists. ADR 0021 records the exception with its argument so it is not read later as a slip.
-  The **budget mode's `Export` control opens onto no document at all**: its own
-  `OcptWorkspaceExportDialog<Never>` is given `entries: const []`, generic over `Never` because
-  there is no document enum yet to be generic over, so the panel it draws holds this standing
-  project-package card and nothing else — a colleague can already receive the project as a portable
-  package before the mode prints a single PDF of its own (`budget.md`). The four documents the
-  mockup names — the quote, the financing plan, the cash journal, the financial report — arrive at
-  M4, each with its own entry in a real export enum this milestone deliberately left undeclared
-  rather than pre-empted.
+  The **budget mode prints four documents** — the quote and the financing plan as PDFs, the cash
+  journal as an XLSX workbook, the financial report as a PDF — through
+  `OcptWorkspaceExportDialog<OcptBudgetExportDocument>`, above that standing project-package card.
+  It is the mode where the "greyed and inert, never hidden" rule earns its keep most often: each of
+  the four names a real state in which it cannot print (no poste, no resource, no entry), and each
+  says so on its own card rather than disappearing (`budget.md`).
   The **same flow with no project open** is a home page project card's `⋮` `Export…`
   (`OcptHomeBloc` mixes the very same mixin in, answering `flushPendingProjectWrites` with a no-op):
   sending a project should not require opening it first, and it is the only way to export one whose
@@ -133,25 +131,27 @@ sit.
   same reason.
 
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and sixteen services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and twenty services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptScriptImportService` (the three importable formats in
   and Fountain text out, above), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService`, `OcptScenarioCoveragePdfService`,
   `OcptResourcesXlsxExportService`, `OcptContactListPdfService`, `OcptBreakdownSheetsPdfService`,
   `OcptBreakdownXlsxExportService`, `OcptCallSheetPdfService`, `OcptShootingPlanPdfService`,
   `OcptShootingPlanXlsxExportService`, `OcptDayOutOfDaysPdfService`,
-  `OcptOneLineSchedulePdfService`, `OcptSidesPdfService` (each described under its own mode below)
+  `OcptOneLineSchedulePdfService`, `OcptSidesPdfService`, `OcptBudgetQuotePdfService`,
+  `OcptBudgetFinancingPlanPdfService`, `OcptBudgetCashJournalXlsxExportService`,
+  `OcptBudgetFinancialReportPdfService` (each described under its own mode below)
   and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`, a **direct** dependency
   kept in sync with the version `act_file_transfer_manager` already resolves transitively, for the
   native "save as" dialog every export goes through — no export ever writes to a default location
   silently; its `pickDirectory` is the same promise for the exports that write **several** files).
-  The nine PDF services share one `OcptCourierPrimeFontsLoader` (handed to each by the manager, so
+  The twelve PDF services share one `OcptCourierPrimeFontsLoader` (handed to each by the manager, so
   the 4 embedded TTFs are decoded once) and one `OcptScriptPagePainter` — the two script exports
   **and the sides** for the positioned line drawing the three of them start from, the breakdown
   sheets, the contact list and the table-shaped schedule documents for its metrics and fonts alone,
   their pages flowing rather than typeset. **A workbook takes no painter and no font loader at
   all**: `excel_community` builds it in memory with no page geometry of its own, which is why the
-  four of them are `const` services where every PDF one is constructed with the shared loader. An
+  five of them are `const` services where every PDF one is constructed with the shared loader. An
   export writing into a folder reports an `OcptCallSheetExportResult` rather than a path: some files
   landing and others not is a third outcome, and it must never read as success — somebody would go
   unwarned about a day they are called on. The home page's `Import…` modal, the screenplay's own `⋮`

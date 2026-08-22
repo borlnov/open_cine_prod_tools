@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 /// [entry]'s own [OcptBudgetEntry.debitCents], read **tax-inclusive**, given the project's own
 /// [projectVatRateBasisPoints] — or null when that reading is impossible.
 ///
-/// Money that moved is always read tax-inclusive (`docs/plans/budget-mode.md` §2): unlike the
+/// Money that moved is always read tax-inclusive (`docs/architecture/budget.md`): unlike the
 /// quote, where a header toggle asks for either basis, there is no basis to pick for a payment —
 /// only [ocptIncludingTaxAmountCentsOf] over an [OcptMoney] built from [entry]'s own
 /// [OcptBudgetEntry.isTaxInclusive] and [OcptBudgetEntry.vatRateBasisPoints], which is this entry's

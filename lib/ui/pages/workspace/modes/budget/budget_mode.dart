@@ -70,7 +70,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// The budget production mode: the quote, poste by poste — the dashboard and the cost-tracking
 /// table this milestone builds, `Inspector` and `Versions` in the right dock.
 ///
-/// **There is no left dock** (the mockup shows none for this view, `docs/plans/budget-mode.md` §5,
+/// **There is no left dock** (the mockup shows none for this mode, `docs/architecture/budget.md`,
 /// M1) and **no episode selector**: one budget serves the whole production (ADR 0019), its
 /// catalogue naming no episode at all, exactly the schedule mode's own reason — not for want of a
 /// bloc.

@@ -110,7 +110,7 @@ class OcptBudgetSnapshot extends Equatable {
 
   /// The dashboard's own two alerts — a poste over its quote, the cash projection going negative —
   /// computed once, here, by [ocptComputeBudgetAlerts] over this snapshot's own already-loaded
-  /// data: **both computed, neither configured** (`docs/plans/budget-mode.md` §5, M2).
+  /// data: **both computed, neither configured** (ADR 0026).
   final List<OcptBudgetAlert> alerts;
 
   /// Every live voucher, keyed by the `OcptBudgetEntry.id` it evidences —

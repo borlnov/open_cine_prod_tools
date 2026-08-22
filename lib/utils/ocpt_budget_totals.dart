@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 const int _ocptQuantityMilliPerUnit = 1000;
 
 /// The ratio, above which a poste is flagged **near** its quote rather than merely **within** it —
-/// 90 %, the figure `docs/plans/budget-mode.md` §5 (M1) names for the dashboard's alert.
+/// 90 %, the figure the dashboard's own strain reading is drawn at.
 const double _ocptBudgetNearStrainRatio = 0.9;
 
 /// [line]'s own total, in cents, in whatever tax basis it was typed in — never converted:
@@ -231,7 +231,7 @@ OcptBudgetPosteStrain ocptBudgetPosteStrainOf({
 /// to the excluding-tax one alone, which is all `ocptBudgetExcludingTaxTotalOf` itself answers.
 ///
 /// **Every row is converted individually and then summed, never the other way round**
-/// (`docs/plans/budget-mode.md` §3): [OcptBudgetTaxBasis.excludingTax] delegates to
+/// (ADR 0024): [OcptBudgetTaxBasis.excludingTax] delegates to
 /// [ocptBudgetExcludingTaxTotalOf] directly, and [OcptBudgetTaxBasis.includingTax] mirrors it
 /// through [ocptIncludingTaxAmountCentsOf] over each line's own already-summed total
 /// ([ocptBudgetLineTotalCents]) — a line already typed tax-inclusive needs no rate at all to answer

@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.
 
 /// One quoted line of the budget: a quantity of something, at a unit price, inside a poste.
 ///
-/// **The money is three columns, never reconstructed** — `docs/plans/budget-mode.md` §3 is the
+/// **The money is three columns, never reconstructed** — ADR 0024 is the
 /// argument this table implements, and `lib/utils/ocpt_budget_vat.dart` is the only place in the
 /// repository allowed to convert between the two tax bases:
 ///

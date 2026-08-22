@@ -5,7 +5,7 @@
 /// Which of the budget mode's centre views is currently shown, toggled by the header's own view
 /// chips.
 ///
-/// **All seven views the mockup validates now ship** (`docs/plans/budget-mode.md` §1). Each joined
+/// **All seven views the mockup validates now ship** (`docs/architecture/budget.md`). Each joined
 /// this enum **always at the end**, so a stored preference never points at a view that has moved,
 /// as the milestone that gave it real content landed — what M2 did for [cashJournal] and
 /// [committed], what M3 then did for [financing] and [regie], and what M4 now does one last time

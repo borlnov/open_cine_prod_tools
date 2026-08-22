@@ -10,8 +10,9 @@ The production's money, read honestly in whichever tax basis it was typed in: th
 the CNC nomenclature, the cash journal it is measured against — every entry the account has
 actually seen, and every commitment still owed but not yet paid — the financing plan that says what
 pays for all of it, and the catering and travel a shooting day actually costs, read off the
-schedule rather than typed a second time. The revenue sharing alone is still ahead of it
-(`docs/plans/budget-mode.md`).
+schedule rather than typed a second time, and the revenue sharing that says, once the film has
+earned something, who gets what of it. The mode is complete: its seven views and its four documents
+are all here, and this file is the whole record of them.
 
 ## Who it serves, and what the mode now shows
 
@@ -23,14 +24,13 @@ schedule rather than typed a second time. The revenue sharing alone is still ahe
   favours one reader over the other — it builds the one document both eventually need, the quote,
   and then the ledger both eventually keep, the cash journal that measures what has actually moved
   against it and what is still owed, and now the financing plan that measures against the quote in
-  turn. `OcptBudgetCentreView` holds the six views this stands for today — `dashboard`,
-  `costTracking`, `cashJournal`, `committed`, `financing` and `regie` — of the seven the mockup
-  validates; **revenue sharing** alone is still missing, reading tables no milestone so far holds at
-  all (`budget_revenues`, `budget_shares`) — a value added for it today would be a header chip that
-  opens onto nothing, which this app never draws. It joins the enum at its own end, as the milestone
-  that gives it real content lands, so a stored preference never points at a view that has moved —
-  the reading `cashJournal`/`committed`, then `financing`/`regie`, already proved out, one milestone
-  after `dashboard`/`costTracking` did the same.
+  turn, and finally the revenue sharing that splits what the finished film earns.
+  `OcptBudgetCentreView` holds all seven the mockup validates — `dashboard`, `costTracking`,
+  `cashJournal`, `committed`, `financing`, `regie` and `sharing` — and is **complete**: every value
+  joined it at its own end, as the milestone that gave it real content landed, so a stored
+  preference never pointed at a view that had moved. That reading was proved out three times
+  (`cashJournal`/`committed`, then `financing`/`regie`, then `sharing`) and is the one an eighth
+  view, should the roadmap ever want one, has to repeat.
 
 ## The money rule
 
@@ -256,6 +256,20 @@ schedule rather than typed a second time. The revenue sharing alone is still ahe
   sealed before the financing plan existed truthfully named no resource and no rate, and no entry
   could name a resource that did not exist, exactly the reading format 17's own upgrade already
   gives what it materialises.
+  Two last synchronised tables close the mode: `budget_revenues` (`date`, `label`, `amountCents`,
+  `status`, `notes`) and `budget_shares` (a nullable `personId`, `label`, `sharePermille`,
+  `reinvestPermille`, `notes`), both ordered flat by their own `sortKey` like `budget_resources`.
+  Neither stores what has moved — see "A taking is received by being named, a participant is paid
+  the same way" below — and `budget_shares` carries **no constraint that its shares sum to
+  `1000`**: a sharing plan still being negotiated legitimately does not add up yet, and refusing the
+  write over it would make the app unusable while the plan is being built. `budget_entries` gains
+  the last two nullable foreign keys it was ever going to gain, `revenueId` and `shareId`, added
+  with `Migrator.addColumn` exactly the way `resourceId` was. This is schema **v23**.
+  `OcptProjectVersionCodec` gains both tables and both columns in all three of its required places
+  under **payload format 19**, whose upgrade from format 18 **materialises** `budgetRevenues` and
+  `budgetShares` as empty lists and every `budget_entries.revenueId` and `.shareId` as null — a
+  version sealed before the sharing existed truthfully named no taking and no participant, exactly
+  the reading format 18's own upgrade already gives what it materialises.
 
 ## The mode's own shape
 
@@ -299,16 +313,12 @@ schedule rather than typed a second time. The revenue sharing alone is still ahe
   project's rate is its own dedicated, immediate gesture
   (`OcptBudgetLineVatRateInheritedRequestedEvent`), mirroring the project settings page's own
   `No rate` button for `defaultVatRateBasisPoints`.
-  **The `Export` control is wired**, opening `OcptWorkspaceExportDialog<Never>` with an empty
-  `entries` list — generic over `Never` because there is no document enum yet to be generic over —
-  so the panel draws onto **no document at all**, its own standing project-package card being the
-  one thing on it, exactly as `exports.md` describes that card as the dialog's own rather than any
-  mode's. The exhaustive switch over the pick the panel returns still names the unreachable
-  `OcptWorkspaceExportDocumentPick<Never>` case explicitly, rather than folding it into a bare
-  `default`, so a real document enum added here at M4 has to be handled rather than silently falling
-  through. Wiring the panel at all is what a bloc buys this milestone: `OcptBudgetBloc` mixes in
-  `MixinOcptProjectPackageBloc` exactly as every other mode's bloc does, so a colleague can already
-  receive this project as a portable `.ocptz` before the mode prints a single PDF of its own.
+  **The `Export` control opens onto four documents**, `OcptWorkspaceExportDialog
+  <OcptBudgetExportDocument>` drawing one card each for the quote, the financing plan, the cash
+  journal and the financial report, above the dialog's own standing project-package card — see "The
+  four documents" below. `OcptBudgetBloc` also mixes in `MixinOcptProjectPackageBloc` exactly as
+  every other mode's bloc does, which is what let a colleague receive this project as a portable
+  `.ocptz` a milestone before the mode printed a single PDF of its own.
 
 ## The dashboard's two alerts compute themselves, and ask for no threshold
 
@@ -379,11 +389,9 @@ schedule rather than typed a second time. The revenue sharing alone is still ahe
   and a poste with no quote at all makes that a division by zero — a figure that cannot exist rather
   than one that happens to be absent, which is a different silence from the one this section used to
   describe and survives regardless of what the journal ever learns.
-  What is still missing is exactly the two tables `budget_revenues` and `budget_shares` would feed:
-  **revenue sharing** — the takings, the reimbursable contributions repaid before anything is split,
-  and the split itself. It reads no byte the schema holds today, is argued in full in
-  `docs/plans/budget-mode.md`, and joins `OcptBudgetCentreView` the day its own milestone gives it
-  something real to show.
+  Nothing else is missing: `budget_revenues` and `budget_shares` landed with the sharing view, and
+  the silences this mode still keeps are all of that same kind — a figure that cannot exist rather
+  than one nobody has entered yet.
 
 ## A resource is received by being named, and a rate is nobody's to seed
 
@@ -533,3 +541,108 @@ schedule rather than typed a second time. The revenue sharing alone is still ahe
   the element's own name — so a reader can tell a line typed from nothing apart from one that
   answers a real need the breakdown found, the same distinction the dashboard's own feed card counts
   by.
+
+## A taking is received by being named, a participant is paid the same way
+
+- `budget_revenues` carries **no received amount** and `budget_shares` **no `paidCents`**, and that
+  is the fourth and fifth time this mode has refused the same shape for the same reason: a poste
+  keeps no `quotedAmount`, a commitment no `settled` flag, a resource no `receivedCents`, because a
+  stored second copy of one truth has to be kept in step by a write nobody can guarantee never to
+  forget. A taking's own row states what was **expected** — its date, its label, the amount and how
+  far its paperwork has got — and the journal states what **arrived**: the sum of the
+  `budget_entries` credits naming it through `budget_entries.revenueId`
+  (`ocptBudgetReceivedByRevenueId`, `lib/utils/ocpt_budget_shares.dart`). What a participant has
+  actually been paid is the mirror image, read off the other column: the debits naming them through
+  `budget_entries.shareId` (`ocptBudgetPaidByShareId`). Both go through
+  `ocptBudgetEntryCreditCentsOf`/`ocptBudgetEntryDebitCentsOf` rather than the raw columns, so a row
+  missing the rate it would need is *covered-but-incomplete* rather than wrong, and both answer an
+  `OcptBudgetCoveredTotal` for that reason.
+  `OcptBudgetRevenueStatus` is therefore **flat and three-valued** (`expected`, `confirmed`,
+  `invoiced`) and deliberately carries **no `cashed`**, which is exactly the argument
+  `OcptBudgetCommitmentStatus` already makes for its own missing `settled`: a status living beside a
+  figure the journal already answers would be that second copy again. A prize announced in February
+  and paid in June is one row and one entry, and the view tells the two apart by printing the
+  expected amount as a quiet second line whenever it differs from what came in.
+  The two gestures follow from the shape: **`Record a receipt`** on a taking and **`Record a
+  payout`** on a participant both open `OcptBudgetEntryDialog` pre-filled and dated today — a credit
+  for whatever the taking still has outstanding, a debit for whatever the participant is still owed
+  — exactly as the financing plan's own `Record a receipt` and a commitment's `Settle` already do,
+  so neither a receipt nor a payout can ever exist as a figure with no movement behind it.
+  **A debit naming a taking is not subtracted, and a credit naming a participant is not either.** A
+  refunded taking and a participant handing money back are each movements of their own, and neither
+  is a claim that what already happened did not.
+
+## The contributions come off the top, and no remainder is redistributed
+
+- The order the sharing view states things in **is** the rule it exists to make legible, and
+  `lib/utils/ocpt_budget_shares.dart` is where that order is arithmetic rather than layout: the
+  takings come in, the reimbursable contributions are taken off the top, and only what is left is
+  anybody's to split. `ocptBudgetReimbursableTotalCents` reads `budget_resources.isReimbursable` —
+  the column M3 stored and no view read until now — and nothing there branches on
+  `OcptBudgetResourceGroupKind`: an in-kind contribution counts if the user marked it reimbursable,
+  which is the mode's standing rule that the code carries no conditional branch on the state of the
+  data. `ocptBudgetRepaidContributionsTotalOf` is the other half of the sentence
+  `ocpt_budget_financing.dart` already writes when it declines to subtract a debit naming a
+  resource: this is that debit's reader, and it counts only debits against a **reimbursable**
+  contribution, a debit against a subsidy being a correction or an unspent balance handed back
+  rather than a repayment the sharing has to clear.
+  **`OcptBudgetSharingPot.shareableCents` deducts the whole reimbursable total, not merely what is
+  still outstanding.** Whether a contribution has physically gone back is a question about the
+  production's cash, not about what belongs to the participants: a film that has earned 4,000 €
+  against 3,500 € of reimbursable contributions has 500 € to share whether the 3,500 € went back
+  last week or has not gone back at all — and reading the outstanding figure here instead would let
+  a production enlarge the pot simply by delaying a repayment. What is still owed is printed too,
+  in its own line of the same card, because it is a real fact; it is just not this one.
+  **No remainder is redistributed.** Each participant's due is `shareableCents × sharePermille ÷
+  1000`, rounded on its own, in integer arithmetic throughout — so three participants splitting a
+  thousand cents in thirds are each due 333 and the missing cent stays visible. Handing it to
+  whoever happens to be listed last would be the app deciding a question the participants have not.
+  For the same reason the shares are **stated, never policed**: `ocptBudgetSharesPermilleTotal`
+  against `1000` is a line the table prints only when the two differ, showing what the shares as
+  written claim (`ocptBudgetDueTotalCents`) beside what there actually is to share, which is the
+  only way a reader can see that the plan does not add up — and `OcptBudgetSharesTable` refuses to
+  reject the write for the reason its own doc comment gives.
+  `OcptBudgetShareSplit` is named `…Split` rather than `…Row` because `OcptBudgetShareRow` is
+  already drift's own data class for `budget_shares`, and a computed reading and a stored row must
+  not wear one name. Like a resource row, a taking and a participant are **selected and highlighted
+  and open no inspector**: the right dock's `Inspector` is built entirely around a poste's own quote
+  lines, and neither of these has any.
+
+## The four documents
+
+- The mode prints four, each reached the way every export in this app is — the toolbar's own
+  `Export` control, never a tab of its own (`exports.md`), and a native save dialog every time:
+  the **quote** (PDF, the whole nomenclature poste by poste with its lines), the **financing plan**
+  (PDF, its contributions in kind kept visibly apart, which is the whole point of the document for
+  a commission), the **cash journal** (XLSX, every entry in the order money actually moved, with
+  its voucher number) and the **financial report** (PDF, the quote read against what has actually
+  been paid and what is still committed, with the variance). The two the reference paperwork also
+  names — the statement of justified spending and the in-kind contributions certificate — are on
+  the roadmap rather than rushed.
+  Every honesty rule the screens keep, the documents keep. A total that is not
+  `OcptBudgetCoveredTotal.isComplete` prints the same coverage read-out beside it rather than a
+  figure standing in for the rows it does not cover; a running balance the journal could not read
+  writes an **empty cell**, never the balance before it; an `inKind` resource no entry names prints
+  the empty-value mark for received and outstanding; and the needs/resources balance gives the same
+  three-way verdict — no quote yet, covered, or short by an amount — rather than declaring a
+  financing plan sufficient against a quote nobody has begun.
+  **Only the quote offers a tax basis**, and its dialog opens on whichever one the header was
+  already showing, so the document somebody exports is the one they were just reading. The other
+  three are money that has moved or money coming in, which "Money that has moved is read
+  tax-inclusive, always" (above) settles once for the whole mode.
+  **A card that cannot print is greyed and inert with the reason in its description, never
+  hidden** — the quote and the financial report while the project holds no live poste at all (every
+  one of the ten seeded CNC postes can be deleted), the financing plan while it holds no resource,
+  the cash journal while it holds no entry. Each is a real, reachable state, and a card that
+  vanished would make the panel lie about what the mode knows how to print.
+  The services (`lib/managers/export/services/ocpt_budget_*`) see **no `Tr` at all**: every heading,
+  column title, group name, status name and verdict sentence arrives as one of four labels classes
+  the mode resolves (`ocptBudgetQuoteLabelsOf` and its three siblings,
+  `lib/ui/utils/ocpt_budget_labels.dart`). Two of those fields are **raw templates** the manager
+  fills in at export time, `{amount} · {coveredCount} of {totalCount} known` and its shortfall
+  sibling, because a coverage read-out is built per total, deep inside a service that cannot ask
+  `Tr` for anything. `intl_utils` reads any `{word}` in an ARB string as an ICU argument whatever
+  the `placeholders` map says, so the template is resolved through `Tr` with **the placeholder
+  names themselves** as its arguments — which keeps each locale's own word order — and handed on as
+  a plain string for the service to substitute into. The indirection is stated in the two ARB keys'
+  own descriptions and at the helper that performs it, since it would otherwise read as a mistake.

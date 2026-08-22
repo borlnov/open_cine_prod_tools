@@ -265,7 +265,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
   }
 
   /// How many postes count as covered under [taxBasis] — "every one of its own lines does"
-  /// (`docs/plans/budget-mode.md` §5, M1) — what the total row's own coverage read-out counts
+  /// (`docs/architecture/budget.md`) — what the total row's own coverage read-out counts
   /// against `postes.length`.
   int _coveredPosteCountOf() {
     var count = 0;
@@ -665,7 +665,7 @@ class _OcptCostTrackingQuoteCell extends StatelessWidget {
   final int primaryCents;
 
   /// The amount shown underneath, in the other basis, or null while no line of this poste covers
-  /// it at all — "it carries nothing" (`docs/plans/budget-mode.md` §5, M1).
+  /// it at all — "it carries nothing" (`docs/architecture/budget.md`).
   final int? secondaryCents;
 
   /// The one rate every line of this poste shares, or null while they don't (or none is known) —

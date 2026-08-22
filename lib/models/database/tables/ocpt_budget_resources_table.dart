@@ -40,7 +40,7 @@ class OcptBudgetResourceStatusConverter extends TypeConverter<OcptBudgetResource
 /// One line of the production's financing plan: a subsidy, a cash contribution or a contribution
 /// in kind ([groupKind]), what it comes to and where it stands ([status]).
 ///
-/// **No `receivedCents` column, even though `docs/plans/budget-mode.md` §4 lists one.** What has
+/// **No `receivedCents` column, though the shape it was first sketched with carried one.** What has
 /// actually been received against a resource is the sum of the `budget_entries` credits naming it
 /// through `budget_entries.resourceId`, computed on every read rather than stored beside it — the
 /// very same argument `docs/architecture/budget.md` already makes twice, in "A poste's quoted
@@ -89,7 +89,7 @@ class OcptBudgetResourcesTable extends Table {
       .withDefault(const Constant('applied'))();
 
   /// Whether this resource has to be repaid before the revenue sharing splits what is left —
-  /// `docs/plans/budget-mode.md`'s "reimbursable contributions repaid before anything is split".
+  /// the revenue sharing's own "reimbursable contributions repaid before anything is split".
   BoolColumn get isReimbursable => boolean().withDefault(const Constant(false))();
 
   /// Free-form notes about this resource.

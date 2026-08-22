@@ -6,7 +6,7 @@
 ///
 /// The mockup names two further documents — the statement of justified spending and the in-kind
 /// contributions certificate — that stay on the roadmap rather than being rushed into this
-/// milestone (`docs/plans/budget-mode.md` §5, M4).
+/// milestone (`docs/architecture/budget.md`, "The four documents").
 enum OcptBudgetExportDocument {
   /// The quote: the full CNC nomenclature, poste by poste with its own lines and totals.
   quote,

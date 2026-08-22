@@ -219,7 +219,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   ///
   /// Kept separate from every other mode's own dock-fraction key for the same reason those are
   /// kept apart from each other. There is no `budgetLeftDockFraction`: this mode has no left dock
-  /// (`docs/plans/budget-mode.md` §5, M1). Loading it returns null if nothing has been stored yet,
+  /// (`docs/architecture/budget.md`). Loading it returns null if nothing has been stored yet,
   /// which is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
   final budgetRightDockFraction = SharedPreferencesItem<double>("BUDGET_RIGHT_DOCK_FRACTION");
 

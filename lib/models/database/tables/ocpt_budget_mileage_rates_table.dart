@@ -38,7 +38,7 @@ class OcptBudgetMileageRatesTable extends Table {
 
   /// The reimbursement rate, in **thousandths of a cent per kilometre** — `0.529 €/km` is `52900`.
   ///
-  /// A deliberate deviation from the `ratePerKmCents` `docs/plans/budget-mode.md` names, taken with
+  /// A deliberate deviation from the whole-cent `ratePerKmCents` first sketched for it, taken with
   /// the plan owner's agreement: a real mileage scale is quoted to **three decimals** — 0.529,
   /// 0.601, 0.395 — and a whole-cent column simply cannot state the figure the user has in front of
   /// them. This is the money rule `docs/architecture/budget.md` already states for every other

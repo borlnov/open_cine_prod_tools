@@ -69,7 +69,7 @@ class OcptBudgetRightDockClosedEvent extends OcptBudgetEvent {
 }
 
 /// Applies and persists the right dock's new width fraction once a divider drag ends. There is no
-/// left-side counterpart: this mode has no left dock (`docs/plans/budget-mode.md` §5, M1).
+/// left-side counterpart: this mode has no left dock (`docs/architecture/budget.md`).
 class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetEvent {
   /// The right dock's new fraction of the mode's content row width.
   final double fraction;
