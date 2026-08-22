@@ -282,16 +282,19 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
 /// translation — they already say, in every reading, the plain thing they are — so giving them a
 /// second wording would be inventing a difference the words themselves don't carry.
 ///
-/// **`Financing` sits third, between `Cost tracking` and `Cash journal` — not fifth, where
-/// `OcptBudgetCentreView` itself places it. `Régie` and `Revenue sharing` sit last, in that order,
+/// **`Cash journal` sits third, ahead of `Financing` — not fourth, where `OcptBudgetCentreView`
+/// itself places it. `Committed`, `Régie` and `Revenue sharing` sit after it, in that order,
 /// matching the enum after all.** The enum's own order is when each view shipped; this row's order
-/// is the order the money story itself reads in: the quote (`Cost tracking`), then what pays for it
-/// (`Financing`), then what has actually moved against either (`Cash journal`, `Committed`), then
-/// the catering-and-travel pass read off all of it (`Régie`), then, long after all of it, what the
-/// finished film earns (`Revenue sharing`) — which happens to land last both ways, the same
-/// coincidence that let `cashJournal` and `committed` sit in enum order before `financing` ever
-/// broke it. Listing the segments explicitly, rather than iterating `OcptBudgetCentreView.values`,
-/// is what lets the two orders diverge on purpose without one silently following the other.
+/// is the order most productions actually use the mode in. Most productions using this app do no
+/// planning at all: they keep a cash flow, so the view they open every working day cannot sit
+/// behind two forecasting views — a quote (`Cost tracking`) and a financing plan (`Financing`)
+/// neither of which a five-person crew necessarily builds before the shoot starts. `Cash journal`
+/// moving up to third is that reading applied to the chip order itself: the quote, then what has
+/// actually moved (`Cash journal`), then what pays for it (`Financing`) and what is still owed
+/// (`Committed`), then the catering-and-travel pass read off all of it (`Régie`), then, long after
+/// all of it, what the finished film earns (`Revenue sharing`). Listing the segments explicitly,
+/// rather than iterating `OcptBudgetCentreView.values`, is what lets the two orders diverge on
+/// purpose without one silently following the other.
 class _OcptBudgetCentreViewSwitch extends StatelessWidget {
   /// The switch's own current value.
   final OcptBudgetCentreView value;
@@ -328,20 +331,22 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
           label: tr.budgetHeaderCostTrackingSegmentLabel,
           onChanged: onChanged,
         ),
-        // Financing sits third, ahead of the two ledger views — see the class doc comment for why
-        // this deliberately does not follow OcptBudgetCentreView's own, purely historical order.
-        _OcptBudgetSwitchSegment(
-          value: OcptBudgetCentreView.financing,
-          current: value,
-          label: tr.budgetHeaderFinancingSegmentLabel,
-          onChanged: onChanged,
-        ),
+        // Cash journal sits third, ahead of Financing and Committed — see the class doc comment
+        // for why this deliberately does not follow OcptBudgetCentreView's own, purely historical
+        // order: most productions using this app keep a cash flow and do no planning at all, so the
+        // view they open every day must not sit behind two forecasting views.
         _OcptBudgetSwitchSegment(
           value: OcptBudgetCentreView.cashJournal,
           current: value,
           label: isSimplified
               ? tr.budgetHeaderCashJournalSimpleSegmentLabel
               : tr.budgetHeaderCashJournalSegmentLabel,
+          onChanged: onChanged,
+        ),
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.financing,
+          current: value,
+          label: tr.budgetHeaderFinancingSegmentLabel,
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
@@ -353,7 +358,7 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
           onChanged: onChanged,
         ),
         // Régie and Revenue sharing sit last, in that order — see the class doc comment for why
-        // these two segments do follow OcptBudgetCentreView's own order, unlike Financing above.
+        // these two segments do follow OcptBudgetCentreView's own order, unlike Cash journal above.
         _OcptBudgetSwitchSegment(
           value: OcptBudgetCentreView.regie,
           current: value,

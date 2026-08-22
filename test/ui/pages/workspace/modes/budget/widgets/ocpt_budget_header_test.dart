@@ -310,6 +310,35 @@ void main() {
     expect(regieChipCentre.dx, greaterThan(committedChipCentre.dx));
   });
 
+  testWidgets("Cash journal sits third, ahead of Financing and Committed", (tester) async {
+    useWideWindow(tester);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetHeader(
+          centreView: OcptBudgetCentreView.dashboard,
+          onCentreViewSelected: (_) {},
+          isSimplified: false,
+          onSimplifiedChanged: (_) {},
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          onTaxBasisChanged: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    final costTrackingCentre = tester.getCenter(find.text(tr.budgetHeaderCostTrackingSegmentLabel));
+    final cashJournalCentre = tester.getCenter(find.text(tr.budgetHeaderCashJournalSegmentLabel));
+    final financingCentre = tester.getCenter(find.text(tr.budgetHeaderFinancingSegmentLabel));
+    final committedCentre = tester.getCenter(find.text(tr.budgetHeaderCommittedSegmentLabel));
+
+    // Cash journal sits right after Cost tracking, ahead of both Financing and Committed — not
+    // fourth, where OcptBudgetCentreView itself places it.
+    expect(cashJournalCentre.dx, greaterThan(costTrackingCentre.dx));
+    expect(financingCentre.dx, greaterThan(cashJournalCentre.dx));
+    expect(committedCentre.dx, greaterThan(financingCentre.dx));
+  });
+
   // The narrow-window case (title/subtitle shed, the three controls kept) is
   // `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth` threshold, argued in its class doc
   // comment; not re-asserted here as a layout test, since `flutter_test`'s own substituted test

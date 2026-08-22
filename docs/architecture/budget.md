@@ -333,23 +333,29 @@ are all here, and this file is the whole record of them.
   entries naming this poste, newest first, a debit and a credit told apart by
   `ColorScheme.error`/`.primary`, printing the em dash for an entry it cannot read and a coverage
   read-out the moment some of them are; and the shared `Versions` tab every mode carries.
-  The header's six view chips (`Dashboard`, `Cost tracking`, `Financing`, `Trésorerie` in French —
-  `Cash journal` in English, deliberately renamed off "Journal de caisse" once that first choice
-  turned out to name a petty-cash book rather than the bank account the view actually reads —
-  `Committed`, and `Régie` in French — `Catering & travel` in English, the same asymmetry and for the
-  same reason: the trade word has no one-word English equivalent) and its two further toggles,
-  simplified/detailed and excluding/including-tax, are
+  The header's seven view chips (`Dashboard`, `Cost tracking`, `Trésorerie` in French — `Cash
+  journal` in English, deliberately renamed off "Journal de caisse" once that first choice turned
+  out to name a petty-cash book rather than the bank account the view actually reads — `Financing`,
+  `Committed`, `Régie` in French — `Catering & travel` in English, the same asymmetry and for the
+  same reason: the trade word has no one-word English equivalent — and `Revenue sharing`) and its
+  two further toggles, simplified/detailed and excluding/including-tax, are
   **always offered, whatever the project holds**: neither is ever withheld or disabled according to
   the state of the data, there is no conditional branch in
   `OcptBudgetHeader` at all, only a value that may turn out empty once the centre reads it.
   **The chips are deliberately not in `OcptBudgetCentreView`'s own order.** That enum grows strictly
   by the end, so a value never moves under a reader who stored one; the header, by contrast, lists
-  its segments explicitly and orders them the way the money actually reads — the quote, then what
-  pays for it, then what has moved, then what is still owed, then what the shoot eats and drives.
+  its segments explicitly and orders them the way most productions actually use the mode. Most
+  productions using this app do no planning at all: they keep a cash flow, so the view they open
+  every working day must not sit behind two forecasting views a five-person crew does not
+  necessarily build before the shoot starts — `Cash journal` therefore sits third, right after the
+  quote (`Cost tracking`) and ahead of both `Financing` and `Committed`. The order reads, in full:
+  the quote, then what has actually moved, then what pays for it and what is still owed, then what
+  the shoot eats and drives, then, long after all of it, what the finished film earns.
   `_OcptBudgetCentreViewSwitch` says so where the segments are listed, since a divergence nobody
   argued for would look like a mistake the next time somebody adds a view. Each chip also widens
   that one switch, so `_ocptBudgetHeaderTitleMinWidth` — the width under which the header sheds its
-  title rather than crowd its controls — moves out by a segment's own width every time one lands. Every
+  title rather than crowd its controls — moves out by a segment's own width every time one lands.
+  Every
   other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder, a
   delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
   code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
