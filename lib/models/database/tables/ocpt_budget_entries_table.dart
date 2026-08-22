@@ -23,9 +23,14 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_t
 ///   plainly that no VAT applies, and the two are different facts.
 ///
 /// [posteId] is **nullable, and deliberately so**: an entry attached to no poste is a real fact,
-/// typically money coming *in* rather than a cost against the quote — a subsidy instalment, a
-/// contribution repaid — not "nobody has said which poste yet". A line spent against the quote
-/// almost always names one; a receipt almost never does.
+/// not "nobody has said which poste yet" — most often money coming *in* rather than a cost against
+/// the quote, a subsidy instalment, a contribution repaid, but not only that: this mode's own entry
+/// dialog offers `Aucun poste` as a plain choice on a debit too, so a poste-less entry can just as
+/// well be a real cost that simply prices nothing in the CNC nomenclature, the small-production
+/// reading this whole mode is built for. `lib/utils/ocpt_budget_journal.dart`'s own
+/// `ocptBudgetOffQuotePaidTotalOf` is what reads that spending back out, rather than the app
+/// silently losing track of it the moment it names no poste. A line spent against the quote almost
+/// always names one; a receipt almost never does.
 ///
 /// [resourceId] names which financing resource this movement settles — a subsidy instalment coming
 /// in, a contribution repaid — and is **nullable for the same reason [posteId] is**: most movements

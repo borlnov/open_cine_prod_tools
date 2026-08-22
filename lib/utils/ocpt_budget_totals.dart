@@ -107,6 +107,33 @@ class OcptBudgetCoveredTotal extends Equatable {
   List<Object?> get props => [amountCents, coveredLineCount, lineCount];
 }
 
+/// [totals]' own combined figure — the sum of every [OcptBudgetCoveredTotal.amountCents], paired
+/// with how many of the underlying rows actually carried a known rate: a plain reduction over
+/// already-computed pure structures, not a rule of its own.
+///
+/// Shared by every reading that folds more than one [OcptBudgetCoveredTotal] into one grand
+/// total — the dashboard's own `Paid`/`Committed` KPIs, folding the per-poste totals (and, for
+/// `Paid`, the off-quote total, `lib/utils/ocpt_budget_journal.dart`'s own
+/// `ocptBudgetOffQuotePaidTotalOf`), and the cost-tracking table's own total row, folding the very
+/// same two into its own `Paid` cell.
+OcptBudgetCoveredTotal ocptBudgetCoveredTotalsFoldOf(Iterable<OcptBudgetCoveredTotal> totals) {
+  var amountCents = 0;
+  var coveredLineCount = 0;
+  var lineCount = 0;
+
+  for (final total in totals) {
+    amountCents += total.amountCents;
+    coveredLineCount += total.coveredLineCount;
+    lineCount += total.lineCount;
+  }
+
+  return OcptBudgetCoveredTotal(
+    amountCents: amountCents,
+    coveredLineCount: coveredLineCount,
+    lineCount: lineCount,
+  );
+}
+
 /// The excluding-tax total of [lines], given the project's own [projectVatRateBasisPoints], paired
 /// with how many of them that figure actually covers.
 ///

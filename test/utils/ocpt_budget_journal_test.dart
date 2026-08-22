@@ -212,4 +212,67 @@ void main() {
       expect(byPoste["poste-1"]!.isComplete, isFalse);
     });
   });
+
+  group("ocptBudgetOffQuotePaidTotalOf", () {
+    test("a debit naming no poste counts", () {
+      final entries = [buildEntry(id: "e1", debitCents: 1000)];
+
+      final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
+
+      expect(total.amountCents, 1000);
+      expect(total.coveredLineCount, 1);
+      expect(total.lineCount, 1);
+      expect(total.isComplete, isTrue);
+    });
+
+    test("a debit naming a poste does not count", () {
+      final entries = [buildEntry(id: "e1", posteId: "poste-1", debitCents: 1000)];
+
+      final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
+
+      expect(total.amountCents, 0);
+      expect(total.coveredLineCount, 0);
+      expect(total.lineCount, 0);
+      expect(total.isComplete, isTrue);
+    });
+
+    test("a credit naming no poste does not count — it is money coming in, not off-quote spending", () {
+      final entries = [buildEntry(id: "e1", creditCents: 5000)];
+
+      final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
+
+      expect(total.amountCents, 0);
+      expect(total.coveredLineCount, 0);
+      expect(total.lineCount, 0);
+      expect(total.isComplete, isTrue);
+    });
+
+    test("an unreadable off-quote debit leaves the total incomplete rather than wrong", () {
+      final entries = [
+        buildEntry(id: "e1", debitCents: 1000),
+        buildEntry(id: "e2", debitCents: 500, isTaxInclusive: false),
+      ];
+
+      final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
+
+      expect(total.amountCents, 1000);
+      expect(total.coveredLineCount, 1);
+      expect(total.lineCount, 2);
+      expect(total.isComplete, isFalse);
+    });
+
+    test("no such entry at all gives a complete zero", () {
+      final entries = [
+        buildEntry(id: "e1", posteId: "poste-1", debitCents: 1000),
+        buildEntry(id: "e2", creditCents: 5000),
+      ];
+
+      final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
+
+      expect(total.amountCents, 0);
+      expect(total.coveredLineCount, 0);
+      expect(total.lineCount, 0);
+      expect(total.isComplete, isTrue);
+    });
+  });
 }

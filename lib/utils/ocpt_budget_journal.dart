@@ -265,6 +265,60 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidCentsByPosteId(
   };
 }
 
+/// The total of every debit that names **no poste at all** — spending that happened but that
+/// prices no line of the quote — given the project's own [projectVatRateBasisPoints].
+///
+/// `OcptBudgetEntriesTable.posteId`'s own doc comment reads a poste-less entry as "typically money
+/// coming in", and that is true of the common case — a subsidy instalment, a contribution repaid.
+/// It is not the whole story: this mode's own entry dialog offers `Aucun poste` as a plain choice,
+/// so a poste-less entry can just as well be a real **cost** that simply prices nothing in the CNC
+/// nomenclature, the small-production reading the whole mode is built for
+/// (`docs/architecture/budget.md`). [ocptBudgetPaidCentsByPosteId] only ever keys an entry that
+/// names a poste, so this spending was counted nowhere at all until this function existed —
+/// `OcptBudgetCashTotals.balanceCents` was the only reading that ever saw it, over every live
+/// entry rather than by poste.
+///
+/// **Debits only.** A credit naming no poste is money coming *in* — a subsidy instalment, a
+/// contribution — which is not off-quote spending; it belongs to the financing and revenue
+/// readings (`ocptBudgetReceivedByResourceId`, `ocptBudgetReceivedByRevenueId`,
+/// `lib/utils/ocpt_budget_financing.dart`/`ocpt_budget_shares.dart`), which already count it.
+/// [OcptBudgetEntry.creditCents] is read by no line of this function at all — only
+/// [OcptBudgetEntry.debitCents], and only through [ocptBudgetEntryDebitCentsOf], **never the raw
+/// column**, so an entry missing the rate it would need to be grossed up leaves this total
+/// *covered-but-incomplete* ([OcptBudgetCoveredTotal.isComplete] false) rather than silently
+/// wrong — the very same "null, never zero" discipline every other reading in this file keeps.
+///
+/// A poste-less **credit** never reaches [OcptBudgetCoveredTotal.lineCount] either: it is not
+/// off-quote spending at all, so it is not one of the "lines" this total was asked to sum in the
+/// first place, exactly as an entry naming a poste never reaches it.
+OcptBudgetCoveredTotal ocptBudgetOffQuotePaidTotalOf(
+  List<OcptBudgetEntry> entries, {
+  required int? projectVatRateBasisPoints,
+}) {
+  final offQuoteDebits = entries
+      .where((entry) => entry.posteId == null && entry.debitCents != 0)
+      .toList();
+
+  var amountCents = 0;
+  var coveredLineCount = 0;
+
+  for (final entry in offQuoteDebits) {
+    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    if (debit == null) {
+      continue;
+    }
+
+    amountCents += debit;
+    coveredLineCount++;
+  }
+
+  return OcptBudgetCoveredTotal(
+    amountCents: amountCents,
+    coveredLineCount: coveredLineCount,
+    lineCount: offQuoteDebits.length,
+  );
+}
+
 /// [entries]' own paid total — the tax-inclusive sum of debit minus credit, row by row, then summed
 /// — paired with how many of them actually carried a known rate. The one poste-scoped loop
 /// [ocptBudgetPaidCentsByPosteId] runs once per poste, kept separate so that function stays a plain
