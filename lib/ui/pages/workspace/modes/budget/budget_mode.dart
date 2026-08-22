@@ -480,7 +480,7 @@ class _BudgetViewState extends State<_BudgetView> {
       breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
       shootingDayCount: state.regieDays.length,
       mealCount: state.regieTotals.mealCount,
-      snackCount: state.regieTotals.snackCount,
+      buffetCount: state.regieTotals.buffetCount,
       onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
       onPosteAlertActionRequested: (posteId) {
         bloc
@@ -1041,7 +1041,7 @@ class _BudgetViewState extends State<_BudgetView> {
     cateringTotals: state.regieTotals,
     decorNameByDayId: state.regieDecorNameByDayId,
     mealPriceCents: state.mealPriceCents,
-    snackPriceCents: state.snackPriceCents,
+    buffetPriceCents: state.buffetPriceCents,
     travelRows: state.travelRows,
     travelTotals: state.travelTotals,
     roles: state.roles,

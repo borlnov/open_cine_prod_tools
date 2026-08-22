@@ -354,7 +354,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       const OcptBudgetRegieTotals(
         headCount: 0,
         mealCount: 0,
-        snackCount: 0,
+        buffetCount: 0,
         cost: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
       );
 
@@ -381,9 +381,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `OcptBudgetRegie`'s own caption.
   int? get mealPriceCents => snapshot?.mealPriceCents;
 
-  /// The project's own snack price, in cents, or null while nobody has recorded one — mirrors
+  /// The project's own buffet price, in cents, or null while nobody has recorded one — mirrors
   /// [mealPriceCents].
-  int? get snackPriceCents => snapshot?.snackPriceCents;
+  int? get buffetPriceCents => snapshot?.buffetPriceCents;
 
   /// The selected poste, or null while none is selected (or the selected one disappeared from a
   /// freshly loaded [snapshot]).

@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 /// This is the bloc class for the project settings page.
 ///
 /// It loads the current project's currency, page format, minimum rest, default VAT rate, meal and
-/// snack prices, screenplay language, episodes and learned dictionary words from
+/// buffet prices, screenplay language, episodes and learned dictionary words from
 /// [OcptProjectsManager] on entry, and writes each field back to the project the moment it changes
 /// — there is no
 /// separate save step, exactly like the appearance and language sections of the app-wide settings
@@ -60,7 +60,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       _onDefaultVatRateBasisPointsChanged,
     );
     on<OcptProjectSettingsMealPriceCentsChangedEvent>(_onMealPriceCentsChanged);
-    on<OcptProjectSettingsSnackPriceCentsChangedEvent>(_onSnackPriceCentsChanged);
+    on<OcptProjectSettingsBuffetPriceCentsChangedEvent>(_onBuffetPriceCentsChanged);
     on<OcptProjectSettingsScreenplayLanguageChangedEvent>(_onScreenplayLanguageChanged);
     on<OcptProjectSettingsDictionaryEditedEvent>(_onDictionaryEdited);
     on<OcptProjectSettingsEpisodeAddedEvent>(_onEpisodeAdded);
@@ -90,7 +90,9 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final defaultVatRateBasisPoints = await _projectsManager
         .loadCurrentProjectDefaultVatRateBasisPoints();
     final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
-    final snackPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
+    // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
+    // own name, but what it prices is the buffet, never a snack in the trade's own words.
+    final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
     final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
@@ -111,8 +113,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         clearDefaultVatRateBasisPoints: defaultVatRateBasisPoints == null,
         mealPriceCents: mealPriceCents,
         clearMealPriceCents: mealPriceCents == null,
-        snackPriceCents: snackPriceCents,
-        clearSnackPriceCents: snackPriceCents == null,
+        buffetPriceCents: buffetPriceCents,
+        clearBuffetPriceCents: buffetPriceCents == null,
         screenplayLanguage: screenplayLanguage,
         clearScreenplayLanguage: screenplayLanguage == null,
         episodes: episodes,
@@ -193,17 +195,18 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     );
   }
 
-  /// Writes the newly committed snack price to the project, then reflects it in the state —
-  /// [_onMealPriceCentsChanged]'s sibling.
-  Future<void> _onSnackPriceCentsChanged(
-    OcptProjectSettingsSnackPriceCentsChangedEvent event,
+  /// Writes the newly committed buffet price to the project, then reflects it in the state —
+  /// [_onMealPriceCentsChanged]'s sibling. Still written through
+  /// `saveCurrentProjectSnackPriceCents`, the schema column's own name.
+  Future<void> _onBuffetPriceCentsChanged(
+    OcptProjectSettingsBuffetPriceCentsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
     emitter(
       state.copyWith(
-        snackPriceCents: event.cents,
-        clearSnackPriceCents: event.cents == null,
+        buffetPriceCents: event.cents,
+        clearBuffetPriceCents: event.cents == null,
         hasChanged: true,
       ),
     );

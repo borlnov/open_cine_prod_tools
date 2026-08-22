@@ -781,8 +781,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         .write(OcptProjectInfoTableCompanion(mealPriceCents: Value(cents)));
   }
 
-  /// Loads the price of one snack, in cents, stored in the [currentProject]'s `project_info` table,
-  /// or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way.
+  /// Loads the price of the buffet, in cents, stored in the [currentProject]'s `project_info` table,
+  /// or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way. **Named after the
+  /// column it reads, `project_info.snackPriceCents`, kept for the schema (ADR 0007's schema-number
+  /// rule); the UI names this figure the buffet, or craft services, never a snack.**
   Future<int?> loadCurrentProjectSnackPriceCents() async {
     final project = currentProject;
     if (project == null) {
@@ -795,8 +797,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return info?.snackPriceCents;
   }
 
-  /// Updates the price of one snack, in cents, stored in the [currentProject]'s `project_info`
-  /// table, or clears it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling.
+  /// Updates the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
+  /// table, or clears it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling. See
+  /// [loadCurrentProjectSnackPriceCents]'s own doc comment for why this keeps the column's name.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveCurrentProjectSnackPriceCents(int? cents) async {

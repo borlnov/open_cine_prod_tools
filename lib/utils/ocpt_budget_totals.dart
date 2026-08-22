@@ -67,7 +67,7 @@ int ocptBudgetProjectQuotedTotalCents(List<OcptBudgetPoste> postes) =>
 /// (`ocptBudgetExcludingTaxTotalOf`/`ocptBudgetTotalOf`), a journal entry
 /// (`lib/utils/ocpt_budget_journal.dart`), a commitment (`lib/utils/ocpt_budget_projection.dart`)
 /// or a catering-and-travel figure (`lib/utils/ocpt_budget_regie.dart`) — a day's own meals and
-/// snacks, or a traveller's own mileage reimbursement: this class is shared across every one of
+/// buffet, or a traveller's own mileage reimbursement: this class is shared across every one of
 /// them rather than reimplemented per table, since the coverage arithmetic and the honesty it
 /// argues for are exactly the same regardless of what is being priced.
 ///

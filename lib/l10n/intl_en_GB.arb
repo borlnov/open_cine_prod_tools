@@ -10327,17 +10327,17 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectSettingsBudgetSnackPriceLabel": "Snack price",
-  "@projectSettingsBudgetSnackPriceLabel": {
-    "description": "Label of the snack price field",
-    "context": "Displayed next to the snack price field in the budget defaults section",
+  "projectSettingsBudgetBuffetPriceLabel": "Craft services price",
+  "@projectSettingsBudgetBuffetPriceLabel": {
+    "description": "Label of the buffet (craft services) price field",
+    "context": "Displayed next to the buffet price field in the budget defaults section",
     "type": "text",
     "placeholders": {}
   },
   "projectSettingsBudgetCateringPriceHint": "Leave either price empty if it hasn't been recorded yet — that isn't the same as free, it just means nobody has typed a figure.",
   "@projectSettingsBudgetCateringPriceHint": {
-    "description": "Explanation under the meal and snack price fields, what an empty value means",
-    "context": "Displayed under the snack price field on the project settings page",
+    "description": "Explanation under the meal and buffet price fields, what an empty value means",
+    "context": "Displayed under the buffet price field on the project settings page",
     "type": "text",
     "placeholders": {}
   },
@@ -11071,7 +11071,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetDashboardFeedCateringReadOut": "{mealCount} meals · {snackCount} snacks",
+  "budgetDashboardFeedCateringReadOut": "{mealCount} meals · {buffetCount} at craft services",
   "@budgetDashboardFeedCateringReadOut": {
     "description": "One-line reading of the feed card's own catering row",
     "context": "Displayed in the budget mode's dashboard, in its own What feeds this budget card",
@@ -11080,7 +11080,7 @@
       "mealCount": {
         "type": "int"
       },
-      "snackCount": {
+      "buffetCount": {
         "type": "int"
       }
     }
@@ -12439,37 +12439,37 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieCateringSectionTitle": "Meals and snacks",
+  "budgetRegieCateringSectionTitle": "Meals and craft services",
   "@budgetRegieCateringSectionTitle": {
     "description": "Title of the catering-and-travel view's own left column",
     "context": "Displayed above OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieCateringPriceCaption": "Priced at {meal} per meal and {snack} per snack.",
+  "budgetRegieCateringPriceCaption": "Priced at {meal} per meal and {buffet} per head at craft services.",
   "@budgetRegieCateringPriceCaption": {
-    "description": "Caption naming the project's own meal and snack unit prices",
+    "description": "Caption naming the project's own meal and buffet unit prices",
     "context": "Displayed above OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {
       "meal": {
         "type": "String"
       },
-      "snack": {
+      "buffet": {
         "type": "String"
       }
     }
   },
   "budgetRegiePricesEditAction": "Edit prices",
   "@budgetRegiePricesEditAction": {
-    "description": "Action opening the project settings, where the meal and snack prices are typed",
+    "description": "Action opening the project settings, where the meal and buffet prices are typed",
     "context": "Displayed beside OcptBudgetRegie's own price caption, on both its columns",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieCateringScheduleHint": "One meal and one snack per person, per shooting day — the head counts come from the schedule, and changing a convocation there changes these figures too.",
+  "budgetRegieCateringScheduleHint": "A meal is counted once per meal block in the day's own timetable, for the people convoked to its own slot — a lunch and a dinner block feed twice, and a day whose timetable holds no meal block shows a dash rather than a false zero. Craft services is still counted once per head, per shooting day.",
   "@budgetRegieCateringScheduleHint": {
-    "description": "Caption stating the one meal/one snack per head per day rule and where the head counts come from",
+    "description": "Caption stating the meal-block reading and the one-buffet-per-head-per-day rule",
     "context": "Displayed above OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
@@ -12523,9 +12523,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnSnacks": "Snacks",
-  "@budgetRegieColumnSnacks": {
-    "description": "Header of the catering table's own Snacks column",
+  "budgetRegieColumnBuffet": "Craft services",
+  "@budgetRegieColumnBuffet": {
+    "description": "Header of the catering table's own craft-services (buffet) column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
@@ -12539,7 +12539,7 @@
   },
   "budgetRegieCateringCoverageReadOut": "{amount} · over {coveredCount} of the {itemCount} priced items",
   "@budgetRegieCateringCoverageReadOut": {
-    "description": "The catering table's total row own coverage read-out, while a meal or a snack price is not recorded",
+    "description": "The catering table's total row own coverage read-out, while a meal or a buffet price is not recorded",
     "context": "Displayed in place of the plain total once both prices are recorded, this disappears",
     "type": "text",
     "placeholders": {

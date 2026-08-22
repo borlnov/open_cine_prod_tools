@@ -38,9 +38,9 @@ enum OcptBudgetCentreView {
   /// `budget_entries.resourceId`, rather than a stored figure of its own.
   financing,
 
-  /// The catering-and-travel pass: what each shooting day costs in meals and snacks, and what each
-  /// traveller's own commute costs in mileage — read off the schedule, the project's own meal and
-  /// snack prices, and each person's own distance and rate, never typed here at all
+  /// The catering-and-travel pass: what each shooting day costs in meals and at the buffet, and
+  /// what each traveller's own commute costs in mileage — read off the schedule, the project's own
+  /// meal and buffet prices, and each person's own distance and rate, never typed here at all
   /// (`lib/utils/ocpt_budget_regie.dart`).
   regie,
 

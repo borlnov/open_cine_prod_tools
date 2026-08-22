@@ -9,8 +9,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 
 /// The project settings page's "Budget defaults" section card: the project's default VAT rate, the
-/// price of one meal and the price of one snack (`project_info.defaultVatRateBasisPoints`,
-/// `mealPriceCents`, `snackPriceCents`) — the currency card's own doc comment announced this
+/// price of one meal and the price of the buffet (`project_info.defaultVatRateBasisPoints`,
+/// `mealPriceCents`, `snackPriceCents` — the latter column keeps the schema's own name, though what
+/// it prices is the buffet, not a snack, in the trade's own words) — the currency card's own doc
+/// comment announced this
 /// neighbour, and here it is.
 ///
 /// All three are optional and read the same way `minimumRestMinutes` already does: null means
@@ -34,11 +36,11 @@ class OcptProjectSettingsBudgetSection extends StatelessWidget {
   /// Called with the newly committed meal price, in cents, or null to clear it.
   final ValueChanged<int?> onMealPriceCentsChanged;
 
-  /// The project's current price of one snack, in cents, or null while nobody has recorded one.
-  final int? snackPriceCents;
+  /// The project's current price of the buffet, in cents, or null while nobody has recorded one.
+  final int? buffetPriceCents;
 
-  /// Called with the newly committed snack price, in cents, or null to clear it.
-  final ValueChanged<int?> onSnackPriceCentsChanged;
+  /// Called with the newly committed buffet price, in cents, or null to clear it.
+  final ValueChanged<int?> onBuffetPriceCentsChanged;
 
   /// The current project's currency, an ISO 4217 code, shown as both money fields' suffix.
   final String currencyCode;
@@ -49,8 +51,8 @@ class OcptProjectSettingsBudgetSection extends StatelessWidget {
     required this.onDefaultVatRateBasisPointsChanged,
     required this.mealPriceCents,
     required this.onMealPriceCentsChanged,
-    required this.snackPriceCents,
-    required this.onSnackPriceCentsChanged,
+    required this.buffetPriceCents,
+    required this.onBuffetPriceCentsChanged,
     required this.currencyCode,
     super.key,
   });
@@ -102,11 +104,11 @@ class OcptProjectSettingsBudgetSection extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: Text(tr.projectSettingsBudgetSnackPriceLabel)),
+                Expanded(child: Text(tr.projectSettingsBudgetBuffetPriceLabel)),
                 _OcptProjectSettingsBudgetMoneyField(
-                  cents: snackPriceCents,
+                  cents: buffetPriceCents,
                   suffixText: currencySymbol,
-                  onChanged: onSnackPriceCentsChanged,
+                  onChanged: onBuffetPriceCentsChanged,
                 ),
               ],
             ),
@@ -245,7 +247,7 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
   }
 }
 
-/// One of the card's two money fields (meal price, snack price): typed and read back through
+/// One of the card's two money fields (meal price, buffet price): typed and read back through
 /// [ocptCostTextOf]/[ocptCostCentsOf], committed on submit or focus loss —
 /// `_OcptProjectSettingsMinimumRestField`'s own idiom, with an **empty** submission a legal clearing
 /// gesture exactly as that field's own is, since neither price has a `0` reading to be confused

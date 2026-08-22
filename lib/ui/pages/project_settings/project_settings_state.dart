@@ -31,9 +31,10 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// while nobody has recorded one.
   final int? mealPriceCents;
 
-  /// The current project's price of one snack, in cents (`project_info.snackPriceCents`), or null
-  /// while nobody has recorded one.
-  final int? snackPriceCents;
+  /// The current project's price of the buffet, in cents (`project_info.snackPriceCents` — the
+  /// column keeps the schema's own name, though what it prices is the buffet, not a snack, in the
+  /// trade's own words), or null while nobody has recorded one.
+  final int? buffetPriceCents;
 
   /// The current project's screenplay language (`project_info.screenplayLanguage`), or null while
   /// nobody has recorded one.
@@ -75,7 +76,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.minimumRestMinutes,
     required this.defaultVatRateBasisPoints,
     required this.mealPriceCents,
-    required this.snackPriceCents,
+    required this.buffetPriceCents,
     required this.screenplayLanguage,
     required this.episodes,
     required this.mileageRates,
@@ -93,7 +94,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       minimumRestMinutes = null,
       defaultVatRateBasisPoints = null,
       mealPriceCents = null,
-      snackPriceCents = null,
+      buffetPriceCents = null,
       screenplayLanguage = null,
       episodes = const [],
       mileageRates = const [],
@@ -107,7 +108,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// parameter, which could never tell "leave it alone" apart from "clear it".
   /// [screenplayLanguage] carries exactly the same problem — picking "None" in the dropdown is as
   /// real a gesture as clearing the rest field is — so it gets the same treatment,
-  /// [clearScreenplayLanguage]. [defaultVatRateBasisPoints], [mealPriceCents] and [snackPriceCents]
+  /// [clearScreenplayLanguage]. [defaultVatRateBasisPoints], [mealPriceCents] and [buffetPriceCents]
   /// all get the identical treatment for the identical reason, one clearing flag each.
   @override
   OcptProjectSettingsState copyWith({
@@ -120,8 +121,8 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     bool clearDefaultVatRateBasisPoints = false,
     int? mealPriceCents,
     bool clearMealPriceCents = false,
-    int? snackPriceCents,
-    bool clearSnackPriceCents = false,
+    int? buffetPriceCents,
+    bool clearBuffetPriceCents = false,
     OcptScreenplayLanguage? screenplayLanguage,
     bool clearScreenplayLanguage = false,
     List<OcptEpisode>? episodes,
@@ -139,7 +140,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
         ? null
         : (defaultVatRateBasisPoints ?? this.defaultVatRateBasisPoints),
     mealPriceCents: clearMealPriceCents ? null : (mealPriceCents ?? this.mealPriceCents),
-    snackPriceCents: clearSnackPriceCents ? null : (snackPriceCents ?? this.snackPriceCents),
+    buffetPriceCents: clearBuffetPriceCents ? null : (buffetPriceCents ?? this.buffetPriceCents),
     screenplayLanguage: clearScreenplayLanguage
         ? null
         : (screenplayLanguage ?? this.screenplayLanguage),
@@ -159,7 +160,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     minimumRestMinutes,
     defaultVatRateBasisPoints,
     mealPriceCents,
-    snackPriceCents,
+    buffetPriceCents,
     screenplayLanguage,
     episodes,
     mileageRates,

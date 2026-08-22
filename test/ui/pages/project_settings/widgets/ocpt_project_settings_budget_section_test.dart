@@ -28,17 +28,17 @@ void main() {
   Finder mealPriceField() => find.byType(TextField).at(1);
 
   /// Pumps [OcptProjectSettingsBudgetSection] with [defaultVatRateBasisPoints], [mealPriceCents]
-  /// and [snackPriceCents] as its current values, recording every commit each callback reports into
-  /// the list it hands back — one entry per call, in call order.
+  /// and [buffetPriceCents] as its current values, recording every commit each callback reports
+  /// into the list it hands back — one entry per call, in call order.
   Future<List<int?>> pumpSection(
     WidgetTester tester, {
     int? defaultVatRateBasisPoints,
     int? mealPriceCents,
-    int? snackPriceCents,
+    int? buffetPriceCents,
     required ValueChanged<int?> onVatRateChanged,
   }) async {
     final mealCalls = <int?>[];
-    final snackCalls = <int?>[];
+    final buffetCalls = <int?>[];
 
     await tester.pumpWidget(
       _wrapWithLocalization(
@@ -47,8 +47,8 @@ void main() {
           onDefaultVatRateBasisPointsChanged: onVatRateChanged,
           mealPriceCents: mealPriceCents,
           onMealPriceCentsChanged: mealCalls.add,
-          snackPriceCents: snackPriceCents,
-          onSnackPriceCentsChanged: snackCalls.add,
+          buffetPriceCents: buffetPriceCents,
+          onBuffetPriceCentsChanged: buffetCalls.add,
           currencyCode: "EUR",
         ),
       ),

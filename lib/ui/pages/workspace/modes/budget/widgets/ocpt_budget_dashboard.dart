@@ -30,7 +30,7 @@ const double _ocptDashboardBarHeight = 6;
 /// balance bar ([_OcptDashboardBalanceBar]) is built on [ocptBudgetNeedsResourcesBalanceOf], over
 /// [resources]; the feed card ([_OcptDashboardFeedCard]) reads the breakdown's own link
 /// ([breakdownPricedElementCount]/[breakdownUnpricedElementCount]), the schedule's own day count
-/// ([shootingDayCount]) and the catering pass's own head counts ([mealCount]/[snackCount]) — see
+/// ([shootingDayCount]) and the catering pass's own head counts ([mealCount]/[buffetCount]) — see
 /// each widget's own doc comment for how it reads what it is handed. Purely computed, like
 /// `OcptBreakdownRecapTable`: a poste's click only selects it, which writes nothing, so this needs
 /// no `isReadOnly` flag at all — every one of the feed card's own three rows only ever *reports* a
@@ -93,9 +93,9 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// How many meals the schedule's own presences produce — the feed card's own catering row.
   final int mealCount;
 
-  /// How many snacks the schedule's own presences produce — the feed card's own catering row,
-  /// beside [mealCount].
-  final int snackCount;
+  /// How many heads the buffet serves, from the schedule's own presences — the feed card's own
+  /// catering row, beside [mealCount].
+  final int buffetCount;
 
   /// Called with a poste's id when its own row is clicked, opening the `Inspector` tab on it.
   final ValueChanged<String> onPosteSelected;
@@ -134,7 +134,7 @@ class OcptBudgetDashboard extends StatelessWidget {
     required this.breakdownUnpricedElementCount,
     required this.shootingDayCount,
     required this.mealCount,
-    required this.snackCount,
+    required this.buffetCount,
     required this.onPosteSelected,
     required this.onPosteAlertActionRequested,
     required this.onCashAlertActionRequested,
@@ -285,7 +285,7 @@ class OcptBudgetDashboard extends StatelessWidget {
           breakdownUnpricedElementCount: breakdownUnpricedElementCount,
           shootingDayCount: shootingDayCount,
           mealCount: mealCount,
-          snackCount: snackCount,
+          buffetCount: buffetCount,
           onBreakdownFeedRequested: onBreakdownFeedRequested,
           onScheduleFeedRequested: onScheduleFeedRequested,
           onCateringFeedRequested: onCateringFeedRequested,
@@ -676,8 +676,8 @@ class _OcptDashboardFeedCard extends StatelessWidget {
   /// How many meals the schedule's own presences produce.
   final int mealCount;
 
-  /// How many snacks the schedule's own presences produce.
-  final int snackCount;
+  /// How many heads the buffet serves, from the schedule's own presences.
+  final int buffetCount;
 
   /// Called when the breakdown row is clicked.
   final VoidCallback onBreakdownFeedRequested;
@@ -694,7 +694,7 @@ class _OcptDashboardFeedCard extends StatelessWidget {
     required this.breakdownUnpricedElementCount,
     required this.shootingDayCount,
     required this.mealCount,
-    required this.snackCount,
+    required this.buffetCount,
     required this.onBreakdownFeedRequested,
     required this.onScheduleFeedRequested,
     required this.onCateringFeedRequested,
@@ -733,7 +733,7 @@ class _OcptDashboardFeedCard extends StatelessWidget {
             ),
             _OcptDashboardFeedRow(
               title: tr.budgetDashboardFeedCateringTitle,
-              readOut: tr.budgetDashboardFeedCateringReadOut(mealCount, snackCount),
+              readOut: tr.budgetDashboardFeedCateringReadOut(mealCount, buffetCount),
               onTap: onCateringFeedRequested,
             ),
           ],

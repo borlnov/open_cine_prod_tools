@@ -90,14 +90,14 @@ class OcptProjectSettingsMealPriceCentsChangedEvent extends OcptProjectSettingsE
   List<Object?> get props => [...super.props, cents];
 }
 
-/// Reports that the user committed a new snack price, in cents, or cleared it —
+/// Reports that the user committed a new buffet price, in cents, or cleared it —
 /// [OcptProjectSettingsMealPriceCentsChangedEvent]'s sibling.
-class OcptProjectSettingsSnackPriceCentsChangedEvent extends OcptProjectSettingsEvent {
+class OcptProjectSettingsBuffetPriceCentsChangedEvent extends OcptProjectSettingsEvent {
   /// The newly committed price, in cents, or null to clear it.
   final int? cents;
 
   /// Class constructor
-  const OcptProjectSettingsSnackPriceCentsChangedEvent({required this.cents});
+  const OcptProjectSettingsBuffetPriceCentsChangedEvent({required this.cents});
 
   /// Object properties
   @override

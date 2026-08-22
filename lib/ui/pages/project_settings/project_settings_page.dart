@@ -132,9 +132,9 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
                             _onDefaultVatRateBasisPointsChanged(context, basisPoints),
                         mealPriceCents: state.mealPriceCents,
                         onMealPriceCentsChanged: (cents) => _onMealPriceCentsChanged(context, cents),
-                        snackPriceCents: state.snackPriceCents,
-                        onSnackPriceCentsChanged: (cents) =>
-                            _onSnackPriceCentsChanged(context, cents),
+                        buffetPriceCents: state.buffetPriceCents,
+                        onBuffetPriceCentsChanged: (cents) =>
+                            _onBuffetPriceCentsChanged(context, cents),
                         currencyCode: state.currencyCode,
                       ),
                       const SizedBox(height: 16),
@@ -308,10 +308,10 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
-  /// Dispatches the event that writes the newly committed snack price to the project.
-  void _onSnackPriceCentsChanged(BuildContext context, int? cents) {
+  /// Dispatches the event that writes the newly committed buffet price to the project.
+  void _onBuffetPriceCentsChanged(BuildContext context, int? cents) {
     context.read<OcptProjectSettingsBloc>().add(
-      OcptProjectSettingsSnackPriceCentsChangedEvent(cents: cents),
+      OcptProjectSettingsBuffetPriceCentsChangedEvent(cents: cents),
     );
   }
 
