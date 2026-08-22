@@ -7,25 +7,36 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The height of a poste's own share bar, in logical pixels.
 const double _ocptDashboardBarHeight = 6;
 
-/// The budget mode's own dashboard: its own two alerts above the KPI row, then the quote read
-/// poste by poste, each with its own share of the total.
+/// The budget mode's own dashboard, drawn in the mockup's own order: the two alerts, the KPI row,
+/// the needs/resources balance, the quote read poste by poste, then the "what feeds this budget"
+/// card — the mockup's full reading, now that the financing plan and the breakdown both hold real
+/// data for it to draw.
 ///
-/// **Nothing here may claim a figure the data cannot support** (`docs/plans/budget-mode.md` §5):
-/// no needs/resources balance bar (M3), no "what feeds this budget" card (M3) — those arrive with
-/// the milestones that give them content, exactly as this view itself becomes the mockup's full
-/// dashboard once they do. Purely computed, like `OcptBreakdownRecapTable`: a poste's click only
-/// selects it, which writes nothing, so this needs no `isReadOnly` flag at all.
+/// **The balance bar and the feed card each read a figure this view could not support before.** The
+/// balance bar ([_OcptDashboardBalanceBar]) is built on [ocptBudgetNeedsResourcesBalanceOf], over
+/// [resources]; the feed card ([_OcptDashboardFeedCard]) reads the breakdown's own link
+/// ([breakdownPricedElementCount]/[breakdownUnpricedElementCount]), the schedule's own day count
+/// ([shootingDayCount]) and the catering pass's own head counts ([mealCount]/[snackCount]) — see
+/// each widget's own doc comment for how it reads what it is handed. Purely computed, like
+/// `OcptBreakdownRecapTable`: a poste's click only selects it, which writes nothing, so this needs
+/// no `isReadOnly` flag at all — every one of the feed card's own three rows only ever *reports* a
+/// click upward, through the callbacks [onBreakdownFeedRequested]/[onScheduleFeedRequested]/
+/// [onCateringFeedRequested], `OcptBudgetMode` dispatching each exactly as it already does for the
+/// alert cards' own actions.
 ///
 /// [alerts] — [ocptComputeBudgetAlerts]'s own answer, carried by the state rather than recomputed
 /// here — draws **no empty section at all** while it is empty: a project raising neither alert
@@ -58,6 +69,28 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// by the state — see the class doc comment.
   final List<OcptBudgetAlert> alerts;
 
+  /// Every live financing resource — the KPI row's own `Total resources` tile reads it through
+  /// [ocptBudgetResourcesTotalCents]/[ocptBudgetResourcesTotalByGroupKind], and the balance bar
+  /// reads it through [ocptBudgetNeedsResourcesBalanceOf].
+  final List<OcptBudgetResource> resources;
+
+  /// How many live elements a live quote line already prices — the feed card's own breakdown row.
+  final int breakdownPricedElementCount;
+
+  /// How many live elements no live line prices yet — the feed card's own breakdown row, next to
+  /// [breakdownPricedElementCount].
+  final int breakdownUnpricedElementCount;
+
+  /// How many shooting days the schedule holds — the feed card's own schedule row.
+  final int shootingDayCount;
+
+  /// How many meals the schedule's own presences produce — the feed card's own catering row.
+  final int mealCount;
+
+  /// How many snacks the schedule's own presences produce — the feed card's own catering row,
+  /// beside [mealCount].
+  final int snackCount;
+
   /// Called with a poste's id when its own row is clicked, opening the `Inspector` tab on it.
   final ValueChanged<String> onPosteSelected;
 
@@ -68,6 +101,15 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// Called when the [OcptBudgetCashProjectionNegativeAlert]'s own action is clicked, switching to
   /// the committed view.
   final VoidCallback onCashAlertActionRequested;
+
+  /// Called when the feed card's own breakdown row is clicked — see the class doc comment.
+  final VoidCallback onBreakdownFeedRequested;
+
+  /// Called when the feed card's own schedule row is clicked — see the class doc comment.
+  final VoidCallback onScheduleFeedRequested;
+
+  /// Called when the feed card's own catering row is clicked — see the class doc comment.
+  final VoidCallback onCateringFeedRequested;
 
   /// Class constructor
   const OcptBudgetDashboard({
@@ -80,9 +122,18 @@ class OcptBudgetDashboard extends StatelessWidget {
     required this.paidByPosteId,
     required this.committedByPosteId,
     required this.alerts,
+    required this.resources,
+    required this.breakdownPricedElementCount,
+    required this.breakdownUnpricedElementCount,
+    required this.shootingDayCount,
+    required this.mealCount,
+    required this.snackCount,
     required this.onPosteSelected,
     required this.onPosteAlertActionRequested,
     required this.onCashAlertActionRequested,
+    required this.onBreakdownFeedRequested,
+    required this.onScheduleFeedRequested,
+    required this.onCateringFeedRequested,
   });
 
   @override
@@ -106,6 +157,21 @@ class OcptBudgetDashboard extends StatelessWidget {
     final lineCount = allLines.length;
     final paidTotal = _ocptFoldCoveredTotals(paidByPosteId.values);
     final committedTotal = _ocptFoldCoveredTotals(committedByPosteId.values);
+
+    // Read tax-inclusive, always — see the balance bar's own doc comment
+    // ([_OcptDashboardBalanceBar]) for why this never follows [taxBasis].
+    final needsTotal = ocptBudgetTotalOf(
+      allLines,
+      basis: OcptBudgetTaxBasis.includingTax,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final resourcesTotalCents = ocptBudgetResourcesTotalCents(resources);
+    final resourcesInKindCents =
+        ocptBudgetResourcesTotalByGroupKind(resources)[OcptBudgetResourceGroupKind.inKind] ?? 0;
+    final balance = ocptBudgetNeedsResourcesBalanceOf(
+      needs: needsTotal,
+      resourcesCents: resourcesTotalCents,
+    );
 
     final posteAmounts = {
       for (final poste in postes)
@@ -178,9 +244,18 @@ class OcptBudgetDashboard extends StatelessWidget {
                 value: "${postes.length}",
               ),
               _OcptDashboardKpi(label: tr.budgetDashboardLineCountLabel, value: "$lineCount"),
+              _OcptDashboardKpi(
+                label: tr.budgetDashboardResourcesTotalLabel,
+                value: ocptBudgetAmountLabel(resourcesTotalCents, currencyCode),
+                caption: tr.budgetDashboardResourcesInKindCaption(
+                  ocptBudgetAmountLabel(resourcesInKindCents, currencyCode),
+                ),
+              ),
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        _OcptDashboardBalanceBar(balance: balance, currencyCode: currencyCode),
         const SizedBox(height: 16),
         Text(
           tr.budgetDashboardPostesSectionTitle,
@@ -197,6 +272,17 @@ class OcptBudgetDashboard extends StatelessWidget {
             currencyCode: currencyCode,
             onTap: () => onPosteSelected(poste.id),
           ),
+        const SizedBox(height: 16),
+        _OcptDashboardFeedCard(
+          breakdownPricedElementCount: breakdownPricedElementCount,
+          breakdownUnpricedElementCount: breakdownUnpricedElementCount,
+          shootingDayCount: shootingDayCount,
+          mealCount: mealCount,
+          snackCount: snackCount,
+          onBreakdownFeedRequested: onBreakdownFeedRequested,
+          onScheduleFeedRequested: onScheduleFeedRequested,
+          onCateringFeedRequested: onCateringFeedRequested,
+        ),
       ],
     );
   }
@@ -460,6 +546,250 @@ class _OcptBudgetDashboardAlertCard extends StatelessWidget {
             child: Text(actionLabel),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The needs/resources balance bar: the quote's own total facing the financing plan's own total,
+/// with a share bar between them and, underneath, either that the two balance or by how much the
+/// plan still falls short.
+///
+/// **[balance]'s own `needs` is read tax-inclusive, always — deliberately never through the
+/// header's own basis toggle.** A resource is money coming in, and
+/// `docs/architecture/budget.md`'s own "Money that has moved is read tax-inclusive, always" already
+/// settles there is only one honest basis to read money that will actually move in: comparing an
+/// excluding-tax quote against a tax-inclusive resource would compare two different figures while
+/// looking like it compared one. `OcptBudgetDashboard.build` is what resolves the tax-inclusive
+/// reading, through `ocptBudgetTotalOf(..., basis: OcptBudgetTaxBasis.includingTax, ...)` rather
+/// than [OcptBudgetDashboard.taxBasis] — resolved once there, so this widget itself never touches
+/// the header's own toggle at all.
+///
+/// Whenever `balance.needs` is not [OcptBudgetCoveredTotal.isComplete], the needs figure prints the
+/// very same idiom `OcptBudgetCostTracking`'s own total row already prints in place of a plain
+/// amount — `tr.budgetDashboardBalanceCoverageReadOut` mirrors `tr.budgetCostTrackingCoverageReadOut`
+/// exactly, minted under its own key for the same reason `OcptBudgetRegie`'s own two coverage
+/// read-outs are: this total counts quote *lines*, not postes, the noun the cost-tracking table's
+/// own string names.
+class _OcptDashboardBalanceBar extends StatelessWidget {
+  /// The balance this bar draws — `ocptBudgetNeedsResourcesBalanceOf`'s own answer.
+  final OcptBudgetNeedsResourcesBalance balance;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Class constructor
+  const _OcptDashboardBalanceBar({required this.balance, required this.currencyCode});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final needs = balance.needs;
+    final needsAmount = ocptBudgetAmountLabel(needs.amountCents, currencyCode);
+    final needsText = needs.isComplete
+        ? needsAmount
+        : tr.budgetDashboardBalanceCoverageReadOut(needsAmount, needs.coveredLineCount, needs.lineCount);
+    final resourcesText = ocptBudgetAmountLabel(balance.resourcesCents, currencyCode);
+    final shareOfNeeds = needs.amountCents <= 0
+        ? (balance.resourcesCents > 0 ? 1.0 : 0.0)
+        : balance.resourcesCents / needs.amountCents;
+    final barColor = balance.isBalanced ? theme.colorScheme.primary : ocptWarningColor(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    tr.budgetDashboardBalanceNeedsLabel.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  Text(needsText, style: theme.textTheme.titleMedium),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  tr.budgetDashboardBalanceResourcesLabel.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                Text(resourcesText, style: theme.textTheme.titleMedium),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(_ocptDashboardBarHeight / 2),
+          child: LinearProgressIndicator(
+            value: shareOfNeeds.clamp(0.0, 1.0),
+            minHeight: _ocptDashboardBarHeight,
+            backgroundColor: theme.colorScheme.surfaceContainerHigh,
+            valueColor: AlwaysStoppedAnimation(barColor),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          balance.isBalanced
+              ? tr.budgetDashboardBalanceBalancedMessage
+              : tr.budgetDashboardBalanceShortfallMessage(
+                  ocptBudgetAmountLabel(-balance.differenceCents, currencyCode),
+                ),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: balance.isBalanced ? theme.colorScheme.onSurfaceVariant : barColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The "what feeds this budget" card: three rows, each a title, a one-line reading and a click that
+/// only ever *reports* upward — see `OcptBudgetDashboard`'s own class doc comment for why none of
+/// the three navigates on its own.
+///
+/// **The unpriced-elements count read by [_OcptDashboardFeedRow]'s own breakdown row is deliberately
+/// not a third alert.** `ocptComputeBudgetAlerts`'s own two rules each state a standing fact that
+/// something is *wrong*; a dozen elements still waiting to be priced during preparation is the
+/// normal state of a production still building its breakdown, true for months on end — the mockup
+/// places this reading in this card for that reason, and so does this widget.
+class _OcptDashboardFeedCard extends StatelessWidget {
+  /// How many live elements a live quote line already prices.
+  final int breakdownPricedElementCount;
+
+  /// How many live elements no live line prices yet.
+  final int breakdownUnpricedElementCount;
+
+  /// How many shooting days the schedule holds.
+  final int shootingDayCount;
+
+  /// How many meals the schedule's own presences produce.
+  final int mealCount;
+
+  /// How many snacks the schedule's own presences produce.
+  final int snackCount;
+
+  /// Called when the breakdown row is clicked.
+  final VoidCallback onBreakdownFeedRequested;
+
+  /// Called when the schedule row is clicked.
+  final VoidCallback onScheduleFeedRequested;
+
+  /// Called when the catering row is clicked.
+  final VoidCallback onCateringFeedRequested;
+
+  /// Class constructor
+  const _OcptDashboardFeedCard({
+    required this.breakdownPricedElementCount,
+    required this.breakdownUnpricedElementCount,
+    required this.shootingDayCount,
+    required this.mealCount,
+    required this.snackCount,
+    required this.onBreakdownFeedRequested,
+    required this.onScheduleFeedRequested,
+    required this.onCateringFeedRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final elementCount = breakdownPricedElementCount + breakdownUnpricedElementCount;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              tr.budgetDashboardFeedSectionTitle,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _OcptDashboardFeedRow(
+              title: tr.budgetDashboardFeedBreakdownTitle,
+              readOut: tr.budgetDashboardFeedBreakdownReadOut(breakdownPricedElementCount, elementCount),
+              onTap: onBreakdownFeedRequested,
+            ),
+            _OcptDashboardFeedRow(
+              title: tr.budgetDashboardFeedScheduleTitle,
+              readOut: tr.budgetDashboardFeedScheduleReadOut(shootingDayCount),
+              onTap: onScheduleFeedRequested,
+            ),
+            _OcptDashboardFeedRow(
+              title: tr.budgetDashboardFeedCateringTitle,
+              readOut: tr.budgetDashboardFeedCateringReadOut(mealCount, snackCount),
+              onTap: onCateringFeedRequested,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One row of [_OcptDashboardFeedCard]: a title, a one-line reading, and a `›` chevron hinting the
+/// whole row is a click through to wherever [readOut] was typed.
+class _OcptDashboardFeedRow extends StatelessWidget {
+  /// The row's own title.
+  final String title;
+
+  /// The row's own one-line reading.
+  final String readOut;
+
+  /// Called when this row is clicked.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _OcptDashboardFeedRow({required this.title, required this.readOut, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 96,
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                readOut,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }

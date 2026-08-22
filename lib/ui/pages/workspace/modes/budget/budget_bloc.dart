@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -25,6 +26,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -52,7 +54,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// live resource and mileage rate), the catering-and-travel pass's own reads ([_scheduleService]'s
 /// schedule, [_roleIndexService]'s roles, [_peopleService]'s people and [_locationsService]'s
 /// locations — the last read only to name the decor a day shoots at, never carried on state itself),
-/// and the project's currency, default VAT rate and meal/snack prices. It mixes in
+/// the breakdown's own elements catalogue ([_elementsService], read the same way
+/// `OcptScheduleBloc` already does, carried on state raw beside the roles and the people), and the
+/// project's currency, default VAT rate and meal/snack prices. It mixes in
 /// [MixinOcptProjectVersionsBloc], answering its two hooks through [flushPendingProjectWrites] and
 /// [reloadFromProjectDatabase].
 ///
@@ -133,6 +137,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// reading that needs them: naming the decor a shooting day plays at.
   final OcptLocationsService _locationsService;
 
+  /// The service [_loadBudgetSnapshot] reads the breakdown's own elements catalogue off — what the
+  /// dashboard's own breakdown reading counts against, and what `+ From breakdown` picks a fresh
+  /// quote line from. Mirrors `OcptScheduleBloc._elementsService`.
+  final OcptElementsService _elementsService;
+
   /// The ten CNC postes, already localized — see the class doc comment for why this is a
   /// constructor argument captured once rather than watched.
   final List<OcptBudgetPosteSeed> _seed;
@@ -161,6 +170,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptRoleIndexService? roleIndexService,
     OcptPeopleService? peopleService,
     OcptLocationsService? locationsService,
+    OcptElementsService? elementsService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _seed = seed,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
@@ -188,6 +198,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
+       _elementsService =
+           elementsService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
        _fieldEditDebounce = fieldEditDebounce,
        super(const OcptBudgetState.init()) {
     add(const OcptBudgetLoadRequestedEvent());
@@ -212,6 +225,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetPosteDeletionConfirmedEvent>(_onPosteDeletionConfirmed);
     on<OcptBudgetLineExpandedEvent>(_onLineExpanded);
     on<OcptBudgetLineCreatedEvent>(_onLineCreated);
+    on<OcptBudgetLineCreatedFromElementEvent>(_onLineCreatedFromElement);
     on<OcptBudgetLineDeletionConfirmedEvent>(_onLineDeletionConfirmed);
     on<OcptBudgetLineTaxInclusiveChangedEvent>(_onLineTaxInclusiveChanged);
     on<OcptBudgetLineVatRateInheritedRequestedEvent>(_onLineVatRateInheritedRequested);
@@ -298,6 +312,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           pendingFieldEdits: const {},
           roles: const [],
           people: const [],
+          elements: const [],
           regieDecorNameByDayId: const {},
         ),
       );
@@ -321,6 +336,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         pendingFieldEdits: const {},
         roles: loaded.roles,
         people: loaded.people,
+        elements: loaded.elements,
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
@@ -330,9 +346,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
   /// commitments, the financing plan's own resources and mileage rates, the catering-and-travel
-  /// pass's own reads, the currency, the default VAT rate and the meal/snack prices, joined into one
-  /// [OcptBudgetSnapshot] alongside the raw roles/people and the decor name map the view reads
-  /// directly.
+  /// pass's own reads, the breakdown's own elements catalogue, the currency, the default VAT rate
+  /// and the meal/snack prices, joined into one [OcptBudgetSnapshot] alongside the raw
+  /// roles/people/elements and the decor name map the view reads directly.
   ///
   /// **Reads `OcptScheduleService.loadSchedule`'s own `OcptScheduleSnapshot` directly, never an
   /// `OcptSchedulePlanSnapshot`.** A plan snapshot additionally joins every episode's own shot list
@@ -340,11 +356,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// the budget mode load the whole découpage to count meals; the schedule snapshot alone already
   /// carries the days and the slots (each with its own live crew, cast and guests already nested)
   /// that `OcptBudgetSnapshot.build` reads the catering-and-travel pass from.
+  ///
+  /// `elements` is carried raw, beside `roles`/`people`, rather than folded into
+  /// [OcptBudgetSnapshot]: `OcptBudgetPosteInspector`'s own `+ From breakdown` picker needs the
+  /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   Future<
     ({
       OcptBudgetSnapshot snapshot,
       List<OcptRole> roles,
       List<OcptPerson> people,
+      List<OcptElement> elements,
       Map<String, String> regieDecorNameByDayId,
     })
   >
@@ -362,6 +383,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final scheduleSnapshot = await _scheduleService.loadSchedule(database: database);
     final roles = await _roleIndexService.loadRoles(database: database);
     final people = await _peopleService.loadPeople(database: database);
+    final elements = await _elementsService.loadElements(database: database);
     final locations = await _locationsService.loadLocations(database: database);
     final mileageRates = await _budgetFinancingService.loadMileageRates(database: database);
     final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
@@ -388,6 +410,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       snapshot: snapshot,
       roles: roles,
       people: people,
+      elements: elements,
       regieDecorNameByDayId: _regieDecorNameByDayId(
         days: scheduleSnapshot.days,
         slotsByDayId: scheduleSnapshot.slotsByDayId,
@@ -649,6 +672,52 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       database: project.database,
       posteId: event.posteId,
       label: "",
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+    if (lineId != null) {
+      emitter(state.copyWith(expandedLineId: lineId));
+    }
+  }
+
+  /// Creates a new quote line inside poste `event.posteId` **from** breakdown element
+  /// `event.elementId`, and expands it — dispatched by the poste inspector's own `+ From breakdown`
+  /// action once its picker has returned an element. An element id naming no live element of
+  /// [OcptBudgetState.elements] is ignored: the picker only ever offers a live one, so this should
+  /// not happen outside a stale dialog result.
+  ///
+  /// Mints the line with `OcptElement.name` as its own label and `elementId` naming the element —
+  /// `element.cost` seeds `unitAmountCents` when it is known, and is passed on as
+  /// [Value.absent] rather than [Value] of zero when it is not: see
+  /// `OcptBudgetQuoteService.createLine`'s own doc comment for why a null cost is not a zero unit
+  /// price.
+  Future<void> _onLineCreatedFromElement(
+    OcptBudgetLineCreatedFromElementEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    OcptElement? element;
+    for (final candidate in state.elements) {
+      if (candidate.id == event.elementId) {
+        element = candidate;
+        break;
+      }
+    }
+    if (element == null) {
+      return;
+    }
+
+    final cost = element.cost;
+    final lineId = await _budgetQuoteService.createLine(
+      database: project.database,
+      posteId: event.posteId,
+      label: element.name,
+      elementId: Value(element.id),
+      unitAmountCents: cost == null ? const Value.absent() : Value(cost),
     );
 
     await _applyBudgetSnapshot(emitter, project);
@@ -1174,6 +1243,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         currencyCode: snapshot.currencyCode,
         roles: loaded.roles,
         people: loaded.people,
+        elements: loaded.elements,
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         clearSelectedPosteId: !posteStillExists,
         clearExpandedLineId: !lineStillExists,

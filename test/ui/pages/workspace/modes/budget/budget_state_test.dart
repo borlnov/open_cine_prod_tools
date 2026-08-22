@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -22,25 +23,59 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
-/// Builds a minimal quote line, everything but [id]/[posteId]/[label] neutral.
-OcptBudgetLine _buildLine({required String id, required String posteId, String label = ""}) =>
-    OcptBudgetLine(
-      id: id,
-      posteId: posteId,
-      label: label,
-      quantityMilli: 1000,
-      unit: "u",
-      unitPrice: const OcptMoney(amountCents: 0, isTaxInclusive: true, vatRateBasisPoints: null),
-      elementId: null,
-      notes: "",
-      sortKey: "a0",
-    );
+/// Builds a minimal quote line, everything but [id]/[posteId]/[label]/[elementId] neutral.
+OcptBudgetLine _buildLine({
+  required String id,
+  required String posteId,
+  String label = "",
+  String? elementId,
+}) => OcptBudgetLine(
+  id: id,
+  posteId: posteId,
+  label: label,
+  quantityMilli: 1000,
+  unit: "u",
+  unitPrice: const OcptMoney(amountCents: 0, isTaxInclusive: true, vatRateBasisPoints: null),
+  elementId: elementId,
+  notes: "",
+  sortKey: "a0",
+);
+
+/// Builds a minimal breakdown element, everything but [id]/[name]/[cost] neutral — mirrors
+/// `ocpt_elements_list_test.dart`'s own `_element`.
+OcptElement _buildElement({required String id, String name = "", int? cost}) => OcptElement(
+  id: id,
+  category: OcptElementCategory.prop,
+  subCategory: "",
+  name: name,
+  code: "",
+  quantity: "",
+  sourceKind: OcptElementSourceKind.owned,
+  status: OcptElementStatus.toFind,
+  ownerPersonId: null,
+  ownerNotes: "",
+  broughtByPersonId: null,
+  storageNotes: "",
+  isSecured: false,
+  isReadyForShoot: false,
+  isReturned: false,
+  cost: cost,
+  purposeNotes: "",
+  notes: "",
+  photoAssetId: null,
+  photo: null,
+  sceneLinks: const [],
+  roleLinks: const [],
+);
 
 /// Builds a minimal poste, everything but [id]/[lines] neutral.
 OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = const []}) =>
@@ -317,6 +352,57 @@ void main() {
 
       expect(state.posteCount, 2);
       expect(state.lineCount, 2);
+    });
+  });
+
+  group("OcptBudgetState.elementLinkCounts / unpricedElements", () {
+    test("a live element named by a live line's own elementId counts as priced", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [
+          _buildPoste(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-priced")],
+          ),
+        ],
+        entries: const [],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: snapshot,
+        elements: [
+          _buildElement(id: "element-priced", name: "Priced"),
+          _buildElement(id: "element-unpriced", name: "Unpriced"),
+        ],
+      );
+
+      expect(state.elementLinkCounts.pricedCount, 1);
+      expect(state.elementLinkCounts.unpricedCount, 1);
+    });
+
+    test("offers only the elements no live line prices yet, an already-priced one dropped", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [
+          _buildPoste(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-priced")],
+          ),
+        ],
+        entries: const [],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: snapshot,
+        elements: [
+          _buildElement(id: "element-priced", name: "Priced"),
+          _buildElement(id: "element-unpriced", name: "Unpriced"),
+        ],
+      );
+
+      expect(state.unpricedElements.map((element) => element.id), ["element-unpriced"]);
     });
   });
 

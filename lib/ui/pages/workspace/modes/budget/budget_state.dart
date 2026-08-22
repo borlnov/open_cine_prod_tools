@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
@@ -25,6 +26,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_element_link.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
@@ -108,6 +110,13 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// alone, for the same reason [roles] is: a traveller's own display name and declared crew
   /// position.
   final List<OcptPerson> people;
+
+  /// Every live element of the breakdown's own catalogue, as last loaded — [elementLinkCounts] is
+  /// the dashboard's own aggregate reading of it, and [unpricedElements] is what
+  /// `OcptBudgetPosteInspector`'s own `+ From breakdown` picker offers. Not part of [snapshot]: the
+  /// picker needs the whole catalogue, not a figure derived from it, exactly the reason [roles] and
+  /// [people] already sit beside it rather than inside it.
+  final List<OcptElement> elements;
 
   /// The decor name `OcptBudgetRegie` prints under each shooting day, keyed by the day's own id —
   /// the first location or set the day's own slots name, resolved once at load time out of the
@@ -214,6 +223,17 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// The dashboard's own two alerts, empty while nothing is loaded or the project raises neither.
   List<OcptBudgetAlert> get alerts => snapshot?.alerts ?? const [];
 
+  /// How many of [elements] a live quote line already prices, and how many are not — the
+  /// dashboard's own "what feeds this budget" card's own breakdown row, derived here rather than in
+  /// that widget, exactly as [paidByPosteId] is derived here rather than in the cost-tracking table.
+  OcptBudgetElementLinkCounts get elementLinkCounts =>
+      ocptBudgetElementLinkCountsOf(postes: postes, elements: elements);
+
+  /// Every one of [elements] no live quote line prices yet — what
+  /// `OcptBudgetPosteInspector`'s own `+ From breakdown` picker offers.
+  List<OcptElement> get unpricedElements =>
+      ocptBudgetUnpricedElementsOf(postes: postes, elements: elements);
+
   /// Every live shooting day's own catering reading, empty while nothing is loaded or the project
   /// holds no shooting day — `OcptBudgetRegie`'s own left column.
   List<OcptBudgetRegieDay> get regieDays => snapshot?.regieDays ?? const [];
@@ -314,6 +334,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.pendingFieldEdits,
     required this.roles,
     required this.people,
+    required this.elements,
     required this.regieDecorNameByDayId,
     required this.projectVersions,
     required this.previewedVersionId,
@@ -344,6 +365,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       pendingFieldEdits = const {},
       roles = const [],
       people = const [],
+      elements = const [],
       regieDecorNameByDayId = const {},
       projectVersions = const [],
       previewedVersionId = null,
@@ -384,6 +406,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits,
     List<OcptRole>? roles,
     List<OcptPerson>? people,
+    List<OcptElement>? elements,
     Map<String, String>? regieDecorNameByDayId,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
@@ -419,6 +442,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     roles: roles ?? this.roles,
     people: people ?? this.people,
+    elements: elements ?? this.elements,
     regieDecorNameByDayId: regieDecorNameByDayId ?? this.regieDecorNameByDayId,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId: clearPreviewedVersionId ? null : (previewedVersionId ?? this.previewedVersionId),
@@ -509,6 +533,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     pendingFieldEdits,
     roles,
     people,
+    elements,
     regieDecorNameByDayId,
   ];
 }

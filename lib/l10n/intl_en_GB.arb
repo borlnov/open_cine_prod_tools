@@ -10667,6 +10667,181 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetDashboardResourcesTotalLabel": "Total resources",
+  "@budgetDashboardResourcesTotalLabel": {
+    "description": "Label of the dashboard's own financing KPI: the financing plan's own total",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardResourcesInKindCaption": "{amount} in kind",
+  "@budgetDashboardResourcesInKindCaption": {
+    "description": "Caption under the Total resources KPI, naming how much of it is in-kind",
+    "context": "Displayed in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "The in-kind amount, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
+  "budgetDashboardBalanceNeedsLabel": "Needs",
+  "@budgetDashboardBalanceNeedsLabel": {
+    "description": "Label of the needs/resources balance bar's own left-hand figure: the quote's own total",
+    "context": "Displayed above the budget mode's dashboard poste list, under the KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardBalanceResourcesLabel": "Resources",
+  "@budgetDashboardBalanceResourcesLabel": {
+    "description": "Label of the needs/resources balance bar's own right-hand figure: the financing plan's own total",
+    "context": "Displayed above the budget mode's dashboard poste list, under the KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardBalanceCoverageReadOut": "{amount} · over {coveredCount} of the {lineCount} lines",
+  "@budgetDashboardBalanceCoverageReadOut": {
+    "description": "The balance bar's own needs figure, while some quote lines carry no known rate",
+    "context": "Displayed in place of the plain needs amount, this disappears once every line declares a rate",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "coveredCount": {
+        "type": "int"
+      },
+      "lineCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetDashboardBalanceBalancedMessage": "The financing plan covers the quote.",
+  "@budgetDashboardBalanceBalancedMessage": {
+    "description": "Message under the balance bar once the financing plan's own total is at or above the quote's",
+    "context": "Displayed under the budget mode's dashboard balance bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardBalanceShortfallMessage": "Short by {amount}.",
+  "@budgetDashboardBalanceShortfallMessage": {
+    "description": "Message under the balance bar while the financing plan still falls short of the quote",
+    "context": "Displayed under the budget mode's dashboard balance bar",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "How much the financing plan still falls short by, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
+  "budgetDashboardFeedSectionTitle": "What feeds this budget",
+  "@budgetDashboardFeedSectionTitle": {
+    "description": "Title of the dashboard's own card naming the three sources it reads from",
+    "context": "Displayed under the poste list in the budget mode's dashboard",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardFeedBreakdownTitle": "Breakdown",
+  "@budgetDashboardFeedBreakdownTitle": {
+    "description": "Title of the feed card's own breakdown row",
+    "context": "Displayed in the budget mode's dashboard, in its own What feeds this budget card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardFeedBreakdownReadOut": "{pricedCount} of {elementCount} elements priced",
+  "@budgetDashboardFeedBreakdownReadOut": {
+    "description": "One-line reading of the feed card's own breakdown row",
+    "context": "Displayed in the budget mode's dashboard, in its own What feeds this budget card",
+    "type": "text",
+    "placeholders": {
+      "pricedCount": {
+        "type": "int"
+      },
+      "elementCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetDashboardFeedScheduleTitle": "Schedule",
+  "@budgetDashboardFeedScheduleTitle": {
+    "description": "Title of the feed card's own schedule row",
+    "context": "Displayed in the budget mode's dashboard, in its own What feeds this budget card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardFeedScheduleReadOut": "{dayCount} shooting days",
+  "@budgetDashboardFeedScheduleReadOut": {
+    "description": "One-line reading of the feed card's own schedule row",
+    "context": "Displayed in the budget mode's dashboard, in its own What feeds this budget card",
+    "type": "text",
+    "placeholders": {
+      "dayCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetDashboardFeedCateringTitle": "Catering",
+  "@budgetDashboardFeedCateringTitle": {
+    "description": "Title of the feed card's own catering row",
+    "context": "Displayed in the budget mode's dashboard, in its own What feeds this budget card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardFeedCateringReadOut": "{mealCount} meals · {snackCount} snacks",
+  "@budgetDashboardFeedCateringReadOut": {
+    "description": "One-line reading of the feed card's own catering row",
+    "context": "Displayed in the budget mode's dashboard, in its own What feeds this budget card",
+    "type": "text",
+    "placeholders": {
+      "mealCount": {
+        "type": "int"
+      },
+      "snackCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetLineFromElementAction": "+ From breakdown",
+  "@budgetLineFromElementAction": {
+    "description": "Label of the poste inspector's own quote line creation action, from a breakdown element",
+    "context": "Displayed beside the Quote lines title in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineFromElementDialogTitle": "Price a breakdown element",
+  "@budgetLineFromElementDialogTitle": {
+    "description": "Title of the dialog offering every breakdown element no quote line prices yet",
+    "context": "Displayed at the top of OcptBudgetElementPickerDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineFromElementSearchHint": "Search elements…",
+  "@budgetLineFromElementSearchHint": {
+    "description": "Placeholder of the element picker's own search field",
+    "context": "Displayed in OcptBudgetElementPickerDialog's own search field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineFromElementEmptyHint": "Every breakdown element is already priced.",
+  "@budgetLineFromElementEmptyHint": {
+    "description": "Hint shown while the element picker holds nothing left to offer",
+    "context": "Displayed in OcptBudgetElementPickerDialog while its own list is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetLineFromElementReadOut": "From the breakdown: {elementName}",
+  "@budgetLineFromElementReadOut": {
+    "description": "Quiet second line under a quote line's own label, naming the element it prices",
+    "context": "Displayed under a quote line's own label in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {
+      "elementName": {
+        "type": "String"
+      }
+    }
+  },
   "budgetDashboardPosteOverQuoteAlertTitle": "Over its quote",
   "@budgetDashboardPosteOverQuoteAlertTitle": {
     "description": "Title of the dashboard's alert card for a poste whose paid plus committed exceeds its own quote",

@@ -212,11 +212,22 @@ class OcptBudgetQuoteService {
   /// Creates a new line named [label] inside poste [posteId], appended at the end of that poste's
   /// own lines, and returns its freshly generated id.
   ///
+  /// [elementId] and [unitAmountCents] are what `OcptBudgetPosteInspector`'s own `+ From breakdown`
+  /// gesture fills in — a line minted from a breakdown element, its own unit price seeded from
+  /// `OcptElement.cost` — and what the ordinary `+ Add` footer leaves at [Value.absent], the plain
+  /// `+ Add` line reading exactly as it always has. **A null `elements.cost` is passed on as
+  /// [Value.absent] too, never as `Value(0)`**: the line this call mints is then left at
+  /// `budget_lines.unitAmountCents`'s own ordinary default — a fresh, unpriced line the ordinary
+  /// `+ Add` footer already produces — rather than writing a figure that would read as a price typed
+  /// on purpose, which nobody has typed.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createLine({
     required OcptProjectDatabase database,
     required String posteId,
     required String label,
+    Value<String?> elementId = const Value.absent(),
+    Value<int> unitAmountCents = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("createLine")) {
       return null;
@@ -232,6 +243,8 @@ class OcptBudgetQuoteService {
             id: id,
             posteId: posteId,
             label: label,
+            elementId: elementId,
+            unitAmountCents: unitAmountCents,
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
             ),

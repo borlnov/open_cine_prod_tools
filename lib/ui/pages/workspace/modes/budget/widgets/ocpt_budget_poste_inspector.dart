@@ -25,8 +25,17 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// this poste.
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] and hands
-/// its own parts (every field, the tax-basis choice, the `Inherit` action, `+ Add`, `Delete`) the
-/// null callbacks that withhold them under a version preview.
+/// its own parts (every field, the tax-basis choice, the `Inherit` action, `+ Add`, `+ From
+/// breakdown`, `Delete`) the null callbacks that withhold them under a version preview.
+///
+/// **`+ From breakdown` mints a line the same way `+ Add` does, except that its own picker names
+/// where it comes from.** The mode opens `OcptBudgetElementPickerDialog` over
+/// `OcptBudgetState.unpricedElements` and, once one is picked, dispatches
+/// `OcptBudgetLineCreatedFromElementEvent` — this widget only reports the click
+/// ([onLineFromElementRequested]), exactly as `+ Add` only reports its own
+/// ([onLineCreationRequested]). [elementNameByElementId] is what lets a line that already prices one
+/// say so quietly under its own label, in [_OcptBudgetLineSummaryRow] — see that widget's own doc
+/// comment.
 ///
 /// The poste's own figures are read exactly as `OcptBudgetCostTracking` reads its row: `Quote` in
 /// [taxBasis], [paidCents]/[committedCents] real amounts (0 while the journal carries nothing
@@ -89,6 +98,16 @@ class OcptBudgetPosteInspector extends StatelessWidget {
   /// Called when the `+ Add` action is clicked, or null while [isReadOnly] or [poste] is null.
   final VoidCallback? onLineCreationRequested;
 
+  /// Called when the `+ From breakdown` action is clicked, opening the element picker, or null
+  /// while [isReadOnly] or [poste] is null — see the class doc comment.
+  final VoidCallback? onLineFromElementRequested;
+
+  /// A live element's own name, keyed by its id — resolves [OcptBudgetLine.elementId] into the
+  /// quiet second line [_OcptBudgetLineSummaryRow] prints under a line that prices one. An id
+  /// naming no key here (an element tombstoned since the line was created) prints nothing, exactly
+  /// as every other id-to-name lookup of this app reads a stale reference.
+  final Map<String, String> elementNameByElementId;
+
   /// Class constructor
   const OcptBudgetPosteInspector({
     super.key,
@@ -108,6 +127,8 @@ class OcptBudgetPosteInspector extends StatelessWidget {
     required this.onLineVatRateInheritedRequested,
     required this.onLineDeletionRequested,
     required this.onLineCreationRequested,
+    required this.onLineFromElementRequested,
+    required this.elementNameByElementId,
   });
 
   @override
@@ -165,6 +186,12 @@ class OcptBudgetPosteInspector extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
+              if (!isReadOnly && onLineFromElementRequested != null)
+                TextButton.icon(
+                  onPressed: onLineFromElementRequested,
+                  icon: const Icon(Icons.checklist_outlined, size: 16),
+                  label: Text(tr.budgetLineFromElementAction),
+                ),
               if (!isReadOnly && onLineCreationRequested != null)
                 TextButton.icon(
                   onPressed: onLineCreationRequested,
@@ -187,6 +214,7 @@ class OcptBudgetPosteInspector extends StatelessWidget {
             for (final line in poste.lines)
               _OcptBudgetLineCard(
                 line: line,
+                elementName: line.elementId == null ? null : elementNameByElementId[line.elementId],
                 isExpanded: line.id == expandedLineId,
                 defaultVatRateBasisPoints: defaultVatRateBasisPoints,
                 currencyCode: currencyCode,
@@ -436,6 +464,11 @@ class _OcptBudgetLineCard extends StatelessWidget {
   /// The line this card shows.
   final OcptBudgetLine line;
 
+  /// The name of the element [line] prices, or null while [OcptBudgetLine.elementId] is itself null
+  /// or names no live element any more — see [OcptBudgetPosteInspector.elementNameByElementId]'s
+  /// own doc comment.
+  final String? elementName;
+
   /// Whether this card is currently expanded.
   final bool isExpanded;
 
@@ -470,6 +503,7 @@ class _OcptBudgetLineCard extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetLineCard({
     required this.line,
+    required this.elementName,
     required this.isExpanded,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
@@ -493,7 +527,11 @@ class _OcptBudgetLineCard extends StatelessWidget {
           mouseCursor: ocptClickableCursor,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: _OcptBudgetLineSummaryRow(line: line, currencyCode: currencyCode),
+            child: _OcptBudgetLineSummaryRow(
+              line: line,
+              elementName: elementName,
+              currencyCode: currencyCode,
+            ),
           ),
         ),
         if (isExpanded) ...[
@@ -519,16 +557,22 @@ class _OcptBudgetLineCard extends StatelessWidget {
 }
 
 /// A collapsed line card's own summary row: the label and `<quantity> <unit> × <unit price>`, the
-/// line's own total on the right.
+/// element's own name underneath **quietly**, in a third line, while [elementName] names one — the
+/// one visible difference between a line typed from nothing and a line `+ From breakdown` minted to
+/// answer a real need the breakdown already found (`OcptBudgetPosteInspector`'s own class doc
+/// comment) — then the line's own total on the right.
 class _OcptBudgetLineSummaryRow extends StatelessWidget {
   /// The line this row summarises.
   final OcptBudgetLine line;
+
+  /// The name of the element [line] prices, or null — see the class doc comment.
+  final String? elementName;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
   /// Class constructor
-  const _OcptBudgetLineSummaryRow({required this.line, required this.currencyCode});
+  const _OcptBudgetLineSummaryRow({required this.line, required this.elementName, required this.currencyCode});
 
   @override
   Widget build(BuildContext context) {
@@ -537,6 +581,7 @@ class _OcptBudgetLineSummaryRow extends StatelessWidget {
     final label = line.label.isEmpty ? tr.budgetLineUnnamed : line.label;
     final quantityText = ocptBudgetQuantityLabel(line.quantityMilli);
     final unitPriceText = ocptBudgetAmountLabel(line.unitPrice.amountCents, currencyCode);
+    final elementName = this.elementName;
 
     return Row(
       children: [
@@ -559,6 +604,16 @@ class _OcptBudgetLineSummaryRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
+              if (elementName != null)
+                Text(
+                  tr.budgetLineFromElementReadOut(elementName),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
             ],
           ),
         ),

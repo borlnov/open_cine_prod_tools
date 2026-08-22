@@ -200,6 +200,26 @@ class OcptBudgetLineCreatedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, posteId];
 }
 
+/// Creates a new quote line inside poste [posteId] **from** breakdown element [elementId], and
+/// expands it — dispatched by the poste inspector's own `+ From breakdown` action once
+/// `OcptBudgetElementPickerDialog` returned an element, mirroring `OcptBudgetLineCreatedEvent`'s own
+/// "written the moment it is dispatched" reading. See `OcptBudgetBloc._onLineCreatedFromElement`'s
+/// own doc comment for what this writes onto the fresh line beyond its label.
+class OcptBudgetLineCreatedFromElementEvent extends OcptBudgetEvent {
+  /// The id of the poste the new line belongs to.
+  final String posteId;
+
+  /// The id of the breakdown element the new line prices.
+  final String elementId;
+
+  /// Class constructor
+  const OcptBudgetLineCreatedFromElementEvent({required this.posteId, required this.elementId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, posteId, elementId];
+}
+
 /// Deletes quote line [lineId] for good, dispatched by the mode once its `OcptConfirmDialog` has
 /// already been answered.
 class OcptBudgetLineDeletionConfirmedEvent extends OcptBudgetEvent {

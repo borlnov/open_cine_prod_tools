@@ -22,6 +22,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
@@ -1256,5 +1258,113 @@ void main() {
       expect(state.travelRows.single.totalKmMilli, 20000);
       expect(state.people.map((person) => person.id), contains(personId));
     });
+  });
+
+  group("the breakdown link", () {
+    test(
+      "loads the elements catalogue and derives how many are priced and how many are not",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final project = projectsManager.currentProject!;
+
+        final pricedElementId = await projectsManager.elementsService.createElement(
+          database: project.database,
+          name: "Camera body",
+          category: OcptElementCategory.camera,
+          sourceKind: OcptElementSourceKind.owned,
+        );
+        expect(pricedElementId, isNotNull);
+        final unpricedElementId = await projectsManager.elementsService.createElement(
+          database: project.database,
+          name: "Dolly",
+          category: OcptElementCategory.specialEquipment,
+          sourceKind: OcptElementSourceKind.toBuy,
+        );
+        expect(unpricedElementId, isNotNull);
+
+        final loaded = await waitForState(bloc, (state) => state.elements.length == 2);
+        final posteId = loaded.postes.first.id;
+
+        bloc.add(
+          OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: pricedElementId!),
+        );
+
+        final state = await waitForState(
+          bloc,
+          (state) => state.elementLinkCounts.pricedCount == 1,
+        );
+
+        expect(state.elementLinkCounts.unpricedCount, 1);
+        expect(state.unpricedElements.map((element) => element.id), [unpricedElementId]);
+      },
+    );
+
+    test("a fresh line seeds its label and unit price from the element's own cost", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+
+      final elementId = await projectsManager.elementsService.createElement(
+        database: project.database,
+        name: "Camera body",
+        category: OcptElementCategory.camera,
+        sourceKind: OcptElementSourceKind.owned,
+      );
+      expect(elementId, isNotNull);
+      await projectsManager.elementsService.updateElement(
+        database: project.database,
+        elementId: elementId!,
+        cost: const drift.Value(5000),
+      );
+
+      final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: elementId));
+
+      final state = await waitForState(
+        bloc,
+        (state) => state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
+      );
+      final line = state.postes
+          .expand((poste) => poste.lines)
+          .firstWhere((line) => line.elementId == elementId);
+
+      expect(line.label, "Camera body");
+      expect(line.unitPrice.amountCents, 5000);
+    });
+
+    test(
+      "an element with no cost seeds no unit price, the line left at the ordinary default",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final project = projectsManager.currentProject!;
+
+        final elementId = await projectsManager.elementsService.createElement(
+          database: project.database,
+          name: "Dolly",
+          category: OcptElementCategory.specialEquipment,
+          sourceKind: OcptElementSourceKind.toBuy,
+        );
+        expect(elementId, isNotNull);
+
+        final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
+        final posteId = loaded.postes.first.id;
+
+        bloc.add(OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: elementId!));
+
+        final state = await waitForState(
+          bloc,
+          (state) => state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
+        );
+        final line = state.postes
+            .expand((poste) => poste.lines)
+            .firstWhere((line) => line.elementId == elementId);
+
+        expect(line.unitPrice.amountCents, 0);
+      },
+    );
   });
 }

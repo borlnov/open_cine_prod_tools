@@ -16,7 +16,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and a wide, tall
-/// enough [Scaffold] that every field of an expanded line card is drawn.
+/// enough [Scaffold] that every field of an expanded line card is drawn — wide enough, since the
+/// `+ From breakdown` action joined `+ Add` on the quote lines title row, for both to fit beside
+/// it with no overflow.
 Widget _wrap(Widget child) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -25,7 +27,7 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 420, height: 900, child: child)),
+  home: Scaffold(body: SizedBox(width: 520, height: 900, child: child)),
 );
 
 /// The one line every test below expands: priced at 12.50 €, tax-inclusive, overridden at 5.5 %.
@@ -110,6 +112,8 @@ void main() {
               onLineVatRateInheritedRequested: (_) {},
               onLineDeletionRequested: (_) {},
               onLineCreationRequested: () {},
+              onLineFromElementRequested: () {},
+              elementNameByElementId: const {},
             ),
           ),
         );
@@ -150,6 +154,8 @@ void main() {
           onLineVatRateInheritedRequested: (lineId) => reportedLineId = lineId,
           onLineDeletionRequested: (_) {},
           onLineCreationRequested: () {},
+          onLineFromElementRequested: () {},
+          elementNameByElementId: const {},
         ),
       ),
     );
@@ -182,12 +188,15 @@ void main() {
             onLineVatRateInheritedRequested: null,
             onLineDeletionRequested: null,
             onLineCreationRequested: null,
+            onLineFromElementRequested: null,
+            elementNameByElementId: const {},
           ),
         ),
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetPosteInspector)));
       expect(find.text(tr.budgetLineCreationAction), findsNothing);
+      expect(find.text(tr.budgetLineFromElementAction), findsNothing);
       expect(find.text(tr.budgetLineDeleteAction), findsNothing);
       expect(find.text(tr.budgetLineVatRateInheritAction), findsNothing);
 
@@ -220,6 +229,8 @@ void main() {
             onLineVatRateInheritedRequested: (_) {},
             onLineDeletionRequested: (_) {},
             onLineCreationRequested: () {},
+            onLineFromElementRequested: () {},
+            elementNameByElementId: const {},
           ),
         ),
       );
@@ -258,6 +269,8 @@ void main() {
             onLineVatRateInheritedRequested: (_) {},
             onLineDeletionRequested: (_) {},
             onLineCreationRequested: () {},
+            onLineFromElementRequested: () {},
+            elementNameByElementId: const {},
           ),
         ),
       );
@@ -307,6 +320,8 @@ void main() {
             onLineVatRateInheritedRequested: (_) {},
             onLineDeletionRequested: (_) {},
             onLineCreationRequested: () {},
+            onLineFromElementRequested: () {},
+            elementNameByElementId: const {},
           ),
         ),
       );
@@ -319,4 +334,90 @@ void main() {
       );
     },
   );
+
+  testWidgets("+ From breakdown reports its own click while not read-only", (tester) async {
+    var wasRequested = false;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetPosteInspector(
+          poste: _poste,
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          paidCents: 0,
+          committedCents: 0,
+          entries: const [],
+          expandedLineId: null,
+          isReadOnly: false,
+          fieldValueOf: _storedFieldValueOf,
+          onFieldChanged: (_, __, ___) {},
+          onLineExpanded: (_) {},
+          onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
+          onLineVatRateInheritedRequested: (_) {},
+          onLineDeletionRequested: (_) {},
+          onLineCreationRequested: () {},
+          onLineFromElementRequested: () => wasRequested = true,
+          elementNameByElementId: const {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetPosteInspector)));
+    await tester.tap(find.text(tr.budgetLineFromElementAction));
+
+    expect(wasRequested, isTrue);
+  });
+
+  testWidgets("a line that prices an element shows its own name quietly underneath", (
+    tester,
+  ) async {
+    const pricedLine = OcptBudgetLine(
+      id: "line-priced",
+      posteId: "poste-1",
+      label: "Camera package",
+      quantityMilli: 1000,
+      unit: "u",
+      unitPrice: OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
+      elementId: "element-1",
+      notes: "",
+      sortKey: "a1",
+    );
+    const poste = OcptBudgetPoste(
+      id: "poste-1",
+      code: "1",
+      label: "Poste one",
+      simpleLabel: null,
+      sortKey: "a0",
+      lines: [pricedLine],
+    );
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetPosteInspector(
+          poste: poste,
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          paidCents: 0,
+          committedCents: 0,
+          entries: const [],
+          expandedLineId: null,
+          isReadOnly: false,
+          fieldValueOf: _storedFieldValueOf,
+          onFieldChanged: (_, __, ___) {},
+          onLineExpanded: (_) {},
+          onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
+          onLineVatRateInheritedRequested: (_) {},
+          onLineDeletionRequested: (_) {},
+          onLineCreationRequested: () {},
+          onLineFromElementRequested: () {},
+          elementNameByElementId: const {"element-1": "Camera body"},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetPosteInspector)));
+    expect(find.text(tr.budgetLineFromElementReadOut("Camera body")), findsOneWidget);
+  });
 }

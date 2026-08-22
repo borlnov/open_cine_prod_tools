@@ -8,7 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
@@ -29,20 +32,44 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 1200, height: 900, child: child)),
 );
 
-/// Builds a quote line quoted at [amountCents] (a single unit at that price), everything else
-/// neutral.
+/// Builds a quote line quoted at [amountCents] (a single unit at that price), tax-inclusive with no
+/// override by default — [isTaxInclusive]`: false` and no [vatRateBasisPoints] is what a test needs
+/// to make this line's own tax-inclusive reading unknown, everything else neutral.
 OcptBudgetLine _buildLine({
   required String id,
   required String posteId,
   required int amountCents,
+  bool isTaxInclusive = true,
+  int? vatRateBasisPoints,
 }) => OcptBudgetLine(
   id: id,
   posteId: posteId,
   label: "Line $id",
   quantityMilli: 1000,
   unit: "u",
-  unitPrice: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
+  unitPrice: OcptMoney(
+    amountCents: amountCents,
+    isTaxInclusive: isTaxInclusive,
+    vatRateBasisPoints: vatRateBasisPoints,
+  ),
   elementId: null,
+  notes: "",
+  sortKey: "a0",
+);
+
+/// A minimal financing resource, everything but what each test actually varies neutral — mirrors
+/// `ocpt_budget_financing_test.dart`'s own `_resource`.
+OcptBudgetResource _resource({
+  required String id,
+  OcptBudgetResourceGroupKind groupKind = OcptBudgetResourceGroupKind.subsidy,
+  required int amountCents,
+}) => OcptBudgetResource(
+  id: id,
+  groupKind: groupKind,
+  label: "Resource $id",
+  amountCents: amountCents,
+  status: OcptBudgetResourceStatus.applied,
+  isReimbursable: false,
   notes: "",
   sortKey: "a0",
 );
@@ -74,28 +101,47 @@ const _zeroCashTotals = OcptBudgetCashTotals(
 Future<Tr> _pumpDashboard(
   WidgetTester tester, {
   required List<OcptBudgetPoste> postes,
+  OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
   OcptBudgetCashTotals cashTotals = _zeroCashTotals,
   Map<String, OcptBudgetCoveredTotal> paidByPosteId = const {},
   Map<String, OcptBudgetCoveredTotal> committedByPosteId = const {},
   List<OcptBudgetAlert> alerts = const [],
+  List<OcptBudgetResource> resources = const [],
+  int breakdownPricedElementCount = 0,
+  int breakdownUnpricedElementCount = 0,
+  int shootingDayCount = 0,
+  int mealCount = 0,
+  int snackCount = 0,
   ValueChanged<String>? onPosteSelected,
   ValueChanged<String>? onPosteAlertActionRequested,
   VoidCallback? onCashAlertActionRequested,
+  VoidCallback? onBreakdownFeedRequested,
+  VoidCallback? onScheduleFeedRequested,
+  VoidCallback? onCateringFeedRequested,
 }) async {
   await tester.pumpWidget(
     _wrap(
       OcptBudgetDashboard(
         postes: postes,
-        taxBasis: OcptBudgetTaxBasis.includingTax,
+        taxBasis: taxBasis,
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
         cashTotals: cashTotals,
         paidByPosteId: paidByPosteId,
         committedByPosteId: committedByPosteId,
         alerts: alerts,
+        resources: resources,
+        breakdownPricedElementCount: breakdownPricedElementCount,
+        breakdownUnpricedElementCount: breakdownUnpricedElementCount,
+        shootingDayCount: shootingDayCount,
+        mealCount: mealCount,
+        snackCount: snackCount,
         onPosteSelected: onPosteSelected ?? (_) {},
         onPosteAlertActionRequested: onPosteAlertActionRequested ?? (_) {},
         onCashAlertActionRequested: onCashAlertActionRequested ?? () {},
+        onBreakdownFeedRequested: onBreakdownFeedRequested ?? () {},
+        onScheduleFeedRequested: onScheduleFeedRequested ?? () {},
+        onCateringFeedRequested: onCateringFeedRequested ?? () {},
       ),
     ),
   );
@@ -285,6 +331,145 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(wasRequested, isTrue);
+    });
+  });
+
+  group("the needs/resources balance", () {
+    testWidgets("resources exceeding the quote read as balanced", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        resources: [_resource(id: "r1", amountCents: 15000)],
+      );
+
+      expect(find.text(tr.budgetDashboardBalanceBalancedMessage), findsOneWidget);
+    });
+
+    testWidgets("resources falling short of the quote say by how much", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        resources: [_resource(id: "r1", amountCents: 4000)],
+      );
+
+      expect(
+        find.text(tr.budgetDashboardBalanceShortfallMessage(ocptBudgetAmountLabel(6000, "EUR"))),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("the needs figure prints its own coverage read-out while a line lacks a rate", (
+      tester,
+    ) async {
+      final uncoveredLine = _buildLine(
+        id: "poste-1-line",
+        posteId: "poste-1",
+        amountCents: 10000,
+        isTaxInclusive: false,
+      );
+      final poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Camera",
+        simpleLabel: null,
+        sortKey: "a0",
+        lines: [uncoveredLine],
+      );
+
+      final tr = await _pumpDashboard(tester, postes: [poste]);
+
+      expect(
+        find.text(
+          tr.budgetDashboardBalanceCoverageReadOut(ocptBudgetAmountLabel(0, "EUR"), 0, 1),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("the coverage read-out drops once every line carries a known rate", (tester) async {
+      // The very same poste as the previous test, its own line typed tax-inclusive this time (the
+      // default `_buildLine` reads under), which needs no rate at all to answer the tax-inclusive
+      // reading the balance bar always reads under.
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+
+      final tr = await _pumpDashboard(tester, postes: [poste]);
+
+      expect(find.text(tr.budgetDashboardBalanceNeedsLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(10000, "EUR")), findsWidgets);
+      expect(
+        find.text(tr.budgetDashboardBalanceCoverageReadOut(ocptBudgetAmountLabel(10000, "EUR"), 0, 1)),
+        findsNothing,
+      );
+    });
+
+    testWidgets("the balance bar reads tax-inclusive regardless of the header's basis toggle", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 12345);
+
+      await _pumpDashboard(tester, postes: [poste], taxBasis: OcptBudgetTaxBasis.excludingTax);
+
+      expect(find.text(ocptBudgetAmountLabel(12345, "EUR")), findsOneWidget);
+    });
+  });
+
+  group("what feeds this budget", () {
+    testWidgets("each of its own three rows reports its own click", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      var breakdownRequested = false;
+      var scheduleRequested = false;
+      var cateringRequested = false;
+
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        breakdownPricedElementCount: 3,
+        breakdownUnpricedElementCount: 2,
+        shootingDayCount: 12,
+        mealCount: 8,
+        snackCount: 8,
+        onBreakdownFeedRequested: () => breakdownRequested = true,
+        onScheduleFeedRequested: () => scheduleRequested = true,
+        onCateringFeedRequested: () => cateringRequested = true,
+      );
+
+      expect(find.text(tr.budgetDashboardFeedBreakdownReadOut(3, 5)), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedScheduleReadOut(12)), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedCateringReadOut(8, 8)), findsOneWidget);
+
+      await tester.tap(find.text(tr.budgetDashboardFeedBreakdownTitle));
+      await tester.tap(find.text(tr.budgetDashboardFeedScheduleTitle));
+      await tester.tap(find.text(tr.budgetDashboardFeedCateringTitle));
+      await tester.pumpAndSettle();
+
+      expect(breakdownRequested, isTrue);
+      expect(scheduleRequested, isTrue);
+      expect(cateringRequested, isTrue);
+    });
+  });
+
+  group("the financing KPI", () {
+    testWidgets("reads the resources total and how much of it is in kind", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        resources: [
+          _resource(id: "r1", amountCents: 5000),
+          _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 2000),
+        ],
+      );
+
+      expect(find.text(tr.budgetDashboardResourcesTotalLabel.toUpperCase()), findsOneWidget);
+      // The balance bar's own "Resources" figure reads the very same total, so this amount is
+      // drawn twice on screen — see `_OcptDashboardBalanceBar`'s own doc comment.
+      expect(find.text(ocptBudgetAmountLabel(7000, "EUR")), findsWidgets);
+      expect(
+        find.text(tr.budgetDashboardResourcesInKindCaption(ocptBudgetAmountLabel(2000, "EUR"))),
+        findsOneWidget,
+      );
     });
   });
 }

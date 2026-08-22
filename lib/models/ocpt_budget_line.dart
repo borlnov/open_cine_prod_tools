@@ -27,7 +27,9 @@ class OcptBudgetLine extends Equatable {
   /// The unit price this line was typed at, and the tax basis and rate it carries.
   final OcptMoney unitPrice;
 
-  /// The breakdown element this line prices, or null — read by no service before M3.
+  /// The breakdown element this line prices, or null — `OcptBudgetPosteInspector`'s own `+ From
+  /// breakdown` gesture is what sets it, and it is what tells the dashboard's own breakdown reading
+  /// this line answers a real need rather than being typed from nothing.
   final String? elementId;
 
   /// Free-form notes about this line.

@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_committed_spending.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_element_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
@@ -289,6 +290,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Builds the dashboard.
   Widget _buildDashboard(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
+    final elementLinkCounts = state.elementLinkCounts;
 
     return OcptBudgetDashboard(
       postes: state.postes,
@@ -299,6 +301,12 @@ class _BudgetViewState extends State<_BudgetView> {
       paidByPosteId: state.paidByPosteId,
       committedByPosteId: state.committedByPosteId,
       alerts: state.alerts,
+      resources: state.resources,
+      breakdownPricedElementCount: elementLinkCounts.pricedCount,
+      breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
+      shootingDayCount: state.regieDays.length,
+      mealCount: state.regieTotals.mealCount,
+      snackCount: state.regieTotals.snackCount,
       onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
       onPosteAlertActionRequested: (posteId) {
         bloc
@@ -308,6 +316,17 @@ class _BudgetViewState extends State<_BudgetView> {
       onCashAlertActionRequested: () => bloc.add(
         const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.committed),
       ),
+      onBreakdownFeedRequested: () => context.read<OcptWorkspaceBloc>().add(
+        const OcptWorkspaceModeSelectedEvent(
+          mode: OcptWorkspaceMode.resources,
+          revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.elements),
+        ),
+      ),
+      onScheduleFeedRequested: () => context.read<OcptWorkspaceBloc>().add(
+        const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
+      ),
+      onCateringFeedRequested: () =>
+          bloc.add(const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.regie)),
     );
   }
 
@@ -859,6 +878,9 @@ class _BudgetViewState extends State<_BudgetView> {
             for (final entry in state.entries.reversed)
               if (entry.posteId == selectedPoste.id) entry,
           ];
+    final elementNameByElementId = {
+      for (final element in state.elements) element.id: element.name,
+    };
 
     return OcptBudgetPosteInspector(
       poste: selectedPoste,
@@ -891,7 +913,34 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineCreationRequested: isReadOnly || selectedPoste == null
           ? null
           : () => bloc.add(OcptBudgetLineCreatedEvent(posteId: selectedPoste.id)),
+      onLineFromElementRequested: isReadOnly || selectedPoste == null
+          ? null
+          : () => unawaited(_handleLineFromElementRequested(context, state, selectedPoste.id)),
+      elementNameByElementId: elementNameByElementId,
     );
+  }
+
+  /// Opens `OcptBudgetElementPickerDialog` over `OcptBudgetState.unpricedElements`, then dispatches
+  /// the creation if the user picked one — mirrors `_handleEntryCreationRequested`'s own shape.
+  Future<void> _handleLineFromElementRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    String posteId,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final element = await OcptBudgetElementPickerDialog.show(
+      context,
+      elements: state.unpricedElements,
+      currencyCode: state.currencyCode,
+    );
+    if (element == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: element.id));
   }
 
   /// Builds the band naming the version being previewed, or null while the working copy is on

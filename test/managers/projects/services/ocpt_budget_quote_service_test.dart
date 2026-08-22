@@ -6,8 +6,11 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
@@ -15,6 +18,7 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const service = OcptBudgetQuoteService();
+  const elementsService = OcptElementsService();
 
   late OcptProjectDatabase database;
 
@@ -199,6 +203,63 @@ void main() {
       expect(poste.lines.first.unitPrice.isTaxInclusive, isTrue);
       expect(poste.lines.first.unitPrice.vatRateBasisPoints, isNull);
     });
+
+    test(
+      "createLine can be minted from an element, carrying its own elementId and unit price",
+      () async {
+        final elementId = await elementsService.createElement(
+          database: database,
+          name: "Camera body",
+          category: OcptElementCategory.camera,
+          sourceKind: OcptElementSourceKind.owned,
+        );
+        expect(elementId, isNotNull);
+
+        final lineId = await service.createLine(
+          database: database,
+          posteId: posteId,
+          label: "Camera body",
+          elementId: Value(elementId),
+          unitAmountCents: const Value(2500),
+        );
+
+        final poste = (await service.loadPostes(database: database, seed: const [])).single;
+        final line = poste.lines.single;
+
+        expect(line.id, lineId);
+        expect(line.elementId, elementId);
+        expect(line.unitPrice.amountCents, 2500);
+      },
+    );
+
+    test(
+      "createLine given no unit price at all defaults exactly as an ordinary line does",
+      () async {
+        final elementId = await elementsService.createElement(
+          database: database,
+          name: "Dolly",
+          category: OcptElementCategory.specialEquipment,
+          sourceKind: OcptElementSourceKind.toBuy,
+        );
+        expect(elementId, isNotNull);
+
+        // Mirrors an element whose own `cost` is null: the caller passes no `unitAmountCents` at
+        // all, and the fresh line is left at the table's own ordinary default — the very same
+        // reading an unpriced `+ Add` line already gets, never a price of zero typed on purpose.
+        await service.createLine(
+          database: database,
+          posteId: posteId,
+          label: "Dolly",
+          elementId: Value(elementId),
+        );
+
+        final poste = (await service.loadPostes(database: database, seed: const [])).single;
+        final line = poste.lines.single;
+
+        expect(line.elementId, elementId);
+        expect(line.unitPrice.amountCents, 0);
+      },
+    );
 
     test("lines of two different postes order independently", () async {
       final otherPosteId = (await service.createPoste(database: database, label: "Cast"))!;

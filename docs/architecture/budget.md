@@ -20,15 +20,15 @@ catering and travel pass and the revenue sharing still ahead of it (`docs/plans/
   journal with free categories, a meals sheet and a sharing sheet. Nothing about the mode so far
   favours one reader over the other — it builds the one document both eventually need, the quote,
   and then the ledger both eventually keep, the cash journal that measures what has actually moved
-  against it and what is still owed. `OcptBudgetCentreView` holds the four views this stands for
-  today — `dashboard`, `costTracking`, `cashJournal` and `committed` — of the seven the mockup
-  validates; **financing, catering and travel, and revenue sharing** are the three still missing,
-  and each reads a table no milestone so far holds at all (`budget_resources`, `budget_revenues`,
-  `budget_shares`) — a value added for any of them today would be a header chip that opens onto
-  nothing, which this app never draws. Each joins the enum, at its own end, as the milestone that
-  gives it real content lands, so a stored preference never points at a view that has moved — the
-  reading `cashJournal` and `committed` themselves just proved out, one milestone after
-  `dashboard`/`costTracking` did the same.
+  against it and what is still owed, and now the financing plan that measures against the quote in
+  turn. `OcptBudgetCentreView` holds the six views this stands for today — `dashboard`,
+  `costTracking`, `cashJournal`, `committed`, `financing` and `regie` — of the seven the mockup
+  validates; **revenue sharing** alone is still missing, reading tables no milestone so far holds at
+  all (`budget_revenues`, `budget_shares`) — a value added for it today would be a header chip that
+  opens onto nothing, which this app never draws. It joins the enum at its own end, as the milestone
+  that gives it real content lands, so a stored preference never points at a view that has moved —
+  the reading `cashJournal`/`committed`, then `financing`/`regie`, already proved out, one milestone
+  after `dashboard`/`costTracking` did the same.
 
 ## The money rule
 
@@ -207,7 +207,7 @@ catering and travel pass and the revenue sharing still ahead of it (`docs/plans/
   0010): `budget_postes` (`code`, `label`, a nullable `simpleLabel` reading exactly as
   `vatRateBasisPoints` does — null falls back to `label` rather than meaning "no name at all") and
   `budget_lines` (`posteId`, `label`, `quantityMilli`, `unit`, the money triple on the unit price, a
-  nullable `elementId` — declared now but read by no service before M3 — and free-form `notes`).
+  nullable `elementId` naming the breakdown element this line prices, and free-form `notes`).
   `budget_postes` orders flat by its own `sortKey`, like `OcptElementsService`'s catalogue;
   `budget_lines` orders by `sortKey` **within its own `posteId`**, like a shot within a scene — a
   line only ever competes for a position against the other lines of the very poste it prices.
@@ -350,11 +350,61 @@ catering and travel pass and the revenue sharing still ahead of it (`docs/plans/
   and a poste with no quote at all makes that a division by zero — a figure that cannot exist rather
   than one that happens to be absent, which is a different silence from the one this section used to
   describe and survives regardless of what the journal ever learns.
-  What is still missing is exactly the three views `budget_resources`, `budget_revenues` and
-  `budget_shares` would feed: **financing** — subsidies, cash and in-kind contributions, each with
-  its own status and what is still left to receive; **catering and travel** — the meals and mileage
-  a shooting day actually cost, read off the schedule and the project settings rather than typed
-  twice; and **revenue sharing** — the takings, the reimbursable contributions repaid before anything
-  is split, and the split itself. None of the three reads a byte the schema holds today, each is
-  argued in full in `docs/plans/budget-mode.md`, and each joins `OcptBudgetCentreView` the day its
-  own milestone gives it something real to show.
+  What is still missing is exactly the two tables `budget_revenues` and `budget_shares` would feed:
+  **revenue sharing** — the takings, the reimbursable contributions repaid before anything is split,
+  and the split itself. It reads no byte the schema holds today, is argued in full in
+  `docs/plans/budget-mode.md`, and joins `OcptBudgetCentreView` the day its own milestone gives it
+  something real to show.
+
+## The dashboard reads the financing plan once it exists
+
+- The dashboard's own KPI row gains a `Total resources` tile the moment `budget_resources` does —
+  `ocptBudgetResourcesTotalCents`, with how much of it is in kind
+  (`ocptBudgetResourcesTotalByGroupKind`) as a smaller second line — mirroring every other tile
+  already there. Under it, a **needs/resources balance bar**
+  (`ocptBudgetNeedsResourcesBalanceOf`, `lib/utils/ocpt_budget_financing.dart`) states the quote's
+  own total against the financing plan's own total and, underneath, either that the two balance or
+  by how much the plan still falls short.
+  **The needs side is read tax-inclusive, always, whatever the header's own basis toggle currently
+  shows.** A resource is money coming in, and "Money that has moved is read tax-inclusive, always"
+  (above) already settles that there is only one honest basis for that; comparing an
+  excluding-tax quote against a tax-inclusive resource would compare two different figures while
+  looking like it compared one, so the bar's own needs total is `ocptBudgetTotalOf`'s own
+  including-tax reading, resolved once here and never through `OcptBudgetState.taxBasis`. Whenever
+  that total is not `OcptBudgetCoveredTotal.isComplete`, the bar prints the very same coverage
+  read-out the cost-tracking table's own total row already does
+  (`tr.budgetCostTrackingCoverageReadOut`) rather than a second wording for the same fact.
+  A third card, **"what feeds this budget"**, reads three other sources the quote itself never
+  types: how many breakdown elements a quote line already prices and how many still are not (see
+  "A quote line can price a breakdown element" below), how many shooting days the schedule holds —
+  the base every per-day poste is quoted against — and the meals and snacks the schedule's own
+  presences already produce. Each row reports a click upward, through the workspace bloc rather than
+  navigating on its own: the breakdown row opens the resources mode's elements tab with nothing
+  selected (`OcptResourcesRevealRequest(tab: OcptResourcesTab.elements, recordId: null)`, the same
+  request the breakdown mode's own `Open in Resources` already uses, its `recordId` deliberately
+  null since the card names a count, not one element), the schedule row switches to the schedule
+  mode, and the catering row switches this very mode to its own `regie` view.
+  **The unpriced-elements count is deliberately not a third alert.** `ocptComputeBudgetAlerts`'s own
+  two rules are each a standing fact that something is wrong; a dozen elements still waiting to be
+  priced during preparation is the normal state of a production still building its breakdown, true
+  for months on end, which is exactly the register this card states things in rather than the
+  alerts row's.
+
+## A quote line can price a breakdown element
+
+- `budget_lines.elementId` is what crosses a quote line with the *dépouillement*'s own elements
+  catalogue: `OcptBudgetPosteInspector`'s own `+ From breakdown` gesture opens a picker over every
+  live element no live line names yet, and creating one from it writes a line whose label is the
+  element's own name, whose `elementId` names it, and whose `unitAmountCents` is `OcptElement.cost`
+  — `OcptBudgetQuoteService.createLine`'s own widened signature, called the same way the ordinary
+  `+ Add` footer already calls it, minus the two arguments that footer leaves at their default.
+  **A null `elements.cost` is not a zero unit price.** `elements.cost` is nobody's business to have
+  filled in yet during preparation, and a line minted from it is passed [Value.absent] rather than
+  `Value(0)` for exactly that reason: the fresh line is left at `budget_lines.unitAmountCents`'s own
+  ordinary default, reading exactly as a plain `+ Add` line already does, rather than claiming a
+  price of zero that nobody has typed — the same "null, never zero" honesty `ocpt_budget_vat.dart`
+  already keeps for a rate nobody has recorded.
+  A line minted this way says so wherever it is drawn, in a second, quiet line under its own label —
+  the element's own name — so a reader can tell a line typed from nothing apart from one that
+  answers a real need the breakdown found, the same distinction the dashboard's own feed card counts
+  by.
