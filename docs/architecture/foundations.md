@@ -277,7 +277,15 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `_dropColumnIfPresent`/`_dropTableIfPresent` — the two helpers in this file that **ask the file
   what it holds** rather than deducing it from the version it states, because a version number says
   nothing about whether a file was made against an unmerged build — and nothing is carried over: a
-  slot-wide convocation names no hour, so there is no block to attach it to. v19 adds
+  slot-wide convocation names no hour, so there is no block to attach it to. **The budget's own
+  four steps deliberately do not do the same**, and the asymmetry is a decision rather than an
+  oversight: renumbering v20-v23 to v25-v28 made the number 23 mean two different things — the
+  casting step to a released file, the whole budget mode to a file written by this branch before it
+  merged — and such a file now dies on `duplicate column name: default_vat_rate_basis_points`
+  rather than opening. Defensive `if absent` guards on all four steps would have saved those files,
+  and they were weighed and refused: no released build ever wrote one, only the two machines this
+  mode was developed on hold any, and four permanently non-standard migration steps are a poor
+  price for files their own authors can recreate. v19 adds
   `project_info.screenplayLanguage` (nullable, no backfill: "nobody has said" is as true after the
   migration as before it) and creates `project_dictionary_words`, both additive. v18 is the
   multi-episode migration: `screenplays` gains `number` and `sortKey`, `role_episodes` is added, and
