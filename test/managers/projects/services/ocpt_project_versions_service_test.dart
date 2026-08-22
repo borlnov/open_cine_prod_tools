@@ -1170,6 +1170,94 @@ void main() {
       },
     );
 
+    test("the sharing comes back, and a taking recorded since is tombstoned", () async {
+      await database
+          .into(database.ocptBudgetRevenuesTable)
+          .insert(
+            OcptBudgetRevenuesTableCompanion.insert(
+              id: "revenue-1",
+              date: DateTime.utc(2026, 2, 2),
+              label: "Clermont-Ferrand — audience award",
+              amountCents: const Value(300000),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetSharesTable)
+          .insert(
+            OcptBudgetSharesTableCompanion.insert(
+              id: "share-1",
+              label: "Director",
+              sharePermille: const Value(400),
+              reinvestPermille: const Value(1000),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry-1",
+              date: DateTime.utc(2026, 2, 20),
+              label: "Award paid in",
+              creditCents: const Value(300000),
+              voucherNumber: const Value("J-001"),
+              revenueId: const Value("revenue-1"),
+            ),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured taking is edited, its share is renamed, and a second taking is
+      // recorded since.
+      await (database.update(
+        database.ocptBudgetRevenuesTable,
+      )..where((table) => table.id.equals("revenue-1"))).write(
+        const OcptBudgetRevenuesTableCompanion(amountCents: Value(1)),
+      );
+      await (database.update(
+        database.ocptBudgetSharesTable,
+      )..where((table) => table.id.equals("share-1"))).write(
+        const OcptBudgetSharesTableCompanion(sharePermille: Value(999)),
+      );
+      await database
+          .into(database.ocptBudgetRevenuesTable)
+          .insert(
+            OcptBudgetRevenuesTableCompanion.insert(
+              id: "revenue-2",
+              date: DateTime.utc(2026, 5, 30),
+              label: "Recorded later",
+            ),
+          );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // The amount comes back exactly as it was typed, to the cent.
+      final restoredRevenue = await (database.select(
+        database.ocptBudgetRevenuesTable,
+      )..where((table) => table.id.equals("revenue-1"))).getSingle();
+      expect(restoredRevenue.amountCents, 300000);
+
+      final restoredShare = await (database.select(
+        database.ocptBudgetSharesTable,
+      )..where((table) => table.id.equals("share-1"))).getSingle();
+      expect(restoredShare.sharePermille, 400);
+      expect(restoredShare.reinvestPermille, 1000);
+
+      // The link an entry carries onto a taking survives the round trip: without it the sharing
+      // would read the takings as never having brought anything in.
+      final restoredEntry = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-1"))).getSingle();
+      expect(restoredEntry.revenueId, "revenue-1");
+
+      // The taking the version never held is tombstoned, not deleted.
+      final laterRevenue = await (database.select(
+        database.ocptBudgetRevenuesTable,
+      )..where((table) => table.id.equals("revenue-2"))).getSingle();
+      expect(laterRevenue.isDeleted, isTrue);
+    });
+
     test("a role's things come back, and a link made since is tombstoned", () async {
       await database
           .into(database.ocptRolesTable)
