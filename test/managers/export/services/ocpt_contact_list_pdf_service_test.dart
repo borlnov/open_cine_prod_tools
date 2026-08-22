@@ -127,7 +127,7 @@ OcptRole _buildRole({required String id, required int number, String name = "", 
 /// Builds a snapshot of [people] and [roles] alone: neither locations nor elements are read by this
 /// document.
 OcptResourcesSnapshot _buildSnapshot({List<OcptPerson> people = const [], List<OcptRole> roles = const []}) =>
-    OcptResourcesSnapshot.build(people: people, roles: roles, locations: const [], elements: const [], scenes: const []);
+    OcptResourcesSnapshot.build(people: people, roles: roles, locations: const [], elements: const [], candidatesByRoleId: const {}, scenes: const []);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

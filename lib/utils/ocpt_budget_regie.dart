@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// (`OcptSchedulePlanSnapshot`'s own days and slots), the unit prices from the project settings,
 /// and each traveller's own distance and rate from their own sheet (`people.commuteKmMilli`,
 /// `people.mileageRateId`) — this file only ever crosses figures that already live somewhere else,
-/// exactly as ADR 0025 argues for the whole mode.
+/// exactly as ADR 0026 argues for the whole mode.
 
 /// How many legs a return trip is made of — one out, one back — what turns a person's own one-way
 /// [OcptBudgetTravelRow.totalKmMilli] into the distance the production actually reimburses.

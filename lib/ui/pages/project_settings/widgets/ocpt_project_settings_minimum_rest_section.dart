@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_minimum_rest.dart';
 
-/// The project settings page's "Minimum rest between two shooting days" section card: a single
+/// The project settings page's "Minimum rest between two days" section card: a single
 /// field, typed **in hours** — the unit a production says a turnaround in — and stored in minutes
 /// by [ocptMinimumRestMinutesOf], which is the unit `project_info.minimumRestMinutes` and every
 /// rest computation already work in. Half hours are typed as such, with either decimal separator:

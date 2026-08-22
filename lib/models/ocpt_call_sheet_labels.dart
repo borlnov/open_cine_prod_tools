@@ -105,6 +105,20 @@ class OcptCallSheetLabels extends Equatable {
   /// and as the `HORAIRES PAT :` band line alike.
   final String patLabel;
 
+  /// The label printed in place of [patLabel] when a band covers **no filming at all** — a day of
+  /// auditions or of rehearsals, or a candidate's own hours on a day that shoots beside them.
+  ///
+  /// *Prêt à tourner* is the hour a performer must be costumed, made up and on set, ready for a
+  /// take; it presupposes a take. Nothing in the trade stretches the word to mean "on site", so a
+  /// band read off auditions and rehearsals alone says *presence* instead — see
+  /// `OcptShootingBlockKind.isFilming` and `OcptDayConvocation.isPatBand`.
+  final String presenceLabel;
+
+  /// [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the one
+  /// place that choice is written, so a named sheet's own band line, the day's own time band and the
+  /// cast table's own column header can never name the same kind of band differently.
+  String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
+
   /// The header of a person's arrival figure — the cast table's own `ARRIVÉE` column, and a named
   /// sheet's own band line.
   final String arrivalHeader;
@@ -179,6 +193,19 @@ class OcptCallSheetLabels extends Equatable {
   /// inspector's own section already carry on screen, so a printed sheet cannot name it differently.
   final String eventsSectionTitle;
 
+  /// The heading of the day's own audition table (`HORAIRES / RÔLE / CANDIDAT`) — printed only on a
+  /// day whose own blocks hold an audition, beside (never instead of) the main table the day's shots
+  /// print.
+  final String auditionsSectionTitle;
+
+  /// The audition table's `CANDIDAT` column header — who is being seen at that hour, for that part.
+  final String candidateHeader;
+
+  /// The heading of the day's own candidates list (`NOM / RÔLE / TEL. / MAIL / HORAIRES`) — the
+  /// same word the `Convocations` dock panel's own candidates group already carries, so a printed
+  /// sheet cannot name them differently from the screen they were convoked on.
+  final String candidatesSectionTitle;
+
   /// The heading of the day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — the same word
   /// the `Convocations` dock panel's own trailing guest group already carries, a guest being on the
   /// day and owed an hour without being part of the call an assistant director reads down.
@@ -212,6 +239,7 @@ class OcptCallSheetLabels extends Equatable {
     required this.crewPositionLabels,
     required this.hoursLinePrefix,
     required this.patLabel,
+    required this.presenceLabel,
     required this.arrivalHeader,
     required this.departureLabel,
     required this.toBringSectionTitle,
@@ -233,6 +261,9 @@ class OcptCallSheetLabels extends Equatable {
     required this.emptyDayNote,
     required this.unnamedPersonLabel,
     required this.eventsSectionTitle,
+    required this.auditionsSectionTitle,
+    required this.candidateHeader,
+    required this.candidatesSectionTitle,
     required this.guestsSectionTitle,
     required this.guestReasonHeader,
   });
@@ -279,6 +310,7 @@ class OcptCallSheetLabels extends Equatable {
     crewPositionLabels,
     hoursLinePrefix,
     patLabel,
+    presenceLabel,
     arrivalHeader,
     departureLabel,
     toBringSectionTitle,
@@ -300,6 +332,9 @@ class OcptCallSheetLabels extends Equatable {
     emptyDayNote,
     unnamedPersonLabel,
     eventsSectionTitle,
+    auditionsSectionTitle,
+    candidateHeader,
+    candidatesSectionTitle,
     guestsSectionTitle,
     guestReasonHeader,
   ];

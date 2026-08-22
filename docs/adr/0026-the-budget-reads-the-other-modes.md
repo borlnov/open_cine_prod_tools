@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 0025 - The budget reads the other modes, it does not copy them
+# 0026 - The budget reads the other modes, it does not copy them
 
 ## Status
 

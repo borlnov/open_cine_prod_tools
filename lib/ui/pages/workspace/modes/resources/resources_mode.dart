@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
@@ -378,6 +379,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       people: state.people,
       selectedPersonId: state.selectedPersonId,
       roles: state.roles,
+      candidatesByRoleId: state.snapshot?.candidatesByRoleId ?? const {},
       selectedRoleId: state.selectedRoleId,
       episodes: episodes,
       locations: state.locations,
@@ -667,6 +669,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       castMember: castMember,
       otherRoles: _otherRolesOf(state, selectedRole, castMember),
       people: state.people,
+      candidates: state.candidatesOfRole(selectedRole.id),
+      candidateNotesValueOf: (candidateId) =>
+          _candidateNotesValueOf(state, selectedRole, candidateId),
       elements: state.elements,
       episodes: episodes,
       removedRoleAlert: state.selectedRoleAlert,
@@ -703,6 +708,31 @@ class _ResourcesViewState extends State<_ResourcesView> {
           bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+      onCandidateAdded: (personId) => bloc.add(
+        OcptResourcesRoleCandidateAddedEvent(roleId: selectedRole.id, personId: personId),
+      ),
+      onCandidateStatusChanged: (candidateId, status) => bloc.add(
+        OcptResourcesRoleCandidateStatusChangedEvent(candidateId: candidateId, status: status),
+      ),
+      onCandidateAuditionDateChanged: (candidateId, auditionedOn) => bloc.add(
+        OcptResourcesRoleCandidateAuditionDateChangedEvent(
+          candidateId: candidateId,
+          auditionedOn: auditionedOn,
+        ),
+      ),
+      onCandidateNotesChanged: (candidateId, rawValue) => bloc.add(
+        OcptResourcesRoleCandidateFieldChangedEvent(
+          candidateId: candidateId,
+          field: OcptRoleCandidateField.notes,
+          rawValue: rawValue,
+        ),
+      ),
+      onCandidateRemoveRequested: (candidateId) => _handleDeleteRequested(
+        context,
+        title: tr.resourcesRemoveCandidateConfirmTitle,
+        message: tr.resourcesRemoveCandidateConfirmMessage,
+        event: OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId),
+      ),
       onElementLinked: (elementId) => bloc.add(
         OcptResourcesElementLinkedToRoleEvent(roleId: selectedRole.id, elementId: elementId),
       ),
@@ -1137,6 +1167,25 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptRoleField.name => role.name,
       OcptRoleField.castingNotes => role.castingNotes,
     };
+  }
+
+  /// Candidacy [candidateId]'s current note: a pending edit still sitting in the bloc's debounce
+  /// takes priority over the candidacy's own stored value, so typing is never overwritten by an
+  /// unrelated reload. Mirrors [_roleFieldValueOf], one level down — a candidacy rather than a
+  /// role.
+  String _candidateNotesValueOf(OcptResourcesState state, OcptRole role, String candidateId) {
+    final pending = state.pendingCandidateFieldEdits[(candidateId, OcptRoleCandidateField.notes)];
+    if (pending != null) {
+      return pending;
+    }
+
+    for (final candidate in state.candidatesOfRole(role.id)) {
+      if (candidate.id == candidateId) {
+        return candidate.notes;
+      }
+    }
+
+    return "";
   }
 
   /// Builds the right dock, the shell's `rightPanel`, or null while the dock is closed.

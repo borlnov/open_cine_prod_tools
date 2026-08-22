@@ -398,7 +398,7 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Creates a project at [filePath] and hands it back as the previous build would have left
-    /// it: the version 23 step's additions taken back out, and the format number with them.
+    /// it: the version 28 step's additions taken back out, and the format number with them.
     ///
     /// The additions really are undone rather than the number merely relabelled, so the migration
     /// the user is about to confirm is one that actually runs.

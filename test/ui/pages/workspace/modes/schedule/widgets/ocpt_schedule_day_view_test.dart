@@ -7,9 +7,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the workspace shell's own centre area.
@@ -35,6 +41,43 @@ OcptShootingDay _buildDay() => OcptShootingDay(
   notes: "",
 );
 
+/// Builds a slot with the few fields these tests read, anchored by its start at 09:00.
+OcptShootingSlot _buildSlot({String id = "slot-1"}) => OcptShootingSlot(
+  id: id,
+  shootingDayId: "day-1",
+  label: "",
+  locationId: null,
+  setId: null,
+  anchorEdge: OcptShootingSlotAnchorEdge.start,
+  anchorMinute: 540,
+  anchorSlotId: null,
+  notes: "",
+  crew: const [],
+  cast: const [],
+  guests: const [],
+);
+
+/// Builds a block with the few fields these tests read.
+OcptShootingDayBlock _buildBlock({
+  required String id,
+  required OcptShootingBlockKind kind,
+  String slotId = "slot-1",
+  String? roleId,
+}) => OcptShootingDayBlock(
+  id: id,
+  shootingDayId: "day-1",
+  slotId: slotId,
+  kind: kind,
+  shotId: null,
+  sceneId: null,
+  candidates: const [],
+  label: "",
+  durationMinutes: 20,
+  anchorMinute: null,
+  notes: "",
+  crewNote: "",
+);
+
 /// Builds a day event with the few fields these tests read, everything else neutral.
 OcptShootingDayEvent _buildEvent() => const OcptShootingDayEvent(
   id: "event-1",
@@ -44,21 +87,24 @@ OcptShootingDayEvent _buildEvent() => const OcptShootingDayEvent(
   notes: "",
 );
 
-/// Pumps [OcptScheduleDayView] with no slots at all — these tests only exercise the events band,
-/// which is drawn independently of the slot cards — and every writing affordance withheld unless
-/// [onEventAdded] is handed in.
+/// Pumps [OcptScheduleDayView] with no slot at all unless a test hands one in — most of these
+/// tests exercise the events band, which is drawn independently of the slot cards — and every
+/// writing affordance withheld unless [onEventAdded] is handed in.
 Future<void> _pumpDayView(
   WidgetTester tester, {
   List<OcptShootingDayEvent> events = const [],
   VoidCallback? onEventAdded,
+  List<OcptShootingSlot> slots = const [],
+  List<OcptShootingDayBlock> blocks = const [],
+  OcptShootingDayTimelines? timeline,
 }) async {
   await tester.pumpWidget(
     _wrapInApp(
       OcptScheduleDayView(
         day: _buildDay(),
-        slots: const [],
-        blocks: const [],
-        timeline: null,
+        slots: slots,
+        blocks: blocks,
+        timeline: timeline,
         dayArrivalMinute: null,
         sunTimes: null,
         alerts: const [],
@@ -98,6 +144,8 @@ Future<void> _pumpDayView(
         onBlockAnchorChanged: null,
         onShotStatusChanged: null,
         onBlockSequenceChanged: null,
+        onBlockCandidateAdded: null,
+        onBlockCandidateRemoved: null,
         onBlockDeletionRequested: null,
         onBlockAdded: null,
         onShotBlockRequested: null,
@@ -111,6 +159,7 @@ Future<void> _pumpDayView(
         onEventLabelChanged: onEventAdded == null ? null : (_, _) {},
         onEventNotesChanged: onEventAdded == null ? null : (_, _) {},
         onEventDeletionRequested: onEventAdded == null ? null : (_) {},
+        roleCandidateById: const {},
       ),
     ),
   );
@@ -147,5 +196,20 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptScheduleDayView)));
     expect(find.text(tr.scheduleDayEventsSectionTitle.toUpperCase()), findsOneWidget);
     expect(find.text(tr.scheduleAddDayEventAction), findsOneWidget);
+  });
+
+  testWidgets("a slot holding an audition draws its ordinary card", (tester) async {
+    // There is one way to read a slot, whatever its blocks: the compact single-audition row this
+    // once had answered a cost — one candidate, one slot — that convoking candidates on the slot
+    // itself made vanish.
+    await _pumpDayView(
+      tester,
+      slots: [_buildSlot()],
+      blocks: [
+        _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition, roleId: "role-1"),
+      ],
+    );
+
+    expect(find.byType(OcptScheduleSlotCard), findsOneWidget);
   });
 }

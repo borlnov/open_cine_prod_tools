@@ -216,9 +216,9 @@ are all here, and this file is the whole record of them.
   `project_info` gains three nullable columns read the same way `minimumRestMinutes` already is —
   null means "nobody has recorded a figure," never a claim about the figure's absence:
   `defaultVatRateBasisPoints`, `mealPriceCents` and `snackPriceCents`, the last two read by no view
-  before M3's catering pass. This is schema **v20**. `OcptProjectVersionCodec` gains both tables and
+  before M3's catering pass. This is schema **v25**. `OcptProjectVersionCodec` gains both tables and
   the three columns in all three of its required places — the payload, `contentDigest` and
-  `_applyPayload` — under **payload format 16**, whose upgrade from every earlier format
+  `_applyPayload` — under **payload format 21**, whose upgrade from every earlier format
   **materialises** `budgetPostes` and `budgetLines` as empty lists and the three project columns as
   null: a version sealed before this milestone existed truthfully had no budget at all, so restoring
   it tombstones every poste and line added since, exactly the same reading a restore already gives a
@@ -229,12 +229,12 @@ are all here, and this file is the whole record of them.
   `posteId` — a commitment is always a cost against the quote — the money triple, `status` and a
   nullable `settledEntryId` referencing `budget_entries`). `assets` gains one column,
   `budgetEntryId`, and one kind, `OcptAssetKind.receipt`, for a voucher file — see "The voucher"
-  below. This is schema **v21**. `OcptProjectVersionCodec`
+  below. This is schema **v26**. `OcptProjectVersionCodec`
   gains both tables and the `assets` column in all three of its required places under **payload
-  format 17**, whose upgrade from format 16 **materialises** `budgetEntries` and `budgetCommitments`
+  format 22**, whose upgrade from format 21 **materialises** `budgetEntries` and `budgetCommitments`
   as empty lists and every `assets` row's `budgetEntryId` as null — a version sealed before the
   journal existed truthfully had no entry and no commitment, and no asset could yet reference one
-  that didn't exist, exactly the reading format 16's own upgrade already gives the tables it
+  that didn't exist, exactly the reading format 21's own upgrade already gives the tables it
   materialises.
   Two last synchronised tables complete the plan: `budget_resources` (`groupKind` — a subsidy, a
   cash contribution or a contribution in kind — `label`, `amountCents`, `status`, `isReimbursable`
@@ -249,12 +249,12 @@ are all here, and this file is the whole record of them.
   commute says roughly where somebody lives, so both are nulled by every one of the three erasure
   paths a person's row travels (`ocpt_erased_person_scrub.dart`, `OcptPeopleService`'s own live
   erasure, and `OcptProjectVersionsService`'s own on a restored payload), beside
-  `maxDailyPresenceMinutes`. This is schema **v22**. `OcptProjectVersionCodec` gains both tables and
-  all three columns in all three of its required places under **payload format 18**, whose upgrade
-  from format 17 **materialises** `budgetResources` and `budgetMileageRates` as empty lists and every
+  `maxDailyPresenceMinutes`. This is schema **v27**. `OcptProjectVersionCodec` gains both tables and
+  all three columns in all three of its required places under **payload format 23**, whose upgrade
+  from format 22 **materialises** `budgetResources` and `budgetMileageRates` as empty lists and every
   `budget_entries.resourceId`, `people.commuteKmMilli` and `people.mileageRateId` as null — a version
   sealed before the financing plan existed truthfully named no resource and no rate, and no entry
-  could name a resource that did not exist, exactly the reading format 17's own upgrade already
+  could name a resource that did not exist, exactly the reading format 22's own upgrade already
   gives what it materialises.
   Two last synchronised tables close the mode: `budget_revenues` (`date`, `label`, `amountCents`,
   `status`, `notes`) and `budget_shares` (a nullable `personId`, `label`, `sharePermille`,
@@ -264,12 +264,12 @@ are all here, and this file is the whole record of them.
   `1000`**: a sharing plan still being negotiated legitimately does not add up yet, and refusing the
   write over it would make the app unusable while the plan is being built. `budget_entries` gains
   the last two nullable foreign keys it was ever going to gain, `revenueId` and `shareId`, added
-  with `Migrator.addColumn` exactly the way `resourceId` was. This is schema **v23**.
+  with `Migrator.addColumn` exactly the way `resourceId` was. This is schema **v28**.
   `OcptProjectVersionCodec` gains both tables and both columns in all three of its required places
-  under **payload format 19**, whose upgrade from format 18 **materialises** `budgetRevenues` and
+  under **payload format 24**, whose upgrade from format 23 **materialises** `budgetRevenues` and
   `budgetShares` as empty lists and every `budget_entries.revenueId` and `.shareId` as null — a
   version sealed before the sharing existed truthfully named no taking and no participant, exactly
-  the reading format 18's own upgrade already gives what it materialises.
+  the reading format 23's own upgrade already gives what it materialises.
 
 ## The mode's own shape
 

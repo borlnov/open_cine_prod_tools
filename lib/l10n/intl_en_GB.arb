@@ -4290,6 +4290,168 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesRoleCandidatesCardTitle": "Candidates",
+  "@resourcesRoleCandidatesCardTitle": {
+    "description": "Title of the card holding the people seen for a role",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNoCandidateHint": "Nobody recorded yet.",
+  "@resourcesRoleNoCandidateHint": {
+    "description": "Hint shown in the candidates card while a role has no candidate yet",
+    "context": "Displayed in the resources mode's role sheet, on the candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddCandidateToRoleAction": "+ Candidate",
+  "@resourcesAddCandidateToRoleAction": {
+    "description": "Action opening the person picker adding a candidate to a role",
+    "context": "Displayed in the resources mode's role sheet, on the candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusSpotted": "Spotted",
+  "@resourcesRoleCandidateStatusSpotted": {
+    "description": "Label of a candidate whose application has arrived, or who was contacted, with nothing decided yet",
+    "context": "Displayed on the role sheet's Candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusToMeet": "To meet",
+  "@resourcesRoleCandidateStatusToMeet": {
+    "description": "Label of a candidate whose application was read and who is going to be met at a casting session",
+    "context": "Displayed on the role sheet's Candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusSeen": "Seen",
+  "@resourcesRoleCandidateStatusSeen": {
+    "description": "Label of the seen candidate status: this person was seen for the part, nothing more has been said yet",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusShortlisted": "Shortlisted",
+  "@resourcesRoleCandidateStatusShortlisted": {
+    "description": "Label of the shortlisted candidate status: this person is still being thought about for the part",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusRetained": "Retained",
+  "@resourcesRoleCandidateStatusRetained": {
+    "description": "Label of the retained candidate status: this person is the one cast in the part",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusNotRetained": "Not retained",
+  "@resourcesRoleCandidateStatusNotRetained": {
+    "description": "Label of a candidate the production has decided not to take — its own answer, unlike Declined",
+    "context": "Displayed on the role sheet's Candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusDeclined": "Declined",
+  "@resourcesRoleCandidateStatusDeclined": {
+    "description": "Label of the declined candidate status: this person turned the part down",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusUnavailable": "Unavailable",
+  "@resourcesRoleCandidateStatusUnavailable": {
+    "description": "Label of the unavailable candidate status: this person cannot take the part",
+    "context": "Displayed in the resources mode's candidates card and its status menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateStatusMenuLabel": "Status",
+  "@resourcesRoleCandidateStatusMenuLabel": {
+    "description": "Label of the menu picking a candidate's status",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateAuditionDateLabel": "Seen on",
+  "@resourcesRoleCandidateAuditionDateLabel": {
+    "description": "Label of a candidate's audition date picker",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateNotesLabel": "Note",
+  "@resourcesRoleCandidateNotesLabel": {
+    "description": "Label of a candidate's free-text note field",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCandidateActionsTooltip": "Candidate actions",
+  "@resourcesRoleCandidateActionsTooltip": {
+    "description": "Tooltip of a candidate row's ⋮ menu button",
+    "context": "Displayed in the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveCandidateAction": "Remove this candidate",
+  "@resourcesRemoveCandidateAction": {
+    "description": "Action opening the candidate removal confirmation dialog",
+    "context": "Displayed in a candidate row's ⋮ menu of the resources mode's candidates card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveCandidateConfirmTitle": "Remove this candidate?",
+  "@resourcesRemoveCandidateConfirmTitle": {
+    "description": "Title of the dialog confirming a candidate's removal",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveCandidateConfirmMessage": "What was written about them for this part is removed with them. Their own record stays in the address book.",
+  "@resourcesRemoveCandidateConfirmMessage": {
+    "description": "Message of the dialog confirming a candidate's removal",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesListCastPill": "Cast",
+  "@resourcesRolesListCastPill": {
+    "description": "Pill shown on a cast role's row",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesListCandidatesPill": "{count, plural, one{{count} lead} other{{count} leads}}",
+  "@resourcesRolesListCandidatesPill": {
+    "description": "Pill shown on an uncast role's row while candidates are still leads, naming how many are still in the running — the counterpart of the No lead pill",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesRolesListNoLeadPill": "No lead",
+  "@resourcesRolesListNoLeadPill": {
+    "description": "Pill shown on an uncast role whose candidates have all been turned down, declined or are unavailable",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesStatsRolesCast": "{count, plural, one{{count} cast} other{{count} cast}}",
+  "@resourcesStatsRolesCast": {
+    "description": "Number of cast roles, the second half of the roles tab header's `N roles · M cast`",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resourcesLocationsEmptyHint": "No location yet. Add the first place the film is shot in.",
   "@resourcesLocationsEmptyHint": {
     "description": "Hint shown in place of the locations list while the project has none",
@@ -6029,7 +6191,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectSettingsMinimumRestSectionTitle": "Minimum rest between two shooting days",
+  "projectSettingsMinimumRestSectionTitle": "Minimum rest between two days",
   "@projectSettingsMinimumRestSectionTitle": {
     "description": "Title of the project settings page's minimum rest section",
     "context": "Displayed at the top of the minimum rest section card on the project settings page",
@@ -6117,7 +6279,7 @@
       }
     }
   },
-  "projectSettingsDeleteEpisodeConfirmMessage": "This permanently deletes its screenplay, its snapshots, its scenes, its shots and their scenario coverage, and its breakdown, along with the cast links naming it. The people, the locations, the elements and the shooting days are left untouched — they were never this episode's alone. This can't be undone.",
+  "projectSettingsDeleteEpisodeConfirmMessage": "This permanently deletes its screenplay, its snapshots, its scenes, its shots and their scenario coverage, and its breakdown, along with the cast links naming it. The people, the locations, the elements and the days are left untouched — they were never this episode's alone. This can't be undone.",
   "@projectSettingsDeleteEpisodeConfirmMessage": {
     "description": "Message of the confirmation dialog before deleting an episode, stating what it takes and what it leaves",
     "context": "Displayed in a confirmation dialog opened from the project settings page",
@@ -7307,7 +7469,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleAgendaEmptyHint": "No shooting day has been created yet.",
+  "scheduleAgendaEmptyHint": "No day has been created yet.",
   "@scheduleAgendaEmptyHint": {
     "description": "Shown in the strip agenda when the schedule has no day at all",
     "context": "Displayed in the schedule mode's centre area",
@@ -7412,14 +7574,28 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleDaysPanelTitle": "Shooting days",
+  "scheduleBlockKindAudition": "Audition",
+  "@scheduleBlockKindAudition": {
+    "description": "Label of an audition block: one candidate seen for one part",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindRehearsal": "Rehearsal",
+  "@scheduleBlockKindRehearsal": {
+    "description": "Label of a rehearsal block: a sequence worked with the cast",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaysPanelTitle": "Days",
   "@scheduleDaysPanelTitle": {
     "description": "Title of the schedule mode's left dock day list",
     "context": "Displayed in the schedule mode's left dock",
     "type": "text",
     "placeholders": {}
   },
-  "scheduleDaysEmptyHint": "No shooting day has been created yet.",
+  "scheduleDaysEmptyHint": "No day has been created yet.",
   "@scheduleDaysEmptyHint": {
     "description": "Shown in the left dock's day list when the schedule has no day at all",
     "context": "Displayed in the schedule mode's left dock",
@@ -8444,6 +8620,51 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleConvocationsCandidatesSectionTitle": "Candidates",
+  "@scheduleConvocationsCandidatesSectionTitle": {
+    "description": "Heading of the convocations panel's own trailing group of candidates convoked on the day",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAuditionNoCandidateHint": "Nobody named yet",
+  "@scheduleAuditionNoCandidateHint": {
+    "description": "Read out beside an audition row's candidate picker while that block names no candidacy at all",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddAuditionCandidateAction": "Candidate",
+  "@scheduleAddAuditionCandidateAction": {
+    "description": "Label and tooltip of the picker adding a candidacy to the audition block that sees them",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveAuditionCandidateTooltip": "Remove from this audition",
+  "@scheduleRemoveAuditionCandidateTooltip": {
+    "description": "Tooltip of the control removing one candidacy from the audition block naming it",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAuditionCandidateAlreadyNamedHint": "Every candidate of this project is already seen at this audition.",
+  "@scheduleAuditionCandidateAlreadyNamedHint": {
+    "description": "Shown in an audition row's candidate picker when the block already names every candidacy the project holds",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAuditionBlockLabel": "{candidateName} — {roleName}",
+  "@scheduleAuditionBlockLabel": {
+    "description": "Title of an audition block's own timetable row: who is seen, and for which part",
+    "context": "Displayed in the schedule mode's day view",
+    "type": "text",
+    "placeholders": {
+      "candidateName": {"type": "String", "example": "Camille Renard"},
+      "roleName": {"type": "String", "example": "MARIE"}
+    }
+  },
   "scheduleExportPanelTitle": "Export the schedule",
   "@scheduleExportPanelTitle": {
     "description": "Title of the schedule mode's export panel",
@@ -9054,6 +9275,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportPresenceLabel": "PRESENCE",
+  "@scheduleExportPresenceLabel": {
+    "description": "Label printed in place of PAT when the band covers no filming at all — a day of auditions or of rehearsals — since \"ready to shoot\" presupposes a take",
+    "context": "Printed on every exported call sheet whose band covers no filming",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportArrivalHeader": "ARRIVAL",
   "@scheduleExportArrivalHeader": {
     "description": "Header of a person's arrival figure on a call sheet, printed as a table column header and as a named sheet's own band line",
@@ -9184,6 +9412,20 @@
   "@scheduleExportGuestReasonHeader": {
     "description": "Header of a call sheet's own trailing guest table reason column, joined from that guest's own shooting_slot_guests rows",
     "context": "Printed on every exported call sheet that carries a guest",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportAuditionsSectionTitle": "Auditions",
+  "@scheduleExportAuditionsSectionTitle": {
+    "description": "Heading of a call sheet's own audition table, printed on a day whose blocks hold an audition",
+    "context": "Printed on every exported call sheet whose day auditions somebody",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCandidateHeader": "Candidate",
+  "@scheduleExportCandidateHeader": {
+    "description": "Header of the CANDIDAT column of a call sheet's own audition table, naming who is seen at that hour",
+    "context": "Printed on every exported call sheet whose day auditions somebody",
     "type": "text",
     "placeholders": {}
   },
@@ -9478,7 +9720,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "schedulePositionsMatrixLegend": "One column per slot, grouped by shooting day, with its computed hours. A position dropped mid-day is read in the Alerts panel.",
+  "schedulePositionsMatrixLegend": "One column per slot, grouped by day, with its computed hours. A position dropped mid-day is read in the Alerts panel.",
   "@schedulePositionsMatrixLegend": {
     "description": "Caption explaining how the positions matrix is read, and where a lost position is reported",
     "context": "Displayed above the schedule mode's positions view",
@@ -9799,7 +10041,7 @@
       }
     }
   },
-  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since their previous shooting day, short of the recorded minimum of {minimumDuration}.",
+  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since their previous day, short of the recorded minimum of {minimumDuration}.",
   "@scheduleAlertRestTimeSentence": {
     "description": "Body sentence of a rest-time alert card (rule 9)",
     "context": "Displayed in the schedule mode's Alerts dock tab",

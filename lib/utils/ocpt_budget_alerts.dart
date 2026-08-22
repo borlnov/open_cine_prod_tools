@@ -131,7 +131,7 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
 }
 
 /// Computes the budget dashboard's own two alerts over [postes] and [commitments] — **both
-/// computed, neither configured** (ADR 0026): nothing here advances a
+/// computed, neither configured** (ADR 0027): nothing here advances a
 /// figure nobody in the project actually entered.
 ///
 /// A poste over its quote is read straight off [ocptBudgetPosteStrainOf] and

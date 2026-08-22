@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -87,6 +88,11 @@ class OcptScheduleDayView extends StatelessWidget {
 
   /// The whole cast, keyed by id.
   final Map<String, OcptRole> roleById;
+
+  /// Every live candidacy of the project, keyed by id — handed straight to every
+  /// [OcptScheduleSlotCard], which is where an audition row's own chips and picker read a person
+  /// and a part off one.
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// The whole address book, in display order.
   final List<OcptPerson> people;
@@ -211,6 +217,14 @@ class OcptScheduleDayView extends StatelessWidget {
   /// sequence picker, or null while withheld — see `OcptScheduleTimetable.onHoldSequenceChanged`.
   final void Function(String blockId, String? sceneId)? onBlockSequenceChanged;
 
+  /// Called with an **audition** block's id and the id of the candidacy just picked from its own
+  /// row's `+` picker, or null while withheld — see [OcptScheduleSlotCard.onBlockCandidateAdded].
+  final void Function(String blockId, String roleCandidateId)? onBlockCandidateAdded;
+
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
+  /// while withheld — see [OcptScheduleSlotCard.onBlockCandidateRemoved].
+  final ValueChanged<String>? onBlockCandidateRemoved;
+
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onBlockDeletionRequested;
 
@@ -276,6 +290,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.locations,
     required this.personById,
     required this.roleById,
+    required this.roleCandidateById,
     required this.people,
     required this.roles,
     required this.shotOf,
@@ -307,6 +322,8 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onBlockAnchorChanged,
     required this.onShotStatusChanged,
     required this.onBlockSequenceChanged,
+    required this.onBlockCandidateAdded,
+    required this.onBlockCandidateRemoved,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
     required this.onShotBlockRequested,
@@ -340,6 +357,7 @@ class OcptScheduleDayView extends StatelessWidget {
               locations: locations,
               personById: personById,
               roleById: roleById,
+              roleCandidateById: roleCandidateById,
               people: people,
               roles: roles.where((role) => !slot.cast.any((cast) => cast.roleId == role.id)).toList(),
               labelValue: slotLabelValueOf(slot.id),
@@ -401,6 +419,8 @@ class OcptScheduleDayView extends StatelessWidget {
               onBlockAnchorChanged: onBlockAnchorChanged,
               onShotStatusChanged: onShotStatusChanged,
               onBlockSequenceChanged: onBlockSequenceChanged,
+              onBlockCandidateAdded: onBlockCandidateAdded,
+              onBlockCandidateRemoved: onBlockCandidateRemoved,
               onBlockDeletionRequested: onBlockDeletionRequested,
               onBlockAdded: onBlockAdded == null ? null : (kind) => onBlockAdded!(slot.id, kind),
               onShotBlockRequested: onShotBlockRequested == null

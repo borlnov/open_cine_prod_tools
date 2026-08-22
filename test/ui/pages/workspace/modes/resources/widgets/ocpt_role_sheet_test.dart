@@ -11,11 +11,13 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
@@ -127,6 +129,21 @@ OcptElement _element({
   roleLinks: roleLinks,
 );
 
+/// Builds a minimal [OcptRoleCandidate] for these tests.
+OcptRoleCandidate _candidate({
+  required String id,
+  required String roleId,
+  required OcptPerson person,
+  OcptRoleCandidateStatus status = OcptRoleCandidateStatus.seen,
+}) => OcptRoleCandidate(
+  id: id,
+  roleId: roleId,
+  person: person,
+  status: status,
+  auditionedOn: null,
+  notes: "",
+);
+
 /// Finds [text] inside the header alone: the cast member's name and the not-cast placeholder both
 /// appear a second time in the casting card's own picker.
 Finder _inHeader(String text) =>
@@ -150,6 +167,7 @@ Widget _buildSheet({
   OcptPerson? castMember,
   List<OcptRole> otherRoles = const [],
   List<OcptPerson> people = const [],
+  List<OcptRoleCandidate> candidates = const [],
   List<OcptElement> elements = const [],
   List<OcptEpisode> episodes = const [],
   bool isReadOnly = false,
@@ -159,6 +177,11 @@ Widget _buildSheet({
   VoidCallback? onDeleteRequested,
   VoidCallback? onOrphanedRoleKept,
   ValueChanged<String>? onPersonSheetOpenRequested,
+  ValueChanged<String>? onCandidateAdded,
+  void Function(String candidateId, OcptRoleCandidateStatus status)? onCandidateStatusChanged,
+  void Function(String candidateId, DateTime? auditionedOn)? onCandidateAuditionDateChanged,
+  void Function(String candidateId, String rawValue)? onCandidateNotesChanged,
+  ValueChanged<String>? onCandidateRemoveRequested,
   ValueChanged<String>? onElementLinked,
   void Function(String id, String notes)? onRoleElementUpdated,
   ValueChanged<String>? onRoleElementRemoved,
@@ -169,6 +192,8 @@ Widget _buildSheet({
     castMember: castMember,
     otherRoles: otherRoles,
     people: people,
+    candidates: candidates,
+    candidateNotesValueOf: (candidateId) => "",
     elements: elements,
     episodes: episodes,
     removedRoleAlert: OcptRemovedRoleAlert.of(role),
@@ -183,6 +208,11 @@ Widget _buildSheet({
     onDeleteRequested: onDeleteRequested ?? () {},
     onOrphanedRoleKept: onOrphanedRoleKept ?? () {},
     onPersonSheetOpenRequested: onPersonSheetOpenRequested ?? (personId) {},
+    onCandidateAdded: onCandidateAdded ?? (personId) {},
+    onCandidateStatusChanged: onCandidateStatusChanged ?? (candidateId, status) {},
+    onCandidateAuditionDateChanged: onCandidateAuditionDateChanged ?? (candidateId, auditionedOn) {},
+    onCandidateNotesChanged: onCandidateNotesChanged ?? (candidateId, rawValue) {},
+    onCandidateRemoveRequested: onCandidateRemoveRequested ?? (candidateId) {},
     onElementLinked: onElementLinked ?? (elementId) {},
     onRoleElementUpdated: onRoleElementUpdated ?? (id, notes) {},
     onRoleElementRemoved: onRoleElementRemoved ?? (id) {},
@@ -698,5 +728,46 @@ void main() {
     for (final chip in chips) {
       expect(chip.onSelected, isNull);
     }
+  });
+
+  testWidgets("the candidates card sits between the casting and the episodes cards", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(episodeIds: const ["ep-1"]),
+        candidates: [
+          _candidate(id: "c1", roleId: "r1", person: _person(id: "p1", firstName: "Léa")),
+        ],
+        episodes: _episodes,
+        elements: [
+          _element(
+            id: "e1",
+            name: "Manteau rouge",
+            category: OcptElementCategory.costume,
+            roleLinks: const [OcptRoleElementLink(id: "l1", roleId: "r1", notes: "")],
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    expect(find.text(tr.resourcesRoleCandidatesCardTitle), findsOneWidget);
+    expect(find.text("Léa"), findsOneWidget);
+
+    double yOf(String text) => tester.getTopLeft(find.text(text)).dy;
+    expect(
+      yOf(tr.resourcesRoleCastingCardTitle),
+      lessThan(yOf(tr.resourcesRoleCandidatesCardTitle)),
+    );
+    expect(
+      yOf(tr.resourcesRoleCandidatesCardTitle),
+      lessThan(yOf(tr.resourcesRoleEpisodesCardTitle)),
+    );
+    expect(
+      yOf(tr.resourcesRoleEpisodesCardTitle),
+      lessThan(yOf(tr.resourcesRoleElementsCardTitle)),
+    );
   });
 }

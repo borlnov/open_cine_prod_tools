@@ -8,10 +8,12 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_avatar.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_role_casting_progress.dart';
 
 /// The separator joining the names of the other roles a cast member holds, in
 /// [_OcptRoleEntry]'s own muted line.
@@ -84,6 +86,10 @@ Iterable<String> _searchFieldsOf(Tr tr, OcptRole role, OcptPerson? castMember) =
 /// A role the screenplay no longer speaks carries a marker beside its name: its own sheet is where
 /// the alert and the two ways out of it live, so this list is what says which sheet to go and read.
 ///
+/// The name line also wears a text pill, read off `OcptRoleCastingProgress` — `Cast` while the role
+/// is cast, `{n} seen` while candidates are in progress, nothing at all otherwise — see
+/// [_OcptRoleCastingPill], the one place that reading is drawn.
+///
 /// Selecting a row only selects it (`OcptResourcesRoleSelectedEvent`), which is what the mode
 /// builds `OcptRoleSheet` from; there is no sheet or dialog of its own to open from here.
 class OcptRolesList extends StatelessWidget {
@@ -92,6 +98,10 @@ class OcptRolesList extends StatelessWidget {
 
   /// The whole address book, used to resolve a role's cast member and their other roles.
   final List<OcptPerson> people;
+
+  /// Every live candidacy of the project, grouped by `roleId` — what a row's own pill is read out
+  /// of, see [OcptRoleCastingProgress].
+  final Map<String, List<OcptRoleCandidate>> candidatesByRoleId;
 
   /// Every episode of the project, in display order — what a row's own episodes line is read out
   /// of, see the class doc comment.
@@ -112,6 +122,7 @@ class OcptRolesList extends StatelessWidget {
     super.key,
     required this.roles,
     required this.people,
+    required this.candidatesByRoleId,
     required this.episodes,
     required this.selectedRoleId,
     required this.searchQuery,
@@ -148,6 +159,10 @@ class OcptRolesList extends StatelessWidget {
           castMember: castMember,
           otherRoleNames: otherRoleNames,
           episodeNumbers: _episodeNumbersOf(episodes, role),
+          progress: OcptRoleCastingProgress.of(
+            role: role,
+            candidates: candidatesByRoleId[role.id] ?? const [],
+          ),
           isSelected: role.id == selectedRoleId,
           onTap: () => onRoleSelected(role.id),
         );
@@ -189,6 +204,10 @@ class _OcptRoleEntry extends StatelessWidget {
   /// show — see [_episodeNumbersOf].
   final List<int> episodeNumbers;
 
+  /// Where this role's casting stands — the row's own pill is read out of it, see
+  /// [_OcptRoleCastingPill].
+  final OcptRoleCastingProgress progress;
+
   /// Whether this role is the selected one.
   final bool isSelected;
 
@@ -201,6 +220,7 @@ class _OcptRoleEntry extends StatelessWidget {
     required this.castMember,
     required this.otherRoleNames,
     required this.episodeNumbers,
+    required this.progress,
     required this.isSelected,
     required this.onTap,
   });
@@ -257,6 +277,10 @@ class _OcptRoleEntry extends StatelessWidget {
                             ),
                           ),
                         ],
+                        if (progress.stage != OcptRoleCastingStage.notStarted) ...[
+                          const SizedBox(width: 6),
+                          _OcptRoleCastingPill(progress: progress),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 2),
@@ -303,6 +327,62 @@ class _OcptRoleEntry extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A row's own text pill, reading [OcptRoleCastingProgress]: `Cast` in the accent colour while the
+/// role is cast, `{n} leads` in a muted tint while candidates are still in the running, and `No
+/// lead` in the **error** colour once every candidacy has stopped — never drawn for
+/// [OcptRoleCastingStage.notStarted], see [_OcptRoleEntry.build].
+///
+/// The error colour on [OcptRoleCastingStage.exhausted] is deliberate and is the only place this
+/// list raises its voice: a part everybody has turned down looks, on every other line of the row,
+/// exactly like a part nobody has started, and it is the opposite of it.
+///
+/// A text pill rather than a coloured dot, the developer's own pick: it has to read without
+/// hovering, which a dot never does on its own.
+class _OcptRoleCastingPill extends StatelessWidget {
+  /// The progress this pill reads.
+  final OcptRoleCastingProgress progress;
+
+  /// Class constructor
+  const _OcptRoleCastingPill({required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final color = switch (progress.stage) {
+      OcptRoleCastingStage.cast => theme.colorScheme.primary,
+      OcptRoleCastingStage.inProgress => theme.colorScheme.tertiary,
+      OcptRoleCastingStage.exhausted => theme.colorScheme.error,
+      OcptRoleCastingStage.notStarted => theme.colorScheme.onSurfaceVariant,
+    };
+    final label = switch (progress.stage) {
+      OcptRoleCastingStage.cast => tr.resourcesRolesListCastPill,
+      OcptRoleCastingStage.inProgress => tr.resourcesRolesListCandidatesPill(
+        progress.candidateCount,
+      ),
+      OcptRoleCastingStage.exhausted => tr.resourcesRolesListNoLeadPill,
+      // Never drawn — the caller skips the pill entirely for a role nobody has been recorded on
+      // (see [_OcptRoleEntry.build]) — but a `switch` that answers every stage is what keeps a
+      // later reader from having to prove that again.
+      OcptRoleCastingStage.notStarted => "",
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }

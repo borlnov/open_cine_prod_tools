@@ -837,12 +837,12 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Turns the project file at [filePath] back into the file the previous build would have
-    /// written: the version 23 step's additions taken back out, and the format number with them.
+    /// written: the version 28 step's additions taken back out, and the format number with them.
     ///
-    /// Undoing the step rather than only stamping the number down is what makes this a real
-    /// migration to run — `addColumn` on a column that is already there, and `createTable` on a
-    /// table that already exists, both throw, which is exactly what a file merely relabelled would
-    /// have hidden.
+    /// It removes what the top step added, the revenue sharing's own two tables and the two
+    /// `budget_entries` columns naming them. Undoing the step rather than only stamping the number
+    /// down is what makes this a real migration to run, which is exactly what a file merely
+    /// relabelled would have hidden.
     void demoteToPreviousFormat(String filePath) {
       final database = sqlite3.open(filePath);
       database

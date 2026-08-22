@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 0024 - The budget's money is stored as it was typed
+# 0025 - The budget's money is stored as it was typed
 
 ## Status
 

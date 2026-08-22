@@ -80,10 +80,11 @@ number is a stable identifier other documents and commits can reference.
 | [0021](0021-the-portable-project-package.md) | The portable project package | Accepted |
 | [0022](0022-opening-a-project-file-from-another-build.md) | Opening a project file from another build | Accepted |
 | [0023](0023-foreign-screenplay-import-only.md) | Foreign screenplay import, one way only | Accepted |
-| [0024](0024-the-budget-money-is-stored-as-it-was-typed.md) | The budget's money is stored as it was typed | Accepted |
-| [0025](0025-the-budget-reads-the-other-modes.md) | The budget reads the other modes, it does not copy them | Accepted |
-| [0026](0026-the-budget-states-no-regulatory-figure.md) | The budget states no regulatory figure and asks for no threshold | Accepted |
-| [0027](0027-a-nomenclature-seeded-not-frozen.md) | A nomenclature seeded, not frozen | Accepted |
+| [0024](0024-what-a-day-is-for-is-what-it-holds.md) | What a day is for is what it holds | Accepted |
+| [0025](0025-the-budget-money-is-stored-as-it-was-typed.md) | The budget's money is stored as it was typed | Accepted |
+| [0026](0026-the-budget-reads-the-other-modes.md) | The budget reads the other modes, it does not copy them | Accepted |
+| [0027](0027-the-budget-states-no-regulatory-figure.md) | The budget states no regulatory figure and asks for no threshold | Accepted |
+| [0028](0028-a-nomenclature-seeded-not-frozen.md) | A nomenclature seeded, not frozen | Accepted |
 
 ## Candidates
 

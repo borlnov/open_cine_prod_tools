@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_fil
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -83,11 +84,12 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// locations and elements), the breakdown pass tagging that catalogue against the screenplay, the
 /// shooting schedule, or the project's own spell-check lexicon is delegated to
 /// [screenplayService], [sceneIndexService], [shotListService], [shotCoverageService],
-/// [projectVersionsService], [peopleService], [roleIndexService], [locationsService],
+/// [projectVersionsService], [peopleService], [roleIndexService], [roleCandidatesService],
+/// [locationsService],
 /// [elementsService], [breakdownService], [scheduleService], [assetsService],
 /// [projectDictionaryService], [projectPackageService], [projectFileCompatibilityService],
 /// [budgetQuoteService], [budgetJournalService], [budgetFinancingService] and
-/// [budgetSharingService], the nineteen services this manager owns and wires together (RFL19):
+/// [budgetSharingService], the twenty services this manager owns and wires together (RFL19):
 /// this manager itself is only
 /// responsible for the lifecycle of the project file (create/open/close), for keeping the
 /// properties manager's recent-projects list in sync, and for handing those services the facts
@@ -149,6 +151,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// The service used to reconcile the cast against the screenplay's speaking characters.
   final OcptRoleIndexService roleIndexService;
+
+  /// The service used for CRUD over the people seen for a part, and for the one rule saying which
+  /// of them the part is cast with.
+  final OcptRoleCandidatesService roleCandidatesService;
 
   /// The service used for CRUD over locations and their sets.
   final OcptLocationsService locationsService;
@@ -264,6 +270,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
        ),
        peopleService = const OcptPeopleService(),
        roleIndexService = const OcptRoleIndexService(),
+       roleCandidatesService = const OcptRoleCandidatesService(),
        locationsService = const OcptLocationsService(),
        elementsService = const OcptElementsService(),
        budgetQuoteService = const OcptBudgetQuoteService(),

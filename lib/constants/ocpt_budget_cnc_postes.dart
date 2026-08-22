@@ -48,7 +48,7 @@ class OcptBudgetCncPoste {
 
 /// The ten postes of the CNC nomenclature `OcptBudgetQuoteService` seeds a project's
 /// `budget_postes` table with, on the first read of a table holding no row at all — not at project
-/// creation, so an existing project gets them too (ADR 0027). Seeded, never
+/// creation, so an existing project gets them too (ADR 0028). Seeded, never
 /// frozen: every one of the ten is an ordinary row from the moment it exists, renamed, reordered or
 /// deleted like any other.
 ///

@@ -18,6 +18,8 @@ import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
@@ -620,6 +622,117 @@ class OcptResourcesOrphanedRoleKeptEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, roleId];
+}
+
+/// Records that person [personId] was seen for role [roleId], appended after that role's other
+/// candidates, written immediately: `OcptResourcesPersonPicker`'s own pick, dispatched by the
+/// candidates card's `+ Candidate` action.
+class OcptResourcesRoleCandidateAddedEvent extends OcptResourcesEvent {
+  /// The id of the role the candidate is seen for.
+  final String roleId;
+
+  /// The id of the person now seen for this role.
+  final String personId;
+
+  /// Class constructor
+  const OcptResourcesRoleCandidateAddedEvent({required this.roleId, required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId, personId];
+}
+
+/// Sets candidacy [candidateId]'s status to [status], written immediately.
+///
+/// **The single event behind every status gesture the candidates card offers**, `Retain` and
+/// `Drop` included: retaining a candidate is this event with
+/// [OcptRoleCandidateStatus.retained], and dropping one is this event with
+/// [OcptRoleCandidateStatus.seen]. The rule keeping `roles.personId` in step with the retained
+/// candidacy lives in `OcptRoleCandidatesService.setStatus` alone — a second event could only ever
+/// end up disagreeing with it.
+class OcptResourcesRoleCandidateStatusChangedEvent extends OcptResourcesEvent {
+  /// The id of the candidacy whose status changed.
+  final String candidateId;
+
+  /// The new status.
+  final OcptRoleCandidateStatus status;
+
+  /// Class constructor
+  const OcptResourcesRoleCandidateStatusChangedEvent({
+    required this.candidateId,
+    required this.status,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, candidateId, status];
+}
+
+/// Sets candidacy [candidateId]'s audition date to [auditionedOn] (or clears it, when null),
+/// written immediately: picking a date is a single discrete action, not typing.
+class OcptResourcesRoleCandidateAuditionDateChangedEvent extends OcptResourcesEvent {
+  /// The id of the candidacy whose audition date changed.
+  final String candidateId;
+
+  /// The new date, or null to clear it.
+  final DateTime? auditionedOn;
+
+  /// Class constructor
+  const OcptResourcesRoleCandidateAuditionDateChangedEvent({
+    required this.candidateId,
+    required this.auditionedOn,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, candidateId, auditionedOn];
+}
+
+/// Records the raw text just typed into [field] of candidacy [candidateId], dispatched by the
+/// candidates card on every keystroke.
+///
+/// Rides the same field-edit autosave debounce as `OcptResourcesRoleFieldChangedEvent`: the typed
+/// value becomes visible immediately as a pending edit in
+/// `OcptResourcesState.pendingCandidateFieldEdits`, and (re)starts the debounce that eventually
+/// writes it.
+class OcptResourcesRoleCandidateFieldChangedEvent extends OcptResourcesEvent {
+  /// The id of the candidacy whose field was edited.
+  final String candidateId;
+
+  /// The field edited.
+  final OcptRoleCandidateField field;
+
+  /// The raw text now sitting in the field, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptResourcesRoleCandidateFieldChangedEvent({
+    required this.candidateId,
+    required this.field,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, candidateId, field, rawValue];
+}
+
+/// Requests removing candidacy [candidateId], dispatched once `OcptResourcesDeleteConfirmDialog`
+/// (or its own confirm dialog, opened by the mode) has already confirmed it. Drops any pending
+/// field edit that still targeted it.
+///
+/// **The `people` row it names is never touched** — a person outlives a candidacy — and neither is
+/// any other candidacy of the role.
+class OcptResourcesRoleCandidateRemovedEvent extends OcptResourcesEvent {
+  /// The id of the candidacy to remove.
+  final String candidateId;
+
+  /// Class constructor
+  const OcptResourcesRoleCandidateRemovedEvent({required this.candidateId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, candidateId];
 }
 
 /// Requests opening person [personId]'s sheet, dispatched by the role sheet's dedicated `↗`

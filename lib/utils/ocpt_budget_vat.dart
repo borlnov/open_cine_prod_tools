@@ -214,7 +214,7 @@ String ocptVatRatePercentTextOf(int? basisPoints) {
 /// [lines] is empty, carries no known rate at all, or disagrees about it (either the figure or
 /// whether it is overridden) — what the cost-tracking table's own `Quote` sub-line shows the rate
 /// for, and only then: "only when the poste's lines all share one known rate"
-/// (ADR 0024).
+/// (ADR 0025).
 ///
 /// Equality is [OcptBudgetEffectiveVatRate]'s own (`Equatable`, over both
 /// [OcptBudgetEffectiveVatRate.basisPoints] and [OcptBudgetEffectiveVatRate.isOverridden]): two

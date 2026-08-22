@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
@@ -63,6 +64,7 @@ OcptShootingSlot _buildSlot({
   cast: cast,
   guests: guests,
 );
+
 
 /// Builds a person with the few fields these tests read, everything else neutral.
 OcptPerson _buildPerson({
@@ -134,6 +136,7 @@ OcptShootingDayBlock _buildBlock({required String id, required String slotId, St
       kind: OcptShootingBlockKind.preparation,
       shotId: null,
       sceneId: null,
+      candidates: const [],
       label: label,
       durationMinutes: null,
       anchorMinute: null,
@@ -178,6 +181,7 @@ void main() {
     ValueChanged<String>? onCastRoleAdded,
     ValueChanged<String>? onGuestAdded,
     ValueChanged<String>? onGuestRemoved,
+    Map<String, OcptRoleCandidate> roleCandidateById = const {},
     String Function(String guestId)? guestReasonValueOf,
     void Function(String guestId, String rawValue)? onGuestReasonChanged,
     String Function(String guestId)? guestNotesValueOf,
@@ -215,6 +219,7 @@ void main() {
     locations: const [],
     personById: {(crewPerson ?? person).id: crewPerson ?? person},
     roleById: {role.id: role},
+    roleCandidateById: roleCandidateById,
     people: [crewPerson ?? person],
     roles: [role],
     labelValue: "Matin",
@@ -250,6 +255,8 @@ void main() {
     onBlockAnchorChanged: isReadOnly ? null : (_, _) {},
     onShotStatusChanged: isReadOnly ? null : (_, _) {},
     onBlockSequenceChanged: isReadOnly ? null : (_, _) {},
+    onBlockCandidateAdded: isReadOnly ? null : (_, _) {},
+    onBlockCandidateRemoved: isReadOnly ? null : (_) {},
     onBlockDeletionRequested: isReadOnly ? null : (_) {},
     onBlockAdded: isReadOnly ? null : (onBlockAdded ?? (_) {}),
     onShotBlockRequested: isReadOnly ? null : (onShotBlockRequested ?? () {}),

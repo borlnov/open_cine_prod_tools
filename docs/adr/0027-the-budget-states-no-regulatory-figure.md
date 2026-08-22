@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 0026 - The budget states no regulatory figure and asks for no threshold
+# 0027 - The budget states no regulatory figure and asks for no threshold
 
 ## Status
 
@@ -44,7 +44,7 @@ advancing a legal figure nobody here validated.
   kilometre, because a real scale is quoted to three decimals.
 - **`project_info.defaultVatRateBasisPoints` is null for a new project**, meaning "nobody has
   recorded a rate", and the settings field carries a `No rate` button that puts the null back. An
-  explicit `0 %` remains a value somebody can state, and it does not mean the same thing (ADR 0024).
+  explicit `0 %` remains a value somebody can state, and it does not mean the same thing (ADR 0025).
 - **`mealPriceCents` and `snackPriceCents` are null for a new project** and stay silent rather than
   advancing a figure, exactly as `minimumRestMinutes` does.
 - **There is no cash floor and no threshold of any kind.** `ocptComputeBudgetAlerts`

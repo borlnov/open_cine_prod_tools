@@ -9,7 +9,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// One editable date field of the person sheet (a date of birth, an image rights date): a label
 /// over a themed, tappable box reading the date out (or empty), opening the platform's own date
-/// picker.
+/// picker. `OcptRoleSheetCandidatesCard` uses it too, for a candidacy's own audition date — the
+/// same "pick a date" gesture, whichever sheet asks it.
 ///
 /// Built on [InputDecorator] rather than a real [TextField]: nothing here is ever typed
 /// character by character, so a plain decorated, tappable surface is all a date field needs, and

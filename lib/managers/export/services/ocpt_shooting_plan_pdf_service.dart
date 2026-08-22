@@ -1054,6 +1054,8 @@ class OcptShootingPlanPdfService {
       final caption = ocptScheduleBlockCaptionOf(
         block: block,
         headingBySceneId: headingBySceneId,
+        roleById: plan.roleById,
+        roleCandidateById: plan.roleCandidateById,
         blockKindLabelOf: labels.blockKindLabelOf,
       );
       widgets.add(
@@ -1229,6 +1231,8 @@ class OcptShootingPlanPdfService {
               : ocptScheduleBlockCaptionOf(
                   block: block,
                   headingBySceneId: headingBySceneId,
+                  roleById: plan.roleById,
+                  roleCandidateById: plan.roleCandidateById,
                   blockKindLabelOf: labels.blockKindLabelOf,
                 ),
       };

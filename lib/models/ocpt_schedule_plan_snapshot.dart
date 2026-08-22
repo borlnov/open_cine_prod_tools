@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -84,6 +85,15 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// named call sheet's own "to bring" section ([elementsToBringOnDay]) is read off.
   final List<OcptElement> elements;
 
+  /// Every live candidacy of the project — who was seen for which part — in no particular order,
+  /// as passed to [OcptSchedulePlanSnapshot.build]. What a `shooting_block_candidates` link is
+  /// resolved to a name and a part through ([roleCandidateById]).
+  ///
+  /// Empty on a project that has auditioned nobody, which is most of them: the schedule reads this
+  /// catalogue for the same reason it reads the elements one — one surface needs it — and a
+  /// project with no casting simply joins nothing.
+  final List<OcptRoleCandidate> roleCandidates;
+
   /// `project_info.minimumRestMinutes` verbatim, as passed to [OcptSchedulePlanSnapshot.build] —
   /// null while nobody has recorded one, which [alerts]' own rest-time rule never fires on. Every
   /// call site states it explicitly (a required parameter, not a default) so a forgotten one can
@@ -101,6 +111,12 @@ class OcptSchedulePlanSnapshot extends Equatable {
 
   /// The whole address book, keyed by id.
   final Map<String, OcptPerson> personById;
+
+  /// [roleCandidates], keyed by id — what an `audition` block's own rows resolve their
+  /// `roleCandidateId` through. A row this map no longer holds reads as nothing at all: the
+  /// candidacy has been removed since, and no cascade drops the schedule rows naming it (see
+  /// `OcptShootingBlockCandidatesTable`).
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// [episodes], keyed by id — the same derivation [locationById]/[setById]/[roleById]/[personById]
   /// already make, for the same reason.
@@ -127,18 +143,26 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required this.roles,
     required this.people,
     required this.elements,
+    required this.roleCandidates,
     required this.minimumRestMinutes,
     required this.locationById,
     required this.setById,
     required this.roleById,
     required this.personById,
+    required this.roleCandidateById,
     required this.episodeById,
     required this.shotsById,
   });
 
   /// Builds an [OcptSchedulePlanSnapshot] from [schedule], every live episode's own [shotLists], the
   /// four catalogues and [minimumRestMinutes], deriving [locationById]/[setById]/[roleById]/
-  /// [personById]/[episodeById]/[shotsById] from them once.
+  /// [personById]/[roleCandidateById]/[episodeById]/[shotsById] from them once.
+  ///
+  /// [roleCandidates] is the one parameter carrying a default, and deliberately: every other
+  /// catalogue here is read by something the mode draws on every day of every project, while a
+  /// candidacy is only ever resolved on a day that sees people for a part. A caller with none to
+  /// hand — every export test over an ordinary shoot — passes nothing and joins nothing, and a
+  /// forgotten one costs a candidate's name on a casting day rather than silently disabling a rule.
   ///
   /// [episodes] is a **required** parameter with no default, exactly as [minimumRestMinutes] is and
   /// for the same reason: an empty list is a truthful state (a project whose episodes have not been
@@ -155,6 +179,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required List<OcptPerson> people,
     required List<OcptElement> elements,
     required int? minimumRestMinutes,
+    List<OcptRoleCandidate> roleCandidates = const [],
   }) => OcptSchedulePlanSnapshot(
     schedule: schedule,
     shotLists: shotLists,
@@ -163,6 +188,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     roles: roles,
     people: people,
     elements: elements,
+    roleCandidates: roleCandidates,
     minimumRestMinutes: minimumRestMinutes,
     locationById: Map.unmodifiable({for (final location in locations) location.id: location}),
     setById: Map.unmodifiable({
@@ -171,6 +197,9 @@ class OcptSchedulePlanSnapshot extends Equatable {
     }),
     roleById: Map.unmodifiable({for (final role in roles) role.id: role}),
     personById: Map.unmodifiable({for (final person in people) person.id: person}),
+    roleCandidateById: Map.unmodifiable({
+      for (final candidate in roleCandidates) candidate.id: candidate,
+    }),
     episodeById: Map.unmodifiable({for (final episode in episodes) episode.id: episode}),
     shotsById: Map.unmodifiable({
       for (final shotList in shotLists) ...shotList.shotsById,
@@ -228,13 +257,16 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per uncast
-  /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at all.
+  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person, per uncast role
+  /// and per guest linked to any of its live slots, plus one per candidacy named on any of its live
+  /// audition blocks (ADR 0024), empty while [dayId] names no day with a live slot at all.
   ///
   /// Built by [ocptComputeDayConvocations] over one [OcptConvocationSlot] per live slot
-  /// ([_convocationSlotOf]) — that pure function knows nothing of `shots`, `roles` or the timeline,
-  /// so joining a slot's already-chained blocks ([timelinesOfDay]) onto its own crew and cast rows,
-  /// and resolving a cast role's own actor through [roleById], is this snapshot's job alone.
+  /// ([_convocationSlotOf]) and one [OcptConvocationAudition] per live audition block
+  /// ([_convocationAuditionsOf]) — that pure function knows nothing of `shots`, `roles` or the
+  /// timeline, so joining a slot's already-chained blocks ([timelinesOfDay]) onto its own crew and
+  /// cast rows, resolving a cast role's own actor through [roleById], and resolving an audition
+  /// block to the hours the timeline actually put it at, are this snapshot's job alone.
   List<OcptDayConvocation> convocationsOfDay(String dayId) {
     final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     if (slots.isEmpty) {
@@ -242,10 +274,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
     }
 
     final timelines = timelinesOfDay(dayId);
-    final blocksById = {
-      for (final block in schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
-        block.id: block,
-    };
+    final blocks = schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
+    final blocksById = {for (final block in blocks) block.id: block};
 
     return ocptComputeDayConvocations(
       slots: [
@@ -254,19 +284,93 @@ class OcptSchedulePlanSnapshot extends Equatable {
         for (final slot in slots)
           _convocationSlotOf(slot, timelines!.bySlotId[slot.id]!, blocksById),
       ],
+      auditions: _convocationAuditionsOf(blocks, timelines!),
     );
+  }
+
+  /// The [OcptConvocationAudition] of every live [OcptShootingBlockKind.audition] block among
+  /// [blocks] that names at least one candidacy [roleCandidateById] still holds, its hours read off
+  /// [timelines]' own resolved entry for it.
+  ///
+  /// **Filtered through [roleCandidateById]**, exactly as the slot-level links are through
+  /// [roleById]: a row naming a candidacy that has since been removed convokes nobody, and dropping
+  /// it here is what keeps a stale link from drawing a nameless card. A block left with no candidacy
+  /// at all after that filter is left out entirely rather than passed in empty — it convokes nobody
+  /// either way, and an audition nobody has been named on yet is an ordinary state.
+  ///
+  /// Each surviving candidacy is resolved to **the person behind it** here, which is what lets
+  /// `ocptComputeDayConvocations` join an audition onto whatever else the day already asks of that
+  /// person: one person, one call, one sheet.
+  ///
+  /// A block the timelines have no entry for cannot happen — every live block of the day is chained
+  /// by [timelinesOfDay] — but is skipped rather than asserted about, the reading every other
+  /// dangling link in this file gets.
+  List<OcptConvocationAudition> _convocationAuditionsOf(
+    List<OcptShootingDayBlock> blocks,
+    OcptShootingDayTimelines timelines,
+  ) {
+    final auditions = <OcptConvocationAudition>[];
+    final entryByBlockId = {for (final entry in timelines.entries) entry.blockId: entry};
+
+    for (final block in blocks) {
+      if (block.kind != OcptShootingBlockKind.audition || block.candidates.isEmpty) {
+        continue;
+      }
+
+      final entry = entryByBlockId[block.id];
+      if (entry == null) {
+        continue;
+      }
+
+      final candidacies = <OcptConvocationCandidacy>[];
+      final seenCandidacyIds = <String>{};
+      for (final link in block.candidates) {
+        final candidate = roleCandidateById[link.roleCandidateId];
+        if (candidate == null || !seenCandidacyIds.add(link.roleCandidateId)) {
+          continue;
+        }
+        candidacies.add(
+          OcptConvocationCandidacy(
+            roleCandidateId: candidate.id,
+            personId: candidate.person.id,
+          ),
+        );
+      }
+      if (candidacies.isEmpty) {
+        continue;
+      }
+
+      auditions.add(
+        OcptConvocationAudition(
+          slotId: block.slotId,
+          startMinute: entry.startMinute,
+          endMinute: entry.endMinute,
+          candidacies: candidacies,
+        ),
+      );
+    }
+
+    return auditions;
   }
 
   /// Builds [slot]'s own [OcptConvocationSlot]: [OcptConvocationSlot.shootingStartMinute]/
   /// [OcptConvocationSlot.shootingEndMinute] are the minimum start and the maximum end, over
-  /// [timeline]'s own entries whose [blocksById] row is a [OcptShootingBlockKind.shot] or a
-  /// [OcptShootingBlockKind.hold] — a minimum and a maximum rather than "the first and last entry",
+  /// [timeline]'s own entries whose [blocksById] row is a
+  /// shooting block (`OcptShootingBlockKind.isShootingTime` — a shot, a hold, an audition or a
+  /// rehearsal), and [OcptConvocationSlot.hasFilmingBlock] says whether any of those actually films
+  /// (`OcptShootingBlockKind.isFilming`), which is what lets the band be called *prêt à tourner* —
+  /// a minimum and a maximum rather than "the first and last entry",
   /// since a pinned anchor can put a block earlier than the one before it in chain order —
   /// [OcptConvocationSlot.personIds]/[OcptConvocationSlot.uncastRoleIds] come from [slot]'s own live
-  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`, and
+  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`,
   /// [OcptConvocationSlot.guestPersonIds]/[OcptConvocationSlot.guestFreeNames] come straight off
   /// [slot]'s own live [OcptShootingSlot.guests] — a guest's `personId`/`freeName` already being the
   /// discriminator [ocptComputeDayConvocations] itself groups on, there is no join left to do here.
+  ///
+  /// **No candidate is read here at all**: a candidacy is named on an audition **block** (ADR 0024),
+  /// which [_convocationAuditionsOf] resolves separately — this slot's own `shootingStartMinute`/
+  /// `shootingEndMinute` still count its auditions as shooting time, since they are the working time
+  /// of everybody else on the unit.
   ///
   /// [OcptConvocationSlot.startMinute] is [timeline]'s own **resolved** start, never a stored
   /// column: a slot pinned by its end starts wherever its blocks put it, and a convocation is what
@@ -278,9 +382,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
   ) {
     int? shootingStartMinute;
     int? shootingEndMinute;
+    var hasFilmingBlock = false;
     for (final entry in timeline.entries) {
       final kind = blocksById[entry.blockId]?.kind;
-      if (kind != OcptShootingBlockKind.shot && kind != OcptShootingBlockKind.hold) {
+      if (kind == null || !kind.isShootingTime) {
         continue;
       }
       if (shootingStartMinute == null || entry.startMinute < shootingStartMinute) {
@@ -289,6 +394,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
       if (shootingEndMinute == null || entry.endMinute > shootingEndMinute) {
         shootingEndMinute = entry.endMinute;
       }
+      hasFilmingBlock = hasFilmingBlock || kind.isFilming;
     }
 
     final personIds = <String>{for (final member in slot.crew) member.personId};
@@ -319,6 +425,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
       endMinute: timeline.endMinute,
       shootingStartMinute: shootingStartMinute,
       shootingEndMinute: shootingEndMinute,
+      hasFilmingBlock: hasFilmingBlock,
       personIds: personIds,
       uncastRoleIds: uncastRoleIds,
       guestPersonIds: guestPersonIds,
@@ -767,11 +874,13 @@ class OcptSchedulePlanSnapshot extends Equatable {
     roles,
     people,
     elements,
+    roleCandidates,
     minimumRestMinutes,
     locationById,
     setById,
     roleById,
     personById,
+    roleCandidateById,
     episodeById,
     shotsById,
   ];

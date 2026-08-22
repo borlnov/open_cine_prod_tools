@@ -43,6 +43,22 @@ enum OcptScheduleAlertSeverity {
 /// a user in, and an alert for a state nobody can reach would only ever fire on data this app
 /// didn't write.
 ///
+/// **Nothing here reads what a day holds beyond its own slots and blocks**, and that is the point:
+/// a day that rehearses in the morning and shoots in the afternoon is one day, a rehearsal the day
+/// before a 07:00 call eats the same turnaround shooting would, and a person double-booked is
+/// double-booked whatever the two slots were for. The one rule that has nothing to say about a day
+/// spent auditioning — [OcptScheduleRoleNotConvokedAlert], about a role a **placed shot** plays —
+/// needs no special case: a day carrying no shot block calls no role, so the rule simply finds
+/// nothing.
+///
+/// A **candidate convoked to be seen for a part** takes part in **no rule at all**, on the very
+/// argument that already keeps a guest out of every one of them: they hold no position to lose,
+/// have no daily maximum of the production's making, and are not cast. They are owed an hour, which
+/// the convocations panel and the call sheet both give them, and nothing here is about an hour —
+/// every rule of this file is about somebody's *work*. An eleventh rule for them ("a candidate
+/// convoked on no slot") would be an opinion about how a production runs its auditions, and is
+/// deliberately not written.
+///
 /// Declaration order here is also the tie-break order [ocptComputeScheduleAlerts] sorts by once
 /// severity and day agree — see that function's own doc comment.
 enum OcptScheduleAlertKind {

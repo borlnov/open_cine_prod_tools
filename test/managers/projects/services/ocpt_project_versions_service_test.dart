@@ -873,6 +873,7 @@ void main() {
                   elements: payload.elements,
                   sceneElements: payload.sceneElements,
                   roleElements: payload.roleElements,
+                  roleCandidates: payload.roleCandidates,
                   assets: payload.assets,
                   breakdownTags: payload.breakdownTags,
                   sceneBreakdowns: payload.sceneBreakdowns,
@@ -898,6 +899,7 @@ void main() {
                   currencyCode: payload.currencyCode,
                   minimumRestMinutes: payload.minimumRestMinutes,
                   screenplayLanguage: payload.screenplayLanguage,
+                  shootingBlockCandidates: const [],
                   defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
                   mealPriceCents: payload.mealPriceCents,
                   snackPriceCents: payload.snackPriceCents,
@@ -1322,6 +1324,75 @@ void main() {
         database.ocptRoleElementsTable,
       )..where((table) => table.id.equals("link-2"))).getSingle();
       expect(later.isDeleted, isTrue);
+    });
+
+    test("a role's candidates come back, and one seen since is tombstoned", () async {
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-1",
+              name: "CLARA",
+              kind: OcptRoleKind.speaking,
+            ),
+          );
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
+          );
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: "person-2", firstName: const Value("Sam")));
+      await database
+          .into(database.ocptRoleCandidatesTable)
+          .insert(
+            OcptRoleCandidatesTableCompanion.insert(
+              id: "candidate-1",
+              roleId: "role-1",
+              personId: "person-1",
+              notes: const Value("Very sure of the last scene"),
+            ),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured candidacy's note is edited, and somebody else is seen since.
+      await (database.update(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals("candidate-1"))).write(
+        const OcptRoleCandidatesTableCompanion(notes: Value("Edited")),
+      );
+      await database
+          .into(database.ocptRoleCandidatesTable)
+          .insert(
+            OcptRoleCandidatesTableCompanion.insert(
+              id: "candidate-2",
+              roleId: "role-1",
+              personId: "person-2",
+            ),
+          );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      final restored = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals("candidate-1"))).getSingle();
+      expect(restored.notes, "Very sure of the last scene");
+      expect(restored.isDeleted, isFalse);
+
+      // The candidate the version never held is tombstoned, not deleted, like every other row —
+      // and the `people` row they are is untouched: a person outlives a candidacy.
+      final later = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals("candidate-2"))).getSingle();
+      expect(later.isDeleted, isTrue);
+      final person2 = await (database.select(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-2"))).getSingle();
+      expect(person2.isDeleted, isFalse);
     });
 
     test(
@@ -1960,6 +2031,25 @@ void main() {
                 label: const Value("Permis B"),
               ),
             );
+        await database
+            .into(database.ocptRolesTable)
+            .insert(
+              OcptRolesTableCompanion.insert(
+                id: "role-1",
+                name: "CLARA",
+                kind: OcptRoleKind.speaking,
+              ),
+            );
+        await database
+            .into(database.ocptRoleCandidatesTable)
+            .insert(
+              OcptRoleCandidatesTableCompanion.insert(
+                id: "candidate-1",
+                roleId: "role-1",
+                personId: "person-1",
+                notes: const Value("Fragile, exactly right for the part"),
+              ),
+            );
 
         final version = await createVersion();
 
@@ -1986,6 +2076,14 @@ void main() {
         )..where((table) => table.id.equals("skill-1"))).getSingle();
         expect(skill.isDeleted, isTrue);
         expect(skill.label, isEmpty);
+
+        // A candidacy is the one link table holding something about a person: what was written
+        // about them at an audition is scrubbed out of the payload on its way back too.
+        final candidate = await (database.select(
+          database.ocptRoleCandidatesTable,
+        )..where((table) => table.id.equals("candidate-1"))).getSingle();
+        expect(candidate.isDeleted, isTrue);
+        expect(candidate.notes, isEmpty);
 
         // The erasure itself is never rewound: it is recorded outside any payload, on purpose.
         final erasures = await database.select(database.ocptLocalErasuresTable).get();

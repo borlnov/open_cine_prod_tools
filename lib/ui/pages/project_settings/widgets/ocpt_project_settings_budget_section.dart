@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 ///
 /// All three are optional and read the same way `minimumRestMinutes` already does: null means
 /// nobody has recorded a figure, not that none applies, and nothing here is ever pre-filled with a
-/// figure this app has not been told to advance (ADR 0026). The budget mode's
+/// figure this app has not been told to advance (ADR 0027). The budget mode's
 /// own views read all three once they ship — the VAT rate as the fallback every unpriced quote line
 /// inherits, the two catering prices as the unit costs `ocpt_budget_regie.dart` multiplies the
 /// schedule's own head counts by.

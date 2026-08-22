@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -514,6 +515,27 @@ void main() {
         isDeleted: true,
       ),
     ],
+    roleCandidates: [
+      OcptRoleCandidateRow(
+        id: "role-candidate-1",
+        roleId: "role-1",
+        personId: "person-1",
+        status: OcptRoleCandidateStatus.retained,
+        auditionedOn: DateTime.utc(2026, 2, 12, 14, 30),
+        notes: "Very sure of the last scene",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      const OcptRoleCandidateRow(
+        id: "role-candidate-2",
+        roleId: "role-1",
+        personId: "person-2",
+        status: OcptRoleCandidateStatus.declined,
+        notes: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
     assets: [
       OcptAssetRow(
         id: "asset-1",
@@ -726,6 +748,18 @@ void main() {
         notes: "",
         crewNote: "",
         isDeleted: true,
+      ),
+      OcptShootingDayBlockRow(
+        id: "block-3",
+        shootingDayId: "day-2",
+        sortKey: "t",
+        slotId: "slot-3",
+        kind: OcptShootingBlockKind.audition,
+        label: "",
+        durationMinutes: 20,
+        notes: "",
+        crewNote: "",
+        isDeleted: false,
       ),
     ],
     shootingSlotGuests: const [
@@ -983,6 +1017,24 @@ void main() {
     currencyCode: "GBP",
     minimumRestMinutes: 660,
     screenplayLanguage: OcptScreenplayLanguage.fr,
+    shootingBlockCandidates: const [
+      OcptShootingBlockCandidateRow(
+        id: "block-candidate-1",
+        blockId: "block-3",
+        roleCandidateId: "role-candidate-1",
+        sortKey: "V",
+        notes: "Vient avec sa bande démo",
+        isDeleted: false,
+      ),
+      OcptShootingBlockCandidateRow(
+        id: "block-candidate-2",
+        blockId: "block-3",
+        roleCandidateId: "role-candidate-2",
+        sortKey: "k",
+        notes: "",
+        isDeleted: true,
+      ),
+    ],
     defaultVatRateBasisPoints: 2000,
     mealPriceCents: 1250,
     snackPriceCents: 350,
@@ -1037,6 +1089,33 @@ void main() {
   }
 
   group('OcptProjectVersionCodec round trip', () {
+    test('a candidacy in any of the statuses decodes back to the one it was written in', () {
+      // A `status` is stored by **name** and read back through `values.byName`: a value the tests
+      // never actually put through the codec is exactly the kind that only ever fails in a user's
+      // own file, months later. Walking `values` is what keeps a ninth status from being added
+      // without this being true of it too.
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+
+      for (final status in OcptRoleCandidateStatus.values) {
+        final rewritten = {
+          ...encoded,
+          "roleCandidates": [
+            for (final row in encoded["roleCandidates"] as List)
+              {...row as Map<String, dynamic>, "status": status.name},
+          ],
+        };
+
+        final result = codec.decode(jsonEncode(rewritten));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok, reason: "for $status");
+        expect(
+          result.value!.roleCandidates.map((row) => row.status),
+          everyElement(status),
+          reason: "for $status",
+        );
+      }
+    });
+
     test('decode(encode(payload)) returns an equal payload', () {
       final payload = buildRichPayload();
 
@@ -1080,7 +1159,7 @@ void main() {
       expect(roundTripped.rowFieldVersions.last.deviceId, "device-2");
     });
 
-    test('every column of the eleven resource tables round trips, enums and nulls included', () {
+    test('every column of the twelve resource tables round trips, enums and nulls included', () {
       final roundTripped = roundTrip(buildRichPayload());
 
       final person = roundTripped.people.first;
@@ -1185,6 +1264,25 @@ void main() {
       final sceneElement = roundTripped.sceneElements.first;
       expect(sceneElement.elementId, "element-1");
       expect(sceneElement.quantity, "1");
+
+      final roleElement = roundTripped.roleElements.first;
+      expect(roleElement.roleId, "role-1");
+      expect(roleElement.elementId, "element-1");
+      expect(roleElement.notes, "Torn from scene 12 on");
+
+      final candidate = roundTripped.roleCandidates.first;
+      expect(candidate.roleId, "role-1");
+      expect(candidate.personId, "person-1");
+      expect(candidate.status, OcptRoleCandidateStatus.retained);
+      expect(candidate.auditionedOn, DateTime.utc(2026, 2, 12, 14, 30));
+      expect(candidate.notes, "Very sure of the last scene");
+      expect(candidate.sortKey, "V");
+      // The second candidacy was never dated: a self-tape, or somebody seen before the project was
+      // opened, keeps a null there rather than a moment nobody recorded.
+      final undatedCandidate = roundTripped.roleCandidates.last;
+      expect(undatedCandidate.status, OcptRoleCandidateStatus.declined);
+      expect(undatedCandidate.auditionedOn, isNull);
+      expect(undatedCandidate.isDeleted, isTrue);
 
       final asset = roundTripped.assets.first;
       expect(asset.kind, OcptAssetKind.document);
@@ -1479,6 +1577,7 @@ void main() {
         elements: [],
         sceneElements: [],
         roleElements: [],
+        roleCandidates: [],
         budgetPostes: [],
         budgetLines: [],
         budgetEntries: [],
@@ -1504,6 +1603,7 @@ void main() {
         currencyCode: null,
         minimumRestMinutes: null,
         screenplayLanguage: null,
+        shootingBlockCandidates: [],
         defaultVatRateBasisPoints: null,
         mealPriceCents: null,
         snackPriceCents: null,
@@ -1545,6 +1645,7 @@ void main() {
         elements: payload.elements.reversed.toList(),
         sceneElements: payload.sceneElements.reversed.toList(),
         roleElements: payload.roleElements.reversed.toList(),
+        roleCandidates: payload.roleCandidates.reversed.toList(),
         budgetPostes: payload.budgetPostes.reversed.toList(),
         budgetLines: payload.budgetLines.reversed.toList(),
         budgetEntries: payload.budgetEntries.reversed.toList(),
@@ -1570,6 +1671,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1599,6 +1701,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -1632,6 +1735,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1661,6 +1765,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -1694,6 +1799,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1726,6 +1832,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -1751,6 +1858,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1780,6 +1888,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -1805,6 +1914,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1834,6 +1944,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -1859,6 +1970,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1890,6 +2002,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -1915,6 +2028,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1952,6 +2066,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -1977,6 +2092,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -1986,6 +2102,141 @@ void main() {
       // digest that left `role_episodes` out would let the working-copy card claim no drift after
       // an afternoon spent saying, episode by episode, who speaks where.
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewLink)));
+    });
+
+    test('changes when a candidate is added', () {
+      // A week of casting moves no other table at all until somebody is retained, so a digest
+      // blind to this one would let the working-copy card claim no drift after exactly the work
+      // `role_candidates` exists to hold.
+      final payload = buildRichPayload();
+      final withNewCandidate = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        roleCandidates: [
+          ...payload.roleCandidates,
+          const OcptRoleCandidateRow(
+            id: "role-candidate-3",
+            roleId: "role-2",
+            personId: "person-2",
+            status: OcptRoleCandidateStatus.shortlisted,
+            notes: "",
+            sortKey: "t",
+            isDeleted: false,
+          ),
+        ],
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
+        budgetResources: payload.budgetResources,
+        budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      // Two states differing only in which episodes name a role are not the same project: a
+      // digest that left `role_episodes` out would let the working-copy card claim no drift after
+      // an afternoon spent saying, episode by episode, who speaks where.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewCandidate)));
+    });
+
+    test("changes when a candidate's status changes", () {
+      final payload = buildRichPayload();
+      final withOtherStatuses = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        roleCandidates: [
+          for (final row in payload.roleCandidates)
+            row.copyWith(status: OcptRoleCandidateStatus.shortlisted),
+        ],
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
+        budgetResources: payload.budgetResources,
+        budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      // Two states differing only in which episodes name a role are not the same project: a
+      // digest that left `role_episodes` out would let the working-copy card claim no drift after
+      // an afternoon spent saying, episode by episode, who speaks where.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withOtherStatuses)));
     });
 
     test('changes when a role_episodes row is tombstoned', () {
@@ -2012,6 +2263,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2037,6 +2289,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2069,6 +2322,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2094,6 +2348,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2125,6 +2380,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2163,6 +2419,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2194,6 +2451,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2226,6 +2484,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2255,6 +2514,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2283,6 +2543,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2312,6 +2573,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2340,6 +2602,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2372,6 +2635,7 @@ void main() {
         ],
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2397,6 +2661,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2428,6 +2693,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2465,6 +2731,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2496,6 +2763,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2524,6 +2792,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2553,6 +2822,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2581,6 +2851,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2610,6 +2881,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2646,12 +2918,81 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewGuest)));
+    });
+
+    // A whole casting day is planned by writing rows of this one table: a payload that left it
+    // out would let the working-copy card claim no drift after exactly the work it holds.
+    test('changes when a candidate is named on an audition block', () {
+      final payload = buildRichPayload();
+      final withNewCandidate = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: [
+          ...payload.shootingBlockCandidates,
+          const OcptShootingBlockCandidateRow(
+            id: "block-candidate-3",
+            blockId: "block-3",
+            roleCandidateId: "role-candidate-2",
+            sortKey: "p",
+            notes: "",
+            isDeleted: false,
+          ),
+        ],
+        budgetPostes: payload.budgetPostes,
+        budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
+        budgetResources: payload.budgetResources,
+        budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewCandidate)));
     });
 
     test('changes when the page format changes', () {
@@ -2675,6 +3016,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2703,6 +3045,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2732,6 +3075,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2757,6 +3101,7 @@ void main() {
         currencyCode: "USD",
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2786,6 +3131,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2811,6 +3157,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: 720,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2840,6 +3187,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2865,6 +3213,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: OcptScreenplayLanguage.enGb,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2894,6 +3243,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -2922,6 +3272,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2985,6 +3336,8 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        roleCandidates: payload.roleCandidates,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
       );
 
       // A digest that left the budget out would let the working-copy card claim no drift after an
@@ -3044,6 +3397,8 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        roleCandidates: payload.roleCandidates,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -3098,6 +3453,8 @@ void main() {
         defaultVatRateBasisPoints: 550,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        roleCandidates: payload.roleCandidates,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
       );
 
       // Two projects agreeing on every quote line but disagreeing on the rate they read against are
@@ -3167,6 +3524,8 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        roleCandidates: payload.roleCandidates,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
       );
 
       // A digest that left the journal out would let the working-copy card claim no drift after an
@@ -3226,6 +3585,8 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        roleCandidates: payload.roleCandidates,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
       );
 
       // A digest that left the commitments out would let a settlement — or the lack of one — go
@@ -3258,6 +3619,7 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
+        roleCandidates: payload.roleCandidates,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -3283,6 +3645,7 @@ void main() {
         currencyCode: payload.currencyCode,
         minimumRestMinutes: payload.minimumRestMinutes,
         screenplayLanguage: payload.screenplayLanguage,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -4296,9 +4659,125 @@ void main() {
     );
 
     test(
-      'a stored format-15 payload decodes with no budget at all',
+      'a stored format-15 payload decodes with nobody seen for any part',
       () {
-        // Format 15 predates `budget_postes`/`budget_lines` entirely, so [_upgradeFormat15To16]
+        // Format 15 predates `role_candidates` entirely, so [_upgradeFormat15To16] materialises it
+        // as an **empty list** — [_upgradeFormat14To15]'s kind, not [_upgradeFormat13To14]'s null:
+        // a version captured this early genuinely held nobody seen for any part. The fixture is
+        // the current encoding with the key taken back out and the format wound back, rather than
+        // a second hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("roleCandidates");
+        encoded["payloadFormat"] = 15;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.roleCandidates, isEmpty);
+        // And nothing else was disturbed on the way through: the cast the project actually had
+        // when it was captured comes back, `roles.personId` included, which is the honest answer
+        // for a moment nothing recorded who else had been seen.
+        expect(result.value!.roles, buildRichPayload().roles);
+        expect(result.value!.people, buildRichPayload().people);
+      },
+    );
+
+    test(
+      'a stored format-17 payload decodes with no audition planned anywhere',
+      () {
+        // Format 17 predates every table and column a casting session was ever planned with, so it
+        // is carried up through three steps at once: [_upgradeFormat17To18] materialises the
+        // slot-wide table and the block's own `roleId`, and [_upgradeFormat19To20] takes both back
+        // out again and materialises `shootingBlockCandidates` as an **empty list** — the truthful
+        // reading of a version captured when this app could plan no audition at all. The fixture is
+        // the current encoding with the key taken back out and the format wound back.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("shootingBlockCandidates");
+        encoded["payloadFormat"] = 17;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.shootingBlockCandidates, isEmpty);
+        // And nothing else was disturbed on the way through: the people seen for a part came back,
+        // and so did every other column of the blocks — nothing is deduced from what a block was
+        // called.
+        expect(result.value!.roleCandidates, buildRichPayload().roleCandidates);
+        expect(
+          result.value!.shootingDayBlocks.map((row) => row.kind),
+          buildRichPayload().shootingDayBlocks.map((row) => row.kind),
+        );
+      },
+    );
+
+    test(
+      'a stored format-18 payload decodes with the two columns it alone carried dropped',
+      () {
+        // Format 18 was written by builds that never merged: a day carried a `kind` and an audition
+        // block the candidacy it saw. [_upgradeFormat18To19] strips both keys rather than leaving
+        // them to be ignored — [contentDigest] hashes what this codec writes, and a key nothing
+        // writes any more must not linger in one payload and not the next. Everything else about
+        // such a payload comes back untouched — bar the candidacies an audition block names, which
+        // format 18 could not hold at all and [_upgradeFormat19To20] therefore materialises empty.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("shootingBlockCandidates");
+        encoded["shootingDays"] = [
+          for (final day in encoded["shootingDays"] as List)
+            {...day as Map<String, dynamic>, "kind": "casting"},
+        ];
+        encoded["shootingDayBlocks"] = [
+          for (final block in encoded["shootingDayBlocks"] as List)
+            {...block as Map<String, dynamic>, "roleCandidateId": "role-candidate-1"},
+        ];
+        encoded["payloadFormat"] = 18;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.shootingDays, buildRichPayload().shootingDays);
+        expect(result.value!.shootingDayBlocks, buildRichPayload().shootingDayBlocks);
+        expect(result.value!.shootingBlockCandidates, isEmpty);
+      },
+    );
+
+    test(
+      'a stored format-19 payload decodes with the slot-wide convocation dropped',
+      () {
+        // Format 19 was written by builds that never merged too: a candidate was convoked on the
+        // whole slot, and an audition block named the single part it saw. [_upgradeFormat19To20]
+        // drops both — somebody is expected at twenty past ten, and a block reading two actors of
+        // two different parts could never have named one part — and materialises
+        // `shootingBlockCandidates` empty rather than carrying anything over: a slot-wide
+        // convocation names no hour, so there is no block to attach it to.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("shootingBlockCandidates");
+        encoded["shootingSlotCandidates"] = [
+          {
+            "id": "slot-candidate-1",
+            "slotId": "slot-3",
+            "roleCandidateId": "role-candidate-1",
+            "sortKey": "V",
+            "notes": "",
+            "isDeleted": false,
+          },
+        ];
+        encoded["shootingDayBlocks"] = [
+          for (final block in encoded["shootingDayBlocks"] as List)
+            {...block as Map<String, dynamic>, "roleId": "role-1"},
+        ];
+        encoded["payloadFormat"] = 19;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.shootingBlockCandidates, isEmpty);
+        expect(result.value!.shootingDayBlocks, buildRichPayload().shootingDayBlocks);
+      },
+    );
+    test(
+      'a stored format-20 payload decodes with no budget at all',
+      () {
+        // Format 20 predates `budget_postes`/`budget_lines` entirely, so [_upgradeFormat20To21]
         // materialises both as **empty lists** — [_upgradeFormat1To2]'s kind: a version captured
         // this early truthfully had no budget at all. The default VAT rate and the two catering
         // prices materialise as **null**, [_upgradeFormat13To14]'s kind, not the currency's "leave
@@ -4312,7 +4791,7 @@ void main() {
           ..remove("defaultVatRateBasisPoints")
           ..remove("mealPriceCents")
           ..remove("snackPriceCents");
-        encoded["payloadFormat"] = 15;
+        encoded["payloadFormat"] = 20;
 
         final result = codec.decode(jsonEncode(encoded));
 
@@ -4332,10 +4811,10 @@ void main() {
     );
 
     test(
-      'a stored format-16 payload decodes with no cash journal at all',
+      'a stored format-21 payload decodes with no cash journal at all',
       () {
-        // Format 16 predates `budget_entries`/`budget_commitments` entirely, so
-        // [_upgradeFormat16To17] materialises both as **empty lists** — [_upgradeFormat1To2]'s
+        // Format 21 predates `budget_entries`/`budget_commitments` entirely, so
+        // [_upgradeFormat21To22] materialises both as **empty lists** — [_upgradeFormat1To2]'s
         // kind: a version captured this early truthfully had no journal at all. Every `assets` row
         // also gains a **null** `budgetEntryId` — [_upgradeFormat3To4]'s kind, not the empty-list
         // one, since the asset rows themselves are not new here. The fixture is the current
@@ -4349,7 +4828,7 @@ void main() {
             ({...row as Map<String, dynamic>}..remove("budgetEntryId")),
         ];
         encoded["assets"] = assets;
-        encoded["payloadFormat"] = 16;
+        encoded["payloadFormat"] = 21;
 
         final result = codec.decode(jsonEncode(encoded));
 
@@ -4368,10 +4847,10 @@ void main() {
     );
 
     test(
-      'a stored format-18 payload decodes with no revenue sharing at all',
+      'a stored format-23 payload decodes with no revenue sharing at all',
       () {
-        // Format 18 predates `budget_revenues`/`budget_shares` entirely, so
-        // [_upgradeFormat18To19] materialises both as **empty lists** — [_upgradeFormat1To2]'s
+        // Format 23 predates `budget_revenues`/`budget_shares` entirely, so
+        // [_upgradeFormat23To24] materialises both as **empty lists** — [_upgradeFormat1To2]'s
         // kind: a version captured this early truthfully named no taking and no participant at
         // all. Every `budget_entries` row also gains a **null** `revenueId`/`shareId` —
         // [_upgradeFormat3To4]'s kind, not the empty-list one, since the entries themselves are not
@@ -4387,7 +4866,7 @@ void main() {
               ..remove("shareId")),
         ];
         encoded["budgetEntries"] = entries;
-        encoded["payloadFormat"] = 18;
+        encoded["payloadFormat"] = 23;
 
         final result = codec.decode(jsonEncode(encoded));
 

@@ -21,9 +21,9 @@ read the same guide. Edit `AGENTS.md`; never replace the symlink with a copy.
 Open Cine Prod Tools is an **open-source suite of film-production tools** (Apache-2.0,
 github.com/borlnov/open_cine_prod_tools). The MVP is a **Fountain screenplay editor**; the
 découpage technique (shot lists), the scenario coverage per shot, the resources catalogue (the
-people, the cast, the locations and the physical elements), the script breakdown (*dépouillement*)
-and the shooting schedule ship alongside it, and the long-term roadmap adds, in priority order:
-call sheets, budget, script supervisor reports, storyboard, and a casting tracker.
+people, the cast, the locations and the physical elements), the script breakdown (*dépouillement*),
+the casting candidates and the shooting schedule ship alongside it, and the long-term roadmap adds,
+in priority order: call sheets, budget, script supervisor reports, and storyboard.
 
 - Target platforms: **Linux + Windows first**, then macOS, Android, iOS. macOS is built and
   released by the CI (see `docs/architecture/foundations.md`) but has never been run on a Mac —
@@ -83,7 +83,7 @@ sharing that splits what the film earns, and its four documents, `docs/architect
 | Step | Content | Status |
 | --- | --- | --- |
 | 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
-| — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard, casting tracker | 📝 planned |
+| — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard | 📝 planned |
 
 Step numbers are historical: they were allocated as the work was planned, are referenced by no
 file any more, and a new one simply continues the series. What used to be listed here as `0`

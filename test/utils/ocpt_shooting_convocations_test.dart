@@ -14,6 +14,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -41,6 +42,7 @@ void main() {
         endMinute: 720, // 12:00
         shootingStartMinute: 510, // 08:30
         shootingEndMinute: 690, // 11:30
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -52,6 +54,7 @@ void main() {
         endMinute: 1260, // 21:00
         shootingStartMinute: 1110, // 18:30
         shootingEndMinute: 1230, // 20:30
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -79,6 +82,7 @@ void main() {
         endMinute: 540,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -103,6 +107,7 @@ void main() {
         endMinute: null,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -125,6 +130,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {"role-1"},
         guestPersonIds: {},
@@ -148,6 +154,7 @@ void main() {
         endMinute: 1620, // 03:00 the next morning
         shootingStartMinute: 1140,
         shootingEndMinute: 1620,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -172,6 +179,7 @@ void main() {
         endMinute: 480,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-b"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -183,6 +191,7 @@ void main() {
         endMinute: 540,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-z"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -194,6 +203,7 @@ void main() {
         endMinute: 540,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {"person-a"},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -224,6 +234,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
@@ -254,6 +265,7 @@ void main() {
         endMinute: 720,
         shootingStartMinute: 510,
         shootingEndMinute: 690,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
@@ -265,6 +277,7 @@ void main() {
         endMinute: 1260,
         shootingStartMinute: 1110,
         shootingEndMinute: 1230,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {"guest-person-1"},
@@ -291,6 +304,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: 500,
         shootingEndMinute: 590,
+        hasFilmingBlock: true,
         personIds: {"person-1"},
         uncastRoleIds: {},
         guestPersonIds: {"person-1"},
@@ -317,6 +331,7 @@ void main() {
         endMinute: 600,
         shootingStartMinute: null,
         shootingEndMinute: null,
+        hasFilmingBlock: true,
         personIds: {},
         uncastRoleIds: {},
         guestPersonIds: {},
@@ -329,6 +344,308 @@ void main() {
       expect(convocation.isGuest, isTrue);
       expect(convocation.guestFreeName, "Jean Dupont");
       expect(convocation.guestPersonId, isNull);
+    });
+  });
+
+  group("what a band is called", () {
+    test("a slot carrying a shot reads a PAT band", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: 1080,
+        shootingStartMinute: 510,
+        shootingEndMinute: 1050,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+
+      expect(ocptComputeDayConvocations(slots: const [slot]).single.isPatBand, isTrue);
+    });
+
+    test("a slot whose work is rehearsals alone reads a presence band, not a PAT one", () {
+      // *Prêt à tourner* is the hour somebody must be ready for a take, and a day of rehearsals has
+      // none to be ready for — the band is real, the word is not.
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: 720,
+        shootingStartMinute: 480,
+        shootingEndMinute: 720,
+        hasFilmingBlock: false,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+
+      final convocation = ocptComputeDayConvocations(slots: const [slot]).single;
+      expect(convocation.patStartMinute, 480);
+      expect(convocation.patEndMinute, 720);
+      expect(convocation.isPatBand, isFalse);
+    });
+
+    test("one filming slot among several makes the whole band a PAT one", () {
+      // The band spans both, so the word has to answer for both: somebody who rehearses in the
+      // morning and shoots in the afternoon is due ready to shoot.
+      const rehearsal = OcptConvocationSlot(
+        id: "slot-morning",
+        startMinute: 480,
+        endMinute: 720,
+        shootingStartMinute: 480,
+        shootingEndMinute: 720,
+        hasFilmingBlock: false,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+      const shooting = OcptConvocationSlot(
+        id: "slot-afternoon",
+        startMinute: 780,
+        endMinute: 1080,
+        shootingStartMinute: 780,
+        shootingEndMinute: 1080,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+
+      final convocation = ocptComputeDayConvocations(
+        slots: const [rehearsal, shooting],
+      ).single;
+      expect(convocation.patStartMinute, 480);
+      expect(convocation.patEndMinute, 1080);
+      expect(convocation.isPatBand, isTrue);
+    });
+
+    test("a candidate never reads a PAT band, whatever the day beside them shoots", () {
+      // The one case the day cannot answer for: the unit films all afternoon and this person is
+      // there for twenty minutes to be seen.
+      const shooting = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 540,
+        endMinute: 1080,
+        shootingStartMinute: 540,
+        shootingEndMinute: 1080,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+      const audition = OcptConvocationAudition(
+        slotId: "slot-1",
+        startMinute: 560,
+        endMinute: 580,
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-seen"),
+        ],
+      );
+
+      final result = ocptComputeDayConvocations(
+        slots: const [shooting],
+        auditions: const [audition],
+      );
+
+      expect(result.firstWhere((c) => c.personId == "person-1").isPatBand, isTrue);
+      expect(result.firstWhere((c) => c.personId == "person-seen").isPatBand, isFalse);
+    });
+  });
+
+  group("a candidate seen for a part", () {
+    test("every figure is read off the audition that sees them, not off the unit's day", () {
+      // The whole point of ADR 0024: the slot runs 09:00 to 18:00 and sees eleven other people,
+      // while this candidate is expected at 09:20 for twenty minutes — and reads exactly that.
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 540, // 09:00
+        endMinute: 1080, // 18:00
+        shootingStartMinute: 540,
+        shootingEndMinute: 1080,
+        hasFilmingBlock: true,
+        personIds: {},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+      const audition = OcptConvocationAudition(
+        slotId: "slot-1",
+        startMinute: 560, // 09:20
+        endMinute: 580, // 09:40
+        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
+      );
+
+      final result = ocptComputeDayConvocations(
+        slots: const [slot],
+        auditions: const [audition],
+      );
+
+      final convocation = result.single;
+      expect(convocation.isSeenForAPart, isTrue);
+      expect(convocation.isOnlySeenForAPart, isTrue);
+      expect(convocation.isGuest, isFalse);
+      expect(convocation.roleCandidateIds, {"candidacy-1"});
+      expect(convocation.personId, "person-1");
+      expect(convocation.arrivalMinute, 560);
+      expect(convocation.patStartMinute, 560);
+      expect(convocation.patEndMinute, 580);
+      expect(convocation.departureMinute, 580);
+      expect(convocation.slotIds, ["slot-1"]);
+    });
+
+    test("one block naming two candidacies convokes both, each on the same hour", () {
+      // Two actors of two different parts read together: one block, two rows, two convocations.
+      const audition = OcptConvocationAudition(
+        slotId: "slot-1",
+        startMinute: 600,
+        endMinute: 640,
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-marie", personId: "person-marie"),
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-julien", personId: "person-julien"),
+        ],
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [], auditions: const [audition]);
+
+      expect(result, hasLength(2));
+      for (final convocation in result) {
+        expect(convocation.arrivalMinute, 600);
+        expect(convocation.departureMinute, 640);
+        expect(convocation.patStartMinute, 600);
+        expect(convocation.patEndMinute, 640);
+      }
+    });
+
+    test("a candidacy named on two auditions of one day reads one convocation spanning both", () {
+      // The same joining rule a person on two slots already gets, one table across — gap included.
+      const morning = OcptConvocationAudition(
+        slotId: "slot-1",
+        startMinute: 560,
+        endMinute: 580,
+        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
+      );
+      const afternoon = OcptConvocationAudition(
+        slotId: "slot-1",
+        startMinute: 900,
+        endMinute: 930,
+        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
+      );
+
+      final result = ocptComputeDayConvocations(
+        slots: const [],
+        auditions: const [morning, afternoon],
+      );
+
+      final convocation = result.single;
+      expect(convocation.arrivalMinute, 560);
+      expect(convocation.patStartMinute, 560);
+      expect(convocation.patEndMinute, 930);
+      expect(convocation.departureMinute, 930);
+      // Deduplicated: two auditions of one slot are still one unit to turn up on.
+      expect(convocation.slotIds, ["slot-1"]);
+    });
+
+    test("two candidacies of one person on one day are one call carrying both", () {
+      // They are seen twice and called once: two hours, two parts, one arrival and one departure —
+      // which is what stopped them receiving two call sheets for one day.
+      const morning = OcptConvocationAudition(
+        slotId: "slot-morning",
+        startMinute: 540,
+        endMinute: 600,
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-marie", personId: "person-1"),
+        ],
+      );
+      const afternoon = OcptConvocationAudition(
+        slotId: "slot-afternoon",
+        startMinute: 900,
+        endMinute: 960,
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-julie", personId: "person-1"),
+        ],
+      );
+
+      final result = ocptComputeDayConvocations(
+        slots: const [],
+        auditions: const [morning, afternoon],
+      );
+
+      final convocation = result.single;
+      expect(convocation.personId, "person-1");
+      expect(convocation.roleCandidateIds, {"candidacy-marie", "candidacy-julie"});
+      expect(convocation.arrivalMinute, 540);
+      expect(convocation.departureMinute, 960);
+      expect(convocation.slotIds, ["slot-morning", "slot-afternoon"]);
+    });
+
+    test("crewing the day and being seen for a part is one call, not two", () {
+      // A person arrives once and leaves once, whatever brings them in: the earlier of the two
+      // starts their day and the later of the two ends it.
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480, // 08:00 — they are on the unit from the start
+        endMinute: 1080, // 18:00
+        shootingStartMinute: 540,
+        shootingEndMinute: 1050,
+        hasFilmingBlock: true,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+      const audition = OcptConvocationAudition(
+        slotId: "slot-2",
+        startMinute: 1100, // 18:20 — seen after wrap, on another unit
+        endMinute: 1120,
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1"),
+        ],
+      );
+
+      final result = ocptComputeDayConvocations(
+        slots: const [slot],
+        auditions: const [audition],
+      );
+
+      final convocation = result.single;
+      expect(convocation.personId, "person-1");
+      expect(convocation.roleCandidateIds, {"candidacy-1"});
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.departureMinute, 1120);
+      // Both units are theirs, so a named sheet narrows the timetable to both.
+      expect(convocation.slotIds, ["slot-1", "slot-2"]);
+      // The day still films, so the band keeps its name — and now covers the audition too.
+      expect(convocation.isPatBand, isTrue);
+      expect(convocation.patEndMinute, 1120);
+      // And they belong among the crew rather than under the panel's own candidates group.
+      expect(convocation.isSeenForAPart, isTrue);
+      expect(convocation.isOnlySeenForAPart, isFalse);
+    });
+
+    test("a slot carrying auditions convokes nobody by itself", () {
+      // A slot no longer names a candidate at all: with no audition handed in, the day's whole
+      // casting session convokes nobody, and nothing is invented from the slot's own hours.
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 540,
+        endMinute: 600,
+        shootingStartMinute: 540,
+        shootingEndMinute: 600,
+        hasFilmingBlock: true,
+        personIds: {},
+        uncastRoleIds: {},
+        guestPersonIds: {},
+        guestFreeNames: {},
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [slot]);
+
+      expect(result, isEmpty);
     });
   });
 }

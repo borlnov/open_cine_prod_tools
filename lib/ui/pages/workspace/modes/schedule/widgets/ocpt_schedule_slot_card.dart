@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -94,6 +95,11 @@ const double _personCardWidth = 230;
 /// revealed from the `⋮` menu before it could be filled hid the very affordance somebody looking for
 /// it was after.
 ///
+/// **No candidate band sits beside them**, and deliberately: somebody seen for a part is expected at
+/// twenty past ten rather than "on this unit today", so they are named on the **audition block** that
+/// sees them, in this card's own timetable, and nowhere else (ADR 0024). A band saying otherwise,
+/// beside the row that says it precisely, would be one band too many.
+///
 /// **The anchor control is a flat menu on the edge label** (`Début à heure fixe`, `Fin à heure
 /// fixe`, then one entry per other slot of the day, in both directions), with the typed hour beside
 /// it and the computed opposite edge under it. An entry that would close a circle of anchors is
@@ -108,7 +114,7 @@ const double _personCardWidth = 230;
 /// the anchor menu and its own minute field, the `▲`/`▼` controls moving the card in its day's
 /// list, every
 /// crew/cast row's own position picker and remove control, every guest row's own remove control and
-/// its own reason/notes fields, all three `+`
+/// its own reason/notes fields, every audition row's own candidacy chips and picker, all three `+`
 /// footers, and every writing affordance of the timetable itself, its own hold row's sequence
 /// picker included (see [OcptScheduleTimetable]'s own doc comment). Nothing here reads a
 /// `pendingFieldEdits` map itself — [labelValue] is already resolved by the caller, exactly as
@@ -128,6 +134,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
 
   /// The whole address book, keyed by id — what a crew row's own name is read off.
   final Map<String, OcptPerson> personById;
+
+  /// Every live candidacy of the project, keyed by id — what this card's timetable's own audition
+  /// rows name a person and a part through.
+  final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// The whole cast, keyed by id — what a cast row's own name is read off.
   final Map<String, OcptRole> roleById;
@@ -266,6 +276,15 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// sequence picker, or null while withheld — see [OcptScheduleTimetable.onHoldSequenceChanged].
   final void Function(String blockId, String? sceneId)? onBlockSequenceChanged;
 
+  /// Called with an **audition** block's id and the id of the candidacy just picked from its own
+  /// timetable row's `+` picker, or null while withheld — see
+  /// [OcptScheduleTimetable.onCandidateAdded].
+  final void Function(String blockId, String roleCandidateId)? onBlockCandidateAdded;
+
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
+  /// while withheld — see [OcptScheduleTimetable.onCandidateRemoved].
+  final ValueChanged<String>? onBlockCandidateRemoved;
+
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onBlockDeletionRequested;
 
@@ -289,6 +308,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.set,
     required this.locations,
     required this.personById,
+    required this.roleCandidateById,
     required this.roleById,
     required this.people,
     required this.roles,
@@ -325,6 +345,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.onBlockAnchorChanged,
     required this.onShotStatusChanged,
     required this.onBlockSequenceChanged,
+    required this.onBlockCandidateAdded,
+    required this.onBlockCandidateRemoved,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
     required this.onShotBlockRequested,
@@ -397,7 +419,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
                 onCrewMemberRemoved: onCrewMemberRemoved,
               ),
               castBuilder: (cardWidth) => _buildCastColumn(context, cardWidth: cardWidth),
-              guestsBuilder: () => _buildGuestBand(context),
+              guestsBuilder: (cardWidth) => _buildGuestBand(context, cardWidth: cardWidth),
             ),
           ),
           Padding(
@@ -428,6 +450,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
             for (final block in blocks)
               if (block.slotId == slot.id) block,
           ],
+          roles: roles,
+          roleCandidateById: roleCandidateById,
           timeline: timeline,
           shotOf: shotOf,
           selectedBlockId: selectedBlockId,
@@ -439,6 +463,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
           onAnchorChanged: onBlockAnchorChanged,
           onShotStatusChanged: onShotStatusChanged,
           onHoldSequenceChanged: onBlockSequenceChanged,
+          onCandidateAdded: onBlockCandidateAdded,
+          onCandidateRemoved: onBlockCandidateRemoved,
           onDeletionRequested: onBlockDeletionRequested,
           onBlockAdded: onBlockAdded,
           onShotBlockRequested: onShotBlockRequested,
@@ -909,11 +935,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
     );
   }
 
-  /// The guest band: [slot]'s own live guests wrapped at [_personCardWidth] over the card's **whole**
-  /// width (shrunk to fit when that is narrower — unlike the crew and cast halves, this band is never
-  /// split in two), then the `+ Guest` footer. It is drawn whether or not [slot] holds a guest, like
-  /// the two halves above it; see the class doc comment.
-  Widget _buildGuestBand(BuildContext context) {
+  /// The guests half of the card's second row: [slot]'s own live guests wrapped at [cardWidth],
+  /// then the `+ Guest` footer. It is drawn whether or not [slot] holds a guest, exactly like the
+  /// three other kinds; see the class doc comment.
+  Widget _buildGuestBand(BuildContext context, {required double cardWidth}) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -940,31 +965,29 @@ class OcptScheduleSlotCard extends StatelessWidget {
         else
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
-            child: LayoutBuilder(
-              builder: (context, constraints) => Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final guest in slot.guests)
-                    SizedBox(
-                      width: math.min(_personCardWidth, constraints.maxWidth),
-                      child: _OcptScheduleGuestRow(
-                        key: ValueKey(guest.id),
-                        guest: guest,
-                        person: guest.personId == null ? null : personById[guest.personId],
-                        reasonValue: guestReasonValueOf(guest.id),
-                        onReasonChanged: onGuestReasonChanged == null
-                            ? null
-                            : (value) => onGuestReasonChanged!(guest.id, value),
-                        notesValue: guestNotesValueOf(guest.id),
-                        onNotesChanged: onGuestNotesChanged == null
-                            ? null
-                            : (value) => onGuestNotesChanged!(guest.id, value),
-                        onRemoved: onGuestRemoved == null ? null : () => onGuestRemoved!(guest.id),
-                      ),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final guest in slot.guests)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _OcptScheduleGuestRow(
+                      key: ValueKey(guest.id),
+                      guest: guest,
+                      person: guest.personId == null ? null : personById[guest.personId],
+                      reasonValue: guestReasonValueOf(guest.id),
+                      onReasonChanged: onGuestReasonChanged == null
+                          ? null
+                          : (value) => onGuestReasonChanged!(guest.id, value),
+                      notesValue: guestNotesValueOf(guest.id),
+                      onNotesChanged: onGuestNotesChanged == null
+                          ? null
+                          : (value) => onGuestNotesChanged!(guest.id, value),
+                      onRemoved: onGuestRemoved == null ? null : () => onGuestRemoved!(guest.id),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         if (onGuestAdded != null)
@@ -1054,8 +1077,9 @@ class _OcptScheduleSlotPeople extends StatefulWidget {
   /// Builds the cast half, from that same width.
   final Widget Function(double cardWidth) castBuilder;
 
-  /// Builds the guest band, which spans the section's whole width and therefore takes none.
-  final Widget Function() guestsBuilder;
+  /// Builds the guest band, the whole of the second row, from the width one person card claims
+  /// there.
+  final Widget Function(double cardWidth) guestsBuilder;
 
   /// Class constructor
   const _OcptScheduleSlotPeople({
@@ -1099,7 +1123,10 @@ class _OcptScheduleSlotPeopleState extends State<_OcptScheduleSlotPeople> {
           },
         ),
         const SizedBox(height: 11),
-        widget.guestsBuilder(),
+        LayoutBuilder(
+          builder: (context, constraints) =>
+              widget.guestsBuilder(math.min(_personCardWidth, constraints.maxWidth)),
+        ),
       ],
     ],
   );

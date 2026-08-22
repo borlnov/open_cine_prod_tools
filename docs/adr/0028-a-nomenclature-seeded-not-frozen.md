@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 0027 - A nomenclature seeded, not frozen
+# 0028 - A nomenclature seeded, not frozen
 
 ## Status
 
@@ -86,4 +86,4 @@ the code distinguishing the two.
 - **Top up the ten on every read** — resurrects a poste the user deliberately deleted, every time
   they open the project.
 - **Ship several nomenclatures and ask which** — a choice nobody can make before they have a budget,
-  and a second nomenclature nobody here has validated (ADR 0026).
+  and a second nomenclature nobody here has validated (ADR 0027).

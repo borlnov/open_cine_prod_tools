@@ -231,7 +231,7 @@ OcptBudgetPosteStrain ocptBudgetPosteStrainOf({
 /// to the excluding-tax one alone, which is all `ocptBudgetExcludingTaxTotalOf` itself answers.
 ///
 /// **Every row is converted individually and then summed, never the other way round**
-/// (ADR 0024): [OcptBudgetTaxBasis.excludingTax] delegates to
+/// (ADR 0025): [OcptBudgetTaxBasis.excludingTax] delegates to
 /// [ocptBudgetExcludingTaxTotalOf] directly, and [OcptBudgetTaxBasis.includingTax] mirrors it
 /// through [ocptIncludingTaxAmountCentsOf] over each line's own already-summed total
 /// ([ocptBudgetLineTotalCents]) — a line already typed tax-inclusive needs no rate at all to answer

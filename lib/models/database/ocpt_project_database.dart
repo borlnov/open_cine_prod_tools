@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
-
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -29,6 +28,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_unavaila
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_dictionary_words_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_candidates_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_episodes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
@@ -40,6 +40,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.da
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snapshots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_block_candidates_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_events_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
@@ -58,6 +59,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
 // OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
 // OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter,
+// OcptRoleCandidateStatusConverter, OcptShootingDayKindConverter,
 // OcptBudgetCommitmentStatusConverter, OcptBudgetResourceGroupKindConverter,
 // OcptBudgetResourceStatusConverter, OcptBudgetRevenueStatusConverter), but
 // the generated ocpt_project_database.g.dart
@@ -78,6 +80,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -145,23 +148,33 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptScreenplayLanguage]) — nullable, since "nobody has said" is as true after the migration as
 /// it was before it, exactly the reading [OcptProjectInfoTable.minimumRestMinutes] already carries
 /// — and, alongside it, [OcptProjectDictionaryWordsTable], the words a writer has taught this
-/// project's spell checker.
-/// Schema version 20 adds the budget mode's foundations: [OcptBudgetPostesTable] and
+/// project's spell checker. Schema version 20 adds [OcptRoleCandidatesTable], the people seen for a
+/// part before `roles.personId` can be filled in — a link between `roles` and `people` carrying the
+/// status, the audition date and the notes a casting decision is made on. Schema version 24 is what
+/// a day puts in its timetable when it is not shooting: [OcptShootingBlockCandidatesTable], the
+/// candidacies an `audition` block sees — the one convocation in this app read off a block rather
+/// than off a slot (ADR 0024). It is additive and nothing is backfilled: a project reaching this
+/// version has no audition planned anywhere, this app having had no way to plan one. Versions 23
+/// and 24 also take back the four columns and the one table intermediate builds of that same,
+/// unmerged work briefly carried — `shooting_days.kind`, `shooting_day_blocks.role_candidate_id`,
+/// `shooting_day_blocks.role_id` and `shooting_slot_candidates` — see the migration's own
+/// comments.
+/// Schema version 25 adds the budget mode's foundations: [OcptBudgetPostesTable] and
 /// [OcptBudgetLinesTable], the seeded-then-editable CNC nomenclature and its quote lines, plus
 /// three nullable [OcptProjectInfoTable] columns the mode reads (`defaultVatRateBasisPoints`,
 /// `mealPriceCents`, `snackPriceCents`) — nobody has recorded any of the three until a production
 /// says otherwise, the same reading `screenplayLanguage` above already carries.
-/// Schema version 21 adds the budget mode's cash journal: [OcptBudgetEntriesTable], the movements
+/// Schema version 26 adds the budget mode's cash journal: [OcptBudgetEntriesTable], the movements
 /// that actually left or entered the account, and [OcptBudgetCommitmentsTable], money committed
 /// against a poste but not yet paid — plus [OcptAssetsTable.budgetEntryId], naming the entry a
 /// receipt asset ([OcptAssetKind.receipt]) stands as the voucher for.
-/// Schema version 22 adds the budget mode's financing plan: [OcptBudgetMileageRatesTable], the
+/// Schema version 27 adds the budget mode's financing plan: [OcptBudgetMileageRatesTable], the
 /// per-kilometre rates a production names for itself (no scale is seeded — see that table's own
 /// doc comment), and [OcptBudgetResourcesTable], the subsidies, cash and in-kind contributions
 /// financing the production — plus [OcptBudgetEntriesTable.resourceId], naming which of those a
 /// journal movement settles, and [OcptPeopleTable.commuteKmMilli]/`.mileageRateId`, a person's own
 /// one-way commute and the rate that applies to them.
-/// Schema version 23 adds the budget mode's revenue sharing: [OcptBudgetRevenuesTable], the takings
+/// Schema version 28 adds the budget mode's revenue sharing: [OcptBudgetRevenuesTable], the takings
 /// the production expects, and [OcptBudgetSharesTable], the participants splitting what they bring
 /// in — plus [OcptBudgetEntriesTable.revenueId]/`.shareId`, naming which taking a journal credit is
 /// the actual cash for and which participant a debit actually pays.
@@ -190,6 +203,7 @@ part 'ocpt_project_database.g.dart';
     OcptSceneElementsTable,
     OcptRoleElementsTable,
     OcptRoleEpisodesTable,
+    OcptRoleCandidatesTable,
     OcptAssetsTable,
     OcptLocalErasuresTable,
     OcptBreakdownTagsTable,
@@ -200,6 +214,7 @@ part 'ocpt_project_database.g.dart';
     OcptShootingSlotCastTable,
     OcptShootingDayBlocksTable,
     OcptShootingSlotGuestsTable,
+    OcptShootingBlockCandidatesTable,
     OcptShootingDayEventsTable,
     OcptProjectDictionaryWordsTable,
     OcptBudgetPostesTable,
@@ -283,7 +298,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 23;
+  static const currentSchemaVersion = 28;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -411,6 +426,14 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// The same step also creates [OcptProjectDictionaryWordsTable], the words a writer has taught
   /// this project's spell checker — a plain `createTable` on a file coming from any version, since
   /// nothing a project already held needs migrating into it. From 19 to 20 it creates
+  /// [OcptRoleCandidatesTable], the people seen for a part: another plain `createTable` on a file
+  /// coming from any version, both tables it references (`roles` and `people`) existing by version
+  /// 6 and being created fresh above for a file older than that — and nothing to backfill either, a
+  /// project migrating onto this version having kept its casting somewhere this app has never been
+  /// able to read. From 23 to 24 it creates
+  /// `shooting_block_candidates`, the candidacies an `audition` block sees — a plain `createTable`
+  /// on a file coming from any version, with nothing to backfill, a project reaching this version
+  /// having had no way to plan an audition. From 24 to 25 it creates
   /// [OcptBudgetPostesTable] and [OcptBudgetLinesTable] — both plain `createTable`s on a file coming
   /// from any version, since the tables either one references (`budget_postes` itself, created just
   /// above it in this same step, and `elements`, which exists by version 6 at the latest and is
@@ -421,24 +444,24 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `project_info.screenplayLanguage` above needed no guard). None of the five gets a backfill: the
   /// two tables come out empty, and all three columns are nullable by design, so a project that
   /// predates the budget has no budget and has recorded none of the three figures, which stays as
-  /// true after the migration as it was before it. From 20 to 21 it creates
+  /// true after the migration as it was before it. From 25 to 26 it creates
   /// [OcptBudgetEntriesTable] and [OcptBudgetCommitmentsTable] — both plain `createTable`s on a
   /// file coming from any version, since the only table either one references (`budget_postes`)
-  /// exists by version 20 at the latest — and adds `assets.budgetEntryId`, guarded `from >= 6` for
-  /// the reason `assets.validFrom`/`assets.validUntil` above are. From 21 to 22 it creates
+  /// exists by version 25 at the latest — and adds `assets.budgetEntryId`, guarded `from >= 6` for
+  /// the reason `assets.validFrom`/`assets.validUntil` above are. From 26 to 27 it creates
   /// [OcptBudgetMileageRatesTable] and [OcptBudgetResourcesTable] — both plain `createTable`s
   /// referencing nothing, so their own order is free — and adds `budget_entries.resourceId`,
-  /// guarded `from >= 21` for the reason `assets.budgetEntryId` above is, and
+  /// guarded `from >= 26` for the reason `assets.budgetEntryId` above is, and
   /// `people.commuteKmMilli`/`people.mileageRateId`, guarded `from >= 6` for the reason
   /// `people.maxDailyPresenceMinutes` (version 16) is; [OcptBudgetMileageRatesTable] is created
   /// before that `people` column is added, and [OcptBudgetResourcesTable] before
   /// `budget_entries.resourceId` is, since each new column references the table just created. None
   /// of the five gets a backfill: the two tables come out empty, and all three columns are nullable
   /// by design, so a project that predates this step has recorded none of the three, which stays as
-  /// true after the migration as it was before it. From 22 to 23 it creates [OcptBudgetRevenuesTable]
+  /// true after the migration as it was before it. From 27 to 28 it creates [OcptBudgetRevenuesTable]
   /// and [OcptBudgetSharesTable] — both plain `createTable`s referencing nothing, so their own order
-  /// is free — and adds `budget_entries.revenueId`/`budget_entries.shareId`, guarded `from >= 21` for
-  /// the reason `assets.budgetEntryId` above is: a file older than 21 has just had `budget_entries`
+  /// is free — and adds `budget_entries.revenueId`/`budget_entries.shareId`, guarded `from >= 26` for
+  /// the reason `assets.budgetEntryId` above is: a file older than 26 has just had `budget_entries`
   /// created fresh above, from the current declaration, so it already carries both columns. Neither
   /// table gets a backfill, coming out empty, and neither column does either, staying null: a project
   /// that predates the sharing view has named no taking and no participant, which stays as true after
@@ -656,6 +679,48 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       }
 
       if (from < 20) {
+        // Both tables it references — `roles` and `people` — exist by version 6, and a file older
+        // than that has just had them created above, so this is never a forward reference. Nothing
+        // to backfill: a project reaching this version kept the people it saw for a part somewhere
+        // this app has never been able to read.
+        await m.createTable(ocptRoleCandidatesTable);
+      }
+
+      if (from < 23) {
+        // The two columns a **build that never merged** wrote, and nothing else: `shooting_days
+        // .kind` and `shooting_day_blocks.role_candidate_id` were added by intermediate versions of
+        // this very branch and taken back out before it landed — a day mixes casting, rehearsal and
+        // shooting, and says so through its blocks, so neither column had anything left to say. No
+        // released build ever wrote either, so the only files carrying them are the ones this
+        // branch was developed against; [_dropColumnIfPresent] is what makes running this against
+        // any other file a no-op rather than an error.
+        await _dropColumnIfPresent(table: 'shooting_days', column: 'kind');
+        await _dropColumnIfPresent(
+          table: 'shooting_day_blocks',
+          column: 'role_candidate_id',
+        );
+      }
+
+      if (from < 24) {
+        // The same **build that never merged** as the `from < 23` step above, one round later: a
+        // candidate was briefly convoked on the whole slot, and an audition block briefly named the
+        // single part it saw. Both are gone — somebody is expected at twenty past ten, and a block
+        // reading two actors of two different parts could never have named one part. No released
+        // build ever wrote either, so these too are dropped defensively rather than migrated, and
+        // nothing carries their rows over. Dropped *before* the table below is created, so nothing
+        // new ever references a shape still being reshaped.
+        await _dropTableIfPresent(table: 'shooting_slot_candidates');
+        await _dropColumnIfPresent(table: 'shooting_day_blocks', column: 'role_id');
+
+        // Follows every table it references: `shooting_day_blocks` exists by version 11 (or was
+        // created fresh above for a file older than that), and `role_candidates` by version 20 —
+        // created by the `from < 20` step above for every file that had not reached it. Nothing to
+        // backfill: a project migrating onto this version has convoked no candidate anywhere, this
+        // app having had no way to convoke one.
+        await m.createTable(ocptShootingBlockCandidatesTable);
+      }
+
+      if (from < 25) {
         // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
         // (created just above) and `elements` (which exists by version 6 at the latest, and is
         // created fresh above for a file older than that): neither `createTable` is ever a forward
@@ -671,9 +736,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.snackPriceCents);
       }
 
-      if (from < 21) {
+      if (from < 26) {
         // `budget_entries` references `budget_postes` (created fresh above for a file older than
-        // 20, or already in place otherwise), and `budget_commitments` references `budget_postes`
+        // 25, or already in place otherwise), and `budget_commitments` references `budget_postes`
         // and `budget_entries` (created just above it): neither `createTable` is ever a forward
         // reference.
         await m.createTable(ocptBudgetEntriesTable);
@@ -688,7 +753,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         }
       }
 
-      if (from < 22) {
+      if (from < 27) {
         // Neither table references the other, so their own order is free; what matters is that
         // each is created before the column that references it is added, below: `people` may name
         // a `budget_mileage_rates` row, and `budget_entries` may name a `budget_resources` row.
@@ -704,27 +769,27 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
           await m.addColumn(ocptPeopleTable, ocptPeopleTable.mileageRateId);
         }
 
-        // `budget_entries` has existed, and been alterable, since version 21 — a file older than
+        // `budget_entries` has existed, and been alterable, since version 26 — a file older than
         // that has just had it created fresh above, from the current declaration, so it already
-        // carries the column. Guarded `from >= 21` for the reason `assets.budgetEntryId` above is
+        // carries the column. Guarded `from >= 26` for the reason `assets.budgetEntryId` above is
         // guarded `from >= 6`.
-        if (from >= 21) {
+        if (from >= 26) {
           await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.resourceId);
         }
       }
 
-      if (from < 23) {
+      if (from < 28) {
         // Neither table references the other, so their own order is free; what matters is that
         // each is created before the column that references it is added, below: `budget_entries`
         // may name a `budget_revenues` row and a `budget_shares` row.
         await m.createTable(ocptBudgetRevenuesTable);
         await m.createTable(ocptBudgetSharesTable);
 
-        // `budget_entries` has existed, and been alterable, since version 21 — a file older than
+        // `budget_entries` has existed, and been alterable, since version 26 — a file older than
         // that has just had it created fresh above, from the current declaration, so it already
-        // carries both columns. Guarded `from >= 21` for the reason `assets.budgetEntryId` above is
+        // carries both columns. Guarded `from >= 26` for the reason `assets.budgetEntryId` above is
         // guarded `from >= 6`.
-        if (from >= 21) {
+        if (from >= 26) {
           await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.revenueId);
           await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.shareId);
         }
@@ -734,6 +799,47 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Drops [column] from [table], if that table actually carries it, and does nothing at all
+  /// otherwise.
+  ///
+  /// The one migration helper in this file that **asks the file what it holds** rather than
+  /// deducing it from the version it states, and deliberately: the two columns it is used on were
+  /// written by intermediate builds of one unmerged branch, so the version number a file states
+  /// says nothing about whether it has them — one project made against that branch does, one made
+  /// against the release before it does not, and both state a number below 23.
+  ///
+  /// Written in raw SQL for the reason [_backfillSortKeys] gives, and because a column that is no
+  /// longer declared in Dart cannot be named through the generated API at all.
+  Future<void> _dropColumnIfPresent({required String table, required String column}) async {
+    final columns = await customSelect('PRAGMA table_info($table)').get();
+    final hasColumn = columns.any((row) => row.data['name'] == column);
+    if (!hasColumn) {
+      return;
+    }
+
+    await customStatement('ALTER TABLE "$table" DROP COLUMN "$column"');
+  }
+
+  /// Drops [table] entirely, if this file actually carries it, and does nothing at all otherwise.
+  ///
+  /// [_dropColumnIfPresent]'s sibling, there for exactly the same reason and used on exactly the
+  /// same kind of thing: `shooting_slot_candidates` was created by an intermediate build of one
+  /// unmerged branch and taken back out before it landed, so the version a file states says nothing
+  /// about whether it holds the table. `DROP TABLE IF EXISTS` would do here, but asking
+  /// `sqlite_master` keeps this reading the same way its sibling does — and says in one place what
+  /// "if present" means.
+  Future<void> _dropTableIfPresent({required String table}) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable<String>(table)],
+    ).get();
+    if (rows.isEmpty) {
+      return;
+    }
+
+    await customStatement('DROP TABLE "$table"');
+  }
 
   /// Writes a code onto every live `sets` row that has none, in the order the sets are already
   /// read in, so a project made before schema version 10 comes out of the migration looking exactly
@@ -1103,7 +1209,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
     if (from >= 11) {
       await m.alterTable(
-        // Same as above.
+        // Same as above: `shooting_days` loses its own `screenplay_id`, every other column being
+        // copied straight across.
         // ignore: experimental_member_use
         TableMigration(ocptShootingDaysTable),
       );
