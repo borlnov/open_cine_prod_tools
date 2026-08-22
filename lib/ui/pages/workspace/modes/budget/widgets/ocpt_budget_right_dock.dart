@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 
 /// The chrome of the budget mode's right dock: a compact tab row, a trailing × close button, and
-/// the active tab's body below — the exact mirror of `OcptScheduleRightDock`, reduced to the two
-/// tabs [OcptBudgetRightDockTab] carries.
+/// the active tab's body below — the exact mirror of `OcptScheduleRightDock`, carrying the three
+/// tabs [OcptBudgetRightDockTab] declares.
 class OcptBudgetRightDock extends StatelessWidget {
   /// The currently active tab, whose body is shown below the tab row.
   final OcptBudgetRightDockTab activeTab;
@@ -20,6 +20,9 @@ class OcptBudgetRightDock extends StatelessWidget {
   /// The built project versions panel, shown when [activeTab] is
   /// [OcptBudgetRightDockTab.versions].
   final Widget versionsChild;
+
+  /// The built help panel, shown when [activeTab] is [OcptBudgetRightDockTab.help].
+  final Widget helpChild;
 
   /// Called with a tab when its label in the tab row is clicked.
   final ValueChanged<OcptBudgetRightDockTab> onTabSelected;
@@ -33,6 +36,7 @@ class OcptBudgetRightDock extends StatelessWidget {
     required this.activeTab,
     required this.inspectorChild,
     required this.versionsChild,
+    required this.helpChild,
     required this.onTabSelected,
     required this.onClose,
   });
@@ -57,6 +61,7 @@ class OcptBudgetRightDock extends StatelessWidget {
                         label: switch (tab) {
                           OcptBudgetRightDockTab.inspector => tr.budgetRightDockInspectorTabLabel,
                           OcptBudgetRightDockTab.versions => tr.budgetRightDockVersionsTabLabel,
+                          OcptBudgetRightDockTab.help => tr.budgetRightDockHelpTabLabel,
                         },
                         isActive: activeTab == tab,
                         onTap: () => onTabSelected(tab),
@@ -78,6 +83,7 @@ class OcptBudgetRightDock extends StatelessWidget {
           child: switch (activeTab) {
             OcptBudgetRightDockTab.inspector => inspectorChild,
             OcptBudgetRightDockTab.versions => versionsChild,
+            OcptBudgetRightDockTab.help => helpChild,
           },
         ),
       ],

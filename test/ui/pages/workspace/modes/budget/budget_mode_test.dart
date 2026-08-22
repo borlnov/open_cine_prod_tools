@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -129,6 +130,15 @@ void main() {
   /// with anything else on screen — mirrors `schedule_mode_test.dart`'s own `inPanel`.
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
+
+  /// Taps the header's own view chip labelled [label], scoped to `OcptBudgetHeader` — the help
+  /// panel's own map reuses a couple of the very same chip labels (`Financing`, `Committed`) for
+  /// its cells, so a plain `find.text` is ambiguous whenever the Help tab is open beside the
+  /// header.
+  Future<void> tapHeaderChip(WidgetTester tester, String label) async {
+    await tester.tap(find.descendant(of: find.byType(OcptBudgetHeader), matching: find.text(label)));
+    await tester.pumpAndSettle();
+  }
 
   testWidgets("the ten CNC postes are seeded and shown on first entry", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
@@ -649,4 +659,124 @@ void main() {
       expect(find.text(tr.budgetExportQuoteDialogTitle), findsOneWidget);
     },
   );
+
+  testWidgets(
+    "offers a Help tab in the right dock, toggled from the toolbar's own button",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      expect(find.text(tr.budgetRightDockHelpTabLabel), findsNothing);
+
+      await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
+      expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
+
+      // Clicking the toolbar's Help button again, while the tab is already showing, closes the
+      // dock — the same toggle reading every other dock toggle already has.
+      await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetRightDockHelpTabLabel), findsNothing);
+      expect(find.text(tr.budgetHelpMapIntro), findsNothing);
+    },
+  );
+
+  testWidgets("the help panel follows the centre view, with no extra click", (tester) async {
+    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+    await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
+    await tester.pumpAndSettle();
+
+    // The dashboard is the mode's default view, so its own page opens first.
+    expect(find.text(tr.budgetHelpDashboardBody3), findsOneWidget);
+    expect(find.text(tr.budgetHelpCostTrackingBody4), findsNothing);
+
+    // Switching the header's own chip changes the help panel's page without touching the dock
+    // at all.
+    await openCostTracking(tester);
+
+    expect(find.text(tr.budgetHelpDashboardBody3), findsNothing);
+    expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
+  });
+
+  testWidgets("the map highlights the cell the current view occupies", (tester) async {
+    // Wider than every other test in this file: with the right dock open, the centre pane left
+    // for the financing view narrows enough at 1750 to hit that view's own pre-existing layout
+    // overflow at very narrow widths — unrelated to the help panel, and reproducible with the
+    // dock closed too. This width keeps well clear of it.
+    tester.view.physicalSize = const Size(2200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+    await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
+    await tester.pumpAndSettle();
+
+    // The dashboard reads across the whole map rather than standing in one cell of it.
+    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsNothing);
+
+    // The header's own chip is tapped through `tapHeaderChip` rather than `openFinancing`: the
+    // help panel's map reuses the very same "Financing" label for its own cell, and both are on
+    // screen at once here.
+    await tapHeaderChip(tester, tr.budgetHeaderFinancingSegmentLabel);
+    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsOneWidget);
+
+    await tapHeaderChip(tester, tr.budgetHeaderCommittedSegmentLabel);
+    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsOneWidget);
+
+    // The cash journal occupies both cells of the "has moved" column at once.
+    await openCashJournal(tester);
+    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsNWidgets(2));
+  });
+
+  testWidgets("offers the help panel under a previewed version", (tester) async {
+    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    expect(version, isNotNull);
+    final versionId = version!.id;
+    final previewResult = await projectsManager.previewVersion(versionId);
+    expect(previewResult.status.isSuccess, isTrue);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+    // The help action is never withheld under a preview — it writes nothing.
+    await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
+    expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
+    expect(find.text(tr.budgetHelpDashboardBody3), findsOneWidget);
+
+    // Leave the preview so the working copy is what the next test opens onto.
+    await projectsManager.exitPreview();
+  });
 }

@@ -1,0 +1,333 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+
+/// The right dock's own `Help` tab: the mode's explanation of itself, contextual to whichever
+/// centre view is currently on screen.
+///
+/// It answers a real defect rather than a missing feature — a production that had used the mode
+/// still could not say what told `financing`, `cashJournal` and `committed` apart. Every page
+/// therefore opens on the same small map ([_OcptBudgetHelpMap]) before its own substance: the map
+/// is the answer, and the page below it is the detail. **This widget writes nothing** — like
+/// `OcptBudgetRegie` (`docs/architecture/budget.md`), it carries no `isReadOnly` flag at all, and
+/// is offered identically under a previewed version.
+class OcptBudgetHelp extends StatelessWidget {
+  /// Which centre view the help follows — switching the header's own chips changes what this panel
+  /// says, with no extra click.
+  final OcptBudgetCentreView centreView;
+
+  /// Whether the header's simplified/detailed switch currently reads simplified, so a page heading
+  /// or a cross-reference to another view reads exactly as that view's own chip currently does —
+  /// `Cash journal`/`Committed` are the only two chips that switch wording
+  /// (`OcptBudgetHeader`'s own doc comment).
+  final bool isSimplified;
+
+  /// Class constructor
+  const OcptBudgetHelp({super.key, required this.centreView, required this.isSimplified});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr.budgetHelpMapIntro, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 12),
+          _OcptBudgetHelpMap(
+            isSimplified: isSimplified,
+            highlighted: _highlightedCellsOf(centreView),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            tr.budgetHelpMapQuoteNote,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Divider(height: 1, color: theme.colorScheme.outlineVariant),
+          const SizedBox(height: 16),
+          Text(_titleOf(tr, centreView, isSimplified), style: theme.textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Text(
+            _subtitleOf(tr, centreView),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 12),
+          for (final paragraph in _bodyOf(tr, centreView, isSimplified)) ...[
+            Text(paragraph, style: theme.textTheme.bodySmall),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// The current view's own page heading — the very word its band shows above the centre, so the
+  /// reader finds the same name here as on screen (`OcptBudgetHeader._titleOf`'s own reasoning,
+  /// reimplemented here rather than shared, since that method is private to that widget).
+  String _titleOf(Tr tr, OcptBudgetCentreView view, bool isSimplified) => switch (view) {
+    OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardTitle,
+    OcptBudgetCentreView.costTracking => tr.budgetHeaderTitle,
+    OcptBudgetCentreView.cashJournal => isSimplified
+        ? tr.budgetHeaderCashJournalSimpleSegmentLabel
+        : tr.budgetHeaderCashJournalTitle,
+    OcptBudgetCentreView.committed => isSimplified
+        ? tr.budgetHeaderCommittedSimpleSegmentLabel
+        : tr.budgetHeaderCommittedTitle,
+    OcptBudgetCentreView.financing => tr.budgetHeaderFinancingTitle,
+    OcptBudgetCentreView.regie => tr.budgetHeaderRegieTitle,
+    OcptBudgetCentreView.sharing => tr.budgetHeaderSharingTitle,
+  };
+
+  /// The current view's own one-line subtitle, exactly as the header band prints it.
+  String _subtitleOf(Tr tr, OcptBudgetCentreView view) => switch (view) {
+    OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardSubtitle,
+    OcptBudgetCentreView.costTracking => tr.budgetHeaderSubtitle,
+    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalSubtitle,
+    OcptBudgetCentreView.committed => tr.budgetHeaderCommittedSubtitle,
+    OcptBudgetCentreView.financing => tr.budgetHeaderFinancingSubtitle,
+    OcptBudgetCentreView.regie => tr.budgetHeaderRegieSubtitle,
+    OcptBudgetCentreView.sharing => tr.budgetHeaderSharingSubtitle,
+  };
+
+  /// The current view's own explanation, one short paragraph per entry — the substance
+  /// `docs/architecture/budget.md` states, in plain language, with every cross-reference to a
+  /// figure or another view worded exactly as its own label or chip already reads.
+  List<String> _bodyOf(Tr tr, OcptBudgetCentreView view, bool isSimplified) => switch (view) {
+    OcptBudgetCentreView.dashboard => [
+      tr.budgetHelpDashboardBody1(tr.budgetDashboardPaidLabel, tr.budgetDashboardCommittedLabel),
+      tr.budgetHelpDashboardBody2,
+      tr.budgetHelpDashboardBody3,
+      tr.budgetHelpDashboardBody4(tr.budgetDashboardFeedSectionTitle),
+    ],
+    OcptBudgetCentreView.costTracking => [
+      tr.budgetHelpCostTrackingBody1(tr.budgetCostTrackingColumnQuote),
+      tr.budgetHelpCostTrackingBody2(
+        tr.budgetCostTrackingColumnPaid,
+        tr.budgetCostTrackingColumnCommitted,
+      ),
+      tr.budgetHelpCostTrackingBody3(
+        tr.budgetCostTrackingOffQuoteLabel,
+        tr.budgetCostTrackingColumnPaid,
+      ),
+      tr.budgetHelpCostTrackingBody4,
+    ],
+    OcptBudgetCentreView.cashJournal => [
+      tr.budgetHelpCashJournalBody1(tr.budgetCashJournalDebitLabel, tr.budgetCashJournalCreditLabel),
+      tr.budgetHelpCashJournalBody2(tr.budgetCostTrackingOffQuoteLabel),
+      tr.budgetHelpCashJournalBody3(tr.budgetCashJournalBalanceLabel),
+      tr.budgetHelpCashJournalBody4,
+    ],
+    OcptBudgetCentreView.committed => [
+      tr.budgetHelpCommittedBody1,
+      tr.budgetHelpCommittedBody2(
+        tr.budgetCommittedStatusSettledLabel,
+        tr.budgetCommittedSettleAction,
+      ),
+      tr.budgetHelpCommittedBody3(tr.budgetCommittedProjectionTitle),
+    ],
+    OcptBudgetCentreView.financing => [
+      tr.budgetHelpFinancingBody1,
+      tr.budgetHelpFinancingBody2(
+        tr.budgetFinancingColumnStatus,
+        tr.budgetFinancingRecordReceiptAction,
+      ),
+      tr.budgetHelpFinancingBody3,
+      tr.budgetHelpFinancingBody4(
+        tr.budgetResourceDialogReimbursableFieldLabel,
+        tr.budgetHeaderSharingSegmentLabel,
+      ),
+    ],
+    OcptBudgetCentreView.regie => [
+      tr.budgetHelpRegieBody1,
+      tr.budgetHelpRegieBody2,
+      tr.budgetHelpRegieBody3,
+      tr.budgetHelpRegieBody4,
+    ],
+    OcptBudgetCentreView.sharing => [
+      tr.budgetHelpSharingBody1,
+      tr.budgetHelpSharingBody2,
+      tr.budgetHelpSharingBody3,
+    ],
+  };
+
+  /// Which cell(s) of [_OcptBudgetHelpMap] [view] occupies, so the map can highlight where the
+  /// reader currently stands.
+  ///
+  /// `cashJournal` occupies both cells of the "has moved" column at once — the journal is where
+  /// both a credit and a debit are read. `dashboard`, `costTracking` (the quote, stated as sitting
+  /// outside the map), `regie` and `sharing` occupy none of the four: each reads across the whole
+  /// map, or a different figure entirely, rather than standing in one cell of it.
+  Set<_OcptBudgetHelpMapCell> _highlightedCellsOf(OcptBudgetCentreView view) => switch (view) {
+    OcptBudgetCentreView.financing => const {_OcptBudgetHelpMapCell.financing},
+    OcptBudgetCentreView.committed => const {_OcptBudgetHelpMapCell.committed},
+    OcptBudgetCentreView.cashJournal => const {
+      _OcptBudgetHelpMapCell.cashCredits,
+      _OcptBudgetHelpMapCell.cashDebits,
+    },
+    OcptBudgetCentreView.dashboard ||
+    OcptBudgetCentreView.costTracking ||
+    OcptBudgetCentreView.regie ||
+    OcptBudgetCentreView.sharing => const {},
+  };
+}
+
+/// The four cells [_OcptBudgetHelpMap] draws.
+enum _OcptBudgetHelpMapCell { financing, committed, cashCredits, cashDebits }
+
+/// The map every help page opens with: what is only promised against what has actually moved,
+/// crossed with money coming in against money going out. `OcptBudgetCentreView.financing` and
+/// `.committed` are each one cell of it; `.cashJournal` is the whole "has moved" column, since the
+/// journal is where both a credit and a debit are read.
+class _OcptBudgetHelpMap extends StatelessWidget {
+  /// Whether the header's simplified/detailed switch currently reads simplified — see
+  /// [OcptBudgetHelp.isSimplified].
+  final bool isSimplified;
+
+  /// Which cell(s) to highlight as "you are here".
+  final Set<_OcptBudgetHelpMapCell> highlighted;
+
+  /// Class constructor
+  const _OcptBudgetHelpMap({required this.isSimplified, required this.highlighted});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final borderColor = theme.colorScheme.outlineVariant;
+
+    return Table(
+      border: TableBorder.all(color: borderColor, borderRadius: BorderRadius.circular(ocptRadiusSmall)),
+      columnWidths: const {0: FixedColumnWidth(64)},
+      children: [
+        TableRow(
+          children: [
+            const SizedBox.shrink(),
+            _OcptBudgetHelpMapHeaderCell(label: tr.budgetHelpMapColumnPromisedLabel),
+            _OcptBudgetHelpMapHeaderCell(label: tr.budgetHelpMapColumnMovedLabel),
+          ],
+        ),
+        TableRow(
+          children: [
+            _OcptBudgetHelpMapHeaderCell(label: tr.budgetHelpMapRowComingInLabel),
+            _OcptBudgetHelpMapDataCell(
+              label: tr.budgetHeaderFinancingSegmentLabel,
+              isHighlighted: highlighted.contains(_OcptBudgetHelpMapCell.financing),
+              currentLabel: tr.budgetHelpMapCurrentViewBadge,
+            ),
+            _OcptBudgetHelpMapDataCell(
+              label: tr.budgetHelpMapCellCreditsLabel,
+              isHighlighted: highlighted.contains(_OcptBudgetHelpMapCell.cashCredits),
+              currentLabel: tr.budgetHelpMapCurrentViewBadge,
+            ),
+          ],
+        ),
+        TableRow(
+          children: [
+            _OcptBudgetHelpMapHeaderCell(label: tr.budgetHelpMapRowGoingOutLabel),
+            _OcptBudgetHelpMapDataCell(
+              label: isSimplified
+                  ? tr.budgetHeaderCommittedSimpleSegmentLabel
+                  : tr.budgetHeaderCommittedSegmentLabel,
+              isHighlighted: highlighted.contains(_OcptBudgetHelpMapCell.committed),
+              currentLabel: tr.budgetHelpMapCurrentViewBadge,
+            ),
+            _OcptBudgetHelpMapDataCell(
+              label: tr.budgetHelpMapCellDebitsLabel,
+              isHighlighted: highlighted.contains(_OcptBudgetHelpMapCell.cashDebits),
+              currentLabel: tr.budgetHelpMapCurrentViewBadge,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// One header cell of [_OcptBudgetHelpMap] — a row or column label, muted and centred.
+class _OcptBudgetHelpMapHeaderCell extends StatelessWidget {
+  /// The header's own text.
+  final String label;
+
+  /// Class constructor
+  const _OcptBudgetHelpMapHeaderCell({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+/// One data cell of [_OcptBudgetHelpMap] — naming the view (or the journal side) that fills it,
+/// filled with the accent wash and carrying [currentLabel] once [isHighlighted] says this is the
+/// cell the reader is currently standing in.
+class _OcptBudgetHelpMapDataCell extends StatelessWidget {
+  /// The cell's own label.
+  final String label;
+
+  /// Whether this cell is the current centre view's own.
+  final bool isHighlighted;
+
+  /// The small badge printed under [label] while [isHighlighted].
+  final String currentLabel;
+
+  /// Class constructor
+  const _OcptBudgetHelpMapDataCell({
+    required this.label,
+    required this.isHighlighted,
+    required this.currentLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      color: isHighlighted
+          ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+          : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: isHighlighted ? theme.colorScheme.primary : null,
+              fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.normal,
+            ),
+          ),
+          if (isHighlighted) ...[
+            const SizedBox(height: 2),
+            Text(
+              currentLabel,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

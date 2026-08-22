@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -41,6 +42,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_quote_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
@@ -69,7 +71,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The budget production mode: the quote, poste by poste — the dashboard and the cost-tracking
-/// table this milestone builds, `Inspector` and `Versions` in the right dock.
+/// table this milestone builds, `Inspector`, `Versions` and `Help` in the right dock.
 ///
 /// **There is no left dock** (the mockup shows none for this mode, `docs/architecture/budget.md`,
 /// M1) and **no episode selector**: one budget serves the whole production (ADR 0019), its
@@ -166,6 +168,11 @@ class _BudgetViewState extends State<_BudgetView> {
         onProjectSettingsRequested: state.isPreviewingVersion
             ? null
             : () => unawaited(_requestProjectSettings(context)),
+        // Never withheld under a preview — see `OcptWorkspaceShell.onHelpRequested`'s own doc
+        // comment: a help panel only reads.
+        onHelpRequested: () => context.read<OcptBudgetBloc>().add(
+          const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help),
+        ),
         banner: _buildReadOnlyBanner(context, state),
         rightPanel: _buildRightDock(context, state),
         centre: _buildCentre(context, state),
@@ -1415,11 +1422,17 @@ class _BudgetViewState extends State<_BudgetView> {
       activeTab: rightDockTab,
       inspectorChild: _buildInspector(context, state),
       versionsChild: _buildVersionsPanel(context, state),
+      helpChild: _buildHelp(context, state),
       onTabSelected: (tab) =>
           context.read<OcptBudgetBloc>().add(OcptBudgetRightDockTabSelectedEvent(tab: tab)),
       onClose: () => context.read<OcptBudgetBloc>().add(const OcptBudgetRightDockClosedEvent()),
     );
   }
+
+  /// Builds the `Help` tab's own content — never withheld under a preview, since it writes
+  /// nothing (`OcptBudgetHelp`'s own doc comment).
+  Widget _buildHelp(BuildContext context, OcptBudgetState state) =>
+      OcptBudgetHelp(centreView: state.centreView, isSimplified: state.isSimplified);
 
   /// Builds the `Inspector` tab's own content.
   ///
