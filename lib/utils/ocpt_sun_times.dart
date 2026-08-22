@@ -26,8 +26,7 @@ const double _ocptNauticalZenithDegrees = 102;
 const double _ocptAstronomicalZenithDegrees = 108;
 
 /// The five sun and twilight figures a call sheet prints, for one date and one place — sunrise,
-/// sunset, and the civil, nautical and astronomical twilights at both ends of the day (§7 of
-/// `docs/plans/schedule-mode.md`, recorded as ADR 0016).
+/// sunset, and the civil, nautical and astronomical twilights at both ends of the day (ADR 0016).
 ///
 /// Every figure is in **minutes from `date`'s own local midnight, wrapping nothing** — the same
 /// convention `shooting_day_blocks` and `ocpt_shooting_day_timeline.dart` use. A figure that falls
