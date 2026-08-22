@@ -592,6 +592,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetCentreViewSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
+    // Flushed here for the reason a selection change and a dock tab change already flush: the user
+    // has stopped typing and is about to *read* figures somewhere else. Without it, an amount typed
+    // in the cost-tracking table and followed straight by a click on `Dashboard` was still sitting
+    // in the debounce, so the dashboard drew the snapshot from before it — and corrected itself two
+    // seconds later, once the timer fired. The write was never lost; it simply was not shown, which
+    // reads exactly like an app that ignores what it is told.
+    await _flushPendingFieldEdits(emitter);
+
     emitter(state.copyWith(centreView: event.view));
   }
 
@@ -600,6 +608,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetSimplifiedToggledEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
+    // Flushed for [_onCentreViewSelected]'s own reason: both toggles re-read the very figures a
+    // pending edit has not reached yet.
+    await _flushPendingFieldEdits(emitter);
+
     emitter(state.copyWith(isSimplified: event.isSimplified));
   }
 
@@ -608,6 +620,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetTaxBasisChangedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
+    // Flushed for [_onCentreViewSelected]'s own reason: both toggles re-read the very figures a
+    // pending edit has not reached yet.
+    await _flushPendingFieldEdits(emitter);
+
     emitter(state.copyWith(taxBasis: event.basis));
   }
 
