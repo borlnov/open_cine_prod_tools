@@ -138,6 +138,18 @@ class OcptProjectInfoTable extends Table {
   /// [mealPriceCents]'s sibling, read the same way and for the same reason.
   IntColumn get snackPriceCents => integer().nullable()();
 
+  /// Whether the budget mode's header currently shows the simplified view rather than the
+  /// detailed one, or null.
+  ///
+  /// **Nullable, and deliberately not defaulted to either reading**: the toggle used to live in
+  /// memory alone, so every close of the project lost the choice, and a fresh default of `false`
+  /// here would silently reintroduce that same loss the moment a project is opened for the first
+  /// time under this column, printing detailed while claiming somebody chose it. Null means
+  /// "nobody has ever chosen", exactly the reading [minimumRestMinutes] already carries, and the
+  /// budget mode opens **detailed** for it — precisely what it already does today, before this
+  /// column existed at all.
+  BoolColumn get isBudgetSimplified => boolean().nullable()();
+
   /// The project version the working copy descends from, or null in a project which never had one.
   ///
   /// This is what tells the `Versions` panel which of its cards is the current one: it is set when

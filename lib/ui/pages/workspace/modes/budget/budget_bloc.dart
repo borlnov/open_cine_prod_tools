@@ -1411,6 +1411,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     database: project.database,
     resourceId: resourceId,
     groupKind: Value(fields.groupKind),
+    personId: Value(fields.personId),
     label: Value(fields.label),
     amountCents: Value(fields.amountCents),
     status: Value(fields.status),

@@ -135,6 +135,7 @@ void main() {
       defaultVatRateBasisPoints: null,
       mealPriceCents: null,
       snackPriceCents: null,
+      isBudgetSimplified: null,
     ),
   );
 

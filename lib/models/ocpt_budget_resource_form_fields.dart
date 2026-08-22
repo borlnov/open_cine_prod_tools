@@ -18,6 +18,10 @@ class OcptBudgetResourceFormFields extends Equatable {
   /// What kind of financing this resource is.
   final OcptBudgetResourceGroupKind groupKind;
 
+  /// The person this resource comes from, or null — `OcptBudgetResourcesTable.personId`'s own doc
+  /// comment: a subsidy names nobody, which is a real fact rather than an unfinished pick.
+  final String? personId;
+
   /// This resource's free-text wording, trimmed — the dialog's own only required field.
   final String label;
 
@@ -36,6 +40,7 @@ class OcptBudgetResourceFormFields extends Equatable {
   /// Class constructor
   const OcptBudgetResourceFormFields({
     required this.groupKind,
+    required this.personId,
     required this.label,
     required this.amountCents,
     required this.status,
@@ -46,10 +51,18 @@ class OcptBudgetResourceFormFields extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetResourceFormFields(groupKind: $groupKind, label: $label, "
+      "OcptBudgetResourceFormFields(groupKind: $groupKind, personId: $personId, label: $label, "
       "amountCents: $amountCents, status: $status)";
 
   /// Object properties
   @override
-  List<Object?> get props => [groupKind, label, amountCents, status, isReimbursable, notes];
+  List<Object?> get props => [
+    groupKind,
+    personId,
+    label,
+    amountCents,
+    status,
+    isReimbursable,
+    notes,
+  ];
 }

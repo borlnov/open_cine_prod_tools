@@ -65,7 +65,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 24;
+  static const currentPayloadFormat = 25;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -926,6 +926,10 @@ class OcptProjectVersionCodec {
   /// object
   static const _sharePermilleKey = "sharePermille";
 
+  /// This is the key used to stringify or parse the project's `isBudgetSimplified` from a JSON
+  /// object, from payload format 25: the budget mode's simplified/detailed header toggle.
+  static const _isBudgetSimplifiedKey = "isBudgetSimplified";
+
   /// This is the key used to stringify or parse a `budget_shares.reinvestPermille` column from a
   /// JSON object
   static const _reinvestPermilleKey = "reinvestPermille";
@@ -980,6 +984,7 @@ class OcptProjectVersionCodec {
     21: _upgradeFormat21To22,
     22: _upgradeFormat22To23,
     23: _upgradeFormat23To24,
+    24: _upgradeFormat24To25,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1650,6 +1655,30 @@ class OcptProjectVersionCodec {
     };
   }
 
+  /// Turns a format-**24** JSON object into a format-**25** one: `budget_resources.personId` and
+  /// `project_info.isBudgetSimplified` didn't exist yet, so every `budgetResources` row gains a
+  /// **null** [_personIdKey] and [_projectSettingsKey] gains a **null** [_isBudgetSimplifiedKey] —
+  /// [_upgradeFormat3To4]'s kind twice over, not the empty-list one: neither `budget_resources` nor
+  /// `project_info` is new here, so no resource could yet name the person it comes from, and
+  /// nobody has ever chosen between the simplified and the detailed header on a project captured
+  /// this early — the mode opens detailed for it today for exactly that reason.
+  static Map<String, dynamic> _upgradeFormat24To25(Map<String, dynamic> json) {
+    final resources = [
+      for (final row in _rows(json, _budgetResourcesKey)) {...row, _personIdKey: null},
+    ];
+
+    final projectSettings = {
+      ..._object(json, _projectSettingsKey),
+      _isBudgetSimplifiedKey: null,
+    };
+
+    return {
+      ...json,
+      _budgetResourcesKey: resources,
+      _projectSettingsKey: projectSettings,
+    };
+  }
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1762,6 +1791,7 @@ class OcptProjectVersionCodec {
       _defaultVatRateBasisPointsKey: payload.defaultVatRateBasisPoints,
       _mealPriceCentsKey: payload.mealPriceCents,
       _snackPriceCentsKey: payload.snackPriceCents,
+      _isBudgetSimplifiedKey: payload.isBudgetSimplified,
     },
     _pageMarginsKey: {
       _marginLeftKey: payload.pageSetup.margins.leftInches,
@@ -1889,7 +1919,12 @@ class OcptProjectVersionCodec {
   ///   again, from payload format 19 on: leave them out and a whole sharing plan typed in — a
   ///   taking recorded, a participant's share agreed — would hash identically to a project with no
   ///   sharing plan at all, the working-copy card claiming no drift and a restore over that
-  ///   afternoon's work skipping the safety version it owes;
+  ///   afternoon's work skipping the safety version it owes. `isBudgetSimplified` is
+  ///   `minimumRestMinutes`'s own case once more, from payload format 25 on: nullable by design, in
+  ///   rather than out alongside the margins, since two projects agreeing on every figure but
+  ///   disagreeing on which of the header's two views they were last left on are not the same
+  ///   project. `budget_resources.personId` needs no entry of its own here: it is a column of
+  ///   `budgetResources`, already in above;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -2095,6 +2130,7 @@ class OcptProjectVersionCodec {
       _defaultVatRateBasisPointsKey: payload.defaultVatRateBasisPoints,
       _mealPriceCentsKey: payload.mealPriceCents,
       _snackPriceCentsKey: payload.snackPriceCents,
+      _isBudgetSimplifiedKey: payload.isBudgetSimplified,
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
@@ -2243,6 +2279,7 @@ class OcptProjectVersionCodec {
       defaultVatRateBasisPoints: _nullableInt(projectSettings, _defaultVatRateBasisPointsKey),
       mealPriceCents: _nullableInt(projectSettings, _mealPriceCentsKey),
       snackPriceCents: _nullableInt(projectSettings, _snackPriceCentsKey),
+      isBudgetSimplified: _nullableBool(projectSettings, _isBudgetSimplifiedKey),
     );
   }
 
@@ -2729,6 +2766,7 @@ class OcptProjectVersionCodec {
     _sortKeyKey: row.sortKey,
     _isDeletedKey: row.isDeleted,
     _groupKindKey: row.groupKind.name,
+    _personIdKey: row.personId,
     _labelKey: row.label,
     _amountCentsKey: row.amountCents,
     _statusKey: row.status.name,
@@ -2743,6 +2781,7 @@ class OcptProjectVersionCodec {
         sortKey: _string(json, _sortKeyKey),
         isDeleted: _bool(json, _isDeletedKey),
         groupKind: _enum(json, _groupKindKey, OcptBudgetResourceGroupKind.values.asNameMap()),
+        personId: _nullableString(json, _personIdKey),
         label: _string(json, _labelKey),
         amountCents: _int(json, _amountCentsKey),
         status: _enum(json, _statusKey, OcptBudgetResourceStatus.values.asNameMap()),

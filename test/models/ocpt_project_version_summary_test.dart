@@ -71,6 +71,7 @@ void main() {
     defaultVatRateBasisPoints: null,
     mealPriceCents: null,
     snackPriceCents: null,
+    isBudgetSimplified: null,
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].

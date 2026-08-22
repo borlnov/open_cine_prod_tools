@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 
@@ -76,6 +77,15 @@ class OcptBudgetResourcesTable extends Table {
   TextColumn get groupKind => text()
       .map(const OcptBudgetResourceGroupKindConverter())
       .withDefault(const Constant('subsidy'))();
+
+  /// The person this resource comes from, or null. → [OcptPeopleTable]
+  ///
+  /// Declared exactly as `OcptBudgetSharesTable.personId` is: nullable because a subsidy names no
+  /// one person, and null is a real fact rather than "nobody has said yet". A cash contribution or
+  /// a contribution in kind, by contrast, usually names the person it comes from — several
+  /// separate contributions from one lender can then be added up, which is the whole reason the
+  /// revenue sharing's own repayment reading groups by this column.
+  TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
   /// This resource's free-text wording, e.g. "Région Île-de-France — aide à la production".
   TextColumn get label => text()();

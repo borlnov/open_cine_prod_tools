@@ -903,6 +903,7 @@ void main() {
                   defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
                   mealPriceCents: payload.mealPriceCents,
                   snackPriceCents: payload.snackPriceCents,
+                  isBudgetSimplified: payload.isBudgetSimplified,
                 ),
               ),
               summaryJson: "{}",

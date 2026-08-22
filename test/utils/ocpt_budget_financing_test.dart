@@ -51,6 +51,7 @@ void main() {
   }) => OcptBudgetResource(
     id: id,
     groupKind: groupKind,
+    personId: null,
     label: label,
     amountCents: amountCents,
     status: status,

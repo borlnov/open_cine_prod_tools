@@ -109,6 +109,7 @@ OcptBudgetResource _buildResource({
 }) => OcptBudgetResource(
   id: id,
   groupKind: groupKind,
+  personId: null,
   label: "Resource $id",
   amountCents: amountCents,
   status: OcptBudgetResourceStatus.applied,

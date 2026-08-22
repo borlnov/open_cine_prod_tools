@@ -914,6 +914,7 @@ void main() {
         sortKey: "V",
         isDeleted: false,
         groupKind: OcptBudgetResourceGroupKind.inKind,
+        personId: "person-1",
         label: "Caméra prêtée",
         amountCents: 150000,
         status: OcptBudgetResourceStatus.secured,
@@ -1041,6 +1042,7 @@ void main() {
     defaultVatRateBasisPoints: 2000,
     mealPriceCents: 1250,
     snackPriceCents: 350,
+    isBudgetSimplified: true,
   );
 
   /// [buildRichPayload] serialized and read back.
@@ -1610,6 +1612,7 @@ void main() {
         defaultVatRateBasisPoints: null,
         mealPriceCents: null,
         snackPriceCents: null,
+        isBudgetSimplified: null,
       );
 
       expect(roundTrip(payload), payload);
@@ -1678,6 +1681,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(reordered));
@@ -1742,6 +1746,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
@@ -1806,6 +1811,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
@@ -1865,6 +1871,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
@@ -1921,6 +1928,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1977,6 +1985,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // Without the resources tables in the digest, an afternoon of typing people, locations and
@@ -2035,6 +2044,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2099,6 +2109,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -2172,6 +2183,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -2234,6 +2246,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // Two states differing only in which episodes name a role are not the same project: a
@@ -2296,6 +2309,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2355,6 +2369,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // A role recast onto a different episode changes the project even though every row's own id
@@ -2426,6 +2441,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // Without the breakdown tables in the digest, an afternoon of tagging the script would leave
@@ -2491,6 +2507,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reanchored)));
@@ -2550,6 +2567,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2609,6 +2627,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(marked)));
@@ -2668,6 +2687,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // elements.status is new too, and it lives inside the digest exactly like every other
@@ -2738,6 +2758,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // Without the seven schedule tables in the digest, planning a whole shooting day would leave
@@ -2799,6 +2820,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recalled)));
@@ -2858,6 +2880,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -2925,6 +2948,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewGuest)));
@@ -2993,6 +3017,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewCandidate)));
@@ -3052,6 +3077,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
@@ -3108,6 +3134,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recurrencied)));
@@ -3164,6 +3191,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(rerested)));
@@ -3220,6 +3248,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(relanguaged)));
@@ -3279,6 +3308,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       // Two projects agreeing on everything else but disagreeing on what the checker has been
@@ -3339,6 +3369,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
         roleCandidates: payload.roleCandidates,
         shootingBlockCandidates: payload.shootingBlockCandidates,
       );
@@ -3400,6 +3431,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
         roleCandidates: payload.roleCandidates,
         shootingBlockCandidates: payload.shootingBlockCandidates,
       );
@@ -3456,6 +3488,7 @@ void main() {
         defaultVatRateBasisPoints: 550,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
         roleCandidates: payload.roleCandidates,
         shootingBlockCandidates: payload.shootingBlockCandidates,
       );
@@ -3527,6 +3560,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
         roleCandidates: payload.roleCandidates,
         shootingBlockCandidates: payload.shootingBlockCandidates,
       );
@@ -3588,6 +3622,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
         roleCandidates: payload.roleCandidates,
         shootingBlockCandidates: payload.shootingBlockCandidates,
       );
@@ -3652,6 +3687,7 @@ void main() {
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(renoted)));
@@ -4942,7 +4978,47 @@ void main() {
           result.value!.budgetEntries.map((row) => row.label),
           buildRichPayload().budgetEntries.map((row) => row.label),
         );
-        expect(result.value!.budgetResources, buildRichPayload().budgetResources);
+        // `budgetResources` itself predates format 23, but `personId` predates it by two more
+        // steps still (format 25): the very same upgrade to format 25 that materialises
+        // `budgetRevenues`/`budgetShares` above also nulls every resource's `personId`, since a
+        // version captured this early never had one to record either.
+        expect(
+          result.value!.budgetResources.map((row) => row.label),
+          buildRichPayload().budgetResources.map((row) => row.label),
+        );
+        expect(result.value!.budgetResources.map((row) => row.personId), everyElement(isNull));
+      },
+    );
+
+    test(
+      'a stored format-24 payload decodes with no personId or simplified toggle at all',
+      () {
+        // Format 24 predates `budget_resources.personId` and `project_info.isBudgetSimplified`
+        // entirely, so [_upgradeFormat24To25] gives every `budgetResources` row a **null**
+        // `personId` and [_projectSettingsKey] a **null** `isBudgetSimplified` —
+        // [_upgradeFormat3To4]'s kind, not the empty-list one: neither `budget_resources` nor
+        // `project_info` is new here. The fixture is the current encoding with the keys taken back
+        // out and the format wound back, rather than a second hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        final resources = [
+          for (final row in encoded["budgetResources"] as List)
+            ({...row as Map<String, dynamic>}..remove("personId")),
+        ];
+        encoded["budgetResources"] = resources;
+        (encoded["projectSettings"] as Map<String, dynamic>).remove("isBudgetSimplified");
+        encoded["payloadFormat"] = 24;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.budgetResources.map((row) => row.personId), everyElement(isNull));
+        expect(result.value!.isBudgetSimplified, isNull);
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(
+          result.value!.budgetResources.map((row) => row.label),
+          buildRichPayload().budgetResources.map((row) => row.label),
+        );
+        expect(result.value!.budgetRevenues, buildRichPayload().budgetRevenues);
       },
     );
   });

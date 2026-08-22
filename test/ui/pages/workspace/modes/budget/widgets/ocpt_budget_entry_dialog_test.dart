@@ -107,6 +107,7 @@ OcptBudgetPoste _poste({required String id, required String label}) =>
 OcptBudgetResource _resource({required String id, required String label}) => OcptBudgetResource(
   id: id,
   groupKind: OcptBudgetResourceGroupKind.subsidy,
+  personId: null,
   label: label,
   amountCents: 10000,
   status: OcptBudgetResourceStatus.applied,

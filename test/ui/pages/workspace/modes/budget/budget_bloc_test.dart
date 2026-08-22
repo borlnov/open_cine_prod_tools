@@ -1307,6 +1307,7 @@ void main() {
         const OcptBudgetResourceCreationConfirmedEvent(
           fields: OcptBudgetResourceFormFields(
             groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
             label: "Camera loan",
             amountCents: 250000,
             status: OcptBudgetResourceStatus.valued,
@@ -1347,6 +1348,7 @@ void main() {
           resourceId: resourceId!,
           fields: const OcptBudgetResourceFormFields(
             groupKind: OcptBudgetResourceGroupKind.cash,
+            personId: null,
             label: "Renamed",
             amountCents: 500,
             status: OcptBudgetResourceStatus.secured,

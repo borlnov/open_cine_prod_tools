@@ -689,6 +689,7 @@ class OcptProjectVersionsService {
       defaultVatRateBasisPoints: info.defaultVatRateBasisPoints,
       mealPriceCents: info.mealPriceCents,
       snackPriceCents: info.snackPriceCents,
+      isBudgetSimplified: info.isBudgetSimplified,
     );
   }
 
@@ -1327,8 +1328,10 @@ class OcptProjectVersionsService {
       // the address book. Both travel through unchanged too.
       budgetEntries: payload.budgetEntries,
       budgetCommitments: payload.budgetCommitments,
-      // Neither a financing resource nor a mileage rate names a person either: the first is a plain
-      // amount and a status, the second a label and a rate. Both travel through unchanged.
+      // A mileage rate names no person at all: a label and a rate. A financing resource may,
+      // through `personId`, exactly the way `roles.personId`/`budget_shares.personId` do above and
+      // below: the row it points at is blanked, not dropped, so the link itself still resolves and
+      // there is nothing here for this scrub to rewrite. Both travel through unchanged.
       budgetResources: payload.budgetResources,
       budgetMileageRates: payload.budgetMileageRates,
       // Nor does a revenue name a person at all. A share may, through `personId`, exactly the way
@@ -1345,6 +1348,7 @@ class OcptProjectVersionsService {
       defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
       mealPriceCents: payload.mealPriceCents,
       snackPriceCents: payload.snackPriceCents,
+      isBudgetSimplified: payload.isBudgetSimplified,
     );
   }
 

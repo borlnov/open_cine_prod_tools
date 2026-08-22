@@ -239,6 +239,17 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `project_info.snackPriceCents` of the project, or null — [mealPriceCents]'s sibling.
   final int? snackPriceCents;
 
+  /// The `project_info.isBudgetSimplified` of the project, or null.
+  ///
+  /// **Unlike [currencyCode], and like [minimumRestMinutes], a null here is a truthful "nobody has
+  /// chosen"** — the column is nullable by design, not something every payload from a certain
+  /// format on always carries a real value for, so there is no format boundary to read the null
+  /// against, and the mode opens detailed for it exactly as it does for a project that has never
+  /// been opened at all. `OcptProjectVersionsService.restoreVersion` writes it back onto the
+  /// working copy like any other changed column, including when it is null, rather than leaving the
+  /// live value alone — the reading [minimumRestMinutes] gets on restore, not the currency's.
+  final bool? isBudgetSimplified;
+
   /// Class constructor
   const OcptProjectVersionPayload({
     required this.screenplays,
@@ -289,6 +300,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.defaultVatRateBasisPoints,
     required this.mealPriceCents,
     required this.snackPriceCents,
+    required this.isBudgetSimplified,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -322,7 +334,8 @@ class OcptProjectVersionPayload extends Equatable {
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
       "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage, "
       "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, "
-      "mealPriceCents: $mealPriceCents, snackPriceCents: $snackPriceCents)";
+      "mealPriceCents: $mealPriceCents, snackPriceCents: $snackPriceCents, "
+      "isBudgetSimplified: $isBudgetSimplified)";
 
   /// Object properties
   @override
@@ -375,5 +388,6 @@ class OcptProjectVersionPayload extends Equatable {
     defaultVatRateBasisPoints,
     mealPriceCents,
     snackPriceCents,
+    isBudgetSimplified,
   ];
 }

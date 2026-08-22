@@ -259,7 +259,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v28 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v29 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the fifteen resources tables (`role_candidates`, `role_elements` and
   `role_episodes` among them), `breakdown_tags`, `scene_breakdowns`, the eight schedule tables, the
   eight budget tables (`budget_postes`, `budget_lines`, `budget_entries`, `budget_commitments`,

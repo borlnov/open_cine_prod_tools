@@ -226,6 +226,7 @@ void main() {
     defaultVatRateBasisPoints: null,
     mealPriceCents: null,
     snackPriceCents: null,
+    isBudgetSimplified: null,
   );
 
   /// [payload] as the stored JSON of a version, which is what the scrub actually reads.

@@ -837,22 +837,17 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Turns the project file at [filePath] back into the file the previous build would have
-    /// written: the version 28 step's additions taken back out, and the format number with them.
+    /// written: the version 29 step's additions taken back out, and the format number with them.
     ///
-    /// It removes what the top step added, the revenue sharing's own two tables and the two
-    /// `budget_entries` columns naming them. Undoing the step rather than only stamping the number
+    /// It removes what the top step added, `budget_resources.personId` and
+    /// `project_info.isBudgetSimplified`. Undoing the step rather than only stamping the number
     /// down is what makes this a real migration to run, which is exactly what a file merely
     /// relabelled would have hidden.
     void demoteToPreviousFormat(String filePath) {
       final database = sqlite3.open(filePath);
       database
-        // `budget_entries.revenue_id` references `budget_revenues`, and
-        // `budget_entries.share_id` references `budget_shares`: both columns are dropped before
-        // the tables they point into.
-        ..execute("ALTER TABLE budget_entries DROP COLUMN revenue_id")
-        ..execute("ALTER TABLE budget_entries DROP COLUMN share_id")
-        ..execute("DROP TABLE budget_revenues")
-        ..execute("DROP TABLE budget_shares")
+        ..execute("ALTER TABLE budget_resources DROP COLUMN person_id")
+        ..execute("ALTER TABLE project_info DROP COLUMN is_budget_simplified")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

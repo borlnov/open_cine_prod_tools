@@ -74,6 +74,7 @@ class OcptBudgetFinancingService {
     required OcptProjectDatabase database,
     required String resourceId,
     Value<OcptBudgetResourceGroupKind> groupKind = const Value.absent(),
+    Value<String?> personId = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<int> amountCents = const Value.absent(),
     Value<OcptBudgetResourceStatus> status = const Value.absent(),
@@ -89,6 +90,7 @@ class OcptBudgetFinancingService {
     )..where((table) => table.id.equals(resourceId) & table.isDeleted.not())).write(
       OcptBudgetResourcesTableCompanion(
         groupKind: groupKind,
+        personId: personId,
         label: label,
         amountCents: amountCents,
         status: status,

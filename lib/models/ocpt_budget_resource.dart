@@ -18,6 +18,10 @@ class OcptBudgetResource extends Equatable {
   /// What kind of financing this resource is.
   final OcptBudgetResourceGroupKind groupKind;
 
+  /// The person this resource comes from, or null. See `OcptBudgetResourcesTable.personId`'s own
+  /// doc comment: a subsidy names nobody, which is a real fact rather than an unfinished pick.
+  final String? personId;
+
   /// This resource's free-text wording.
   final String label;
 
@@ -40,6 +44,7 @@ class OcptBudgetResource extends Equatable {
   const OcptBudgetResource({
     required this.id,
     required this.groupKind,
+    required this.personId,
     required this.label,
     required this.amountCents,
     required this.status,
@@ -52,6 +57,7 @@ class OcptBudgetResource extends Equatable {
   factory OcptBudgetResource.fromRow(OcptBudgetResourceRow row) => OcptBudgetResource(
     id: row.id,
     groupKind: row.groupKind,
+    personId: row.personId,
     label: row.label,
     amountCents: row.amountCents,
     status: row.status,
@@ -62,14 +68,15 @@ class OcptBudgetResource extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetResource(id: $id, groupKind: $groupKind, label: $label, "
-      "amountCents: $amountCents, status: $status)";
+  String toString() => "OcptBudgetResource(id: $id, groupKind: $groupKind, personId: $personId, "
+      "label: $label, amountCents: $amountCents, status: $status)";
 
   /// Object properties
   @override
   List<Object?> get props => [
     id,
     groupKind,
+    personId,
     label,
     amountCents,
     status,

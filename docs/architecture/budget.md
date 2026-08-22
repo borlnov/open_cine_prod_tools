@@ -316,6 +316,26 @@ are all here, and this file is the whole record of them.
   `budgetShares` as empty lists and every `budget_entries.revenueId` and `.shareId` as null — a
   version sealed before the sharing existed truthfully named no taking and no participant, exactly
   the reading format 23's own upgrade already gives what it materialises.
+  Two last nullable columns close the mode's own schema, neither adding a table: `budget_resources`
+  gains `personId`, declared the way `budget_shares.personId` already is — the person a financing
+  resource comes from, so several separate contributions from one lender can be added up (a subsidy
+  names nobody, which is why it stays nullable, the same reading `budget_shares.personId` already
+  carries) — and `project_info` gains `isBudgetSimplified`, the header's simplified/detailed toggle,
+  until now held in memory alone and lost on every close. Null means "nobody has ever chosen", and
+  the mode opens **detailed** for it, exactly what it already does today before this column existed
+  at all. **`budget_resources.personId` is a link to a person, not a fact about them** — the honest
+  comparison is `roles.personId`, not `people.commuteKmMilli`: none of the three erasure paths a
+  person's row travels (`ocpt_erased_person_scrub.dart`, `OcptPeopleService`'s own live erasure,
+  `OcptProjectVersionsService`'s own on a restored payload) touches it, exactly as none of them
+  touches `roles.personId` or `budget_shares.personId` either. Erasing a person blanks and
+  tombstones their own `people` row; the resource that named them keeps naming that now-blanked row,
+  the link itself staying valid, which is what lets a reader still see that *someone* lent this
+  money even once that someone's own data is gone. This is schema **v29**. `OcptProjectVersionCodec`
+  gains both columns in all three of its required places under **payload format 25**, whose upgrade
+  from format 24 gives every `budgetResources` row a **null** `personId` and the project settings a
+  **null** `isBudgetSimplified` — a version sealed before either column existed truthfully named no
+  lender for any resource and had never chosen between the two header views, exactly the reading
+  format 24's own upgrade already gives what it materialises.
 
 ## The mode's own shape
 

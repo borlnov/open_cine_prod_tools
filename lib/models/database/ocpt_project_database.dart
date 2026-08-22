@@ -178,6 +178,12 @@ part 'ocpt_project_database.g.dart';
 /// the production expects, and [OcptBudgetSharesTable], the participants splitting what they bring
 /// in — plus [OcptBudgetEntriesTable.revenueId]/`.shareId`, naming which taking a journal credit is
 /// the actual cash for and which participant a debit actually pays.
+/// Schema version 29 adds two nullable columns, both read the way `screenplayLanguage` already is
+/// — null means "nobody has said", never a claim about the fact itself:
+/// [OcptBudgetResourcesTable.personId], naming the person a financing resource comes from, so
+/// several separate contributions from one lender can be added up (a subsidy names nobody, which
+/// is why it stays nullable), and [OcptProjectInfoTable.isBudgetSimplified], the budget mode's
+/// simplified/detailed toggle, until now held in memory alone and lost on every close.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -298,7 +304,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 28;
+  static const currentSchemaVersion = 29;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -792,6 +798,21 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         if (from >= 26) {
           await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.revenueId);
           await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.shareId);
+        }
+      }
+
+      if (from < 29) {
+        // `project_info` has existed, and been alterable, since version 1: no guard needed, exactly
+        // as `project_info.minimumRestMinutes` and `project_info.screenplayLanguage` above needed
+        // none.
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.isBudgetSimplified);
+
+        // `budget_resources` has existed, and been alterable, since version 27 — a file older than
+        // that has just had it created fresh above, from the current declaration, so it already
+        // carries the column. Guarded `from >= 27` for the reason `assets.budgetEntryId` above is
+        // guarded `from >= 6`.
+        if (from >= 27) {
+          await m.addColumn(ocptBudgetResourcesTable, ocptBudgetResourcesTable.personId);
         }
       }
     },
