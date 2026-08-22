@@ -91,6 +91,14 @@ class OcptBudgetSnapshot extends Equatable {
   /// what the mode reads instead of this map directly.
   final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
 
+  /// The total of every debit that names no poste at all — spending that happened but sits outside
+  /// the quote — `ocptBudgetOffQuotePaidTotalOf`. Zero and complete while [entries] carries no such
+  /// debit. The dashboard's own `Paid` KPI and the cost-tracking table's own total row both fold
+  /// this in alongside [paidByPosteId], since together they are what actually left the account;
+  /// `ocptComputeBudgetAlerts` never reads it — a poste's own strain against its own quote is a
+  /// different question from money that prices no poste at all.
+  final OcptBudgetCoveredTotal offQuotePaidTotal;
+
   /// What is committed against each poste, keyed by `OcptBudgetPoste.id`, settled commitments
   /// excluded outright (`ocptBudgetCommittedCentsByPosteId`'s own doc comment). [committedCentsOf]
   /// is what the mode reads instead of this map directly.
@@ -186,6 +194,7 @@ class OcptBudgetSnapshot extends Equatable {
     required this.commitmentCount,
     required this.resourceCount,
     required this.paidByPosteId,
+    required this.offQuotePaidTotal,
     required this.committedByPosteId,
     required this.cashTotals,
     required this.receivedByResourceId,
@@ -213,8 +222,9 @@ class OcptBudgetSnapshot extends Equatable {
   /// before this milestone still may be; [resources] is defaulted the same way, for every caller
   /// unconcerned with the financing plan.
   ///
-  /// [paidByPosteId], [committedByPosteId], [cashTotals], [receivedByResourceId] and [alerts] are
-  /// derived here exactly as [posteCount]/[lineCount] are: a pure function of the lists already
+  /// [paidByPosteId], [offQuotePaidTotal], [committedByPosteId], [cashTotals],
+  /// [receivedByResourceId] and [alerts] are derived here exactly as [posteCount]/[lineCount] are:
+  /// a pure function of the lists already
   /// loaded, reading them under [defaultVatRateBasisPoints] — the project's own rate, which moves
   /// the whole reading with it exactly as every silent line already does — with no database access
   /// of its own.
@@ -254,6 +264,10 @@ class OcptBudgetSnapshot extends Equatable {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final cashTotals = ocptBudgetCashTotalsOf(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final offQuotePaidTotal = ocptBudgetOffQuotePaidTotalOf(
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
@@ -321,6 +335,7 @@ class OcptBudgetSnapshot extends Equatable {
       commitmentCount: commitments.length,
       resourceCount: resources.length,
       paidByPosteId: paidByPosteId,
+      offQuotePaidTotal: offQuotePaidTotal,
       committedByPosteId: committedByPosteId,
       cashTotals: cashTotals,
       receivedByResourceId: receivedByResourceId,
@@ -410,6 +425,7 @@ class OcptBudgetSnapshot extends Equatable {
     commitmentCount,
     resourceCount,
     paidByPosteId,
+    offQuotePaidTotal,
     committedByPosteId,
     cashTotals,
     receivedByResourceId,

@@ -81,9 +81,10 @@ OcptElement _buildElement({required String id, String name = "", int? cost}) => 
 OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = const []}) =>
     OcptBudgetPoste(id: id, code: "1", label: "Poste $id", simpleLabel: null, sortKey: "a0", lines: lines);
 
-/// Builds a minimal journal entry naming [posteId], everything else neutral (a debit of
-/// [debitCents], tax-inclusive, no VAT rate override).
-OcptBudgetEntry _buildEntry({required String id, required String posteId, int debitCents = 0}) =>
+/// Builds a minimal journal entry naming [posteId] — null for an entry naming no poste at all,
+/// off-quote spending's own reading — everything else neutral (a debit of [debitCents],
+/// tax-inclusive, no VAT rate override).
+OcptBudgetEntry _buildEntry({required String id, String? posteId, int debitCents = 0}) =>
     OcptBudgetEntry(
       id: id,
       date: DateTime(2026),
@@ -533,6 +534,31 @@ void main() {
 
       expect(state.paidByPosteId["poste-1"]?.amountCents, 1000);
       expect(state.committedByPosteId, isEmpty);
+    });
+  });
+
+  group("OcptBudgetState.offQuotePaidTotal", () {
+    test("reads a complete zero while nothing is loaded", () {
+      const state = OcptBudgetState.init();
+
+      expect(state.offQuotePaidTotal.amountCents, 0);
+      expect(state.offQuotePaidTotal.isComplete, isTrue);
+    });
+
+    test("reads the total of every debit naming no poste at all", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: [_buildPoste(id: "poste-1")],
+        entries: [
+          _buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000),
+          _buildEntry(id: "entry-2", debitCents: 500),
+        ],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.offQuotePaidTotal.amountCents, 500);
     });
   });
 

@@ -312,6 +312,14 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// the dashboard's own `Paid` KPI reads this rather than recomputing it.
   Map<String, OcptBudgetCoveredTotal> get paidByPosteId => snapshot?.paidByPosteId ?? const {};
 
+  /// The total of every debit that names no poste at all — spending outside the quote,
+  /// `OcptBudgetSnapshot.offQuotePaidTotal`'s own doc comment. Zero and complete while nothing is
+  /// loaded, mirroring [cashTotals]' own empty default. The dashboard's own `Paid` KPI and the
+  /// cost-tracking table's own total row both fold this in alongside [paidByPosteId].
+  OcptBudgetCoveredTotal get offQuotePaidTotal =>
+      snapshot?.offQuotePaidTotal ??
+      const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
+
   /// What is committed against each poste of [snapshot], empty while nothing is loaded — the
   /// dashboard's own `Committed` KPI reads this rather than recomputing it.
   Map<String, OcptBudgetCoveredTotal> get committedByPosteId =>
