@@ -129,6 +129,53 @@ are all here, and this file is the whole record of them.
   `cashJournal` lands already filtered to it, and the two views agree on what "filtered by this
   poste" means because they are reading one flag rather than two that could drift apart.
 
+## Off-quote spending is named, never hidden
+
+- `budget_entries.posteId` is nullable because a poste-less entry is a real fact, and the entry
+  dialog's own `Aucun poste` choice says so on a **debit** exactly as it does on a credit — the
+  small-production reading this whole mode is built for lets somebody record a till receipt for
+  something the CNC nomenclature never anticipated. `ocptBudgetPaidCentsByPosteId` only ever keys an
+  entry that names a poste, so a cost recorded this way used to be counted **nowhere**: not in the
+  `Paid` KPI, not in the cost-tracking table, only ever inside `OcptBudgetCashTotals.balanceCents`,
+  read over every live entry regardless of what it names. `Paid` could read less than the account had
+  actually seen leave, with nothing on screen saying so — precisely the silence this mode refuses
+  everywhere else, since every other total states how many of the rows it was asked to sum it
+  actually covers.
+- `ocptBudgetOffQuotePaidTotalOf` (`lib/utils/ocpt_budget_journal.dart`) is the reading that closes
+  the gap: the tax-inclusive sum of every **debit** naming no poste at all, read through
+  `ocptBudgetEntryDebitCentsOf` like every other movement in the file, answering an
+  `OcptBudgetCoveredTotal` so a debit missing the rate it would need to be grossed up leaves the
+  figure covered-but-incomplete rather than wrong. **A credit naming no poste is deliberately not
+  counted here** — it is money coming *in*, a subsidy instalment or a contribution, already read by
+  the financing and revenue-sharing views (`ocptBudgetReceivedByResourceId`,
+  `ocptBudgetReceivedByRevenueId`); folding it into a reading about spending would count the same
+  euro twice, once as a resource received and once as a cost.
+- `OcptBudgetCostTracking` draws this total as **one extra row, `Off quote`**, between the last
+  poste and the `Total` row, and **only while there is something to show**
+  (`OcptBudgetCoveredTotal.lineCount` above zero) — a row with nothing in it would claim a category
+  the project does not have, exactly the argument `OcptBudgetFinancing` already makes for declining
+  to draw a group card holding no resource. Only its own `Paid` cell carries a figure; `Quote`,
+  `Committed`, `Remaining`, `Variance` and `Consumed` all print `ocptBudgetEmptyValue`, since there
+  is no quote behind this row to measure any of them against — the same silence `Consumed` already
+  keeps for a poste with no quote at all. It carries **no `N°`, no `⋮` menu and no selection**: it
+  is not a poste and nothing about it may look like one, since it is a reading over the journal's
+  own poste-less debits, not a record anybody can rename, reorder or delete — clicking it does not
+  set `OcptBudgetState.selectedPosteId`.
+- The table's own `Total` row folds `paidByPosteId` and the off-quote total together
+  (`ocptBudgetCoveredTotalsFoldOf`, `lib/utils/ocpt_budget_totals.dart`, the same fold the
+  dashboard's own KPIs use) into its own `Paid` cell, so that column adds up to what actually left
+  the account — the only reading a reader adding the column up themselves would accept — printing
+  the fold's own coverage read-out (`tr.budgetCostTrackingPaidCoverageReadOut`) whenever either side
+  is incomplete. The dashboard's own `Paid` KPI folds the very same two totals for the very same
+  reason, so it agrees with the cash journal instead of quietly disagreeing with it.
+- **`ocptBudgetPosteStrainOf` and `ocptComputeBudgetAlerts` never read the off-quote total.** Both
+  are readings about a poste exceeding its own quote; off-quote spending prices no poste at all, so
+  it cannot make one strained, and folding it into either would answer a question neither was asked.
+- The exported financial report shares the same gap `ocptBudgetOffQuotePaidTotalOf` closes on
+  screen — `lib/managers/export/services/ocpt_budget_financial_report_pdf_service.dart` still sums
+  `snapshot.paidCentsOf` poste by poste, off-quote spending included nowhere — left for a later step
+  to close rather than folded into this one.
+
 ## A poste's quoted amount is not stored
 
 - `OcptBudgetPostesTable` carries **no `quotedAmount` column**, and `OcptBudgetPoste` carries no
