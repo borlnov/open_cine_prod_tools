@@ -10689,6 +10689,18 @@
       }
     }
   },
+  "budgetStatsQuoteTotal": "Quote {amount}",
+  "@budgetStatsQuoteTotal": {
+    "description": "Trailing figure of the budget mode's status band, always the quote total whatever centre view is on screen, now naming what it is",
+    "context": "Displayed in the status bar under the budget mode's centre",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "The project's quoted total, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
   "budgetRightDockInspectorTabLabel": "Inspector",
   "@budgetRightDockInspectorTabLabel": {
     "description": "Label of the budget mode's right dock Inspector tab",

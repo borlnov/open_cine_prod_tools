@@ -1429,6 +1429,7 @@
   "budgetHeaderIncludingTaxSegmentLabel": "TTC",
   "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
   "budgetStatsLines": "{count, plural, one{{count} ligne} other{{count} lignes}}",
+  "budgetStatsQuoteTotal": "Devis {amount}",
   "budgetRightDockInspectorTabLabel": "Inspecteur",
   "budgetRightDockVersionsTabLabel": "Versions",
   "budgetRightDockCloseTooltip": "Fermer le panneau",
