@@ -97,6 +97,31 @@ void main() {
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
   });
 
+  testWidgets("the empty journal drops the trade word under the simplified switch", (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetCashJournal(
+          entries: const [],
+          postes: const [],
+          receiptsByEntryId: const {},
+          selectedPosteId: null,
+          isSimplified: true,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          isReadOnly: false,
+          onFilterCleared: () {},
+          onEntryCreationRequested: () {},
+          onEntryTapped: (_) {},
+          onEntryDeletionRequested: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+    expect(find.text(tr.budgetCashJournalSimpleEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetCashJournalEmptyHint), findsNothing);
+  });
+
   testWidgets("an empty journal still offers the action that fills it", (tester) async {
     var created = 0;
 

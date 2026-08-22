@@ -126,6 +126,46 @@ void main() {
     expect(reported, OcptBudgetTaxBasis.excludingTax);
   });
 
+  testWidgets("the two trade-word chips read plainly under the simplified switch", (tester) async {
+    useWideWindow(tester);
+
+    /// Pumps the header on [view], simplified or not, and answers the words it drew.
+    Future<Tr> pumpOn(OcptBudgetCentreView view, {required bool isSimplified}) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetHeader(
+            centreView: view,
+            onCentreViewSelected: (_) {},
+            isSimplified: isSimplified,
+            onSimplifiedChanged: (_) {},
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            onTaxBasisChanged: (_) {},
+          ),
+        ),
+      );
+
+      return Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    }
+
+    var tr = await pumpOn(OcptBudgetCentreView.cashJournal, isSimplified: true);
+    expect(find.text(tr.budgetHeaderCashJournalSimpleSegmentLabel), findsWidgets);
+    // The trade word is gone from the chip and from the band's own title alike.
+    expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsNothing);
+    expect(find.text(tr.budgetHeaderCashJournalTitle), findsNothing);
+
+    tr = await pumpOn(OcptBudgetCentreView.committed, isSimplified: true);
+    expect(find.text(tr.budgetHeaderCommittedSimpleSegmentLabel), findsWidgets);
+    expect(find.text(tr.budgetHeaderCommittedSegmentLabel), findsNothing);
+
+    // The other two chips carry one wording only: they already say the plain thing they are.
+    expect(find.text(tr.budgetHeaderDashboardSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderCostTrackingSegmentLabel), findsOneWidget);
+
+    tr = await pumpOn(OcptBudgetCentreView.cashJournal, isSimplified: false);
+    expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsWidgets);
+    expect(find.text(tr.budgetHeaderCashJournalSimpleSegmentLabel), findsNothing);
+  });
+
   testWidgets("the title and subtitle name the view on screen, not the mode", (tester) async {
     useWideWindow(tester);
 

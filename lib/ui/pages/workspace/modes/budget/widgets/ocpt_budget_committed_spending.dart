@@ -231,7 +231,11 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
           Expanded(
             child: OcptWorkspaceEmptyMode(
               icon: Icons.request_quote_outlined,
-              message: Tr.of(context).budgetCommittedEmptyHint,
+              // See `OcptBudgetCashJournal`'s own empty state for why the simplified reading
+              // gets a sentence of its own rather than the trade word.
+              message: isSimplified
+                  ? Tr.of(context).budgetCommittedSimpleEmptyHint
+                  : Tr.of(context).budgetCommittedEmptyHint,
             ),
           )
         else ...[

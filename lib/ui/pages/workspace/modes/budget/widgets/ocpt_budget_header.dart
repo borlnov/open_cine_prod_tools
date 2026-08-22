@@ -111,7 +111,11 @@ class OcptBudgetHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
               ],
-              _OcptBudgetCentreViewSwitch(value: centreView, onChanged: onCentreViewSelected),
+              _OcptBudgetCentreViewSwitch(
+                value: centreView,
+                isSimplified: isSimplified,
+                onChanged: onCentreViewSelected,
+              ),
               const SizedBox(width: 12),
               _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
               const SizedBox(width: 12),
@@ -130,11 +134,20 @@ class OcptBudgetHeader extends StatelessWidget {
   /// announcing the CNC nomenclature over a list of bank movements states something the screen
   /// plainly contradicts, and a reader trusts the band before they trust their own reading of the
   /// table.
+  ///
+  /// The two views [_OcptBudgetCentreViewSwitch] re-words under the simplified reading are titled
+  /// with **that same word** here: a band announcing `Cash journal` over a chip that says
+  /// `Spending` would hand the crew back, in the largest type on the screen, the very trade word
+  /// the switch was set to spare them.
   String _titleOf(Tr tr) => switch (centreView) {
     OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardTitle,
     OcptBudgetCentreView.costTracking => tr.budgetHeaderTitle,
-    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalTitle,
-    OcptBudgetCentreView.committed => tr.budgetHeaderCommittedTitle,
+    OcptBudgetCentreView.cashJournal => isSimplified
+        ? tr.budgetHeaderCashJournalSimpleSegmentLabel
+        : tr.budgetHeaderCashJournalTitle,
+    OcptBudgetCentreView.committed => isSimplified
+        ? tr.budgetHeaderCommittedSimpleSegmentLabel
+        : tr.budgetHeaderCommittedTitle,
   };
 
   /// The band's own subtitle, following [_titleOf]'s own view — see its doc comment.
@@ -222,16 +235,31 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
   );
 }
 
-/// The `Dashboard`/`Cost tracking` view chips.
+/// The four view chips.
+///
+/// **Two of the four are worded by [isSimplified], and two are not.** `Cash journal` and
+/// `Committed` are trade words: they name what an accountant calls those two ledgers, and they are
+/// exactly what the simplified reading exists to spare a five-person crew, who know the same two
+/// things as `Spending` and `To pay`. `Dashboard` and `Cost tracking` need no such translation —
+/// they already say, in both readings, the plain thing they are — so giving them a second wording
+/// would be inventing a difference the words themselves don't carry.
 class _OcptBudgetCentreViewSwitch extends StatelessWidget {
   /// The switch's own current value.
   final OcptBudgetCentreView value;
+
+  /// Whether the header's simplified/detailed switch currently reads simplified — see the class
+  /// doc comment for which two segments it re-words, and why only those two.
+  final bool isSimplified;
 
   /// Called with the view just clicked.
   final ValueChanged<OcptBudgetCentreView> onChanged;
 
   /// Class constructor
-  const _OcptBudgetCentreViewSwitch({required this.value, required this.onChanged});
+  const _OcptBudgetCentreViewSwitch({
+    required this.value,
+    required this.isSimplified,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -254,13 +282,17 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
         _OcptBudgetSwitchSegment(
           value: OcptBudgetCentreView.cashJournal,
           current: value,
-          label: tr.budgetHeaderCashJournalSegmentLabel,
+          label: isSimplified
+              ? tr.budgetHeaderCashJournalSimpleSegmentLabel
+              : tr.budgetHeaderCashJournalSegmentLabel,
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
           value: OcptBudgetCentreView.committed,
           current: value,
-          label: tr.budgetHeaderCommittedSegmentLabel,
+          label: isSimplified
+              ? tr.budgetHeaderCommittedSimpleSegmentLabel
+              : tr.budgetHeaderCommittedSegmentLabel,
           onChanged: onChanged,
         ),
       ],

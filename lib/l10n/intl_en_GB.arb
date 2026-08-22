@@ -10211,6 +10211,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderCashJournalSimpleSegmentLabel": "Spending",
+  "@budgetHeaderCashJournalSimpleSegmentLabel": {
+    "description": "Cash journal view chip's label while the header's simplified switch reads simplified",
+    "context": "Shown in OcptBudgetHeader's own view switch, in place of the detailed wording",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCommittedSimpleSegmentLabel": "To pay",
+  "@budgetHeaderCommittedSimpleSegmentLabel": {
+    "description": "Committed spending view chip's label while the header's simplified switch reads simplified",
+    "context": "Shown in OcptBudgetHeader's own view switch, in place of the detailed wording",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetHeaderCashJournalTitle": "Cash journal",
   "@budgetHeaderCashJournalTitle": {
     "description": "Title of the budget mode's header band while the cash journal is shown",
@@ -10898,6 +10912,20 @@
   "@budgetHeaderCashJournalSegmentLabel": {
     "description": "Label of the header's Cash journal view chip",
     "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashJournalSimpleEmptyHint": "Record something you paid, or money that came in, to start.",
+  "@budgetCashJournalSimpleEmptyHint": {
+    "description": "Empty-state hint of the cash journal while the header's simplified switch reads simplified",
+    "context": "Shown in place of the detailed wording, which names the ledger by its trade word",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCommittedSimpleEmptyHint": "Record something you have promised to pay but have not paid yet.",
+  "@budgetCommittedSimpleEmptyHint": {
+    "description": "Empty-state hint of the committed spending view while the header's simplified switch reads simplified",
+    "context": "Shown in place of the detailed wording, which names the ledger by its trade word",
     "type": "text",
     "placeholders": {}
   },

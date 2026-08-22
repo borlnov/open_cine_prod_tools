@@ -160,7 +160,12 @@ class OcptBudgetCashJournal extends StatelessWidget {
           child: entries.isEmpty
               ? OcptWorkspaceEmptyMode(
                   icon: Icons.account_balance_wallet_outlined,
-                  message: tr.budgetCashJournalEmptyHint,
+                  // The detailed wording names this ledger by its trade word, which is exactly
+                  // what the simplified reading is set to spare a crew — and the empty state is
+                  // the one sentence somebody who has never opened this view will read.
+                  message: isSimplified
+                      ? tr.budgetCashJournalSimpleEmptyHint
+                      : tr.budgetCashJournalEmptyHint,
                 )
               : filteredRows.isEmpty
               ? Center(
