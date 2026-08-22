@@ -455,9 +455,25 @@ are all here, and this file is the whole record of them.
   `OcptBudgetEntryDialog` pre-filled as a **credit**, dated today, for whatever is still outstanding,
   with the resource already named, so a receipt can never exist as a figure with no movement behind
   it.
+  **`Record a receipt` is withheld — never disabled — once a resource is fully received (received
+  `>=` amount) and on any in-kind resource at all, entered or not.** A contribution in kind is
+  valued rather than collected (see "An in-kind contribution is valued, not collected" below), so no
+  cash will ever move for it and the gesture has nothing to offer; a resource whose received total
+  already meets its own amount likewise has nothing left to receive, though a **partially** received
+  one keeps offering it — several instalments landing against the one resource is the ordinary case,
+  not an edge one. **`Undo the last receipt`** is the way back: offered once a resource has received
+  anything at all, it resolves the most recently recorded live credit naming that resource
+  (`ocptBudgetLatestReceiptEntryIdOf`, `lib/utils/ocpt_budget_financing.dart`, reading [entries] in
+  the very same chronological order the journal itself is loaded in) and, once `OcptConfirmDialog`
+  confirms it, dispatches the very same `OcptBudgetEntryDeletionConfirmedEvent` the cash journal's
+  own `Delete` already uses — tombstoning the entry (ADR 0010) rather than a second delete path of
+  its own, and never un-receiving the resource through any figure of its own, since
+  `budget_resources` stores none.
   **A debit naming a resource is deliberately not subtracted.** Repaying a reimbursable contribution
   does not un-receive it — the money did come in — and what a production has paid back is the
-  revenue-sharing view's own subject, not a correction to this figure.
+  revenue-sharing view's own subject, not a correction to this figure. This is also why `Undo the
+  last receipt` only ever considers a **credit**: undoing a repayment debit is not what the gesture
+  is for.
   `budget_resources` carries **no money triple** either: a financing resource is money coming in,
   which "Money that has moved is read tax-inclusive, always" (above) already settles once for the
   whole mode.

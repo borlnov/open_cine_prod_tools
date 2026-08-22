@@ -12156,7 +12156,14 @@
   },
   "budgetFinancingRecordReceiptAction": "Record a receipt",
   "@budgetFinancingRecordReceiptAction": {
-    "description": "Action opening OcptBudgetEntryDialog pre-filled from the resource its own row names, as a credit",
+    "description": "Action opening OcptBudgetEntryDialog pre-filled from the resource its own row names, as a credit. Withheld once the resource is fully received or is an in-kind one",
+    "context": "Displayed on a financing resource row's own ⋮ menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingUndoReceiptAction": "Undo the last receipt",
+  "@budgetFinancingUndoReceiptAction": {
+    "description": "Action asking to undo the most recently recorded receipt against the resource its own row names. Withheld until the resource has received something",
     "context": "Displayed on a financing resource row's own ⋮ menu",
     "type": "text",
     "placeholders": {}
@@ -12255,6 +12262,20 @@
   "budgetDeleteResourceConfirmMessage": "This cannot be undone.",
   "@budgetDeleteResourceConfirmMessage": {
     "description": "Message of the confirm dialog asked before a financing resource is deleted",
+    "context": "Displayed by OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetUndoReceiptConfirmTitle": "Undo the last receipt?",
+  "@budgetUndoReceiptConfirmTitle": {
+    "description": "Title of the confirm dialog asked before the most recent receipt against a financing resource is undone, deleting the cash-journal entry it recorded",
+    "context": "Displayed by OcptConfirmDialog, opened by the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetUndoReceiptConfirmMessage": "This cannot be undone.",
+  "@budgetUndoReceiptConfirmMessage": {
+    "description": "Message of the confirm dialog asked before the most recent receipt against a financing resource is undone",
     "context": "Displayed by OcptConfirmDialog, opened by the budget mode",
     "type": "text",
     "placeholders": {}

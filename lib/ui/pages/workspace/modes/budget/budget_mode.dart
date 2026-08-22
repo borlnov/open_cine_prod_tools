@@ -855,6 +855,9 @@ class _BudgetViewState extends State<_BudgetView> {
       onResourceReceiptRequested: isReadOnly
           ? null
           : (resource) => unawaited(_handleResourceReceiptRequested(context, state, resource)),
+      onResourceReceiptUndoRequested: isReadOnly
+          ? null
+          : (resource) => unawaited(_handleResourceReceiptUndoRequested(context, state, resource)),
       onResourceDeletionRequested: isReadOnly
           ? null
           : (resourceId) => unawaited(_handleResourceDeletionRequested(context, resourceId)),
@@ -979,6 +982,44 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
+  }
+
+  /// Resolves the most recently recorded live credit against [resource]
+  /// (`ocptBudgetLatestReceiptEntryIdOf`, `lib/utils/ocpt_budget_financing.dart`), asks
+  /// `OcptConfirmDialog` whether it really is to be undone, then dispatches its deletion — the very
+  /// same `OcptBudgetEntryDeletionConfirmedEvent` the cash journal's own `Delete` already uses,
+  /// tombstoning the entry rather than un-receiving the resource through any figure of its own
+  /// (`budget_resources` stores none — `docs/architecture/budget.md`). `OcptBudgetFinancing`'s own
+  /// `Undo the last receipt` menu entry is withheld whenever the resource has received nothing at
+  /// all, so [resource] here always names one, but a defensive null check still guards a race
+  /// against the entry having been deleted from elsewhere between the click and this read.
+  Future<void> _handleResourceReceiptUndoRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetResource resource,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final entryId = ocptBudgetLatestReceiptEntryIdOf(state.entries, resourceId: resource.id);
+    if (entryId == null) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetUndoReceiptConfirmTitle,
+      message: tr.budgetUndoReceiptConfirmMessage,
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetDeleteConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
   }
 
   /// Builds the catering-and-travel view. Writes nothing of its own — see `OcptBudgetRegie`'s own

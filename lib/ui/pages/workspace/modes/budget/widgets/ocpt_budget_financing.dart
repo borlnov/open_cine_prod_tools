@@ -53,7 +53,7 @@ const double _ocptFinancingMenuColumnWidth = 36;
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and withholds — never disables — every one of its own
 /// writing affordances under it: the `+ Resource` action and a row's own `⋮` menu entries
-/// (`Edit`/`Record a receipt`/`Delete`).
+/// (`Edit`/`Record a receipt`/`Undo the last receipt`/`Delete`).
 ///
 /// **One column header, above every group card, rather than one per card.** The five columns
 /// (`Label`, `Status`, `Amount`, `Received`, `Outstanding`) read identically whichever group a row
@@ -63,6 +63,21 @@ const double _ocptFinancingMenuColumnWidth = 36;
 /// heading that already names the card itself, would be noise a reader has to skip past group after
 /// group. It sits between the KPI row and the list of cards, aligned to a row's own five columns by
 /// sharing their exact widths.
+///
+/// **`Record a receipt` is withheld — never disabled — once a resource is fully received
+/// (`received >= amount`), and on any in-kind resource at all, entered or not.** A contribution in
+/// kind is valued rather than collected (see "An in-kind contribution is valued, not collected" in
+/// `docs/architecture/budget.md`), so no cash will ever move for it and the gesture that records a
+/// cash movement has nothing to offer here; a resource whose received total already meets its own
+/// amount has nothing left to receive either, though a **partially** received one keeps offering
+/// it — the ordinary case of several instalments landing against the one resource. **`Undo the last
+/// receipt`** is the way back a mis-click into `Record a receipt` used to have none of: offered the
+/// moment a resource has received anything at all, it tombstones the most recently recorded live
+/// `budget_entries` credit naming that resource — `ocptBudgetLatestReceiptEntryIdOf`
+/// (`lib/utils/ocpt_budget_financing.dart`) resolves which one, and the mode alone dispatches the
+/// very same `OcptBudgetEntryDeletionConfirmedEvent` the cash journal's own `Delete` already uses,
+/// through `OcptConfirmDialog` first: deleting a journal entry is irreversible, exactly the dialog's
+/// own case.
 ///
 /// Empty states, both mirroring the mode's own established readings: a group holding no resource of
 /// its own draws no card at all — an empty bordered card stating a zero subtotal says nothing a
@@ -106,7 +121,19 @@ class OcptBudgetFinancing extends StatelessWidget {
 
   /// Called with a resource when its row's own `⋮` menu asks to record a receipt against it, or
   /// null while [isReadOnly]. Opens `OcptBudgetEntryDialog` pre-filled from it, as a credit.
+  ///
+  /// The row itself further withholds the menu entry that calls this — never disables it — once
+  /// the resource is fully received or is an in-kind one: see the class doc comment.
   final ValueChanged<OcptBudgetResource>? onResourceReceiptRequested;
+
+  /// Called with a resource when its row's own `⋮` menu asks to undo the most recent receipt
+  /// against it, or null while [isReadOnly]. The mode resolves which `budget_entries` credit that
+  /// is and answers through `OcptConfirmDialog` before dispatching its deletion — see the class doc
+  /// comment.
+  ///
+  /// The row itself further withholds the menu entry that calls this until the resource has
+  /// actually received something.
+  final ValueChanged<OcptBudgetResource>? onResourceReceiptUndoRequested;
 
   /// Called with a resource's id when its row's own `⋮` menu asks to delete it, or null while
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
@@ -125,6 +152,7 @@ class OcptBudgetFinancing extends StatelessWidget {
     required this.onResourceSelected,
     required this.onResourceEditRequested,
     required this.onResourceReceiptRequested,
+    required this.onResourceReceiptUndoRequested,
     required this.onResourceDeletionRequested,
   });
 
@@ -217,6 +245,9 @@ class OcptBudgetFinancing extends StatelessWidget {
                 onReceiptRequested: isReadOnly || onResourceReceiptRequested == null
                     ? null
                     : () => onResourceReceiptRequested?.call(resource),
+                onReceiptUndoRequested: isReadOnly || onResourceReceiptUndoRequested == null
+                    ? null
+                    : () => onResourceReceiptUndoRequested?.call(resource),
                 onDeletionRequested: isReadOnly || onResourceDeletionRequested == null
                     ? null
                     : () => onResourceDeletionRequested?.call(resource.id),
@@ -439,8 +470,18 @@ class _OcptFinancingResourceRow extends StatelessWidget {
   final VoidCallback? onEditRequested;
 
   /// Called when this row's own `⋮` menu asks to record a receipt against it, or null while
-  /// withheld.
+  /// withheld under a read-only preview.
+  ///
+  /// Withheld here too — the menu entry simply isn't drawn — once the resource is fully received
+  /// or is an in-kind one: see [OcptBudgetFinancing]'s own class doc comment.
   final VoidCallback? onReceiptRequested;
+
+  /// Called when this row's own `⋮` menu asks to undo the most recent receipt against it, or null
+  /// while withheld under a read-only preview.
+  ///
+  /// Withheld here too — the menu entry simply isn't drawn — until the resource has actually
+  /// received something: see [OcptBudgetFinancing]'s own class doc comment.
+  final VoidCallback? onReceiptUndoRequested;
 
   /// Called when this row's own `⋮` menu asks to delete it, or null while withheld.
   final VoidCallback? onDeletionRequested;
@@ -455,6 +496,7 @@ class _OcptFinancingResourceRow extends StatelessWidget {
     required this.onTap,
     required this.onEditRequested,
     required this.onReceiptRequested,
+    required this.onReceiptUndoRequested,
     required this.onDeletionRequested,
   });
 
@@ -462,7 +504,6 @@ class _OcptFinancingResourceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final hasMenu = onEditRequested != null || onReceiptRequested != null || onDeletionRequested != null;
 
     // An in-kind resource no entry has ever named reads em-dash on both columns — see
     // `OcptBudgetFinancing`'s own class doc comment for why. Every other row, in-kind included once
@@ -476,6 +517,23 @@ class _OcptFinancingResourceRow extends StatelessWidget {
         ? null
         : ocptBudgetResourceOutstandingCents(amountCents: resource.amountCents, receivedCents: receivedCents);
     final isOutstandingNegative = outstandingCents != null && outstandingCents < 0;
+
+    // `Record a receipt` has nothing left to offer on an in-kind resource (valued, never
+    // collected) or on one that has already received at least its own amount — see
+    // `OcptBudgetFinancing`'s own class doc comment for both readings.
+    final canOfferReceipt =
+        resource.groupKind != OcptBudgetResourceGroupKind.inKind && (receivedCents ?? 0) < resource.amountCents;
+    final effectiveOnReceiptRequested = canOfferReceipt ? onReceiptRequested : null;
+
+    // `Undo the last receipt` only makes sense once the resource has actually received something.
+    final hasReceivedSomething = receivedCents != null && receivedCents > 0;
+    final effectiveOnReceiptUndoRequested = hasReceivedSomething ? onReceiptUndoRequested : null;
+
+    final hasMenu =
+        onEditRequested != null ||
+        effectiveOnReceiptRequested != null ||
+        effectiveOnReceiptUndoRequested != null ||
+        onDeletionRequested != null;
 
     return InkWell(
       onTap: onTap,
@@ -560,7 +618,8 @@ class _OcptFinancingResourceRow extends StatelessWidget {
                         icon: const Icon(Icons.more_vert, size: 18),
                         onSelected: (value) => switch (value) {
                           "edit" => onEditRequested?.call(),
-                          "receipt" => onReceiptRequested?.call(),
+                          "receipt" => effectiveOnReceiptRequested?.call(),
+                          "receiptUndo" => effectiveOnReceiptUndoRequested?.call(),
                           "delete" => onDeletionRequested?.call(),
                           _ => null,
                         },
@@ -570,10 +629,15 @@ class _OcptFinancingResourceRow extends StatelessWidget {
                               value: "edit",
                               child: Text(tr.budgetFinancingEditAction),
                             ),
-                          if (onReceiptRequested != null)
+                          if (effectiveOnReceiptRequested != null)
                             PopupMenuItem<String>(
                               value: "receipt",
                               child: Text(tr.budgetFinancingRecordReceiptAction),
+                            ),
+                          if (effectiveOnReceiptUndoRequested != null)
+                            PopupMenuItem<String>(
+                              value: "receiptUndo",
+                              child: Text(tr.budgetFinancingUndoReceiptAction),
                             ),
                           if (onDeletionRequested != null)
                             PopupMenuItem<String>(

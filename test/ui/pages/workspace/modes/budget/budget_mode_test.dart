@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -114,6 +115,13 @@ void main() {
   Future<void> openCommitted(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
     await tester.tap(find.text(tr.budgetHeaderCommittedSegmentLabel));
+    await tester.pumpAndSettle();
+  }
+
+  /// Switches the centre to the financing view.
+  Future<void> openFinancing(WidgetTester tester) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tester.tap(find.text(tr.budgetHeaderFinancingSegmentLabel));
     await tester.pumpAndSettle();
   }
 
@@ -276,6 +284,70 @@ void main() {
     expect(find.text("To be deleted"), findsNothing);
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
   });
+
+  testWidgets(
+    "undoing a receipt against a financing resource asks through OcptConfirmDialog, then "
+    "tombstones the entry it names",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "Regional grant",
+      );
+      await projectsManager.budgetFinancingService.updateResource(
+        database: project.database,
+        resourceId: resourceId!,
+        amountCents: const Value(10000),
+      );
+      await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026),
+        label: "Regional grant",
+        resourceId: resourceId,
+        creditCents: 4000,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openFinancing(tester);
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      await tester.tap(find.text(tr.budgetFinancingUndoReceiptAction));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptConfirmDialog), findsOneWidget);
+      expect(find.text(tr.budgetUndoReceiptConfirmTitle), findsOneWidget);
+
+      // Cancelling leaves the receipt in place — still partly received, so both gestures remain.
+      await tester.tap(find.text(tr.budgetDeleteCancelAction));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetFinancingRecordReceiptAction), findsOneWidget);
+      expect(find.text(tr.budgetFinancingUndoReceiptAction), findsOneWidget);
+      await tester.tap(find.text(tr.budgetFinancingUndoReceiptAction));
+      await tester.pumpAndSettle();
+
+      // Confirming tombstones the entry: the resource reads as having received nothing again, so
+      // Record a receipt is offered once more and Undo the last receipt is gone.
+      await tester.tap(find.text(tr.budgetDeleteConfirmAction));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetFinancingRecordReceiptAction), findsOneWidget);
+      expect(find.text(tr.budgetFinancingUndoReceiptAction), findsNothing);
+    },
+  );
 
   testWidgets(
     "withholds every cash-journal writing affordance under a previewed version",

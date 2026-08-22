@@ -61,6 +61,7 @@ void main() {
     ValueChanged<String>? onResourceSelected,
     ValueChanged<OcptBudgetResource>? onResourceEditRequested,
     ValueChanged<OcptBudgetResource>? onResourceReceiptRequested,
+    ValueChanged<OcptBudgetResource>? onResourceReceiptUndoRequested,
     ValueChanged<String>? onResourceDeletionRequested,
   }) async {
     // The default test surface is narrower than the KPI row's own fixed-width cells plus its own
@@ -83,6 +84,7 @@ void main() {
           onResourceSelected: onResourceSelected ?? (_) {},
           onResourceEditRequested: onResourceEditRequested ?? (_) {},
           onResourceReceiptRequested: onResourceReceiptRequested ?? (_) {},
+          onResourceReceiptUndoRequested: onResourceReceiptUndoRequested ?? (_) {},
           onResourceDeletionRequested: onResourceDeletionRequested ?? (_) {},
         ),
       ),
@@ -307,4 +309,145 @@ void main() {
     expect(find.text(tr.budgetFinancingColumnReceived.toUpperCase()), findsOneWidget);
     expect(find.text(tr.budgetFinancingColumnOutstanding.toUpperCase()), findsOneWidget);
   });
+
+  testWidgets("Record a receipt is offered on a resource that has received nothing", (
+    tester,
+  ) async {
+    final resource = _resource(id: "r1");
+
+    await pumpView(tester, resources: [resource]);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.budgetFinancingRecordReceiptAction), findsOneWidget);
+    // Nothing has come in yet, so there is nothing to undo either.
+    expect(find.text(tr.budgetFinancingUndoReceiptAction), findsNothing);
+  });
+
+  testWidgets("Record a receipt is still offered on a partly received resource", (tester) async {
+    final resource = _resource(id: "r1", amountCents: 30000);
+
+    await pumpView(
+      tester,
+      resources: [resource],
+      // Marie lending 100 € three times against a 300 € resource is the normal case.
+      receivedByResourceId: const {
+        "r1": OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1),
+      },
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.budgetFinancingRecordReceiptAction), findsOneWidget);
+    expect(find.text(tr.budgetFinancingUndoReceiptAction), findsOneWidget);
+  });
+
+  testWidgets("Record a receipt is withheld, not disabled, once a resource is fully received", (
+    tester,
+  ) async {
+    final resource = _resource(id: "r1");
+
+    await pumpView(
+      tester,
+      resources: [resource],
+      receivedByResourceId: const {
+        "r1": OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1),
+      },
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.budgetFinancingRecordReceiptAction), findsNothing);
+    // The way back is offered instead.
+    expect(find.text(tr.budgetFinancingUndoReceiptAction), findsOneWidget);
+  });
+
+  testWidgets("Record a receipt is withheld on an unentered in-kind resource", (tester) async {
+    final unentered = _resource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind);
+
+    await pumpView(tester, resources: [unentered]);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.budgetFinancingRecordReceiptAction), findsNothing);
+    // Nothing has come in yet either, so there is nothing to undo.
+    expect(find.text(tr.budgetFinancingUndoReceiptAction), findsNothing);
+  });
+
+  testWidgets(
+    "Record a receipt stays withheld on an entered in-kind resource, which offers Undo instead",
+    (tester) async {
+      // An entered in-kind resource (an entry now names it) never offers the gesture either — a
+      // contribution in kind is valued, not collected.
+      final entered = _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.inKind);
+
+      await pumpView(
+        tester,
+        resources: [entered],
+        receivedByResourceId: const {
+          "r2": OcptBudgetCoveredTotal(amountCents: 2000, coveredLineCount: 1, lineCount: 1),
+        },
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetFinancingRecordReceiptAction), findsNothing);
+      // But since it has received something, the way back is offered.
+      expect(find.text(tr.budgetFinancingUndoReceiptAction), findsOneWidget);
+    },
+  );
+
+  testWidgets("Undo the last receipt reports the resource it names, asking rather than deleting", (
+    tester,
+  ) async {
+    final resource = _resource(id: "r1", label: "Regional grant");
+    OcptBudgetResource? undoRequested;
+
+    await pumpView(
+      tester,
+      resources: [resource],
+      receivedByResourceId: const {
+        "r1": OcptBudgetCoveredTotal(amountCents: 4000, coveredLineCount: 1, lineCount: 1),
+      },
+      onResourceReceiptUndoRequested: (resource) => undoRequested = resource,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.budgetFinancingUndoReceiptAction));
+    await tester.pumpAndSettle();
+
+    // The widget only ever reports the resource; the mode decides which entry that means and asks
+    // through OcptConfirmDialog before dispatching anything — this widget does neither.
+    expect(undoRequested?.id, "r1");
+  });
+
+  testWidgets(
+    "every writing affordance, the undo gesture included, is withheld under a read-only preview",
+    (tester) async {
+      final resource = _resource(id: "r1");
+
+      await pumpView(
+        tester,
+        resources: [resource],
+        receivedByResourceId: const {
+          "r1": OcptBudgetCoveredTotal(amountCents: 4000, coveredLineCount: 1, lineCount: 1),
+        },
+        isReadOnly: true,
+      );
+
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+    },
+  );
 }

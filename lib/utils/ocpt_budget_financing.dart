@@ -99,6 +99,25 @@ OcptBudgetCoveredTotal _ocptBudgetReceivedTotalOf(
   );
 }
 
+/// The id of the most recently recorded live `budget_entries` credit naming [resourceId], read off
+/// [entries] in the very same chronological order `OcptBudgetJournalService.loadEntries` already
+/// establishes (`date` ascending, `sortKey` breaking a tie) — so the last matching entry in that
+/// order is the most recent movement against the resource. Null while no live credit names it,
+/// which is exactly when `OcptBudgetFinancing`'s own `Undo the last receipt` gesture is withheld.
+///
+/// **A debit naming [resourceId] is not a candidate**, mirroring [ocptBudgetReceivedByResourceId]'s
+/// own reading: a debit repaying a reimbursable contribution never un-receives it, so undoing it is
+/// not what this gesture is for — only [OcptBudgetEntry.creditCents] is ever read here.
+String? ocptBudgetLatestReceiptEntryIdOf(List<OcptBudgetEntry> entries, {required String resourceId}) {
+  String? latestEntryId;
+  for (final entry in entries) {
+    if (entry.resourceId == resourceId && entry.creditCents > 0) {
+      latestEntryId = entry.id;
+    }
+  }
+  return latestEntryId;
+}
+
 /// The plain sum of [resources]' own [OcptBudgetResource.amountCents].
 ///
 /// **No tax basis at all — never a [OcptBudgetCoveredTotal], never a rate to resolve.**
