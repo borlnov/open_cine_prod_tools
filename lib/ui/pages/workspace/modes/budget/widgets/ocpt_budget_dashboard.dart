@@ -61,6 +61,12 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// figure, summed across every poste rather than recomputed.
   final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
 
+  /// The total of every debit that names no poste at all — spending outside the quote
+  /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/utils/ocpt_budget_journal.dart`), folded into the
+  /// `Paid` KPI alongside [paidByPosteId] so that figure agrees with the cash journal: what has
+  /// actually gone out, off-quote spending included, rather than only what priced a poste.
+  final OcptBudgetCoveredTotal offQuotePaidTotal;
+
   /// What is committed against each poste, keyed by its own id — the `Committed` KPI's own
   /// figure, summed across every poste rather than recomputed.
   final Map<String, OcptBudgetCoveredTotal> committedByPosteId;
@@ -120,6 +126,7 @@ class OcptBudgetDashboard extends StatelessWidget {
     required this.currencyCode,
     required this.cashTotals,
     required this.paidByPosteId,
+    required this.offQuotePaidTotal,
     required this.committedByPosteId,
     required this.alerts,
     required this.resources,
@@ -155,8 +162,8 @@ class OcptBudgetDashboard extends StatelessWidget {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final lineCount = allLines.length;
-    final paidTotal = _ocptFoldCoveredTotals(paidByPosteId.values);
-    final committedTotal = _ocptFoldCoveredTotals(committedByPosteId.values);
+    final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuotePaidTotal]);
+    final committedTotal = ocptBudgetCoveredTotalsFoldOf(committedByPosteId.values);
 
     // Read tax-inclusive, always — see the balance bar's own doc comment
     // ([_OcptDashboardBalanceBar]) for why this never follows [taxBasis].
@@ -337,28 +344,6 @@ class OcptBudgetDashboard extends StatelessWidget {
     final label = posteLabelById[posteId];
     return (label == null || label.isEmpty) ? tr.budgetPosteUnnamed : label;
   }
-}
-
-/// [totals]' own combined figure — the sum of every [OcptBudgetCoveredTotal.amountCents], paired
-/// with how many of the underlying rows actually carried a known rate — folded the same way
-/// `ocptBudgetPaidCentsByPosteId`'s own per-poste totals are summed, row by row, then summed: a
-/// plain reduction over already-computed pure structures, not a rule of its own.
-OcptBudgetCoveredTotal _ocptFoldCoveredTotals(Iterable<OcptBudgetCoveredTotal> totals) {
-  var amountCents = 0;
-  var coveredLineCount = 0;
-  var lineCount = 0;
-
-  for (final total in totals) {
-    amountCents += total.amountCents;
-    coveredLineCount += total.coveredLineCount;
-    lineCount += total.lineCount;
-  }
-
-  return OcptBudgetCoveredTotal(
-    amountCents: amountCents,
-    coveredLineCount: coveredLineCount,
-    lineCount: lineCount,
-  );
 }
 
 /// One KPI of the dashboard's own top row: a muted label, a bold value, and an optional muted

@@ -471,6 +471,7 @@ class _BudgetViewState extends State<_BudgetView> {
       currencyCode: state.currencyCode,
       cashTotals: state.cashTotals,
       paidByPosteId: state.paidByPosteId,
+      offQuotePaidTotal: state.offQuotePaidTotal,
       committedByPosteId: state.committedByPosteId,
       alerts: state.alerts,
       resources: state.resources,

@@ -97,6 +97,10 @@ const _zeroCashTotals = OcptBudgetCashTotals(
   entryCount: 0,
 );
 
+/// The zero-everything, fully-covered total every test not concerned with off-quote spending
+/// starts from.
+const _zeroCoveredTotal = OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
+
 /// Pumps [OcptBudgetDashboard] with the neutral defaults every test but the one it varies wants.
 Future<Tr> _pumpDashboard(
   WidgetTester tester, {
@@ -104,6 +108,7 @@ Future<Tr> _pumpDashboard(
   OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
   OcptBudgetCashTotals cashTotals = _zeroCashTotals,
   Map<String, OcptBudgetCoveredTotal> paidByPosteId = const {},
+  OcptBudgetCoveredTotal offQuotePaidTotal = _zeroCoveredTotal,
   Map<String, OcptBudgetCoveredTotal> committedByPosteId = const {},
   List<OcptBudgetAlert> alerts = const [],
   List<OcptBudgetResource> resources = const [],
@@ -128,6 +133,7 @@ Future<Tr> _pumpDashboard(
         currencyCode: "EUR",
         cashTotals: cashTotals,
         paidByPosteId: paidByPosteId,
+        offQuotePaidTotal: offQuotePaidTotal,
         committedByPosteId: committedByPosteId,
         alerts: alerts,
         resources: resources,
@@ -185,6 +191,31 @@ void main() {
       expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsOneWidget);
       expect(find.text(tr.budgetDashboardCommittedLabel.toUpperCase()), findsOneWidget);
       expect(find.text(ocptBudgetAmountLabel(4000, "EUR")), findsOneWidget);
+    });
+
+    testWidgets("the Paid KPI folds off-quote spending in with the per-poste total", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        paidByPosteId: {
+          "poste-1": const OcptBudgetCoveredTotal(
+            amountCents: 3000,
+            coveredLineCount: 1,
+            lineCount: 1,
+          ),
+        },
+        offQuotePaidTotal: const OcptBudgetCoveredTotal(
+          amountCents: 500,
+          coveredLineCount: 1,
+          lineCount: 1,
+        ),
+      );
+
+      expect(find.text(tr.budgetDashboardPaidLabel.toUpperCase()), findsOneWidget);
+      // 30.00 € against the poste plus 5.00 € off quote — what the cash journal would agree left
+      // the account, not only what priced a poste.
+      expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsOneWidget);
     });
 
     testWidgets("the cash-balance KPI shows a coverage caption while an entry cannot be read", (
