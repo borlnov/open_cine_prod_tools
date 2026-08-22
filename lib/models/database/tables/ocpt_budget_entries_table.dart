@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 
 /// One movement of the production's cash journal: money that actually left or entered the account,
 /// dated and, usually, priced against a poste.
@@ -24,11 +25,11 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_t
 /// contribution repaid — not "nobody has said which poste yet". A line spent against the quote
 /// almost always names one; a receipt almost never does.
 ///
-/// **Carries no `resourceId`.** `docs/plans/budget-mode.md` lists one, naming which financing
-/// resource an entry settles, but `budget_resources` is a later milestone's table and does not
-/// exist yet: a nullable foreign key onto it can be added with `Migrator.addColumn` and its own
-/// `REFERENCES` clause the day that table lands, exactly as this milestone adds [posteId] onto a
-/// table ([OcptBudgetPostesTable]) that already existed.
+/// [resourceId] names which financing resource this movement settles — a subsidy instalment coming
+/// in, a contribution repaid — and is **nullable for the same reason [posteId] is**: most movements
+/// settle no resource at all, which is a real fact rather than an unfinished pick, and this table's
+/// own doc comment on `OcptBudgetResourcesTable` is what actually adds this figure up (there is no
+/// stored `receivedCents` counter on that table to keep in step with it).
 @DataClassName('OcptBudgetEntryRow')
 class OcptBudgetEntriesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptBudgetEntriesTable}
@@ -85,6 +86,12 @@ class OcptBudgetEntriesTable extends Table {
   /// (a test fixture, a future import); every entry `createEntry` mints carries a real one — see
   /// that method's own doc comment for the numbering scheme.
   TextColumn get voucherNumber => text().withDefault(const Constant(''))();
+
+  /// The financing resource this movement settles, or null. → [OcptBudgetResourcesTable]
+  ///
+  /// See this table's own doc comment: null is the normal case, a movement that settles no
+  /// resource, read exactly the way [posteId]'s own null is.
+  TextColumn get resourceId => text().nullable().references(OcptBudgetResourcesTable, #id)();
 
   /// {@macro drift.Table.primaryKey}
   @override

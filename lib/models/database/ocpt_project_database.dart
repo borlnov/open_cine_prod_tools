@@ -13,7 +13,9 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_commitments_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_mileage_rates_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_location_availabilities_table.dart';
@@ -54,7 +56,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
 // OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
 // OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter,
-// OcptBudgetCommitmentStatusConverter), but
+// OcptBudgetCommitmentStatusConverter, OcptBudgetResourceGroupKindConverter,
+// OcptBudgetResourceStatusConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -62,6 +65,8 @@ import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -147,6 +152,12 @@ part 'ocpt_project_database.g.dart';
 /// that actually left or entered the account, and [OcptBudgetCommitmentsTable], money committed
 /// against a poste but not yet paid — plus [OcptAssetsTable.budgetEntryId], naming the entry a
 /// receipt asset ([OcptAssetKind.receipt]) stands as the voucher for.
+/// Schema version 22 adds the budget mode's financing plan: [OcptBudgetMileageRatesTable], the
+/// per-kilometre rates a production names for itself (no scale is seeded — see that table's own
+/// doc comment), and [OcptBudgetResourcesTable], the subsidies, cash and in-kind contributions
+/// financing the production — plus [OcptBudgetEntriesTable.resourceId], naming which of those a
+/// journal movement settles, and [OcptPeopleTable.commuteKmMilli]/`.mileageRateId`, a person's own
+/// one-way commute and the rate that applies to them.
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -188,6 +199,8 @@ part 'ocpt_project_database.g.dart';
     OcptBudgetLinesTable,
     OcptBudgetEntriesTable,
     OcptBudgetCommitmentsTable,
+    OcptBudgetMileageRatesTable,
+    OcptBudgetResourcesTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -261,7 +274,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 21;
+  static const currentSchemaVersion = 22;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -399,6 +412,20 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `project_info.screenplayLanguage` above needed no guard). None of the five gets a backfill: the
   /// two tables come out empty, and all three columns are nullable by design, so a project that
   /// predates the budget has no budget and has recorded none of the three figures, which stays as
+  /// true after the migration as it was before it. From 20 to 21 it creates
+  /// [OcptBudgetEntriesTable] and [OcptBudgetCommitmentsTable] — both plain `createTable`s on a
+  /// file coming from any version, since the only table either one references (`budget_postes`)
+  /// exists by version 20 at the latest — and adds `assets.budgetEntryId`, guarded `from >= 6` for
+  /// the reason `assets.validFrom`/`assets.validUntil` above are. From 21 to 22 it creates
+  /// [OcptBudgetMileageRatesTable] and [OcptBudgetResourcesTable] — both plain `createTable`s
+  /// referencing nothing, so their own order is free — and adds `budget_entries.resourceId`,
+  /// guarded `from >= 21` for the reason `assets.budgetEntryId` above is, and
+  /// `people.commuteKmMilli`/`people.mileageRateId`, guarded `from >= 6` for the reason
+  /// `people.maxDailyPresenceMinutes` (version 16) is; [OcptBudgetMileageRatesTable] is created
+  /// before that `people` column is added, and [OcptBudgetResourcesTable] before
+  /// `budget_entries.resourceId` is, since each new column references the table just created. None
+  /// of the five gets a backfill: the two tables come out empty, and all three columns are nullable
+  /// by design, so a project that predates this step has recorded none of the three, which stays as
   /// true after the migration as it was before it. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
@@ -642,6 +669,31 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // are above.
         if (from >= 6) {
           await m.addColumn(ocptAssetsTable, ocptAssetsTable.budgetEntryId);
+        }
+      }
+
+      if (from < 22) {
+        // Neither table references the other, so their own order is free; what matters is that
+        // each is created before the column that references it is added, below: `people` may name
+        // a `budget_mileage_rates` row, and `budget_entries` may name a `budget_resources` row.
+        await m.createTable(ocptBudgetMileageRatesTable);
+        await m.createTable(ocptBudgetResourcesTable);
+
+        // `people` has existed, and been alterable, since version 6 — a file older than that has
+        // just had it created fresh above, from the current declaration, so it already carries both
+        // columns. Guarded `from >= 6` for the same reason `people.maxDailyPresenceMinutes`
+        // (version 16) is.
+        if (from >= 6) {
+          await m.addColumn(ocptPeopleTable, ocptPeopleTable.commuteKmMilli);
+          await m.addColumn(ocptPeopleTable, ocptPeopleTable.mileageRateId);
+        }
+
+        // `budget_entries` has existed, and been alterable, since version 21 — a file older than
+        // that has just had it created fresh above, from the current declaration, so it already
+        // carries the column. Guarded `from >= 21` for the reason `assets.budgetEntryId` above is
+        // guarded `from >= 6`.
+        if (from >= 21) {
+          await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.resourceId);
         }
       }
     },

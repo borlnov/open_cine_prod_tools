@@ -46,6 +46,7 @@ OcptBudgetEntry _buildEntry({required String id, required String posteId, int de
       vatRateBasisPoints: null,
       voucherNumber: "J-001",
       sortKey: "a0",
+      resourceId: null,
     );
 
 void main() {

@@ -146,6 +146,14 @@ class OcptProjectVersionPayload extends Equatable {
   /// paid.
   final List<OcptBudgetCommitmentRow> budgetCommitments;
 
+  /// The `budget_resources` rows of the project: the financing plan — subsidies, cash and in-kind
+  /// contributions — tombstones included.
+  final List<OcptBudgetResourceRow> budgetResources;
+
+  /// The `budget_mileage_rates` rows of the project: the per-kilometre rates the production names
+  /// for itself, tombstones included.
+  final List<OcptBudgetMileageRateRow> budgetMileageRates;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -249,6 +257,8 @@ class OcptProjectVersionPayload extends Equatable {
     required this.budgetLines,
     required this.budgetEntries,
     required this.budgetCommitments,
+    required this.budgetResources,
+    required this.budgetMileageRates,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -282,6 +292,8 @@ class OcptProjectVersionPayload extends Equatable {
       "projectDictionaryWords: ${projectDictionaryWords.length}, "
       "budgetPostes: ${budgetPostes.length}, budgetLines: ${budgetLines.length}, "
       "budgetEntries: ${budgetEntries.length}, budgetCommitments: ${budgetCommitments.length}, "
+      "budgetResources: ${budgetResources.length}, "
+      "budgetMileageRates: ${budgetMileageRates.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
       "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage, "
@@ -324,6 +336,8 @@ class OcptProjectVersionPayload extends Equatable {
     budgetLines,
     budgetEntries,
     budgetCommitments,
+    budgetResources,
+    budgetMileageRates,
     rowFieldVersions,
     pageSetup,
     settingsJson,

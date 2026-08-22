@@ -23,6 +23,10 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// carry on purpose (`OcptBudgetEntry.posteId`'s own doc comment), not an unfinished pick.
   final String? posteId;
 
+  /// The financing resource this entry settles, or null meaning "no resource" — the normal case,
+  /// read exactly the way [posteId]'s own null is.
+  final String? resourceId;
+
   /// Whether [amountCents] left the account (`true`) or came into it (`false`).
   final bool isDebit;
 
@@ -72,6 +76,7 @@ class OcptBudgetEntryFormFields extends Equatable {
     required this.date,
     required this.label,
     required this.posteId,
+    required this.resourceId,
     required this.isDebit,
     required this.amountCents,
     required this.isTaxInclusive,
@@ -93,6 +98,7 @@ class OcptBudgetEntryFormFields extends Equatable {
     date,
     label,
     posteId,
+    resourceId,
     isDebit,
     amountCents,
     isTaxInclusive,

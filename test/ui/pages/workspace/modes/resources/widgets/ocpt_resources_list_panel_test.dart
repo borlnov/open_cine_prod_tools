@@ -70,6 +70,8 @@ OcptPerson _person({required String id, required String firstName, required Stri
       photoAssetId: null,
       photo: null,
       notes: "",
+      commuteKmMilli: null,
+      mileageRateId: null,
       positions: const [],
       skills: const [],
       unavailabilities: const [],

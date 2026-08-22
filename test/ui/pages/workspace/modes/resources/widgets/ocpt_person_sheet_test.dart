@@ -87,6 +87,8 @@ OcptPerson _person({
   photoAssetId: photo?.id,
   photo: photo,
   notes: notes,
+  commuteKmMilli: null,
+  mileageRateId: null,
   positions: positions,
   skills: skills,
   unavailabilities: unavailabilities,

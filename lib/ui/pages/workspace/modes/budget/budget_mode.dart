@@ -587,6 +587,7 @@ class _BudgetViewState extends State<_BudgetView> {
       date: DateTime(now.year, now.month, now.day),
       label: commitment.label,
       posteId: commitment.posteId,
+      resourceId: null,
       isDebit: true,
       amountCents: commitment.amount.amountCents,
       isTaxInclusive: commitment.amount.isTaxInclusive,

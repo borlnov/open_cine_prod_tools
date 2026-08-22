@@ -112,6 +112,8 @@ void main() {
       budgetLines: const [],
       budgetEntries: const [],
       budgetCommitments: const [],
+      budgetResources: const [],
+      budgetMileageRates: const [],
       rowFieldVersions: const [],
       pageSetup: const OcptPageSetup(
         format: OcptPageFormat.a4,

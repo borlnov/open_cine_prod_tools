@@ -470,6 +470,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         date: _date,
         label: _labelController.text.trim(),
         posteId: _posteId,
+        resourceId: null,
         isDebit: _isDebit,
         amountCents: amountCents,
         isTaxInclusive: _isTaxInclusive,

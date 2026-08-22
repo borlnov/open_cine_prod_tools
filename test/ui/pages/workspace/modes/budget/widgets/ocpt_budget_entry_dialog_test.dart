@@ -123,6 +123,7 @@ OcptBudgetEntry _existingEntry({
   vatRateBasisPoints: vatRateBasisPoints,
   voucherNumber: voucherNumber,
   sortKey: "a0",
+  resourceId: null,
 );
 
 void main() {

@@ -56,6 +56,7 @@ OcptBudgetEntry _entry({
   vatRateBasisPoints: vatRateBasisPoints,
   voucherNumber: voucherNumber,
   sortKey: sortKey,
+  resourceId: null,
 );
 
 /// A minimal voucher naming [path], everything else neutral.

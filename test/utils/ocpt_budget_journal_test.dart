@@ -29,6 +29,7 @@ void main() {
     vatRateBasisPoints: vatRateBasisPoints,
     voucherNumber: voucherNumber,
     sortKey: sortKey,
+    resourceId: null,
   );
 
   group("ocptBudgetEntryDebitCentsOf / ocptBudgetEntryCreditCentsOf", () {

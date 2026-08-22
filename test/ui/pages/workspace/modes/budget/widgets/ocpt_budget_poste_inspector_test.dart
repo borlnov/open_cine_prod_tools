@@ -82,6 +82,7 @@ OcptBudgetEntry _buildEntry({
   vatRateBasisPoints: vatRateBasisPoints,
   voucherNumber: "J-001",
   sortKey: "a0",
+  resourceId: null,
 );
 
 void main() {

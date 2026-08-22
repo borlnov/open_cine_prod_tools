@@ -262,6 +262,8 @@ OcptPerson _buildPerson({
   photo: null,
   imageRightsDocument: null,
   notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
   positions: const [],
   skills: const [],
   unavailabilities: const [],

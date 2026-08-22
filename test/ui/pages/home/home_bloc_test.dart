@@ -398,7 +398,7 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Creates a project at [filePath] and hands it back as the previous build would have left
-    /// it: the version 21 step's additions taken back out, and the format number with them.
+    /// it: the version 22 step's additions taken back out, and the format number with them.
     ///
     /// The additions really are undone rather than the number merely relabelled, so the migration
     /// the user is about to confirm is one that actually runs.
@@ -408,10 +408,14 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        // `budget_commitments` references `budget_entries`, so it goes first.
-        ..execute("DROP TABLE budget_commitments")
-        ..execute("DROP TABLE budget_entries")
-        ..execute("ALTER TABLE assets DROP COLUMN budget_entry_id")
+        // `people.mileage_rate_id` references `budget_mileage_rates`, and
+        // `budget_entries.resource_id` references `budget_resources`: both columns are dropped
+        // before the tables they point into.
+        ..execute("ALTER TABLE people DROP COLUMN mileage_rate_id")
+        ..execute("ALTER TABLE people DROP COLUMN commute_km_milli")
+        ..execute("ALTER TABLE budget_entries DROP COLUMN resource_id")
+        ..execute("DROP TABLE budget_mileage_rates")
+        ..execute("DROP TABLE budget_resources")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

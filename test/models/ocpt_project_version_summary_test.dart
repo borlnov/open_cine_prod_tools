@@ -56,6 +56,8 @@ void main() {
     budgetLines: const [],
     budgetEntries: const [],
     budgetCommitments: const [],
+    budgetResources: const [],
+    budgetMileageRates: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,

@@ -59,6 +59,8 @@ OcptPerson _person({required String id, String firstName = "", String lastName =
   photoAssetId: null,
   photo: null,
   notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
   positions: const [],
   skills: const [],
   unavailabilities: const [],

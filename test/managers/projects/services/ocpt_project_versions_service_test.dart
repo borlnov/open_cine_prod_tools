@@ -888,6 +888,8 @@ void main() {
                   budgetLines: payload.budgetLines,
                   budgetEntries: payload.budgetEntries,
                   budgetCommitments: payload.budgetCommitments,
+                  budgetResources: payload.budgetResources,
+                  budgetMileageRates: payload.budgetMileageRates,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -1061,6 +1063,110 @@ void main() {
       )..where((table) => table.id.equals("entry-2"))).getSingle();
       expect(laterEntry.isDeleted, isTrue);
     });
+
+    test(
+      "a financing resource, a mileage rate and a person's commute come back too",
+      () async {
+        await database
+            .into(database.ocptBudgetMileageRatesTable)
+            .insert(
+              OcptBudgetMileageRatesTableCompanion.insert(
+                id: "rate-1",
+                label: "Voiture personnelle",
+                ratePerKmMilliCents: const Value(52900),
+              ),
+            );
+        await database
+            .into(database.ocptBudgetResourcesTable)
+            .insert(
+              OcptBudgetResourcesTableCompanion.insert(
+                id: "resource-1",
+                label: "Région Île-de-France",
+                amountCents: const Value(500000),
+              ),
+            );
+        await database
+            .into(database.ocptBudgetEntriesTable)
+            .insert(
+              OcptBudgetEntriesTableCompanion.insert(
+                id: "entry-3",
+                date: DateTime.utc(2026, 5, 4),
+                label: "Acompte région",
+                creditCents: const Value(200000),
+                voucherNumber: const Value("J-003"),
+                resourceId: const Value("resource-1"),
+              ),
+            );
+        await database
+            .into(database.ocptPeopleTable)
+            .insert(
+              OcptPeopleTableCompanion.insert(
+                id: "person-3",
+                firstName: const Value("Théo"),
+                commuteKmMilli: const Value(1484000),
+                mileageRateId: const Value("rate-1"),
+              ),
+            );
+
+        final version = await createVersion();
+
+        // Diverge: everything just captured is edited, and a fresh resource is recorded since.
+        await (database.update(
+          database.ocptBudgetMileageRatesTable,
+        )..where((table) => table.id.equals("rate-1"))).write(
+          const OcptBudgetMileageRatesTableCompanion(ratePerKmMilliCents: Value(1)),
+        );
+        await (database.update(
+          database.ocptBudgetResourcesTable,
+        )..where((table) => table.id.equals("resource-1"))).write(
+          const OcptBudgetResourcesTableCompanion(amountCents: Value(1)),
+        );
+        await (database.update(
+          database.ocptBudgetEntriesTable,
+        )..where((table) => table.id.equals("entry-3"))).write(
+          const OcptBudgetEntriesTableCompanion(resourceId: Value(null)),
+        );
+        await (database.update(
+          database.ocptPeopleTable,
+        )..where((table) => table.id.equals("person-3"))).write(
+          const OcptPeopleTableCompanion(commuteKmMilli: Value(1), mileageRateId: Value(null)),
+        );
+        await database
+            .into(database.ocptBudgetResourcesTable)
+            .insert(
+              OcptBudgetResourcesTableCompanion.insert(id: "resource-2", label: "Recorded later"),
+            );
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        final restoredRate = await database.select(database.ocptBudgetMileageRatesTable).getSingle();
+        expect(restoredRate.ratePerKmMilliCents, 52900);
+
+        final restoredResource = await (database.select(
+          database.ocptBudgetResourcesTable,
+        )..where((table) => table.id.equals("resource-1"))).getSingle();
+        expect(restoredResource.amountCents, 500000);
+
+        final restoredEntry = await (database.select(
+          database.ocptBudgetEntriesTable,
+        )..where((table) => table.id.equals("entry-3"))).getSingle();
+        expect(restoredEntry.resourceId, "resource-1");
+
+        final restoredPerson = await (database.select(
+          database.ocptPeopleTable,
+        )..where((table) => table.id.equals("person-3"))).getSingle();
+        expect(restoredPerson.commuteKmMilli, 1484000);
+        expect(restoredPerson.mileageRateId, "rate-1");
+
+        // The resource the version never held is tombstoned, not deleted.
+        final laterResource = await (database.select(
+          database.ocptBudgetResourcesTable,
+        )..where((table) => table.id.equals("resource-2"))).getSingle();
+        expect(laterResource.isDeleted, isTrue);
+      },
+    );
 
     test("a role's things come back, and a link made since is tombstoned", () async {
       await database

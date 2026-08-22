@@ -65,6 +65,8 @@ OcptPerson _buildPerson({required String id, required String firstName}) => Ocpt
   photoAssetId: null,
   photo: null,
   notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
   positions: const [],
   skills: const [],
   unavailabilities: const [],

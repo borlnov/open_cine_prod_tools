@@ -43,6 +43,10 @@ class OcptBudgetEntry extends Equatable {
   /// This entry's position within the journal's own flat `sortKey` order.
   final String sortKey;
 
+  /// The financing resource this movement settles, or null — see `OcptBudgetEntriesTable
+  /// .resourceId`'s own doc comment: null is the normal case, a movement that settles no resource.
+  final String? resourceId;
+
   /// This entry's tax triple ([debitCents], [creditCents], [isTaxInclusive],
   /// [vatRateBasisPoints]), read as a single signed cash figure: [OcptMoney.amountCents] is
   /// [creditCents] minus [debitCents], negative when this entry is, on balance, a cost.
@@ -68,6 +72,7 @@ class OcptBudgetEntry extends Equatable {
     required this.vatRateBasisPoints,
     required this.voucherNumber,
     required this.sortKey,
+    required this.resourceId,
   });
 
   /// Builds an [OcptBudgetEntry] from its stored [row].
@@ -82,6 +87,7 @@ class OcptBudgetEntry extends Equatable {
     vatRateBasisPoints: row.vatRateBasisPoints,
     voucherNumber: row.voucherNumber,
     sortKey: row.sortKey,
+    resourceId: row.resourceId,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -102,5 +108,6 @@ class OcptBudgetEntry extends Equatable {
     vatRateBasisPoints,
     voucherNumber,
     sortKey,
+    resourceId,
   ];
 }
