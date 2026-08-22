@@ -492,6 +492,13 @@ schedule rather than typed a second time. The revenue sharing alone is still ahe
   that total is not `OcptBudgetCoveredTotal.isComplete`, the bar prints the very same coverage
   read-out the cost-tracking table's own total row already does
   (`tr.budgetCostTrackingCoverageReadOut`) rather than a second wording for the same fact.
+  **And a quote with no line at all gets no verdict.** A plain `resources >= needs` reading answers
+  "balanced" for a project that has recorded nothing, declaring the financing plan sufficient
+  against a quote nobody has begun — the sort of claim the data cannot support that this mode
+  refuses everywhere else. The message is three-way rather than two: no quote yet, covered, or short
+  by an amount. The bar itself is drawn either way, nothing disappearing from the screen; it simply
+  stops asserting a verdict it has no grounds for, exactly as `Consumed` prints the em dash for a
+  poste with no quote rather than a ratio it cannot compute.
   A third card, **"what feeds this budget"**, reads three other sources the quote itself never
   types: how many breakdown elements a quote line already prices and how many still are not (see
   "A quote line can price a breakdown element" below), how many shooting days the schedule holds —

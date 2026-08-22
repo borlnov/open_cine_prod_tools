@@ -346,6 +346,47 @@ void main() {
       expect(find.text(tr.budgetDashboardBalanceBalancedMessage), findsOneWidget);
     });
 
+    testWidgets("a poste with no quote line at all claims no verdict either way", (tester) async {
+      // A plain `resources >= needs` reading would answer "balanced" here, declaring the financing
+      // plan sufficient against a quote nobody has begun — a claim the data cannot support.
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [
+          OcptBudgetPoste(
+            id: "poste-1",
+            code: "1",
+            label: "Camera",
+            simpleLabel: null,
+            sortKey: "a0",
+            lines: const [],
+          ),
+        ],
+        resources: [_resource(id: "r1", amountCents: 15000)],
+      );
+
+      expect(find.text(tr.budgetDashboardBalanceNoQuoteMessage), findsOneWidget);
+      expect(find.text(tr.budgetDashboardBalanceBalancedMessage), findsNothing);
+    });
+
+    testWidgets("a project with no resource and no quote claims nothing either", (tester) async {
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [
+          OcptBudgetPoste(
+            id: "poste-1",
+            code: "1",
+            label: "Camera",
+            simpleLabel: null,
+            sortKey: "a0",
+            lines: const [],
+          ),
+        ],
+      );
+
+      expect(find.text(tr.budgetDashboardBalanceNoQuoteMessage), findsOneWidget);
+      expect(find.text(tr.budgetDashboardBalanceBalancedMessage), findsNothing);
+    });
+
     testWidgets("resources falling short of the quote say by how much", (tester) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
       final tr = await _pumpDashboard(

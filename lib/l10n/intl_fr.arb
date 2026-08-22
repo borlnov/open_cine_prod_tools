@@ -1430,6 +1430,7 @@
   "budgetDashboardBalanceNeedsLabel": "Besoins",
   "budgetDashboardBalanceResourcesLabel": "Ressources",
   "budgetDashboardBalanceCoverageReadOut": "{amount} · sur {coveredCount} des {lineCount} lignes",
+  "budgetDashboardBalanceNoQuoteMessage": "Aucun devis auquel confronter le plan de financement pour l'instant.",
   "budgetDashboardBalanceBalancedMessage": "Le plan de financement couvre le devis.",
   "budgetDashboardBalanceShortfallMessage": "Manque {amount}.",
   "budgetDashboardFeedSectionTitle": "Ce qui alimente ce budget",

@@ -10717,6 +10717,10 @@
       }
     }
   },
+  "budgetDashboardBalanceNoQuoteMessage": "No quote to measure the financing plan against yet.",
+  "@budgetDashboardBalanceNoQuoteMessage": {
+    "description": "The balance bar's message while the quote holds no line at all, so there is nothing for the financing plan to cover"
+  },
   "budgetDashboardBalanceBalancedMessage": "The financing plan covers the quote.",
   "@budgetDashboardBalanceBalancedMessage": {
     "description": "Message under the balance bar once the financing plan's own total is at or above the quote's",

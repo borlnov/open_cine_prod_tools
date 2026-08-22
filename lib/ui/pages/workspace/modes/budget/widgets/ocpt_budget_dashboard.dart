@@ -571,6 +571,15 @@ class _OcptBudgetDashboardAlertCard extends StatelessWidget {
 /// exactly, minted under its own key for the same reason `OcptBudgetRegie`'s own two coverage
 /// read-outs are: this total counts quote *lines*, not postes, the noun the cost-tracking table's
 /// own string names.
+///
+/// **A quote with no line at all is not a quote this bar can say anything about.** A plain
+/// `resources >= needs` reading would answer "balanced" for a project that has recorded nothing,
+/// and declare the financing plan sufficient against a quote nobody has begun — which is precisely
+/// the sort of claim the data cannot support that this whole mode refuses to make (see the em dash
+/// `Consumed` keeps for a poste with no quote, `docs/architecture/budget.md`). So the message is
+/// three-way rather than two: no quote yet, covered, or short by an amount. The bar itself is drawn
+/// either way — nothing disappears from the screen — it simply stops asserting a verdict it has no
+/// grounds for.
 class _OcptDashboardBalanceBar extends StatelessWidget {
   /// The balance this bar draws — `ocptBudgetNeedsResourcesBalanceOf`'s own answer.
   final OcptBudgetNeedsResourcesBalance balance;
@@ -594,7 +603,9 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
     final shareOfNeeds = needs.amountCents <= 0
         ? (balance.resourcesCents > 0 ? 1.0 : 0.0)
         : balance.resourcesCents / needs.amountCents;
-    final barColor = balance.isBalanced ? theme.colorScheme.primary : ocptWarningColor(context);
+    final barColor = needs.lineCount == 0 || balance.isBalanced
+        ? theme.colorScheme.primary
+        : ocptWarningColor(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -640,13 +651,17 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          balance.isBalanced
-              ? tr.budgetDashboardBalanceBalancedMessage
-              : tr.budgetDashboardBalanceShortfallMessage(
-                  ocptBudgetAmountLabel(-balance.differenceCents, currencyCode),
-                ),
+          switch ((hasQuote: needs.lineCount > 0, isBalanced: balance.isBalanced)) {
+            (hasQuote: false, isBalanced: _) => tr.budgetDashboardBalanceNoQuoteMessage,
+            (hasQuote: true, isBalanced: true) => tr.budgetDashboardBalanceBalancedMessage,
+            (hasQuote: true, isBalanced: false) => tr.budgetDashboardBalanceShortfallMessage(
+              ocptBudgetAmountLabel(-balance.differenceCents, currencyCode),
+            ),
+          },
           style: theme.textTheme.bodySmall?.copyWith(
-            color: balance.isBalanced ? theme.colorScheme.onSurfaceVariant : barColor,
+            color: needs.lineCount > 0 && !balance.isBalanced
+                ? barColor
+                : theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
