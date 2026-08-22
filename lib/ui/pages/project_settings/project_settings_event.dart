@@ -216,3 +216,66 @@ class OcptProjectSettingsEpisodeDeletionConfirmedEvent extends OcptProjectSettin
   @override
   List<Object?> get props => [...super.props, screenplayId];
 }
+
+/// Reports that the `Mileage rates` card's `Add a rate` action was tapped, appending a new,
+/// blank rate.
+class OcptProjectSettingsMileageRateAddedEvent extends OcptProjectSettingsEvent {
+  /// Class constructor
+  const OcptProjectSettingsMileageRateAddedEvent();
+}
+
+/// Reports that the user committed a new label for mileage rate [rateId] — the empty string is a
+/// legal label, exactly as an episode's title is.
+class OcptProjectSettingsMileageRateLabelChangedEvent extends OcptProjectSettingsEvent {
+  /// The id of the mileage rate whose label was committed.
+  final String rateId;
+
+  /// The newly committed label, or the empty string.
+  final String label;
+
+  /// Class constructor
+  const OcptProjectSettingsMileageRateLabelChangedEvent({required this.rateId, required this.label});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, rateId, label];
+}
+
+/// Reports that the user committed a new per-kilometre rate for mileage rate [rateId], in
+/// thousandths of a cent.
+class OcptProjectSettingsMileageRateAmountChangedEvent extends OcptProjectSettingsEvent {
+  /// The id of the mileage rate whose amount was committed.
+  final String rateId;
+
+  /// The newly committed rate, in thousandths of a cent.
+  final int ratePerKmMilliCents;
+
+  /// Class constructor
+  const OcptProjectSettingsMileageRateAmountChangedEvent({
+    required this.rateId,
+    required this.ratePerKmMilliCents,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, rateId, ratePerKmMilliCents];
+}
+
+/// Reports that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
+/// card), deleting mileage rate [rateId].
+///
+/// This tombstones the row (`OcptBudgetFinancingService.deleteMileageRate`, ADR 0010) rather than
+/// erasing it: a live person may still name it through `people.mileageRateId`, and the FK stays
+/// satisfied either way — the travel reading of such a person then finds no live rate and reads
+/// "no rate", exactly the honest state a person who never named one reads as.
+class OcptProjectSettingsMileageRateDeletionConfirmedEvent extends OcptProjectSettingsEvent {
+  /// The id of the mileage rate to delete.
+  final String rateId;
+
+  /// Class constructor
+  const OcptProjectSettingsMileageRateDeletionConfirmedEvent({required this.rateId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, rateId];
+}

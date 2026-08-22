@@ -43,6 +43,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
@@ -59,6 +60,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// Every one of the four [OcptResourcesTab]s now has real content: the address book, the cast
 /// reconciled against the screenplay, the locations with their sets, and the elements catalogue with
 /// the dépouillement links onto the scenes needing each item.
+///
+/// Alongside that catalogue, [OcptResourcesState.mileageRates] is read once from
+/// `OcptProjectsManager.budgetFinancingService` on every load: the person sheet's own rate picker
+/// reads this project-wide list, exactly as `currencyCode` is read once rather than folded into
+/// [OcptResourcesSnapshot] — the mileage rates belong to the project settings page's own catalogue,
+/// and this mode only ever reads it.
 ///
 /// Most of a person's discrete fields (colour, birth date, transport autonomy, image rights status
 /// and date), every sub-list (positions, skills, unavailabilities), a role's cast member and kind,
@@ -234,6 +241,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesPersonBirthDateChangedEvent>(_onPersonBirthDateChanged);
     on<OcptResourcesPersonTransportAutonomyChangedEvent>(_onPersonTransportAutonomyChanged);
     on<OcptResourcesPersonImageRightsStatusChangedEvent>(_onPersonImageRightsStatusChanged);
+    on<OcptResourcesPersonMileageRateChangedEvent>(_onPersonMileageRateChanged);
     on<OcptResourcesPersonImageRightsDateChangedEvent>(_onPersonImageRightsDateChanged);
     on<OcptResourcesPositionAddedEvent>(_onPositionAdded);
     on<OcptResourcesPositionUpdatedEvent>(_onPositionUpdated);
@@ -382,6 +390,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final snapshot = await _loadSnapshot(project);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final pageSetup = await _loadPageSetup(project);
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: project.database,
+    );
 
     final revealRequest = _pendingRevealRequest;
     _pendingRevealRequest = null;
@@ -396,6 +407,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           clearPreviewedVersionId: previewedVersion == null,
           snapshot: snapshot,
           pageSetup: pageSetup,
+          mileageRates: mileageRates,
           clearSelectedPersonId: true,
           clearSelectedRoleId: true,
           clearSelectedLocationId: true,
@@ -970,6 +982,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           personId: personId,
           maxDailyPresenceMinutes: Value(ocptMaxDailyPresenceMinutesOf(rawValue)),
         );
+      case OcptPersonField.commuteKmMilli:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          commuteKmMilli: Value(ocptBudgetQuantityMilliOf(rawValue)),
+        );
       case OcptPersonField.accommodationNotes:
         await _peopleService.updatePerson(
           database: database,
@@ -1406,6 +1424,20 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       database: project.database,
       personId: event.personId,
       imageRightsDate: Value(event.date),
+    ),
+  );
+
+  /// Sets person `event.personId`'s mileage rate, written immediately.
+  Future<void> _onPersonMileageRateChanged(
+    OcptResourcesPersonMileageRateChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the mileage rate of person ${event.personId}",
+    action: (project) => _peopleService.updatePerson(
+      database: project.database,
+      personId: event.personId,
+      mileageRateId: Value(event.mileageRateId),
     ),
   );
 

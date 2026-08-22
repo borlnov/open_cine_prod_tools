@@ -3959,6 +3959,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesCommuteDistanceLabel": "Commute (one way)",
+  "@resourcesCommuteDistanceLabel": {
+    "description": "Label of the person sheet's commute distance field, stating it is one-way",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCommuteDistanceHint": "e.g. 12.4",
+  "@resourcesCommuteDistanceHint": {
+    "description": "Placeholder of the commute distance field while it is empty",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCommuteDistanceSuffix": "km",
+  "@resourcesCommuteDistanceSuffix": {
+    "description": "Unit suffix of the commute distance field, which is typed in kilometres",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCommuteDistanceFormatError": "Not a distance in kilometres: no commute will be recorded",
+  "@resourcesCommuteDistanceFormatError": {
+    "description": "Message shown under the commute distance field once it loses focus while it holds text that isn't a distance",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMileageRateLabel": "Mileage rate",
+  "@resourcesMileageRateLabel": {
+    "description": "Label of the person sheet's mileage rate picker",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMileageRateNoRateOption": "No rate",
+  "@resourcesMileageRateNoRateOption": {
+    "description": "Entry of the mileage rate picker meaning the person names no rate",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesImageRightsTitle": "Image rights",
   "@resourcesImageRightsTitle": {
     "description": "Title of the person sheet's image rights card",
@@ -10054,6 +10096,80 @@
   "@projectSettingsBudgetCateringPriceHint": {
     "description": "Explanation under the meal and snack price fields, what an empty value means",
     "context": "Displayed under the snack price field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMileageRatesSectionTitle": "Mileage rates",
+  "@projectSettingsMileageRatesSectionTitle": {
+    "description": "Title of the project settings page's mileage rates section",
+    "context": "Displayed at the top of the mileage rates section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMileageRatesEmptyHint": "No rate is recorded yet. A mileage scale depends on the vehicle and on the country, so this app suggests none of its own — add the ones this production uses.",
+  "@projectSettingsMileageRatesEmptyHint": {
+    "description": "Explanation shown in place of the mileage rates list while it holds none, stating this app advances no figure of its own",
+    "context": "Displayed in the mileage rates section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMileageRateLabelHint": "e.g. Car",
+  "@projectSettingsMileageRateLabelHint": {
+    "description": "Placeholder of a mileage rate's label field while it is empty",
+    "context": "Displayed in a mileage rate row on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMileageRateAddAction": "Add a rate",
+  "@projectSettingsMileageRateAddAction": {
+    "description": "Label of the action appending a new, blank mileage rate",
+    "context": "Displayed at the bottom of the mileage rates section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMileageRateDeleteTooltip": "Delete this rate",
+  "@projectSettingsMileageRateDeleteTooltip": {
+    "description": "Tooltip of a mileage rate row's delete action",
+    "context": "Displayed in a mileage rate row on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsUnnamedMileageRate": "Unnamed rate",
+  "@projectSettingsUnnamedMileageRate": {
+    "description": "Placeholder shown in place of a mileage rate's label while it is empty",
+    "context": "Displayed in the deletion confirmation dialog on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteMileageRateConfirmTitle": "Delete {rateLabel}?",
+  "@projectSettingsDeleteMileageRateConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a mileage rate, naming it",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {
+      "rateLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "projectSettingsDeleteMileageRateConfirmMessage": "A person who already names it will simply read no rate at all — nothing else on the project is affected. This can't be undone.",
+  "@projectSettingsDeleteMileageRateConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a mileage rate, stating what it takes",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteMileageRateConfirmCancelAction": "Cancel",
+  "@projectSettingsDeleteMileageRateConfirmCancelAction": {
+    "description": "Label of the confirmation dialog's cancel button before deleting a mileage rate",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteMileageRateConfirmDeleteAction": "Delete",
+  "@projectSettingsDeleteMileageRateConfirmDeleteAction": {
+    "description": "Label of the confirmation dialog's confirm button before deleting a mileage rate",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
     "type": "text",
     "placeholders": {}
   },

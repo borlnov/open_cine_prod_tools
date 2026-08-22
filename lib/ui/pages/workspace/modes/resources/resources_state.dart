@@ -4,6 +4,7 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -91,6 +92,12 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// format, paired with the app-wide margins preference, or the setup a previewed version was
   /// captured against — exactly as `OcptBreakdownState.pageSetup` is loaded.
   final OcptPageSetup pageSetup;
+
+  /// The project's own mileage rates (`budget_mileage_rates`), in `sortKey` order — what the
+  /// person sheet's logistics card offers its rate picker, read once on load like [currencyCode]
+  /// rather than as part of [snapshot]: a rate is the project settings page's own catalogue, not a
+  /// person's, and this mode only ever reads it.
+  final List<OcptBudgetMileageRate> mileageRates;
 
   /// The left dock's currently active tab.
   ///
@@ -354,6 +361,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.currencyCode,
     required this.snapshot,
     required this.pageSetup,
+    required this.mileageRates,
     required this.activeTab,
     required this.isSearchVisible,
     required this.searchQuery,
@@ -390,6 +398,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       currencyCode = "",
       snapshot = null,
       pageSetup = const OcptPageSetup.standard(),
+      mileageRates = const [],
       activeTab = OcptResourcesTab.people,
       isSearchVisible = false,
       searchQuery = "",
@@ -432,6 +441,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     String? currencyCode,
     OcptResourcesSnapshot? snapshot,
     OcptPageSetup? pageSetup,
+    List<OcptBudgetMileageRate>? mileageRates,
     OcptResourcesTab? activeTab,
     bool? isSearchVisible,
     String? searchQuery,
@@ -479,6 +489,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     currencyCode: currencyCode ?? this.currencyCode,
     snapshot: snapshot ?? this.snapshot,
     pageSetup: pageSetup ?? this.pageSetup,
+    mileageRates: mileageRates ?? this.mileageRates,
     activeTab: activeTab ?? this.activeTab,
     isSearchVisible: isSearchVisible ?? this.isSearchVisible,
     searchQuery: searchQuery ?? this.searchQuery,
@@ -581,6 +592,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     currencyCode,
     snapshot,
     pageSetup,
+    mileageRates,
     activeTab,
     isSearchVisible,
     searchQuery,

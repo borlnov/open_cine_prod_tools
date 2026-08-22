@@ -29,7 +29,10 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 /// `OcptProjectsManager.projectDictionaryService` the identical way, but only ever from
 /// [_onDictionaryEdited]: unlike every other field here, the dictionary is *read* by
 /// `OcptProjectSettingsDictionarySection` but *edited* in `OcptProjectDictionaryDialog`, which
-/// only reports its diff back for this bloc to apply.
+/// only reports its diff back for this bloc to apply. The mileage rates' own CRUD is reached
+/// through `OcptProjectsManager.budgetFinancingService`, the very service the budget mode's own
+/// financing plan will read from later — this page is simply where a production types the rates
+/// into it.
 class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// The manager used to read and write the current project's settings.
   final OcptProjectsManager _projectsManager;
@@ -65,6 +68,10 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsEpisodeNumberChangedEvent>(_onEpisodeNumberChanged);
     on<OcptProjectSettingsEpisodeMovedEvent>(_onEpisodeMoved);
     on<OcptProjectSettingsEpisodeDeletionConfirmedEvent>(_onEpisodeDeletionConfirmed);
+    on<OcptProjectSettingsMileageRateAddedEvent>(_onMileageRateAdded);
+    on<OcptProjectSettingsMileageRateLabelChangedEvent>(_onMileageRateLabelChanged);
+    on<OcptProjectSettingsMileageRateAmountChangedEvent>(_onMileageRateAmountChanged);
+    on<OcptProjectSettingsMileageRateDeletionConfirmedEvent>(_onMileageRateDeletionConfirmed);
   }
 
   /// Loads the current project's currency, page format, minimum rest, screenplay language,
@@ -86,6 +93,9 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final snackPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
@@ -106,6 +116,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         screenplayLanguage: screenplayLanguage,
         clearScreenplayLanguage: screenplayLanguage == null,
         episodes: episodes,
+        mileageRates: mileageRates,
         dictionaryWords: dictionaryWords,
       ),
     );
@@ -331,5 +342,75 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
     await _projectsManager.recordCurrentProjectEpisodeCount();
     emitter(state.copyWith(episodes: episodes, hasChanged: deleted ? true : null));
+  }
+
+  /// Appends a new, blank mileage rate, then re-reads the project's rates so the card shows what
+  /// the database now holds.
+  Future<void> _onMileageRateAdded(
+    OcptProjectSettingsMileageRateAddedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    final id = await _projectsManager.budgetFinancingService.createMileageRate(
+      database: _database,
+      label: "",
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: id != null ? true : null));
+  }
+
+  /// Writes the newly committed label of mileage rate `event.rateId`, then re-reads the project's
+  /// rates.
+  Future<void> _onMileageRateLabelChanged(
+    OcptProjectSettingsMileageRateLabelChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.budgetFinancingService.updateMileageRate(
+      database: _database,
+      rateId: event.rateId,
+      label: Value(event.label),
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+  }
+
+  /// Writes the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-reads
+  /// the project's rates.
+  Future<void> _onMileageRateAmountChanged(
+    OcptProjectSettingsMileageRateAmountChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.budgetFinancingService.updateMileageRate(
+      database: _database,
+      rateId: event.rateId,
+      ratePerKmMilliCents: Value(event.ratePerKmMilliCents),
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+  }
+
+  /// Deletes `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-reads
+  /// the project's remaining rates.
+  ///
+  /// `OcptBudgetFinancingService.deleteMileageRate` tombstones the row rather than erasing it
+  /// (ADR 0010): a live person may still name it through `people.mileageRateId`, and that foreign
+  /// key stays satisfied either way, since the row itself is still there — only marked deleted.
+  Future<void> _onMileageRateDeletionConfirmed(
+    OcptProjectSettingsMileageRateDeletionConfirmedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.budgetFinancingService.deleteMileageRate(
+      database: _database,
+      rateId: event.rateId,
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
   }
 }

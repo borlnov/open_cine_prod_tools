@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 
 /// Builds a minimal [OcptPerson] for these tests, every free-text field left blank except the ones
@@ -31,6 +33,8 @@ OcptPerson _person({
   String minorNotes = "",
   int? maxDailyPresenceMinutes,
   bool? isTransportAutonomous,
+  int? commuteKmMilli,
+  String? mileageRateId,
   String accommodationNotes = "",
   String travelNotes = "",
   String dietaryNotes = "",
@@ -87,8 +91,8 @@ OcptPerson _person({
   photoAssetId: photo?.id,
   photo: photo,
   notes: notes,
-  commuteKmMilli: null,
-  mileageRateId: null,
+  commuteKmMilli: commuteKmMilli,
+  mileageRateId: mileageRateId,
   positions: positions,
   skills: skills,
   unavailabilities: unavailabilities,
@@ -130,6 +134,9 @@ String _fieldValueOf(OcptPerson person, OcptPersonField field) => switch (field)
   OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
     person.maxDailyPresenceMinutes,
   ),
+  OcptPersonField.commuteKmMilli => person.commuteKmMilli == null
+      ? ""
+      : ocptBudgetQuantityLabel(person.commuteKmMilli!),
   OcptPersonField.accommodationNotes => person.accommodationNotes,
   OcptPersonField.travelNotes => person.travelNotes,
   OcptPersonField.dietaryNotes => person.dietaryNotes,
@@ -210,6 +217,8 @@ Widget _buildSheet({
   VoidCallback? onPhotoCleared,
   VoidCallback? onImageRightsDocumentPickRequested,
   VoidCallback? onImageRightsDocumentCleared,
+  List<OcptBudgetMileageRate> mileageRates = const [],
+  ValueChanged<String?>? onMileageRateChanged,
   VoidCallback? onDeleteRequested,
 }) => _wrapInApp(
   OcptPersonSheet(
@@ -226,6 +235,8 @@ Widget _buildSheet({
     onTransportAutonomyChanged: (_) {},
     onImageRightsStatusChanged: (_) {},
     onImageRightsDateChanged: (_) {},
+    mileageRates: mileageRates,
+    onMileageRateChanged: onMileageRateChanged ?? (_) {},
     onPositionAdded: onPositionAdded ?? () {},
     onPositionUpdated: onPositionUpdated ?? (id, {required positionId, required customLabel}) {},
     onPositionRemoved: onPositionRemoved ?? (_) {},
@@ -434,6 +445,86 @@ void main() {
     await tester.pump();
 
     expect(changes, contains((OcptPersonField.maxDailyPresenceMinutes, "480")));
+  });
+
+  testWidgets("the commute distance field round-trips through thousandths", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(_buildSheet(person: _person(commuteKmMilli: 12400)));
+    await tester.pumpAndSettle();
+
+    expect(find.text("12.4"), findsOneWidget);
+  });
+
+  testWidgets("typing into the commute distance field dispatches the change", (tester) async {
+    await _useTallSurface(tester);
+    final changes = <(OcptPersonField, String)>[];
+
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(),
+        onFieldChanged: (field, rawValue) => changes.add((field, rawValue)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    await tester.enterText(_fieldOf(tr.resourcesCommuteDistanceLabel.toUpperCase()), "12.4");
+    await tester.pump();
+
+    expect(changes, contains((OcptPersonField.commuteKmMilli, "12.4")));
+  });
+
+  testWidgets(
+    "the mileage rate picker offers No rate and the project's own rates, reporting the id picked",
+    (tester) async {
+      await _useTallSurface(tester);
+      String? reportedId = "not called";
+      const rates = [
+        OcptBudgetMileageRate(id: "r1", label: "Car", ratePerKmMilliCents: 52900, sortKey: "a"),
+        OcptBudgetMileageRate(id: "r2", label: "Van", ratePerKmMilliCents: 60100, sortKey: "b"),
+      ];
+
+      await tester.pumpWidget(
+        _buildSheet(
+          person: _person(),
+          mileageRates: rates,
+          onMileageRateChanged: (id) => reportedId = id,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+      expect(find.text(tr.resourcesMileageRateLabel.toUpperCase()), findsOneWidget);
+
+      await tester.tap(find.byType(DropdownButton<String?>));
+      await tester.pumpAndSettle();
+      expect(find.text(tr.resourcesMileageRateNoRateOption), findsWidgets);
+      expect(find.text("Car"), findsWidgets);
+      expect(find.text("Van"), findsWidgets);
+
+      await tester.tap(find.text("Van").last);
+      await tester.pumpAndSettle();
+
+      expect(reportedId, "r2");
+    },
+  );
+
+  testWidgets("a person naming a rate the project no longer lists reads as no rate", (
+    tester,
+  ) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(mileageRateId: "gone"),
+        mileageRates: const [
+          OcptBudgetMileageRate(id: "r1", label: "Car", ratePerKmMilliCents: 52900, sortKey: "a"),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    expect(find.text(tr.resourcesMileageRateNoRateOption), findsOneWidget);
   });
 
   testWidgets("typing into the email field dispatches the change", (tester) async {
@@ -699,6 +790,8 @@ void main() {
         _buildSheet(
           person: _person(
             firstName: "Léa",
+            commuteKmMilli: 12400,
+            mileageRateId: "r1",
             positions: const [
               OcptPersonPosition(
                 id: "pos1",
@@ -721,6 +814,9 @@ void main() {
             ],
             skills: const [OcptPersonSkill(id: "skill1", personId: "p1", label: "Piano")],
           ),
+          mileageRates: const [
+            OcptBudgetMileageRate(id: "r1", label: "Car", ratePerKmMilliCents: 52900, sortKey: "a"),
+          ],
           isReadOnly: true,
         ),
       );
@@ -748,6 +844,15 @@ void main() {
         find.widgetWithText(TextField, "Léa"),
       );
       expect(firstNameField.readOnly, isTrue);
+
+      // The commute distance field reads out its value rather than accepting a new one.
+      final commuteField = tester.widget<TextField>(_fieldOf(tr.resourcesCommuteDistanceLabel.toUpperCase()));
+      expect(commuteField.readOnly, isTrue);
+
+      // The mileage rate picker is withheld rather than merely disabled: no `DropdownButton` at
+      // all, just its current pick read out as plain text.
+      expect(find.byType(DropdownButton<String?>), findsNothing);
+      expect(find.text("Car"), findsOneWidget);
     });
   });
 

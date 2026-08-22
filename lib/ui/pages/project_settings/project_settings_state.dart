@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
@@ -42,6 +43,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// after every mutation it makes so the card always shows what the database holds.
   final List<OcptEpisode> episodes;
 
+  /// The project's own mileage rates (`budget_mileage_rates`), in `sortKey` order — what the
+  /// `Mileage rates` card lists, re-read after every mutation it makes so the card always shows
+  /// what the database holds. Empty on a fresh project: nothing seeds it
+  /// (`OcptBudgetFinancingService`'s own doc comment).
+  final List<OcptBudgetMileageRate> mileageRates;
+
   /// The project's currently learned words (`project_dictionary_words`, tombstones filtered out),
   /// sorted case-insensitively — what the dictionary section's count line and
   /// `OcptProjectDictionaryDialog` both read, re-read after every edit the dialog reports so the
@@ -71,6 +78,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.snackPriceCents,
     required this.screenplayLanguage,
     required this.episodes,
+    required this.mileageRates,
     required this.dictionaryWords,
     required this.hasChanged,
   });
@@ -88,6 +96,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       snackPriceCents = null,
       screenplayLanguage = null,
       episodes = const [],
+      mileageRates = const [],
       dictionaryWords = const [],
       hasChanged = false;
 
@@ -116,6 +125,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     OcptScreenplayLanguage? screenplayLanguage,
     bool clearScreenplayLanguage = false,
     List<OcptEpisode>? episodes,
+    List<OcptBudgetMileageRate>? mileageRates,
     List<String>? dictionaryWords,
     bool? hasChanged,
   }) => OcptProjectSettingsState(
@@ -134,6 +144,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
         ? null
         : (screenplayLanguage ?? this.screenplayLanguage),
     episodes: episodes ?? this.episodes,
+    mileageRates: mileageRates ?? this.mileageRates,
     dictionaryWords: dictionaryWords ?? this.dictionaryWords,
     hasChanged: hasChanged ?? this.hasChanged,
   );
@@ -151,6 +162,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     snackPriceCents,
     screenplayLanguage,
     episodes,
+    mileageRates,
     dictionaryWords,
     hasChanged,
   ];

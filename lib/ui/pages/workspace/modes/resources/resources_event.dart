@@ -232,6 +232,31 @@ class OcptResourcesPersonImageRightsDateChangedEvent extends OcptResourcesEvent 
   List<Object?> get props => [...super.props, personId, date];
 }
 
+/// Sets person [personId]'s mileage rate to `budget_mileage_rates` row [mileageRateId] (or clears
+/// it, when null), written immediately: picking a rate from the project's catalogue is a single
+/// discrete action, not typing.
+///
+/// Null means "this person claims nothing" — never "zero kilometres", the reading
+/// `OcptPerson.maxDailyPresenceMinutes` already carries on this very sheet — and is what the
+/// picker's own "No rate" entry reports.
+class OcptResourcesPersonMileageRateChangedEvent extends OcptResourcesEvent {
+  /// The id of the person whose mileage rate changed.
+  final String personId;
+
+  /// The id of the newly picked `budget_mileage_rates` row, or null to clear it.
+  final String? mileageRateId;
+
+  /// Class constructor
+  const OcptResourcesPersonMileageRateChangedEvent({
+    required this.personId,
+    required this.mileageRateId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId, mileageRateId];
+}
+
 /// Adds a crew position assignment to person [personId], written immediately.
 class OcptResourcesPositionAddedEvent extends OcptResourcesEvent {
   /// The id of the person the position is added to.
