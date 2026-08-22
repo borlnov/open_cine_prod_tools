@@ -45,8 +45,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   end of the toolbar is the shell's own chrome rather than a mode's actions, so its order can't
   drift from one mode to the next: the mode label, the `Export` control (`onExportRequested`), the
   two dock toggles (`isLeftDockOpen`/`onToggleLeftDock`, same pair for the right), the save control
-  (`onSave`/`isSaving`, spinner while in flight), then the `⋮` menu — each rendered only when the
-  mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's own
+  (`onSave`/`isSaving`, spinner while in flight), the project settings action
+  (`onProjectSettingsRequested`), the `Help` action (`onHelpRequested`), then the `⋮` menu — each
+  rendered only when the mode wired it, so a mode with no dock, nothing to save, nothing to open
+  there, or no help panel of its own simply shows fewer of them. `onHelpRequested` is never withheld
+  under a version preview the way `onProjectSettingsRequested` is: only the budget mode wires it in
+  today, opening its own right dock onto a `Help` tab that only ever reads (`budget.md`), so a
+  preview has nothing about it to protect. A mode's own
   `toolbarActions` sit before that group, and the **episode selector** is the shell's own chrome at
   the *other* end, right after the project title, for the same reason (below). Two further slots
   serve the read-only preview of a project version: `isReadOnly`, which swaps the unsaved-changes

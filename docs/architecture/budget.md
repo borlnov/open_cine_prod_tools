@@ -344,14 +344,46 @@ are all here, and this file is the whole record of them.
   `onEpisodeSelected` null, exactly as the schedule mode already does and for the schedule's own
   reason — a selector would filter a read that was never split by episode to begin with, not a
   standing-in for a bloc this mode does not have; it has one. There is **no left dock**, the mockup
-  showing none for this milestone's views, and the right dock offers exactly two tabs
+  showing none for this milestone's views, and the right dock offers exactly three tabs
   (`OcptBudgetRightDockTab`): `Inspector`, the selected poste's own figures, its quote lines — each
   a card collapsed to a summary row and expanding **in place**, never into a dialog, into its own
   editable fields (quantity, unit, unit price, whether it includes tax, and the rate it reads
   under) — and, since the journal exists, its own **related entries**: the cash journal's live
   entries naming this poste, newest first, a debit and a credit told apart by
   `ColorScheme.error`/`.primary`, printing the em dash for an entry it cannot read and a coverage
-  read-out the moment some of them are; and the shared `Versions` tab every mode carries.
+  read-out the moment some of them are; the shared `Versions` tab every mode carries; and `Help`.
+
+## The mode explains itself
+
+- The product owner used the mode and still could not say what told `financing`, `cashJournal` and
+  `committed` apart — a real defect the screens alone never fixed, however each one's own figures
+  were made honest. `OcptWorkspaceToolbar` therefore gains a nullable `helpAction` slot, the same
+  shape and idiom as `exportAction`/`dockToggles`/`saveAction`/`projectSettingsAction`
+  (`foundations.md`): a mode with nothing to explain renders no button at all, and every mode but
+  this one leaves it null. Clicking it dispatches the very same `OcptBudgetRightDockTabSelectedEvent`
+  the dock's own tab row already sends, naming `OcptBudgetRightDockTab.help`, so the toolbar button
+  and the dock tab are one gesture rather than two: opening the dock on `Help`, and closing it again
+  on a second click while `Help` is already showing — the toggle every other dock control already
+  has. `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly
+  the argument "The catering and travel pass types nothing at all" already makes for `OcptBudgetRegie`,
+  so it carries no `isReadOnly` flag and is offered identically under a previewed version.
+  Its content follows `OcptBudgetState.centreView`: switching the header's own chips changes what the
+  panel says, with no extra click, since the dock stays open on `Help` across a chip change exactly
+  as it stays open on `Inspector` across a poste selection.
+  Every page opens with the same small map before its own substance — the map *is* the answer to the
+  product owner's own question, crossing what is only **promised** against what has **actually
+  moved**, and money **coming in** against money **going out**: `financing` is the promised-coming-in
+  cell, `committed` the promised-going-out cell, and `cashJournal` the whole has-moved column at
+  once, since the journal is where both a credit and a debit are read. The quote is stated as sitting
+  outside the map entirely — it prices what the film is *planned* to cost, and nothing in the map
+  feeds it or is fed by it. The current view's own cell, when it has one, is highlighted; `dashboard`,
+  `costTracking`, `regie` and `sharing` occupy none of the four, each reading across the whole map or
+  a different figure entirely rather than standing in one cell of it. Under the map, one short page
+  per view states its own substance in the plain language this file already argues for it in, every
+  cross-reference to a figure or another view worded exactly as its own on-screen label or chip
+  already reads, resolved as an ICU argument (`intl_utils`'s own convention, "The four documents"
+  below) rather than restated by hand — so the help text can never drift from the very word it is
+  pointing at.
   The header's seven view chips (`Dashboard`, `Cost tracking`, `Trésorerie` in French — `Cash
   journal` in English, deliberately renamed off "Journal de caisse" once that first choice turned
   out to name a petty-cash book rather than the bank account the view actually reads — `Financing`,
