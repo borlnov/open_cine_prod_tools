@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -830,6 +831,8 @@ void main() {
         isTaxInclusive: true,
         vatRateBasisPoints: 550,
         voucherNumber: "J-001",
+        revenueId: "revenue-1",
+        shareId: "share-1",
       ),
       OcptBudgetEntryRow(
         id: "entry-2",
@@ -906,6 +909,49 @@ void main() {
         isDeleted: true,
         label: "",
         ratePerKmMilliCents: 0,
+      ),
+    ],
+    budgetRevenues: [
+      OcptBudgetRevenueRow(
+        id: "revenue-1",
+        sortKey: "V",
+        isDeleted: false,
+        date: DateTime.utc(2026, 5, 15),
+        label: "Vente VOD",
+        amountCents: 80000,
+        status: OcptBudgetRevenueStatus.confirmed,
+        notes: "Contrat signé",
+      ),
+      OcptBudgetRevenueRow(
+        id: "revenue-2",
+        sortKey: "k",
+        isDeleted: true,
+        date: DateTime.utc(2026, 5, 2),
+        label: "",
+        amountCents: 0,
+        status: OcptBudgetRevenueStatus.expected,
+        notes: "",
+      ),
+    ],
+    budgetShares: const [
+      OcptBudgetShareRow(
+        id: "share-1",
+        sortKey: "V",
+        isDeleted: false,
+        personId: "person-1",
+        label: "Réalisatrice",
+        sharePermille: 300,
+        reinvestPermille: 100,
+        notes: "",
+      ),
+      OcptBudgetShareRow(
+        id: "share-2",
+        sortKey: "k",
+        isDeleted: true,
+        label: "",
+        sharePermille: 0,
+        reinvestPermille: 0,
+        notes: "",
       ),
     ],
     rowFieldVersions: const [
@@ -1439,6 +1485,8 @@ void main() {
         budgetCommitments: [],
         budgetResources: [],
         budgetMileageRates: [],
+        budgetRevenues: [],
+        budgetShares: [],
         assets: [],
         breakdownTags: [],
         sceneBreakdowns: [],
@@ -1503,6 +1551,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments.reversed.toList(),
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets.reversed.toList(),
         breakdownTags: payload.breakdownTags.reversed.toList(),
         sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
@@ -1555,6 +1605,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1615,6 +1667,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1678,6 +1732,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1730,6 +1786,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1782,6 +1840,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1836,6 +1896,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1896,6 +1958,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1954,6 +2018,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2009,6 +2075,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2063,6 +2131,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: [
           ...payload.breakdownTags,
@@ -2130,6 +2200,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(
@@ -2189,6 +2261,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(isDeleted: true),
@@ -2244,6 +2318,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: [
@@ -2302,6 +2378,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2356,6 +2434,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2422,6 +2502,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2477,6 +2559,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2532,6 +2616,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2595,6 +2681,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2650,6 +2738,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2702,6 +2792,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2754,6 +2846,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2806,6 +2900,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2867,6 +2963,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2924,6 +3022,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2976,6 +3076,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3043,6 +3145,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3100,6 +3204,8 @@ void main() {
         ],
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3158,6 +3264,8 @@ void main() {
         budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -4256,6 +4364,44 @@ void main() {
           result.value!.assets.map((row) => row.path),
           buildRichPayload().assets.map((row) => row.path),
         );
+      },
+    );
+
+    test(
+      'a stored format-18 payload decodes with no revenue sharing at all',
+      () {
+        // Format 18 predates `budget_revenues`/`budget_shares` entirely, so
+        // [_upgradeFormat18To19] materialises both as **empty lists** — [_upgradeFormat1To2]'s
+        // kind: a version captured this early truthfully named no taking and no participant at
+        // all. Every `budget_entries` row also gains a **null** `revenueId`/`shareId` —
+        // [_upgradeFormat3To4]'s kind, not the empty-list one, since the entries themselves are not
+        // new here. The fixture is the current encoding with the keys taken back out and the format
+        // wound back, rather than a second hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded.remove("budgetRevenues");
+        encoded.remove("budgetShares");
+        final entries = [
+          for (final row in encoded["budgetEntries"] as List)
+            ({...row as Map<String, dynamic>}
+              ..remove("revenueId")
+              ..remove("shareId")),
+        ];
+        encoded["budgetEntries"] = entries;
+        encoded["payloadFormat"] = 18;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.budgetRevenues, isEmpty);
+        expect(result.value!.budgetShares, isEmpty);
+        expect(result.value!.budgetEntries.map((row) => row.revenueId), everyElement(isNull));
+        expect(result.value!.budgetEntries.map((row) => row.shareId), everyElement(isNull));
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(
+          result.value!.budgetEntries.map((row) => row.label),
+          buildRichPayload().budgetEntries.map((row) => row.label),
+        );
+        expect(result.value!.budgetResources, buildRichPayload().budgetResources);
       },
     );
   });

@@ -47,6 +47,16 @@ class OcptBudgetEntry extends Equatable {
   /// .resourceId`'s own doc comment: null is the normal case, a movement that settles no resource.
   final String? resourceId;
 
+  /// The taking this credit is the actual cash for, or null — see `OcptBudgetEntriesTable
+  /// .revenueId`'s own doc comment: null is the normal case, a movement that is not a taking
+  /// coming in.
+  final String? revenueId;
+
+  /// The participant this debit actually pays, or null — see `OcptBudgetEntriesTable.shareId`'s
+  /// own doc comment: null is the normal case, a movement that pays no share of the revenue
+  /// sharing.
+  final String? shareId;
+
   /// This entry's tax triple ([debitCents], [creditCents], [isTaxInclusive],
   /// [vatRateBasisPoints]), read as a single signed cash figure: [OcptMoney.amountCents] is
   /// [creditCents] minus [debitCents], negative when this entry is, on balance, a cost.
@@ -73,6 +83,8 @@ class OcptBudgetEntry extends Equatable {
     required this.voucherNumber,
     required this.sortKey,
     required this.resourceId,
+    required this.revenueId,
+    required this.shareId,
   });
 
   /// Builds an [OcptBudgetEntry] from its stored [row].
@@ -88,6 +100,8 @@ class OcptBudgetEntry extends Equatable {
     voucherNumber: row.voucherNumber,
     sortKey: row.sortKey,
     resourceId: row.resourceId,
+    revenueId: row.revenueId,
+    shareId: row.shareId,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -109,5 +123,7 @@ class OcptBudgetEntry extends Equatable {
     voucherNumber,
     sortKey,
     resourceId,
+    revenueId,
+    shareId,
   ];
 }

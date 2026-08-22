@@ -85,6 +85,8 @@ OcptBudgetEntry _buildEntry({
   voucherNumber: "J-001",
   sortKey: "a0",
   resourceId: null,
+  revenueId: null,
+  shareId: null,
 );
 
 void main() {

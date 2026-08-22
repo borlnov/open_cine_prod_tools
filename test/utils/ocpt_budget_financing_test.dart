@@ -35,6 +35,8 @@ void main() {
     voucherNumber: voucherNumber,
     sortKey: sortKey,
     resourceId: resourceId,
+    revenueId: null,
+    shareId: null,
   );
 
   OcptBudgetResource buildResource({

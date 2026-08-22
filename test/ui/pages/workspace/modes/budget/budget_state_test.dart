@@ -96,6 +96,8 @@ OcptBudgetEntry _buildEntry({required String id, required String posteId, int de
       voucherNumber: "J-001",
       sortKey: "a0",
       resourceId: null,
+      revenueId: null,
+      shareId: null,
     );
 
 /// Builds a minimal financing resource, everything but [id] neutral.
@@ -635,6 +637,8 @@ void main() {
         voucherNumber: "J-001",
         sortKey: "a0",
         resourceId: "resource-1",
+        revenueId: null,
+        shareId: null,
       );
       final snapshot = OcptBudgetSnapshot.build(
         postes: const [],

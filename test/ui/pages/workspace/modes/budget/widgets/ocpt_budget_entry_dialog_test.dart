@@ -139,6 +139,8 @@ OcptBudgetEntry _existingEntry({
   voucherNumber: voucherNumber,
   sortKey: "a0",
   resourceId: null,
+  revenueId: null,
+  shareId: null,
 );
 
 void main() {

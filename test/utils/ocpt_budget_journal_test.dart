@@ -30,6 +30,8 @@ void main() {
     voucherNumber: voucherNumber,
     sortKey: sortKey,
     resourceId: null,
+    revenueId: null,
+    shareId: null,
   );
 
   group("ocptBudgetEntryDebitCentsOf / ocptBudgetEntryCreditCentsOf", () {

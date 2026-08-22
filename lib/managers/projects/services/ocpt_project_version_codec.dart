@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -63,7 +64,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 18;
+  static const currentPayloadFormat = 19;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -878,6 +879,30 @@ class OcptProjectVersionCodec {
   /// object, from payload format 18: which of the project's own rates applies to them.
   static const _mileageRateIdKey = "mileageRateId";
 
+  /// This is the key used to stringify or parse the `budget_revenues` rows from a JSON object,
+  /// from payload format 19: the takings the production expects.
+  static const _budgetRevenuesKey = "budgetRevenues";
+
+  /// This is the key used to stringify or parse the `budget_shares` rows from a JSON object, from
+  /// payload format 19: the participants splitting what the takings bring in.
+  static const _budgetSharesKey = "budgetShares";
+
+  /// This is the key used to stringify or parse a `budget_shares.sharePermille` column from a JSON
+  /// object
+  static const _sharePermilleKey = "sharePermille";
+
+  /// This is the key used to stringify or parse a `budget_shares.reinvestPermille` column from a
+  /// JSON object
+  static const _reinvestPermilleKey = "reinvestPermille";
+
+  /// This is the key used to stringify or parse a `budget_entries.revenueId` column from a JSON
+  /// object, from payload format 19: which taking a credit is the actual cash for.
+  static const _revenueIdKey = "revenueId";
+
+  /// This is the key used to stringify or parse a `budget_entries.shareId` column from a JSON
+  /// object, from payload format 19: which participant a debit actually pays.
+  static const _shareIdKey = "shareId";
+
   /// This is the key used to stringify or parse the left page margin from a JSON object
   static const _marginLeftKey = "leftInches";
 
@@ -914,6 +939,7 @@ class OcptProjectVersionCodec {
     15: _upgradeFormat15To16,
     16: _upgradeFormat16To17,
     17: _upgradeFormat17To18,
+    18: _upgradeFormat18To19,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1459,6 +1485,31 @@ class OcptProjectVersionCodec {
     };
   }
 
+  /// Turns a format-**18** JSON object into a format-**19** one: the revenue sharing didn't exist
+  /// yet, so [_budgetRevenuesKey] and [_budgetSharesKey] materialise as **empty lists**
+  /// ([_upgradeFormat1To2]'s kind): a version written in format 18 predates the sharing view
+  /// entirely, so "this project named no taking, no participant" is a truthful statement about that
+  /// moment, and `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the
+  /// payload doesn't hold — so restoring a format-18 version correctly drops whatever sharing has
+  /// been typed since, with no special case written for it.
+  ///
+  /// Every `budget_entries` row also gains a **null** [_revenueIdKey]/[_shareIdKey] —
+  /// [_upgradeFormat3To4]'s kind, not the empty-list one, since the table itself is not new here: no
+  /// entry could yet name a taking or a participant this project had nowhere to record.
+  static Map<String, dynamic> _upgradeFormat18To19(Map<String, dynamic> json) {
+    final entries = [
+      for (final row in _rows(json, _budgetEntriesKey))
+        {...row, _revenueIdKey: null, _shareIdKey: null},
+    ];
+
+    return {
+      ...json,
+      _budgetRevenuesKey: const <dynamic>[],
+      _budgetSharesKey: const <dynamic>[],
+      _budgetEntriesKey: entries,
+    };
+  }
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1552,6 +1603,8 @@ class OcptProjectVersionCodec {
     _budgetMileageRatesKey: [
       for (final row in payload.budgetMileageRates) _budgetMileageRateToJson(row),
     ],
+    _budgetRevenuesKey: [for (final row in payload.budgetRevenues) _budgetRevenueToJson(row)],
+    _budgetSharesKey: [for (final row in payload.budgetShares) _budgetShareToJson(row)],
     _projectDictionaryWordsKey: [
       for (final row in payload.projectDictionaryWords) _projectDictionaryWordToJson(row),
     ],
@@ -1681,7 +1734,11 @@ class OcptProjectVersionCodec {
   ///   them out and a whole financing plan typed in — a subsidy applied for, a rate named for the
   ///   crew's own car — would hash identically to a project with no financing plan at all, the
   ///   working-copy card claiming no drift and a restore over that afternoon's work skipping the
-  ///   safety version it owes;
+  ///   safety version it owes. `budgetRevenues` and `budgetShares` are the same case once more
+  ///   again, from payload format 19 on: leave them out and a whole sharing plan typed in — a
+  ///   taking recorded, a participant's share agreed — would hash identically to a project with no
+  ///   sharing plan at all, the working-copy card claiming no drift and a restore over that
+  ///   afternoon's work skipping the safety version it owes;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -1859,6 +1916,16 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _budgetMileageRateToJson,
       ),
+      _budgetRevenuesKey: _canonicalRows(
+        payload.budgetRevenues,
+        primaryKeyOf: (row) => row.id,
+        toJson: _budgetRevenueToJson,
+      ),
+      _budgetSharesKey: _canonicalRows(
+        payload.budgetShares,
+        primaryKeyOf: (row) => row.id,
+        toJson: _budgetShareToJson,
+      ),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
@@ -1981,6 +2048,10 @@ class OcptProjectVersionCodec {
       budgetMileageRates: [
         for (final row in _rows(json, _budgetMileageRatesKey)) _budgetMileageRateFromJson(row),
       ],
+      budgetRevenues: [
+        for (final row in _rows(json, _budgetRevenuesKey)) _budgetRevenueFromJson(row),
+      ],
+      budgetShares: [for (final row in _rows(json, _budgetSharesKey)) _budgetShareFromJson(row)],
       rowFieldVersions: [
         for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
       ],
@@ -2431,6 +2502,8 @@ class OcptProjectVersionCodec {
     _vatRateBasisPointsKey: row.vatRateBasisPoints,
     _voucherNumberKey: row.voucherNumber,
     _resourceIdKey: row.resourceId,
+    _revenueIdKey: row.revenueId,
+    _shareIdKey: row.shareId,
   };
 
   /// Parses one `budget_entries` row.
@@ -2447,6 +2520,8 @@ class OcptProjectVersionCodec {
     vatRateBasisPoints: _nullableInt(json, _vatRateBasisPointsKey),
     voucherNumber: _string(json, _voucherNumberKey),
     resourceId: _nullableString(json, _resourceIdKey),
+    revenueId: _nullableString(json, _revenueIdKey),
+    shareId: _nullableString(json, _shareIdKey),
   );
 
   /// Serializes one `budget_commitments` row.
@@ -2525,6 +2600,55 @@ class OcptProjectVersionCodec {
         label: _string(json, _labelKey),
         ratePerKmMilliCents: _int(json, _ratePerKmMilliCentsKey),
       );
+
+  /// Serializes one `budget_revenues` row.
+  static Map<String, dynamic> _budgetRevenueToJson(OcptBudgetRevenueRow row) => {
+    _idKey: row.id,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _dateKey: row.date.toIso8601String(),
+    _labelKey: row.label,
+    _amountCentsKey: row.amountCents,
+    _statusKey: row.status.name,
+    _notesKey: row.notes,
+  };
+
+  /// Parses one `budget_revenues` row.
+  static OcptBudgetRevenueRow _budgetRevenueFromJson(Map<String, dynamic> json) =>
+      OcptBudgetRevenueRow(
+        id: _string(json, _idKey),
+        sortKey: _string(json, _sortKeyKey),
+        isDeleted: _bool(json, _isDeletedKey),
+        date: _dateTime(json, _dateKey),
+        label: _string(json, _labelKey),
+        amountCents: _int(json, _amountCentsKey),
+        status: _enum(json, _statusKey, OcptBudgetRevenueStatus.values.asNameMap()),
+        notes: _string(json, _notesKey),
+      );
+
+  /// Serializes one `budget_shares` row.
+  static Map<String, dynamic> _budgetShareToJson(OcptBudgetShareRow row) => {
+    _idKey: row.id,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _personIdKey: row.personId,
+    _labelKey: row.label,
+    _sharePermilleKey: row.sharePermille,
+    _reinvestPermilleKey: row.reinvestPermille,
+    _notesKey: row.notes,
+  };
+
+  /// Parses one `budget_shares` row.
+  static OcptBudgetShareRow _budgetShareFromJson(Map<String, dynamic> json) => OcptBudgetShareRow(
+    id: _string(json, _idKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    personId: _nullableString(json, _personIdKey),
+    label: _string(json, _labelKey),
+    sharePermille: _int(json, _sharePermilleKey),
+    reinvestPermille: _int(json, _reinvestPermilleKey),
+    notes: _string(json, _notesKey),
+  );
 
   /// Serializes one `locations` row.
   static Map<String, dynamic> _locationToJson(OcptLocationRow row) => {

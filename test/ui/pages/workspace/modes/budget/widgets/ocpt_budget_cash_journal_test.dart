@@ -57,6 +57,8 @@ OcptBudgetEntry _entry({
   voucherNumber: voucherNumber,
   sortKey: sortKey,
   resourceId: null,
+  revenueId: null,
+  shareId: null,
 );
 
 /// A minimal voucher naming [path], everything else neutral.

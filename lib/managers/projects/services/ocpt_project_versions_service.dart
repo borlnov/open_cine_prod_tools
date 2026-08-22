@@ -77,6 +77,8 @@ class OcptProjectVersionsService {
     'budget_commitments',
     'budget_resources',
     'budget_mileage_rates',
+    'budget_revenues',
+    'budget_shares',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -409,8 +411,13 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
         ..insertAll(database.ocptBudgetLinesTable, payload.budgetLines)
         // `budget_resources` references nothing, and must be inserted before `budget_entries`,
-        // which may name one through `resourceId`.
+        // which may name one through `resourceId`. `budget_revenues` references nothing either,
+        // and `budget_shares` only optionally names a `people` row already inserted well above —
+        // both must still land before `budget_entries`, which may name either through `revenueId`/
+        // `shareId`.
         ..insertAll(database.ocptBudgetResourcesTable, payload.budgetResources)
+        ..insertAll(database.ocptBudgetRevenuesTable, payload.budgetRevenues)
+        ..insertAll(database.ocptBudgetSharesTable, payload.budgetShares)
         ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
@@ -664,6 +671,8 @@ class OcptProjectVersionsService {
       budgetCommitments: await database.select(database.ocptBudgetCommitmentsTable).get(),
       budgetResources: await database.select(database.ocptBudgetResourcesTable).get(),
       budgetMileageRates: await database.select(database.ocptBudgetMileageRatesTable).get(),
+      budgetRevenues: await database.select(database.ocptBudgetRevenuesTable).get(),
+      budgetShares: await database.select(database.ocptBudgetSharesTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
@@ -760,12 +769,18 @@ class OcptProjectVersionsService {
   /// right after it, may name one of its rows through `resourceId` — the same reason
   /// `budget_mileage_rates` above is restored before `people`.
   ///
+  /// `budget_revenues` and `budget_shares` follow, for the same reason again: `budget_revenues`
+  /// references nothing, `budget_shares` only optionally references `people` (restored well above,
+  /// inside the asset trio's own deferred-foreign-key cycle), and `budget_entries`, restored right
+  /// after both, may name either of their rows through `revenueId`/`shareId`.
+  ///
   /// `budget_entries` and `budget_commitments` are restored last: `budget_entries` references
-  /// `budget_postes` (restored well above) and `budget_resources` (restored immediately above it),
-  /// and `budget_commitments` references `budget_postes` and `budget_entries` (restored immediately
-  /// above it) — neither is a forward reference either. `assets.budgetEntryId`, restored well above
-  /// this pair, names a `budget_entries` row that only exists once this method reaches here: a
-  /// genuine forward reference, closed the same way the asset trio's own cycle is, by this whole
+  /// `budget_postes` (restored well above), `budget_resources`, `budget_revenues` and
+  /// `budget_shares` (all three restored immediately above it), and `budget_commitments` references
+  /// `budget_postes` and `budget_entries` (restored immediately above it) — none of these is a
+  /// forward reference either. `assets.budgetEntryId`, restored well above this pair, names a
+  /// `budget_entries` row that only exists once this method reaches here: a genuine forward
+  /// reference, closed the same way the asset trio's own cycle is, by this whole
   /// restore running under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
@@ -1092,6 +1107,27 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    // `budget_revenues` references nothing, and `budget_shares` only optionally references
+    // `people` (restored well above): `budget_entries`, restored right after both, may name either
+    // of their rows through `revenueId`/`shareId`.
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetRevenuesTable,
+      payloadRows: payload.budgetRevenues,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetSharesTable,
+      payloadRows: payload.budgetShares,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await _restoreTable(
       database: database,
       table: database.ocptBudgetEntriesTable,
@@ -1245,6 +1281,11 @@ class OcptProjectVersionsService {
       // amount and a status, the second a label and a rate. Both travel through unchanged.
       budgetResources: payload.budgetResources,
       budgetMileageRates: payload.budgetMileageRates,
+      // Nor does a revenue name a person at all. A share may, through `personId`, exactly the way
+      // `roles.personId` does above: the row it points at is blanked, not dropped, so the link
+      // itself still resolves and there is nothing here for this scrub to rewrite.
+      budgetRevenues: payload.budgetRevenues,
+      budgetShares: payload.budgetShares,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,

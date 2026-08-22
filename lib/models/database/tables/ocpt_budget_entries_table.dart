@@ -5,6 +5,8 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_revenues_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_table.dart';
 
 /// One movement of the production's cash journal: money that actually left or entered the account,
 /// dated and, usually, priced against a poste.
@@ -30,6 +32,12 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resource
 /// settle no resource at all, which is a real fact rather than an unfinished pick, and this table's
 /// own doc comment on `OcptBudgetResourcesTable` is what actually adds this figure up (there is no
 /// stored `receivedCents` counter on that table to keep in step with it).
+///
+/// [revenueId] and [shareId] mirror [resourceId] exactly, one milestone later: [revenueId] names
+/// which taking a credit is the actual cash for, and [shareId] names which participant a debit
+/// actually pays — both nullable for the very same reason, and both are what a revenue's or a
+/// share's own doc comment (`OcptBudgetRevenuesTable`, `OcptBudgetSharesTable`) reads to add up
+/// what has actually come in or gone out, rather than a stored counter on either table.
 @DataClassName('OcptBudgetEntryRow')
 class OcptBudgetEntriesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptBudgetEntriesTable}
@@ -92,6 +100,18 @@ class OcptBudgetEntriesTable extends Table {
   /// See this table's own doc comment: null is the normal case, a movement that settles no
   /// resource, read exactly the way [posteId]'s own null is.
   TextColumn get resourceId => text().nullable().references(OcptBudgetResourcesTable, #id)();
+
+  /// The taking this credit is the actual cash for, or null. → [OcptBudgetRevenuesTable]
+  ///
+  /// See this table's own doc comment: null is the normal case, a movement that is not a taking
+  /// coming in, read exactly the way [resourceId]'s own null is.
+  TextColumn get revenueId => text().nullable().references(OcptBudgetRevenuesTable, #id)();
+
+  /// The participant this debit actually pays, or null. → [OcptBudgetSharesTable]
+  ///
+  /// See this table's own doc comment: null is the normal case, a movement that pays no share of
+  /// the revenue sharing, read exactly the way [resourceId]'s own null is.
+  TextColumn get shareId => text().nullable().references(OcptBudgetSharesTable, #id)();
 
   /// {@macro drift.Table.primaryKey}
   @override
