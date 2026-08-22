@@ -351,14 +351,14 @@ void main() {
       // plan sufficient against a quote nobody has begun — a claim the data cannot support.
       final tr = await _pumpDashboard(
         tester,
-        postes: [
+        postes: const [
           OcptBudgetPoste(
             id: "poste-1",
             code: "1",
             label: "Camera",
             simpleLabel: null,
             sortKey: "a0",
-            lines: const [],
+            lines: [],
           ),
         ],
         resources: [_resource(id: "r1", amountCents: 15000)],
@@ -371,14 +371,14 @@ void main() {
     testWidgets("a project with no resource and no quote claims nothing either", (tester) async {
       final tr = await _pumpDashboard(
         tester,
-        postes: [
+        postes: const [
           OcptBudgetPoste(
             id: "poste-1",
             code: "1",
             label: "Camera",
             simpleLabel: null,
             sortKey: "a0",
-            lines: const [],
+            lines: [],
           ),
         ],
       );
