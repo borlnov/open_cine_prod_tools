@@ -65,6 +65,7 @@ void main() {
   OcptBudgetResource buildResource({
     String id = "resource-1",
     OcptBudgetResourceGroupKind groupKind = OcptBudgetResourceGroupKind.cash,
+    String? personId,
     String label = "A contribution",
     int amountCents = 0,
     OcptBudgetResourceStatus status = OcptBudgetResourceStatus.secured,
@@ -74,6 +75,7 @@ void main() {
   }) => OcptBudgetResource(
     id: id,
     groupKind: groupKind,
+    personId: personId,
     label: label,
     amountCents: amountCents,
     status: status,
@@ -272,6 +274,78 @@ void main() {
       expect(repaid.amountCents, 150000);
       expect(repaid.lineCount, 2);
       expect(repaid.isComplete, isTrue);
+    });
+  });
+
+  group("ocptBudgetRepaymentLinesOf", () {
+    test("several resources naming one person group into one line", () {
+      final resources = [
+        buildResource(id: "c1", personId: "p1", amountCents: 10000, isReimbursable: true),
+        buildResource(id: "c2", personId: "p1", amountCents: 20000, isReimbursable: true),
+      ];
+
+      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+
+      expect(lines, hasLength(1));
+      expect(lines.single.personId, "p1");
+      expect(lines.single.contributedCents, 30000);
+    });
+
+    test("a resource naming nobody stands alone", () {
+      final resources = [
+        buildResource(id: "c1", label: "Région Île-de-France", amountCents: 10000, isReimbursable: true),
+        buildResource(id: "c2", personId: "p1", amountCents: 20000, isReimbursable: true),
+      ];
+
+      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+
+      expect(lines, hasLength(2));
+      final unnamed = lines.firstWhere((line) => line.personId == null);
+      expect(unnamed.label, "Région Île-de-France");
+      expect(unnamed.contributedCents, 10000);
+    });
+
+    test("two resources with the same label and no person group together", () {
+      final resources = [
+        buildResource(id: "c1", label: "Espèces", amountCents: 5000, isReimbursable: true),
+        buildResource(id: "c2", label: "Espèces", amountCents: 7000, isReimbursable: true),
+      ];
+
+      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+
+      expect(lines, hasLength(1));
+      expect(lines.single.label, "Espèces");
+      expect(lines.single.contributedCents, 12000);
+    });
+
+    test("the repayments follow their own resource into the right line", () {
+      final resources = [
+        buildResource(id: "c1", personId: "p1", amountCents: 30000, isReimbursable: true),
+        buildResource(id: "c2", personId: "p2", amountCents: 30000, isReimbursable: true),
+      ];
+      final entries = [
+        buildEntry(id: "e1", resourceId: "c1", debitCents: 10000),
+        buildEntry(id: "e2", resourceId: "c2", debitCents: 5000),
+      ];
+
+      final lines = ocptBudgetRepaymentLinesOf(resources, entries, projectVatRateBasisPoints: null);
+
+      final line1 = lines.firstWhere((line) => line.personId == "p1");
+      final line2 = lines.firstWhere((line) => line.personId == "p2");
+      expect(line1.repaid.amountCents, 10000);
+      expect(line1.outstandingCents, 20000);
+      expect(line2.repaid.amountCents, 5000);
+      expect(line2.outstandingCents, 25000);
+    });
+
+    test("only reimbursable resources are read", () {
+      final resources = [
+        buildResource(id: "c1", personId: "p1", amountCents: 30000),
+      ];
+
+      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+
+      expect(lines, isEmpty);
     });
   });
 

@@ -428,3 +428,137 @@ int ocptBudgetReinvestedTotalCents(List<OcptBudgetShareSplit> splits) =>
 /// reader can see that the plan does not add up.
 int ocptBudgetDueTotalCents(List<OcptBudgetShareSplit> splits) =>
     splits.fold(0, (sum, split) => sum + split.dueCents);
+
+/// One lender's own line in the `Repaying the contributions` card: what they have contributed in
+/// total across every reimbursable resource grouped under them, what has already gone back and
+/// what is still owed — [ocptBudgetRepaymentLinesOf]'s own reading.
+///
+/// A synthetic grouping, never a stored row: several `budget_resources` rows may collapse into one
+/// line here, which is the whole point (the product owner's own words motivate this: three loans of
+/// 100 € from the same person are one debt of 300 €, not three separate figures a reader has to add
+/// up by hand).
+class OcptBudgetRepaymentLine extends Equatable {
+  /// The person this line groups by, or null when it groups by [label] instead — see
+  /// [ocptBudgetRepaymentLinesOf]'s own doc comment for the grouping rule.
+  final String? personId;
+
+  /// The label this line prints when [personId] is null — every resource grouped into this line
+  /// then shares this exact label, which is the grouping key itself. When [personId] is not null
+  /// this is simply the **first** grouped resource's own label, carried through as a fallback the
+  /// view may print if it cannot resolve [personId] into a person any more.
+  final String label;
+
+  /// What this lender has contributed in total, in cents — the plain sum of every reimbursable
+  /// resource's own [OcptBudgetResource.amountCents] grouped under this line, read exactly as
+  /// [ocptBudgetReimbursableTotalCents] reads it for the whole plan.
+  final int contributedCents;
+
+  /// What has already gone back to this lender — the tax-inclusive sum of every `budget_entries`
+  /// debit naming one of this line's own resources through `budget_entries.resourceId`, read
+  /// exactly as [ocptBudgetRepaidContributionsTotalOf] reads it for the whole plan.
+  final OcptBudgetCoveredTotal repaid;
+
+  /// What is still owed to this lender: [contributedCents] less [repaid]'s own amount, floored at
+  /// zero — [OcptBudgetSharingPot.outstandingRepaymentCents]'s own reading, read per lender rather
+  /// than for the whole plan.
+  int get outstandingCents {
+    final outstanding = contributedCents - repaid.amountCents;
+    return outstanding < 0 ? 0 : outstanding;
+  }
+
+  /// Class constructor
+  const OcptBudgetRepaymentLine({
+    required this.personId,
+    required this.label,
+    required this.contributedCents,
+    required this.repaid,
+  });
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptBudgetRepaymentLine(personId: $personId, label: $label, "
+      "contributedCents: $contributedCents, repaid: $repaid)";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [personId, label, contributedCents, repaid];
+}
+
+/// Groups [resources]' own **reimbursable** ones by lender, for the `Repaying the contributions`
+/// card: the product owner could not tell, from the plan's own three aggregate figures, that one
+/// person having lent money three times over meant one debt rather than three (*"si Marie me donne
+/// de l'argent... comment je fais pour voir qu'elle m'a prêté 3 fois 100 €, et que donc je dois la
+/// rembourser de 300 € en priorité ?"*).
+///
+/// **Grouping key: [OcptBudgetResource.personId] when it is set, the resource's own
+/// [OcptBudgetResource.label] otherwise.** A resource naming nobody still earns its own line rather
+/// than being lumped into a single catch-all — a production owes that resource exactly as much as
+/// it owes a named lender, and hiding it inside an "unnamed" bucket would make it invisible to
+/// exactly the reading this function exists to give. Two resources naming nobody but sharing the
+/// very same label group together, since the label is the only thing there is to tell one lender
+/// from another when neither names a person.
+///
+/// **Only reimbursable resources are read.** The card is about what must come back before the
+/// takings are split, and [ocptBudgetReimbursableTotalCents]'s own doc comment already settles that
+/// nothing here branches on [OcptBudgetResource.groupKind] — an in-kind contribution counts if it
+/// is marked reimbursable, and only then.
+///
+/// Each line's own [OcptBudgetRepaymentLine.repaid] reads [entries] the very same way
+/// [ocptBudgetRepaidContributionsTotalOf] does — every debit naming one of the line's own resources
+/// through `budget_entries.resourceId` — so a repayment recorded against any one of several
+/// resources grouped under the same lender lands on that lender's own line, never on a sibling's.
+///
+/// Ordered by [resources]' own order, each lender's line appearing the moment its **first**
+/// resource is met: the plan's own `sortKey` order, since nothing here re-sorts by amount or by
+/// name.
+List<OcptBudgetRepaymentLine> ocptBudgetRepaymentLinesOf(
+  List<OcptBudgetResource> resources,
+  List<OcptBudgetEntry> entries, {
+  required int? projectVatRateBasisPoints,
+}) {
+  final orderedKeys = <String>[];
+  final resourcesByKey = <String, List<OcptBudgetResource>>{};
+  final personIdByKey = <String, String?>{};
+
+  for (final resource in resources) {
+    if (!resource.isReimbursable) {
+      continue;
+    }
+
+    final personId = resource.personId;
+    final key = personId ?? '#${resource.label}';
+    if (!resourcesByKey.containsKey(key)) {
+      orderedKeys.add(key);
+      resourcesByKey[key] = [];
+      personIdByKey[key] = personId;
+    }
+    resourcesByKey[key]!.add(resource);
+  }
+
+  return [
+    for (final key in orderedKeys)
+      () {
+        final groupResources = resourcesByKey[key]!;
+        final resourceIds = {for (final resource in groupResources) resource.id};
+        final contributedCents = groupResources.fold(
+          0,
+          (sum, resource) => sum + resource.amountCents,
+        );
+        final repayments = [
+          for (final entry in entries)
+            if (entry.resourceId != null && resourceIds.contains(entry.resourceId)) entry,
+        ];
+
+        return OcptBudgetRepaymentLine(
+          personId: personIdByKey[key],
+          label: groupResources.first.label,
+          contributedCents: contributedCents,
+          repaid: _ocptBudgetDebitTotalOf(
+            repayments,
+            projectVatRateBasisPoints: projectVatRateBasisPoints,
+          ),
+        );
+      }(),
+  ];
+}

@@ -121,6 +121,7 @@ void main() {
     List<OcptBudgetShare> shares = const [],
     Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
     OcptBudgetSharingPot? sharingPot,
+    List<OcptBudgetRepaymentLine> repaymentLines = const [],
     List<OcptBudgetShareSplit>? shareSplits,
     List<OcptPerson> people = const [],
     String? selectedRevenueId,
@@ -164,6 +165,7 @@ void main() {
           shares: shares,
           receivedByRevenueId: receivedByRevenueId,
           sharingPot: pot,
+          repaymentLines: repaymentLines,
           shareSplits: splits,
           people: people,
           currencyCode: "EUR",
@@ -374,6 +376,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(payoutRequested?.id, "s1");
+  });
+
+  testWidgets("the repayment card shows a muted hint while no resource is reimbursable", (tester) async {
+    await pumpView(tester);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
+    expect(find.text(tr.budgetSharingRepaymentEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetSharingRepaymentColumnLender.toUpperCase()), findsNothing);
+  });
+
+  testWidgets("the repayment card details a lender, contributed, repaid and owed", (tester) async {
+    await pumpView(
+      tester,
+      repaymentLines: const [
+        OcptBudgetRepaymentLine(
+          personId: "p1",
+          label: "Avance Marie",
+          contributedCents: 30000,
+          repaid: OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1),
+        ),
+      ],
+      people: [_person(id: "p1", firstName: "Marie", lastName: "Dupont")],
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
+    expect(find.text(tr.budgetSharingRepaymentColumnLender.toUpperCase()), findsOneWidget);
+    expect(find.text("Marie Dupont"), findsOneWidget);
+    expect(find.text(ocptBudgetAmountLabel(30000, "EUR")), findsOneWidget);
+    expect(find.text(ocptBudgetAmountLabel(10000, "EUR")), findsOneWidget);
+    expect(find.text(ocptBudgetAmountLabel(20000, "EUR")), findsOneWidget);
+  });
+
+  testWidgets("a lender naming nobody prints its own label instead", (tester) async {
+    await pumpView(
+      tester,
+      repaymentLines: const [
+        OcptBudgetRepaymentLine(
+          personId: null,
+          label: "Région Île-de-France",
+          contributedCents: 5000,
+          repaid: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+        ),
+      ],
+    );
+
+    expect(find.text("Région Île-de-France"), findsOneWidget);
   });
 
   testWidgets("every writing affordance is withheld under a read-only preview", (tester) async {

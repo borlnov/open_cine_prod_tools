@@ -12698,6 +12698,41 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetSharingRepaymentEmptyHint": "No reimbursable contribution yet.",
+  "@budgetSharingRepaymentEmptyHint": {
+    "description": "Shown in the repayment card's own detail while no resource is marked reimbursable",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRepaymentColumnLender": "Lender",
+  "@budgetSharingRepaymentColumnLender": {
+    "description": "Column header naming a lender's own label, above the repayment card's own detail",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRepaymentColumnContributed": "Contributed",
+  "@budgetSharingRepaymentColumnContributed": {
+    "description": "Column header naming what a lender has contributed in total, above the repayment card's own detail",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRepaymentColumnRepaid": "Repaid",
+  "@budgetSharingRepaymentColumnRepaid": {
+    "description": "Column header naming what has already gone back to a lender, above the repayment card's own detail",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetSharingRepaymentColumnOutstanding": "Owed",
+  "@budgetSharingRepaymentColumnOutstanding": {
+    "description": "Column header naming what is still owed to a lender, above the repayment card's own detail",
+    "context": "Displayed in OcptBudgetSharing's own repayment card",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetSharingReimbursableTotalLabel": "Reimbursable contributions",
   "@budgetSharingReimbursableTotalLabel": {
     "description": "Label of the repayment card's own first line: the reimbursable total",

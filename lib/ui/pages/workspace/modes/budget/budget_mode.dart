@@ -1069,6 +1069,7 @@ class _BudgetViewState extends State<_BudgetView> {
       shares: state.shares,
       receivedByRevenueId: state.receivedByRevenueId,
       sharingPot: state.sharingPot,
+      repaymentLines: state.repaymentLines,
       shareSplits: state.shareSplits,
       people: state.people,
       currencyCode: state.currencyCode,

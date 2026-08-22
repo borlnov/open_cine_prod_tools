@@ -705,6 +705,23 @@ are all here, and this file is the whole record of them.
   last week or has not gone back at all — and reading the outstanding figure here instead would let
   a production enlarge the pot simply by delaying a repayment. What is still owed is printed too,
   in its own line of the same card, because it is a real fact; it is just not this one.
+  **The `Repaying the contributions` card also details who is owed what, one line per lender, above
+  the three aggregate figures it always kept.** Three aggregate figures could not answer the
+  product owner's own question: if Marie lends 100 € three times over, the card had no way to show
+  that she is owed 300 €, all at once, ahead of everyone else. `ocptBudgetRepaymentLinesOf`
+  (`lib/utils/ocpt_budget_shares.dart`) groups every **reimbursable** resource by lender —
+  `budget_resources.personId` when it is set, the resource's own `label` otherwise, so a resource
+  naming nobody still earns its own line rather than being lumped into a catch-all, and two
+  resources naming nobody but sharing the same label group together, the label being the only thing
+  left to tell them apart. Each line's own repaid figure reads `budget_entries` debits naming one of
+  that lender's own resources through `budget_entries.resourceId`, exactly the reading
+  `ocptBudgetRepaidContributionsTotalOf` already gives the whole plan — a repayment recorded against
+  any one of several resources grouped under the same lender lands on that lender's own line, never
+  a sibling's. **`OcptBudgetSharingPot`'s own arithmetic is untouched**: this is a presentation
+  layer over readings the pot already computes, not a second way of computing them, and the card's
+  existing three-line footer (the reimbursable total, what has already gone back, what is left to
+  share) stays exactly as it was, now sitting under the per-lender detail rather than being the
+  whole card.
   **No remainder is redistributed.** Each participant's due is `shareableCents × sharePermille ÷
   1000`, rounded on its own, in integer arithmetic throughout — so three participants splitting a
   thousand cents in thirds are each due 333 and the missing cent stays visible. Handing it to

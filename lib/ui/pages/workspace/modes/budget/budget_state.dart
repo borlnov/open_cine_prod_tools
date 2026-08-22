@@ -300,6 +300,10 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// The split of [sharingPot] across [shares], empty while nothing is loaded.
   List<OcptBudgetShareSplit> get shareSplits => snapshot?.shareSplits ?? const [];
 
+  /// [resources]' own reimbursable ones, grouped by lender — empty while nothing is loaded. The
+  /// `Repaying the contributions` card's own detail: who is owed what.
+  List<OcptBudgetRepaymentLine> get repaymentLines => snapshot?.repaymentLines ?? const [];
+
   /// `revenueId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no entry against it. Mirrors [receivedCentsOf].
   int receivedRevenueCentsOf(String revenueId) => snapshot?.receivedRevenueCentsOf(revenueId) ?? 0;

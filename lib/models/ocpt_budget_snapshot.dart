@@ -172,6 +172,11 @@ class OcptBudgetSnapshot extends Equatable {
   /// `ocptBudgetShareSplitsOf`.
   final List<OcptBudgetShareSplit> shareSplits;
 
+  /// [resources]' own reimbursable ones, grouped by lender — `ocptBudgetRepaymentLinesOf`. The
+  /// `Repaying the contributions` card's own detail: who is owed what, rather than only the plan's
+  /// three aggregate figures [sharingPot] already carries.
+  final List<OcptBudgetRepaymentLine> repaymentLines;
+
   /// `revenues.length`.
   final int revenueCount;
 
@@ -210,6 +215,7 @@ class OcptBudgetSnapshot extends Equatable {
     required this.paidByShareId,
     required this.sharingPot,
     required this.shareSplits,
+    required this.repaymentLines,
     required this.revenueCount,
     required this.shareCount,
   });
@@ -301,6 +307,11 @@ class OcptBudgetSnapshot extends Equatable {
       pot: sharingPot,
       paidByShareId: paidByShareId,
     );
+    final repaymentLines = ocptBudgetRepaymentLinesOf(
+      resources,
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
 
     final regieDays = ocptBudgetRegieDaysOf(
       days: scheduleDays,
@@ -358,6 +369,7 @@ class OcptBudgetSnapshot extends Equatable {
       paidByShareId: paidByShareId,
       sharingPot: sharingPot,
       shareSplits: shareSplits,
+      repaymentLines: repaymentLines,
       revenueCount: revenues.length,
       shareCount: shares.length,
     );
@@ -441,6 +453,7 @@ class OcptBudgetSnapshot extends Equatable {
     paidByShareId,
     sharingPot,
     shareSplits,
+    repaymentLines,
     revenueCount,
     shareCount,
   ];
