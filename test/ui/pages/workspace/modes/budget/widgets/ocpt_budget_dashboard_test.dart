@@ -120,8 +120,7 @@ Future<Tr> _pumpDashboard(
   int shootingDayCount = 0,
   int mealCount = 0,
   int buffetCount = 0,
-  ValueChanged<String>? onPosteSelected,
-  ValueChanged<String>? onPosteAlertActionRequested,
+  ValueChanged<String>? onPosteOpened,
   VoidCallback? onCashAlertActionRequested,
   VoidCallback? onBreakdownFeedRequested,
   VoidCallback? onScheduleFeedRequested,
@@ -145,8 +144,7 @@ Future<Tr> _pumpDashboard(
         shootingDayCount: shootingDayCount,
         mealCount: mealCount,
         buffetCount: buffetCount,
-        onPosteSelected: onPosteSelected ?? (_) {},
-        onPosteAlertActionRequested: onPosteAlertActionRequested ?? (_) {},
+        onPosteOpened: onPosteOpened ?? (_) {},
         onCashAlertActionRequested: onCashAlertActionRequested ?? () {},
         onBreakdownFeedRequested: onBreakdownFeedRequested ?? () {},
         onScheduleFeedRequested: onScheduleFeedRequested ?? () {},
@@ -291,13 +289,32 @@ void main() {
         tester,
         postes: [poste],
         alerts: [alert],
-        onPosteAlertActionRequested: (posteId) => selectedPosteId = posteId,
+        onPosteOpened: (posteId) => selectedPosteId = posteId,
       );
 
       await tester.tap(find.text(tr.budgetDashboardPosteOverQuoteAlertAction));
       await tester.pumpAndSettle();
 
       expect(selectedPosteId, "poste-1");
+    });
+  });
+
+  group("a poste row", () {
+    testWidgets("opens the quote on that poste, exactly as the alert's own action does", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", label: "Interpretation", quotedAmountCents: 10000);
+      String? openedPosteId;
+      await _pumpDashboard(
+        tester,
+        postes: [poste],
+        onPosteOpened: (posteId) => openedPosteId = posteId,
+      );
+
+      await tester.tap(find.text("Interpretation"));
+      await tester.pumpAndSettle();
+
+      expect(openedPosteId, "poste-1");
     });
   });
 

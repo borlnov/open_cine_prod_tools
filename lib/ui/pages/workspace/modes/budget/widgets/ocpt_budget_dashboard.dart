@@ -97,12 +97,18 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// catering row, beside [mealCount].
   final int buffetCount;
 
-  /// Called with a poste's id when its own row is clicked, opening the `Inspector` tab on it.
-  final ValueChanged<String> onPosteSelected;
-
-  /// Called with a poste's id when an [OcptBudgetPosteOverQuoteAlert]'s own action is clicked —
-  /// selects the poste **and** switches to the cost-tracking view, unlike [onPosteSelected] alone.
-  final ValueChanged<String> onPosteAlertActionRequested;
+  /// Called with a poste's id when its own row — or an [OcptBudgetPosteOverQuoteAlert]'s own
+  /// action — is clicked: **selects the poste and opens the quote on it**.
+  ///
+  /// The two used to differ, and that was the fault. A row's click merely selected the poste,
+  /// which opened the right dock's inspector over a page that is itself a read-only summary: a
+  /// second read-only reading of a figure already on screen, in a narrower column. The alert
+  /// beside it, meanwhile, went to the quote. Two clicks a centimetre apart did two different
+  /// things, and only one of them took the reader anywhere.
+  ///
+  /// A dashboard row is a **link to where the thing is worked on**, which is the quote, and both
+  /// gestures now say so.
+  final ValueChanged<String> onPosteOpened;
 
   /// Called when the [OcptBudgetCashProjectionNegativeAlert]'s own action is clicked, switching to
   /// the committed view.
@@ -135,8 +141,7 @@ class OcptBudgetDashboard extends StatelessWidget {
     required this.shootingDayCount,
     required this.mealCount,
     required this.buffetCount,
-    required this.onPosteSelected,
-    required this.onPosteAlertActionRequested,
+    required this.onPosteOpened,
     required this.onCashAlertActionRequested,
     required this.onBreakdownFeedRequested,
     required this.onScheduleFeedRequested,
@@ -277,7 +282,7 @@ class OcptBudgetDashboard extends StatelessWidget {
             amountCents: posteAmounts[poste.id] ?? 0,
             shareOfMax: maxPosteAmount <= 0 ? 0 : (posteAmounts[poste.id] ?? 0) / maxPosteAmount,
             currencyCode: currencyCode,
-            onTap: () => onPosteSelected(poste.id),
+            onTap: () => onPosteOpened(poste.id),
           ),
         const SizedBox(height: 16),
         _OcptDashboardFeedCard(
@@ -316,7 +321,7 @@ class OcptBudgetDashboard extends StatelessWidget {
         ocptBudgetAmountLabel(alert.varianceCents, currencyCode),
       ),
       actionLabel: tr.budgetDashboardPosteOverQuoteAlertAction,
-      onActionPressed: () => onPosteAlertActionRequested(alert.posteId),
+      onActionPressed: () => onPosteOpened(alert.posteId),
     ),
     OcptBudgetCashProjectionNegativeAlert() => _OcptBudgetDashboardAlertCard(
       color: ocptWarningColor(context),

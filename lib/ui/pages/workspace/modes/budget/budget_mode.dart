@@ -520,8 +520,7 @@ class _BudgetViewState extends State<_BudgetView> {
       shootingDayCount: state.regieDays.length,
       mealCount: state.regieTotals.mealCount,
       buffetCount: state.regieTotals.buffetCount,
-      onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
-      onPosteAlertActionRequested: (posteId) {
+      onPosteOpened: (posteId) {
         bloc
           ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
           ..add(const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.costTracking));
