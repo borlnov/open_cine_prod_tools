@@ -65,8 +65,8 @@ void main() {
     ValueChanged<OcptBudgetResource>? onResourceReceiptUndoRequested,
     ValueChanged<String>? onResourceDeletionRequested,
   }) async {
-    // The default test surface is narrower than the KPI row's own fixed-width cells plus its own
-    // `+ Resource` action need to lay out side by side without overflowing.
+    // A comfortable surface, so the assertions below read the view in the shape it normally wears
+    // rather than its wrapped one — the narrow case has its own test at the end of this file.
     tester.view.physicalSize = const Size(1600, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -91,6 +91,45 @@ void main() {
       ),
     );
   }
+
+  testWidgets("a centre too narrow for the three figures wraps them rather than clipping", (
+    tester,
+  ) async {
+    // The width the right dock leaves the centre on a 1280 px window. The KPI row used to be a
+    // plain Row whose only give was a Spacer, so three captioned figures plus the action overflowed
+    // and clipped silently in release.
+    tester.view.physicalSize = const Size(900, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetFinancing(
+          resources: [_resource(id: "r1", amountCents: 800000)],
+          receivedByResourceId: const {},
+          receivedCentsOf: (_) => 0,
+          currencyCode: "EUR",
+          selectedResourceId: null,
+          isReadOnly: false,
+          onResourceCreationRequested: (_) {},
+          onResourceSelected: (_) {},
+          onResourceEditRequested: (_) {},
+          onResourceReceiptRequested: (_) {},
+          onResourceReceiptUndoRequested: (_) {},
+          onResourceDeletionRequested: (_) {},
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    // The KPI draws its own label in capitals, so the finder has to ask for what is on screen.
+    expect(find.text(tr.budgetFinancingTotalResourcesLabel.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.budgetFinancingCashLabel.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.budgetFinancingInKindLabel.toUpperCase()), findsOneWidget);
+  });
 
   testWidgets("a project with no resource at all shows the shared empty state", (tester) async {
     await pumpView(tester, resources: const []);

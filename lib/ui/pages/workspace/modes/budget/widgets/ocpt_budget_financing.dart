@@ -317,32 +317,45 @@ class _OcptFinancingKpiRow extends StatelessWidget {
       receivedCents: cashReceivedCents,
     );
 
+    // The three figures ride a `Wrap` inside an `Expanded`, exactly as `OcptBudgetDashboard`'s own
+    // KPI row does, rather than a plain `Row` whose only give was a `Spacer`. Each figure carries a
+    // caption as long as the words it states, so three of them plus the button outgrew any centre
+    // pane under roughly 1,120 px — the right dock opening is enough — and a `Row` clips silently
+    // in release rather than overflowing loudly. The button stays outside the `Wrap` so it keeps
+    // its place at the right whatever the figures do.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _OcptFinancingKpi(
-          label: tr.budgetFinancingTotalResourcesLabel,
-          value: ocptBudgetAmountLabel(totalCents, currencyCode),
-        ),
-        const SizedBox(width: 32),
-        _OcptFinancingKpi(
-          label: tr.budgetFinancingCashLabel,
-          value: ocptBudgetAmountLabel(cashAmountCents, currencyCode),
-          caption: tr.budgetFinancingCashCaption(
-            ocptBudgetAmountLabel(cashReceivedCents, currencyCode),
-            ocptBudgetAmountLabel(cashOutstandingCents, currencyCode),
+        Expanded(
+          child: Wrap(
+            spacing: 32,
+            runSpacing: 12,
+            children: [
+              _OcptFinancingKpi(
+                label: tr.budgetFinancingTotalResourcesLabel,
+                value: ocptBudgetAmountLabel(totalCents, currencyCode),
+              ),
+              _OcptFinancingKpi(
+                label: tr.budgetFinancingCashLabel,
+                value: ocptBudgetAmountLabel(cashAmountCents, currencyCode),
+                caption: tr.budgetFinancingCashCaption(
+                  ocptBudgetAmountLabel(cashReceivedCents, currencyCode),
+                  ocptBudgetAmountLabel(cashOutstandingCents, currencyCode),
+                ),
+              ),
+              _OcptFinancingKpi(
+                label: tr.budgetFinancingInKindLabel,
+                value: ocptBudgetAmountLabel(inKindCents, currencyCode),
+                valueColor: theme.colorScheme.primary,
+                caption: tr.budgetFinancingInKindHint,
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 32),
-        _OcptFinancingKpi(
-          label: tr.budgetFinancingInKindLabel,
-          value: ocptBudgetAmountLabel(inKindCents, currencyCode),
-          valueColor: theme.colorScheme.primary,
-          caption: tr.budgetFinancingInKindHint,
-        ),
-        const Spacer(),
-        if (onResourceCreationRequested != null)
+        if (onResourceCreationRequested != null) ...[
+          const SizedBox(width: 16),
           _OcptAddResourceButton(onGroupKindPicked: onResourceCreationRequested!),
+        ],
       ],
     );
   }
