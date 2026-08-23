@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a wide, tall
 /// enough band that the whole table is drawn with no scroll needed to find a cell.
-Widget _wrap(Widget child) => MaterialApp(
+Widget _wrap(Widget child, {double width = 1400}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -26,7 +26,7 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 1400, height: 700, child: child)),
+  home: Scaffold(body: SizedBox(width: width, height: 700, child: child)),
 );
 
 /// A minimal poste, everything but [id]/[label] neutral.
@@ -77,6 +77,47 @@ OcptAssetRef _receipt({String id = "asset-1", required String path}) => OcptAsse
 );
 
 void main() {
+  testWidgets("the table scrolls sideways rather than overflowing a narrow centre", (tester) async {
+    // 760 logical pixels is roughly what the centre is left with on a laptop screen once the right
+    // dock is open, and it is under the sum of the table's own fixed columns: the `Label` column,
+    // the only flexible one, used to be driven to nothing and the row overflowed.
+    final entries = [_entry(id: "e1", date: DateTime(2026, 3, 2), debitCents: 11000)];
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetCashJournal(
+          entries: entries,
+          postes: const [],
+          receiptsByEntryId: const {},
+          selectedPosteId: null,
+          isSimplified: false,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          isReadOnly: false,
+          onFilterCleared: () {},
+          onEntryCreationRequested: () {},
+          onEntryTapped: (_) {},
+          onEntryDeletionRequested: (_) {},
+        ),
+        width: 760,
+      ),
+    );
+
+    // No overflow was reported, the table is laid out at its own floor rather than at the width it
+    // was given, and the entry is still drawn — nothing is dropped, it is scrolled to.
+    expect(tester.takeException(), isNull);
+
+    final horizontalScroll = find.byWidgetPredicate(
+      (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.horizontal,
+    );
+    expect(horizontalScroll, findsOneWidget);
+    expect(
+      tester.getSize(find.descendant(of: horizontalScroll, matching: find.byType(Column)).first).width,
+      960,
+    );
+    expect(find.text("Camera rental"), findsOneWidget);
+  });
+
   testWidgets("a project with no entry at all shows the shared empty state", (tester) async {
     await tester.pumpWidget(
       _wrap(

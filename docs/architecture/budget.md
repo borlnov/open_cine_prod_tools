@@ -621,6 +621,20 @@ are all here, and this file is the whole record of them.
   would both cost more than the reading is worth. `OcptBudgetState.selectedResourceId` is therefore
   a plain highlight, reconciled against a freshly loaded snapshot exactly as `selectedPosteId` is.
 
+## The journal scrolls rather than losing a column
+
+- The cash journal's table gives every column but `Label` a fixed width, and `Label` takes what is
+  left. Below the sum of the fixed ones the flexible column was driven to **nothing** and the row
+  overflowed its frame: with the right dock open on a laptop screen the wording of every entry
+  disappeared outright and the balance column ran off the edge, clipped rather than striped, since
+  a release build draws no overflow banner.
+- The table is therefore laid out at `_ocptCashJournalMinTableWidth` (960 = 728 of fixed columns +
+  232 for the wording) whenever the slot is narrower, and **scrolls sideways inside its own frame**.
+  The header and the rows sit in the same scroll view, since they share those fixed widths and
+  scrolling either alone would slide the figures out from under their own headings. No column is
+  dropped and none shrinks: what does not fit is scrolled to, which is the treatment the rest of the
+  app already gives a table too wide for its slot.
+
 ## An add button shows one plus, not two
 
 - Every creation control of this mode that carries an `Icons.add` icon has a label with **no `+` of

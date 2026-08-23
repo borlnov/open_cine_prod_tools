@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -30,6 +31,17 @@ const double _ocptCashJournalAmountColumnWidth = 108;
 /// The trailing `⋮` menu column's own fixed width, in logical pixels — matches
 /// `OcptBudgetCostTracking`'s own menu column, the same affordance drawn the same size.
 const double _ocptCashJournalMenuColumnWidth = 36;
+
+/// The narrowest the entry table is ever drawn at, in logical pixels: every fixed column's own
+/// width — 92 + 76 + 200 + 3 × 108 + 36 = 728 — plus 232 for a `Label` column that can still hold a
+/// wording.
+///
+/// Below it the table **scrolls sideways inside its own frame** rather than being crushed: the
+/// `Label` column is the only flexible one, so a narrower centre used to drive it to nothing and
+/// the row overflowed — which is exactly what opening the right dock on a laptop screen does. No
+/// column is dropped and none shrinks; the reader gets a horizontal scrollbar and keeps the whole
+/// ledger, the treatment the rest of the app already gives a table too wide for its slot.
+const double _ocptCashJournalMinTableWidth = 960;
 
 /// Every entry row's own fixed height, in logical pixels.
 const double _ocptCashJournalRowHeight = 44;
@@ -163,9 +175,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                   // The detailed wording names this ledger by its trade word, which is exactly
                   // what the simplified reading is set to spare a crew — and the empty state is
                   // the one sentence somebody who has never opened this view will read.
-                  message: isSimplified
-                      ? tr.budgetCashJournalSimpleEmptyHint
-                      : tr.budgetCashJournalEmptyHint,
+                  message: isSimplified ? tr.budgetCashJournalSimpleEmptyHint : tr.budgetCashJournalEmptyHint,
                 )
               : filteredRows.isEmpty
               ? Center(
@@ -176,29 +186,40 @@ class OcptBudgetCashJournal extends StatelessWidget {
                     ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _OcptCashJournalHeaderRow(),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: filteredRows.length,
-                        itemBuilder: (context, index) => _OcptCashJournalRow(
-                          row: filteredRows[index],
-                          poste: _posteById(filteredRows[index].entry.posteId),
-                          receipt: receiptsByEntryId[filteredRows[index].entry.id],
-                          isSimplified: isSimplified,
-                          currencyCode: currencyCode,
-                          onTap: isReadOnly || onEntryTapped == null
-                              ? null
-                              : () => onEntryTapped?.call(filteredRows[index].entry),
-                          onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
-                              ? null
-                              : () => onEntryDeletionRequested?.call(filteredRows[index].entry.id),
-                        ),
+              : LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    // The header and the rows scroll **together**, inside one frame: they share
+                    // the same fixed column widths, so scrolling either alone would slide the
+                    // figures out from under their own headings.
+                    child: SizedBox(
+                      width: math.max(constraints.maxWidth, _ocptCashJournalMinTableWidth),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const _OcptCashJournalHeaderRow(),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filteredRows.length,
+                              itemBuilder: (context, index) => _OcptCashJournalRow(
+                                row: filteredRows[index],
+                                poste: _posteById(filteredRows[index].entry.posteId),
+                                receipt: receiptsByEntryId[filteredRows[index].entry.id],
+                                isSimplified: isSimplified,
+                                currencyCode: currencyCode,
+                                onTap: isReadOnly || onEntryTapped == null
+                                    ? null
+                                    : () => onEntryTapped?.call(filteredRows[index].entry),
+                                onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
+                                    ? null
+                                    : () => onEntryDeletionRequested?.call(filteredRows[index].entry.id),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
         ),
         const SizedBox(height: 8),
