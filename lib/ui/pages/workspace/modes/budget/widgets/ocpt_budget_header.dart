@@ -22,13 +22,18 @@ const double _ocptBudgetSegmentPadding = 12;
 /// **Raised from `980` to `1120` once the view switch grew a third segment** (`cashJournal`), from
 /// `1120` to `1260` once it grew a fourth (`committed`), from `1260` to `1400` once it grew a fifth
 /// (`financing`), from `1400` to `1540` once it grew a sixth (`regie`), and from `1540` to `1680`
-/// here, once it grew a seventh and last (`sharing`, `OcptBudgetCentreView`'s own doc comment):
-/// each new chip widens that one switch by roughly a segment's own width, and letting the title
-/// claim the space that segment now needs would have squeezed the three controls together right at
-/// the edge this constant is meant to guarantee they never reach — so the threshold moves out by
-/// the same margin every time, keeping the controls exactly as comfortable against a real font as
-/// they were with fewer views.
-const double _ocptBudgetHeaderTitleMinWidth = 1680;
+/// once it grew a seventh and last (`sharing`, `OcptBudgetCentreView`'s own doc comment): each new
+/// chip widens that one switch by roughly a segment's own width, and letting the title claim the
+/// space that segment now needs would have squeezed the controls together right at the edge this
+/// constant is meant to guarantee they never reach — so the threshold moves out by the same margin
+/// every time, keeping the controls exactly as comfortable against a real font as they were with
+/// fewer views.
+///
+/// Raised again, from `1680` to `1860`, once the header grew a **fourth control**: the poste
+/// filter, whose chip is the only one of them sized by free text (a poste's own label, capped at
+/// 160 px) rather than by a fixed word. The rule is the same one, applied to a control instead of
+/// a segment.
+const double _ocptBudgetHeaderTitleMinWidth = 1860;
 
 /// The budget mode's own header band, sitting above the centre: the mode's own title and a muted
 /// subtitle, the `Dashboard`/`Cost tracking` view chips, the simplified/detailed switch and the

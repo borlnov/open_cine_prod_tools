@@ -440,9 +440,11 @@ are all here, and this file is the whole record of them.
   `_OcptBudgetCentreViewSwitch` says so where the segments are listed, since a divergence nobody
   argued for would look like a mistake the next time somebody adds a view. Each chip also widens
   that one switch, so `_ocptBudgetHeaderTitleMinWidth` — the width under which the header sheds its
-  title rather than crowd its controls — moves out by a segment's own width every time one lands.
+  title rather than crowd its controls — moves out by a segment's own width every time one lands,
+  and by a control's own width every time the header grows one (the poste filter took it from
+  `1680` to `1860`).
   **Shedding the title is not enough on its own**, and the header does not stop there: under that
-  same threshold the three controls **wrap onto a second line**, and the seven chips wrap inside
+  same threshold the four controls **wrap onto a second line**, and the six chips wrap inside
   their own border too, as `OcptScheduleHeader`'s controls already do. The centre narrows for a
   reason the header cannot see — the right dock opening takes roughly 580 px of it — and a plain
   `Row` then clips silently in release, which had been taking the tax-basis switch off the screen
