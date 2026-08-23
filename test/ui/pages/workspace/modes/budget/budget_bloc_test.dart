@@ -1876,7 +1876,7 @@ void main() {
     });
   });
 
-  group("the catering-and-travel pass", () {
+  group("the catering pass", () {
     test("loads the schedule, the roles, the people and the prices, and computes the pass", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
@@ -1920,6 +1920,12 @@ void main() {
       await projectsManager.saveCurrentProjectMealPriceCents(1200);
       await projectsManager.saveCurrentProjectSnackPriceCents(400);
 
+      // A mileage scale, there to pre-fill a defrayal somebody types — never to deduce one.
+      await projectsManager.budgetFinancingService.createMileageRate(
+        database: project.database,
+        label: "Car",
+      );
+
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
       // Waits for the crew count itself, not merely for a day to exist: the bloc's own initial
       // load (fired at construction, before any of the writes above) races these very writes, and
@@ -1935,10 +1941,12 @@ void main() {
       expect(state.regieDays.single.cost.isComplete, isTrue);
       expect(state.regieDecorNameByDayId[dayId], "Studio A");
 
-      expect(state.travelRows, hasLength(1));
-      expect(state.travelRows.single.personId, personId);
-      expect(state.travelRows.single.totalKmMilli, 20000);
+      // The person's own commute is loaded and the mileage scales with it — both there to
+      // pre-fill a defrayal somebody types — and nothing is deduced from either: a production that
+      // has written no defrayal is defraying nobody.
+      expect(state.allowances, isEmpty);
       expect(state.people.map((person) => person.id), contains(personId));
+      expect(state.mileageRates, hasLength(1));
     });
   });
 

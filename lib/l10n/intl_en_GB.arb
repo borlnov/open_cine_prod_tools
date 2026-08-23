@@ -12502,6 +12502,321 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetRegieAllowancesSectionTitle": "Defrayals",
+  "@budgetRegieAllowancesSectionTitle": {
+    "description": "Title of the régie view's own defrayal column",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieAllowancesHint": "One row per thing actually owed. Nothing here is deduced from the schedule.",
+  "@budgetRegieAllowancesHint": {
+    "description": "Caption of the régie view's own defrayal column",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieAllowanceCreationAction": "Defrayal",
+  "@budgetRegieAllowanceCreationAction": {
+    "description": "Label of the button creating a defrayal, beside a plus icon",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieAllowancesEmptyHint": "No defrayal recorded yet.",
+  "@budgetRegieAllowancesEmptyHint": {
+    "description": "Shown in place of the defrayal table while the project holds none",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieColumnPerson": "Person",
+  "@budgetRegieColumnPerson": {
+    "description": "Header of the defrayal table's own person column",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieColumnNature": "Nature",
+  "@budgetRegieColumnNature": {
+    "description": "Header of the defrayal table's own nature column",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieColumnWhen": "When",
+  "@budgetRegieColumnWhen": {
+    "description": "Header of the defrayal table's own date column",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieColumnQuantity": "Quantity",
+  "@budgetRegieColumnQuantity": {
+    "description": "Header of the defrayal table's own quantity column",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieAllowanceNoPerson": "Nobody in particular",
+  "@budgetRegieAllowanceNoPerson": {
+    "description": "Shown in a defrayal's own person cell when it names nobody",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieAllowanceOpenPersonAction": "Open this person's sheet",
+  "@budgetRegieAllowanceOpenPersonAction": {
+    "description": "Row menu entry of a defrayal naming somebody",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieTotalLabel": "Total",
+  "@budgetRegieTotalLabel": {
+    "description": "Label of the defrayal table's own total row",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceKindTravelLabel": "Travel",
+  "@budgetAllowanceKindTravelLabel": {
+    "description": "Word for OcptBudgetAllowanceKind.travel",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceKindAccommodationLabel": "Accommodation",
+  "@budgetAllowanceKindAccommodationLabel": {
+    "description": "Word for OcptBudgetAllowanceKind.accommodation",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceKindMealLabel": "Meal",
+  "@budgetAllowanceKindMealLabel": {
+    "description": "Word for OcptBudgetAllowanceKind.meal",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceKindOtherLabel": "Other",
+  "@budgetAllowanceKindOtherLabel": {
+    "description": "Word for OcptBudgetAllowanceKind.other",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieProvisionComputedLabel": "Computed here",
+  "@budgetRegieProvisionComputedLabel": {
+    "description": "Caption of the provisioning band's own computed figure",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieProvisionQuotedLabel": "Quoted on this poste",
+  "@budgetRegieProvisionQuotedLabel": {
+    "description": "Caption of the provisioning band's own quoted figure",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieProvisionGapLabel": "Gap",
+  "@budgetRegieProvisionGapLabel": {
+    "description": "Caption of the provisioning band's own gap figure",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieProvisionPosteLabel": "Poste",
+  "@budgetRegieProvisionPosteLabel": {
+    "description": "Hint of the provisioning band's own poste picker",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieProvisionAction": "Provision into the quote",
+  "@budgetRegieProvisionAction": {
+    "description": "Label of the button writing the régie figures into the quote",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieProvisionNoPosteHint": "This project's quote holds no poste to provision into yet.",
+  "@budgetRegieProvisionNoPosteHint": {
+    "description": "Shown in place of the provisioning picker while the quote holds no poste",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionLineMealsLabel": "Catering — meals",
+  "@budgetProvisionLineMealsLabel": {
+    "description": "Wording of the quote line the provisioning writes for the catering meals",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionLineSnacksLabel": "Catering — craft services",
+  "@budgetProvisionLineSnacksLabel": {
+    "description": "Wording of the quote line the provisioning writes for the craft services",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionLineTravelLabel": "Defrayals — travel",
+  "@budgetProvisionLineTravelLabel": {
+    "description": "Wording of the quote line the provisioning writes for the travel defrayals",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionLineAccommodationLabel": "Defrayals — accommodation",
+  "@budgetProvisionLineAccommodationLabel": {
+    "description": "Wording of the quote line the provisioning writes for the accommodation defrayals",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionLineMealAllowanceLabel": "Defrayals — meals",
+  "@budgetProvisionLineMealAllowanceLabel": {
+    "description": "Wording of the quote line the provisioning writes for the meal defrayals",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionLineOtherLabel": "Defrayals — other",
+  "@budgetProvisionLineOtherLabel": {
+    "description": "Wording of the quote line the provisioning writes for the other defrayals",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteAllowanceConfirmTitle": "Delete this defrayal?",
+  "@budgetDeleteAllowanceConfirmTitle": {
+    "description": "Title of the confirmation opened before deleting a defrayal",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDeleteAllowanceConfirmMessage": "This action cannot be undone.",
+  "@budgetDeleteAllowanceConfirmMessage": {
+    "description": "Message of the confirmation opened before deleting a defrayal",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionConfirmTitle": "Provision into the quote?",
+  "@budgetProvisionConfirmTitle": {
+    "description": "Title of the confirmation opened before provisioning",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionNothingToDoMessage": "The quote already holds everything this view computes.",
+  "@budgetProvisionNothingToDoMessage": {
+    "description": "Message shown when a provisioning would change nothing",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogCreateTitle": "New defrayal",
+  "@budgetAllowanceDialogCreateTitle": {
+    "description": "Title of the defrayal dialog while creating",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogEditTitle": "Edit this defrayal",
+  "@budgetAllowanceDialogEditTitle": {
+    "description": "Title of the defrayal dialog while editing",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogKindFieldLabel": "Nature",
+  "@budgetAllowanceDialogKindFieldLabel": {
+    "description": "Label of the defrayal dialog's own nature picker",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogQuantityFieldLabel": "Quantity",
+  "@budgetAllowanceDialogQuantityFieldLabel": {
+    "description": "Label of the defrayal dialog's own quantity field",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogUnitPriceFieldLabel": "Unit price",
+  "@budgetAllowanceDialogUnitPriceFieldLabel": {
+    "description": "Label of the defrayal dialog's own unit price field",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogDateFieldLabel": "Date",
+  "@budgetAllowanceDialogDateFieldLabel": {
+    "description": "Label of the defrayal dialog's own date field",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogEndDateFieldLabel": "End date",
+  "@budgetAllowanceDialogEndDateFieldLabel": {
+    "description": "Label of the defrayal dialog's own end date field",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogQuantityHelperTravel": "In kilometres.",
+  "@budgetAllowanceDialogQuantityHelperTravel": {
+    "description": "Helper of the defrayal dialog's own quantity field for a journey",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogQuantityHelperAccommodation": "In nights.",
+  "@budgetAllowanceDialogQuantityHelperAccommodation": {
+    "description": "Helper of the defrayal dialog's own quantity field for a stay",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogQuantityHelperMeal": "In meals.",
+  "@budgetAllowanceDialogQuantityHelperMeal": {
+    "description": "Helper of the defrayal dialog's own quantity field for a meal",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogQuantityHelperOther": "How many units this defrayal covers.",
+  "@budgetAllowanceDialogQuantityHelperOther": {
+    "description": "Helper of the defrayal dialog's own quantity field for anything else",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogRatePrefillAction": "Use this person's own rate",
+  "@budgetAllowanceDialogRatePrefillAction": {
+    "description": "Action pre-filling a defrayal's distance and rate from the person picked",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetAllowanceDialogEndDateHint": "Only a stay spans two dates.",
+  "@budgetAllowanceDialogEndDateHint": {
+    "description": "Helper of the defrayal dialog's own end date field",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetProvisionConfirmMessage": "{created} lines would be created, {updated} updated, and {skipped} left exactly as they are because somebody has edited them.",
+  "@budgetProvisionConfirmMessage": {
+    "description": "Message of the confirmation opened before provisioning, stating what it would do",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {"created": {"type": "int"}, "updated": {"type": "int"}, "skipped": {"type": "int"}}
+  },
   "budgetRegieEmptyHint": "Plan the shoot in the schedule to see what catering and travel actually cost.",
   "@budgetRegieEmptyHint": {
     "description": "Message shown in place of the catering-and-travel view while the project holds no shooting day at all",

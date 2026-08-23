@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
@@ -723,17 +724,16 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.regieDays / travelRows", () {
+  group("OcptBudgetState.regieDays / allowances", () {
     test("are empty while nothing is loaded", () {
       const state = OcptBudgetState.init();
 
       expect(state.regieDays, isEmpty);
-      expect(state.travelRows, isEmpty);
+      expect(state.allowances, isEmpty);
       expect(state.regieTotals.cost.amountCents, 0);
-      expect(state.travelTotals.cost.amountCents, 0);
     });
 
-    test("read the snapshot's own catering-and-travel pass, built from the schedule it was given", () {
+    test("read the snapshot's own catering pass, built from the schedule it was given", () {
       final crewPerson = _buildPerson(id: "person-crew", commuteKmMilli: 10000, mileageRateId: "rate-1");
       final castPerson = _buildPerson(id: "person-cast");
       final role = _buildRole(id: "role-1", name: "Hero", personId: "person-cast");
@@ -757,10 +757,6 @@ void main() {
           "day-1": [slot],
         },
         roles: [role],
-        people: [crewPerson, castPerson],
-        mileageRates: [
-          const OcptBudgetMileageRate(id: "rate-1", label: "Car", ratePerKmMilliCents: 50000, sortKey: "a0"),
-        ],
         mealPriceCents: 1200,
         buffetPriceCents: 400,
       );
@@ -772,13 +768,38 @@ void main() {
       expect(state.mealPriceCents, 1200);
       expect(state.buffetPriceCents, 400);
 
-      expect(state.travelRows, hasLength(2));
-      final crewRow = state.travelRows.firstWhere((row) => row.personId == "person-crew");
-      expect(crewRow.totalKmMilli, 20000);
-      expect(crewRow.amountCents, 1000);
-      final castRow = state.travelRows.firstWhere((row) => row.personId == "person-cast");
-      expect(castRow.totalKmMilli, isNull);
-      expect(castRow.amountCents, isNull);
+      // The crew member's own commute and rate are recorded, and the pass reads **nothing** off
+      // them: what a production pays somebody back is typed, never deduced from their presence.
+      expect(crewPerson.commuteKmMilli, 10000);
+      expect(castPerson.id, "person-cast");
+      expect(state.allowances, isEmpty);
+    });
+
+    test("carry the defrayals the snapshot was built with, in the order given", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        postes: const [],
+        entries: const [],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+        allowances: const [
+          OcptBudgetAllowance(
+            id: "allowance-1",
+            personId: "person-crew",
+            kind: OcptBudgetAllowanceKind.travel,
+            label: "Aller",
+            date: null,
+            endDate: null,
+            quantityMilli: 168000,
+            unitAmountMilliCents: 52900,
+            notes: "",
+            sortKey: "a0",
+          ),
+        ],
+      );
+      final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
+
+      expect(state.allowances.single.id, "allowance-1");
     });
   });
 

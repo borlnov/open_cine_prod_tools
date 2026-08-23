@@ -6,8 +6,10 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
@@ -146,8 +148,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// Every live role of the project, as last loaded — read by `OcptBudgetRegie` alone, to resolve a
   /// traveller's own convocation (a role's own [OcptRole.name] for a cast row, its
   /// [OcptRole.personId] to join a role back to the human playing it) and to tell cast from extras.
-  /// Not part of [snapshot]: unlike the catering-and-travel pass's own [OcptBudgetSnapshot.regieDays]
-  /// and [OcptBudgetSnapshot.travelRows], this is the raw read the view resolves a display string
+  /// Not part of [snapshot]: unlike the catering pass's own [OcptBudgetSnapshot.regieDays], this is
+  /// the raw read the view resolves a display string
   /// from, exactly as `OcptScheduleState` carries its own roles beside its snapshot rather than
   /// inside it.
   final List<OcptRole> roles;
@@ -163,6 +165,21 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// picker needs the whole catalogue, not a figure derived from it, exactly the reason [roles] and
   /// [people] already sit beside it rather than inside it.
   final List<OcptElement> elements;
+
+  /// Every live mileage rate of the project, as last loaded — read by
+  /// `OcptBudgetAllowanceDialog` alone, for its `Use this person's own rate` pre-fill. Not part of
+  /// [snapshot]: the dialog needs the catalogue itself, not a figure derived from it, exactly the
+  /// reason [roles] and [people] already sit beside it rather than inside it.
+  final List<OcptBudgetMileageRate> mileageRates;
+
+  /// The poste the régie view's own provisioning would write into, or null while this project's
+  /// quote holds no poste at all.
+  ///
+  /// Defaults to the CNC nomenclature's own `Transports, défraiements, régie` poste when the
+  /// project still has it, and to the first poste otherwise — a production is free to have renamed,
+  /// split or deleted it, so this is a *preference among the postes that exist*, never an
+  /// assumption that one of them does.
+  final String? provisionPosteId;
 
   /// The decor name `OcptBudgetRegie` prints under each shooting day, keyed by the day's own id —
   /// the first location or set the day's own slots name, resolved once at load time out of the
@@ -358,17 +375,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
         cost: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
       );
 
-  /// Every traveller the schedule names, empty while nothing is loaded or the project holds nobody
-  /// to travel — `OcptBudgetRegie`'s own right column.
-  List<OcptBudgetTravelRow> get travelRows => snapshot?.travelRows ?? const [];
-
-  /// [travelRows] folded into one total — mirrors [regieTotals]' own empty default.
-  OcptBudgetTravelTotals get travelTotals =>
-      snapshot?.travelTotals ??
-      const OcptBudgetTravelTotals(
-        totalKmMilli: 0,
-        cost: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
-      );
+  /// Every live defrayal, empty while nothing is loaded or the production has defrayed nobody —
+  /// `OcptBudgetRegie`'s own right column.
+  List<OcptBudgetAllowance> get allowances => snapshot?.allowances ?? const [];
 
   /// Every live voucher, keyed by the `budget_entries` row it evidences — empty while nothing is
   /// loaded or no entry carries one.
@@ -480,6 +489,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.roles,
     required this.people,
     required this.elements,
+    required this.mileageRates,
+    required this.provisionPosteId,
     required this.regieDecorNameByDayId,
     required this.projectVersions,
     required this.previewedVersionId,
@@ -515,6 +526,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       roles = const [],
       people = const [],
       elements = const [],
+      mileageRates = const [],
+      provisionPosteId = null,
       regieDecorNameByDayId = const {},
       projectVersions = const [],
       previewedVersionId = null,
@@ -562,6 +575,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     List<OcptRole>? roles,
     List<OcptPerson>? people,
     List<OcptElement>? elements,
+    List<OcptBudgetMileageRate>? mileageRates,
+    String? provisionPosteId,
     Map<String, String>? regieDecorNameByDayId,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
@@ -603,6 +618,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     roles: roles ?? this.roles,
     people: people ?? this.people,
     elements: elements ?? this.elements,
+    mileageRates: mileageRates ?? this.mileageRates,
+    provisionPosteId: provisionPosteId ?? this.provisionPosteId,
     regieDecorNameByDayId: regieDecorNameByDayId ?? this.regieDecorNameByDayId,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId: clearPreviewedVersionId ? null : (previewedVersionId ?? this.previewedVersionId),
@@ -698,6 +715,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     roles,
     people,
     elements,
+    mileageRates,
+    provisionPosteId,
     regieDecorNameByDayId,
     pageSetup,
     ioNotice,

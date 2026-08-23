@@ -10,14 +10,19 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
-/// The catering-and-travel pass: what a shooting day actually costs in meals and at the buffet, and
-/// what each person's own commute costs the production in mileage.
+/// The catering pass: what a shooting day actually costs in meals and at the buffet.
 ///
 /// **Nothing here is typed twice.** The head counts come from the schedule
-/// (`OcptScheduleSnapshot`'s own days, slots and blocks), the two unit prices from the project
-/// settings, and each traveller's own distance and rate from their own sheet
-/// (`people.commuteKmMilli`, `people.mileageRateId`) — this file only ever crosses figures that
-/// already live somewhere else, exactly as ADR 0026 argues for the whole mode.
+/// (`OcptScheduleSnapshot`'s own days, slots and blocks) and the two unit prices from the project
+/// settings — this file only ever crosses figures that already live somewhere else, exactly as
+/// ADR 0026 argues for the whole mode.
+///
+/// **The defrayals used to live here too, and deliberately no longer do.** This file once computed
+/// what a traveller costs as one return trip per day of presence, from their own home-to-set
+/// distance and their own mileage rate; a real shoot does not work that way, so what a production
+/// pays somebody back is now typed row by row into `budget_allowances` and read through
+/// `lib/utils/ocpt_budget_allowances.dart` — see `OcptBudgetAllowancesTable`'s own doc comment.
+/// What is left here is what genuinely *is* derivable from a schedule: who was fed, and how often.
 ///
 /// **A meal is read off the timetable, never assumed.** Earlier readings of this pass counted one
 /// meal per head per shooting day mechanically, whatever the day's own timetable held — the
@@ -35,21 +40,6 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// in three slots, counted once) — a per-head rate is the right shape for a table whose own size
 /// follows how many people are there. This is the one rule in this file that did **not** change
 /// when the meal reading did.
-
-/// How many legs a return trip is made of — one out, one back — what turns a person's own one-way
-/// [OcptBudgetTravelRow.totalKmMilli] into the distance the production actually reimburses.
-const int _ocptBudgetReturnTripLegCount = 2;
-
-/// How many thousandths of a cent-per-kilometre make up one cent-per-kilometre, and how many
-/// thousandths of a kilometre make up one kilometre at once: a distance in `kilometres × 1000`
-/// times a rate in `cents × 1000` per kilometre is `cents × 1,000,000`, so this is what the product
-/// of the two is divided back down by.
-const int _ocptBudgetTravelMilliUnitsPerCent = 1000000;
-
-/// Half of [_ocptBudgetTravelMilliUnitsPerCent] — added to a non-negative numerator before the
-/// integer division in [_ocptBudgetTravelAmountCentsOf], so the division rounds to the nearest cent
-/// exactly once rather than always truncating down, without ever going through a `double`.
-const int _ocptBudgetTravelRoundingHalf = _ocptBudgetTravelMilliUnitsPerCent ~/ 2;
 
 /// How many priced items a day's own catering [OcptBudgetRegieDay.cost] is built from — the meals
 /// (folded across every sitting) and the buffet, the two figures `docs/architecture/budget.md`'s
@@ -432,226 +422,6 @@ OcptBudgetRegieTotals ocptBudgetRegieTotalsOf(List<OcptBudgetRegieDay> days) {
       amountCents: amountCents,
       coveredLineCount: coveredLineCount,
       lineCount: lineCount,
-    ),
-  );
-}
-
-/// One traveller's own mileage reading: how many return trips the schedule puts them on, and what
-/// that comes to.
-class OcptBudgetTravelRow extends Equatable {
-  /// The person this row is for.
-  final String personId;
-
-  /// How many distinct shooting days this person is present on — one return trip per day, see
-  /// [ocptBudgetTravelRowsOf]'s own doc comment.
-  final int returnTripCount;
-
-  /// The total distance this person actually travels, in thousandths of a kilometre — null when
-  /// their own commute is null, never zero: nobody has said how far they travel, which is a
-  /// different fact from them travelling no distance at all.
-  final int? totalKmMilli;
-
-  /// What reimbursing [totalKmMilli] comes to, in cents — null when [totalKmMilli] is, when this
-  /// person names no rate, or when the rate they name is not one this project holds.
-  final int? amountCents;
-
-  /// Class constructor
-  const OcptBudgetTravelRow({
-    required this.personId,
-    required this.returnTripCount,
-    required this.totalKmMilli,
-    required this.amountCents,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetTravelRow(personId: $personId, returnTripCount: $returnTripCount, "
-      "totalKmMilli: $totalKmMilli, amountCents: $amountCents)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [personId, returnTripCount, totalKmMilli, amountCents];
-}
-
-/// Every traveller the schedule names, each with their own return-trip count and what reimbursing
-/// them comes to.
-///
-/// **A person is present on a day when they are linked as crew to any slot of it, or when a role
-/// they are cast in is linked as cast to any slot of it** ([personIdByRoleId] resolving a role to
-/// the human playing it) — crossed here with days rather than heads. **Guests are excluded**, for
-/// the same reason as [ocptBudgetRegieDaysOf]: [OcptShootingSlot.guests] is never read by this
-/// function.
-///
-/// [OcptBudgetTravelRow.returnTripCount] is the number of **distinct days** a person is present on
-/// — one journey out and back per shooting day, never one per slot: a person linked to two slots of
-/// the same day still makes one round trip.
-///
-/// [OcptBudgetTravelRow.totalKmMilli] is `returnTripCount × 2 × commuteKmMilli`, the `× 2` turning
-/// a one-way commute into a return trip — null exactly when this person's own
-/// [commuteKmMilliByPersonId] entry is, never zero.
-///
-/// [OcptBudgetTravelRow.amountCents] is that distance times the rate this person names
-/// ([mileageRateIdByPersonId] resolved through [ratePerKmMilliCentsByRateId]), rounded to the
-/// nearest cent **exactly once, at the end** — never a `double` anywhere in between, for the same
-/// reason `quantityMilli` exists at all (`docs/architecture/budget.md`'s own money rule). It is
-/// null when the distance is null, when this person names no rate at all, or when the rate they
-/// name is not one [ratePerKmMilliCentsByRateId] holds — a rate since deleted, say.
-///
-/// **A person who claims nothing is still returned, with the money left silent**: dropping their
-/// row instead would make an absent figure indistinguishable from an absent person, and it is
-/// exactly by seeing the row that somebody discovers a distance nobody has filled in yet.
-///
-/// **Ordering is deterministic and not by name**: [OcptBudgetTravelRow.returnTripCount] descending,
-/// ties broken by [OcptBudgetTravelRow.personId] — the very argument `ocptComputeDayConvocations`
-/// (`lib/utils/ocpt_shooting_convocations.dart`) already makes about its own ordering. Nothing in
-/// this file knows a person's display name, so a caller wanting an alphabetical reading re-sorts on
-/// top of this one.
-List<OcptBudgetTravelRow> ocptBudgetTravelRowsOf({
-  required List<OcptShootingDay> days,
-  required Map<String, List<OcptShootingSlot>> slotsByDayId,
-  required Map<String, String?> personIdByRoleId,
-  required Map<String, int?> commuteKmMilliByPersonId,
-  required Map<String, String?> mileageRateIdByPersonId,
-  required Map<String, int> ratePerKmMilliCentsByRateId,
-}) {
-  final presentDayIdsByPersonId = <String, Set<String>>{};
-
-  for (final day in days) {
-    final slots = slotsByDayId[day.id] ?? const [];
-    final personIdsPresentToday = <String>{};
-
-    for (final slot in slots) {
-      for (final crewMember in slot.crew) {
-        personIdsPresentToday.add(crewMember.personId);
-      }
-      for (final castMember in slot.cast) {
-        final personId = personIdByRoleId[castMember.roleId];
-        if (personId != null) {
-          personIdsPresentToday.add(personId);
-        }
-      }
-    }
-
-    for (final personId in personIdsPresentToday) {
-      presentDayIdsByPersonId.putIfAbsent(personId, () => <String>{}).add(day.id);
-    }
-  }
-
-  final rows = [
-    for (final entry in presentDayIdsByPersonId.entries)
-      _ocptBudgetTravelRowOf(
-        personId: entry.key,
-        returnTripCount: entry.value.length,
-        commuteKmMilliByPersonId: commuteKmMilliByPersonId,
-        mileageRateIdByPersonId: mileageRateIdByPersonId,
-        ratePerKmMilliCentsByRateId: ratePerKmMilliCentsByRateId,
-      ),
-  ];
-
-  rows.sort((left, right) {
-    final byReturnTripCount = right.returnTripCount.compareTo(left.returnTripCount);
-    if (byReturnTripCount != 0) {
-      return byReturnTripCount;
-    }
-
-    return left.personId.compareTo(right.personId);
-  });
-
-  return rows;
-}
-
-/// [personId]'s own travel row, having made [returnTripCount] return trips — see
-/// [ocptBudgetTravelRowsOf]'s own doc comment for the arithmetic argued in full.
-OcptBudgetTravelRow _ocptBudgetTravelRowOf({
-  required String personId,
-  required int returnTripCount,
-  required Map<String, int?> commuteKmMilliByPersonId,
-  required Map<String, String?> mileageRateIdByPersonId,
-  required Map<String, int> ratePerKmMilliCentsByRateId,
-}) {
-  final commuteKmMilli = commuteKmMilliByPersonId[personId];
-  final totalKmMilli = commuteKmMilli == null
-      ? null
-      : returnTripCount * _ocptBudgetReturnTripLegCount * commuteKmMilli;
-
-  final rateId = mileageRateIdByPersonId[personId];
-  final ratePerKmMilliCents = rateId == null ? null : ratePerKmMilliCentsByRateId[rateId];
-
-  return OcptBudgetTravelRow(
-    personId: personId,
-    returnTripCount: returnTripCount,
-    totalKmMilli: totalKmMilli,
-    amountCents: _ocptBudgetTravelAmountCentsOf(
-      totalKmMilli: totalKmMilli,
-      ratePerKmMilliCents: ratePerKmMilliCents,
-    ),
-  );
-}
-
-/// [totalKmMilli] reimbursed at [ratePerKmMilliCents], rounded to the nearest cent — null when
-/// either is, never a `double`: [totalKmMilli] and [ratePerKmMilliCents] are both already integers
-/// in thousandths, so their product is an integer number of millionths of a cent, and
-/// [_ocptBudgetTravelRoundingHalf] added before the integer division rounds it to the nearest whole
-/// cent in one exact step rather than truncating down every time.
-int? _ocptBudgetTravelAmountCentsOf({required int? totalKmMilli, required int? ratePerKmMilliCents}) {
-  if (totalKmMilli == null || ratePerKmMilliCents == null) {
-    return null;
-  }
-
-  final numerator = totalKmMilli * ratePerKmMilliCents;
-  return (numerator + _ocptBudgetTravelRoundingHalf) ~/ _ocptBudgetTravelMilliUnitsPerCent;
-}
-
-/// The travel pass folded over every traveller: the total distance and the total reimbursement.
-class OcptBudgetTravelTotals extends Equatable {
-  /// The sum of [OcptBudgetTravelRow.totalKmMilli] over the rows that carry one — a row whose own
-  /// distance is null contributes nothing here, exactly as it contributes no figure of its own.
-  final int totalKmMilli;
-
-  /// Every row's own [OcptBudgetTravelRow.amountCents], folded together — row by row, then summed,
-  /// so the view can say `1 240 € · over 3 of the 7 travellers` for as long as any distance or rate
-  /// is missing.
-  final OcptBudgetCoveredTotal cost;
-
-  /// Class constructor
-  const OcptBudgetTravelTotals({required this.totalKmMilli, required this.cost});
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptBudgetTravelTotals(totalKmMilli: $totalKmMilli, cost: $cost)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [totalKmMilli, cost];
-}
-
-/// [rows]' own travel reading, folded into one total — see [OcptBudgetTravelTotals]'s own doc
-/// comment.
-OcptBudgetTravelTotals ocptBudgetTravelTotalsOf(List<OcptBudgetTravelRow> rows) {
-  var totalKmMilli = 0;
-  var amountCents = 0;
-  var coveredLineCount = 0;
-
-  for (final row in rows) {
-    final rowKmMilli = row.totalKmMilli;
-    if (rowKmMilli != null) {
-      totalKmMilli += rowKmMilli;
-    }
-
-    final rowAmountCents = row.amountCents;
-    if (rowAmountCents != null) {
-      amountCents += rowAmountCents;
-      coveredLineCount++;
-    }
-  }
-
-  return OcptBudgetTravelTotals(
-    totalKmMilli: totalKmMilli,
-    cost: OcptBudgetCoveredTotal(
-      amountCents: amountCents,
-      coveredLineCount: coveredLineCount,
-      lineCount: rows.length,
     ),
   );
 }

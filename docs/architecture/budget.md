@@ -9,9 +9,10 @@ SPDX-License-Identifier: Apache-2.0
 The production's money, read honestly in whichever tax basis it was typed in: the quote against
 the CNC nomenclature, the cash journal it is measured against — every entry the account has
 actually seen, and every commitment still owed but not yet paid — the financing plan that says what
-pays for all of it, and the catering and travel a shooting day actually costs, read off the
-schedule rather than typed a second time, and the revenue sharing that says, once the film has
-earned something, who gets what of it. The mode is complete: its seven views and its four documents
+pays for all of it, the catering a shooting day actually costs — read off the schedule rather than
+typed a second time — beside the defrayals a production types row by row and provisions into the
+quote, and the revenue sharing that says, once the film has earned something, who gets what of it.
+The mode is complete: its seven views and its four documents
 are all here, and this file is the whole record of them.
 
 ## Who it serves, and what the mode now shows
@@ -385,8 +386,9 @@ are all here, and this file is the whole record of them.
   and the dock tab are one gesture rather than two: opening the dock on `Help`, and closing it again
   on a second click while `Help` is already showing — the toggle every other dock control already
   has. `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly
-  the argument "The catering and travel pass types nothing at all" already makes for `OcptBudgetRegie`,
-  so it carries no `isReadOnly` flag and is offered identically under a previewed version.
+  the argument the dashboard already makes for itself, so it carries no `isReadOnly` flag and is
+  offered identically under a previewed version — unlike `OcptBudgetRegie`, which gained one the day
+  it started writing defrayals.
   Its content follows `OcptBudgetState.centreView`: switching the header's own chips changes what the
   panel says, with no extra click, since the dock stays open on `Help` across a chip change exactly
   as it stays open on `Inspector` across a poste selection.
@@ -404,11 +406,12 @@ are all here, and this file is the whole record of them.
   already reads, resolved as an ICU argument (`intl_utils`'s own convention, "The four documents"
   below) rather than restated by hand — so the help text can never drift from the very word it is
   pointing at.
-  The header's seven view chips (`Dashboard`, `Cost tracking`, `Trésorerie` in French — `Cash
+  The header's six view chips (`Dashboard`, `Cost tracking`, `Trésorerie` in French — `Cash
   journal` in English, deliberately renamed off "Journal de caisse" once that first choice turned
-  out to name a petty-cash book rather than the bank account the view actually reads — `Financing`,
-  `Committed`, `Régie` in French — `Catering & travel` in English, the same asymmetry and for the
-  same reason: the trade word has no one-word English equivalent — and `Revenue sharing`) and its
+  out to name a petty-cash book rather than the bank account the view actually reads — `Planned`,
+  which stands for two views at once (see "What is promised is one place, read in two directions"),
+  `Régie` in French — `Catering & travel` in English, the same asymmetry and for the same reason:
+  the trade word has no one-word English equivalent — and `Revenue sharing`) and its
   two further toggles, simplified/detailed and excluding/including-tax, are
   **always offered, whatever the project holds**: neither is ever withheld or disabled according to
   the state of the data, there is no conditional branch in
@@ -732,71 +735,64 @@ are all here, and this file is the whole record of them.
   `statusLabelOf(kind, status)`), built from the very same resolver the view uses, so a printed plan
   can never disagree with the screen about what a step is called.
 
-## The catering and travel pass types nothing at all
+## The catering is computed, the defrayals are typed, and both reach the quote
 
-- `OcptBudgetRegie` is the one centre view that **writes nothing, and therefore carries no
-  `isReadOnly` flag at all** — a previewed version withholds nothing here, exactly the argument
-  `OcptBudgetDashboard` already makes for itself. Every figure on it is typed somewhere else and
-  read here: the head counts come from the schedule, the two unit prices from the project settings,
-  and each traveller's distance and rate from their own sheet in the resources mode. That is the
-  whole promise — nothing is entered twice — and it is why the view's three cross-links matter as
-  much as its figures: each row reports upward and `budget_mode.dart` dispatches through
-  `OcptWorkspaceBloc`, never navigation of the mode's own making, so a reader who disagrees with a
-  number is sent to the one place it can be changed.
-- **It reads `OcptScheduleSnapshot`, deliberately not `OcptSchedulePlanSnapshot`.** The plan
-  snapshot is the obvious-looking type and the wrong one: it requires every episode's own shot list
-  and the episode list, neither of which counting heads needs, and building one here would make the
-  budget mode load the whole découpage to count meals. The schedule snapshot — the very field a
-  plan snapshot wraps — carries days, slots **and blocks**; a slot already carries its own live
-  crew, cast and guests, and a block already carries the slot it belongs to
-  (`shooting_day_blocks.slotId`), which is everything `ocpt_budget_regie.dart` reads.
-- **A meal is counted once per `shooting_day_blocks` row of kind `OcptShootingBlockKind.meal`, over
-  the heads convoked to that block's own slot alone — never the whole day.** The earlier reading
-  counted one meal per head per shooting day mechanically, whatever the timetable held; the product
-  owner's own objection was exact: nobody can know whether a day feeds anybody, or feeds them lunch,
-  dinner or both, unless the timetable says so. A slot holding a lunch block and a dinner block
-  therefore feeds its own heads twice, two parallel slots each holding their own meal block feed
-  their own heads at their own times, and a slot with no meal block feeds nobody.
-  `OcptBudgetRegieDay.mealSittings` carries one `OcptBudgetRegieMealSitting` per block rather than
-  flattening the day into a single count, so a day with several sittings says so instead of hiding
-  behind one number that could just as well be one big sitting. **A day whose timetable holds no
-  meal block at all reads `mealSittings` empty**, which the view prints as a dash in the `Meals`
-  column rather than a `0` that would look like a confirmed "nobody eats today" — the catering
-  column's own caption states the rule in full, so a production preparing its budget on a timetable
-  not yet built understands why the figure is low rather than suspecting the app is broken.
-- **Deduplicated by person within one meal block, never further.** Crew is read by `personId`
-  directly; cast is `roles`, read through `roles.personId` — a role names a person only once it is
-  cast, so somebody who is both crew and cast on the very same slot is counted once ("comédien et
-  technicien… ne mange qu'une fois"). **This dedup has a stated limit**: a role with no person
-  recorded cannot honestly be told apart from the crew, so it counts on its own rather than being
-  folded into a set it might already belong to — a part not yet cast keeps counting twice, once as
-  an uncertain role and once as whichever crew member turns out to play it, until the role actually
-  is cast.
-- **The buffet — craft services in the trade's own English, *le buffet* in French — is unaffected by
-  any of this.** It reads as a permanently available table, not a meal, so its size still follows a
-  plain per-head, per-shooting-day count, deduplicated exactly as the mechanical reading always
-  deduplicated it (present in three slots, counted once): `project_info.snackPriceCents` prices it,
-  the column keeping the schema's own name (ADR 0007) while every user-facing word says buffet or
-  craft services instead.
-- A role counts as an extra exactly when its own `OcptRoleKind` says so, and a role the read cannot
-  resolve counts as cast rather than as nothing, since it is still a convocation the production has
-  to feed; **a guest is not counted at all, in either reading** — a visitor is not somebody the
-  production convoked to work, which is the distinction ADR 0018 already draws by refusing a guest a
-  shooting band.
-- **The consequence is real, and is recorded here rather than only in the code.** A project whose
-  schedule holds shooting days but no meal block at all sees its meal figure drop, sometimes to
-  zero, the moment this reading replaced the old one — that is the honest reading correcting an
-  estimate that was always wrong, not a regression: the app no longer claims to know a fact (that a
-  day fed everybody) it cannot support from a timetable that never said so.
-  A travel row crosses the presence grid with a person's **one-way** `commuteKmMilli`, doubled where
-  the journey is counted rather than stored doubled, and the rate their own sheet names; the whole
-  computation is integer arithmetic with a single rounding at the end, for the reason `quantityMilli`
-  exists at all. A traveller who claims nothing — no distance, or no rate, or a rate id naming a row
-  since tombstoned — is **still listed**, with the money silent and the trip count showing: that is
-  how somebody discovers a distance nobody filled in, and dropping the row would make an absent
-  figure indistinguishable from an absent person. Both of the view's totals are
-  `OcptBudgetCoveredTotal`s printing the very same coverage read-out the cost-tracking table already
-  does, for as long as a price, a distance or a rate is missing.
+- `OcptBudgetRegie` reads in **two opposite directions, side by side**. The left column is
+  *computed*: what each shooting day costs in meals and at the buffet, off the schedule and the
+  project's own two unit prices, nothing typed here at all. The right column is *typed*: one
+  `budget_allowances` row per thing actually owed, because what a production pays somebody back is
+  not derivable from their presence — see "A defrayal is typed, never deduced" above. Under
+  [_ocptRegieWrapWidth] the two stack rather than crush each other, and the defrayal table itself
+  has a floor of 580 px below which it scrolls sideways, exactly as the journal's own does.
+- **The view writes, and therefore carries `isReadOnly`** — it did not before, being read-only start
+  to finish. Under a previewed version the `Defrayal` button, the row menus, the poste picker and
+  the provisioning button are **withheld, never disabled**, expressed as null callbacks by the mode
+  and again by the view itself.
+- Every figure the *catering* reads is typed somewhere else, so each source gets a way back to it,
+  reported upward rather than navigated here: the head counts point at the schedule, the two unit
+  prices at the project settings, and a defrayed person at their own sheet in the resources mode.
+  `OcptBudgetMode` turns each into a real dispatch.
+- Empty state: a project holding **neither** a shooting day **nor** a defrayal shows
+  `OcptWorkspaceEmptyMode` over the whole view. One holding defrayals but no schedule keeps the
+  layout — there is a `+` action of this view's own to keep a heading band drawn for now.
+
+## The régie provisions into the quote, and never overwrites a hand
+
+- The view used to compute figures and write them nowhere, which the product owner named exactly:
+  *"il fait des calculs mais ces calculs, où sont-ils enregistrés ou provisionnés ?"* — they were
+  nowhere. A band under both columns now reads `Computed here`, `Quoted on this poste` and the
+  **gap** between them, and offers the gesture that closes it.
+- **One quote line per nature**, never one lump: `OcptBudgetProvisionKind`'s own six values —
+  catering meals, craft services, and the four defrayal natures — so the quote stays readable and
+  the gap can be read nature by nature. A catering meal and a defrayed meal are two of those values
+  on purpose: the first is what the production fed the unit on a shooting day, the second what one
+  person is paid back for a meal it did not provide, and a quote holding both must not read the same
+  word twice.
+- **The target poste is picked, with the CNC `Transports, défraiements, régie` as the default** —
+  by its stable seeded id, and only while the project still has it. The nomenclature is seeded, not
+  frozen: a production is free to have renamed, split or deleted that poste, so this is a preference
+  among the postes that exist, never an assumption that one of them does. A quote holding no poste
+  at all says so instead of offering an inert picker.
+- **Reprovisioning updates what it wrote, and reports what it did not.** `budget_lines.provisionKey`
+  names the nature a line was provisioned for — a key rather than a foreign key, since the figure
+  sums across every shooting day and every defrayal and no single row exists to point at — and
+  `budget_lines.provisionDigest` holds `[label, quantityMilli, unitAmountCents]` exactly as the
+  provisioning last wrote them. `ocptBudgetProvisionPlanOf` then reads three cases: a nature with no
+  line is **created**; a line still holding what the app wrote is the app's own to **update** (or is
+  left `unchanged`); and a line whose figures have moved has been **retouched by somebody** and is
+  reported rather than overwritten. A figure a user typed is never silently corrected — the money
+  rule of this whole mode. A line carrying no key at all is never touched: a van hire quoted on the
+  same poste is nobody's business but the person who typed it.
+- **A provisioned line whose nature no longer has any figure is updated to nothing**, not deleted
+  and not left standing: it is a line the app wrote and still owns, so leaving yesterday's travel
+  total in the quote after every defrayal has gone would be the one dishonest option, and deleting
+  it would take a decision that belongs to the user, who can see the zero and remove the line.
+- **The plan is computed whole before a row is written**, and the counts go in front of the user in
+  an `OcptConfirmDialog` opened by the mode — *n created, n updated, n left exactly as they are*.
+  The plan then travels with the event rather than being recomputed: it is what the user said yes
+  to. A plan that would change nothing says so and asks nothing. This is schema **v32** and
+  **payload format 28**, whose upgrade nulls both columns on every existing line — no line of any
+  project was ever written by a provisioning that did not exist.
 
 ## The dashboard reads the financing plan once it exists
 

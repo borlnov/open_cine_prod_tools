@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
@@ -31,6 +32,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_allowance_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_committed_spending.dart';
@@ -67,6 +69,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
@@ -1069,31 +1072,202 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
   }
 
-  /// Builds the catering-and-travel view. Writes nothing of its own — see `OcptBudgetRegie`'s own
-  /// class doc comment — so every callback here only ever reports where a figure was typed: the
-  /// schedule mode, the project settings page, or a traveller's own sheet in the resources mode.
-  Widget _buildRegie(BuildContext context, OcptBudgetState state) => OcptBudgetRegie(
-    days: state.regieDays,
-    cateringTotals: state.regieTotals,
-    decorNameByDayId: state.regieDecorNameByDayId,
-    mealPriceCents: state.mealPriceCents,
-    buffetPriceCents: state.buffetPriceCents,
-    travelRows: state.travelRows,
-    travelTotals: state.travelTotals,
-    roles: state.roles,
-    people: state.people,
-    currencyCode: state.currencyCode,
-    onScheduleOpenRequested: () => context.read<OcptWorkspaceBloc>().add(
-      const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
-    ),
-    onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
-    onPersonOpenRequested: (personId) => context.read<OcptWorkspaceBloc>().add(
-      OcptWorkspaceModeSelectedEvent(
-        mode: OcptWorkspaceMode.resources,
-        revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.people, recordId: personId),
+  /// Builds the catering-and-defrayals view: the catering it computes, the defrayals it lets a
+  /// production type, and the band that provisions both into the quote.
+  ///
+  /// The catering's own callbacks only ever report where a figure was typed — the schedule mode or
+  /// the project settings page — while the defrayals and the provisioning are real writes, opened
+  /// from here and confirmed from here, exactly as every other writing view of this mode is.
+  Widget _buildRegie(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptBudgetRegie(
+      days: state.regieDays,
+      cateringTotals: state.regieTotals,
+      decorNameByDayId: state.regieDecorNameByDayId,
+      mealPriceCents: state.mealPriceCents,
+      buffetPriceCents: state.buffetPriceCents,
+      allowances: state.allowances,
+      postes: state.postes,
+      provisionPosteId: state.provisionPosteId,
+      provisionedTotalCents: _provisionedTotalCentsOf(state),
+      roles: state.roles,
+      people: state.people,
+      currencyCode: state.currencyCode,
+      isReadOnly: isReadOnly,
+      onScheduleOpenRequested: () => context.read<OcptWorkspaceBloc>().add(
+        const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
       ),
-    ),
-  );
+      onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
+      onPersonOpenRequested: (personId) => context.read<OcptWorkspaceBloc>().add(
+        OcptWorkspaceModeSelectedEvent(
+          mode: OcptWorkspaceMode.resources,
+          revealRequest: OcptResourcesRevealRequest(
+            tab: OcptResourcesTab.people,
+            recordId: personId,
+          ),
+        ),
+      ),
+      onAllowanceCreationRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleAllowanceDialogRequested(context, state, null)),
+      onAllowanceEditRequested: isReadOnly
+          ? null
+          : (allowanceId) => unawaited(
+              _handleAllowanceDialogRequested(
+                context,
+                state,
+                state.allowances.where((row) => row.id == allowanceId).firstOrNull,
+              ),
+            ),
+      onAllowanceDeletionRequested: isReadOnly
+          ? null
+          : (allowanceId) => unawaited(_handleAllowanceDeletionRequested(context, allowanceId)),
+      onProvisionPosteSelected: isReadOnly
+          ? null
+          : (posteId) => bloc.add(OcptBudgetProvisionPosteSelectedEvent(posteId: posteId)),
+      onProvisionRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleProvisionRequested(context, state)),
+    );
+  }
+
+  /// What the provisioned lines of [OcptBudgetState.provisionPosteId] currently hold, in cents —
+  /// the figure the régie view's own band reads back as `Quoted on this poste`.
+  ///
+  /// **Only the lines the provisioning itself wrote count**, never every line of the poste: a
+  /// production quoting a van hire on the same poste has not thereby provisioned its catering, and
+  /// a band saying otherwise would report a gap closed that is still open.
+  int _provisionedTotalCentsOf(OcptBudgetState state) {
+    final poste = state.postes.where((row) => row.id == state.provisionPosteId).firstOrNull;
+    if (poste == null) {
+      return 0;
+    }
+
+    return poste.lines
+        .where((line) => line.provisionKey != null)
+        .fold(0, (sum, line) => sum + ocptBudgetLineTotalCents(line));
+  }
+
+  /// Opens the defrayal dialog — empty while creating, pre-filled from [existing] while editing —
+  /// then dispatches the write if the user confirmed it.
+  Future<void> _handleAllowanceDialogRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetAllowance? existing,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final fields = await OcptBudgetAllowanceDialog.show(
+      context,
+      existing: existing,
+      people: state.people,
+      mileageRates: state.mileageRates,
+      currencyCode: state.currencyCode,
+    );
+    if (fields == null) {
+      return;
+    }
+
+    bloc.add(
+      existing == null
+          ? OcptBudgetAllowanceCreationConfirmedEvent(fields: fields)
+          : OcptBudgetAllowanceUpdateConfirmedEvent(allowanceId: existing.id, fields: fields),
+    );
+  }
+
+  /// Asks `OcptConfirmDialog` whether defrayal [allowanceId] really is to be deleted, then
+  /// dispatches the deletion if the user answered `Delete`.
+  Future<void> _handleAllowanceDeletionRequested(
+    BuildContext context,
+    String allowanceId,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetDeleteAllowanceConfirmTitle,
+      message: tr.budgetDeleteAllowanceConfirmMessage,
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetDeleteConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetAllowanceDeletionConfirmedEvent(allowanceId: allowanceId));
+  }
+
+  /// Computes what provisioning would do, puts those counts in front of the user through
+  /// `OcptConfirmDialog`, and dispatches it only if they agree.
+  ///
+  /// **The plan is computed here, whole, before anything is written**, and travels with the event:
+  /// it is what the user was shown and said yes to. Its wordings are resolved here too, since no
+  /// bloc and no util of this app ever sees a `Tr`.
+  ///
+  /// A plan that would change nothing says so and asks nothing: there is no decision to take.
+  Future<void> _handleProvisionRequested(BuildContext context, OcptBudgetState state) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+    final posteId = state.provisionPosteId;
+    final poste = state.postes.where((row) => row.id == posteId).firstOrNull;
+    if (posteId == null || poste == null) {
+      return;
+    }
+
+    final entries = ocptBudgetProvisionPlanOf(
+      items: ocptBudgetProvisionItemsOf(
+        mealCount: state.regieTotals.mealCount,
+        snackCount: state.regieTotals.buffetCount,
+        mealPriceCents: state.mealPriceCents,
+        snackPriceCents: state.buffetPriceCents,
+        allowances: state.allowances,
+      ),
+      posteLines: poste.lines,
+      labels: ocptBudgetProvisionLabelsOf(tr),
+    );
+
+    final created = entries
+        .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.created)
+        .length;
+    final updated = entries
+        .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.updated)
+        .length;
+    final skipped = entries
+        .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.skippedEdited)
+        .length;
+
+    if (created == 0 && updated == 0) {
+      await OcptConfirmDialog.show(
+        context,
+        title: tr.budgetProvisionConfirmTitle,
+        message: tr.budgetProvisionNothingToDoMessage,
+        cancelLabel: tr.budgetDeleteCancelAction,
+        confirmLabel: tr.budgetDeleteCancelAction,
+      );
+      return;
+    }
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetProvisionConfirmTitle,
+      message: tr.budgetProvisionConfirmMessage(created, updated, skipped),
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetRegieProvisionAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetProvisionConfirmedEvent(posteId: posteId, entries: entries));
+  }
 
   /// Builds the revenue sharing view.
   Widget _buildSharing(BuildContext context, OcptBudgetState state) {

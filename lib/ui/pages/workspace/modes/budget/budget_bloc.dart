@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_allowances_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
@@ -25,6 +26,8 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
@@ -127,6 +130,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// against.
   final OcptBudgetFinancingService _budgetFinancingService;
 
+  /// The service used to read and write the defrayals: the `budget_allowances` a production types
+  /// for itself, which nothing here deduces from the schedule.
+  final OcptBudgetAllowancesService _budgetAllowancesService;
+
   /// The service used to read and write the revenue sharing: the `budget_revenues` takings and the
   /// `budget_shares` splitting what they bring in.
   final OcptBudgetSharingService _budgetSharingService;
@@ -176,6 +183,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetQuoteService? budgetQuoteService,
     OcptBudgetJournalService? budgetJournalService,
     OcptBudgetFinancingService? budgetFinancingService,
+    OcptBudgetAllowancesService? budgetAllowancesService,
     OcptBudgetSharingService? budgetSharingService,
     OcptScheduleService? scheduleService,
     OcptRoleIndexService? roleIndexService,
@@ -197,6 +205,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
        _budgetFinancingService =
            budgetFinancingService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetFinancingService,
+       _budgetAllowancesService =
+           budgetAllowancesService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetAllowancesService,
        _budgetSharingService =
            budgetSharingService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetSharingService,
@@ -256,6 +267,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetCommitmentSettlementConfirmedEvent>(_onCommitmentSettlementConfirmed);
     on<OcptBudgetCommitmentUnsettleRequestedEvent>(_onCommitmentUnsettleRequested);
     on<OcptBudgetResourceSelectedEvent>(_onResourceSelected);
+    on<OcptBudgetAllowanceCreationConfirmedEvent>(_onAllowanceCreationConfirmed);
+    on<OcptBudgetAllowanceUpdateConfirmedEvent>(_onAllowanceUpdateConfirmed);
+    on<OcptBudgetAllowanceDeletionConfirmedEvent>(_onAllowanceDeletionConfirmed);
+    on<OcptBudgetProvisionPosteSelectedEvent>(_onProvisionPosteSelected);
+    on<OcptBudgetProvisionConfirmedEvent>(_onProvisionConfirmed);
     on<OcptBudgetResourceCreationConfirmedEvent>(_onResourceCreationConfirmed);
     on<OcptBudgetResourceUpdateConfirmedEvent>(_onResourceUpdateConfirmed);
     on<OcptBudgetResourceDeletionConfirmedEvent>(_onResourceDeletionConfirmed);
@@ -373,6 +389,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         roles: loaded.roles,
         people: loaded.people,
         elements: loaded.elements,
+        mileageRates: loaded.mileageRates,
+        provisionPosteId: _defaultProvisionPosteIdOf(loaded.snapshot.postes),
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
@@ -417,6 +435,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       List<OcptRole> roles,
       List<OcptPerson> people,
       List<OcptElement> elements,
+      List<OcptBudgetMileageRate> mileageRates,
       Map<String, String> regieDecorNameByDayId,
     })
   >
@@ -439,6 +458,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final elements = await _elementsService.loadElements(database: database);
     final locations = await _locationsService.loadLocations(database: database);
     final mileageRates = await _budgetFinancingService.loadMileageRates(database: database);
+    final allowances = await _budgetAllowancesService.loadAllowances(database: database);
     final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
     // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
     // own name, but what it prices is the buffet, never a snack in the trade's own words.
@@ -456,8 +476,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       slotsByDayId: scheduleSnapshot.slotsByDayId,
       blocksByDayId: scheduleSnapshot.blocksByDayId,
       roles: roles,
-      people: people,
-      mileageRates: mileageRates,
+      allowances: allowances,
       mealPriceCents: mealPriceCents,
       buffetPriceCents: buffetPriceCents,
       revenues: revenues,
@@ -469,12 +488,29 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       roles: roles,
       people: people,
       elements: elements,
+      mileageRates: mileageRates,
       regieDecorNameByDayId: _regieDecorNameByDayId(
         days: scheduleSnapshot.days,
         slotsByDayId: scheduleSnapshot.slotsByDayId,
         locations: locations,
       ),
     );
+  }
+
+  /// The poste the régie view's own provisioning starts out pointed at: the CNC nomenclature's own
+  /// `Transports, défraiements, régie`, by its **stable seeded id**, when the project still has it,
+  /// and the first poste otherwise.
+  ///
+  /// **A preference among the postes that exist, never an assumption that one of them does.** A
+  /// production is free to have renamed, split or deleted that poste — the nomenclature is seeded,
+  /// not frozen — and a project with no poste at all has nowhere to provision into, which the view
+  /// says rather than pretending otherwise.
+  String? _defaultProvisionPosteIdOf(List<OcptBudgetPoste> postes) {
+    const regiePosteId = 'd75aa74c-ed99-494a-bca0-3508b166ec18';
+
+    return postes.any((poste) => poste.id == regiePosteId)
+        ? regiePosteId
+        : postes.firstOrNull?.id;
   }
 
   /// The decor name `OcptBudgetRegie` prints under each shooting day: the name of the first set, or
@@ -1330,6 +1366,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         roles: loaded.roles,
         people: loaded.people,
         elements: loaded.elements,
+        mileageRates: loaded.mileageRates,
+        provisionPosteId:
+            state.provisionPosteId != null &&
+                loaded.snapshot.postes.any((poste) => poste.id == state.provisionPosteId)
+            ? state.provisionPosteId
+            : _defaultProvisionPosteIdOf(loaded.snapshot.postes),
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         clearSelectedPosteId: !posteStillExists,
         clearExpandedLineId: !lineStillExists,
@@ -1422,6 +1464,104 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     isReimbursable: Value(fields.isReimbursable),
     notes: Value(fields.notes),
   );
+
+  /// Creates a defrayal from `event.fields`.
+  ///
+  /// **One insert, unlike a resource's own two**: `OcptBudgetAllowancesService.createAllowance`
+  /// takes every field the dialog collected, because a defrayal is only ever minted from a form
+  /// already filled in — there is no "create it empty and name it afterwards" gesture here.
+  Future<void> _onAllowanceCreationConfirmed(
+    OcptBudgetAllowanceCreationConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    await _budgetAllowancesService.createAllowance(
+      database: project.database,
+      personId: fields.personId,
+      kind: fields.kind,
+      label: fields.label,
+      date: fields.date,
+      endDate: fields.endDate,
+      quantityMilli: fields.quantityMilli,
+      unitAmountMilliCents: fields.unitAmountMilliCents,
+      notes: fields.notes,
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Writes `event.fields` onto defrayal `event.allowanceId`.
+  Future<void> _onAllowanceUpdateConfirmed(
+    OcptBudgetAllowanceUpdateConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    await _budgetAllowancesService.updateAllowance(
+      database: project.database,
+      allowanceId: event.allowanceId,
+      personId: Value(fields.personId),
+      kind: Value(fields.kind),
+      label: Value(fields.label),
+      date: Value(fields.date),
+      endDate: Value(fields.endDate),
+      quantityMilli: Value(fields.quantityMilli),
+      unitAmountMilliCents: Value(fields.unitAmountMilliCents),
+      notes: Value(fields.notes),
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Deletes defrayal `event.allowanceId` for good, confirmed by the mode's own
+  /// `OcptConfirmDialog`.
+  Future<void> _onAllowanceDeletionConfirmed(
+    OcptBudgetAllowanceDeletionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetAllowancesService.deleteAllowance(
+      database: project.database,
+      allowanceId: event.allowanceId,
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Points the provisioning at `event.posteId` — a selection, written nowhere.
+  void _onProvisionPosteSelected(
+    OcptBudgetProvisionPosteSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) => emitter(state.copyWith(provisionPosteId: event.posteId));
+
+  /// Carries out `event.entries` against poste `event.posteId`, confirmed by the mode's own
+  /// `OcptConfirmDialog`.
+  Future<void> _onProvisionConfirmed(
+    OcptBudgetProvisionConfirmedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetQuoteService.applyProvision(
+      database: project.database,
+      posteId: event.posteId,
+      entries: event.entries,
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
 
   /// Deletes financing resource `event.resourceId` for good, confirmed by the mode's own
   /// `OcptConfirmDialog`.

@@ -398,7 +398,8 @@ void main() {
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
     /// Creates a project at [filePath] and hands it back as the previous build would have left
-    /// it: the version 29 step's additions taken back out, and the format number with them.
+    /// it: the latest schema step's own additions taken back out, and the format number with
+    /// them.
     ///
     /// The additions really are undone rather than the number merely relabelled, so the migration
     /// the user is about to confirm is one that actually runs.
@@ -408,8 +409,8 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        ..execute("ALTER TABLE budget_resources DROP COLUMN person_id")
-        ..execute("ALTER TABLE project_info DROP COLUMN is_budget_simplified")
+        ..execute("ALTER TABLE budget_lines DROP COLUMN provision_key")
+        ..execute("ALTER TABLE budget_lines DROP COLUMN provision_digest")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

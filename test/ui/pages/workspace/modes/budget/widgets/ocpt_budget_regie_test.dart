@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -14,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -161,20 +164,56 @@ OcptPerson _buildPerson({
   unavailabilities: const [],
 );
 
+/// A minimal defrayal, everything but what each test actually varies neutral.
+OcptBudgetAllowance _buildAllowance({
+  required String id,
+  String? personId,
+  OcptBudgetAllowanceKind kind = OcptBudgetAllowanceKind.travel,
+  String label = "",
+  DateTime? date,
+  DateTime? endDate,
+  int quantityMilli = 1000,
+  int unitAmountMilliCents = 52900,
+}) => OcptBudgetAllowance(
+  id: id,
+  personId: personId,
+  kind: kind,
+  label: label,
+  date: date,
+  endDate: endDate,
+  quantityMilli: quantityMilli,
+  unitAmountMilliCents: unitAmountMilliCents,
+  notes: "",
+  sortKey: "a0",
+);
+
+/// A minimal poste holding no line, offered by the provisioning band's own picker.
+OcptBudgetPoste _buildPoste({required String id}) =>
+    OcptBudgetPoste(id: id, code: "6", label: "Régie", simpleLabel: null, sortKey: "a0", lines: const []);
+
 void main() {
   /// Pumps [OcptBudgetRegie] with every callback a no-op unless overridden.
   Future<void> pumpView(
     WidgetTester tester, {
     required List<OcptBudgetRegieDay> days,
-    List<OcptBudgetTravelRow> travelRows = const [],
+    List<OcptBudgetAllowance> allowances = const [],
+    List<OcptBudgetPoste> postes = const [],
+    String? provisionPosteId,
+    int provisionedTotalCents = 0,
     Map<String, String> decorNameByDayId = const {},
     int? mealPriceCents,
     int? buffetPriceCents,
     List<OcptRole> roles = const [],
     List<OcptPerson> people = const [],
+    bool isReadOnly = false,
     ValueChanged<String>? onPersonOpenRequested,
     VoidCallback? onScheduleOpenRequested,
     VoidCallback? onProjectSettingsRequested,
+    VoidCallback? onAllowanceCreationRequested,
+    ValueChanged<String>? onAllowanceEditRequested,
+    ValueChanged<String>? onAllowanceDeletionRequested,
+    ValueChanged<String>? onProvisionPosteSelected,
+    VoidCallback? onProvisionRequested,
   }) async {
     // The default test surface is narrower than `_ocptRegieWrapWidth`, which would silently
     // switch every test onto the stacked layout instead of the side-by-side one this suite means
@@ -192,11 +231,19 @@ void main() {
           decorNameByDayId: decorNameByDayId,
           mealPriceCents: mealPriceCents,
           buffetPriceCents: buffetPriceCents,
-          travelRows: travelRows,
-          travelTotals: ocptBudgetTravelTotalsOf(travelRows),
+          allowances: allowances,
+          postes: postes,
+          provisionPosteId: provisionPosteId,
+          provisionedTotalCents: provisionedTotalCents,
           roles: roles,
           people: people,
           currencyCode: "EUR",
+          isReadOnly: isReadOnly,
+          onAllowanceCreationRequested: onAllowanceCreationRequested ?? () {},
+          onAllowanceEditRequested: onAllowanceEditRequested ?? (_) {},
+          onAllowanceDeletionRequested: onAllowanceDeletionRequested ?? (_) {},
+          onProvisionPosteSelected: onProvisionPosteSelected ?? (_) {},
+          onProvisionRequested: onProvisionRequested ?? () {},
           onScheduleOpenRequested: onScheduleOpenRequested ?? () {},
           onProjectSettingsRequested: onProjectSettingsRequested ?? () {},
           onPersonOpenRequested: onPersonOpenRequested ?? (_) {},
@@ -401,89 +448,188 @@ void main() {
     },
   );
 
-  testWidgets("a traveller with no rate reads the em dash while their trip count still shows", (
-    tester,
-  ) async {
+  testWidgets("a defrayal reads its person, its nature and what it comes to", (tester) async {
     final day = _buildDay(id: "day-1");
-    final slot = _buildSlot(
-      id: "slot-1",
-      dayId: "day-1",
-      crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
-    );
-
-    // The catering days list is never empty in real use whenever a travel row is present — both
-    // are read off the same schedule days — so this day is carried too, keeping the view off its
-    // own empty state.
     final days = ocptBudgetRegieDaysOf(
       days: [day],
-      slotsByDayId: {"day-1": [slot]},
+      slotsByDayId: const {},
       blocksByDayId: const {},
       roleKindById: const {},
       personIdByRoleId: const {},
       mealPriceCents: null,
       buffetPriceCents: null,
     );
-    final travelRows = ocptBudgetTravelRowsOf(
-      days: [day],
-      slotsByDayId: {"day-1": [slot]},
-      personIdByRoleId: const {},
-      commuteKmMilliByPersonId: const {"person-1": 8000},
-      mileageRateIdByPersonId: const {"person-1": null},
-      ratePerKmMilliCentsByRateId: const {},
-    );
-
-    expect(travelRows.single.totalKmMilli, isNotNull);
-    expect(travelRows.single.amountCents, isNull);
 
     await pumpView(
       tester,
       days: days,
-      travelRows: travelRows,
+      allowances: [
+        _buildAllowance(id: "allowance-1", personId: "person-1", quantityMilli: 168000),
+      ],
       people: [_buildPerson(id: "person-1", firstName: "Alex")],
     );
 
-    expect(find.text(ocptBudgetEmptyValue), findsWidgets);
-    // Not `findsOneWidget`: the same numeral legitimately also reads the day's own crew count.
-    expect(find.text("${travelRows.single.returnTripCount}"), findsWidgets);
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    expect(find.text("Alex"), findsOneWidget);
+    expect(find.text(tr.budgetAllowanceKindTravelLabel), findsWidgets);
+    // 168 km at 0,529 €/km, the figure the published scale states.
+    expect(find.text(ocptBudgetAmountLabel(8887, "EUR")), findsWidgets);
   });
 
-  testWidgets("tapping a traveller's row reports that person's id", (tester) async {
-    final day = _buildDay(id: "day-1");
-    final slot = _buildSlot(
-      id: "slot-1",
-      dayId: "day-1",
-      crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
-    );
-
+  testWidgets("a defrayal naming nobody says so rather than reading blank", (tester) async {
     final days = ocptBudgetRegieDaysOf(
-      days: [day],
-      slotsByDayId: {"day-1": [slot]},
+      days: [_buildDay(id: "day-1")],
+      slotsByDayId: const {},
       blocksByDayId: const {},
       roleKindById: const {},
       personIdByRoleId: const {},
       mealPriceCents: null,
       buffetPriceCents: null,
     );
-    final travelRows = ocptBudgetTravelRowsOf(
-      days: [day],
-      slotsByDayId: {"day-1": [slot]},
+
+    await pumpView(tester, days: days, allowances: [_buildAllowance(id: "allowance-1")]);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
+  });
+
+  testWidgets("a defrayal with no date reads the em dash rather than inventing one", (tester) async {
+    final days = ocptBudgetRegieDaysOf(
+      days: [_buildDay(id: "day-1")],
+      slotsByDayId: const {},
+      blocksByDayId: const {},
+      roleKindById: const {},
       personIdByRoleId: const {},
-      commuteKmMilliByPersonId: const {},
-      mileageRateIdByPersonId: const {},
-      ratePerKmMilliCentsByRateId: const {},
+      mealPriceCents: null,
+      buffetPriceCents: null,
     );
 
-    String? reportedPersonId;
+    await pumpView(tester, days: days, allowances: [_buildAllowance(id: "allowance-1")]);
+
+    expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+  });
+
+  testWidgets("tapping a defrayal reports its id, and its menu asks rather than deleting", (
+    tester,
+  ) async {
+    String? edited;
+    String? deleted;
+    final days = ocptBudgetRegieDaysOf(
+      days: [_buildDay(id: "day-1")],
+      slotsByDayId: const {},
+      blocksByDayId: const {},
+      roleKindById: const {},
+      personIdByRoleId: const {},
+      mealPriceCents: null,
+      buffetPriceCents: null,
+    );
+
     await pumpView(
       tester,
       days: days,
-      travelRows: travelRows,
-      people: [_buildPerson(id: "person-1", firstName: "Alex")],
-      onPersonOpenRequested: (personId) => reportedPersonId = personId,
+      allowances: [_buildAllowance(id: "allowance-1")],
+      onAllowanceEditRequested: (id) => edited = id,
+      onAllowanceDeletionRequested: (id) => deleted = id,
     );
 
-    await tester.tap(find.text("Alex"));
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    await tester.tap(find.text(tr.budgetRegieAllowanceNoPerson));
+    await tester.pumpAndSettle();
+    expect(edited, "allowance-1");
 
-    expect(reportedPersonId, "person-1");
+    // The table sits at its own floor width inside a horizontal scroll, so the trailing menu is
+    // scrolled to rather than merely present — which is the point of that floor.
+    await tester.ensureVisible(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.budgetCommittedDeleteAction));
+    await tester.pumpAndSettle();
+    // The row asks; the mode is what opens `OcptConfirmDialog` over it.
+    expect(deleted, "allowance-1");
+  });
+
+  testWidgets("the provisioning band reads the gap between what is computed and what is quoted", (
+    tester,
+  ) async {
+    final days = ocptBudgetRegieDaysOf(
+      days: [_buildDay(id: "day-1")],
+      slotsByDayId: const {},
+      blocksByDayId: const {},
+      roleKindById: const {},
+      personIdByRoleId: const {},
+      mealPriceCents: null,
+      buffetPriceCents: null,
+    );
+
+    await pumpView(
+      tester,
+      days: days,
+      allowances: [_buildAllowance(id: "allowance-1", quantityMilli: 168000)],
+      postes: [_buildPoste(id: "poste-1")],
+      provisionPosteId: "poste-1",
+      provisionedTotalCents: 3000,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    expect(find.text(tr.budgetRegieProvisionComputedLabel.toUpperCase()), findsOneWidget);
+    expect(find.text(ocptBudgetAmountLabel(8887, "EUR")), findsWidgets);
+    expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsOneWidget);
+    expect(find.text(ocptBudgetAmountLabel(5887, "EUR")), findsOneWidget);
+  });
+
+  testWidgets("a quote with no poste says so instead of offering an inert picker", (tester) async {
+    final days = ocptBudgetRegieDaysOf(
+      days: [_buildDay(id: "day-1")],
+      slotsByDayId: const {},
+      blocksByDayId: const {},
+      roleKindById: const {},
+      personIdByRoleId: const {},
+      mealPriceCents: null,
+      buffetPriceCents: null,
+    );
+
+    await pumpView(tester, days: days);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    expect(find.text(tr.budgetRegieProvisionNoPosteHint), findsOneWidget);
+    expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
+  });
+
+  testWidgets("every writing affordance is withheld under a previewed version", (tester) async {
+    final days = ocptBudgetRegieDaysOf(
+      days: [_buildDay(id: "day-1")],
+      slotsByDayId: const {},
+      blocksByDayId: const {},
+      roleKindById: const {},
+      personIdByRoleId: const {},
+      mealPriceCents: null,
+      buffetPriceCents: null,
+    );
+
+    await pumpView(
+      tester,
+      days: days,
+      allowances: [_buildAllowance(id: "allowance-1")],
+      postes: [_buildPoste(id: "poste-1")],
+      provisionPosteId: "poste-1",
+      isReadOnly: true,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    // Withheld, never disabled: the controls are not on screen at all.
+    expect(find.text(tr.budgetRegieAllowanceCreationAction), findsNothing);
+    expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
+    // The reading itself is untouched — a version is still read.
+    expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
+  });
+
+  testWidgets("a project with defrayals but no shooting day keeps its layout", (tester) async {
+    // The empty state is for a project holding neither, now that this view has a `+` action of its
+    // own to keep a heading band drawn for.
+    await pumpView(tester, days: const [], allowances: [_buildAllowance(id: "allowance-1")]);
+
+    expect(find.byType(OcptWorkspaceEmptyMode), findsNothing);
   });
 }

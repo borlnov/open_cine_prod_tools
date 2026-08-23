@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_allowance_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 
 /// The events handled by `OcptBudgetBloc`.
 sealed class OcptBudgetEvent extends BlocEventForMixin {
@@ -481,6 +483,87 @@ class OcptBudgetResourceSelectedEvent extends OcptBudgetEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, resourceId];
+}
+
+/// Creates a new defrayal from [fields], dispatched by the mode once `OcptBudgetAllowanceDialog`
+/// returned a result for a fresh one — mirrors `OcptBudgetResourceCreationConfirmedEvent`.
+class OcptBudgetAllowanceCreationConfirmedEvent extends OcptBudgetEvent {
+  /// Every field the dialog collected.
+  final OcptBudgetAllowanceFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetAllowanceCreationConfirmedEvent({required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fields];
+}
+
+/// Writes [fields] onto defrayal [allowanceId], dispatched by the mode once
+/// `OcptBudgetAllowanceDialog` returned a result for an existing one it was opened to edit.
+class OcptBudgetAllowanceUpdateConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the defrayal being edited.
+  final String allowanceId;
+
+  /// Every field the dialog collected.
+  final OcptBudgetAllowanceFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetAllowanceUpdateConfirmedEvent({required this.allowanceId, required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, allowanceId, fields];
+}
+
+/// Deletes defrayal [allowanceId] for good, dispatched by the mode once its own `OcptConfirmDialog`
+/// has already been answered.
+class OcptBudgetAllowanceDeletionConfirmedEvent extends OcptBudgetEvent {
+  /// The id of the defrayal to delete.
+  final String allowanceId;
+
+  /// Class constructor
+  const OcptBudgetAllowanceDeletionConfirmedEvent({required this.allowanceId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, allowanceId];
+}
+
+/// Points the régie view's own provisioning at poste [posteId] — a selection, written to no
+/// project and remembered for as long as the mode is open.
+class OcptBudgetProvisionPosteSelectedEvent extends OcptBudgetEvent {
+  /// The id of the poste just picked.
+  final String posteId;
+
+  /// Class constructor
+  const OcptBudgetProvisionPosteSelectedEvent({required this.posteId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, posteId];
+}
+
+/// Carries out [entries] against poste [posteId], dispatched by the mode once its own
+/// `OcptConfirmDialog` has put the plan's own counts in front of the user and they agreed.
+///
+/// **The plan travels with the event rather than being recomputed here**, and deliberately: it is
+/// what the user was shown and said yes to, and a plan recomputed after the fact could differ from
+/// the one they agreed to. Its wordings are resolved by the mode, no bloc of this app ever seeing a
+/// `Tr`.
+class OcptBudgetProvisionConfirmedEvent extends OcptBudgetEvent {
+  /// The poste the lines are written onto.
+  final String posteId;
+
+  /// Everything the provisioning would do, exactly as the user was shown it.
+  final List<OcptBudgetProvisionEntry> entries;
+
+  /// Class constructor
+  const OcptBudgetProvisionConfirmedEvent({required this.posteId, required this.entries});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, posteId, entries];
 }
 
 /// Creates a new financing resource from [fields], dispatched by the mode once

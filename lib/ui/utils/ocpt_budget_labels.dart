@@ -12,7 +12,9 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.da
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_provision_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
@@ -193,6 +195,37 @@ Color ocptBudgetResourceStatusAccentColor(ColorScheme colorScheme, OcptBudgetRes
       OcptBudgetResourceStatus.agreed => colorScheme.tertiary,
       OcptBudgetResourceStatus.confirmed => colorScheme.primary,
     };
+
+/// [kind]'s own localized word — the régie view's own defrayal table and its dialog, always
+/// reading the same four words, mirroring [ocptBudgetResourceStatusLabel]'s own reason for living
+/// here.
+String ocptBudgetAllowanceKindLabel(Tr tr, OcptBudgetAllowanceKind kind) => switch (kind) {
+  OcptBudgetAllowanceKind.travel => tr.budgetAllowanceKindTravelLabel,
+  OcptBudgetAllowanceKind.accommodation => tr.budgetAllowanceKindAccommodationLabel,
+  OcptBudgetAllowanceKind.meal => tr.budgetAllowanceKindMealLabel,
+  OcptBudgetAllowanceKind.other => tr.budgetAllowanceKindOtherLabel,
+};
+
+/// [kind]'s own localized word — the wording the provisioning writes onto the quote line it mints
+/// for that nature, and the one it compares against to tell a hand edit from a stale figure.
+///
+/// **A defrayed meal and a catering meal read differently on purpose**: the first is what one
+/// person is paid back for a meal the production did not provide, the second what the production
+/// fed the unit on a shooting day, and a quote holding both must not read the same word twice.
+String ocptBudgetProvisionKindLabel(Tr tr, OcptBudgetProvisionKind kind) => switch (kind) {
+  OcptBudgetProvisionKind.meal => tr.budgetProvisionLineMealsLabel,
+  OcptBudgetProvisionKind.snack => tr.budgetProvisionLineSnacksLabel,
+  OcptBudgetProvisionKind.travelAllowance => tr.budgetProvisionLineTravelLabel,
+  OcptBudgetProvisionKind.accommodationAllowance => tr.budgetProvisionLineAccommodationLabel,
+  OcptBudgetProvisionKind.mealAllowance => tr.budgetProvisionLineMealAllowanceLabel,
+  OcptBudgetProvisionKind.otherAllowance => tr.budgetProvisionLineOtherLabel,
+};
+
+/// Every nature's own wording, as `ocptBudgetProvisionPlanOf` wants it handed in: a mode resolves
+/// every word and passes a labels map, no util of this app ever seeing a `Tr`.
+Map<OcptBudgetProvisionKind, String> ocptBudgetProvisionLabelsOf(Tr tr) => {
+  for (final kind in OcptBudgetProvisionKind.values) kind: ocptBudgetProvisionKindLabel(tr, kind),
+};
 
 /// [status]'s own localized word — the sharing view's own `Takings received` card and the revenue
 /// dialog's own status picker, always reading the same three words, mirroring
