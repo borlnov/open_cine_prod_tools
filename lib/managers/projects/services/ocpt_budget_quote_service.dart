@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
@@ -212,7 +213,12 @@ class OcptBudgetQuoteService {
   /// Creates a new line named [label] inside poste [posteId], appended at the end of that poste's
   /// own lines, and returns its freshly generated id.
   ///
-  /// [elementId] and [unitAmountCents] are what `OcptBudgetPosteInspector`'s own `+ From breakdown`
+  /// [provisionKey], [provisionDigest] and [quantityMilli] are what the régie view's own
+  /// `Provision into the quote` gesture fills in, through [applyProvision] — see
+  /// `OcptBudgetLinesTable.provisionKey`. Every other caller leaves all three at [Value.absent],
+  /// and the line then reads as one somebody typed, which is what it is.
+  ///
+  /// [elementId] and [unitAmountCents] are what `OcptBudgetPosteInspector`'s own `From breakdown`
   /// gesture fills in — a line minted from a breakdown element, its own unit price seeded from
   /// `OcptElement.cost` — and what the ordinary `+ Add` footer leaves at [Value.absent], the plain
   /// `+ Add` line reading exactly as it always has. **A null `elements.cost` is passed on as
@@ -227,7 +233,10 @@ class OcptBudgetQuoteService {
     required String posteId,
     required String label,
     Value<String?> elementId = const Value.absent(),
+    Value<int> quantityMilli = const Value.absent(),
     Value<int> unitAmountCents = const Value.absent(),
+    Value<String?> provisionKey = const Value.absent(),
+    Value<String?> provisionDigest = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("createLine")) {
       return null;
@@ -244,7 +253,10 @@ class OcptBudgetQuoteService {
             posteId: posteId,
             label: label,
             elementId: elementId,
+            quantityMilli: quantityMilli,
             unitAmountCents: unitAmountCents,
+            provisionKey: provisionKey,
+            provisionDigest: provisionDigest,
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
             ),
@@ -270,6 +282,8 @@ class OcptBudgetQuoteService {
     Value<bool> isTaxInclusive = const Value.absent(),
     Value<int?> vatRateBasisPoints = const Value.absent(),
     Value<String?> elementId = const Value.absent(),
+    Value<String?> provisionKey = const Value.absent(),
+    Value<String?> provisionDigest = const Value.absent(),
     Value<String> notes = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateLine")) {
@@ -287,6 +301,8 @@ class OcptBudgetQuoteService {
         isTaxInclusive: isTaxInclusive,
         vatRateBasisPoints: vatRateBasisPoints,
         elementId: elementId,
+        provisionKey: provisionKey,
+        provisionDigest: provisionDigest,
         notes: notes,
       ),
     );
@@ -347,6 +363,63 @@ class OcptBudgetQuoteService {
     )..where((table) => table.id.equals(lineId))).write(
       const OcptBudgetLinesTableCompanion(isDeleted: Value(true)),
     );
+  }
+
+  /// Writes [entries] onto poste [posteId], one quote line per nature — the régie view's own
+  /// `Provision into the quote` gesture.
+  ///
+  /// **Takes a plan rather than computing one**: `ocptBudgetProvisionPlanOf` decides what would
+  /// happen, whole, before anything is written, so the mode can put those counts in front of the
+  /// user and let them say no. This method carries the plan out and nothing else.
+  ///
+  /// - [OcptBudgetProvisionOutcome.created] mints a line stamped with its nature's own key;
+  /// - [OcptBudgetProvisionOutcome.updated] rewrites the wording, the quantity and the unit price
+  ///   of a line the provisioning itself last wrote, and re-stamps it;
+  /// - [OcptBudgetProvisionOutcome.unchanged] and [OcptBudgetProvisionOutcome.skippedEdited] write
+  ///   **nothing at all** — the first has nothing to say, and the second is a line somebody has
+  ///   retouched by hand, which this app does not silently correct.
+  ///
+  /// Every write happens in one transaction: a provisioning that fails halfway would leave a quote
+  /// stating a total nobody could account for.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> applyProvision({
+    required OcptProjectDatabase database,
+    required String posteId,
+    required List<OcptBudgetProvisionEntry> entries,
+  }) async {
+    if (database.refusesUserWrite("applyProvision")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      for (final entry in entries) {
+        switch (entry.outcome) {
+          case OcptBudgetProvisionOutcome.created:
+            await createLine(
+              database: database,
+              posteId: posteId,
+              label: entry.label,
+              quantityMilli: Value(entry.quantityMilli),
+              unitAmountCents: Value(entry.unitAmountCents),
+              provisionKey: Value(entry.kind.name),
+              provisionDigest: Value(entry.digest),
+            );
+          case OcptBudgetProvisionOutcome.updated:
+            await updateLine(
+              database: database,
+              lineId: entry.lineId!,
+              label: Value(entry.label),
+              quantityMilli: Value(entry.quantityMilli),
+              unitAmountCents: Value(entry.unitAmountCents),
+              provisionDigest: Value(entry.digest),
+            );
+          case OcptBudgetProvisionOutcome.unchanged:
+          case OcptBudgetProvisionOutcome.skippedEdited:
+            break;
+        }
+      }
+    });
   }
 
   /// Every live poste row of [database], ordered by `sortKey`.

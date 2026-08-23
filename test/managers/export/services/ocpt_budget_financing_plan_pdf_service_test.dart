@@ -208,6 +208,8 @@ void main() {
                 unit: "day",
                 unitPrice: OcptMoney(amountCents: 10000, isTaxInclusive: true, vatRateBasisPoints: null),
                 elementId: null,
+                provisionKey: null,
+                provisionDigest: null,
                 notes: "",
                 sortKey: "a",
               ),

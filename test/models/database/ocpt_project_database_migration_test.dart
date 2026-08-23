@@ -406,6 +406,17 @@ ALTER TABLE "budget_entries" ADD COLUMN "revenue_id" TEXT NULL REFERENCES budget
 ALTER TABLE "budget_entries" ADD COLUMN "share_id" TEXT NULL REFERENCES budget_shares (id);
 ''';
 
+// The two nullable columns schema version 29 adds on top of the shape above:
+// `budget_resources.personId` — the person a financing resource comes from — and
+// `project_info.isBudgetSimplified`, the budget header's own simplified/detailed toggle. Composed
+// for the same reason [_v25BudgetFoundationsDdl] is. This is what `'upgraded_from_v29.ocpt'` below
+// is built from, and what the dedicated `a v29 database migrates on…` test below uses as its own
+// starting shape.
+const _v29ColumnsDdl = '''
+ALTER TABLE "budget_resources" ADD COLUMN "person_id" TEXT NULL REFERENCES people (id);
+ALTER TABLE "project_info" ADD COLUMN "is_budget_simplified" INTEGER NULL CHECK ("is_budget_simplified" IN (0, 1));
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -555,7 +566,7 @@ void main() {
     // anything but version 29.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 31);
+    expect(await readSchemaVersion(freshDatabase), 32);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -703,6 +714,12 @@ void main() {
             '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl',
         28,
       ),
+      (
+        'upgraded_from_v29.ocpt',
+        '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+            '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl$_v29ColumnsDdl',
+        29,
+      ),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -720,7 +737,7 @@ void main() {
             "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       await database.close();
     }
@@ -808,7 +825,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 9.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -917,7 +934,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -973,7 +990,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1007,7 +1024,7 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1149,7 +1166,7 @@ void main() {
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1200,7 +1217,7 @@ void main() {
     expect(availability.isDeleted, isFalse);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1234,7 +1251,7 @@ void main() {
     expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1325,7 +1342,7 @@ void main() {
     );
 
     // (e) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1379,7 +1396,7 @@ void main() {
     ]);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1508,7 +1525,7 @@ void main() {
       expect(block.shotId, "shot-a");
 
       // (e) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       await database.close();
     },
@@ -1657,7 +1674,7 @@ void main() {
       expect(shape.containsKey('shooting_presences'), isFalse);
 
       // (f) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       await database.close();
     },
@@ -1731,7 +1748,7 @@ void main() {
       expect(cast.roleId, "role1");
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       await database.close();
     },
@@ -1792,7 +1809,7 @@ void main() {
       expect(slotsById['slotNight']!.anchorSlotId, isNull);
 
       // (c) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       await database.close();
     },
@@ -1853,7 +1870,7 @@ void main() {
     expect(link.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -1903,7 +1920,7 @@ void main() {
       expect(updated.maxDailyPresenceMinutes, 480);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       await database.close();
     },
@@ -1984,7 +2001,7 @@ void main() {
     expect(event.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -2081,7 +2098,7 @@ void main() {
       );
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       await database.close();
     },
@@ -2172,7 +2189,7 @@ void main() {
       );
 
       // (h) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       // (i) `project_info.screenplay_language` didn't exist at version 17: the migration adds it
       // unconditionally, and gets no backfill, so a file that never named a language reads exactly
@@ -2297,7 +2314,7 @@ void main() {
       expect(asset.budgetEntryId, isNull);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       // (e) and both new tables are usable, foreign keys included: an entry against the poste
       // already carried, then a commitment pointing at the same poste and settled by that entry.
@@ -2408,7 +2425,7 @@ void main() {
       expect(person.mileageRateId, isNull);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       // (e) and every new table and column is usable, foreign keys included: a mileage rate, a
       // resource, an entry naming that resource, and the existing person naming both.
@@ -2516,7 +2533,7 @@ void main() {
       expect(entry.shareId, isNull);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       // (e) and every new table and column is usable, foreign keys included: a revenue, a share
       // naming the existing person, and the existing entry naming both.
@@ -2615,7 +2632,7 @@ void main() {
       expect(projectInfo.isBudgetSimplified, isNull);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 31);
+      expect(await readSchemaVersion(database), 32);
 
       // (e) and both are usable, foreign keys included: the existing resource can be made to name
       // the person, and the project's own toggle can be recorded.
@@ -2690,7 +2707,7 @@ void main() {
     expect(candidate.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -2767,7 +2784,7 @@ void main() {
     );
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -2836,75 +2853,61 @@ void main() {
     // (c) and the table that replaces it is there, hanging off the audition that survived.
     expect(await database.select(database.ocptShootingBlockCandidatesTable).get(), isEmpty);
 
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
 
   test('a v29 database migrates on, its financing statuses re-read as steps', () async {
-    // The one migration of this file that rewrites **values** rather than a shape, so it is the one
-    // that can be exercised without a hand-written DDL: the v29 and v30 tables are identical, and
-    // only what `budget_resources.status` holds changed. Writing the file at the current schema and
-    // then putting the four retired words back into it, at `user_version = 29`, reproduces exactly
-    // what a real v29 file holds.
+    // The one migration of this file that rewrites **values** rather than a shape: a financing
+    // resource's status stopped naming one of four words the three groups shared and started
+    // naming one of three steps whose word is the group's.
     final filePath = p.join(tempDir.path, 'legacy_v29.ocpt');
 
-    final seeded = OcptProjectDatabase(File(filePath));
-    for (final (id, kind) in [
-      ('applied', OcptBudgetResourceGroupKind.subsidy),
-      ('notified', OcptBudgetResourceGroupKind.subsidy),
-      ('secured', OcptBudgetResourceGroupKind.cash),
-      ('valued', OcptBudgetResourceGroupKind.inKind),
-    ]) {
-      await seeded
-          .into(seeded.ocptBudgetResourcesTable)
-          .insert(
-            OcptBudgetResourcesTableCompanion.insert(
-              id: id,
-              groupKind: Value(kind),
-              label: id,
-              amountCents: const Value(1000),
-              sortKey: Value(id),
-            ),
-          );
-    }
-    await seeded.close();
-
     final legacyDb = sqlite3.sqlite3.open(filePath);
-    for (final word in ['applied', 'notified', 'secured', 'valued']) {
-      legacyDb.execute("UPDATE budget_resources SET status = '$word' WHERE id = '$word';");
-    }
+    legacyDb.execute(
+      '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+      '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl$_v29ColumnsDdl',
+    );
     legacyDb.execute('PRAGMA user_version = 29;');
+    seedCommonRows(legacyDb);
+
+    for (final (id, groupKind, word) in [
+      ('r1', 'subsidy', 'applied'),
+      ('r2', 'subsidy', 'notified'),
+      ('r3', 'cash', 'secured'),
+      // The one word that was already a group's rather than a step's, and the case the product
+      // owner reported: a cash contribution marked "valued", which reads as nonsense for money.
+      ('r4', 'cash', 'valued'),
+    ]) {
+      legacyDb.execute(
+        "INSERT INTO budget_resources (id, sort_key, is_deleted, group_kind, label, amount_cents, "
+        "status, is_reimbursable, notes) VALUES "
+        "('$id', '$id', 0, '$groupKind', '$id', 1000, '$word', 0, '');",
+      );
+    }
     legacyDb.dispose();
 
     final database = OcptProjectDatabase(File(filePath));
 
+    // (a) every row the file already held survived.
+    await expectCommonRowsSurvived(database);
+
+    // (b) each old word landed on the step it already stated — `valued` included, which said a
+    // figure was on the resource and nothing signed. No row changed group, none moved a step.
     final byId = {
       for (final row in await database.select(database.ocptBudgetResourcesTable).get())
-        row.id: row.status,
+        row.id: (row.status, row.groupKind),
     };
+    expect(byId['r1'], (OcptBudgetResourceStatus.pending, OcptBudgetResourceGroupKind.subsidy));
+    expect(byId['r2'], (OcptBudgetResourceStatus.agreed, OcptBudgetResourceGroupKind.subsidy));
+    expect(byId['r3'], (OcptBudgetResourceStatus.confirmed, OcptBudgetResourceGroupKind.cash));
+    expect(byId['r4'], (OcptBudgetResourceStatus.agreed, OcptBudgetResourceGroupKind.cash));
 
-    // Each old word lands on the step it already stated — `valued` included, which said a figure
-    // was on the resource and nothing signed. Nothing changes group, and nothing moves a step.
-    expect(byId['applied'], OcptBudgetResourceStatus.pending);
-    expect(byId['notified'], OcptBudgetResourceStatus.agreed);
-    expect(byId['secured'], OcptBudgetResourceStatus.confirmed);
-    expect(byId['valued'], OcptBudgetResourceStatus.agreed);
-    expect(
-      (await database.select(database.ocptBudgetResourcesTable).get())
-          .map((row) => row.groupKind)
-          .toSet(),
-      {
-        OcptBudgetResourceGroupKind.subsidy,
-        OcptBudgetResourceGroupKind.cash,
-        OcptBudgetResourceGroupKind.inKind,
-      },
-    );
-
-    // (b) a resource created *after* the upgrade stands at the new first step too — the column was
-    // rebuilt rather than merely refilled, so this file's own `DEFAULT` names the new first step
-    // and not the retired word it used to name. `createResource` leaves the column out, so this is
-    // the assertion that reads the rebuilt default back.
+    // (c) a resource created *after* the upgrade stands at the new first step too: the column was
+    // rebuilt rather than merely refilled, so this file's own DEFAULT names the new first step and
+    // not the retired word it used to name. `createAllowance` leaves the column out, so this reads
+    // the rebuilt default back.
     final createdId = await const OcptBudgetFinancingService().createResource(
       database: database,
       label: "Created after the upgrade",
@@ -2915,7 +2918,17 @@ void main() {
         )..where((table) => table.id.equals(createdId!))).getSingle();
     expect(created.status, OcptBudgetResourceStatus.pending);
 
-    expect(await readSchemaVersion(database), 31);
+    // (d) the defrayals arrived, empty: nothing is invented out of a schedule this migration does
+    // not read, and what the régie view used to compute was stored nowhere to carry over.
+    expect(await database.select(database.ocptBudgetAllowancesTable).get(), isEmpty);
+
+    // (e) every quote line the file already held was typed by somebody, which is what a null
+    // provisioning key says — the provisioning cannot claim a line it never wrote.
+    final lines = await database.select(database.ocptBudgetLinesTable).get();
+    expect(lines.map((row) => row.provisionKey), everyElement(isNull));
+    expect(lines.map((row) => row.provisionDigest), everyElement(isNull));
+
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });
@@ -2957,7 +2970,7 @@ void main() {
     final screenplay = await database.select(database.ocptScreenplaysTable).getSingle();
     expect(screenplay.title, "Draft");
 
-    expect(await readSchemaVersion(database), 31);
+    expect(await readSchemaVersion(database), 32);
 
     await database.close();
   });

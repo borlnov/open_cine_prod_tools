@@ -58,6 +58,8 @@ OcptBudgetLine _line({
     vatRateBasisPoints: vatRateBasisPoints,
   ),
   elementId: null,
+  provisionKey: null,
+  provisionDigest: null,
   notes: "",
   sortKey: "a0",
 );
@@ -403,6 +405,8 @@ void main() {
           vatRateBasisPoints: null,
         ),
         elementId: null,
+        provisionKey: null,
+        provisionDigest: null,
         notes: "",
         sortKey: "a0",
       ),

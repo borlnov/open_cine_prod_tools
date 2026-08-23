@@ -43,6 +43,8 @@ const _line = OcptBudgetLine(
     vatRateBasisPoints: 550,
   ),
   elementId: null,
+  provisionKey: null,
+  provisionDigest: null,
   notes: "",
   sortKey: "a0",
 );
@@ -382,6 +384,8 @@ void main() {
       unit: "u",
       unitPrice: OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
       elementId: "element-1",
+      provisionKey: null,
+      provisionDigest: null,
       notes: "",
       sortKey: "a1",
     );

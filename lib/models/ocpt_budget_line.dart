@@ -32,6 +32,14 @@ class OcptBudgetLine extends Equatable {
   /// this line answers a real need rather than being typed from nothing.
   final String? elementId;
 
+  /// What provisioned this line, or null while a human typed it — see
+  /// `OcptBudgetLinesTable.provisionKey`.
+  final String? provisionKey;
+
+  /// What the provisioning last wrote into this line, or null — see
+  /// `OcptBudgetLinesTable.provisionDigest`. It is how a hand edit is told from a stale figure.
+  final String? provisionDigest;
+
   /// Free-form notes about this line.
   final String notes;
 
@@ -47,6 +55,8 @@ class OcptBudgetLine extends Equatable {
     required this.unit,
     required this.unitPrice,
     required this.elementId,
+    required this.provisionKey,
+    required this.provisionDigest,
     required this.notes,
     required this.sortKey,
   });
@@ -64,6 +74,8 @@ class OcptBudgetLine extends Equatable {
       vatRateBasisPoints: row.vatRateBasisPoints,
     ),
     elementId: row.elementId,
+    provisionKey: row.provisionKey,
+    provisionDigest: row.provisionDigest,
     notes: row.notes,
     sortKey: row.sortKey,
   );
@@ -82,6 +94,8 @@ class OcptBudgetLine extends Equatable {
     unit,
     unitPrice,
     elementId,
+    provisionKey,
+    provisionDigest,
     notes,
     sortKey,
   ];

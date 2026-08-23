@@ -80,6 +80,28 @@ class OcptBudgetLinesTable extends Table {
   /// (`elements.cost` seeding a fresh line's unit price, an unpriced element surfacing as a need).
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
 
+  /// What wrote this line, or null while a human typed it.
+  ///
+  /// A **stable key naming the thing provisioned** rather than a foreign key — `regie:meal`,
+  /// `regie:snack`, `allowance:travel` and so on: the régie view provisions *one line per nature*,
+  /// summing across every defrayal of that nature and every shooting day, so there is no single row
+  /// on the other end for a foreign key to point at. Reprovisioning finds the line carrying the
+  /// same key on the same poste and updates it, instead of stacking a second one beside it.
+  ///
+  /// Null is the ordinary case and means nobody provisioned this line — a line typed by hand is not
+  /// a lesser line, and the provisioning leaves every one of them alone.
+  TextColumn get provisionKey => text().nullable()();
+
+  /// What the provisioning last wrote into this line, or null while it never wrote it.
+  ///
+  /// Holds `[label, quantityMilli, unitAmountCents]` as JSON, exactly as those three stood when
+  /// the provisioning last set them. **It is how a hand edit is told from a stale figure**: on the
+  /// next provision, a line whose current three still match this is the app's own to update, and a
+  /// line whose do not has been retouched by somebody and is reported rather than overwritten. The
+  /// user is never silently corrected, which is the same promise `OcptBudgetQuoteService` keeps
+  /// everywhere else — an amount is what was typed.
+  TextColumn get provisionDigest => text().nullable()();
+
   /// Free-form notes about this line.
   TextColumn get notes => text().withDefault(const Constant(''))();
 

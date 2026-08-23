@@ -199,6 +199,8 @@ void main() {
         vatRateBasisPoints: vatRateBasisPoints,
       ),
       elementId: null,
+      provisionKey: null,
+      provisionDigest: null,
       notes: "",
       sortKey: "a",
     );

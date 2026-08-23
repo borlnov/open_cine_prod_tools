@@ -66,7 +66,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 27;
+  static const currentPayloadFormat = 28;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -661,6 +661,12 @@ class OcptProjectVersionCodec {
   /// `role_elements.elementId` or `breakdown_tags.elementId`) from a JSON object
   static const _elementIdKey = "elementId";
 
+  /// The row key naming what provisioned a `budget_lines` row, null while a human typed it.
+  static const _provisionKeyKey = "provisionKey";
+
+  /// The row key holding what the provisioning last wrote into a `budget_lines` row.
+  static const _provisionDigestKey = "provisionDigest";
+
   /// This is the key used to stringify or parse an asset's `path` column from a JSON object
   static const _pathKey = "path";
 
@@ -994,6 +1000,7 @@ class OcptProjectVersionCodec {
     24: _upgradeFormat24To25,
     25: _upgradeFormat25To26,
     26: _upgradeFormat26To27,
+    27: _upgradeFormat27To28,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1737,6 +1744,22 @@ class OcptProjectVersionCodec {
   static Map<String, dynamic> _upgradeFormat26To27(Map<String, dynamic> json) => {
     ...json,
     _budgetAllowancesKey: const <dynamic>[],
+  };
+
+  /// Turns a format-**27** JSON object into a format-**28** one: every `budgetLines` row gains a
+  /// **null** [_provisionKeyKey] and [_provisionDigestKey] — [_upgradeFormat3To4]'s kind, the
+  /// table itself being far from new here.
+  ///
+  /// Null is the truthful reading rather than a stand-in: no line of any project was ever written
+  /// by the régie provisioning, since there was none, so every line a format-27 payload holds was
+  /// typed by somebody — which is exactly what a null key says, and exactly what keeps the
+  /// provisioning from claiming a line it never wrote.
+  static Map<String, dynamic> _upgradeFormat27To28(Map<String, dynamic> json) => {
+    ...json,
+    _budgetLinesKey: [
+      for (final row in _rows(json, _budgetLinesKey))
+        {...row, _provisionKeyKey: null, _provisionDigestKey: null},
+    ],
   };
 
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
@@ -2745,6 +2768,8 @@ class OcptProjectVersionCodec {
     _isTaxInclusiveKey: row.isTaxInclusive,
     _vatRateBasisPointsKey: row.vatRateBasisPoints,
     _elementIdKey: row.elementId,
+    _provisionKeyKey: row.provisionKey,
+    _provisionDigestKey: row.provisionDigest,
     _notesKey: row.notes,
   };
 
@@ -2761,6 +2786,8 @@ class OcptProjectVersionCodec {
     isTaxInclusive: _bool(json, _isTaxInclusiveKey),
     vatRateBasisPoints: _nullableInt(json, _vatRateBasisPointsKey),
     elementId: _nullableString(json, _elementIdKey),
+    provisionKey: _nullableString(json, _provisionKeyKey),
+    provisionDigest: _nullableString(json, _provisionDigestKey),
     notes: _string(json, _notesKey),
   );
 
