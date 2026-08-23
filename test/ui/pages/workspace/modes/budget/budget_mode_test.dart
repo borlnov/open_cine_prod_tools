@@ -717,10 +717,7 @@ void main() {
   });
 
   testWidgets("the map highlights the cell the current view occupies", (tester) async {
-    // Wider than every other test in this file: with the right dock open, the centre pane left
-    // for the financing view narrows enough at 1750 to hit that view's own pre-existing layout
-    // overflow at very narrow widths — unrelated to the help panel, and reproducible with the
-    // dock closed too. This width keeps well clear of it.
+    // Comfortably wide, so the map's own cells are read in the shape they normally wear.
     tester.view.physicalSize = const Size(2200, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -734,21 +731,27 @@ void main() {
     await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
     await tester.pumpAndSettle();
 
+    // The current cell wears no words: it is announced, not drawn — the same wash-and-weight the
+    // header's own chips use. So the badge is looked for in the semantics tree.
+    Finder currentCells() => find.bySemanticsLabel(
+      RegExp(RegExp.escape(tr.budgetHelpMapCurrentViewBadge)),
+    );
+
     // The dashboard reads across the whole map rather than standing in one cell of it.
-    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsNothing);
+    expect(currentCells(), findsNothing);
 
     // The header's own chip is tapped through `tapHeaderChip` rather than `openFinancing`: the
     // help panel's map reuses the very same "Financing" label for its own cell, and both are on
     // screen at once here.
     await tapHeaderChip(tester, tr.budgetHeaderFinancingSegmentLabel);
-    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsOneWidget);
+    expect(currentCells(), findsOneWidget);
 
     await tapHeaderChip(tester, tr.budgetHeaderCommittedSegmentLabel);
-    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsOneWidget);
+    expect(currentCells(), findsOneWidget);
 
     // The cash journal occupies both cells of the "has moved" column at once.
     await openCashJournal(tester);
-    expect(find.text(tr.budgetHelpMapCurrentViewBadge), findsNWidgets(2));
+    expect(currentCells(), findsNWidgets(2));
   });
 
   testWidgets("offers the help panel under a previewed version", (tester) async {

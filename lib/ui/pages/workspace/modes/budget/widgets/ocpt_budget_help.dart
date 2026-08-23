@@ -279,8 +279,16 @@ class _OcptBudgetHelpMapHeaderCell extends StatelessWidget {
 }
 
 /// One data cell of [_OcptBudgetHelpMap] — naming the view (or the journal side) that fills it,
-/// filled with the accent wash and carrying [currentLabel] once [isHighlighted] says this is the
-/// cell the reader is currently standing in.
+/// filled with the accent wash and set in bold once [isHighlighted] says this is the cell the
+/// reader is currently standing in.
+///
+/// **The current cell wears no words of its own**, only the wash and the weight — the very two
+/// signals the header's own view chips already use for the same fact, and a four-cell table is not
+/// improved by a sentence repeating what its own highlight says. [currentLabel] is therefore
+/// announced rather than drawn: it rides the cell's [Semantics] label, so a screen reader still
+/// hears which cell the reader stands in, and the wash never has to carry the meaning alone —
+/// colour by itself would say nothing in high contrast, nothing to a colour-blind reader and
+/// nothing at all to a screen reader.
 class _OcptBudgetHelpMapDataCell extends StatelessWidget {
   /// The cell's own label.
   final String label;
@@ -288,7 +296,7 @@ class _OcptBudgetHelpMapDataCell extends StatelessWidget {
   /// Whether this cell is the current centre view's own.
   final bool isHighlighted;
 
-  /// The small badge printed under [label] while [isHighlighted].
+  /// What this cell announces, beside [label], while [isHighlighted] — spoken, never drawn.
   final String currentLabel;
 
   /// Class constructor
@@ -302,31 +310,21 @@ class _OcptBudgetHelpMapDataCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      color: isHighlighted
-          ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
-          : null,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: isHighlighted ? theme.colorScheme.primary : null,
-              fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.normal,
-            ),
+    return Semantics(
+      label: isHighlighted ? "$label, $currentLabel" : label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        color: isHighlighted
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : null,
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: isHighlighted ? theme.colorScheme.primary : null,
+            fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.normal,
           ),
-          if (isHighlighted) ...[
-            const SizedBox(height: 2),
-            Text(
-              currentLabel,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
