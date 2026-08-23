@@ -12730,6 +12730,26 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetAllowanceDialogMileageRateFieldLabel": "Mileage scale",
+  "@budgetAllowanceDialogMileageRateFieldLabel": {
+    "description": "Label of the dropdown that picks which of the project's own mileage scales prices a travel defrayal. Shown in place of the unit price field, and only on a travel defrayal."
+  },
+  "budgetAllowanceDialogCustomRateOption": "Free amount…",
+  "@budgetAllowanceDialogCustomRateOption": {
+    "description": "The mileage scale dropdown's own entry for typing a rate the project has not named, which brings the unit price field back."
+  },
+  "budgetAllowanceDialogMileageRateOption": "{label} — {amount}/km",
+  "@budgetAllowanceDialogMileageRateOption": {
+    "description": "One mileage scale in the dropdown: the scale's own name and what it pays per kilometre.",
+    "placeholders": {
+      "label": {},
+      "amount": {}
+    }
+  },
+  "budgetAllowanceDialogNoMileageRateHint": "This project names no mileage scale yet — add one in the project settings, or type an amount.",
+  "@budgetAllowanceDialogNoMileageRateHint": {
+    "description": "Helper under the unit price field of a travel defrayal while the project has named no mileage scale at all, so no dropdown can be offered."
+  },
   "budgetAllowanceDialogDateFieldLabel": "Date",
   "@budgetAllowanceDialogDateFieldLabel": {
     "description": "Label of the defrayal dialog's own date field",

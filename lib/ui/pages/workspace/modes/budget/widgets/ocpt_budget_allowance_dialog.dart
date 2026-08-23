@@ -103,6 +103,15 @@ class _OcptBudgetAllowanceDialogState extends State<OcptBudgetAllowanceDialog> {
   /// The nature currently picked.
   late OcptBudgetAllowanceKind _kind;
 
+  /// Which of the project's own mileage scales currently prices this defrayal, or null for a rate
+  /// typed by hand — the `Free amount…` entry of the dropdown.
+  ///
+  /// **Never stored.** A defrayal records the amount, not the scale it came from
+  /// (`OcptBudgetAllowancesTable`), so this only decides which of the two fields is drawn; the
+  /// amount itself always goes through [_unitPriceController], whichever way it was picked. A
+  /// scale corrected next year must not silently reprice a defrayal already paid.
+  String? _mileageRateId;
+
   /// The person currently picked, or null for "no person".
   String? _personId;
 
@@ -119,6 +128,14 @@ class _OcptBudgetAllowanceDialogState extends State<OcptBudgetAllowanceDialog> {
     final existing = widget.existing;
 
     _kind = existing?.kind ?? OcptBudgetAllowanceKind.travel;
+    // An existing defrayal priced at exactly one scale's own rate comes back with that scale
+    // picked, so reopening it shows what it was priced with rather than a bare number.
+    _mileageRateId = existing == null
+        ? null
+        : widget.mileageRates
+              .where((rate) => rate.ratePerKmMilliCents == existing.unitAmountMilliCents)
+              .firstOrNull
+              ?.id;
     _personId = existing?.personId;
     _date = existing?.date;
     _endDate = existing?.endDate;
@@ -214,17 +231,76 @@ class _OcptBudgetAllowanceDialogState extends State<OcptBudgetAllowanceDialog> {
                       : null,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _unitPriceController,
-                  decoration: InputDecoration(
-                    labelText: tr.budgetAllowanceDialogUnitPriceFieldLabel,
-                    suffixText: widget.currencyCode,
+                // A travel defrayal is priced by one of the project's own mileage scales, picked
+                // here rather than copied by hand — the whole point of naming a scale at all. The
+                // dropdown replaces the unit price field while a scale is picked, and hands it
+                // back on `Free amount…`, since a rate the project has never named is a real case
+                // (a one-off arrangement, a rate that changed mid-shoot) and refusing it would
+                // send the user to the project settings to say something true only once.
+                //
+                // No dropdown at all while the project names no scale: an offer whose only entry
+                // is `Free amount…` explains nothing, so the field stands alone under a hint
+                // saying where scales come from.
+                if (_kind == OcptBudgetAllowanceKind.travel && widget.mileageRates.isNotEmpty) ...[
+                  DropdownButtonFormField<String?>(
+                    // **The key is what makes the prefill button move this dropdown.**
+                    // `FormFieldState.didUpdateWidget` does not re-read `initialValue`, so a value
+                    // changed in code — which is exactly what `Use this person's own rate` does —
+                    // would leave the field showing the old scale while the amount underneath had
+                    // already changed. Keying on the value itself rebuilds the field instead.
+                    key: ValueKey(_mileageRateId),
+                    initialValue: _mileageRateId,
+                    decoration: InputDecoration(
+                      labelText: tr.budgetAllowanceDialogMileageRateFieldLabel,
+                    ),
+                    // A scale's own name is free text and its rate is joined to it, so the entry
+                    // outgrows this 420 px dialog on any ordinary name. `isExpanded` lets the
+                    // closed field take the width it has, and the ellipsis keeps the row one line
+                    // high instead of overflowing it.
+                    isExpanded: true,
+                    items: [
+                      DropdownMenuItem<String?>(
+                        child: Text(
+                          tr.budgetAllowanceDialogCustomRateOption,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      for (final rate in widget.mileageRates)
+                        DropdownMenuItem(
+                          value: rate.id,
+                          child: Text(
+                            tr.budgetAllowanceDialogMileageRateOption(
+                              rate.label,
+                              "${ocptMileageRateTextOf(rate.ratePerKmMilliCents)} "
+                                  "${widget.currencyCode}",
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: _onMileageRateSelected,
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) => ocptMileageRateMilliCentsOf(value ?? "") == null
-                      ? tr.budgetEntryDialogAmountInvalidError
-                      : null,
-                ),
+                  // The field returns under the dropdown on `Free amount…`, never in place of it:
+                  // a reader who picked a free amount by mistake has to be able to pick a scale
+                  // again.
+                  if (!_isPricedByScale) const SizedBox(height: 12),
+                ],
+                if (!_isPricedByScale)
+                  TextFormField(
+                    controller: _unitPriceController,
+                    decoration: InputDecoration(
+                      labelText: tr.budgetAllowanceDialogUnitPriceFieldLabel,
+                      helperText: _unitPriceHelper(tr),
+                      helperMaxLines: 2,
+                      suffixText: widget.currencyCode,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) => ocptMileageRateMilliCentsOf(value ?? "") == null
+                        ? tr.budgetEntryDialogAmountInvalidError
+                        : null,
+                  ),
                 const SizedBox(height: 12),
                 OcptPersonSheetDateField(
                   label: tr.budgetAllowanceDialogDateFieldLabel,
@@ -270,7 +346,7 @@ class _OcptBudgetAllowanceDialogState extends State<OcptBudgetAllowanceDialog> {
   ///
   /// **Both halves have to be there for the offer to make sense**: a commute with no rate cannot
   /// price itself, and a rate with no commute has no distance to apply to.
-  (int, int)? _prefillOf() {
+  (int, int, String)? _prefillOf() {
     final personId = _personId;
     if (personId == null) {
       return null;
@@ -285,16 +361,47 @@ class _OcptBudgetAllowanceDialogState extends State<OcptBudgetAllowanceDialog> {
 
     final rate = widget.mileageRates.where((candidate) => candidate.id == rateId).firstOrNull;
 
-    return rate == null ? null : (commuteKmMilli, rate.ratePerKmMilliCents);
+    return rate == null ? null : (commuteKmMilli, rate.ratePerKmMilliCents, rate.id);
   }
 
   /// Writes [prefill]'s own distance and rate into the two fields, and moves the nature to
   /// [OcptBudgetAllowanceKind.travel] — which is the only thing a mileage scale can price.
-  void _applyPrefill((int, int) prefill) {
+  void _applyPrefill((int, int, String) prefill) {
     setState(() {
       _kind = OcptBudgetAllowanceKind.travel;
       _quantityController.text = ocptBudgetQuantityLabel(prefill.$1);
       _unitPriceController.text = ocptMileageRateTextOf(prefill.$2);
+      // The dropdown lands on the very scale this prefill copied, so the two controls never
+      // disagree about which one is pricing the trip.
+      _mileageRateId = prefill.$3;
+    });
+  }
+
+  /// Whether the unit price is currently being picked from a scale rather than typed: a travel
+  /// defrayal, on a project that names at least one scale, with something other than
+  /// `Free amount…` chosen.
+  bool get _isPricedByScale =>
+      _kind == OcptBudgetAllowanceKind.travel &&
+      widget.mileageRates.isNotEmpty &&
+      _mileageRateId != null;
+
+  /// The `Unit price` field's own helper: on a travel defrayal that no scale can price, it says
+  /// where scales come from rather than leaving the reader to guess why none was offered.
+  String? _unitPriceHelper(Tr tr) =>
+      _kind == OcptBudgetAllowanceKind.travel && widget.mileageRates.isEmpty
+      ? tr.budgetAllowanceDialogNoMileageRateHint
+      : null;
+
+  /// Applies the scale just picked in the dropdown, writing its own rate into the unit price the
+  /// form submits — or hands the field back on `Free amount…`, keeping whatever was last in it so
+  /// a mis-click costs nothing.
+  void _onMileageRateSelected(String? rateId) {
+    setState(() {
+      _mileageRateId = rateId;
+      final rate = widget.mileageRates.where((candidate) => candidate.id == rateId).firstOrNull;
+      if (rate != null) {
+        _unitPriceController.text = ocptMileageRateTextOf(rate.ratePerKmMilliCents);
+      }
     });
   }
 

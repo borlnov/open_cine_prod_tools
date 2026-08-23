@@ -473,6 +473,25 @@ are all here, and this file is the whole record of them.
   every other mode's bloc does, which is what let a colleague receive this project as a portable
   `.ocptz` a milestone before the mode printed a single PDF of its own.
 
+## A travel defrayal is priced by a scale, and remembers only the number
+
+- `OcptBudgetAllowanceDialog` draws a **mileage-scale dropdown in place of the unit price** while
+  the nature is `travel` and the project names at least one scale
+  (`budget_mileage_rates`). Picking a scale writes its own rate into the amount the form submits;
+  `Free amount…` hands the plain field back **under the dropdown, never in place of it**, so a
+  reader who picked a free amount by mistake can pick a scale again. A project naming no scale at
+  all gets no dropdown — an offer whose only entry is `Free amount…` explains nothing — and a hint
+  under the field says where scales come from instead.
+- **What is stored is the amount, never the scale.** `budget_allowances` has no `mileageRateId`
+  column and will not grow one: a scale corrected next year must not silently reprice a defrayal
+  already paid. The dialog re-derives which scale is showing by matching the stored rate against
+  the project's own scales when it opens, which is a display concern and dies with the dialog.
+- The `Use this person's own rate` button, which fills the commute distance *and* the rate from the
+  person's own record, now also lands the dropdown on the very scale it copied, so the two controls
+  never disagree about what is pricing the trip. It needs an explicit `ValueKey` to do it:
+  `FormFieldState.didUpdateWidget` does not re-read `initialValue`, so a value changed in code
+  would otherwise leave the field showing the old scale over a new amount.
+
 ## The dashboard's two alerts compute themselves, and ask for no threshold
 
 - `ocptComputeBudgetAlerts` (`lib/utils/ocpt_budget_alerts.dart`, pure) raises exactly two kinds of
