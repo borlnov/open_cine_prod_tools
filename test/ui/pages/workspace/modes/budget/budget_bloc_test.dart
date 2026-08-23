@@ -1085,20 +1085,71 @@ void main() {
     });
   });
 
-  group("clearing the cash journal filter", () {
-    test("clears the selected poste", () async {
+  group("the mode's own poste filter", () {
+    test("selecting a poste filters nothing, and filtering selects nothing", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final otherPosteId = loaded.postes[1].id;
+
+      // The two used to be one field, which is how a click in the quote came to narrow the cash
+      // journal without anything saying so.
+      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      final selected = await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+      expect(selected.filterPosteId, isNull);
+
+      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: otherPosteId));
+      final filtered = await waitForState(bloc, (state) => state.filterPosteId == otherPosteId);
+      expect(filtered.selectedPosteId, posteId);
+    });
+
+    test("a null poste clears the filter", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
       final posteId = loaded.postes.first.id;
 
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
-      await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId));
+      await waitForState(bloc, (state) => state.filterPosteId == posteId);
 
-      bloc.add(const OcptBudgetCashJournalFilterClearedEvent());
-      final state = await waitForState(bloc, (state) => state.selectedPosteId == null);
+      bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null));
+      final state = await waitForState(bloc, (state) => state.filterPosteId == null);
 
-      expect(state.selectedPosteId, isNull);
+      expect(state.filterPosteId, isNull);
+    });
+
+    test("a poste naming no live poste is ignored", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId));
+      await waitForState(bloc, (state) => state.filterPosteId == posteId);
+
+      bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: "no-such-poste"));
+      await pumpEventQueue();
+
+      expect(bloc.state.filterPosteId, posteId);
+    });
+
+    test("deleting the filtered poste clears the filter", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId));
+      await waitForState(bloc, (state) => state.filterPosteId == posteId);
+
+      bloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.postes.every((poste) => poste.id != posteId),
+      );
+
+      expect(state.filterPosteId, isNull);
     });
   });
 

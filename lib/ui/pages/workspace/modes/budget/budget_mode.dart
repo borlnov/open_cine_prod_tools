@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
@@ -449,6 +450,10 @@ class _BudgetViewState extends State<_BudgetView> {
               bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
           taxBasis: state.taxBasis,
           onTaxBasisChanged: (basis) => bloc.add(OcptBudgetTaxBasisChangedEvent(basis: basis)),
+          postes: state.postes,
+          filterPosteId: state.filterPosteId,
+          onPosteFilterSelected: (posteId) =>
+              bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
         ),
         const SizedBox(height: 12),
         Expanded(
@@ -548,7 +553,11 @@ class _BudgetViewState extends State<_BudgetView> {
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptBudgetCostTracking(
-      postes: state.postes,
+      // **The filter is applied here, not inside the view.** Every one of these widgets draws
+      // exactly the rows it is handed and totals exactly those, so narrowing the list is the whole
+      // of it: a filtered table's own `Total` reads the total of what is on screen, which is the
+      // only honest thing it can say.
+      postes: _filteredPostesOf(state),
       selectedPosteId: state.selectedPosteId,
       isSimplified: state.isSimplified,
       taxBasis: state.taxBasis,
@@ -612,21 +621,52 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
   }
 
+  /// [state]'s own postes, narrowed to the one the header's filter names — or every one of them
+  /// while nothing is filtered.
+  ///
+  /// See `ocptBudgetCentreViewHonoursPosteFilter` for which views read this and which say they
+  /// cannot.
+  List<OcptBudgetPoste> _filteredPostesOf(OcptBudgetState state) {
+    final filterPosteId = state.filterPosteId;
+
+    return filterPosteId == null
+        ? state.postes
+        : [
+            for (final poste in state.postes)
+              if (poste.id == filterPosteId) poste,
+          ];
+  }
+
+  /// [state]'s own commitments, narrowed to the poste the header's filter names — the mirror of
+  /// [_filteredPostesOf], reading the other side of the same filter.
+  ///
+  /// The poste **list** handed to that view stays whole: it is what a commitment's own `Poste` cell
+  /// looks its name up in, not a list of rows, and narrowing it would only make a filtered row
+  /// unable to name the very poste it was filtered by.
+  List<OcptBudgetCommitment> _filteredCommitmentsOf(OcptBudgetState state) {
+    final filterPosteId = state.filterPosteId;
+
+    return filterPosteId == null
+        ? state.commitments
+        : [
+            for (final commitment in state.commitments)
+              if (commitment.posteId == filterPosteId) commitment,
+          ];
+  }
+
   /// Builds the cash journal view.
   Widget _buildCashJournal(BuildContext context, OcptBudgetState state) {
-    final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptBudgetCashJournal(
       entries: state.entries,
       postes: state.postes,
       receiptsByEntryId: state.receiptsByEntryId,
-      selectedPosteId: state.selectedPosteId,
+      filterPosteId: state.filterPosteId,
       isSimplified: state.isSimplified,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
       isReadOnly: isReadOnly,
-      onFilterCleared: () => bloc.add(const OcptBudgetCashJournalFilterClearedEvent()),
       onEntryCreationRequested: isReadOnly
           ? null
           : () => unawaited(_handleEntryCreationRequested(context, state)),
@@ -723,7 +763,7 @@ class _BudgetViewState extends State<_BudgetView> {
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptBudgetCommittedSpending(
-      commitments: state.commitments,
+      commitments: _filteredCommitmentsOf(state),
       postes: state.postes,
       openingBalanceCents: state.cashTotals.balanceCents,
       isSimplified: state.isSimplified,

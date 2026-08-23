@@ -260,7 +260,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetEntryCreationConfirmedEvent>(_onEntryCreationConfirmed);
     on<OcptBudgetEntryUpdateConfirmedEvent>(_onEntryUpdateConfirmed);
     on<OcptBudgetEntryDeletionConfirmedEvent>(_onEntryDeletionConfirmed);
-    on<OcptBudgetCashJournalFilterClearedEvent>(_onCashJournalFilterCleared);
+    on<OcptBudgetPosteFilterSelectedEvent>(_onPosteFilterSelected);
     on<OcptBudgetCommitmentCreationConfirmedEvent>(_onCommitmentCreationConfirmed);
     on<OcptBudgetCommitmentUpdateConfirmedEvent>(_onCommitmentUpdateConfirmed);
     on<OcptBudgetCommitmentDeletionConfirmedEvent>(_onCommitmentDeletionConfirmed);
@@ -1213,15 +1213,29 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Clears the cash journal view's own poste filter — `OcptBudgetState.selectedPosteId` itself,
-  /// see [OcptBudgetCashJournalFilterClearedEvent]'s own doc comment. Flushes any pending field
-  /// edit first, mirroring every other selection-changing handler.
-  Future<void> _onCashJournalFilterCleared(
-    OcptBudgetCashJournalFilterClearedEvent event,
+  /// Narrows every view of the mode to `event.posteId`, or clears the filter when it is null — see
+  /// [OcptBudgetPosteFilterSelectedEvent]'s own doc comment for why this is not the selection.
+  ///
+  /// Flushes any pending field edit first, mirroring every other handler that changes what is on
+  /// screen: a figure still sitting in the autosave debounce would otherwise be read back from the
+  /// snapshot as it was before it was typed.
+  ///
+  /// **A poste id naming no live poste is ignored**, exactly as [_onPosteSelected] ignores one.
+  Future<void> _onPosteFilterSelected(
+    OcptBudgetPosteFilterSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(clearSelectedPosteId: true, clearExpandedLineId: true));
+
+    final posteId = event.posteId;
+    if (posteId == null) {
+      emitter(state.copyWith(clearFilterPosteId: true));
+      return;
+    }
+
+    if (state.postes.any((poste) => poste.id == posteId)) {
+      emitter(state.copyWith(filterPosteId: posteId));
+    }
   }
 
   /// Creates a new commitment from `event.fields`.
@@ -1375,6 +1389,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final posteStillExists =
         state.selectedPosteId == null ||
         snapshot.postes.any((poste) => poste.id == state.selectedPosteId);
+    // The filter is reconciled exactly as the selection is: a poste deleted while every view was
+    // narrowed to it would otherwise leave the mode showing nothing at all, with a header chip
+    // naming a poste the project no longer has.
+    final filterStillExists =
+        state.filterPosteId == null ||
+        snapshot.postes.any((poste) => poste.id == state.filterPosteId);
     final lineStillExists =
         posteStillExists &&
         state.expandedLineId != null &&
@@ -1404,6 +1424,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
             : _defaultProvisionPosteIdOf(loaded.snapshot.postes),
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         clearSelectedPosteId: !posteStillExists,
+        clearFilterPosteId: !filterStillExists,
         clearExpandedLineId: !lineStillExists,
         clearSelectedResourceId: !resourceStillExists,
         clearSelectedRevenueId: !revenueStillExists,

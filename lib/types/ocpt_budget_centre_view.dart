@@ -53,3 +53,25 @@ enum OcptBudgetCentreView {
   /// then due, has been paid and reinvests (`lib/utils/ocpt_budget_shares.dart`).
   sharing,
 }
+
+/// Whether [view] can honour the mode's own poste filter (`OcptBudgetState.filterPosteId`).
+///
+/// **Three of the six cannot, and say so rather than pretending to.** The financing plan reads
+/// `budget_resources`, the régie reads the schedule and the defrayals, and the revenue sharing
+/// reads `budget_revenues`/`budget_shares`: not one of those tables carries a poste, so there is
+/// nothing to narrow. A filter silently ignored on half the mode would be worse than one that is
+/// visibly out of scope, since a reader would take an unfiltered view for a filtered one.
+///
+/// The dashboard is the one deliberate judgement call here. It *has* a poste dimension — its own
+/// per-poste bars — but everything above them (the cash balance, the needs/resources bar, the two
+/// alerts) is a whole-project reading, and narrowing a summary to one poste would leave a page of
+/// figures that no longer add up to anything. It reads the whole project, and says so.
+bool ocptBudgetCentreViewHonoursPosteFilter(OcptBudgetCentreView view) => switch (view) {
+  OcptBudgetCentreView.costTracking ||
+  OcptBudgetCentreView.cashJournal ||
+  OcptBudgetCentreView.committed => true,
+  OcptBudgetCentreView.dashboard ||
+  OcptBudgetCentreView.financing ||
+  OcptBudgetCentreView.regie ||
+  OcptBudgetCentreView.sharing => false,
+};

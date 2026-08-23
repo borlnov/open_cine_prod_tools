@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
@@ -52,6 +53,9 @@ void main() {
           onSimplifiedChanged: (_) {},
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (_) {},
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );
@@ -83,6 +87,9 @@ void main() {
           onSimplifiedChanged: (_) {},
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (_) {},
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );
@@ -108,6 +115,9 @@ void main() {
           onSimplifiedChanged: (_) {},
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (_) {},
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );
@@ -131,6 +141,9 @@ void main() {
           onSimplifiedChanged: (value) => reported = value,
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (_) {},
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );
@@ -154,6 +167,9 @@ void main() {
           onSimplifiedChanged: (_) {},
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (basis) => reported = basis,
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );
@@ -178,6 +194,9 @@ void main() {
             onSimplifiedChanged: (_) {},
             taxBasis: OcptBudgetTaxBasis.includingTax,
             onTaxBasisChanged: (_) {},
+            postes: const [],
+            filterPosteId: null,
+            onPosteFilterSelected: (_) {},
           ),
         ),
       );
@@ -222,6 +241,9 @@ void main() {
             onSimplifiedChanged: (_) {},
             taxBasis: OcptBudgetTaxBasis.includingTax,
             onTaxBasisChanged: (_) {},
+            postes: const [],
+            filterPosteId: null,
+            onPosteFilterSelected: (_) {},
           ),
         ),
       );
@@ -282,6 +304,9 @@ void main() {
           onSimplifiedChanged: (_) {},
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (_) {},
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );
@@ -308,6 +333,9 @@ void main() {
             onSimplifiedChanged: (_) {},
             taxBasis: OcptBudgetTaxBasis.includingTax,
             onTaxBasisChanged: (_) {},
+            postes: const [],
+            filterPosteId: null,
+            onPosteFilterSelected: (_) {},
           ),
         ),
       );
@@ -336,6 +364,9 @@ void main() {
           onSimplifiedChanged: (_) {},
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (_) {},
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );
@@ -353,6 +384,91 @@ void main() {
     expect(regieChipCentre.dx, greaterThan(plannedChipCentre.dx));
   });
 
+  group("the poste filter", () {
+    /// Pumps the header on [view], filtered onto [filterPosteId], and answers the words it drew.
+    Future<Tr> pumpFilter(
+      WidgetTester tester, {
+      required OcptBudgetCentreView view,
+      required String? filterPosteId,
+      ValueChanged<String?>? onPosteFilterSelected,
+    }) async {
+      useWideWindow(tester);
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetHeader(
+            centreView: view,
+            onCentreViewSelected: (_) {},
+            isSimplified: false,
+            onSimplifiedChanged: (_) {},
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            onTaxBasisChanged: (_) {},
+            postes: [
+              OcptBudgetPoste(
+                id: "poste-1",
+                code: "1",
+                label: "Interpretation",
+                simpleLabel: null,
+                sortKey: "a0",
+                lines: const [],
+              ),
+            ],
+            filterPosteId: filterPosteId,
+            onPosteFilterSelected: onPosteFilterSelected ?? (_) {},
+          ),
+        ),
+      );
+
+      return Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    }
+
+    testWidgets("reads Every poste while nothing is filtered", (tester) async {
+      final tr = await pumpFilter(
+        tester,
+        view: OcptBudgetCentreView.cashJournal,
+        filterPosteId: null,
+      );
+
+      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
+      expect(find.text(tr.budgetHeaderPosteFilterNotHereCaption), findsNothing);
+    });
+
+    testWidgets("names the filtered poste, and offers to clear it", (tester) async {
+      String? reported;
+      var wasCalled = false;
+      final tr = await pumpFilter(
+        tester,
+        view: OcptBudgetCentreView.cashJournal,
+        filterPosteId: "poste-1",
+        onPosteFilterSelected: (posteId) {
+          reported = posteId;
+          wasCalled = true;
+        },
+      );
+
+      expect(find.text("Interpretation"), findsOneWidget);
+      expect(find.text(tr.budgetHeaderPosteFilterNotHereCaption), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      expect(wasCalled, isTrue);
+      expect(reported, isNull);
+    });
+
+    testWidgets("says so on a view with no poste to narrow, keeping the name", (tester) async {
+      // The filter really is still set — leaving this view brings it straight back — so hiding the
+      // chip here would let an unfiltered view pass for a filtered one.
+      final tr = await pumpFilter(
+        tester,
+        view: OcptBudgetCentreView.regie,
+        filterPosteId: "poste-1",
+      );
+
+      expect(find.text("Interpretation"), findsOneWidget);
+      expect(find.text(tr.budgetHeaderPosteFilterNotHereCaption), findsOneWidget);
+    });
+  });
+
   testWidgets("the chips read Quote, Planned, Cash flow, in that order", (tester) async {
     useWideWindow(tester);
 
@@ -365,6 +481,9 @@ void main() {
           onSimplifiedChanged: (_) {},
           taxBasis: OcptBudgetTaxBasis.includingTax,
           onTaxBasisChanged: (_) {},
+          postes: const [],
+          filterPosteId: null,
+          onPosteFilterSelected: (_) {},
         ),
       ),
     );

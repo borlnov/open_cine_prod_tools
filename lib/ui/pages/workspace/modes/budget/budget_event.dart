@@ -367,17 +367,26 @@ class OcptBudgetEntryDeletionConfirmedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
-/// Clears the cash journal view's own poste filter, dispatched by its top band's own `Remove
-/// filter` action.
+/// Narrows every view of the mode to poste [posteId], or clears the filter when it is null —
+/// dispatched by the header's own poste filter, the only control that sets it.
 ///
-/// The filter **is** `OcptBudgetState.selectedPosteId` — there is no filter state of this view's
-/// own — so clearing it here is exactly [OcptBudgetPosteSelectedEvent]'s own inverse, and carries
-/// the very same, single meaning "no poste is selected" already carries everywhere else in this
-/// mode: the `Inspector` tab, reading the very same field, empties out alongside the journal's own
-/// filter, one fact read by two views rather than two facts that happen to agree.
-class OcptBudgetCashJournalFilterClearedEvent extends OcptBudgetEvent {
+/// **Not [OcptBudgetPosteSelectedEvent]'s inverse, and no longer the same field.** The filter used
+/// to *be* `OcptBudgetState.selectedPosteId`, which meant clicking a row in the quote silently
+/// narrowed the cash journal — a view the reader was not looking at, so they discovered it on
+/// arriving there, with no obvious way back. Selecting and filtering are now two facts:
+/// [OcptBudgetPosteSelectedEvent] says what the inspector reads,
+/// `OcptBudgetState.filterPosteId` says what every view is narrowed to, and only a gesture
+/// that says "filter" sets it.
+class OcptBudgetPosteFilterSelectedEvent extends OcptBudgetEvent {
+  /// The poste to narrow every view to, or null to go back to the whole project.
+  final String? posteId;
+
   /// Class constructor
-  const OcptBudgetCashJournalFilterClearedEvent();
+  const OcptBudgetPosteFilterSelectedEvent({required this.posteId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, posteId];
 }
 
 /// Creates a new commitment from [fields], dispatched by the mode once

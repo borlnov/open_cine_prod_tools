@@ -473,6 +473,36 @@ are all here, and this file is the whole record of them.
   every other mode's bloc does, which is what let a colleague receive this project as a portable
   `.ocptz` a milestone before the mode printed a single PDF of its own.
 
+## Selecting a poste and filtering by one are two different facts
+
+- They used to be one field. `OcptBudgetState.selectedPosteId` drove both the right dock's
+  inspector *and* the cash journal's filter, so **clicking a row in the quote silently narrowed a
+  view the reader was not looking at** — they found out on arriving at the journal, where the only
+  notice was a caption inside its own top band and the only way out an unlabelled `Remove filter`
+  button sitting in a row of figures.
+- `selectedPosteId` is now a selection and nothing else: it drives the inspector and the row's
+  highlight, and narrows no view. `filterPosteId` is the mode's own filter, set by exactly one
+  control — the header's poste chip — and honoured by every view that can
+  (`ocptBudgetCentreViewHonoursPosteFilter`).
+- **The chip is both the control and the indicator.** It reads `Every poste` or the poste's own
+  name, tinted `primary` while filtering, with a clear button beside the name. Sitting in the
+  header, it is on screen whatever view is, which is the whole point: one place to see a filter,
+  one place to remove it.
+- **Three views cannot honour it and say so.** The financing plan, the régie and the revenue
+  sharing read tables that carry no poste at all, and the dashboard is a whole-project summary
+  whose figures would stop adding up if narrowed. On those four the chip keeps the poste's name —
+  the filter is still set, and leaving brings it back — and adds `Not applied here` underneath.
+  Hiding it there would have been calmer and dishonest: an unfiltered view would pass for a
+  filtered one.
+- **The narrowing happens in the mode, not in the views.** `OcptBudgetMode` hands each widget the
+  already-filtered list, so a filtered table's own `Total` is the total of what is on screen —
+  the only honest thing it can say. The cash journal is the exception the other way: its running
+  balance and its `Debit`/`Credit`/`Balance` band are computed over the **whole** journal before
+  the rows are narrowed, because an account does not change because somebody narrowed a view.
+- The filter is reconciled against every fresh snapshot exactly as the selection is: deleting the
+  filtered poste clears it, rather than leaving the mode showing nothing under a chip naming a
+  poste the project no longer has.
+
 ## Money is added in one way, reached through several doors
 
 - **There is exactly one gesture that writes a movement**: `OcptBudgetEntryDialog`, which already

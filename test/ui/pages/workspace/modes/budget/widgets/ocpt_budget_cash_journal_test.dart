@@ -89,12 +89,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () {},
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -125,12 +124,11 @@ void main() {
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () {},
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -148,12 +146,11 @@ void main() {
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: true,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () {},
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -175,12 +172,11 @@ void main() {
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () => created++,
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -212,12 +208,11 @@ void main() {
             entries: entries,
             postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Grant")],
             receiptsByEntryId: const {},
-            selectedPosteId: "poste-1",
+            filterPosteId: "poste-1",
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onFilterCleared: () {},
             onEntryCreationRequested: () {},
             onEntryTapped: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -255,12 +250,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            selectedPosteId: null,
+            filterPosteId: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onFilterCleared: () {},
             onEntryCreationRequested: () {},
             onEntryTapped: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -288,12 +282,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () {},
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -325,12 +318,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () {},
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -360,12 +352,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () {},
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -392,12 +383,11 @@ void main() {
           ],
           postes: const [],
           receiptsByEntryId: const {},
-          selectedPosteId: null,
+          filterPosteId: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onFilterCleared: () {},
           onEntryCreationRequested: () {},
           onEntryTapped: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -408,66 +398,10 @@ void main() {
     expect(find.text(tr.budgetCashJournalCoverageReadOut(1, 2)), findsNothing);
   });
 
-  testWidgets("Remove filter clears the filter and is only drawn while one is on", (tester) async {
-    var cleared = false;
-    final entries = [
-      _entry(id: "e1", date: DateTime(2026), posteId: "poste-1", debitCents: 1000),
-    ];
-    final postes = [_poste(id: "poste-1", label: "Camera")];
-
-    await tester.pumpWidget(
-      _wrap(
-        OcptBudgetCashJournal(
-          entries: entries,
-          postes: postes,
-          receiptsByEntryId: const {},
-          selectedPosteId: null,
-          isSimplified: false,
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-          isReadOnly: false,
-          onFilterCleared: () => cleared = true,
-          onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
-          onEntryDeletionRequested: (_) {},
-        ),
-      ),
-    );
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
-    expect(find.text(tr.budgetCashJournalRemoveFilterAction), findsNothing);
-
-    await tester.pumpWidget(
-      _wrap(
-        OcptBudgetCashJournal(
-          entries: entries,
-          postes: postes,
-          receiptsByEntryId: const {},
-          selectedPosteId: "poste-1",
-          isSimplified: false,
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-          isReadOnly: false,
-          onFilterCleared: () => cleared = true,
-          onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
-          onEntryDeletionRequested: (_) {},
-        ),
-      ),
-    );
-    expect(find.text(tr.budgetCashJournalFilterCaption("Camera")), findsOneWidget);
-    expect(find.text(tr.budgetCashJournalRemoveFilterAction), findsOneWidget);
-
-    await tester.tap(find.text(tr.budgetCashJournalRemoveFilterAction));
-    await tester.pumpAndSettle();
-
-    expect(cleared, isTrue);
-  });
-
   testWidgets(
-    "withholds every writing affordance under a previewed version, Remove filter excepted",
+    "withholds every writing affordance under a previewed version",
     (tester) async {
       var tapped = false;
-      var cleared = false;
       final entries = [
         _entry(id: "e1", date: DateTime(2026), posteId: "poste-1", debitCents: 1000),
       ];
@@ -479,12 +413,11 @@ void main() {
             entries: entries,
             postes: postes,
             receiptsByEntryId: const {},
-            selectedPosteId: "poste-1",
+            filterPosteId: "poste-1",
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: true,
-            onFilterCleared: () => cleared = true,
             onEntryCreationRequested: () => tapped = true,
             onEntryTapped: (_) => tapped = true,
             onEntryDeletionRequested: (_) => tapped = true,
@@ -502,12 +435,6 @@ void main() {
       await tester.tap(find.text(entries.first.label));
       await tester.pumpAndSettle();
       expect(tapped, isFalse);
-
-      // Remove filter writes nothing to the project, so it stays available even in preview.
-      expect(find.text(tr.budgetCashJournalRemoveFilterAction), findsOneWidget);
-      await tester.tap(find.text(tr.budgetCashJournalRemoveFilterAction));
-      await tester.pumpAndSettle();
-      expect(cleared, isTrue);
     },
   );
 
@@ -521,12 +448,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            selectedPosteId: null,
+            filterPosteId: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onFilterCleared: () {},
             onEntryCreationRequested: () {},
             onEntryTapped: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -552,12 +478,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: tempFile.path)},
-            selectedPosteId: null,
+            filterPosteId: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onFilterCleared: () {},
             onEntryCreationRequested: () {},
             onEntryTapped: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -583,12 +508,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: "/nowhere/facture.pdf")},
-            selectedPosteId: null,
+            filterPosteId: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onFilterCleared: () {},
             onEntryCreationRequested: () {},
             onEntryTapped: (_) {},
             onEntryDeletionRequested: (_) {},

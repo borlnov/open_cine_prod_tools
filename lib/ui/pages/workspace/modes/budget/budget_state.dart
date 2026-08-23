@@ -107,7 +107,22 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   final OcptBudgetTaxBasis taxBasis;
 
   /// The id of the currently selected poste, or null while none is.
+  ///
+  /// **A selection, and nothing else.** It drives the right dock's inspector and the row's own
+  /// highlight; it narrows no view. It used to be the cash journal's filter too, one field doing
+  /// two jobs, and that conflation was the fault: clicking a row in the quote silently filtered a
+  /// view the reader was not even looking at, and they found out on arriving there. What narrows a
+  /// view is [filterPosteId], which is only ever set by a gesture that says so.
   final String? selectedPosteId;
+
+  /// The poste every view of the mode is currently narrowed to, or null for the whole project.
+  ///
+  /// **Mode-wide on purpose**, unlike [selectedPosteId]: it is set once, from the header, and holds
+  /// across every view — which is what makes it worth having, since following one poste through
+  /// the quote, what is owed on it and what has moved against it is the reading it exists for.
+  /// The three views with no poste dimension at all (the financing plan, the régie, the revenue
+  /// sharing) say so rather than pretending to honour it.
+  final String? filterPosteId;
 
   /// The id of the currently selected financing resource, or null while none is — the financing
   /// view's own selection, read and written exactly as [selectedPosteId] is, but drawn as a plain
@@ -478,6 +493,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.isSimplified,
     required this.taxBasis,
     required this.selectedPosteId,
+    required this.filterPosteId,
     required this.selectedResourceId,
     required this.selectedRevenueId,
     required this.selectedShareId,
@@ -515,6 +531,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selectedPosteId = null,
+      filterPosteId = null,
       selectedResourceId = null,
       selectedRevenueId = null,
       selectedShareId = null,
@@ -544,7 +561,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
-  /// [selectedPosteId], [selectedResourceId], [expandedLineId] and [rightDockTab] all legitimately
+  /// [selectedPosteId], [filterPosteId], [selectedResourceId], [expandedLineId] and
+  /// [rightDockTab] all legitimately
   /// go back to null while the mode is alive, so each has its own clear flag. [pendingFieldEdits]
   /// is always replaced wholesale — the caller (the bloc's own field-edit handler) always computes
   /// the full next map.
@@ -559,6 +577,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     OcptBudgetTaxBasis? taxBasis,
     String? selectedPosteId,
     bool clearSelectedPosteId = false,
+    String? filterPosteId,
+    bool clearFilterPosteId = false,
     String? selectedResourceId,
     bool clearSelectedResourceId = false,
     String? selectedRevenueId,
@@ -607,6 +627,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     isSimplified: isSimplified ?? this.isSimplified,
     taxBasis: taxBasis ?? this.taxBasis,
     selectedPosteId: clearSelectedPosteId ? null : (selectedPosteId ?? this.selectedPosteId),
+    filterPosteId: clearFilterPosteId ? null : (filterPosteId ?? this.filterPosteId),
     selectedResourceId: clearSelectedResourceId ? null : (selectedResourceId ?? this.selectedResourceId),
     selectedRevenueId: clearSelectedRevenueId ? null : (selectedRevenueId ?? this.selectedRevenueId),
     selectedShareId: clearSelectedShareId ? null : (selectedShareId ?? this.selectedShareId),
@@ -704,6 +725,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     isSimplified,
     taxBasis,
     selectedPosteId,
+    filterPosteId,
     selectedResourceId,
     selectedRevenueId,
     selectedShareId,

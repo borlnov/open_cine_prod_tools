@@ -5,8 +5,10 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 
 /// The horizontal padding of every segmented switch's own segments, in logical pixels — mirrors
 /// `OcptBreakdownHeader`'s own `_ocptBreakdownSegmentPadding`.
@@ -63,6 +65,15 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Called with the basis just picked, when a segment is clicked.
   final ValueChanged<OcptBudgetTaxBasis> onTaxBasisChanged;
 
+  /// Every live poste of the project, offered by the poste filter.
+  final List<OcptBudgetPoste> postes;
+
+  /// The poste every view is currently narrowed to, or null for the whole project.
+  final String? filterPosteId;
+
+  /// Called with the poste just picked, or null to go back to the whole project.
+  final ValueChanged<String?> onPosteFilterSelected;
+
   /// Class constructor
   const OcptBudgetHeader({
     super.key,
@@ -72,6 +83,9 @@ class OcptBudgetHeader extends StatelessWidget {
     required this.onSimplifiedChanged,
     required this.taxBasis,
     required this.onTaxBasisChanged,
+    required this.postes,
+    required this.filterPosteId,
+    required this.onPosteFilterSelected,
   });
 
   @override
@@ -89,6 +103,13 @@ class OcptBudgetHeader extends StatelessWidget {
             _OcptBudgetCentreViewSwitch(value: centreView, onChanged: onCentreViewSelected),
             _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
             _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
+            _OcptBudgetPosteFilter(
+              postes: postes,
+              filterPosteId: filterPosteId,
+              isSimplified: isSimplified,
+              isHonouredHere: ocptBudgetCentreViewHonoursPosteFilter(centreView),
+              onChanged: onPosteFilterSelected,
+            ),
           ];
 
           // Under the title's own threshold the three controls **wrap onto a second line** rather
@@ -135,11 +156,10 @@ class OcptBudgetHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
               ],
-              controls[0],
-              const SizedBox(width: 12),
-              controls[1],
-              const SizedBox(width: 12),
-              controls[2],
+              for (final control in controls) ...[
+                if (control != controls.first) const SizedBox(width: 12),
+                control,
+              ],
             ],
           );
         },
@@ -250,6 +270,141 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The header's own poste filter: one chip reading either `Every poste` or the poste every view is
+/// currently narrowed to, with a small clear button beside the name.
+///
+/// **The mode's only filter control, and its only filter indicator.** Both jobs used to live
+/// inside the cash journal's own top band, which was the single place in the mode that admitted a
+/// filter existed at all — so a filter set by clicking a row in the quote was invisible until the
+/// reader happened to open the journal, and its off switch sat unlabelled in a row of figures.
+/// Sitting in the header, it is on screen whatever view is.
+///
+/// **It states when it is not being honoured** rather than going quiet: on the three views with no
+/// poste dimension (`ocptBudgetCentreViewHonoursPosteFilter`), the chip keeps the poste's name —
+/// the filter really is still set, and leaving would bring it back — and adds `Not applied here`
+/// under it. Hiding the chip there would have been calmer and dishonest: a reader would take an
+/// unfiltered view for a filtered one.
+///
+/// Writes nothing to the project, exactly as this header's three switches do not, so it needs no
+/// read-only handling: a previewed version filters as freely as a live one.
+class _OcptBudgetPosteFilter extends StatelessWidget {
+  /// Every live poste of the project.
+  final List<OcptBudgetPoste> postes;
+
+  /// The poste currently filtered, or null for the whole project.
+  final String? filterPosteId;
+
+  /// Whether the header's simplified/detailed switch currently reads simplified — a poste's own
+  /// displayed name follows it, exactly as it does everywhere else in the mode.
+  final bool isSimplified;
+
+  /// Whether the view currently on screen narrows itself to [filterPosteId] at all.
+  final bool isHonouredHere;
+
+  /// Called with the poste just picked, or null to go back to the whole project.
+  final ValueChanged<String?> onChanged;
+
+  /// Class constructor
+  const _OcptBudgetPosteFilter({
+    required this.postes,
+    required this.filterPosteId,
+    required this.isSimplified,
+    required this.isHonouredHere,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final filtered = postes.where((poste) => poste.id == filterPosteId).firstOrNull;
+    final isFiltering = filtered != null;
+    final color = isFiltering && isHonouredHere
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
+
+    return _OcptBudgetSwitchShell(
+      children: [
+        MenuAnchor(
+          menuChildren: [
+            MenuItemButton(
+              onPressed: () => onChanged(null),
+              child: Text(tr.budgetHeaderPosteFilterAllLabel),
+            ),
+            for (final poste in postes)
+              MenuItemButton(
+                onPressed: () => onChanged(poste.id),
+                child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)),
+              ),
+          ],
+          builder: (context, controller, child) => Tooltip(
+            message: tr.budgetHeaderPosteFilterTooltip,
+            child: InkWell(
+              onTap: () => controller.isOpen ? controller.close() : controller.open(),
+              mouseCursor: ocptClickableCursor,
+              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: _ocptBudgetSegmentPadding,
+                  vertical: 6,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.filter_alt_outlined, size: 14, color: color),
+                        const SizedBox(width: 6),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 160),
+                          child: Text(
+                            isFiltering
+                                ? ocptBudgetPosteDisplayLabel(filtered, isSimplified: isSimplified)
+                                : tr.budgetHeaderPosteFilterAllLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: color,
+                              fontWeight: isFiltering ? FontWeight.w700 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (isFiltering && !isHonouredHere)
+                      Text(
+                        tr.budgetHeaderPosteFilterNotHereCaption,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (isFiltering)
+          Tooltip(
+            message: tr.budgetHeaderPosteFilterClearTooltip,
+            child: InkWell(
+              onTap: () => onChanged(null),
+              mouseCursor: ocptClickableCursor,
+              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                child: Icon(Icons.close, size: 14, color: color),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

@@ -10653,6 +10653,22 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderPosteFilterAllLabel": "Every poste",
+  "@budgetHeaderPosteFilterAllLabel": {
+    "description": "The header's poste filter while nothing is filtered: the whole project is shown."
+  },
+  "budgetHeaderPosteFilterTooltip": "Narrow every view to one poste",
+  "@budgetHeaderPosteFilterTooltip": {
+    "description": "Tooltip of the header's poste filter."
+  },
+  "budgetHeaderPosteFilterClearTooltip": "Show every poste again",
+  "@budgetHeaderPosteFilterClearTooltip": {
+    "description": "Tooltip of the small clear button on the header's poste filter, shown only while a poste is filtered."
+  },
+  "budgetHeaderPosteFilterNotHereCaption": "Not applied here",
+  "@budgetHeaderPosteFilterNotHereCaption": {
+    "description": "Caption on the header's poste filter while a poste is filtered but the view on screen has no poste dimension to honour it with — the financing plan, the régie and the revenue sharing."
+  },
   "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
   "@budgetStatsPostes": {
     "description": "Poste count of the budget mode's status band",
@@ -11499,24 +11515,6 @@
   "@budgetCashJournalEmptyHint": {
     "description": "Hint of the cash journal view's own empty state",
     "context": "Shown in place of the cash journal view for a project with no entry at all",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCashJournalFilterCaption": "Filtered to {posteLabel}",
-  "@budgetCashJournalFilterCaption": {
-    "description": "Caption of the cash journal view's own top band while it is filtered onto one poste",
-    "context": "Displayed at the top of the budget mode's cash journal view",
-    "type": "text",
-    "placeholders": {
-      "posteLabel": {
-        "type": "String"
-      }
-    }
-  },
-  "budgetCashJournalRemoveFilterAction": "Remove filter",
-  "@budgetCashJournalRemoveFilterAction": {
-    "description": "Action clearing the cash journal view's own poste filter",
-    "context": "Displayed at the top of the budget mode's cash journal view, drawn only while a filter is on",
     "type": "text",
     "placeholders": {}
   },

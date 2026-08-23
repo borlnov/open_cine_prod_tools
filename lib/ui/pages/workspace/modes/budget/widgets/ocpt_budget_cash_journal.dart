@@ -52,9 +52,9 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// The budget mode's cash journal view: a top band, the entry table, then a note — the layout the
 /// validated mockup lays this view out as.
 ///
-/// **[entries] is always the whole journal, never a filtered subset.** [selectedPosteId] — read
-/// straight off `OcptBudgetState.selectedPosteId`, the very selection a cost-tracking row's click
-/// already sets, rather than a filter state of this view's own — narrows which rows the *table*
+/// **[entries] is always the whole journal, never a filtered subset.** [filterPosteId] — read
+/// straight off `OcptBudgetState.filterPosteId`, the mode-wide filter the header's own poste chip
+/// sets, rather than a filter state of this view's own — narrows which rows the *table*
 /// draws, through [ocptBudgetJournalRowsOf]'s own running balance computed first, over every entry,
 /// in the chronological order that function already reads them in; filtering the resulting rows
 /// only afterwards is what keeps a filtered balance reading exactly what the account actually stood
@@ -66,9 +66,14 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and withholds — never disables — every one of its own
 /// writing affordances under it: the `+ Entry` action, a row's own click (which opens the entry
-/// dialog to edit it) and its own `⋮` menu `Delete` entry. [onFilterCleared], by contrast, is never
-/// withheld: it only clears a selection already held in memory, exactly as the header's own toggles
-/// write nothing to the project either.
+/// dialog to edit it) and its own `⋮` menu `Delete` entry.
+///
+/// **This view no longer says a filter is on, and no longer offers to remove it.** It used to, in
+/// a caption and a `Remove filter` button inside its own top band, which was the only place in the
+/// mode that admitted a filter existed — so a filter arriving from a click in another view was
+/// invisible until the reader got here, and its off switch was buried in a row of figures. Both
+/// jobs moved to the header's own chip, which is on screen whatever view is: one place to see it,
+/// one place to remove it.
 ///
 /// Empty state: a project carrying no entry at all shows [OcptWorkspaceEmptyMode] **in the table's
 /// place, under a top band that stays drawn**. The band is where `+ Entry` lives, and a journal
@@ -91,8 +96,8 @@ class OcptBudgetCashJournal extends StatelessWidget {
   final Map<String, OcptAssetRef> receiptsByEntryId;
 
   /// The id of the poste the table is currently filtered onto, or null while it shows every entry —
-  /// `OcptBudgetState.selectedPosteId` itself, this view's only filter.
-  final String? selectedPosteId;
+  /// `OcptBudgetState.filterPosteId` itself, the mode's own single filter.
+  final String? filterPosteId;
 
   /// Whether the header's simplified/detailed switch currently reads simplified — switches a
   /// poste's own displayed name between `simpleLabel` and `code · label`.
@@ -107,10 +112,6 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// Whether the mode shows a project version being previewed read-only — see the class doc
   /// comment.
   final bool isReadOnly;
-
-  /// Called when the top band's own `Remove filter` action is clicked — never withheld, see the
-  /// class doc comment.
-  final VoidCallback onFilterCleared;
 
   /// Called when the top band's own `+ Entry` action is clicked, or null while [isReadOnly].
   final VoidCallback? onEntryCreationRequested;
@@ -129,12 +130,11 @@ class OcptBudgetCashJournal extends StatelessWidget {
     required this.entries,
     required this.postes,
     required this.receiptsByEntryId,
-    required this.selectedPosteId,
+    required this.filterPosteId,
     required this.isSimplified,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
     required this.isReadOnly,
-    required this.onFilterCleared,
     required this.onEntryCreationRequested,
     required this.onEntryTapped,
     required this.onEntryDeletionRequested,
@@ -146,23 +146,18 @@ class OcptBudgetCashJournal extends StatelessWidget {
 
     final rows = ocptBudgetJournalRowsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
     final totals = ocptBudgetCashTotalsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
-    final selectedPosteId = this.selectedPosteId;
-    final filteredRows = selectedPosteId == null
+    final filterPosteId = this.filterPosteId;
+    final filteredRows = filterPosteId == null
         ? rows
         : [
             for (final row in rows)
-              if (row.entry.posteId == selectedPosteId) row,
+              if (row.entry.posteId == filterPosteId) row,
           ];
-    final selectedPoste = _posteById(selectedPosteId);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _OcptCashJournalTopBand(
-          filterLabel: selectedPoste == null
-              ? null
-              : ocptBudgetPosteDisplayLabel(selectedPoste, isSimplified: isSimplified),
-          onFilterCleared: onFilterCleared,
           totals: totals,
           currencyCode: currencyCode,
           onEntryCreationRequested: isReadOnly ? null : onEntryCreationRequested,
@@ -256,12 +251,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
 /// The view's own top band: what it is filtered to and the action clearing it, pushed-right the
 /// whole journal's own debit/credit/balance figures, then the `+ Entry` action.
 class _OcptCashJournalTopBand extends StatelessWidget {
-  /// The filtered poste's own displayed name, or null while no filter is on.
-  final String? filterLabel;
 
-  /// Called when `Remove filter` is clicked — never withheld, see [OcptBudgetCashJournal]'s own
-  /// class doc comment.
-  final VoidCallback onFilterCleared;
 
   /// The whole journal's own debit, credit and balance.
   final OcptBudgetCashTotals totals;
@@ -274,8 +264,6 @@ class _OcptCashJournalTopBand extends StatelessWidget {
 
   /// Class constructor
   const _OcptCashJournalTopBand({
-    required this.filterLabel,
-    required this.onFilterCleared,
     required this.totals,
     required this.currencyCode,
     required this.onEntryCreationRequested,
@@ -284,8 +272,6 @@ class _OcptCashJournalTopBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final theme = Theme.of(context);
-    final filterLabel = this.filterLabel;
     final coverageText = totals.isComplete
         ? null
         : tr.budgetCashJournalCoverageReadOut(totals.coveredEntryCount, totals.entryCount);
@@ -293,18 +279,7 @@ class _OcptCashJournalTopBand extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (filterLabel != null) ...[
-          Expanded(
-            child: Text(
-              tr.budgetCashJournalFilterCaption(filterLabel),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall,
-            ),
-          ),
-          TextButton(onPressed: onFilterCleared, child: Text(tr.budgetCashJournalRemoveFilterAction)),
-        ] else
-          const Spacer(),
+        const Spacer(),
         const SizedBox(width: 16),
         _figure(
           context,
