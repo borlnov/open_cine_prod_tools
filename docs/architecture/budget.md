@@ -844,6 +844,26 @@ are all here, and this file is the whole record of them.
   dropped and none shrinks: what does not fit is scrolled to, which is the treatment the rest of the
   app already gives a table too wide for its slot.
 
+## A stacked pane states its height, it does not take a share of one
+
+- The régie and the planned-outgoings view each draw **two panes**, side by side while the centre is
+  wide and stacked once it is not. Stacked, each pane used to take an `Expanded` share of the
+  height — three fifths and two in the régie, two thirds and one in the outgoings. That works while
+  the view is tall and fails silently once it is not: a share smaller than the pane's own heading
+  band plus its card's chrome (padding, header row, dividers, total row) leaves the `ListView`
+  **nothing at all**, so the table prints its header and its total with no row between them, and
+  past that the pane spills over whatever sits under it. A release build paints no overflow banner,
+  so what a user sees is a table that has quietly lost its content and a heading printed over
+  another one.
+- Stacked, a pane therefore **states its own height**: its heading band takes the height it needs,
+  and its card is sized by its rows — between two and eight of them, so a two-line table is not
+  given a page and a thirty-day shoot does not make one — and **the view scrolls** when the two
+  panes together are taller than it. This is the same answer the tables already give sideways, one
+  axis over.
+- Side by side, both panes still take the whole height, floored at 320 px: under that the pair
+  scrolls rather than being crushed, which is the same rule stated for a window nobody normally
+  opens that short.
+
 ## An add button shows one plus, not two
 
 - Every creation control of this mode that carries an `Icons.add` icon has a label with **no `+` of
@@ -894,8 +914,9 @@ are all here, and this file is the whole record of them.
   project's own two unit prices, nothing typed here at all. The right column is *typed*: one
   `budget_allowances` row per thing actually owed, because what a production pays somebody back is
   not derivable from their presence — see "A defrayal is typed, never deduced" above. Under
-  [_ocptRegieWrapWidth] the two stack rather than crush each other, and the defrayal table itself
-  has a floor of 580 px below which it scrolls sideways, exactly as the journal's own does.
+  [_ocptRegieWrapWidth] the two stack rather than crush each other, each table has a floor below
+  which it scrolls sideways exactly as the journal's own does, and stacked each states its own
+  height rather than taking a share of one — see "A stacked pane states its height" above.
 - **The view writes, and therefore carries `isReadOnly`** — it did not before, being read-only start
   to finish. Under a previewed version the `Defrayal` button, the row menus, the poste picker and
   the provisioning button are **withheld, never disabled**, expressed as null callbacks by the mode

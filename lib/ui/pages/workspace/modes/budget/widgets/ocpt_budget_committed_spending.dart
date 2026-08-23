@@ -20,6 +20,51 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// side — see the class doc comment.
 const double _ocptCommittedWrapWidth = 900;
 
+/// The gap between the two columns, in logical pixels — the same one whether they sit side by side
+/// or stack.
+const double _ocptCommittedStackGap = 24;
+
+/// The commitments table's own chrome, in logical pixels: its header row and nothing else.
+const double _ocptCommittedTableChromeHeight = 44;
+
+/// The projection's own chrome, in logical pixels: the divider under the steps and the footer
+/// reading the balance they end on.
+const double _ocptCommittedProjectionChromeHeight = 88;
+
+/// One projection step's own row height, in logical pixels.
+const double _ocptCommittedProjectionStepHeight = 32;
+
+/// The fewest and the most rows either column is ever sized for once they stack.
+///
+/// **Stacked, a column is sized by its own content rather than by a share of the height.** Both
+/// used to take an `Expanded` share of whatever the view had, which works while the view is tall
+/// and fails silently once it is not: a share smaller than the heading band and the chrome leaves
+/// the `ListView` nothing at all, so the table prints its header with no commitment under it, and
+/// the column then spills over the projection underneath. Sized by its rows instead, a column
+/// always shows them, the heading band always takes the height it needs, and **the view scrolls**
+/// when the two together are taller than it — the same answer [_ocptCommittedMinTableWidth] gives
+/// sideways.
+const int _ocptCommittedStackedMinRowCount = 2;
+
+const int _ocptCommittedStackedMaxRowCount = 8;
+
+/// The shortest either column is drawn at while they sit side by side, in logical pixels — under it
+/// the pair scrolls rather than being crushed, exactly as it does stacked.
+const double _ocptCommittedColumnMinHeight = 320;
+
+/// The height a column holding [rowCount] rows of [rowHeight], over [chromeHeight], is drawn at
+/// once the columns stack — null while they sit side by side and the table takes whatever height
+/// the heading band leaves it.
+double? _ocptCommittedStackedTableHeight({
+  required bool isStacked,
+  required int rowCount,
+  required double rowHeight,
+  required double chromeHeight,
+}) => isStacked
+    ? chromeHeight +
+          rowHeight * rowCount.clamp(_ocptCommittedStackedMinRowCount, _ocptCommittedStackedMaxRowCount)
+    : null;
+
 /// The `Due date` column's own fixed width, in logical pixels.
 const double _ocptCommittedDueDateColumnWidth = 92;
 
@@ -150,50 +195,100 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final commitmentsColumn = _OcptCommittedCommitmentsColumn(
+    Widget commitmentsColumn({required bool isStacked}) => _OcptCommittedCommitmentsColumn(
       commitments: commitments,
       postes: postes,
       isSimplified: isSimplified,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode,
       isReadOnly: isReadOnly,
+      isStacked: isStacked,
       onCommitmentCreationRequested: isReadOnly ? null : onCommitmentCreationRequested,
       onCommitmentTapped: isReadOnly ? null : onCommitmentTapped,
       onCommitmentSettleRequested: isReadOnly ? null : onCommitmentSettleRequested,
       onCommitmentUnsettleRequested: isReadOnly ? null : onCommitmentUnsettleRequested,
       onCommitmentDeletionRequested: isReadOnly ? null : onCommitmentDeletionRequested,
     );
-    final projectionColumn = _OcptCommittedProjectionColumn(
+    Widget projectionColumn({required bool isStacked}) => _OcptCommittedProjectionColumn(
       openingBalanceCents: openingBalanceCents,
       commitments: commitments,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode,
+      isStacked: isStacked,
     );
 
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= _ocptCommittedWrapWidth) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(flex: 2, child: commitmentsColumn),
-              const SizedBox(width: 24),
-              Expanded(child: projectionColumn),
-            ],
+          // Side by side, both columns take the whole height, floored at
+          // [_ocptCommittedColumnMinHeight].
+          return _OcptCommittedVerticalScroller(
+            height: math.max(constraints.maxHeight, _ocptCommittedColumnMinHeight),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: 2, child: commitmentsColumn(isStacked: false)),
+                const SizedBox(width: _ocptCommittedStackGap),
+                Expanded(child: projectionColumn(isStacked: false)),
+              ],
+            ),
           );
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(flex: 2, child: commitmentsColumn),
-            const SizedBox(height: 24),
-            Expanded(child: projectionColumn),
-          ],
+        // Stacked, each column takes the height its own heading band and rows need, and the view
+        // scrolls when the two together are taller than it — see
+        // [_ocptCommittedStackedMinRowCount] for why a share of the height cannot be used here.
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              commitmentsColumn(isStacked: true),
+              const SizedBox(height: _ocptCommittedStackGap),
+              projectionColumn(isStacked: true),
+            ],
+          ),
         );
       },
     );
   }
+}
+
+/// The frame the two columns are drawn in: [child] at exactly [height], scrolling vertically as
+/// soon as that is taller than the view — `OcptBudgetRegie`'s own twin, for the same reason. See
+/// [_ocptCommittedColumnMinHeight].
+class _OcptCommittedVerticalScroller extends StatelessWidget {
+  /// The height the child is drawn at.
+  final double height;
+
+  /// The column, or the pair of columns, being framed.
+  final Widget child;
+
+  /// Class constructor
+  const _OcptCommittedVerticalScroller({required this.height, required this.child});
+
+  @override
+  Widget build(BuildContext context) =>
+      SingleChildScrollView(child: SizedBox(height: height, child: child));
+}
+
+/// A table inside its own column: drawn at exactly [height] once the columns stack, and taking
+/// whatever the heading band leaves it while they sit side by side.
+///
+/// See [_ocptCommittedStackedMinRowCount] for why the stacked reading states a height rather than
+/// taking a share of one.
+class _OcptCommittedTablePane extends StatelessWidget {
+  /// The height the table is drawn at, or null while it takes what is left.
+  final double? height;
+
+  /// The table being framed.
+  final Widget child;
+
+  /// Class constructor
+  const _OcptCommittedTablePane({required this.height, required this.child});
+
+  @override
+  Widget build(BuildContext context) =>
+      height == null ? Expanded(child: child) : SizedBox(height: height, child: child);
 }
 
 /// The left column: the heading band, then the commitments table.
@@ -211,6 +306,10 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
   final ValueChanged<String>? onCommitmentUnsettleRequested;
   final ValueChanged<String>? onCommitmentDeletionRequested;
 
+  /// Whether the two columns are stacked, and this one therefore states its own table height — see
+  /// [_ocptCommittedStackedMinRowCount].
+  final bool isStacked;
+
   /// Class constructor
   const _OcptCommittedCommitmentsColumn({
     required this.commitments,
@@ -219,6 +318,7 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
     required this.isReadOnly,
+    required this.isStacked,
     required this.onCommitmentCreationRequested,
     required this.onCommitmentTapped,
     required this.onCommitmentSettleRequested,
@@ -230,8 +330,18 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final outstanding = _outstandingTotalOf();
 
+    final tableHeight = _ocptCommittedStackedTableHeight(
+      isStacked: isStacked,
+      rowCount: commitments.length,
+      rowHeight: _ocptCommittedRowHeight,
+      chromeHeight: _ocptCommittedTableChromeHeight,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      // Stated by its own rows once it is stacked, so the column takes no more room than it needs
+      // and the view scrolls instead — see [_ocptCommittedStackedMinRowCount].
+      mainAxisSize: isStacked ? MainAxisSize.min : MainAxisSize.max,
       children: [
         _OcptCommittedHeadingBand(
           outstanding: outstanding,
@@ -240,7 +350,8 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (commitments.isEmpty)
-          Expanded(
+          _OcptCommittedTablePane(
+            height: tableHeight,
             child: OcptWorkspaceEmptyMode(
               icon: Icons.request_quote_outlined,
               // See `OcptBudgetCashJournal`'s own empty state for why the simplified reading
@@ -251,7 +362,8 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
             ),
           )
         else
-          Expanded(
+          _OcptCommittedTablePane(
+            height: tableHeight,
             child: LayoutBuilder(
               builder: (context, constraints) => SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -712,12 +824,17 @@ class _OcptCommittedProjectionColumn extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
+  /// Whether the two columns are stacked, and this one therefore states its own table height — see
+  /// [_ocptCommittedStackedMinRowCount].
+  final bool isStacked;
+
   /// Class constructor
   const _OcptCommittedProjectionColumn({
     required this.openingBalanceCents,
     required this.commitments,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
+    required this.isStacked,
   });
 
   @override
@@ -732,6 +849,8 @@ class _OcptCommittedProjectionColumn extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      // Stated by its own steps once it is stacked — see the commitments column's own reading.
+      mainAxisSize: isStacked ? MainAxisSize.min : MainAxisSize.max,
       children: [
         Text(tr.budgetCommittedProjectionTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 2),
@@ -748,7 +867,13 @@ class _OcptCommittedProjectionColumn extends StatelessWidget {
             currencyCode: currencyCode,
           )
         else ...[
-          Expanded(
+          _OcptCommittedTablePane(
+            height: _ocptCommittedStackedTableHeight(
+              isStacked: isStacked,
+              rowCount: projection.steps.length,
+              rowHeight: _ocptCommittedProjectionStepHeight,
+              chromeHeight: _ocptCommittedProjectionChromeHeight,
+            ),
             child: projection.steps.isEmpty
                 ? Center(
                     child: Text(

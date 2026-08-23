@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a wide, tall
 /// enough band that both columns are drawn side by side with no scroll needed to find a cell.
-Widget _wrap(Widget child) => MaterialApp(
+Widget _wrap(Widget child, {Size size = const Size(1400, 700)}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -24,7 +24,7 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 1400, height: 700, child: child)),
+  home: Scaffold(body: SizedBox(width: size.width, height: size.height, child: child)),
 );
 
 /// A minimal commitment, everything but what each test actually varies neutral.
@@ -69,17 +69,19 @@ void main() {
     ValueChanged<OcptBudgetCommitment>? onCommitmentSettleRequested,
     ValueChanged<String>? onCommitmentUnsettleRequested,
     ValueChanged<String>? onCommitmentDeletionRequested,
+    Size size = const Size(1400, 700),
   }) async {
     // The default test surface is narrower than `_ocptCommittedWrapWidth`, which would silently
     // switch every test onto the stacked layout instead of the side-by-side one this suite means
     // to exercise — widened here so the wrapping `SizedBox` below isn't itself clamped down.
-    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.physicalSize = Size(size.width + 200, size.height + 200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
       _wrap(
+        size: size,
         OcptBudgetCommittedSpending(
           commitments: commitments,
           postes: postes,
@@ -267,5 +269,26 @@ void main() {
     await tester.tap(find.text("Camera rental"));
     await tester.pumpAndSettle();
     expect(tapped, isFalse);
+  });
+
+  group("a view too short for its two columns", () {
+    testWidgets("scrolls rather than crushing the table out of its own rows", (tester) async {
+      // Narrow enough to stack the two columns, and short enough that a share of what is left is
+      // under what either needs — the geometry that used to leave the `ListView` nothing at all,
+      // print a header with no commitment under it, and spill over the projection underneath.
+      await pumpView(
+        tester,
+        commitments: [_commitment(id: "c1", amountCents: 120000)],
+        size: const Size(800, 420),
+      );
+
+      expect(find.text("Camera rental"), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.vertical,
+        ),
+        findsWidgets,
+      );
+    });
   });
 }

@@ -25,11 +25,12 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a wide band
 /// so the two columns draw side by side.
-Widget _wrap(Widget child) => MaterialApp(
+Widget _wrap(Widget child, {Size size = const Size(1400, 700)}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -37,7 +38,7 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 1400, height: 700, child: child)),
+  home: Scaffold(body: SizedBox(width: size.width, height: size.height, child: child)),
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
@@ -215,17 +216,19 @@ void main() {
     ValueChanged<String>? onProvisionPosteSelected,
     VoidCallback? onProvisionRequested,
     String? provisionNote,
+    Size size = const Size(1400, 700),
   }) async {
     // The default test surface is narrower than `_ocptRegieWrapWidth`, which would silently
     // switch every test onto the stacked layout instead of the side-by-side one this suite means
     // to exercise — widened here so the wrapping `SizedBox` below isn't itself clamped down.
-    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.physicalSize = Size(size.width, size.height + 200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
       _wrap(
+        size: size,
         OcptBudgetRegie(
           days: days,
           cateringTotals: ocptBudgetRegieTotalsOf(days),
@@ -661,5 +664,81 @@ void main() {
     await pumpView(tester, days: const [], allowances: [_buildAllowance(id: "allowance-1")]);
 
     expect(find.byType(OcptWorkspaceEmptyMode), findsNothing);
+  });
+
+  group("a view too short for its two panes", () {
+    testWidgets("scrolls rather than crushing either table out of its own rows", (tester) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: {
+          "day-1": [
+            _buildSlot(
+              id: "slot-1",
+              dayId: "day-1",
+              crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-2")],
+            ),
+          ],
+        },
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+
+      // Narrow enough to stack the two panes, and short enough that a third of what is left is
+      // under either pane's own floor — the geometry that used to leave both `ListView`s nothing
+      // at all, print a header and a total with no row between them, and then spill the catering
+      // pane over the defrayals underneath it.
+      await pumpView(
+        tester,
+        days: days,
+        allowances: [_buildAllowance(id: "allowance-1", personId: "person-1")],
+        people: [_buildPerson(id: "person-1", firstName: "Marie")],
+        size: const Size(800, 420),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      // Both tables still hold their row: the day's own tag, and the defrayal's own person.
+      expect(find.text(ocptScheduleDayTagLabel(tr, 1)), findsOneWidget);
+      expect(find.text("Marie"), findsOneWidget);
+      // And the pair is reachable, rather than clipped: the view scrolls vertically.
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.vertical,
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets("a roomy view is not made to scroll for nothing", (tester) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+
+      await pumpView(tester, days: days, size: const Size(1400, 900));
+
+      final scroller = tester.widget<SingleChildScrollView>(
+        find
+            .byWidgetPredicate(
+              (widget) =>
+                  widget is SingleChildScrollView && widget.scrollDirection == Axis.vertical,
+            )
+            .first,
+      );
+      final box = tester.renderObject<RenderBox>(find.byWidget(scroller));
+      final content = tester.renderObject<RenderBox>(
+        find.descendant(of: find.byWidget(scroller), matching: find.byType(SizedBox)).first,
+      );
+
+      // The panes are handed the view's own height, not their floors added up.
+      expect(content.size.height, box.size.height);
+    });
   });
 }

@@ -83,6 +83,37 @@ const double _ocptRegieCateringMinTableWidth = 768;
 
 const double _ocptRegieAllowanceMinTableWidth = 566;
 
+/// The gap between the two panes once they stack, in logical pixels.
+const double _ocptRegieStackGap = 24;
+
+/// A table card's own chrome, in logical pixels: its padding, its header row, the two dividers
+/// framing the rows and the total row under them — everything it draws before a single day or
+/// defrayal is.
+const double _ocptRegieCardChromeHeight = 110;
+
+/// The fewest and the most rows a table card is ever sized for once the panes stack.
+///
+/// **Stacked, a card is sized by its own content rather than by a share of the height.** Both panes
+/// used to take an `Expanded` share of whatever the view had, which works while the view is tall
+/// and fails silently once it is not: a share smaller than the heading band and
+/// [_ocptRegieCardChromeHeight] leaves the `ListView` nothing at all, so the table prints its header
+/// and its total with no day between them, and the pane then spills over the defrayals underneath.
+/// Sized by its rows instead, a card always shows them, the heading band always takes the height it
+/// needs, and **the view scrolls** when the two together are taller than it — the same answer
+/// [_ocptRegieCateringMinTableWidth] gives sideways.
+const int _ocptRegieStackedMinRowCount = 2;
+
+const int _ocptRegieStackedMaxRowCount = 8;
+
+/// The shortest either pane is drawn at while they sit side by side, in logical pixels — under it
+/// the pair scrolls rather than being crushed, exactly as it does stacked.
+const double _ocptRegiePaneMinHeight = 320;
+
+/// The height a table card holding [rowCount] rows of [rowHeight] is drawn at once the panes stack.
+double _ocptRegieStackedCardHeight(int rowCount, double rowHeight) =>
+    _ocptRegieCardChromeHeight +
+    rowHeight * rowCount.clamp(_ocptRegieStackedMinRowCount, _ocptRegieStackedMaxRowCount);
+
 /// The budget mode's catering-and-defrayals view: what each shooting day costs in meals and at the
 /// buffet, next to every defrayal the production owes somebody — the layout the validated mockup
 /// lays this view out as, **two columns side by side, the catering table taking roughly two thirds
@@ -238,22 +269,24 @@ class OcptBudgetRegie extends StatelessWidget {
       );
     }
 
-    final cateringColumn = _OcptRegieCateringColumn(
+    Widget cateringColumn({double? tableHeight}) => _OcptRegieCateringColumn(
       days: days,
       totals: cateringTotals,
       decorNameByDayId: decorNameByDayId,
       mealPriceCents: mealPriceCents,
       buffetPriceCents: buffetPriceCents,
       currencyCode: currencyCode,
+      tableHeight: tableHeight,
       onScheduleOpenRequested: onScheduleOpenRequested,
       onProjectSettingsRequested: onProjectSettingsRequested,
     );
-    final allowanceColumn = _OcptRegieAllowanceColumn(
+    Widget allowanceColumn({double? tableHeight}) => _OcptRegieAllowanceColumn(
       allowances: allowances,
       roles: roles,
       people: people,
       currencyCode: currencyCode,
       isReadOnly: isReadOnly,
+      tableHeight: tableHeight,
       onPersonOpenRequested: onPersonOpenRequested,
       onCreationRequested: onAllowanceCreationRequested,
       onEditRequested: onAllowanceEditRequested,
@@ -271,26 +304,44 @@ class OcptBudgetRegie extends StatelessWidget {
                 // old travel table was sized for, which left this one under its own floor and
                 // scrolling at any ordinary window width. The catering's own widest column is a
                 // decor name, which gives room up more gracefully than six narrow ones do.
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(flex: 3, child: cateringColumn),
-                    const SizedBox(width: 24),
-                    Expanded(flex: 2, child: allowanceColumn),
-                  ],
+                //
+                // Side by side, both panes take the whole height, floored at
+                // [_ocptRegiePaneMinHeight].
+                return _OcptRegieVerticalScroller(
+                  height: math.max(constraints.maxHeight, _ocptRegiePaneMinHeight),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 3, child: cateringColumn()),
+                      const SizedBox(width: _ocptRegieStackGap),
+                      Expanded(flex: 2, child: allowanceColumn()),
+                    ],
+                  ),
                 );
               }
 
-              // Mirrors `OcptBudgetCommittedSpending`'s own narrow reading: still two `Expanded`
-              // panes, stacked rather than side by side, each scrolling its own table internally
-              // rather than the whole view scrolling as one.
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(flex: 3, child: cateringColumn),
-                  const SizedBox(height: 24),
-                  Expanded(flex: 2, child: allowanceColumn),
-                ],
+              // Stacked, each pane takes the height its own heading band and rows need, and the
+              // view scrolls when the two together are taller than it — see
+              // [_ocptRegieStackedMinRowCount] for why a share of the height cannot be used here.
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    cateringColumn(
+                      tableHeight: _ocptRegieStackedCardHeight(
+                        days.length,
+                        _ocptRegieCateringRowHeight,
+                      ),
+                    ),
+                    const SizedBox(height: _ocptRegieStackGap),
+                    allowanceColumn(
+                      tableHeight: _ocptRegieStackedCardHeight(
+                        allowances.length,
+                        _ocptRegieAllowanceRowHeight,
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -313,6 +364,49 @@ class OcptBudgetRegie extends StatelessWidget {
   }
 }
 
+/// The frame the two panes are drawn in: [child] at exactly [height], scrolling vertically as soon
+/// as that is taller than the view.
+///
+/// **The height is always stated, never left to the panes.** Side by side, both of them size their
+/// own table with an `Expanded`, which needs a bounded height to mean anything, so this hands them
+/// the view's own — floored at [_ocptRegiePaneMinHeight], under which the pair scrolls rather than
+/// being crushed out of its rows.
+class _OcptRegieVerticalScroller extends StatelessWidget {
+  /// The height the child is drawn at.
+  final double height;
+
+  /// The pane, or the pair of panes, being framed.
+  final Widget child;
+
+  /// Class constructor
+  const _OcptRegieVerticalScroller({required this.height, required this.child});
+
+  @override
+  Widget build(BuildContext context) =>
+      SingleChildScrollView(child: SizedBox(height: height, child: child));
+}
+
+/// A table card inside its own pane: drawn at exactly [height] once the panes stack, and taking
+/// whatever the heading band leaves it while they sit side by side.
+///
+/// See [_ocptRegieStackedMinRowCount] for why the stacked reading states a height rather than
+/// taking a share of one.
+class _OcptRegieTablePane extends StatelessWidget {
+  /// The height the card is drawn at, or null while it takes what is left.
+  final double? height;
+
+  /// The card being framed.
+  final Widget child;
+
+  /// Class constructor
+  const _OcptRegieTablePane({required this.height, required this.child});
+
+  @override
+  Widget build(BuildContext context) => height == null
+      ? Expanded(child: child)
+      : SizedBox(height: height, child: child);
+}
+
 /// The left column: the heading band with its two captions, then the catering table.
 class _OcptRegieCateringColumn extends StatelessWidget {
   /// See [OcptBudgetRegie]'s own fields of the same name.
@@ -325,6 +419,10 @@ class _OcptRegieCateringColumn extends StatelessWidget {
   final VoidCallback onScheduleOpenRequested;
   final VoidCallback onProjectSettingsRequested;
 
+  /// The height the table card is drawn at, or null while the panes sit side by side and the card
+  /// takes whatever height the heading band leaves it — see [_ocptRegieStackedMinRowCount].
+  final double? tableHeight;
+
   /// Class constructor
   const _OcptRegieCateringColumn({
     required this.days,
@@ -333,6 +431,7 @@ class _OcptRegieCateringColumn extends StatelessWidget {
     required this.mealPriceCents,
     required this.buffetPriceCents,
     required this.currencyCode,
+    required this.tableHeight,
     required this.onScheduleOpenRequested,
     required this.onProjectSettingsRequested,
   });
@@ -344,6 +443,9 @@ class _OcptRegieCateringColumn extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      // Stated by its own rows once it is stacked, so the pane takes no more room than it needs
+      // and the view scrolls instead — see [_ocptRegieStackedMinRowCount].
+      mainAxisSize: tableHeight == null ? MainAxisSize.max : MainAxisSize.min,
       children: [
         Text(tr.budgetRegieCateringSectionTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
@@ -379,7 +481,8 @@ class _OcptRegieCateringColumn extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Expanded(
+        _OcptRegieTablePane(
+          height: tableHeight,
           child: Card(
             margin: EdgeInsets.zero,
             child: Padding(
@@ -708,6 +811,10 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
   final ValueChanged<String>? onEditRequested;
   final ValueChanged<String>? onDeletionRequested;
 
+  /// The height the table card is drawn at, or null while the panes sit side by side and the card
+  /// takes whatever height the heading band leaves it — see [_ocptRegieStackedMinRowCount].
+  final double? tableHeight;
+
   /// Class constructor
   const _OcptRegieAllowanceColumn({
     required this.allowances,
@@ -715,6 +822,7 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
     required this.people,
     required this.currencyCode,
     required this.isReadOnly,
+    required this.tableHeight,
     required this.onPersonOpenRequested,
     required this.onCreationRequested,
     required this.onEditRequested,
@@ -734,6 +842,8 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      // Stated by its own rows once it is stacked — see the catering column's own reading.
+      mainAxisSize: tableHeight == null ? MainAxisSize.max : MainAxisSize.min,
       children: [
         Text(tr.budgetRegieAllowancesSectionTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
@@ -755,7 +865,8 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Expanded(
+        _OcptRegieTablePane(
+          height: tableHeight,
           child: Card(
             margin: EdgeInsets.zero,
             child: Padding(
