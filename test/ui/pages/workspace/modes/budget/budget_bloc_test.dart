@@ -663,6 +663,132 @@ void main() {
     });
   });
 
+  group("a poste's estimate to complete", () {
+    test("a typed figure debounces the write: 12.50 reads back as 1250 cents", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetFieldChangedEvent(
+          targetId: posteId,
+          field: OcptBudgetField.posteEstimateToComplete,
+          rawValue: "12.50",
+        ),
+      );
+
+      // Right after the keystroke, the field reads the pending edit back — the debounce hasn't
+      // flushed yet.
+      final pending = await waitForState(
+        bloc,
+        (state) => state.pendingFieldEdits[(posteId, OcptBudgetField.posteEstimateToComplete)] ==
+            "12.50",
+      );
+      expect(pending.fieldValueOf(posteId, OcptBudgetField.posteEstimateToComplete, ""), "12.50");
+
+      final flushed = await waitForState(
+        bloc,
+        (state) =>
+            state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents == 1250,
+      );
+
+      expect(
+        flushed.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+        1250,
+      );
+      expect(flushed.pendingFieldEdits, isEmpty);
+    });
+
+    test(
+      "skips the write when the typed figure does not parse, leaving the stored value alone",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final loaded = await waitForState(bloc, (state) => !state.isLoading);
+        final posteId = loaded.postes.first.id;
+        final storedBefore = loaded.postes
+            .firstWhere((poste) => poste.id == posteId)
+            .estimateToCompleteCents;
+
+        bloc.add(
+          OcptBudgetFieldChangedEvent(
+            targetId: posteId,
+            field: OcptBudgetField.posteEstimateToComplete,
+            rawValue: "not a number",
+          ),
+        );
+        final flushed = await waitForState(bloc, (state) => state.pendingFieldEdits.isEmpty);
+
+        expect(
+          flushed.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+          storedBefore,
+        );
+      },
+    );
+
+    test("skips the write on an empty submission too, never writing zero", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final storedBefore = loaded.postes
+          .firstWhere((poste) => poste.id == posteId)
+          .estimateToCompleteCents;
+
+      bloc.add(
+        OcptBudgetFieldChangedEvent(
+          targetId: posteId,
+          field: OcptBudgetField.posteEstimateToComplete,
+          rawValue: "",
+        ),
+      );
+      final flushed = await waitForState(bloc, (state) => state.pendingFieldEdits.isEmpty);
+
+      expect(
+        flushed.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+        storedBefore,
+      );
+    });
+
+    test("the Derive again action clears it back to null immediately", () async {
+      final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 30));
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      await projectsManager.budgetQuoteService.updatePoste(
+        database: project.database,
+        posteId: posteId,
+        estimateToCompleteCents: const drift.Value(5000),
+      );
+
+      // The write above went straight through the service, bypassing the bloc, so its own cached
+      // state hasn't caught up yet — see the mirrored VAT-rate test above for why reloading first,
+      // and waiting for the typed figure to actually show up, is what keeps the assertion below
+      // honest.
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(
+        bloc,
+        (state) =>
+            state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents == 5000,
+      );
+
+      bloc.add(OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: posteId));
+      final state = await waitForState(
+        bloc,
+        (state) =>
+            state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents == null,
+      );
+
+      expect(
+        state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+        isNull,
+      );
+    });
+  });
+
   group("the right dock", () {
     test("persists the fraction and the last tab", () async {
       final bloc = buildBloc();

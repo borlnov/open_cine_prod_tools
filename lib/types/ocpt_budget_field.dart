@@ -26,6 +26,15 @@ enum OcptBudgetField {
   /// Maps to `OcptBudgetQuoteService.updatePoste`'s `code`.
   posteCode,
 
+  /// Maps to `OcptBudgetQuoteService.updatePoste`'s `estimateToCompleteCents`, read through
+  /// `ocptCostCentsOf` exactly as [lineUnitAmount] is. An empty or unparseable submission is
+  /// **skipped**, never written as null and never as zero — the same "null, never zero" honesty
+  /// [lineVatRateOverride] already argues for a stray backspace: a figure typed on purpose is never
+  /// silently dropped. The dedicated way back to the derived figure is
+  /// `OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent`, mirroring
+  /// `OcptBudgetLineVatRateInheritedRequestedEvent`.
+  posteEstimateToComplete,
+
   /// Maps to `OcptBudgetQuoteService.updateLine`'s `label`.
   lineLabel,
 

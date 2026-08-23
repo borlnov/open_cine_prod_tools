@@ -254,6 +254,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetLineDeletionConfirmedEvent>(_onLineDeletionConfirmed);
     on<OcptBudgetLineTaxInclusiveChangedEvent>(_onLineTaxInclusiveChanged);
     on<OcptBudgetLineVatRateInheritedRequestedEvent>(_onLineVatRateInheritedRequested);
+    on<OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent>(
+      _onPosteEstimateToCompleteDerivedRequested,
+    );
     on<OcptBudgetFieldChangedEvent>(_onFieldChanged);
     on<OcptBudgetFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptBudgetProjectSettingsChangedEvent>(_onProjectSettingsChanged);
@@ -889,6 +892,25 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _applyBudgetSnapshot(emitter, project);
   }
 
+  /// Puts poste `event.posteId`'s own estimate to complete back to being derived, immediately — see
+  /// `OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent`'s own doc comment.
+  Future<void> _onPosteEstimateToCompleteDerivedRequested(
+    OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _budgetQuoteService.updatePoste(
+      database: project.database,
+      posteId: event.posteId,
+      estimateToCompleteCents: const Value(null),
+    );
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
   /// Records the raw text just typed into a field as a pending edit, visible immediately, and
   /// (re)starts the field-edit debounce.
   Future<void> _onFieldChanged(
@@ -975,12 +997,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// loop [_flushPendingFieldEdits] and [flushPendingFieldEdits] both run, so the switch over
   /// [OcptBudgetField] is written once.
   ///
-  /// The three numeric fields ([OcptBudgetField.lineQuantity], [OcptBudgetField.lineUnitAmount],
+  /// The four numeric fields ([OcptBudgetField.posteEstimateToComplete],
+  /// [OcptBudgetField.lineQuantity], [OcptBudgetField.lineUnitAmount],
   /// [OcptBudgetField.lineVatRateOverride]) are parsed here, and a submission that doesn't parse is
   /// **skipped** rather than written: `quantityMilli` and `unitAmountCents` are never nullable, so
-  /// there is no null they could legitimately become, and an override's own empty/unparseable
-  /// reading is deliberately not "inherit" (`OcptBudgetField`'s own doc comment) — the field simply
-  /// reverts to whatever the database already holds on the next read.
+  /// there is no null they could legitimately become, and an estimate's or an override's own
+  /// empty/unparseable reading is deliberately not "clear it" (`OcptBudgetField`'s own doc comment) —
+  /// the field simply reverts to whatever the database already holds on the next read.
   Future<void> _writeAllPendingFieldEdits(
     OcptOpenProjectModel project,
     Map<OcptBudgetPendingFieldKey, String> edits,
@@ -1002,6 +1025,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
             posteId: targetId,
             code: Value(value),
           );
+        case OcptBudgetField.posteEstimateToComplete:
+          final amountCents = ocptCostCentsOf(value);
+          if (amountCents != null) {
+            await _budgetQuoteService.updatePoste(
+              database: project.database,
+              posteId: targetId,
+              estimateToCompleteCents: Value(amountCents),
+            );
+          }
         case OcptBudgetField.lineLabel:
           await _budgetQuoteService.updateLine(
             database: project.database,

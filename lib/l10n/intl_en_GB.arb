@@ -11282,6 +11282,31 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetInspectorPosteEstimateToCompleteFieldLabel": "Estimate to complete",
+  "@budgetInspectorPosteEstimateToCompleteFieldLabel": {
+    "description": "Label of the poste inspector's own estimate-to-complete field",
+    "context": "Displayed above the poste's estimate-to-complete field in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorPosteEstimateToCompleteHint": "derived {amount}",
+  "@budgetInspectorPosteEstimateToCompleteHint": {
+    "description": "Placeholder of the poste inspector's own estimate-to-complete field while it carries no typed figure",
+    "context": "Shown greyed inside the estimate-to-complete field while it is empty, naming the figure the app derives in its place",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetInspectorPosteEstimateToCompleteDeriveAction": "Derive again",
+  "@budgetInspectorPosteEstimateToCompleteDeriveAction": {
+    "description": "Action putting a poste's own estimate to complete back to the derived figure",
+    "context": "Displayed beside the poste's estimate-to-complete field in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetInspectorQuoteLinesSectionTitle": "Quote lines",
   "@budgetInspectorQuoteLinesSectionTitle": {
     "description": "Title of the poste inspector's own quote lines section",

@@ -112,6 +112,7 @@ void main() {
               isReadOnly: false,
               fieldValueOf: _storedFieldValueOf,
               onFieldChanged: (_, __, ___) {},
+              onPosteEstimateToCompleteDerivedRequested: (_) {},
               onLineExpanded: (_) {},
               onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
               onLineVatRateInheritedRequested: (_) {},
@@ -158,6 +159,7 @@ void main() {
           isReadOnly: false,
           fieldValueOf: _storedFieldValueOf,
           onFieldChanged: (_, __, ___) {},
+          onPosteEstimateToCompleteDerivedRequested: (_) {},
           onLineExpanded: (_) {},
           onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
           onLineVatRateInheritedRequested: (lineId) => reportedLineId = lineId,
@@ -174,6 +176,7 @@ void main() {
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetPosteInspector)));
+    await tester.ensureVisible(find.text(tr.budgetLineVatRateInheritAction));
     await tester.tap(find.text(tr.budgetLineVatRateInheritAction));
 
     expect(reportedLineId, _line.id);
@@ -196,6 +199,7 @@ void main() {
             isReadOnly: true,
             fieldValueOf: _storedFieldValueOf,
             onFieldChanged: null,
+            onPosteEstimateToCompleteDerivedRequested: null,
             onLineExpanded: (_) {},
             onLineTaxInclusiveChanged: null,
             onLineVatRateInheritedRequested: null,
@@ -216,13 +220,154 @@ void main() {
       expect(find.text(tr.budgetLineFromElementAction), findsNothing);
       expect(find.text(tr.budgetLineDeleteAction), findsNothing);
       expect(find.text(tr.budgetLineVatRateInheritAction), findsNothing);
+      expect(find.text(tr.budgetInspectorPosteEstimateToCompleteDeriveAction), findsNothing);
 
       final priceField = tester.widget<TextField>(
         find.widgetWithText(TextField, "12.50"),
       );
       expect(priceField.readOnly, isTrue);
+
+      // The poste's own line totals 12.50 €, nothing paid or committed: the derived figure.
+      final estimateHint = tr.budgetInspectorPosteEstimateToCompleteHint(
+        ocptBudgetAmountLabel(1250, "EUR"),
+      );
+      final estimateField = tester.widget<TextField>(
+        find.byWidgetPredicate(
+          (widget) => widget is TextField && widget.decoration?.hintText == estimateHint,
+        ),
+      );
+      expect(estimateField.readOnly, isTrue);
     },
   );
+
+  testWidgets(
+    "the estimate-to-complete field reads back a poste's own typed figure",
+    (tester) async {
+      const poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Poste one",
+        simpleLabel: null,
+        estimateToCompleteCents: 5000,
+        sortKey: "a0",
+        lines: [_line],
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetPosteInspector(
+            poste: poste,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidCents: 0,
+            committedCents: 0,
+            entries: const [],
+            expandedLineId: null,
+            isReadOnly: false,
+            fieldValueOf: _storedFieldValueOf,
+            onFieldChanged: (_, __, ___) {},
+            onPosteEstimateToCompleteDerivedRequested: (_) {},
+            onLineExpanded: (_) {},
+            onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
+            onLineVatRateInheritedRequested: (_) {},
+            onLineDeletionRequested: (_) {},
+            commitmentSettledByLineId: const {},
+            onLineCommitRequested: null,
+            onLineShowCommitmentRequested: null,
+            onLineUncommitRequested: null,
+            onLineCreationRequested: () {},
+            onLineFromElementRequested: () {},
+            elementNameByElementId: const {},
+          ),
+        ),
+      );
+
+      expect(find.widgetWithText(TextField, "50.00"), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "the estimate-to-complete field hints the derived figure while nothing is typed",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetPosteInspector(
+            poste: _poste,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidCents: 0,
+            committedCents: 500,
+            entries: const [],
+            expandedLineId: null,
+            isReadOnly: false,
+            fieldValueOf: _storedFieldValueOf,
+            onFieldChanged: (_, __, ___) {},
+            onPosteEstimateToCompleteDerivedRequested: (_) {},
+            onLineExpanded: (_) {},
+            onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
+            onLineVatRateInheritedRequested: (_) {},
+            onLineDeletionRequested: (_) {},
+            commitmentSettledByLineId: const {},
+            onLineCommitRequested: null,
+            onLineShowCommitmentRequested: null,
+            onLineUncommitRequested: null,
+            onLineCreationRequested: () {},
+            onLineFromElementRequested: () {},
+            elementNameByElementId: const {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetPosteInspector)));
+      // The line's own total is 12.50 €; 5.00 € committed leaves 7.50 € derived.
+      final hint = tr.budgetInspectorPosteEstimateToCompleteHint(
+        ocptBudgetAmountLabel(750, "EUR"),
+      );
+      final field = tester.widget<TextField>(find.widgetWithText(TextField, ""));
+      expect(field.decoration?.hintText, hint);
+    },
+  );
+
+  testWidgets("Derive again reports the poste's id", (tester) async {
+    String? reportedPosteId;
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetPosteInspector(
+          poste: _poste,
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          paidCents: 0,
+          committedCents: 0,
+          entries: const [],
+          expandedLineId: null,
+          isReadOnly: false,
+          fieldValueOf: _storedFieldValueOf,
+          onFieldChanged: (_, __, ___) {},
+          onPosteEstimateToCompleteDerivedRequested: (posteId) => reportedPosteId = posteId,
+          onLineExpanded: (_) {},
+          onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
+          onLineVatRateInheritedRequested: (_) {},
+          onLineDeletionRequested: (_) {},
+          commitmentSettledByLineId: const {},
+          onLineCommitRequested: null,
+          onLineShowCommitmentRequested: null,
+          onLineUncommitRequested: null,
+          onLineCreationRequested: () {},
+          onLineFromElementRequested: () {},
+          elementNameByElementId: const {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetPosteInspector)));
+    await tester.tap(find.text(tr.budgetInspectorPosteEstimateToCompleteDeriveAction));
+
+    expect(reportedPosteId, _poste.id);
+  });
 
   testWidgets(
     "shows the empty hint while the poste has no related entry at all",
@@ -241,6 +386,7 @@ void main() {
             isReadOnly: false,
             fieldValueOf: _storedFieldValueOf,
             onFieldChanged: (_, __, ___) {},
+            onPosteEstimateToCompleteDerivedRequested: (_) {},
             onLineExpanded: (_) {},
             onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
             onLineVatRateInheritedRequested: (_) {},
@@ -285,6 +431,7 @@ void main() {
             isReadOnly: false,
             fieldValueOf: _storedFieldValueOf,
             onFieldChanged: (_, __, ___) {},
+            onPosteEstimateToCompleteDerivedRequested: (_) {},
             onLineExpanded: (_) {},
             onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
             onLineVatRateInheritedRequested: (_) {},
@@ -340,6 +487,7 @@ void main() {
             isReadOnly: false,
             fieldValueOf: _storedFieldValueOf,
             onFieldChanged: (_, __, ___) {},
+            onPosteEstimateToCompleteDerivedRequested: (_) {},
             onLineExpanded: (_) {},
             onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
             onLineVatRateInheritedRequested: (_) {},
@@ -381,6 +529,7 @@ void main() {
           isReadOnly: false,
           fieldValueOf: _storedFieldValueOf,
           onFieldChanged: (_, __, ___) {},
+          onPosteEstimateToCompleteDerivedRequested: (_) {},
           onLineExpanded: (_) {},
           onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
           onLineVatRateInheritedRequested: (_) {},
@@ -442,6 +591,7 @@ void main() {
           isReadOnly: false,
           fieldValueOf: _storedFieldValueOf,
           onFieldChanged: (_, __, ___) {},
+          onPosteEstimateToCompleteDerivedRequested: (_) {},
           onLineExpanded: (_) {},
           onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
           onLineVatRateInheritedRequested: (_) {},

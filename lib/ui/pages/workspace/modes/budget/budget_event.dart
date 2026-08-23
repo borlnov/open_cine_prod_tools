@@ -280,6 +280,23 @@ class OcptBudgetLineVatRateInheritedRequestedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, lineId];
 }
 
+/// Puts poste [posteId]'s own estimate to complete back to being derived, dispatched by the
+/// inspector's own `Derive again` action — the field's dedicated way back to null, exactly as
+/// [OcptBudgetLineVatRateInheritedRequestedEvent] is for a line's rate. Written immediately, never
+/// through the field-edit debounce, and not an irreversible action: it puts the poste back to a
+/// figure the app can recompute at any time, so it needs no `OcptConfirmDialog`.
+class OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent extends OcptBudgetEvent {
+  /// The id of the poste being edited.
+  final String posteId;
+
+  /// Class constructor
+  const OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent({required this.posteId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, posteId];
+}
+
 /// Records the raw text just typed into [field] of entity [targetId] as a pending edit, dispatched
 /// on every keystroke into a poste's or a line's own free-text field — rides `OcptBudgetBloc`'s own
 /// 2 s field-edit debounce.

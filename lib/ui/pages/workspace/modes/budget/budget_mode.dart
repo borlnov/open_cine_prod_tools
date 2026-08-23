@@ -1920,6 +1920,10 @@ class _BudgetViewState extends State<_BudgetView> {
           : (targetId, field, rawValue) => bloc.add(
               OcptBudgetFieldChangedEvent(targetId: targetId, field: field, rawValue: rawValue),
             ),
+      onPosteEstimateToCompleteDerivedRequested: isReadOnly
+          ? null
+          : (posteId) =>
+                bloc.add(OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: posteId)),
       onLineExpanded: (lineId) => bloc.add(OcptBudgetLineExpandedEvent(lineId: lineId)),
       onLineTaxInclusiveChanged: isReadOnly
           ? null

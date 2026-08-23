@@ -25,8 +25,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// this poste.
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] and hands
-/// its own parts (every field, the tax-basis choice, the `Inherit` action, `+ Add`, `+ From
-/// breakdown`, `Delete`) the null callbacks that withhold them under a version preview.
+/// its own parts (every field, the poste's own `Derive again` action, the tax-basis choice, the
+/// `Inherit` action, `+ Add`, `+ From breakdown`, `Delete`) the null callbacks that withhold them
+/// under a version preview.
 ///
 /// **`+ From breakdown` mints a line the same way `+ Add` does, except that its own picker names
 /// where it comes from.** The mode opens `OcptBudgetElementPickerDialog` over
@@ -78,6 +79,12 @@ class OcptBudgetPosteInspector extends StatelessWidget {
   /// Called with a poste's or a line's id, which field and the raw text just typed, or null while
   /// [isReadOnly].
   final void Function(String targetId, OcptBudgetField field, String rawValue)? onFieldChanged;
+
+  /// Called with the poste's id when its own `Derive again` action is clicked, putting its estimate
+  /// to complete back to being derived, or null while [isReadOnly] — mirrors
+  /// [onLineVatRateInheritedRequested] for a line's own rate. Not an irreversible action, so the mode
+  /// answers this by dispatching straight away, with no `OcptConfirmDialog`.
+  final ValueChanged<String>? onPosteEstimateToCompleteDerivedRequested;
 
   /// Called with a line's id when its card's summary row is clicked, expanding or collapsing it.
   /// Never withheld: expanding a card only selects what is shown, it writes nothing.
@@ -143,6 +150,7 @@ class OcptBudgetPosteInspector extends StatelessWidget {
     required this.isReadOnly,
     required this.fieldValueOf,
     required this.onFieldChanged,
+    required this.onPosteEstimateToCompleteDerivedRequested,
     required this.onLineExpanded,
     required this.onLineTaxInclusiveChanged,
     required this.onLineVatRateInheritedRequested,
@@ -174,6 +182,15 @@ class OcptBudgetPosteInspector extends StatelessWidget {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final onFieldChanged = this.onFieldChanged;
+    // Always the derived figure, whatever the poste's own typed value: this is what the field's
+    // own hint names, and what `Derive again` would put the poste back to.
+    final derivedEstimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
+      quotedAmountCents: quoted.amountCents,
+      paidCents: paidCents,
+      committedCents: committedCents,
+      typedEstimateToCompleteCents: null,
+    );
+    final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
@@ -201,6 +218,40 @@ class OcptBudgetPosteInspector extends StatelessWidget {
             currencyCode: currencyCode,
             paidCents: paidCents,
             committedCents: committedCents,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _OcptBudgetInlineField(
+                  label: tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
+                  value: fieldValueOf(
+                    poste.id,
+                    OcptBudgetField.posteEstimateToComplete,
+                    ocptCostTextOf(poste.estimateToCompleteCents),
+                  ),
+                  hintText: tr.budgetInspectorPosteEstimateToCompleteHint(
+                    ocptBudgetAmountLabel(derivedEstimateToCompleteCents, currencyCode),
+                  ),
+                  suffixText: currencySymbol,
+                  onChanged: onFieldChanged == null
+                      ? null
+                      : (value) =>
+                            onFieldChanged(poste.id, OcptBudgetField.posteEstimateToComplete, value),
+                ),
+              ),
+              if (!isReadOnly && onPosteEstimateToCompleteDerivedRequested != null) ...[
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 18),
+                  child: TextButton(
+                    onPressed: () => onPosteEstimateToCompleteDerivedRequested?.call(poste.id),
+                    child: Text(tr.budgetInspectorPosteEstimateToCompleteDeriveAction),
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 16),
           Row(

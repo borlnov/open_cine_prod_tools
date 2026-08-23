@@ -135,6 +135,7 @@ class OcptBudgetQuoteService {
     Value<String> code = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<String?> simpleLabel = const Value.absent(),
+    Value<int?> estimateToCompleteCents = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updatePoste")) {
       return;
@@ -143,7 +144,12 @@ class OcptBudgetQuoteService {
     await (database.update(
       database.ocptBudgetPostesTable,
     )..where((table) => table.id.equals(posteId) & table.isDeleted.not())).write(
-      OcptBudgetPostesTableCompanion(code: code, label: label, simpleLabel: simpleLabel),
+      OcptBudgetPostesTableCompanion(
+        code: code,
+        label: label,
+        simpleLabel: simpleLabel,
+        estimateToCompleteCents: estimateToCompleteCents,
+      ),
     );
   }
 
