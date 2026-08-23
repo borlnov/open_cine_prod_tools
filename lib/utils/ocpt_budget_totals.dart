@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
+
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
@@ -206,6 +208,83 @@ int ocptBudgetVarianceCents({
   required int paidCents,
   required int committedCents,
 }) => paidCents + committedCents - quotedAmountCents;
+
+/// What is still expected to be spent on a poste quoted at [quotedAmountCents] beyond what has
+/// already been [paidCents] and [committedCents] against it.
+///
+/// [typedEstimateToCompleteCents] **is** the answer, verbatim, whenever it is non-null: a human has
+/// adjusted the figure, and this util never second-guesses a typed one. While it is null the answer
+/// is derived, and the derived figure is exactly `max(0, ocptBudgetRemainingCents(...))` —
+/// [ocptBudgetRemainingCents] is already the "what is left" reading, so this restates it rather
+/// than re-deriving the subtraction. Clamped at zero because a poste already over its quote has
+/// nothing left to *expect* spending, not a negative expectation.
+///
+/// **Not the same reading as [ocptBudgetVarianceCents]**, which sits a few lines above and answers
+/// `paid + committed − quote` — what has already moved, against the plan. This one asks what is
+/// still to come. See [ocptBudgetFinalCostVarianceCents] for the two readings meeting again, this
+/// time both against a final cost rather than against the quote directly.
+///
+/// [quotedAmountCents], [paidCents] and [committedCents] are **parameters, not reads of their
+/// own** — this file stays free of any database access, exactly as [ocptBudgetRemainingCents]
+/// already is, and the figures are assumed already resolved in whichever tax basis the caller's own
+/// header asks for ([ocptBudgetTotalOf]'s own reading of the quote): there is no basis parameter
+/// here, and no reach into `ocpt_budget_vat.dart`, for the same reason [ocptBudgetRemainingCents]
+/// and [ocptBudgetVarianceCents] beside it take no basis either. The "null, never zero" coverage
+/// discipline lives one level up, in the [OcptBudgetCoveredTotal] that produced the figure a caller
+/// hands in here — not in this plain arithmetic, which is why this function neither takes nor
+/// returns one.
+int ocptBudgetEstimateToCompleteCents({
+  required int quotedAmountCents,
+  required int paidCents,
+  required int committedCents,
+  required int? typedEstimateToCompleteCents,
+}) {
+  if (typedEstimateToCompleteCents != null) {
+    return typedEstimateToCompleteCents;
+  }
+
+  return math.max(
+    0,
+    ocptBudgetRemainingCents(
+      quotedAmountCents: quotedAmountCents,
+      paidCents: paidCents,
+      committedCents: committedCents,
+    ),
+  );
+}
+
+/// The whole of what a poste is now expected to have cost by the end: [paidCents] plus
+/// [committedCents] plus [estimateToCompleteCents].
+///
+/// [estimateToCompleteCents] is taken **already resolved** — [ocptBudgetEstimateToCompleteCents]
+/// called once, by the caller, rather than resolved again in here — so a caller can never
+/// accidentally hand the typed figure to one call and the derived one to another: there is exactly
+/// one place in the caller's own code where "derived or typed?" is decided.
+int ocptBudgetFinalCostCents({
+  required int paidCents,
+  required int committedCents,
+  required int estimateToCompleteCents,
+}) => paidCents + committedCents + estimateToCompleteCents;
+
+/// How far a poste quoted at [quotedAmountCents] sits from [finalCostCents], the whole of what it is
+/// now expected to have cost by the end ([ocptBudgetFinalCostCents]). Positive once the poste is
+/// expected to end over its quote, negative while it is expected to come in under.
+///
+/// **Read the name carefully — this is not [ocptBudgetVarianceCents].** That one already exists,
+/// reads `paid + committed − quote`, and is what the dashboard's alerts and the financial report PDF
+/// print today; it stays exactly as it is and keeps every one of its callers. This one reads against
+/// the final cost instead, which includes the estimate to complete — a **different fact**, not a
+/// second way of stating the same one. The two happen to agree whenever the poste is over its quote
+/// and the estimate is left to derive itself, since a derived estimate is then zero and
+/// [finalCostCents] collapses to `paid + committed`; and this one reads zero whenever the poste is
+/// not over its quote and the estimate is derived, since a derived estimate then makes
+/// [finalCostCents] equal the quote exactly. That collapse is exactly why a human has to be able to
+/// type the estimate to complete: only then does this column say anything [ocptBudgetVarianceCents]
+/// does not.
+int ocptBudgetFinalCostVarianceCents({
+  required int quotedAmountCents,
+  required int finalCostCents,
+}) => finalCostCents - quotedAmountCents;
 
 /// How much of a poste quoted at [quotedAmountCents] has been consumed by [paidCents] plus
 /// [committedCents], as a ratio (`1.0` meaning exactly on quote) — or null when the poste carries no
