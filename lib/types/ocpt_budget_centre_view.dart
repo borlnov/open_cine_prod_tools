@@ -5,11 +5,15 @@
 /// Which of the budget mode's centre views is currently shown, toggled by the header's own view
 /// chips.
 ///
-/// **All seven views the mockup validates now ship** (`docs/architecture/budget.md`). Each joined
-/// this enum **always at the end**, so a stored preference never points at a view that has moved,
-/// as the milestone that gave it real content landed — what M2 did for [cashJournal] and
-/// [committed], what M3 then did for [financing] and [regie], and what M4 now does one last time
-/// for [sharing]: nothing is added past it, this enum being complete.
+/// **Seven values, six chips**: [financing] and [committed] share one, `Planned`, and the
+/// sub-switch drawn inside the view moves between them — see `OcptBudgetPlannedSubSwitch`. What is
+/// promised to the production and what the production has promised are the same kind of money read
+/// in two directions, so they are one place in the mode; they stay two values here because a
+/// stored preference has to be able to point at the half a reader left the mode on.
+///
+/// Each value joined this enum **always at the end**, so a stored preference never points at a view
+/// that has moved, as the milestone that gave it real content landed. Nothing is added past
+/// [sharing], this enum being complete.
 enum OcptBudgetCentreView {
   /// The read-only overview: the quote's own totals and, poste by poste, its share of them — this
   /// milestone's honest reading of what a project holds, becoming the mockup's full dashboard as

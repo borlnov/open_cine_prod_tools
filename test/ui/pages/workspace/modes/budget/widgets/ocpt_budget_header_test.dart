@@ -191,14 +191,16 @@ void main() {
     expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsNothing);
     expect(find.text(tr.budgetHeaderCashJournalTitle), findsNothing);
 
+    // The committed spending has no chip of its own any more — it shares `Planned` with the
+    // financing plan — but the band's own title still re-words for it, which is what this asserts.
     tr = await pumpOn(OcptBudgetCentreView.committed, isSimplified: true);
-    expect(find.text(tr.budgetHeaderCommittedSimpleSegmentLabel), findsWidgets);
-    expect(find.text(tr.budgetHeaderCommittedSegmentLabel), findsNothing);
+    expect(find.text(tr.budgetHeaderCommittedSimpleSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderCommittedTitle), findsNothing);
 
     // The other three chips carry one wording only: they already say the plain thing they are.
     expect(find.text(tr.budgetHeaderDashboardSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderCostTrackingSegmentLabel), findsOneWidget);
-    expect(find.text(tr.budgetHeaderFinancingSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderPlannedSegmentLabel), findsOneWidget);
 
     tr = await pumpOn(OcptBudgetCentreView.cashJournal, isSimplified: false);
     expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsWidgets);
@@ -258,7 +260,7 @@ void main() {
     expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
   });
 
-  testWidgets("offers the Financing chip whatever the project holds", (tester) async {
+  testWidgets("the Planned chip lands on the financing plan", (tester) async {
     useWideWindow(tester);
     OcptBudgetCentreView? reported;
 
@@ -276,12 +278,43 @@ void main() {
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
-    await tester.tap(find.text(tr.budgetHeaderFinancingSegmentLabel));
+    await tester.tap(find.text(tr.budgetHeaderPlannedSegmentLabel));
 
+    // One chip, two views: reached from elsewhere it lands on the financing plan, and the
+    // sub-switch inside the view is what moves on to the committed spending.
     expect(reported, OcptBudgetCentreView.financing);
   });
 
-  testWidgets("offers the Régie chip last, after Committed", (tester) async {
+  testWidgets("the Planned chip reads active on either of its two halves", (tester) async {
+    useWideWindow(tester);
+    OcptBudgetCentreView? reported;
+
+    Future<Tr> pumpOn(OcptBudgetCentreView view) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetHeader(
+            centreView: view,
+            onCentreViewSelected: (selected) => reported = selected,
+            isSimplified: false,
+            onSimplifiedChanged: (_) {},
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            onTaxBasisChanged: (_) {},
+          ),
+        ),
+      );
+
+      return Tr.of(tester.element(find.byType(OcptBudgetHeader)));
+    }
+
+    // Standing on the committed spending, the chip is the active one: clicking it reports nothing,
+    // exactly as clicking any already-active segment does, so a reader on one half is never thrown
+    // back onto the other by the chip they are already under.
+    final tr = await pumpOn(OcptBudgetCentreView.committed);
+    await tester.tap(find.text(tr.budgetHeaderPlannedSegmentLabel));
+    expect(reported, isNull);
+  });
+
+  testWidgets("offers the Régie chip last, after Planned", (tester) async {
     useWideWindow(tester);
     OcptBudgetCentreView? reported;
 
@@ -303,14 +336,15 @@ void main() {
 
     expect(reported, OcptBudgetCentreView.regie);
 
-    // Régie's own chip sits to the right of Committed's — the header's own class doc comment
-    // argues why, unlike Financing, this one segment does follow OcptBudgetCentreView's own order.
-    final committedChipCentre = tester.getCenter(find.text(tr.budgetHeaderCommittedSegmentLabel));
+    // Régie's own chip sits to the right of Planned's — the header's own class doc comment
+    // argues why, unlike the cash journal, this one segment does follow OcptBudgetCentreView's own
+    // order.
+    final plannedChipCentre = tester.getCenter(find.text(tr.budgetHeaderPlannedSegmentLabel));
     final regieChipCentre = tester.getCenter(find.text(tr.budgetHeaderRegieSegmentLabel));
-    expect(regieChipCentre.dx, greaterThan(committedChipCentre.dx));
+    expect(regieChipCentre.dx, greaterThan(plannedChipCentre.dx));
   });
 
-  testWidgets("Cash journal sits third, ahead of Financing and Committed", (tester) async {
+  testWidgets("Cash journal sits third, ahead of Planned", (tester) async {
     useWideWindow(tester);
 
     await tester.pumpWidget(
@@ -329,14 +363,12 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetHeader)));
     final costTrackingCentre = tester.getCenter(find.text(tr.budgetHeaderCostTrackingSegmentLabel));
     final cashJournalCentre = tester.getCenter(find.text(tr.budgetHeaderCashJournalSegmentLabel));
-    final financingCentre = tester.getCenter(find.text(tr.budgetHeaderFinancingSegmentLabel));
-    final committedCentre = tester.getCenter(find.text(tr.budgetHeaderCommittedSegmentLabel));
+    final plannedCentre = tester.getCenter(find.text(tr.budgetHeaderPlannedSegmentLabel));
 
-    // Cash journal sits right after Cost tracking, ahead of both Financing and Committed — not
-    // fourth, where OcptBudgetCentreView itself places it.
+    // Cash journal sits right after Cost tracking, ahead of Planned — not fourth, where
+    // OcptBudgetCentreView itself places it.
     expect(cashJournalCentre.dx, greaterThan(costTrackingCentre.dx));
-    expect(financingCentre.dx, greaterThan(cashJournalCentre.dx));
-    expect(committedCentre.dx, greaterThan(financingCentre.dx));
+    expect(plannedCentre.dx, greaterThan(cashJournalCentre.dx));
   });
 
   // The narrow-window case (title/subtitle shed, the three controls kept) is

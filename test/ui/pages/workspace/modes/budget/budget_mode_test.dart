@@ -112,18 +112,35 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Switches the centre to the committed-spending view.
-  Future<void> openCommitted(WidgetTester tester) async {
+  /// Clicks the header's own `Planned` chip, which lands on the financing plan.
+  ///
+  /// Does nothing at all when one of the two halves is already on screen: the chip is then the
+  /// active one and takes no click, exactly as every other segment of that switch behaves.
+  Future<void> openPlanned(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetHeaderCommittedSegmentLabel));
+    final chip = find.text(tr.budgetHeaderPlannedSegmentLabel);
+    if (chip.evaluate().isEmpty) {
+      return;
+    }
+
+    await tester.tap(chip);
     await tester.pumpAndSettle();
   }
 
-  /// Switches the centre to the financing view.
-  Future<void> openFinancing(WidgetTester tester) async {
+  /// Switches the centre to the committed-spending view: the `Planned` chip, then that view's own
+  /// `Going out` half — two taps now that the two forecasting views share one chip.
+  Future<void> openCommitted(WidgetTester tester) async {
+    await openPlanned(tester);
+
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetHeaderFinancingSegmentLabel));
+    await tester.tap(find.text(tr.budgetPlannedOutgoingSegmentLabel));
     await tester.pumpAndSettle();
+  }
+
+  /// Switches the centre to the financing view — the `Planned` chip's own landing half, so the
+  /// chip alone is enough.
+  Future<void> openFinancing(WidgetTester tester) async {
+    await openPlanned(tester);
   }
 
   /// A finder scoped to the export panel's own `AlertDialog`, so its card titles can't collide
@@ -740,13 +757,20 @@ void main() {
     // The dashboard reads across the whole map rather than standing in one cell of it.
     expect(currentCells(), findsNothing);
 
-    // The header's own chip is tapped through `tapHeaderChip` rather than `openFinancing`: the
-    // help panel's map reuses the very same "Financing" label for its own cell, and both are on
-    // screen at once here.
-    await tapHeaderChip(tester, tr.budgetHeaderFinancingSegmentLabel);
+    // The financing plan and the committed spending share one header chip, and each still stands
+    // in one cell of its own: the map speaks about the half actually on screen, not about the chip.
+    await tapHeaderChip(tester, tr.budgetHeaderPlannedSegmentLabel);
     expect(currentCells(), findsOneWidget);
 
-    await tapHeaderChip(tester, tr.budgetHeaderCommittedSegmentLabel);
+    // Scoped to the sub-switch: the help map's own rows deliberately read `Coming in`/`Going out`
+    // too, which is the very mental model the sub-switch was named after, so both are on screen.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OcptBudgetPlannedSubSwitch),
+        matching: find.text(tr.budgetPlannedOutgoingSegmentLabel),
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(currentCells(), findsOneWidget);
 
     // The cash journal occupies both cells of the "has moved" column at once.

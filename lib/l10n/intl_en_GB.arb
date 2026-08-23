@@ -12073,6 +12073,27 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderPlannedSegmentLabel": "Planned",
+  "@budgetHeaderPlannedSegmentLabel": {
+    "description": "Label of the header's Planned view chip, which stands for both the financing plan and the committed spending",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPlannedIncomingSegmentLabel": "Coming in",
+  "@budgetPlannedIncomingSegmentLabel": {
+    "description": "Label of the Planned view's own sub-switch segment showing the financing plan",
+    "context": "Displayed above the budget mode's own Planned view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPlannedOutgoingSegmentLabel": "Going out",
+  "@budgetPlannedOutgoingSegmentLabel": {
+    "description": "Label of the Planned view's own sub-switch segment showing the committed spending",
+    "context": "Displayed above the budget mode's own Planned view",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetHeaderFinancingSegmentLabel": "Financing",
   "@budgetHeaderFinancingSegmentLabel": {
     "description": "Label of the header's Financing view chip",

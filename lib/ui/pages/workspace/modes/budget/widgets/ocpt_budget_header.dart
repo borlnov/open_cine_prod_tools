@@ -202,6 +202,15 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
   /// The switch's current value.
   final T current;
 
+  /// The values **other than [value]** that also light this segment.
+  ///
+  /// Empty for every switch whose segments map one-to-one onto their values, which is all of them
+  /// but one: the `Planned` chip stands for two centre views — the financing plan and the
+  /// committed spending — and has to read active for either, the sub-switch inside the view being
+  /// what moves between them. Clicking a segment that is already active does nothing, so a reader
+  /// on one half never falls back onto the other by clicking the chip they are already on.
+  final Set<T> alsoActiveFor;
+
   /// This segment's label.
   final String label;
 
@@ -214,12 +223,13 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
     required this.current,
     required this.label,
     required this.onChanged,
+    this.alsoActiveFor = const {},
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isActive = value == current;
+    final isActive = value == current || alsoActiveFor.contains(current);
 
     return InkWell(
       onTap: isActive ? null : () => onChanged(value),
@@ -343,18 +353,20 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
               : tr.budgetHeaderCashJournalSegmentLabel,
           onChanged: onChanged,
         ),
+        // `Planned` is **one chip standing for two views**: what is promised to the production and
+        // what the production has promised are the same kind of money — nothing has moved for
+        // either — read in two directions, and a bar of seven chips was asking a reader to hold
+        // that distinction as two separate places. `OcptBudgetPlannedSubSwitch`, drawn inside the
+        // view itself, is what moves between the two halves; this chip only says which of them is
+        // being looked at, and lands on the financing plan when it is reached from elsewhere.
+        //
+        // Neither value leaves `OcptBudgetCentreView`, so the stored preference still points at
+        // the exact half a reader left the mode on, and reopening the app puts them back there.
         _OcptBudgetSwitchSegment(
           value: OcptBudgetCentreView.financing,
           current: value,
-          label: tr.budgetHeaderFinancingSegmentLabel,
-          onChanged: onChanged,
-        ),
-        _OcptBudgetSwitchSegment(
-          value: OcptBudgetCentreView.committed,
-          current: value,
-          label: isSimplified
-              ? tr.budgetHeaderCommittedSimpleSegmentLabel
-              : tr.budgetHeaderCommittedSegmentLabel,
+          alsoActiveFor: const {OcptBudgetCentreView.committed},
+          label: tr.budgetHeaderPlannedSegmentLabel,
           onChanged: onChanged,
         ),
         // Régie and Revenue sharing sit last, in that order — see the class doc comment for why
@@ -369,6 +381,56 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
           value: OcptBudgetCentreView.sharing,
           current: value,
           label: tr.budgetHeaderSharingSegmentLabel,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// The `Planned` view's own sub-switch: `Coming in` (the financing plan) against `Going out` (the
+/// committed spending), drawn **inside the view** rather than in the header band.
+///
+/// The header's own chip bar says which of the mode's six places a reader is in; this says which
+/// half of one of them. Putting both questions in the same bar was what made it seven chips wide,
+/// and it asked a reader to tell two views apart that are the same reading in two directions —
+/// money promised, in one sense or the other, none of it moved.
+///
+/// **The two words deliberately echo the help panel's own map**, whose rows already read
+/// `Coming in` and `Going out` against a `Promised`/`Has moved` split: this view *is* that map's
+/// promised column, and naming it in the map's own words is what lets the help explain the mode
+/// once instead of twice. They keep separate ARB keys all the same, being two different surfaces.
+///
+/// **Neither label is re-worded under the simplified reading**, unlike the chip the committed
+/// spending used to have: `Coming in` and `Going out` carry no trade word for the switch to spare
+/// a crew.
+class OcptBudgetPlannedSubSwitch extends StatelessWidget {
+  /// The centre view currently on screen — always one of `OcptBudgetCentreView.financing` and
+  /// `.committed`, this widget being drawn for no other.
+  final OcptBudgetCentreView value;
+
+  /// Called with the half just clicked.
+  final ValueChanged<OcptBudgetCentreView> onChanged;
+
+  /// Class constructor
+  const OcptBudgetPlannedSubSwitch({super.key, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return _OcptBudgetSwitchShell(
+      children: [
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.financing,
+          current: value,
+          label: tr.budgetPlannedIncomingSegmentLabel,
+          onChanged: onChanged,
+        ),
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.committed,
+          current: value,
+          label: tr.budgetPlannedOutgoingSegmentLabel,
           onChanged: onChanged,
         ),
       ],

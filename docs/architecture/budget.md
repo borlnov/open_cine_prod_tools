@@ -621,6 +621,28 @@ are all here, and this file is the whole record of them.
   would both cost more than the reading is worth. `OcptBudgetState.selectedResourceId` is therefore
   a plain highlight, reconciled against a freshly loaded snapshot exactly as `selectedPosteId` is.
 
+## What is promised is one place, read in two directions
+
+- The financing plan and the committed spending share **one header chip, `Planned`**
+  (« Prévisionnel »), and a sub-switch drawn inside the view — `OcptBudgetPlannedSubSwitch` —
+  moves between `Coming in` and `Going out`. Seven chips asked a reader to hold as two separate
+  places what is one reading in two directions: money that is promised and has not moved, owed to
+  the production or by it. The cash journal, which answers the other half of that question, needs
+  no such split because a debit and a credit already sit in one table.
+- **The two words are the help panel's own.** Its map already reads `Coming in`/`Going out`
+  against a `Promised`/`Has moved` split, and this view is that map's promised column: naming the
+  sub-switch in the map's words is what lets the help explain the mode once. The ARB keys stay
+  separate, being two different surfaces.
+- **`OcptBudgetCentreView` keeps both values.** They are one place in the mode but two things to
+  remember, and `OcptPropertiesManager.budgetLastCentreView` has to be able to point at the half a
+  reader left the mode on. The chip therefore reads active for either — `_OcptBudgetSwitchSegment`
+  gained an `alsoActiveFor` set for it — and, being active, takes no click, so a reader on `Going
+  out` is never thrown back onto `Coming in` by the chip they are already under. Reached from
+  anywhere else, the chip lands on the financing plan.
+- The help panel is untouched by the merge: each half keeps its own page, its own title and its own
+  cell in the map, because the help speaks about the view actually on screen, never about the chip
+  above it.
+
 ## The journal scrolls rather than losing a column
 
 - The cash journal's table gives every column but `Label` a fixed width, and `Label` takes what is

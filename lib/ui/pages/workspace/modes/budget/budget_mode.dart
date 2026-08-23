@@ -455,14 +455,43 @@ class _BudgetViewState extends State<_BudgetView> {
               OcptBudgetCentreView.dashboard => _buildDashboard(context, state),
               OcptBudgetCentreView.costTracking => _buildCostTracking(context, state),
               OcptBudgetCentreView.cashJournal => _buildCashJournal(context, state),
-              OcptBudgetCentreView.committed => _buildCommittedSpending(context, state),
-              OcptBudgetCentreView.financing => _buildFinancing(context, state),
+              OcptBudgetCentreView.committed ||
+              OcptBudgetCentreView.financing => _buildPlanned(context, state),
               OcptBudgetCentreView.regie => _buildRegie(context, state),
               OcptBudgetCentreView.sharing => _buildSharing(context, state),
             },
           ),
         ),
         const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  /// Builds the merged `Planned` view: its own sub-switch, then whichever of the two halves
+  /// [OcptBudgetState.centreView] currently names.
+  ///
+  /// The financing plan and the committed spending share one header chip and one place in the
+  /// mode, since both read money that is promised and has not moved — one in each direction. See
+  /// `OcptBudgetPlannedSubSwitch`.
+  Widget _buildPlanned(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OcptBudgetPlannedSubSwitch(
+            value: state.centreView,
+            onChanged: (view) => bloc.add(OcptBudgetCentreViewSelectedEvent(view: view)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: state.centreView == OcptBudgetCentreView.financing
+              ? _buildFinancing(context, state)
+              : _buildCommittedSpending(context, state),
+        ),
       ],
     );
   }
