@@ -32,6 +32,7 @@ void main() {
     ),
     status: status,
     settledEntryId: settledEntryId,
+    lineId: null,
     sortKey: sortKey,
   );
 

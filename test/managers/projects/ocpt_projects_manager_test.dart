@@ -847,8 +847,7 @@ void main() {
     void demoteToPreviousFormat(String filePath) {
       final database = sqlite3.open(filePath);
       database
-        ..execute("ALTER TABLE budget_lines DROP COLUMN provision_key")
-        ..execute("ALTER TABLE budget_lines DROP COLUMN provision_digest")
+        ..execute("ALTER TABLE budget_commitments DROP COLUMN line_id")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

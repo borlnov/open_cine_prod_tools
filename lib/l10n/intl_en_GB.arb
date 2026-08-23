@@ -11434,6 +11434,33 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetLineCommitAction": "Commit this line…",
+  "@budgetLineCommitAction": {
+    "description": "Action on an expanded quote line card that promotes it into a commitment, opening the commitment dialog pre-filled from the line."
+  },
+  "budgetLineCommittedBadge": "Committed",
+  "@budgetLineCommittedBadge": {
+    "description": "Badge on a quote line card that has already been promoted into a commitment."
+  },
+  "budgetLineShowCommitmentAction": "Show the commitment",
+  "@budgetLineShowCommitmentAction": {
+    "description": "Action on an already-promoted quote line card that opens the committed spending on the commitment it produced."
+  },
+  "budgetLineUncommitAction": "Cancel the commitment",
+  "@budgetLineUncommitAction": {
+    "description": "Action on an already-promoted quote line card that deletes the commitment it produced, undoing the promotion."
+  },
+  "budgetLineUncommitConfirmMessage": "The commitment “{label}” was made from this line. Cancelling it deletes it from the committed spending. The quote line itself is left alone.",
+  "@budgetLineUncommitConfirmMessage": {
+    "description": "Body of the confirmation dialog opened by Cancel the commitment.",
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "budgetLineUncommitSettledHint": "This commitment has been settled by a journal entry, so it can no longer be cancelled from here.",
+  "@budgetLineUncommitSettledHint": {
+    "description": "Shown in place of Cancel the commitment when the commitment the line produced is already settled."
+  },
   "budgetExportPanelTitle": "Export the budget",
   "@budgetExportPanelTitle": {
     "description": "Title of the budget mode's own export panel",

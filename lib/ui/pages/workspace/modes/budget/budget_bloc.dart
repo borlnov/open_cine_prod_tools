@@ -1258,6 +1258,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       isTaxInclusive: fields.isTaxInclusive,
       vatRateBasisPoints: fields.vatRateBasisPoints,
       status: fields.status,
+      lineId: event.lineId,
     );
 
     await _applyBudgetSnapshot(emitter, project);

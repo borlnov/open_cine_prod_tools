@@ -461,6 +461,7 @@ void main() {
             amount: OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
             status: OcptBudgetCommitmentStatus.quoteAccepted,
             settledEntryId: "entry-1",
+            lineId: null,
             sortKey: "a0",
           ),
         ],
@@ -486,6 +487,7 @@ void main() {
         amount: const OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
         status: OcptBudgetCommitmentStatus.quoteAccepted,
         settledEntryId: null,
+        lineId: null,
         sortKey: "a0",
       );
       final snapshot = OcptBudgetSnapshot.build(

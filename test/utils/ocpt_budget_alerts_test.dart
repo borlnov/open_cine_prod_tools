@@ -57,6 +57,7 @@ OcptBudgetCommitment _buildCommitment({
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: OcptBudgetCommitmentStatus.quoteAccepted,
   settledEntryId: settledEntryId,
+  lineId: null,
   sortKey: "a0",
 );
 

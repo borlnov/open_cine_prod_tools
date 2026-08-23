@@ -371,6 +371,7 @@ class OcptBudgetJournalService {
     bool isTaxInclusive = true,
     int? vatRateBasisPoints,
     OcptBudgetCommitmentStatus status = OcptBudgetCommitmentStatus.quoteAccepted,
+    String? lineId,
   }) async {
     if (database.refusesUserWrite("createCommitment")) {
       return null;
@@ -391,6 +392,7 @@ class OcptBudgetJournalService {
             isTaxInclusive: Value(isTaxInclusive),
             vatRateBasisPoints: Value(vatRateBasisPoints),
             status: Value(status),
+            lineId: Value(lineId),
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
             ),

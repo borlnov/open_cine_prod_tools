@@ -396,12 +396,20 @@ class OcptBudgetCommitmentCreationConfirmedEvent extends OcptBudgetEvent {
   /// Every field the dialog collected.
   final OcptBudgetCommitmentFormFields fields;
 
+  /// The quote line this commitment was promoted from, or null when it was typed from scratch —
+  /// the ordinary case, and the only one the `+ Commitment` button produces.
+  ///
+  /// **Not part of [fields], and deliberately.** The dialog collects what a user typed; this is
+  /// where the movement came from, which the dialog neither knows nor asks about. Keeping it out
+  /// also keeps the dialog usable, unchanged, for a commitment that has no line behind it.
+  final String? lineId;
+
   /// Class constructor
-  const OcptBudgetCommitmentCreationConfirmedEvent({required this.fields});
+  const OcptBudgetCommitmentCreationConfirmedEvent({required this.fields, this.lineId});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, fields];
+  List<Object?> get props => [...super.props, fields, lineId];
 }
 
 /// Writes [fields] onto commitment [commitmentId], dispatched by the mode once

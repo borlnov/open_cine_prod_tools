@@ -309,7 +309,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 32;
+  static const currentSchemaVersion = 33;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -885,6 +885,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         if (from >= 25) {
           await m.addColumn(ocptBudgetLinesTable, ocptBudgetLinesTable.provisionKey);
           await m.addColumn(ocptBudgetLinesTable, ocptBudgetLinesTable.provisionDigest);
+        }
+      }
+
+      if (from < 33) {
+        // `budget_commitments` has existed, and been alterable, since version 26; an older file
+        // has just had it created fresh above, from the current declaration, so it already carries
+        // the column. Guarded for the reason `assets.budgetEntryId` above is guarded.
+        //
+        // It arrives **null on every existing commitment**, which is the truthful reading: not one
+        // of them was promoted from a quote line, since nothing could be.
+        if (from >= 26) {
+          await m.addColumn(ocptBudgetCommitmentsTable, ocptBudgetCommitmentsTable.lineId);
         }
       }
     },

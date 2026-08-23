@@ -51,6 +51,7 @@ OcptBudgetCommitment _commitment({
   ),
   status: status,
   settledEntryId: settledEntryId,
+  lineId: null,
   sortKey: sortKey,
 );
 

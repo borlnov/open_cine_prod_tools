@@ -95,6 +95,27 @@ class OcptBudgetPosteInspector extends StatelessWidget {
   /// The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onLineDeletionRequested;
 
+  /// Which lines have already been promoted into a commitment, and whether that commitment has
+  /// been settled by a journal entry — a line absent from this map was never promoted.
+  ///
+  /// Read from `budget_commitments.lineId`: a provenance, not a link anything is recomputed
+  /// through (`OcptBudgetCommitmentsTable.lineId`). It decides one thing only, which of the line
+  /// card's two mutually exclusive states is drawn.
+  final Map<String, bool> commitmentSettledByLineId;
+
+  /// Called with a line's id when its own `Commit this line…` action is clicked, or null while
+  /// [isReadOnly]. The mode opens `OcptBudgetCommitmentDialog` pre-filled from the line.
+  final ValueChanged<String>? onLineCommitRequested;
+
+  /// Called with a line's id when its own `Show the commitment` action is clicked — never
+  /// withheld under [isReadOnly], since it only moves the reader to a view they may open by hand.
+  final ValueChanged<String>? onLineShowCommitmentRequested;
+
+  /// Called with a line's id when its own `Cancel the commitment` action is clicked, or null while
+  /// [isReadOnly]. The mode answers this through `OcptConfirmDialog`, exactly as it answers
+  /// [onLineDeletionRequested].
+  final ValueChanged<String>? onLineUncommitRequested;
+
   /// Called when the `+ Add` action is clicked, or null while [isReadOnly] or [poste] is null.
   final VoidCallback? onLineCreationRequested;
 
@@ -126,6 +147,10 @@ class OcptBudgetPosteInspector extends StatelessWidget {
     required this.onLineTaxInclusiveChanged,
     required this.onLineVatRateInheritedRequested,
     required this.onLineDeletionRequested,
+    required this.commitmentSettledByLineId,
+    required this.onLineCommitRequested,
+    required this.onLineShowCommitmentRequested,
+    required this.onLineUncommitRequested,
     required this.onLineCreationRequested,
     required this.onLineFromElementRequested,
     required this.elementNameByElementId,
@@ -229,6 +254,15 @@ class OcptBudgetPosteInspector extends StatelessWidget {
                     ? null
                     : () => onLineVatRateInheritedRequested?.call(line.id),
                 onDeletionRequested: isReadOnly ? null : () => onLineDeletionRequested?.call(line.id),
+                onCommitRequested: isReadOnly || commitmentSettledByLineId.containsKey(line.id)
+                    ? null
+                    : () => onLineCommitRequested?.call(line.id),
+                onShowCommitmentRequested: commitmentSettledByLineId.containsKey(line.id)
+                    ? () => onLineShowCommitmentRequested?.call(line.id)
+                    : null,
+                onUncommitRequested: isReadOnly || (commitmentSettledByLineId[line.id] ?? true)
+                    ? null
+                    : () => onLineUncommitRequested?.call(line.id),
               ),
           const SizedBox(height: 16),
           Text(tr.budgetInspectorRelatedEntriesSectionTitle, style: Theme.of(context).textTheme.titleSmall),
@@ -503,6 +537,17 @@ class _OcptBudgetLineCard extends StatelessWidget {
   /// Called when the card's own `Delete` action is clicked, or null while [isReadOnly].
   final VoidCallback? onDeletionRequested;
 
+  /// Called when `Commit this line…` is clicked — see [_OcptBudgetLineFields.onCommitRequested].
+  final VoidCallback? onCommitRequested;
+
+  /// Called when `Show the commitment` is clicked — see
+  /// [_OcptBudgetLineFields.onShowCommitmentRequested].
+  final VoidCallback? onShowCommitmentRequested;
+
+  /// Called when `Cancel the commitment` is clicked — see
+  /// [_OcptBudgetLineFields.onUncommitRequested].
+  final VoidCallback? onUncommitRequested;
+
   /// Class constructor
   const _OcptBudgetLineCard({
     required this.line,
@@ -517,6 +562,9 @@ class _OcptBudgetLineCard extends StatelessWidget {
     required this.onTaxInclusiveChanged,
     required this.onVatRateInheritedRequested,
     required this.onDeletionRequested,
+    required this.onCommitRequested,
+    required this.onShowCommitmentRequested,
+    required this.onUncommitRequested,
   });
 
   @override
@@ -551,6 +599,9 @@ class _OcptBudgetLineCard extends StatelessWidget {
               onTaxInclusiveChanged: onTaxInclusiveChanged,
               onVatRateInheritedRequested: onVatRateInheritedRequested,
               onDeletionRequested: onDeletionRequested,
+              onCommitRequested: onCommitRequested,
+              onShowCommitmentRequested: onShowCommitmentRequested,
+              onUncommitRequested: onUncommitRequested,
             ),
           ),
         ],
@@ -661,6 +712,18 @@ class _OcptBudgetLineFields extends StatelessWidget {
   /// Called when `Delete` is clicked, or null while [isReadOnly].
   final VoidCallback? onDeletionRequested;
 
+  /// Called when `Commit this line…` is clicked, or null while the line has already been promoted
+  /// (or while [isReadOnly]) — never offered alongside [onShowCommitmentRequested].
+  final VoidCallback? onCommitRequested;
+
+  /// Called when `Show the commitment` is clicked, or null while the line has not been promoted.
+  final VoidCallback? onShowCommitmentRequested;
+
+  /// Called when `Cancel the commitment` is clicked, or null while there is nothing to cancel —
+  /// the line was never promoted, or the commitment it produced has already been settled by a
+  /// journal entry, which is stated on screen rather than disabled.
+  final VoidCallback? onUncommitRequested;
+
   /// Class constructor
   const _OcptBudgetLineFields({
     required this.line,
@@ -672,6 +735,9 @@ class _OcptBudgetLineFields extends StatelessWidget {
     required this.onTaxInclusiveChanged,
     required this.onVatRateInheritedRequested,
     required this.onDeletionRequested,
+    required this.onCommitRequested,
+    required this.onShowCommitmentRequested,
+    required this.onUncommitRequested,
   });
 
   @override
@@ -789,6 +855,49 @@ class _OcptBudgetLineFields extends StatelessWidget {
           multiline: true,
           onChanged: _onFieldChanged(OcptBudgetField.lineNotes),
         ),
+        // The commitment a line was promoted into is stated **here, on the line itself**: it is
+        // the one place a reader is looking at the estimate and can ask what became of it. The
+        // promotion is not a move — the line stays, and comparing the 1,200 € estimated with the
+        // 1,450 € actually owed is the whole use of having both.
+        if (!isReadOnly && (onCommitRequested != null || onShowCommitmentRequested != null)) ...[
+          const SizedBox(height: 8),
+          if (onCommitRequested != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: onCommitRequested,
+                icon: const Icon(Icons.handshake_outlined, size: 16),
+                label: Text(tr.budgetLineCommitAction),
+              ),
+            )
+          else
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 4,
+              children: [
+                TextButton.icon(
+                  onPressed: onShowCommitmentRequested,
+                  icon: const Icon(Icons.handshake_outlined, size: 16),
+                  label: Text(tr.budgetLineShowCommitmentAction),
+                ),
+                // Withheld, not disabled, once a journal entry has settled the commitment: undoing
+                // the promotion would then delete a debt somebody has already been paid against.
+                // The reason is written where the button was, rather than left to be guessed.
+                if (onUncommitRequested != null)
+                  TextButton(
+                    onPressed: onUncommitRequested,
+                    child: Text(tr.budgetLineUncommitAction),
+                  )
+                else
+                  Text(
+                    tr.budgetLineUncommitSettledHint,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+        ],
         if (!isReadOnly && onDeletionRequested != null) ...[
           const SizedBox(height: 8),
           Align(

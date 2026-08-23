@@ -70,6 +70,7 @@ OcptBudgetCommitment _existingCommitment({
   ),
   status: status,
   settledEntryId: null,
+  lineId: null,
   sortKey: "a0",
 );
 

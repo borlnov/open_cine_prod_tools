@@ -473,6 +473,33 @@ are all here, and this file is the whole record of them.
   every other mode's bloc does, which is what let a colleague receive this project as a portable
   `.ocptz` a milestone before the mode printed a single PDF of its own.
 
+## A quote line can be promoted into a commitment, and the line stays
+
+- A quote line and a commitment hold the same shape of fact — a poste, a wording, an amount, a tax
+  reading — and differ in the two things that make a debt a debt: **who is owed, and when**. So the
+  expanded line card offers `Commit this line…`, which opens `OcptBudgetCommitmentDialog`
+  pre-filled from the line (a new `prefill` parameter, mirroring `OcptBudgetEntryDialog.prefill`)
+  with only those two left to say.
+- **A promotion, never a move.** The line stays in the quote: comparing the 1,200 € estimated with
+  the 1,450 € actually owed is the whole use of having both, and losing the estimate at the moment
+  it becomes useful would be the wrong trade. Nothing is double-counted either — a poste's `Quote`
+  column reads its lines and its `Committed` column reads commitments; the two were never summed.
+- `budget_commitments.lineId` records the provenance (schema 33, payload format 29). **Nothing is
+  ever read back off the line through it**: the commitment's amount, wording and due date are its
+  own from creation, and correcting the estimate afterwards leaves the debt alone. The column buys
+  exactly two behaviours — a line already promoted says so instead of silently making a second debt
+  every time the gesture is used, and the promotion can be undone from the line it came from.
+- The card therefore draws **one of two mutually exclusive states**: `Commit this line…`, or
+  `Show the commitment` beside `Cancel the commitment`. Cancelling goes through `OcptConfirmDialog`
+  like every irreversible action, and deletes the commitment while leaving the quote line alone.
+- **`Cancel the commitment` is withheld once a journal entry has settled the commitment**, with the
+  reason written where the button was: undoing the promotion would then delete a debt somebody has
+  already been paid against.
+- `lineId` is **not part of `OcptBudgetCommitmentFormFields`**. The form collects what a user
+  typed; the provenance is where the gesture came from, which the dialog neither knows nor asks
+  about — and keeping it out leaves the dialog usable, unchanged, for a commitment that has no line
+  behind it.
+
 ## The right dock belongs to the view, not to the mode
 
 - `OcptBudgetRightDock` used to draw every value of `OcptBudgetRightDockTab` whatever was on

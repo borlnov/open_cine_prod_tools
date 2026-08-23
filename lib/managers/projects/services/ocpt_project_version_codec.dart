@@ -66,7 +66,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 28;
+  static const currentPayloadFormat = 29;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -887,6 +887,10 @@ class OcptProjectVersionCodec {
   /// JSON object
   static const _settledEntryIdKey = "settledEntryId";
 
+  /// This is the key used to stringify or parse a `budget_commitments.lineId` column from a JSON
+  /// object, from payload format 29: the quote line a commitment was promoted from.
+  static const _commitmentLineIdKey = "lineId";
+
   /// This is the key used to stringify or parse an `assets.budgetEntryId` column from a JSON object,
   /// from payload format 17: the journal entry a receipt asset is the voucher for.
   static const _budgetEntryIdKey = "budgetEntryId";
@@ -1001,6 +1005,7 @@ class OcptProjectVersionCodec {
     25: _upgradeFormat25To26,
     26: _upgradeFormat26To27,
     27: _upgradeFormat27To28,
+    28: _upgradeFormat28To29,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1759,6 +1764,21 @@ class OcptProjectVersionCodec {
     _budgetLinesKey: [
       for (final row in _rows(json, _budgetLinesKey))
         {...row, _provisionKeyKey: null, _provisionDigestKey: null},
+    ],
+  };
+
+  /// Turns a format-**28** JSON object into a format-**29** one: every `budget_commitments` row
+  /// gains a **null** [_commitmentLineIdKey] — [_upgradeFormat3To4]'s kind, the table itself being
+  /// far from new here.
+  ///
+  /// Null is the truthful reading rather than a stand-in: no commitment of any project was ever
+  /// promoted from a quote line, since nothing could be, so every commitment a format-28 payload
+  /// holds was typed from scratch — which is exactly what a null says, and exactly what keeps a
+  /// restored version from claiming a provenance it never had.
+  static Map<String, dynamic> _upgradeFormat28To29(Map<String, dynamic> json) => {
+    ...json,
+    _budgetCommitmentsKey: [
+      for (final row in _rows(json, _budgetCommitmentsKey)) {...row, _commitmentLineIdKey: null},
     ],
   };
 
@@ -2840,6 +2860,7 @@ class OcptProjectVersionCodec {
     _vatRateBasisPointsKey: row.vatRateBasisPoints,
     _statusKey: row.status.name,
     _settledEntryIdKey: row.settledEntryId,
+    _commitmentLineIdKey: row.lineId,
   };
 
   /// Parses one `budget_commitments` row.
@@ -2856,6 +2877,7 @@ class OcptProjectVersionCodec {
         vatRateBasisPoints: _nullableInt(json, _vatRateBasisPointsKey),
         status: _enum(json, _statusKey, OcptBudgetCommitmentStatus.values.asNameMap()),
         settledEntryId: _nullableString(json, _settledEntryIdKey),
+        lineId: _nullableString(json, _commitmentLineIdKey),
       );
 
   /// Serializes one `budget_resources` row.

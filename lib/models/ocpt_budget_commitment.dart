@@ -32,6 +32,11 @@ class OcptBudgetCommitment extends Equatable {
   /// The `budget_entries` row that settled this commitment, or null while it remains unpaid.
   final String? settledEntryId;
 
+  /// The quote line this commitment was promoted from, or null when it was typed from scratch —
+  /// see `OcptBudgetCommitmentsTable.lineId`, which argues why this is a provenance and not a link
+  /// anything is recomputed through.
+  final String? lineId;
+
   /// This commitment's position within the journal's own flat `sortKey` order.
   final String sortKey;
 
@@ -51,6 +56,7 @@ class OcptBudgetCommitment extends Equatable {
     required this.amount,
     required this.status,
     required this.settledEntryId,
+    required this.lineId,
     required this.sortKey,
   });
 
@@ -67,6 +73,7 @@ class OcptBudgetCommitment extends Equatable {
     ),
     status: row.status,
     settledEntryId: row.settledEntryId,
+    lineId: row.lineId,
     sortKey: row.sortKey,
   );
 
@@ -85,6 +92,7 @@ class OcptBudgetCommitment extends Equatable {
     amount,
     status,
     settledEntryId,
+    lineId,
     sortKey,
   ];
 }

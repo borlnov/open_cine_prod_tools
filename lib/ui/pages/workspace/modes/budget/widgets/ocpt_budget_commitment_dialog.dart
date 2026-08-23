@@ -42,6 +42,14 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
   /// The commitment being edited, or null while creating a new one.
   final OcptBudgetCommitment? existing;
 
+  /// Seeds a fresh commitment's own fields while [existing] is null, or null to start from the
+  /// dialog's own defaults.
+  ///
+  /// Set by the quote's own `Commit this line…`, which carries the line's poste, wording, amount
+  /// and tax reading across so the only things left to say are the two a quote line does not hold:
+  /// who is owed, and when. Mirrors `OcptBudgetEntryDialog.prefill` exactly.
+  final OcptBudgetCommitmentFormFields? prefill;
+
   /// Every live poste of the project, offered by the `Poste` picker while creating.
   final List<OcptBudgetPoste> postes;
 
@@ -60,6 +68,7 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
   const OcptBudgetCommitmentDialog({
     super.key,
     required this.existing,
+    this.prefill,
     required this.postes,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
@@ -70,6 +79,7 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
   static Future<OcptBudgetCommitmentFormFields?> show(
     BuildContext context, {
     required OcptBudgetCommitment? existing,
+    OcptBudgetCommitmentFormFields? prefill,
     required List<OcptBudgetPoste> postes,
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
@@ -78,6 +88,7 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetCommitmentDialog(
       existing: existing,
+      prefill: prefill,
       postes: postes,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -121,16 +132,22 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
     super.initState();
 
     final existing = widget.existing;
+    final prefill = widget.prefill;
 
-    _dueDate = existing?.dueDate;
-    _posteId = existing?.posteId;
-    _isTaxInclusive = existing?.amount.isTaxInclusive ?? true;
-    _status = existing?.status ?? OcptBudgetCommitmentStatus.quoteAccepted;
+    _dueDate = existing?.dueDate ?? prefill?.dueDate;
+    _posteId = existing?.posteId ?? prefill?.posteId;
+    _isTaxInclusive = existing?.amount.isTaxInclusive ?? prefill?.isTaxInclusive ?? true;
+    _status = existing?.status ?? prefill?.status ?? OcptBudgetCommitmentStatus.quoteAccepted;
 
-    _labelController = TextEditingController(text: existing?.label ?? "")..addListener(_onFieldsChanged);
-    _amountController = TextEditingController(text: ocptCostTextOf(existing?.amount.amountCents));
+    _labelController = TextEditingController(text: existing?.label ?? prefill?.label ?? "")
+      ..addListener(_onFieldsChanged);
+    _amountController = TextEditingController(
+      text: ocptCostTextOf(existing?.amount.amountCents ?? prefill?.amountCents),
+    );
     _vatRateController = TextEditingController(
-      text: ocptVatRatePercentTextOf(existing?.amount.vatRateBasisPoints),
+      text: ocptVatRatePercentTextOf(
+        existing?.amount.vatRateBasisPoints ?? prefill?.vatRateBasisPoints,
+      ),
     );
   }
 

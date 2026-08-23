@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -1655,6 +1657,93 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
   }
 
+  /// Promotes quote line [lineId] into a commitment: opens `OcptBudgetCommitmentDialog` seeded
+  /// from the line, and dispatches the creation naming the line it came from.
+  ///
+  /// **A promotion, not a move.** The line stays in the quote, because comparing the estimate with
+  /// what is actually owed is the whole use of having both — and nothing is counted twice either,
+  /// the poste's `Quote` column reading its lines and its `Committed` column reading commitments.
+  ///
+  /// Everything a quote line holds is carried across; what is left to say is the two things a line
+  /// has no room for, and which are exactly what make a debt a debt: who is owed, and when.
+  Future<void> _handleLineCommitRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    String lineId,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+
+    final poste = state.postes
+        .where((poste) => poste.lines.any((line) => line.id == lineId))
+        .firstOrNull;
+    final line = poste?.lines.where((line) => line.id == lineId).firstOrNull;
+    if (poste == null || line == null) {
+      return;
+    }
+
+    final fields = await OcptBudgetCommitmentDialog.show(
+      context,
+      existing: null,
+      prefill: OcptBudgetCommitmentFormFields(
+        dueDate: null,
+        label: line.label,
+        posteId: poste.id,
+        amountCents: ocptBudgetLineTotalCents(line),
+        isTaxInclusive: line.unitPrice.isTaxInclusive,
+        vatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
+        status: OcptBudgetCommitmentStatus.quoteAccepted,
+      ),
+      postes: state.postes,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields, lineId: lineId));
+  }
+
+  /// Asks, through `OcptConfirmDialog`, before undoing line [lineId]'s own promotion — which
+  /// deletes the commitment it produced, and leaves the quote line itself alone.
+  Future<void> _handleLineUncommitRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    String lineId,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final tr = Tr.of(context);
+
+    final commitment = state.commitments
+        .where((commitment) => commitment.lineId == lineId && !commitment.isSettled)
+        .firstOrNull;
+    if (commitment == null) {
+      return;
+    }
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.budgetLineUncommitAction,
+      message: tr.budgetLineUncommitConfirmMessage(
+        commitment.label.isEmpty ? tr.budgetPosteUnnamed : commitment.label,
+      ),
+      cancelLabel: tr.budgetDeleteCancelAction,
+      confirmLabel: tr.budgetLineUncommitAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitment.id));
+  }
+
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches
   /// the deletion if the user answered `Delete`.
   Future<void> _handleLineDeletionRequested(BuildContext context, String lineId) async {
@@ -1763,6 +1852,19 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineVatRateInheritedRequested: isReadOnly
           ? null
           : (lineId) => bloc.add(OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId)),
+      commitmentSettledByLineId: {
+        for (final commitment in state.commitments)
+          if (commitment.lineId case final lineId?) lineId: commitment.isSettled,
+      },
+      onLineCommitRequested: isReadOnly
+          ? null
+          : (lineId) => unawaited(_handleLineCommitRequested(context, state, lineId)),
+      onLineShowCommitmentRequested: (_) => context.read<OcptBudgetBloc>().add(
+        const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.committed),
+      ),
+      onLineUncommitRequested: isReadOnly
+          ? null
+          : (lineId) => unawaited(_handleLineUncommitRequested(context, state, lineId)),
       onLineDeletionRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineDeletionRequested(context, lineId)),

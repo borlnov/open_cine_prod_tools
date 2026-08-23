@@ -1153,6 +1153,63 @@ void main() {
     });
   });
 
+  group("promoting a quote line into a commitment", () {
+    test("the commitment names the line it came from, and the line stays put", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+
+      bloc.add(
+        OcptBudgetCommitmentCreationConfirmedEvent(
+          lineId: lineId,
+          fields: OcptBudgetCommitmentFormFields(
+            dueDate: DateTime(2026, 6),
+            label: "Camera deposit",
+            posteId: posteId,
+            amountCents: 145000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            status: OcptBudgetCommitmentStatus.quoteAccepted,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+
+      expect(state.commitments.single.lineId, lineId);
+      // A promotion, not a move: the estimate stays, which is what makes comparing it with what
+      // is actually owed possible at all.
+      expect(state.postes.first.lines.map((line) => line.id), [lineId]);
+    });
+
+    test("a commitment typed from scratch names no line", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptBudgetCommitmentCreationConfirmedEvent(
+          fields: OcptBudgetCommitmentFormFields(
+            dueDate: null,
+            label: "Insurance",
+            posteId: loaded.postes.first.id,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            status: OcptBudgetCommitmentStatus.quoteAccepted,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+
+      expect(state.commitments.single.lineId, isNull);
+    });
+  });
+
   group("creating a commitment", () {
     test("writes every field, defaulting settledEntryId to null", () async {
       final bloc = buildBloc();

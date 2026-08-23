@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
@@ -93,6 +94,21 @@ class OcptBudgetCommitmentsTable extends Table {
   /// The `budget_entries` row that settled this commitment, or null while it remains unpaid.
   /// → [OcptBudgetEntriesTable]
   TextColumn get settledEntryId => text().nullable().references(OcptBudgetEntriesTable, #id)();
+
+  /// The quote line this commitment was promoted from, or null when it was typed from scratch —
+  /// which is the ordinary case, and the only one that existed before the promotion did.
+  ///
+  /// **A provenance, never a link that recomputes anything.** Nothing about this commitment is
+  /// read back off the line: its own amount, wording and due date are its own from the moment it
+  /// is created, and correcting the estimate afterwards leaves the debt alone. What the column
+  /// buys is the two things the promotion needs to behave: a line already promoted says so
+  /// instead of silently making a second debt every time the gesture is used, and the promotion
+  /// can be undone from the line it came from.
+  ///
+  /// Nullable and **deliberately not cascading**: a line deleted after the fact leaves the
+  /// commitment standing, since money owed to a named supplier does not stop being owed because
+  /// the estimate behind it was tidied away.
+  TextColumn get lineId => text().nullable().references(OcptBudgetLinesTable, #id)();
 
   /// {@macro drift.Table.primaryKey}
   @override
