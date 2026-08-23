@@ -793,6 +793,17 @@ are all here, and this file is the whole record of them.
   creates and updates lines the app itself owns and never overwrites one somebody edited, so a red
   button would say something about the gesture that is not true. The plan then travels with the
   event rather than being recomputed: it is what the user said yes to.
+- **The counts are worded so no number ever disagrees with its noun**: `To create: 0 · To update:
+  2 · Left as they are, edited by hand: 0`, rather than a sentence that would have to read "0
+  lignes seraient créées" in French. Three ICU plurals in one string would have said the same thing
+  at four times the cost.
+- **A provisioned line's wording follows the app's language, and reprovisioning offers to update
+  it.** A line written while the app spoke English says `Catering — craft services`; switch to
+  French and the next provisioning reports it as an update, because the label is part of what the
+  digest compares. That is the honest behaviour rather than a wrinkle to engineer around — the line
+  is the app's own, and offering to rename it into the language actually on screen is what a reader
+  would expect. Nothing is rewritten without the confirmation, and a line somebody edited is still
+  never touched.
 - **A provisioning that would do nothing is withheld, and the band says why in its place.** The
   same plan is computed for the band as for the gesture, so the reason — the quote already holds
   everything, or every line it would touch has been edited by hand — sits beside the figures rather

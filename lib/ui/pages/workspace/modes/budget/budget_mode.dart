@@ -1145,7 +1145,7 @@ class _BudgetViewState extends State<_BudgetView> {
       provisionNote: wouldWrite || state.provisionPosteId == null
           ? null
           : (skipped > 0
-                ? Tr.of(context).budgetProvisionOnlyEditedMessage(skipped)
+                ? Tr.of(context).budgetProvisionOnlyEditedMessage
                 : Tr.of(context).budgetProvisionNothingToDoMessage),
     );
   }
