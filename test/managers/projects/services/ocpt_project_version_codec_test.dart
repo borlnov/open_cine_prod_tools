@@ -818,6 +818,7 @@ void main() {
         code: "2",
         label: "Personnel",
         simpleLabel: "Crew",
+        estimateToCompleteCents: 42000,
       ),
       OcptBudgetPosteRow(
         id: "poste-2",
@@ -3437,6 +3438,72 @@ void main() {
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(renamed)));
     });
 
+    test("changes when a budget poste's estimate to complete changes", () {
+      final payload = buildRichPayload();
+      final adjusted = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        roleEpisodes: payload.roleEpisodes,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        budgetPostes: [
+          payload.budgetPostes.first.copyWith(
+            estimateToCompleteCents: const drift.Value(90000),
+          ),
+          payload.budgetPostes.last,
+        ],
+        budgetLines: payload.budgetLines,
+        budgetEntries: payload.budgetEntries,
+        budgetCommitments: payload.budgetCommitments,
+        budgetResources: payload.budgetResources,
+        budgetMileageRates: payload.budgetMileageRates,
+        budgetRevenues: payload.budgetRevenues,
+        budgetShares: payload.budgetShares,
+        budgetAllowances: payload.budgetAllowances,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        projectDictionaryWords: payload.projectDictionaryWords,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+        screenplayLanguage: payload.screenplayLanguage,
+        defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+        mealPriceCents: payload.mealPriceCents,
+        snackPriceCents: payload.snackPriceCents,
+        isBudgetSimplified: payload.isBudgetSimplified,
+        roleCandidates: payload.roleCandidates,
+        shootingBlockCandidates: payload.shootingBlockCandidates,
+      );
+
+      // Two projects agreeing on every quote line but disagreeing on what a human now expects a
+      // poste to end up costing are not the same project: a digest that left the column out would
+      // let the working-copy card claim no drift after a real cost report's own adjustment.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(adjusted)));
+    });
+
     test('changes when a budget line is tombstoned', () {
       final payload = buildRichPayload();
       final tombstoned = OcptProjectVersionPayload(
@@ -4951,7 +5018,14 @@ void main() {
         expect(result.value!.budgetCommitments, isEmpty);
         expect(result.value!.assets.map((row) => row.budgetEntryId), everyElement(isNull));
         // And nothing else was disturbed on the way through: the rest of the project came back.
-        expect(result.value!.budgetPostes, buildRichPayload().budgetPostes);
+        // `budgetPostes` is compared by label rather than in full: format 21 predates
+        // `estimateToCompleteCents` just as much as it predates the cash journal this step
+        // upgrades, so [_upgradeFormat29To30] truthfully nulls it on the way through, which a
+        // straight equality against `buildRichPayload()`'s own typed figure would wrongly flag.
+        expect(
+          result.value!.budgetPostes.map((row) => row.label),
+          buildRichPayload().budgetPostes.map((row) => row.label),
+        );
         expect(result.value!.budgetLines, buildRichPayload().budgetLines);
         expect(
           result.value!.assets.map((row) => row.path),
@@ -5129,6 +5203,41 @@ void main() {
       );
       expect(result.value!.budgetRevenues, buildRichPayload().budgetRevenues);
     });
+
+    test(
+      "a stored format-29 payload has every poste's estimate to complete null",
+      () {
+        // Format 29 predates `budget_postes.estimateToCompleteCents` entirely, so
+        // [_upgradeFormat29To30] gives every `budgetPostes` row a **null** value —
+        // [_upgradeFormat3To4]'s kind, not the empty-list one: `budget_postes` is far from new
+        // here. Null is the truthful reading: a version captured this early was captured at a
+        // moment when nobody could have judged a poste's estimate to complete, so null states
+        // exactly what was true then, not an empty list — which would claim the poste itself was
+        // new — and not zero, which would be a judgement nobody made. The fixture is the current
+        // encoding with the key taken back out and the format wound back, rather than a second
+        // hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        final postes = [
+          for (final row in encoded["budgetPostes"] as List)
+            ({...row as Map<String, dynamic>}..remove("estimateToCompleteCents")),
+        ];
+        encoded["budgetPostes"] = postes;
+        encoded["payloadFormat"] = 29;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(
+          result.value!.budgetPostes.map((row) => row.estimateToCompleteCents),
+          everyElement(isNull),
+        );
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(
+          result.value!.budgetPostes.map((row) => row.label),
+          buildRichPayload().budgetPostes.map((row) => row.label),
+        );
+      },
+    );
   });
 
   group('OcptProjectVersionCodec malformed payloads', () {

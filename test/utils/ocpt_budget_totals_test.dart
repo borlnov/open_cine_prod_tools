@@ -44,6 +44,7 @@ void main() {
     code: code,
     label: "A poste",
     simpleLabel: null,
+    estimateToCompleteCents: null,
     sortKey: "V",
     lines: lines,
   );

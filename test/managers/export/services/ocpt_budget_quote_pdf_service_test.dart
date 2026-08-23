@@ -71,7 +71,7 @@ OcptBudgetPoste _buildPoste({
   String code = "1",
   String label = "Rights",
   List<OcptBudgetLine> lines = const [],
-}) => OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, sortKey: "a", lines: lines);
+}) => OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: lines);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

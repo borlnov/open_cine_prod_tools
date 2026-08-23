@@ -66,7 +66,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 29;
+  static const currentPayloadFormat = 30;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -816,6 +816,11 @@ class OcptProjectVersionCodec {
   /// object
   static const _simpleLabelKey = "simpleLabel";
 
+  /// This is the key used to stringify or parse a `budget_postes.estimateToCompleteCents` column
+  /// from a JSON object, from payload format 30: what is still expected to be spent on a poste
+  /// beyond what has already been paid and committed against it, or absent meaning "derive it".
+  static const _estimateToCompleteCentsKey = "estimateToCompleteCents";
+
   /// This is the key used to stringify or parse a `posteId` column (`budget_lines.posteId` or,
   /// from payload format 17, `budget_entries.posteId`/`budget_commitments.posteId`) from a JSON
   /// object
@@ -1006,6 +1011,7 @@ class OcptProjectVersionCodec {
     26: _upgradeFormat26To27,
     27: _upgradeFormat27To28,
     28: _upgradeFormat28To29,
+    29: _upgradeFormat29To30,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1779,6 +1785,21 @@ class OcptProjectVersionCodec {
     ...json,
     _budgetCommitmentsKey: [
       for (final row in _rows(json, _budgetCommitmentsKey)) {...row, _commitmentLineIdKey: null},
+    ],
+  };
+
+  /// Turns a format-**29** JSON object into a format-**30** one: every `budget_postes` row gains a
+  /// **null** [_estimateToCompleteCentsKey] — [_upgradeFormat28To29]'s kind, the table itself being
+  /// far from new here.
+  ///
+  /// Null is the truthful reading rather than a stand-in: a version captured before this column
+  /// existed was captured at a moment when nobody could have judged a poste's estimate to
+  /// complete, so null states exactly what was true then — not an empty list, which would claim the
+  /// poste itself was new, and not zero, which would be a judgement nobody made.
+  static Map<String, dynamic> _upgradeFormat29To30(Map<String, dynamic> json) => {
+    ...json,
+    _budgetPostesKey: [
+      for (final row in _rows(json, _budgetPostesKey)) {...row, _estimateToCompleteCentsKey: null},
     ],
   };
 
@@ -2763,6 +2784,7 @@ class OcptProjectVersionCodec {
     _codeKey: row.code,
     _labelKey: row.label,
     _simpleLabelKey: row.simpleLabel,
+    _estimateToCompleteCentsKey: row.estimateToCompleteCents,
   };
 
   /// Parses one `budget_postes` row.
@@ -2773,6 +2795,7 @@ class OcptProjectVersionCodec {
     code: _string(json, _codeKey),
     label: _string(json, _labelKey),
     simpleLabel: _nullableString(json, _simpleLabelKey),
+    estimateToCompleteCents: _nullableInt(json, _estimateToCompleteCentsKey),
   );
 
   /// Serializes one `budget_lines` row.

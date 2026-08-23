@@ -82,7 +82,7 @@ OcptElement _buildElement({required String id, String name = "", int? cost}) => 
 
 /// Builds a minimal poste, everything but [id]/[lines] neutral.
 OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = const []}) =>
-    OcptBudgetPoste(id: id, code: "1", label: "Poste $id", simpleLabel: null, sortKey: "a0", lines: lines);
+    OcptBudgetPoste(id: id, code: "1", label: "Poste $id", simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: lines);
 
 /// Builds a minimal journal entry naming [posteId] — null for an entry naming no poste at all,
 /// off-quote spending's own reading — everything else neutral (a debit of [debitCents],

@@ -38,6 +38,7 @@ OcptBudgetPoste _buildPoste({required String id, required int quotedAmountCents}
   code: "1",
   label: "Poste $id",
   simpleLabel: null,
+  estimateToCompleteCents: null,
   sortKey: "a0",
   lines: [_buildLine(id: "$id-line", posteId: id, amountCents: quotedAmountCents)],
 );

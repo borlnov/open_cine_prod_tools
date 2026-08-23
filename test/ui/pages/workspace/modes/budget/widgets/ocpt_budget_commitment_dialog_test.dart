@@ -46,7 +46,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 
 /// A minimal poste, everything but [id]/[label] neutral.
 OcptBudgetPoste _poste({required String id, required String label}) =>
-    OcptBudgetPoste(id: id, code: "1", label: label, simpleLabel: null, sortKey: "a0", lines: const []);
+    OcptBudgetPoste(id: id, code: "1", label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: const []);
 
 /// A minimal existing commitment, everything but what each test actually varies neutral.
 OcptBudgetCommitment _existingCommitment({

@@ -190,7 +190,7 @@ OcptBudgetAllowance _buildAllowance({
 
 /// A minimal poste holding no line, offered by the provisioning band's own picker.
 OcptBudgetPoste _buildPoste({required String id}) =>
-    OcptBudgetPoste(id: id, code: "6", label: "Régie", simpleLabel: null, sortKey: "a0", lines: const []);
+    OcptBudgetPoste(id: id, code: "6", label: "Régie", simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: const []);
 
 void main() {
   /// Pumps [OcptBudgetRegie] with every callback a no-op unless overridden.

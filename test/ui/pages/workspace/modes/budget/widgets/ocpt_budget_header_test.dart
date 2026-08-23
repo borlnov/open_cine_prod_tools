@@ -408,6 +408,7 @@ void main() {
                 code: "1",
                 label: "Interpretation",
                 simpleLabel: null,
+                estimateToCompleteCents: null,
                 sortKey: "a0",
                 lines: [],
               ),

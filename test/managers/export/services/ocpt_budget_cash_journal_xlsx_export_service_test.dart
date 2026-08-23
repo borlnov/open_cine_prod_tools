@@ -58,7 +58,7 @@ OcptBudgetEntry _buildEntry({
 
 /// Builds a poste holding no line, only what this test reads: its own id and label.
 OcptBudgetPoste _buildPoste({required String id, required String code, required String label}) =>
-    OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, sortKey: "a", lines: const []);
+    OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: const []);
 
 /// Decodes [bytes] and returns the rows of its [_sheetName] sheet, as plain Dart values — mirroring
 /// `ocpt_shot_list_xlsx_export_service_test.dart`'s own `_rowsOf`.

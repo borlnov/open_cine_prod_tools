@@ -43,7 +43,7 @@ const _labels = OcptBudgetFinancialReportLabels(
 
 /// Builds a poste holding [lines].
 OcptBudgetPoste _buildPoste({required String id, String code = "1", String label = "Rights", List<OcptBudgetLine> lines = const []}) =>
-    OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, sortKey: "a", lines: lines);
+    OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: lines);
 
 /// Builds a quote line at a plain tax-inclusive price, everything else neutral.
 OcptBudgetLine _buildLine({required String id, required String posteId, int unitAmountCents = 10000}) =>

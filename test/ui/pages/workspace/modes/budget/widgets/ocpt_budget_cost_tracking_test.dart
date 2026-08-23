@@ -74,6 +74,7 @@ void main() {
         code: "7",
         label: "Technical equipment",
         simpleLabel: "Camera and lighting gear",
+        estimateToCompleteCents: null,
         sortKey: "a0",
         lines: [
           _line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000),
@@ -140,6 +141,7 @@ void main() {
           code: "1",
           label: "Covered",
           simpleLabel: null,
+          estimateToCompleteCents: null,
           sortKey: "a0",
           lines: [
             _line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000),
@@ -150,6 +152,7 @@ void main() {
           code: "2",
           label: "Uncovered",
           simpleLabel: null,
+          estimateToCompleteCents: null,
           sortKey: "a1",
           // No rate on this line, and none on the project either: its excluding-tax figure is
           // unknown, so this poste never counts as covered under that basis.
@@ -197,6 +200,7 @@ void main() {
         code: "1",
         label: "Poste one",
         simpleLabel: null,
+        estimateToCompleteCents: null,
         sortKey: "a0",
         lines: [],
       );
@@ -236,6 +240,7 @@ void main() {
         code: "1",
         label: "Artistic rights and costumes",
         simpleLabel: null,
+        estimateToCompleteCents: null,
         sortKey: "a0",
         lines: [],
       );
@@ -283,6 +288,7 @@ void main() {
           code: "1",
           label: "Poste one",
           simpleLabel: null,
+          estimateToCompleteCents: null,
           sortKey: "a0",
           lines: [],
         ),
@@ -291,6 +297,7 @@ void main() {
           code: "2",
           label: "Poste two",
           simpleLabel: null,
+          estimateToCompleteCents: null,
           sortKey: "a1",
           lines: [],
         ),
@@ -337,6 +344,7 @@ void main() {
         code: "1",
         label: "Poste one",
         simpleLabel: "Simple",
+        estimateToCompleteCents: null,
         sortKey: "a0",
         lines: [],
       );
@@ -391,6 +399,7 @@ void main() {
     code: "1",
     label: "Poste one",
     simpleLabel: null,
+    estimateToCompleteCents: null,
     sortKey: "a0",
     lines: [
       OcptBudgetLine(
@@ -504,6 +513,7 @@ void main() {
         code: "1",
         label: "No quote",
         simpleLabel: null,
+        estimateToCompleteCents: null,
         sortKey: "a0",
         lines: [],
       );

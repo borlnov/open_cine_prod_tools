@@ -88,6 +88,7 @@ OcptBudgetPoste _buildPoste({
   code: "1",
   label: label,
   simpleLabel: null,
+  estimateToCompleteCents: null,
   sortKey: "a0",
   lines: [_buildLine(id: "$id-line", posteId: id, amountCents: quotedAmountCents)],
 );
@@ -408,6 +409,7 @@ void main() {
             code: "1",
             label: "Camera",
             simpleLabel: null,
+            estimateToCompleteCents: null,
             sortKey: "a0",
             lines: [],
           ),
@@ -428,6 +430,7 @@ void main() {
             code: "1",
             label: "Camera",
             simpleLabel: null,
+            estimateToCompleteCents: null,
             sortKey: "a0",
             lines: [],
           ),
@@ -466,6 +469,7 @@ void main() {
         code: "1",
         label: "Camera",
         simpleLabel: null,
+        estimateToCompleteCents: null,
         sortKey: "a0",
         lines: [uncoveredLine],
       );

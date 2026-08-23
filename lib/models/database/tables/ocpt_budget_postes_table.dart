@@ -12,6 +12,11 @@ import 'package:drift/drift.dart';
 /// `OcptBudgetLinesTable` rows, computed by `lib/utils/ocpt_budget_totals.dart`, never stored here:
 /// a `quotedAmount` column would be a second copy of one truth, and the "frozen quote" the mockup
 /// shows is already what a project version freezes.
+///
+/// [estimateToCompleteCents] is not a counter-example: the quote is *derivable* from the lines it
+/// sums, so storing it would duplicate a truth the lines already state, but what is still expected
+/// to be spent is a human's judgement about the future, derivable from nothing this table or its
+/// lines already hold — its own doc comment says why its null reads "nobody has judged", not zero.
 @DataClassName('OcptBudgetPosteRow')
 class OcptBudgetPostesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptBudgetPostesTable}
@@ -52,6 +57,20 @@ class OcptBudgetPostesTable extends Table {
   /// five-person crew reads at a glance ("Scénario et musique") — a poste the user adds later is
   /// free to leave this null and read the same way in both header states.
   TextColumn get simpleLabel => text().nullable()();
+
+  /// What is still expected to be spent on this poste beyond what has already been paid and
+  /// committed against it, in cents, or null.
+  ///
+  /// **Null means "derive it", not "zero"**: `lib/utils/ocpt_budget_totals.dart`'s
+  /// `ocptBudgetEstimateToCompleteCents` reads a null here as "nobody has judged this yet" and
+  /// answers `max(0, quote − paid − committed)` in its place — the same reading a nullable override
+  /// carries elsewhere in this schema ([simpleLabel] above, or `OcptBudgetLinesTable.vatRateBasisPoints`
+  /// for a line's rate), except that those two fall back to another **stored** fact
+  /// (a label, a project-wide rate) while this one falls back to a **computed** one, since nothing
+  /// this table holds could ever record what a human has not yet judged. A typed value, by
+  /// contrast, is never second-guessed: it is a real cost report's own adjustment, not a restatement
+  /// of the quote.
+  IntColumn get estimateToCompleteCents => integer().nullable()();
 
   /// {@macro drift.Table.primaryKey}
   @override

@@ -198,6 +198,7 @@ void main() {
             code: "1",
             label: "Rights",
             simpleLabel: null,
+            estimateToCompleteCents: null,
             sortKey: "a",
             lines: [
               OcptBudgetLine(

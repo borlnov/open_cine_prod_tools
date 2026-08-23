@@ -55,6 +55,7 @@ const _poste = OcptBudgetPoste(
   code: "1",
   label: "Poste one",
   simpleLabel: null,
+  estimateToCompleteCents: null,
   sortKey: "a0",
   lines: [_line],
 );
@@ -422,6 +423,7 @@ void main() {
       code: "1",
       label: "Poste one",
       simpleLabel: null,
+      estimateToCompleteCents: null,
       sortKey: "a0",
       lines: [pricedLine],
     );
