@@ -402,14 +402,14 @@ void main() {
             onSimplifiedChanged: (_) {},
             taxBasis: OcptBudgetTaxBasis.includingTax,
             onTaxBasisChanged: (_) {},
-            postes: [
+            postes: const [
               OcptBudgetPoste(
                 id: "poste-1",
                 code: "1",
                 label: "Interpretation",
                 simpleLabel: null,
                 sortKey: "a0",
-                lines: const [],
+                lines: [],
               ),
             ],
             filterPosteId: filterPosteId,

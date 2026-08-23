@@ -1679,14 +1679,30 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Builds the right dock, or null while it's closed.
+  ///
+  /// **The `Inspector` tab is offered only where there is something to inspect**
+  /// (`ocptBudgetCentreViewHasInspector`). Where it is not, a stored `Inspector` preference draws
+  /// `Help` instead — and is **not overwritten**, so a reader who left the quote on the inspector
+  /// comes back to it rather than to whatever the régie happened to show them.
   Widget? _buildRightDock(BuildContext context, OcptBudgetState state) {
-    final rightDockTab = state.rightDockTab;
-    if (rightDockTab == null) {
+    final storedTab = state.rightDockTab;
+    if (storedTab == null) {
       return null;
     }
 
+    final availableTabs = [
+      for (final tab in OcptBudgetRightDockTab.values)
+        if (tab != OcptBudgetRightDockTab.inspector ||
+            ocptBudgetCentreViewHasInspector(state.centreView))
+          tab,
+    ];
+    final rightDockTab = availableTabs.contains(storedTab)
+        ? storedTab
+        : OcptBudgetRightDockTab.help;
+
     return OcptBudgetRightDock(
       activeTab: rightDockTab,
+      availableTabs: availableTabs,
       inspectorChild: _buildInspector(context, state),
       versionsChild: _buildVersionsPanel(context, state),
       helpChild: _buildHelp(context, state),

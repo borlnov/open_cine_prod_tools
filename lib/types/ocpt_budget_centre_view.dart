@@ -75,3 +75,21 @@ bool ocptBudgetCentreViewHonoursPosteFilter(OcptBudgetCentreView view) => switch
   OcptBudgetCentreView.regie ||
   OcptBudgetCentreView.sharing => false,
 };
+
+/// Whether [view] has anything for the right dock's `Inspector` tab to inspect.
+///
+/// **Only the quote does.** The inspector reads `OcptBudgetState.selectedPosteId` and draws that
+/// poste's own figures and lines, and the quote is the one view where a poste is selected at all.
+/// It used to be offered everywhere regardless, so a poste chosen in the quote went on filling the
+/// dock over the régie and the revenue sharing — pages that have nothing to do with a poste and
+/// never put one there.
+///
+/// The dashboard lost its claim to it in the same pass its rows stopped merely selecting a poste
+/// and started opening the quote on it: nothing selects a poste there any more, so the tab could
+/// only ever have shown a stale one.
+///
+/// The dock itself never closes over this: `Versions` and `Help` are offered on every view, and a
+/// stored `Inspector` preference falls back to `Help` where it cannot be honoured — without being
+/// overwritten, so coming back to the quote comes back to the inspector.
+bool ocptBudgetCentreViewHasInspector(OcptBudgetCentreView view) =>
+    view == OcptBudgetCentreView.costTracking;

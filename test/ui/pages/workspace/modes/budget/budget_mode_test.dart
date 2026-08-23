@@ -105,6 +105,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Switches the centre to the régie view.
+  Future<void> openRegie(WidgetTester tester) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tester.tap(find.text(tr.budgetHeaderRegieSegmentLabel));
+    await tester.pumpAndSettle();
+  }
+
   /// Switches the centre to the cash journal view.
   Future<void> openCashJournal(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -706,6 +713,36 @@ void main() {
       expect(find.text(tr.budgetHelpMapIntro), findsNothing);
     },
   );
+
+  testWidgets("the Inspector tab is withheld on a view with nothing to inspect", (tester) async {
+    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+    // Selecting a poste in the quote opens the dock on its inspector.
+    await openCostTracking(tester);
+    await tester.tap(find.text(tr.budgetCncPosteArtisticRights));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
+
+    // The régie has no poste and never puts one there, so the tab goes rather than showing a
+    // stale one — and the dock falls back to the help panel instead of closing.
+    await openRegie(tester);
+    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsNothing);
+    expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
+    expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
+
+    // Coming back brings the inspector back: the stored preference was never overwritten.
+    await openCostTracking(tester);
+    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
+    expect(find.text(tr.budgetHelpMapIntro), findsNothing);
+  });
 
   testWidgets("the help panel follows the centre view, with no extra click", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);

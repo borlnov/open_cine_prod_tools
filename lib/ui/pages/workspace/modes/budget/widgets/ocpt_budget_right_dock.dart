@@ -14,6 +14,13 @@ class OcptBudgetRightDock extends StatelessWidget {
   /// The currently active tab, whose body is shown below the tab row.
   final OcptBudgetRightDockTab activeTab;
 
+  /// Which tabs this dock offers at all, in the order they are drawn.
+  ///
+  /// **Not always every value of the enum**: the `Inspector` is offered only on a view that has
+  /// something to inspect (`ocptBudgetCentreViewHasInspector`), and a tab that is not offered is
+  /// **withheld, not disabled**, exactly as this app withholds any affordance without a subject.
+  final List<OcptBudgetRightDockTab> availableTabs;
+
   /// The built poste inspector, shown when [activeTab] is [OcptBudgetRightDockTab.inspector].
   final Widget inspectorChild;
 
@@ -34,6 +41,7 @@ class OcptBudgetRightDock extends StatelessWidget {
   const OcptBudgetRightDock({
     super.key,
     required this.activeTab,
+    required this.availableTabs,
     required this.inspectorChild,
     required this.versionsChild,
     required this.helpChild,
@@ -56,7 +64,7 @@ class OcptBudgetRightDock extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    for (final tab in OcptBudgetRightDockTab.values)
+                    for (final tab in availableTabs)
                       _OcptBudgetRightDockTabLabel(
                         label: switch (tab) {
                           OcptBudgetRightDockTab.inspector => tr.budgetRightDockInspectorTabLabel,

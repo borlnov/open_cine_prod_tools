@@ -473,6 +473,21 @@ are all here, and this file is the whole record of them.
   every other mode's bloc does, which is what let a colleague receive this project as a portable
   `.ocptz` a milestone before the mode printed a single PDF of its own.
 
+## The right dock belongs to the view, not to the mode
+
+- `OcptBudgetRightDock` used to draw every value of `OcptBudgetRightDockTab` whatever was on
+  screen, so a poste chosen in the quote went on filling the `Inspector` over the régie and the
+  revenue sharing — pages that have nothing to do with a poste and never put one there.
+- The tab is now offered only where there is something to inspect
+  (`ocptBudgetCentreViewHasInspector`, which today means the quote alone: it is the one view that
+  selects a poste). The dashboard lost its claim to it in the same pass its rows stopped selecting
+  a poste and started opening the quote on it.
+- **Withheld, not disabled**, the standing rule for an affordance without a subject. `Versions` and
+  `Help` are offered everywhere, so the dock never has an empty tab bar.
+- A stored `Inspector` preference **is not overwritten** where it cannot be honoured: the dock
+  draws `Help` instead and leaves `OcptBudgetState.rightDockTab` alone, so a reader who left the
+  quote on the inspector comes back to the inspector rather than to whatever the régie showed them.
+
 ## Selecting a poste and filtering by one are two different facts
 
 - They used to be one field. `OcptBudgetState.selectedPosteId` drove both the right dock's
