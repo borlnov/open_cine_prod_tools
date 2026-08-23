@@ -12712,6 +12712,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetProvisionOnlyEditedMessage": "Nothing to provision: {skipped} lines have been edited by hand and are left exactly as they are.",
+  "@budgetProvisionOnlyEditedMessage": {
+    "description": "Shown in place of the provisioning button when every line it would touch has been edited by hand",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {"skipped": {"type": "int"}}
+  },
   "budgetProvisionNothingToDoMessage": "The quote already holds everything this view computes.",
   "@budgetProvisionNothingToDoMessage": {
     "description": "Message shown when a provisioning would change nothing",

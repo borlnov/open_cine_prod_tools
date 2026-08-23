@@ -789,10 +789,16 @@ are all here, and this file is the whole record of them.
   it would take a decision that belongs to the user, who can see the zero and remove the line.
 - **The plan is computed whole before a row is written**, and the counts go in front of the user in
   an `OcptConfirmDialog` opened by the mode — *n created, n updated, n left exactly as they are*.
-  The plan then travels with the event rather than being recomputed: it is what the user said yes
-  to. A plan that would change nothing says so and asks nothing. This is schema **v32** and
-  **payload format 28**, whose upgrade nulls both columns on every existing line — no line of any
-  project was ever written by a provisioning that did not exist.
+  It is opened **not destructive**, unlike every other confirmation of this mode: provisioning
+  creates and updates lines the app itself owns and never overwrites one somebody edited, so a red
+  button would say something about the gesture that is not true. The plan then travels with the
+  event rather than being recomputed: it is what the user said yes to.
+- **A provisioning that would do nothing is withheld, and the band says why in its place.** The
+  same plan is computed for the band as for the gesture, so the reason — the quote already holds
+  everything, or every line it would touch has been edited by hand — sits beside the figures rather
+  than behind a click that answers "no". This is schema **v32** and **payload format 28**, whose
+  upgrade nulls both columns on every existing line: no line of any project was ever written by a
+  provisioning that did not exist.
 
 ## The dashboard reads the financing plan once it exists
 

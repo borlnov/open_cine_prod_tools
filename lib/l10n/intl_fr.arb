@@ -1696,6 +1696,7 @@
   "budgetDeleteAllowanceConfirmTitle": "Supprimer ce défraiement ?",
   "budgetDeleteAllowanceConfirmMessage": "Cette action est irréversible.",
   "budgetProvisionConfirmTitle": "Provisionner dans le devis ?",
+  "budgetProvisionOnlyEditedMessage": "Rien à provisionner : {skipped} lignes ont été modifiées à la main et restent telles quelles.",
   "budgetProvisionNothingToDoMessage": "Le devis porte déjà tout ce que cette vue calcule.",
   "budgetAllowanceDialogCreateTitle": "Nouveau défraiement",
   "budgetAllowanceDialogEditTitle": "Modifier ce défraiement",

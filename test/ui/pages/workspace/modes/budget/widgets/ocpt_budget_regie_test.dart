@@ -214,6 +214,7 @@ void main() {
     ValueChanged<String>? onAllowanceDeletionRequested,
     ValueChanged<String>? onProvisionPosteSelected,
     VoidCallback? onProvisionRequested,
+    String? provisionNote,
   }) async {
     // The default test surface is narrower than `_ocptRegieWrapWidth`, which would silently
     // switch every test onto the stacked layout instead of the side-by-side one this suite means
@@ -244,6 +245,7 @@ void main() {
           onAllowanceDeletionRequested: onAllowanceDeletionRequested ?? (_) {},
           onProvisionPosteSelected: onProvisionPosteSelected ?? (_) {},
           onProvisionRequested: onProvisionRequested ?? () {},
+          provisionNote: provisionNote,
           onScheduleOpenRequested: onScheduleOpenRequested ?? () {},
           onProjectSettingsRequested: onProjectSettingsRequested ?? () {},
           onPersonOpenRequested: onPersonOpenRequested ?? (_) {},
@@ -576,6 +578,34 @@ void main() {
     expect(find.text(ocptBudgetAmountLabel(8887, "EUR")), findsWidgets);
     expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsOneWidget);
     expect(find.text(ocptBudgetAmountLabel(5887, "EUR")), findsOneWidget);
+  });
+
+  testWidgets("a provisioning that would do nothing says why in place of the button", (
+    tester,
+  ) async {
+    // The reason sits beside the figures rather than behind a click: a gesture answering "no" is
+    // withheld, and what a reader needs then is why.
+    final days = ocptBudgetRegieDaysOf(
+      days: [_buildDay(id: "day-1")],
+      slotsByDayId: const {},
+      blocksByDayId: const {},
+      roleKindById: const {},
+      personIdByRoleId: const {},
+      mealPriceCents: null,
+      buffetPriceCents: null,
+    );
+
+    await pumpView(
+      tester,
+      days: days,
+      postes: [_buildPoste(id: "poste-1")],
+      provisionPosteId: "poste-1",
+      provisionNote: "Nothing to provision.",
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    expect(find.text("Nothing to provision."), findsOneWidget);
+    expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
   });
 
   testWidgets("a quote with no poste says so instead of offering an inert picker", (tester) async {

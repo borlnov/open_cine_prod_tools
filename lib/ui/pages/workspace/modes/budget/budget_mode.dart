@@ -1081,6 +1081,18 @@ class _BudgetViewState extends State<_BudgetView> {
   Widget _buildRegie(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
+    // The plan is computed for the band as well as for the gesture: a provisioning that would do
+    // nothing is withheld, and the band says why in its place rather than answering a click with a
+    // dialog that only says "no".
+    final plan = _provisionPlanOf(context, state);
+    final wouldWrite = plan.any(
+      (entry) =>
+          entry.outcome == OcptBudgetProvisionOutcome.created ||
+          entry.outcome == OcptBudgetProvisionOutcome.updated,
+    );
+    final skipped = plan
+        .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.skippedEdited)
+        .length;
 
     return OcptBudgetRegie(
       days: state.regieDays,
@@ -1127,9 +1139,38 @@ class _BudgetViewState extends State<_BudgetView> {
       onProvisionPosteSelected: isReadOnly
           ? null
           : (posteId) => bloc.add(OcptBudgetProvisionPosteSelectedEvent(posteId: posteId)),
-      onProvisionRequested: isReadOnly
+      onProvisionRequested: isReadOnly || !wouldWrite
           ? null
           : () => unawaited(_handleProvisionRequested(context, state)),
+      provisionNote: wouldWrite || state.provisionPosteId == null
+          ? null
+          : (skipped > 0
+                ? Tr.of(context).budgetProvisionOnlyEditedMessage(skipped)
+                : Tr.of(context).budgetProvisionNothingToDoMessage),
+    );
+  }
+
+  /// What provisioning would do to the poste [OcptBudgetState.provisionPosteId] names, whole.
+  ///
+  /// Read twice: once to draw the band — which withholds the gesture and says why when the plan
+  /// would change nothing — and once when the gesture is actually taken, so what the user is shown
+  /// and what is written come from the same computation.
+  List<OcptBudgetProvisionEntry> _provisionPlanOf(BuildContext context, OcptBudgetState state) {
+    final poste = state.postes.where((row) => row.id == state.provisionPosteId).firstOrNull;
+    if (poste == null) {
+      return const [];
+    }
+
+    return ocptBudgetProvisionPlanOf(
+      items: ocptBudgetProvisionItemsOf(
+        mealCount: state.regieTotals.mealCount,
+        snackCount: state.regieTotals.buffetCount,
+        mealPriceCents: state.mealPriceCents,
+        snackPriceCents: state.buffetPriceCents,
+        allowances: state.allowances,
+      ),
+      posteLines: poste.lines,
+      labels: ocptBudgetProvisionLabelsOf(Tr.of(context)),
     );
   }
 
@@ -1219,17 +1260,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    final entries = ocptBudgetProvisionPlanOf(
-      items: ocptBudgetProvisionItemsOf(
-        mealCount: state.regieTotals.mealCount,
-        snackCount: state.regieTotals.buffetCount,
-        mealPriceCents: state.mealPriceCents,
-        snackPriceCents: state.buffetPriceCents,
-        allowances: state.allowances,
-      ),
-      posteLines: poste.lines,
-      labels: ocptBudgetProvisionLabelsOf(tr),
-    );
+    final entries = _provisionPlanOf(context, state);
 
     final created = entries
         .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.created)
@@ -1241,23 +1272,17 @@ class _BudgetViewState extends State<_BudgetView> {
         .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.skippedEdited)
         .length;
 
-    if (created == 0 && updated == 0) {
-      await OcptConfirmDialog.show(
-        context,
-        title: tr.budgetProvisionConfirmTitle,
-        message: tr.budgetProvisionNothingToDoMessage,
-        cancelLabel: tr.budgetDeleteCancelAction,
-        confirmLabel: tr.budgetDeleteCancelAction,
-      );
-      return;
-    }
-
+    // **Not destructive**, unlike every other confirmation of this mode: provisioning creates and
+    // updates lines the app itself owns, and never overwrites one somebody has edited — the plan's
+    // own `skippedEdited` outcome is the whole point. A red button would be telling the reader
+    // something about this gesture that is not true.
     final confirmed = await OcptConfirmDialog.show(
       context,
       title: tr.budgetProvisionConfirmTitle,
       message: tr.budgetProvisionConfirmMessage(created, updated, skipped),
       cancelLabel: tr.budgetDeleteCancelAction,
       confirmLabel: tr.budgetRegieProvisionAction,
+      isDestructive: false,
     );
     if (confirmed != true) {
       return;

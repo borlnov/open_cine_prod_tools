@@ -42,10 +42,10 @@ const double _ocptRegieCateringTotalColumnWidth = 108;
 const double _ocptRegieWideCountColumnWidth = 96;
 
 /// The defrayal table's own `Nature` and `When` column width, in logical pixels.
-const double _ocptRegieAllowanceTextColumnWidth = 104;
+const double _ocptRegieAllowanceTextColumnWidth = 96;
 
 /// The defrayal table's own `Quantity` column width, in logical pixels.
-const double _ocptRegieAllowanceQuantityColumnWidth = 88;
+const double _ocptRegieAllowanceQuantityColumnWidth = 80;
 
 /// The defrayal table's own `Amount` column width, in logical pixels — mirrors
 /// `OcptBudgetCommittedSpending`'s own amount column.
@@ -66,13 +66,13 @@ const double _ocptRegieCateringRowHeight = 52;
 const double _ocptRegieAllowanceRowHeight = 52;
 
 /// The narrowest the defrayal table is ever drawn at, in logical pixels: every fixed column's own
-/// width — 2 × 104 + 88 + 108 + 36 = 440 — plus 140 for a `Person` column that can still hold a
-/// name.
+/// width — 2 × 96 + 80 + 108 + 36 = 416 — plus 150 for a `Person` column that can still hold a
+/// name and a wording under it.
 ///
 /// Below it the table **scrolls sideways inside its own frame**, exactly as the cash journal's own
 /// does and for the same reason: `Person` is the only flexible column, and this table lives in the
 /// narrower third of a two-column view, so a modest centre used to drive it to nothing.
-const double _ocptRegieAllowanceMinTableWidth = 580;
+const double _ocptRegieAllowanceMinTableWidth = 566;
 
 /// The budget mode's catering-and-defrayals view: what each shooting day costs in meals and at the
 /// buffet, next to every defrayal the production owes somebody — the layout the validated mockup
@@ -184,6 +184,15 @@ class OcptBudgetRegie extends StatelessWidget {
   /// and carries it out only if they agree.
   final VoidCallback? onProvisionRequested;
 
+  /// Why there is nothing to provision, or null while there is.
+  ///
+  /// **The reason sits beside the figures rather than behind a click**: a gesture that would do
+  /// nothing is withheld, and what a reader needs then is to know *why* — the quote already holds
+  /// everything, or every line it would touch has been edited by hand and is left alone. Saying so
+  /// where the button would have been is what keeps this view from answering a click with a dialog
+  /// that only says "no".
+  final String? provisionNote;
+
   /// Class constructor
   const OcptBudgetRegie({
     super.key,
@@ -208,6 +217,7 @@ class OcptBudgetRegie extends StatelessWidget {
     required this.onAllowanceDeletionRequested,
     required this.onProvisionPosteSelected,
     required this.onProvisionRequested,
+    required this.provisionNote,
   });
 
   @override
@@ -248,12 +258,16 @@ class OcptBudgetRegie extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth >= _ocptRegieWrapWidth) {
+                // Three fifths to the catering, two to the defrayals — not the two-to-one the
+                // old travel table was sized for, which left this one under its own floor and
+                // scrolling at any ordinary window width. The catering's own widest column is a
+                // decor name, which gives room up more gracefully than six narrow ones do.
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(flex: 2, child: cateringColumn),
+                    Expanded(flex: 3, child: cateringColumn),
                     const SizedBox(width: 24),
-                    Expanded(child: allowanceColumn),
+                    Expanded(flex: 2, child: allowanceColumn),
                   ],
                 );
               }
@@ -264,9 +278,9 @@ class OcptBudgetRegie extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(flex: 2, child: cateringColumn),
+                  Expanded(flex: 3, child: cateringColumn),
                   const SizedBox(height: 24),
-                  Expanded(child: allowanceColumn),
+                  Expanded(flex: 2, child: allowanceColumn),
                 ],
               );
             },
@@ -283,6 +297,7 @@ class OcptBudgetRegie extends StatelessWidget {
           // column applies to its own `Defrayal` button and row menus.
           onPosteSelected: isReadOnly ? null : onProvisionPosteSelected,
           onProvisionRequested: isReadOnly ? null : onProvisionRequested,
+          note: provisionNote,
         ),
       ],
     );
@@ -1057,6 +1072,9 @@ class _OcptRegieProvisionBand extends StatelessWidget {
   /// Called when the reader asks to provision, or null while withheld.
   final VoidCallback? onProvisionRequested;
 
+  /// Why there is nothing to provision, or null while there is.
+  final String? note;
+
   /// Class constructor
   const _OcptRegieProvisionBand({
     required this.computedTotalCents,
@@ -1066,12 +1084,14 @@ class _OcptRegieProvisionBand extends StatelessWidget {
     required this.currencyCode,
     required this.onPosteSelected,
     required this.onProvisionRequested,
+    required this.note,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final note = this.note;
     final gapCents = computedTotalCents - provisionedTotalCents;
     final selectedPoste = postes.where((poste) => poste.id == provisionPosteId).firstOrNull;
 
@@ -1117,7 +1137,14 @@ class _OcptRegieProvisionBand extends StatelessWidget {
                   ],
                   onChanged: (value) => value == null ? null : onPosteSelected?.call(value),
                 ),
-              if (onProvisionRequested != null)
+              if (note != null)
+                Text(
+                  note,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else if (onProvisionRequested != null)
                 FilledButton.icon(
                   onPressed: provisionPosteId == null ? null : onProvisionRequested,
                   icon: const Icon(Icons.playlist_add_check, size: 16),
