@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
@@ -35,6 +37,16 @@ const double _ocptCommittedAmountColumnWidth = 108;
 const double _ocptCommittedMenuColumnWidth = 36;
 
 /// Every commitment row's own fixed height, in logical pixels.
+/// The narrowest the commitments table is drawn at before it starts scrolling sideways, in
+/// logical pixels: its five fixed columns (528) plus the row inset (24) plus a floor of 240 for
+/// the wording, which is the one column that has nothing but an `Expanded` to size it.
+///
+/// Same reasoning as `OcptBudgetCashJournal`'s own floor, and the same geometry causes it: the
+/// centre pane loses roughly 580 px the moment the right dock opens, and a `Row` of fixed columns
+/// then drops its `Expanded` to zero and clips the rest — losing the wording altogether, and
+/// silently, since a release build paints no overflow band.
+const double _ocptCommittedMinTableWidth = 792;
+
 const double _ocptCommittedRowHeight = 44;
 
 /// The header row's own fixed height, in logical pixels.
@@ -238,31 +250,52 @@ class _OcptCommittedCommitmentsColumn extends StatelessWidget {
                   : Tr.of(context).budgetCommittedEmptyHint,
             ),
           )
-        else ...[
-          const _OcptCommittedHeaderRow(),
+        else
           Expanded(
-            child: ListView.builder(
-              itemCount: commitments.length,
-              itemBuilder: (context, index) => _OcptCommittedRow(
-                commitment: commitments[index],
-                poste: _posteById(commitments[index].posteId),
-                isSimplified: isSimplified,
-                defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-                currencyCode: currencyCode,
-                onTap: onCommitmentTapped == null ? null : () => onCommitmentTapped?.call(commitments[index]),
-                onSettleRequested: onCommitmentSettleRequested == null
-                    ? null
-                    : () => onCommitmentSettleRequested?.call(commitments[index]),
-                onUnsettleRequested: onCommitmentUnsettleRequested == null
-                    ? null
-                    : () => onCommitmentUnsettleRequested?.call(commitments[index].id),
-                onDeletionRequested: onCommitmentDeletionRequested == null
-                    ? null
-                    : () => onCommitmentDeletionRequested?.call(commitments[index].id),
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                // The header and the rows scroll **together**, for the reason
+                // `OcptBudgetCashJournal` gives: they share one set of fixed column widths.
+                child: SizedBox(
+                  width: math.max(constraints.maxWidth, _ocptCommittedMinTableWidth),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: ocptTableRowHorizontalPadding,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const _OcptCommittedHeaderRow(),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: commitments.length,
+                            itemBuilder: (context, index) => _OcptCommittedRow(
+                              commitment: commitments[index],
+                              poste: _posteById(commitments[index].posteId),
+                              isSimplified: isSimplified,
+                              defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                              currencyCode: currencyCode,
+                              onTap: onCommitmentTapped == null ? null : () => onCommitmentTapped?.call(commitments[index]),
+                              onSettleRequested: onCommitmentSettleRequested == null
+                                  ? null
+                                  : () => onCommitmentSettleRequested?.call(commitments[index]),
+                              onUnsettleRequested: onCommitmentUnsettleRequested == null
+                                  ? null
+                                  : () => onCommitmentUnsettleRequested?.call(commitments[index].id),
+                              onDeletionRequested: onCommitmentDeletionRequested == null
+                                  ? null
+                                  : () => onCommitmentDeletionRequested?.call(commitments[index].id),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ],
       ],
     );
   }
@@ -799,7 +832,10 @@ class _OcptCommittedProjectionStepRow extends StatelessWidget {
         : (step.balanceAfterCents.abs() / maxAbsBalanceCents).clamp(0.0, 1.0);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        vertical: 6,
+        horizontal: ocptTableRowHorizontalPadding,
+      ),
       child: Row(
         children: [
           SizedBox(

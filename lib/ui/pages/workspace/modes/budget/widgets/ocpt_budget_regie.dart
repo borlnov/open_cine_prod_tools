@@ -72,6 +72,15 @@ const double _ocptRegieAllowanceRowHeight = 52;
 /// Below it the table **scrolls sideways inside its own frame**, exactly as the cash journal's own
 /// does and for the same reason: `Person` is the only flexible column, and this table lives in the
 /// narrower third of a two-column view, so a modest centre used to drive it to nothing.
+/// The narrowest the catering table is drawn at before it starts scrolling sideways, in logical
+/// pixels: its seven fixed columns (548) plus a floor of 220 for the decor's own wording, the one
+/// column sized by nothing but an `Expanded`.
+///
+/// The defrayal table beside it already had [_ocptRegieAllowanceMinTableWidth] for this; the
+/// catering table went without one and lost its decor column outright the moment the right dock
+/// opened, exactly as the cash journal did.
+const double _ocptRegieCateringMinTableWidth = 768;
+
 const double _ocptRegieAllowanceMinTableWidth = 566;
 
 /// The budget mode's catering-and-defrayals view: what each shooting day costs in meals and at the
@@ -375,24 +384,34 @@ class _OcptRegieCateringColumn extends StatelessWidget {
             margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _OcptRegieCateringHeaderRow(),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: days.length,
-                      itemBuilder: (context, index) => _OcptRegieCateringRow(
-                        day: days[index],
-                        decorName: decorNameByDayId[days[index].dayId],
-                        currencyCode: currencyCode,
-                      ),
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  // Header, rows and total scroll **together**, inside one frame, for the reason
+                  // `OcptBudgetCashJournal` gives: they share one set of fixed column widths.
+                  child: SizedBox(
+                    width: math.max(constraints.maxWidth, _ocptRegieCateringMinTableWidth),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const _OcptRegieCateringHeaderRow(),
+                        const Divider(height: 1),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: days.length,
+                            itemBuilder: (context, index) => _OcptRegieCateringRow(
+                              day: days[index],
+                              decorName: decorNameByDayId[days[index].dayId],
+                              currencyCode: currencyCode,
+                            ),
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        _OcptRegieCateringTotalRow(totals: totals, currencyCode: currencyCode),
+                      ],
                     ),
                   ),
-                  const Divider(height: 1),
-                  _OcptRegieCateringTotalRow(totals: totals, currencyCode: currencyCode),
-                ],
+                ),
               ),
             ),
           ),
