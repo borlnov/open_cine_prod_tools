@@ -597,7 +597,7 @@ are all here, and this file is the whole record of them.
   **Creating a resource is three explicit gestures, one per `OcptBudgetResourceGroupKind`, not
   one.** Adding a camera that is valued is not the same gesture as adding real money that is going
   to buy the crew lunch, even though both end up as a `budget_resources` row — the product owner
-  could not tell a valuation from real money through the single `+ Resource` button this view used
+  could not tell a valuation from real money through the single `Resource` button this view used
   to offer, which opened one form for all three kinds with no word said about which one was being
   created. `_OcptAddResourceButton` replaces it: a `MenuAnchor` anchored on one button, naming the
   three kinds (`Subvention`/`Apport en numéraire`/`Apport en nature` in French), chosen over three
@@ -621,10 +621,21 @@ are all here, and this file is the whole record of them.
   would both cost more than the reading is worth. `OcptBudgetState.selectedResourceId` is therefore
   a plain highlight, reconciled against a freshly loaded snapshot exactly as `selectedPosteId` is.
 
+## An add button shows one plus, not two
+
+- Every creation control of this mode that carries an `Icons.add` icon has a label with **no `+` of
+  its own**: `Poste`, `Add`, `From breakdown`, `Entry`, `Commitment`, `Resource`. The icon already
+  says what the gesture is, and a label repeating it drew the sign twice side by side.
+- **The `+ ` prefix is not wrong everywhere** — it is the house convention for a *text-only*
+  affordance, which is why the resources mode's own `+ Add a person` keeps it, and why the sharing
+  view's own `+ Taking`/`+ Participant` footers do too: they are plain `InkWell`s with no icon, so
+  the sign in the text is the only thing marking them as adding anything. The rule is one plus per
+  button, wherever it lives.
+
 ## The word a status is called is the group's
 
 - A financing resource's status used to be one flat list of four words shared by all three groups,
-  and the product owner's objection to it is the same one that had already split `+ Resource` into
+  and the product owner's objection to it is the same one that had already split `Resource` into
   three gestures: with three different ways of creating a resource, one should not be able to
   create it at a status that has nothing to do with what is being created. Asking a production to
   mark a lent camera `applied` was asking it to file a dossier at a commission that does not exist.
@@ -763,15 +774,15 @@ are all here, and this file is the whole record of them.
 ## A quote line can price a breakdown element
 
 - `budget_lines.elementId` is what crosses a quote line with the *dépouillement*'s own elements
-  catalogue: `OcptBudgetPosteInspector`'s own `+ From breakdown` gesture opens a picker over every
+  catalogue: `OcptBudgetPosteInspector`'s own `From breakdown` gesture opens a picker over every
   live element no live line names yet, and creating one from it writes a line whose label is the
   element's own name, whose `elementId` names it, and whose `unitAmountCents` is `OcptElement.cost`
   — `OcptBudgetQuoteService.createLine`'s own widened signature, called the same way the ordinary
-  `+ Add` footer already calls it, minus the two arguments that footer leaves at their default.
+  `Add` footer already calls it, minus the two arguments that footer leaves at their default.
   **A null `elements.cost` is not a zero unit price.** `elements.cost` is nobody's business to have
   filled in yet during preparation, and a line minted from it is passed [Value.absent] rather than
   `Value(0)` for exactly that reason: the fresh line is left at `budget_lines.unitAmountCents`'s own
-  ordinary default, reading exactly as a plain `+ Add` line already does, rather than claiming a
+  ordinary default, reading exactly as a plain `Add` line already does, rather than claiming a
   price of zero that nobody has typed — the same "null, never zero" honesty `ocpt_budget_vat.dart`
   already keeps for a rate nobody has recorded.
   A line minted this way says so wherever it is drawn, in a second, quiet line under its own label —

@@ -37,7 +37,7 @@ OcptBudgetPoste _poste({required String id, required String label}) =>
 OcptBudgetEntry _entry({
   required String id,
   required DateTime date,
-  String label = "Entry",
+  String label = "Camera rental",
   String? posteId,
   int debitCents = 0,
   int creditCents = 0,
@@ -452,7 +452,10 @@ void main() {
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
-      expect(find.text(tr.budgetCashJournalEntryCreationAction), findsNothing);
+      expect(
+        find.widgetWithText(FilledButton, tr.budgetCashJournalEntryCreationAction),
+        findsNothing,
+      );
       expect(find.byType(PopupMenuButton<String>), findsNothing);
 
       await tester.tap(find.text(entries.first.label));

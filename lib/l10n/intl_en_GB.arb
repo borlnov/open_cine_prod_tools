@@ -10827,7 +10827,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteCreationAction": "+ Poste",
+  "budgetPosteCreationAction": "Poste",
   "@budgetPosteCreationAction": {
     "description": "Label of the cost-tracking table's own poste creation footer",
     "context": "Displayed under the last row of the budget mode's cost-tracking table",
@@ -11099,7 +11099,7 @@
       }
     }
   },
-  "budgetLineFromElementAction": "+ From breakdown",
+  "budgetLineFromElementAction": "From breakdown",
   "@budgetLineFromElementAction": {
     "description": "Label of the poste inspector's own quote line creation action, from a breakdown element",
     "context": "Displayed beside the Quote lines title in the budget mode's Inspector tab",
@@ -11315,7 +11315,7 @@
       }
     }
   },
-  "budgetLineCreationAction": "+ Add",
+  "budgetLineCreationAction": "Add",
   "@budgetLineCreationAction": {
     "description": "Label of the poste inspector's own quote line creation action",
     "context": "Displayed beside the Quote lines title in the budget mode's Inspector tab",
@@ -11576,7 +11576,7 @@
       }
     }
   },
-  "budgetCashJournalEntryCreationAction": "+ Entry",
+  "budgetCashJournalEntryCreationAction": "Entry",
   "@budgetCashJournalEntryCreationAction": {
     "description": "Label of the cash journal view's own entry creation action",
     "context": "Displayed at the top of the budget mode's cash journal view",
@@ -11870,7 +11870,7 @@
       }
     }
   },
-  "budgetCommittedCreationAction": "+ Commitment",
+  "budgetCommittedCreationAction": "Commitment",
   "@budgetCommittedCreationAction": {
     "description": "Label of the committed-spending view's own commitment creation action",
     "context": "Displayed at the top of the budget mode's committed-spending view",
@@ -12166,7 +12166,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingCreationAction": "+ Resource",
+  "budgetFinancingCreationAction": "Resource",
   "@budgetFinancingCreationAction": {
     "description": "Button opening the menu of the three resource kinds at the end of the budget mode's own financing view's KPI row",
     "context": "Displayed at the end of the budget mode's own financing view's KPI row",

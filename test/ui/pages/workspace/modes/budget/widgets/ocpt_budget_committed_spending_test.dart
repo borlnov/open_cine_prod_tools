@@ -31,7 +31,7 @@ Widget _wrap(Widget child) => MaterialApp(
 OcptBudgetCommitment _commitment({
   required String id,
   DateTime? dueDate,
-  String label = "Commitment",
+  String label = "Camera rental",
   String posteId = "poste-1",
   int amountCents = 1000,
   bool isTaxInclusive = true,
@@ -130,7 +130,7 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCommittedSpending)));
       // Both rows are drawn — the settled one is history worth keeping.
-      expect(find.text("Commitment"), findsNWidgets(2));
+      expect(find.text("Camera rental"), findsNWidgets(2));
       expect(find.text(tr.budgetCommittedStatusSettledLabel), findsOneWidget);
 
       // The outstanding total counts only the unsettled 5000, not 7000.
@@ -257,10 +257,13 @@ void main() {
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetCommittedSpending)));
-    expect(find.text(tr.budgetCommittedCreationAction), findsNothing);
+    expect(
+      find.widgetWithText(FilledButton, tr.budgetCommittedCreationAction),
+      findsNothing,
+    );
     expect(find.byType(PopupMenuButton<String>), findsNothing);
 
-    await tester.tap(find.text("Commitment"));
+    await tester.tap(find.text("Camera rental"));
     await tester.pumpAndSettle();
     expect(tapped, isFalse);
   });
