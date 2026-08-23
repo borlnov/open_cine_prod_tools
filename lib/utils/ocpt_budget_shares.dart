@@ -448,21 +448,38 @@ class OcptBudgetRepaymentLine extends Equatable {
   /// view may print if it cannot resolve [personId] into a person any more.
   final String label;
 
-  /// What this lender has contributed in total, in cents — the plain sum of every reimbursable
-  /// resource's own [OcptBudgetResource.amountCents] grouped under this line, read exactly as
-  /// [ocptBudgetReimbursableTotalCents] reads it for the whole plan.
+  /// What this contributor has put in **in total**, in cents — the plain sum of every resource
+  /// grouped under this line, reimbursable or not, in cash or in kind.
+  ///
+  /// **Not the same figure as [reimbursableCents], and deliberately.** This card used to read only
+  /// the reimbursable ones, which meant a production that had marked nothing reimbursable — the
+  /// ordinary state of a project the day it is created — saw an empty card and no way to tell that
+  /// anybody had contributed anything. What a person put in is worth stating whether or not it
+  /// comes back: it is how a production knows who it owes its film to, which is a different debt
+  /// from the one it owes their bank account.
   final int contributedCents;
+
+  /// How much of [contributedCents] has to come back out of the takings before anything is shared
+  /// — the sum of the **reimbursable** resources alone, read exactly as
+  /// [ocptBudgetReimbursableTotalCents] reads it for the whole plan.
+  ///
+  /// Zero for a contributor whose whole contribution is a gift or an unrecouped valuation, which
+  /// is a perfectly ordinary line rather than a missing one.
+  final int reimbursableCents;
 
   /// What has already gone back to this lender — the tax-inclusive sum of every `budget_entries`
   /// debit naming one of this line's own resources through `budget_entries.resourceId`, read
   /// exactly as [ocptBudgetRepaidContributionsTotalOf] reads it for the whole plan.
   final OcptBudgetCoveredTotal repaid;
 
-  /// What is still owed to this lender: [contributedCents] less [repaid]'s own amount, floored at
-  /// zero — [OcptBudgetSharingPot.outstandingRepaymentCents]'s own reading, read per lender rather
-  /// than for the whole plan.
+  /// What is still owed to this contributor: [reimbursableCents] less [repaid]'s own amount,
+  /// floored at zero — [OcptBudgetSharingPot.outstandingRepaymentCents]'s own reading, read per
+  /// contributor rather than for the whole plan.
+  ///
+  /// **Reads [reimbursableCents], never [contributedCents]**: nothing is owed against a gift, so a
+  /// contributor who gave without expecting it back is owed zero however much they gave.
   int get outstandingCents {
-    final outstanding = contributedCents - repaid.amountCents;
+    final outstanding = reimbursableCents - repaid.amountCents;
     return outstanding < 0 ? 0 : outstanding;
   }
 
@@ -471,6 +488,7 @@ class OcptBudgetRepaymentLine extends Equatable {
     required this.personId,
     required this.label,
     required this.contributedCents,
+    required this.reimbursableCents,
     required this.repaid,
   });
 
@@ -478,15 +496,15 @@ class OcptBudgetRepaymentLine extends Equatable {
   @override
   String toString() =>
       "OcptBudgetRepaymentLine(personId: $personId, label: $label, "
-      "contributedCents: $contributedCents, repaid: $repaid)";
+      "contributedCents: $contributedCents, reimbursableCents: $reimbursableCents, "
+      "repaid: $repaid)";
 
   /// Object properties
   @override
-  List<Object?> get props => [personId, label, contributedCents, repaid];
+  List<Object?> get props => [personId, label, contributedCents, reimbursableCents, repaid];
 }
 
-/// Groups [resources]' own **reimbursable** ones by lender, for the `Repaying the contributions`
-/// card: the product owner could not tell, from the plan's own three aggregate figures, that one
+/// Groups [resources] by contributor, for the sharing view's own `What each person put in` card: the product owner could not tell, from the plan's own three aggregate figures, that one
 /// person having lent money three times over meant one debt rather than three (*"si Marie me donne
 /// de l'argent... comment je fais pour voir qu'elle m'a prêté 3 fois 100 €, et que donc je dois la
 /// rembourser de 300 € en priorité ?"*).
@@ -499,10 +517,15 @@ class OcptBudgetRepaymentLine extends Equatable {
 /// very same label group together, since the label is the only thing there is to tell one lender
 /// from another when neither names a person.
 ///
-/// **Only reimbursable resources are read.** The card is about what must come back before the
-/// takings are split, and [ocptBudgetReimbursableTotalCents]'s own doc comment already settles that
-/// nothing here branches on [OcptBudgetResource.groupKind] — an in-kind contribution counts if it
-/// is marked reimbursable, and only then.
+/// **Every resource is read, reimbursable or not**, and the two figures are kept apart:
+/// [OcptBudgetRepaymentLine.contributedCents] is what the person put in,
+/// [OcptBudgetRepaymentLine.reimbursableCents] is how much of it has to come back. This function
+/// used to skip everything not marked reimbursable, which meant a production that had marked
+/// nothing — the ordinary state of a project the day it is created — read an empty card and could
+/// not tell that anybody had contributed at all. Nothing here branches on
+/// [OcptBudgetResource.groupKind] either: money and a valuation are both what somebody put in, and
+/// an in-kind contribution is reimbursable if it is marked so, exactly as
+/// [ocptBudgetReimbursableTotalCents] says.
 ///
 /// Each line's own [OcptBudgetRepaymentLine.repaid] reads [entries] the very same way
 /// [ocptBudgetRepaidContributionsTotalOf] does — every debit naming one of the line's own resources
@@ -522,10 +545,6 @@ List<OcptBudgetRepaymentLine> ocptBudgetRepaymentLinesOf(
   final personIdByKey = <String, String?>{};
 
   for (final resource in resources) {
-    if (!resource.isReimbursable) {
-      continue;
-    }
-
     final personId = resource.personId;
     final key = personId ?? '#${resource.label}';
     if (!resourcesByKey.containsKey(key)) {
@@ -545,6 +564,10 @@ List<OcptBudgetRepaymentLine> ocptBudgetRepaymentLinesOf(
           0,
           (sum, resource) => sum + resource.amountCents,
         );
+        final reimbursableCents = groupResources.fold(
+          0,
+          (sum, resource) => sum + (resource.isReimbursable ? resource.amountCents : 0),
+        );
         final repayments = [
           for (final entry in entries)
             if (entry.resourceId != null && resourceIds.contains(entry.resourceId)) entry,
@@ -554,6 +577,7 @@ List<OcptBudgetRepaymentLine> ocptBudgetRepaymentLinesOf(
           personId: personIdByKey[key],
           label: groupResources.first.label,
           contributedCents: contributedCents,
+          reimbursableCents: reimbursableCents,
           repaid: _ocptBudgetDebitTotalOf(
             repayments,
             projectVatRateBasisPoints: projectVatRateBasisPoints,

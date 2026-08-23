@@ -473,6 +473,33 @@ are all here, and this file is the whole record of them.
   every other mode's bloc does, which is what let a colleague receive this project as a portable
   `.ocptz` a milestone before the mode printed a single PDF of its own.
 
+## The sharing view says what each person put in, not only what comes back
+
+- The card used to be titled `Repaying the contributions` and `ocptBudgetRepaymentLinesOf` skipped
+  every resource not marked reimbursable. On a project where nothing was marked — the ordinary
+  state the day it is created — that read as an empty card, and the view showed nothing but
+  percentages. The product owner reported exactly that: *"je ne vois pas la valeur additionnée que
+  la personne a versée"*.
+- It is now `What each person put in`, and **every** resource is grouped, in cash or in kind,
+  reimbursable or not. `OcptBudgetRepaymentLine` carries the two figures apart:
+  `contributedCents` is what the person gave the film, `reimbursableCents` is how much of it the
+  film has to give back. `outstandingCents` reads the second, never the first — nothing is owed
+  against a gift, however much it was worth — and a line with nothing owed prints
+  `ocptBudgetEmptyValue` rather than `0.00`, since nothing owed is not a debt that came to zero.
+- **The two halves of a contract finally meet.** `budget_resources` and `budget_shares` both name a
+  person, and nothing put the two together: a reader held "Marie put in 300 €" from one card and
+  "Marie has 15 %" from another and joined them in their head. A contributor who also holds a share
+  now says so under their own name. Matched on `personId` alone — two rows sharing a typed label
+  are not evidence of one person.
+- **The card that says what is owed now offers to pay it**: `Record a repayment` opens the entry
+  dialog on a debit already naming the resource, for whatever is still owed. It is the same
+  facilitator `Record a receipt` and `Record a payout` already are, pointing the other way, and it
+  writes through the one gesture that writes a movement. Withheld under a previewed version, and
+  withheld on a contributor with nothing left owed.
+- A contributor whose contributions are spread over several resources is repaid against the
+  **first one still owed**. The card groups them into one debt on purpose, and asking which of
+  three 100 € loans a 100 € repayment settles is a question nobody has an answer to.
+
 ## A quote line can be promoted into a commitment, and the line stays
 
 - A quote line and a commitment hold the same shape of fact — a poste, a wording, an amount, a tax

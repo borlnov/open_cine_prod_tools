@@ -13097,33 +13097,48 @@
       }
     }
   },
-  "budgetSharingRepayingTitle": "Repaying the contributions",
+  "budgetSharingRepayingTitle": "What each person put in",
   "@budgetSharingRepayingTitle": {
     "description": "Title of the sharing view's own left card reading the pot",
     "context": "Displayed above OcptBudgetSharing's own repayment card",
     "type": "text",
     "placeholders": {}
   },
-  "budgetSharingRepaymentEmptyHint": "No reimbursable contribution yet.",
+  "budgetSharingRepaymentEmptyHint": "Nobody has contributed to this film yet.",
   "@budgetSharingRepaymentEmptyHint": {
     "description": "Shown in the repayment card's own detail while no resource is marked reimbursable",
     "context": "Displayed in OcptBudgetSharing's own repayment card",
     "type": "text",
     "placeholders": {}
   },
-  "budgetSharingRepaymentColumnLender": "Lender",
+  "budgetSharingRepaymentColumnLender": "Contributor",
   "@budgetSharingRepaymentColumnLender": {
     "description": "Column header naming a lender's own label, above the repayment card's own detail",
     "context": "Displayed in OcptBudgetSharing's own repayment card",
     "type": "text",
     "placeholders": {}
   },
-  "budgetSharingRepaymentColumnContributed": "Contributed",
+  "budgetSharingRepaymentColumnContributed": "Put in",
   "@budgetSharingRepaymentColumnContributed": {
     "description": "Column header naming what a lender has contributed in total, above the repayment card's own detail",
     "context": "Displayed in OcptBudgetSharing's own repayment card",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetSharingRepaymentColumnReimbursable": "Of which owed",
+  "@budgetSharingRepaymentColumnReimbursable": {
+    "description": "Column of the sharing view's contributions card: how much of what a person put in has to come back out of the takings before anything is shared."
+  },
+  "budgetSharingRepaymentShareCaption": "and {share} of the takings",
+  "@budgetSharingRepaymentShareCaption": {
+    "description": "Caption under a contributor's own name in the contributions card, when the same person also holds a share of the revenue — {share} is their percentage.",
+    "placeholders": {
+      "share": {}
+    }
+  },
+  "budgetSharingRepaymentRecordAction": "Record a repayment",
+  "@budgetSharingRepaymentRecordAction": {
+    "description": "Action on a contributor's own row that records money going back to them, opening the entry dialog as a debit already naming what is being repaid."
   },
   "budgetSharingRepaymentColumnRepaid": "Repaid",
   "@budgetSharingRepaymentColumnRepaid": {
@@ -14169,7 +14184,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpSharingBody2": "The reimbursable contributions are taken off the top in full before anything else is split — whether or not they have actually gone back yet.",
+  "budgetHelpSharingBody2": "What each person put in is listed whether or not it comes back: the second column says how much of it is owed, and the row's own menu records a repayment. The reimbursable contributions are taken off the top in full before anything else is split — whether or not they have actually gone back yet.",
   "@budgetHelpSharingBody2": {
     "description": "Second paragraph of the budget mode's help panel for the revenue-sharing view",
     "context": "Displayed on the budget mode's own Help tab while revenue sharing is the centre view",

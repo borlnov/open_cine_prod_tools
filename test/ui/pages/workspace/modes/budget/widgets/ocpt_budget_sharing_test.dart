@@ -139,6 +139,7 @@ void main() {
     ValueChanged<OcptBudgetShare>? onSharePayoutRequested,
     void Function(String shareId, {required bool moveUp})? onShareReorderRequested,
     ValueChanged<String>? onShareDeletionRequested,
+    ValueChanged<OcptBudgetRepaymentLine>? onRepaymentRequested,
   }) async {
     final pot =
         sharingPot ??
@@ -184,6 +185,7 @@ void main() {
           onSharePayoutRequested: onSharePayoutRequested ?? (_) {},
           onShareReorderRequested: onShareReorderRequested ?? (_, {required moveUp}) {},
           onShareDeletionRequested: onShareDeletionRequested ?? (_) {},
+          onRepaymentRequested: onRepaymentRequested,
         ),
       ),
     );
@@ -386,14 +388,15 @@ void main() {
     expect(find.text(tr.budgetSharingRepaymentColumnLender.toUpperCase()), findsNothing);
   });
 
-  testWidgets("the repayment card details a lender, contributed, repaid and owed", (tester) async {
+  testWidgets("the contributions card details who put in what, and what is owed", (tester) async {
     await pumpView(
       tester,
       repaymentLines: const [
         OcptBudgetRepaymentLine(
           personId: "p1",
           label: "Avance Marie",
-          contributedCents: 30000,
+          contributedCents: 50000,
+          reimbursableCents: 30000,
           repaid: OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1),
         ),
       ],
@@ -403,9 +406,82 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
     expect(find.text(tr.budgetSharingRepaymentColumnLender.toUpperCase()), findsOneWidget);
     expect(find.text("Marie Dupont"), findsOneWidget);
+    // What she put in, how much of it has to come back, what has gone back, what is still owed.
+    expect(find.text(ocptBudgetAmountLabel(50000, "EUR")), findsOneWidget);
     expect(find.text(ocptBudgetAmountLabel(30000, "EUR")), findsOneWidget);
     expect(find.text(ocptBudgetAmountLabel(10000, "EUR")), findsOneWidget);
     expect(find.text(ocptBudgetAmountLabel(20000, "EUR")), findsOneWidget);
+  });
+
+  testWidgets("a gift reads a dash where a debt would be, and offers no repayment", (tester) async {
+    await pumpView(
+      tester,
+      repaymentLines: const [
+        OcptBudgetRepaymentLine(
+          personId: null,
+          label: "Caméra prêtée",
+          contributedCents: 150000,
+          reimbursableCents: 0,
+          repaid: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+        ),
+      ],
+      onRepaymentRequested: (_) {},
+    );
+
+    expect(find.text(ocptBudgetAmountLabel(150000, "EUR")), findsOneWidget);
+    // Nothing is owed against a gift, which is not the same fact as a debt that came to zero.
+    expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
+  });
+
+  testWidgets("a contributor who also holds a share says so under their name", (tester) async {
+    await pumpView(
+      tester,
+      repaymentLines: const [
+        OcptBudgetRepaymentLine(
+          personId: "p1",
+          label: "Avance Marie",
+          contributedCents: 30000,
+          reimbursableCents: 30000,
+          repaid: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+        ),
+      ],
+      people: [_person(id: "p1", firstName: "Marie", lastName: "Dupont")],
+      shares: [_share(id: "s1", personId: "p1", label: "Marie", sharePermille: 150)],
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
+    expect(
+      find.text(tr.budgetSharingRepaymentShareCaption(ocptBudgetSharePercentLabel(150))),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets("Record a repayment reports the line it was asked on", (tester) async {
+    OcptBudgetRepaymentLine? reported;
+    await pumpView(
+      tester,
+      repaymentLines: const [
+        OcptBudgetRepaymentLine(
+          personId: "p1",
+          label: "Avance Marie",
+          contributedCents: 30000,
+          reimbursableCents: 30000,
+          repaid: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+        ),
+      ],
+      people: [_person(id: "p1", firstName: "Marie", lastName: "Dupont")],
+      onRepaymentRequested: (line) => reported = line,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
+    await tester.ensureVisible(find.byType(PopupMenuButton<String>).first);
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.budgetSharingRepaymentRecordAction));
+    await tester.pumpAndSettle();
+
+    expect(reported?.personId, "p1");
   });
 
   testWidgets("a lender naming nobody prints its own label instead", (tester) async {
@@ -416,6 +492,7 @@ void main() {
           personId: null,
           label: "Région Île-de-France",
           contributedCents: 5000,
+          reimbursableCents: 5000,
           repaid: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
         ),
       ],

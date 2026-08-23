@@ -1394,7 +1394,84 @@ class _BudgetViewState extends State<_BudgetView> {
       onShareDeletionRequested: isReadOnly
           ? null
           : (shareId) => unawaited(_handleShareDeletionRequested(context, shareId)),
+      onRepaymentRequested: isReadOnly
+          ? null
+          : (line) => unawaited(_handleRepaymentRequested(context, state, line)),
     );
+  }
+
+  /// Opens the entry dialog pre-filled to repay [line]'s own contributor (today's date, their own
+  /// wording, as a debit, for whatever is still owed them, the resource already named), then
+  /// dispatches the creation if the user confirmed it.
+  ///
+  /// **The card that says what is owed is the card that offers to pay it.** Every other figure in
+  /// this mode already had the gesture that produces it within reach of where it is read; this one
+  /// alone could only be watched. It is the same facilitator `Record a receipt` and `Record a
+  /// payout` already are, pointing the other way.
+  ///
+  /// A contributor whose contributions are spread over several resources is repaid against the
+  /// **first one still owed**: the card groups them into one debt on purpose, and asking which of
+  /// three 100 € loans a 100 € repayment settles is a question nobody has an answer to.
+  Future<void> _handleRepaymentRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetRepaymentLine line,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final now = DateTime.now();
+
+    final resource = state.resources
+        .where(
+          (resource) =>
+              resource.isReimbursable &&
+              (line.personId == null
+                  ? resource.personId == null && resource.label == line.label
+                  : resource.personId == line.personId),
+        )
+        .firstOrNull;
+    if (resource == null) {
+      return;
+    }
+
+    final person = line.personId == null
+        ? null
+        : state.people.where((person) => person.id == line.personId).firstOrNull;
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(now.year, now.month, now.day),
+      label: person?.displayName ?? line.label,
+      posteId: null,
+      resourceId: resource.id,
+      revenueId: null,
+      shareId: null,
+      isDebit: true,
+      amountCents: line.outstandingCents,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
+
+    final fields = await OcptBudgetEntryDialog.show(
+      context,
+      existing: null,
+      prefill: prefill,
+      postes: state.postes,
+      resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
   }
 
   /// The 0-based position revenue [revenueId] moves to when its row's own `⋮` menu `▲`/`▼` entry

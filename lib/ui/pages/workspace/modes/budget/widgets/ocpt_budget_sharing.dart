@@ -35,6 +35,10 @@ const double _ocptSharingPercentColumnWidth = 72;
 /// three of them side by side rather than one.
 const double _ocptSharingRepaymentAmountColumnWidth = 84;
 
+/// The width of the contributor rows' own `⋮` menu column, in logical pixels — kept blank in the
+/// header above them so the four amount columns stay under their own headings.
+const double _ocptSharingRepaymentMenuColumnWidth = 36;
+
 /// The trailing `⋮` menu column's own fixed width, in logical pixels — matches every other table
 /// of this mode's own menu column.
 const double _ocptSharingMenuColumnWidth = 36;
@@ -99,6 +103,12 @@ class OcptBudgetSharing extends StatelessWidget {
   /// is owed what, one line per lender, rather than only [sharingPot]'s own three aggregate
   /// figures.
   final List<OcptBudgetRepaymentLine> repaymentLines;
+
+  /// Called with a contributor's own line when `Record a repayment` is clicked, or null
+  /// while [isReadOnly] — the mode opens the entry dialog on a debit already naming what
+  /// is being repaid.
+  final ValueChanged<OcptBudgetRepaymentLine>? onRepaymentRequested;
+
 
   /// The split of [sharingPot] across [shares], in the order they are handed in.
   final List<OcptBudgetShareSplit> shareSplits;
@@ -176,6 +186,7 @@ class OcptBudgetSharing extends StatelessWidget {
     required this.receivedByRevenueId,
     required this.sharingPot,
     required this.repaymentLines,
+    required this.onRepaymentRequested,
     required this.shareSplits,
     required this.people,
     required this.currencyCode,
@@ -206,6 +217,8 @@ class OcptBudgetSharing extends StatelessWidget {
       receivedByRevenueId: receivedByRevenueId,
       sharingPot: sharingPot,
       repaymentLines: repaymentLines,
+      shares: shares,
+      onRepaymentRequested: onRepaymentRequested,
       people: people,
       currencyCode: currencyCode,
       selectedRevenueId: selectedRevenueId,
@@ -282,6 +295,14 @@ class _OcptSharingLeftColumn extends StatelessWidget {
   final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
   final OcptBudgetSharingPot sharingPot;
   final List<OcptBudgetRepaymentLine> repaymentLines;
+
+  /// Every live share of the project — read only to say, under a contributor's own name, what
+  /// percentage of the takings that same person also holds.
+  final List<OcptBudgetShare> shares;
+
+  /// Called with a contributor's own line when `Record a repayment` is clicked, or null while the
+  /// mode shows a version being previewed.
+  final ValueChanged<OcptBudgetRepaymentLine>? onRepaymentRequested;
   final List<OcptPerson> people;
   final String currencyCode;
   final String? selectedRevenueId;
@@ -299,6 +320,8 @@ class _OcptSharingLeftColumn extends StatelessWidget {
     required this.receivedByRevenueId,
     required this.sharingPot,
     required this.repaymentLines,
+    required this.shares,
+    required this.onRepaymentRequested,
     required this.people,
     required this.currencyCode,
     required this.selectedRevenueId,
@@ -418,7 +441,15 @@ class _OcptSharingLeftColumn extends StatelessWidget {
                       person: line.personId == null
                           ? null
                           : people.where((person) => person.id == line.personId).firstOrNull,
+                      sharePermille: line.personId == null
+                          ? null
+                          : shares
+                                .where((share) => share.personId == line.personId)
+                                .fold<int?>(null, (sum, share) => (sum ?? 0) + share.sharePermille),
                       currencyCode: currencyCode,
+                      onRepaymentRequested: onRepaymentRequested == null || line.outstandingCents == 0
+                          ? null
+                          : () => onRepaymentRequested?.call(line),
                     ),
                 ],
                 const SizedBox(height: 4),
@@ -503,10 +534,13 @@ class _OcptSharingPotLine extends StatelessWidget {
   }
 }
 
-/// The column header naming a lender row's own three amount columns — `Contributed`, `Repaid`,
-/// `Owed` — sitting once above the `Repaying the contributions` card's own list of lender lines,
-/// `_OcptFinancingColumnHeaderRow`'s own idiom (`ocpt_budget_financing.dart`) read over this card's
-/// narrower, three-column shape.
+/// The column header naming a contributor row's own four amount columns — `Put in`,
+/// `Of which owed`, `Repaid`, `Owed` — sitting once above the `What each person put in` card's own
+/// list of contributors, `_OcptFinancingColumnHeaderRow`'s own idiom
+/// (`ocpt_budget_financing.dart`) read over this card's narrower shape.
+///
+/// `Put in` and `Of which owed` are two columns rather than one because they answer two different
+/// questions: what a person gave to the film, and how much of it the film has to give back.
 class _OcptSharingRepaymentHeaderRow extends StatelessWidget {
   /// Class constructor
   const _OcptSharingRepaymentHeaderRow();
@@ -543,6 +577,14 @@ class _OcptSharingRepaymentHeaderRow extends StatelessWidget {
           SizedBox(
             width: _ocptSharingRepaymentAmountColumnWidth,
             child: Text(
+              tr.budgetSharingRepaymentColumnReimbursable.toUpperCase(),
+              textAlign: TextAlign.right,
+              style: labelStyle,
+            ),
+          ),
+          SizedBox(
+            width: _ocptSharingRepaymentAmountColumnWidth,
+            child: Text(
               tr.budgetSharingRepaymentColumnRepaid.toUpperCase(),
               textAlign: TextAlign.right,
               style: labelStyle,
@@ -556,6 +598,7 @@ class _OcptSharingRepaymentHeaderRow extends StatelessWidget {
               style: labelStyle,
             ),
           ),
+          const SizedBox(width: _ocptSharingRepaymentMenuColumnWidth),
         ],
       ),
     );
@@ -579,11 +622,27 @@ class _OcptSharingRepaymentLenderRow extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
+  /// The share of the takings the very same person also holds, as a per-mille, or null while they
+  /// hold none.
+  ///
+  /// **The one place in the mode where the two halves of a contract meet.** `budget_resources` and
+  /// `budget_shares` both name a person, and until this caption nothing put the two together, so
+  /// the reader had to hold "Marie put in 300 €" from one card and "Marie has 15 %" from another
+  /// and join them in their head. Matched on `personId` alone: two rows that merely happen to
+  /// share a typed label are not evidence of one person.
+  final int? sharePermille;
+
+  /// Called when this row's own `Record a repayment` action is clicked, or null while the mode
+  /// shows a version being previewed.
+  final VoidCallback? onRepaymentRequested;
+
   /// Class constructor
   const _OcptSharingRepaymentLenderRow({
     required this.line,
     required this.person,
+    required this.sharePermille,
     required this.currencyCode,
+    required this.onRepaymentRequested,
   });
 
   @override
@@ -604,11 +663,26 @@ class _OcptSharingRepaymentLenderRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              displayLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+                if (sharePermille case final permille? when permille > 0)
+                  Text(
+                    tr.budgetSharingRepaymentShareCaption(ocptBudgetSharePercentLabel(permille)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
             ),
           ),
           SizedBox(
@@ -619,6 +693,22 @@ class _OcptSharingRepaymentLenderRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall,
+            ),
+          ),
+          SizedBox(
+            width: _ocptSharingRepaymentAmountColumnWidth,
+            child: Text(
+              // A contribution nobody has to give back reads as a plain dash rather than as
+              // 0.00 €: nothing is owed, which is not the same fact as a debt that came to zero.
+              line.reimbursableCents == 0
+                  ? ocptBudgetEmptyValue
+                  : ocptBudgetAmountLabel(line.reimbursableCents, currencyCode),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: line.reimbursableCents == 0 ? theme.colorScheme.onSurfaceVariant : null,
+              ),
             ),
           ),
           SizedBox(
@@ -643,6 +733,24 @@ class _OcptSharingRepaymentLenderRow extends StatelessWidget {
                 fontWeight: isOutstanding ? FontWeight.w600 : null,
               ),
             ),
+          ),
+          SizedBox(
+            width: _ocptSharingRepaymentMenuColumnWidth,
+            // Withheld, never disabled, under a previewed version — and withheld too on a
+            // contributor with nothing left owed, there being no repayment left to record.
+            child: onRepaymentRequested == null
+                ? null
+                : PopupMenuButton<String>(
+                    tooltip: "",
+                    icon: const Icon(Icons.more_vert, size: 16),
+                    onSelected: (_) => onRepaymentRequested?.call(),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: "repay",
+                        child: Text(tr.budgetSharingRepaymentRecordAction),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),

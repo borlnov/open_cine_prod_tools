@@ -338,14 +338,34 @@ void main() {
       expect(line2.outstandingCents, 25000);
     });
 
-    test("only reimbursable resources are read", () {
+    test("a contribution nobody has to give back still earns its line", () {
+      // This used to answer an empty list, so a production that had marked nothing reimbursable —
+      // the ordinary state of a project the day it is created — could not tell from this card
+      // that anybody had contributed at all.
       final resources = [
         buildResource(id: "c1", personId: "p1", amountCents: 30000),
       ];
 
       final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
 
-      expect(lines, isEmpty);
+      expect(lines, hasLength(1));
+      expect(lines.single.contributedCents, 30000);
+      // Nothing is owed against a gift, however much it was worth.
+      expect(lines.single.reimbursableCents, 0);
+      expect(lines.single.outstandingCents, 0);
+    });
+
+    test("what was put in and what has to come back are two figures", () {
+      final resources = [
+        buildResource(id: "c1", personId: "p1", amountCents: 30000, isReimbursable: true),
+        buildResource(id: "c2", personId: "p1", amountCents: 20000),
+      ];
+
+      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+
+      expect(lines.single.contributedCents, 50000);
+      expect(lines.single.reimbursableCents, 30000);
+      expect(lines.single.outstandingCents, 30000);
     });
   });
 
