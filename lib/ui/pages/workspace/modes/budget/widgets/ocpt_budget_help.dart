@@ -5,10 +5,21 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
+
+/// Which of the seven pre-M2 pages the current route corresponds to, for [OcptBudgetHelp] alone.
+///
+/// The help panel's own two-by-two matrix still describes the seven pages `OcptBudgetCentreView`
+/// used to name one by one — `docs/plans/budget-mode-ux.md` M8 owns rewriting it, once the mode's
+/// shape has actually settled around three documents rather than mid-migration. Until then this
+/// private mirror of that retired type is the smallest change that keeps every one of its seven
+/// pages compiling against the new (document, reading, sub-page) route: [OcptBudgetHelp] resolves
+/// it once, from its own three parameters, and every method below reads exactly as it always has.
+enum _OcptBudgetHelpPage { dashboard, costTracking, cashJournal, committed, financing, regie, sharing }
 
 /// The right dock's own `Help` tab: the mode's explanation of itself, contextual to whichever
-/// centre view is currently on screen.
+/// route is currently on screen.
 ///
 /// It answers a real defect rather than a missing feature — a production that had used the mode
 /// still could not say what told `financing`, `cashJournal` and `committed` apart. Every page
@@ -17,9 +28,14 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 /// `OcptBudgetRegie` (`docs/architecture/budget.md`), it carries no `isReadOnly` flag at all, and
 /// is offered identically under a previewed version.
 class OcptBudgetHelp extends StatelessWidget {
-  /// Which centre view the help follows — switching the header's own chips changes what this panel
-  /// says, with no extra click.
-  final OcptBudgetCentreView centreView;
+  /// Which document the help follows.
+  final OcptBudgetDocument document;
+
+  /// Which order [document]'s own rows are currently read in.
+  final OcptBudgetDocumentReading reading;
+
+  /// The sub-page of [document] currently shown, or null at its own top level.
+  final OcptBudgetSubPage? subPage;
 
   /// Whether the header's simplified/detailed switch currently reads simplified, so a page heading
   /// or a cross-reference to another view reads exactly as that view's own chip currently does —
@@ -28,12 +44,33 @@ class OcptBudgetHelp extends StatelessWidget {
   final bool isSimplified;
 
   /// Class constructor
-  const OcptBudgetHelp({super.key, required this.centreView, required this.isSimplified});
+  const OcptBudgetHelp({
+    super.key,
+    required this.document,
+    required this.reading,
+    required this.subPage,
+    required this.isSimplified,
+  });
+
+  /// The pre-M2 page this route corresponds to — see [_OcptBudgetHelpPage]'s own doc comment.
+  _OcptBudgetHelpPage get _page => switch (subPage) {
+    OcptBudgetSubPage.dashboard => _OcptBudgetHelpPage.dashboard,
+    OcptBudgetSubPage.committedSpending => _OcptBudgetHelpPage.committed,
+    OcptBudgetSubPage.regie => _OcptBudgetHelpPage.regie,
+    null => switch (document) {
+      OcptBudgetDocument.expenses => reading == OcptBudgetDocumentReading.byDate
+          ? _OcptBudgetHelpPage.cashJournal
+          : _OcptBudgetHelpPage.costTracking,
+      OcptBudgetDocument.resources => _OcptBudgetHelpPage.financing,
+      OcptBudgetDocument.sharing => _OcptBudgetHelpPage.sharing,
+    },
+  };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final page = _page;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
@@ -42,7 +79,7 @@ class OcptBudgetHelp extends StatelessWidget {
         children: [
           Text(tr.budgetHelpMapIntro, style: theme.textTheme.bodySmall),
           const SizedBox(height: 12),
-          _OcptBudgetHelpMap(highlighted: _highlightedCellsOf(centreView)),
+          _OcptBudgetHelpMap(highlighted: _highlightedCellsOf(page)),
           const SizedBox(height: 8),
           Text(
             tr.budgetHelpMapQuoteNote,
@@ -54,14 +91,14 @@ class OcptBudgetHelp extends StatelessWidget {
           const SizedBox(height: 20),
           Divider(height: 1, color: theme.colorScheme.outlineVariant),
           const SizedBox(height: 16),
-          Text(_titleOf(tr, centreView), style: theme.textTheme.titleSmall),
+          Text(_titleOf(tr, page), style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(
-            _subtitleOf(tr, centreView),
+            _subtitleOf(tr, page),
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
-          for (final paragraph in _bodyOf(tr, centreView, isSimplified)) ...[
+          for (final paragraph in _bodyOf(tr, page, isSimplified)) ...[
             Text(paragraph, style: theme.textTheme.bodySmall),
             const SizedBox(height: 8),
           ],
@@ -70,45 +107,41 @@ class OcptBudgetHelp extends StatelessWidget {
     );
   }
 
-  /// The current view's own page heading — the very word its band shows above the centre, so the
+  /// The current page's own heading — the very word its band shows above the centre, so the
   /// reader finds the same name here as on screen (`OcptBudgetHeader._titleOf`'s own reasoning,
   /// reimplemented here rather than shared, since that method is private to that widget).
-  String _titleOf(Tr tr, OcptBudgetCentreView view) => switch (view) {
-    OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardTitle,
-    OcptBudgetCentreView.costTracking => tr.budgetHeaderTitle,
-    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalTitle,
-    OcptBudgetCentreView.committed => tr.budgetHeaderPlannedTitle(
-      tr.budgetPlannedOutgoingSegmentLabel,
-    ),
-    OcptBudgetCentreView.financing => tr.budgetHeaderPlannedTitle(
-      tr.budgetPlannedIncomingSegmentLabel,
-    ),
-    OcptBudgetCentreView.regie => tr.budgetHeaderRegieTitle,
-    OcptBudgetCentreView.sharing => tr.budgetHeaderSharingTitle,
+  String _titleOf(Tr tr, _OcptBudgetHelpPage page) => switch (page) {
+    _OcptBudgetHelpPage.dashboard => tr.budgetHeaderDashboardTitle,
+    _OcptBudgetHelpPage.costTracking => tr.budgetHeaderTitle,
+    _OcptBudgetHelpPage.cashJournal => tr.budgetHeaderCashJournalTitle,
+    _OcptBudgetHelpPage.committed => tr.budgetCommittedSectionTitle,
+    _OcptBudgetHelpPage.financing => tr.budgetHeaderResourcesTitle,
+    _OcptBudgetHelpPage.regie => tr.budgetHeaderRegieTitle,
+    _OcptBudgetHelpPage.sharing => tr.budgetHeaderSharingTitle,
   };
 
-  /// The current view's own one-line subtitle, exactly as the header band prints it.
-  String _subtitleOf(Tr tr, OcptBudgetCentreView view) => switch (view) {
-    OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardSubtitle,
-    OcptBudgetCentreView.costTracking => tr.budgetHeaderSubtitle,
-    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalSubtitle,
-    OcptBudgetCentreView.committed => tr.budgetHeaderCommittedSubtitle,
-    OcptBudgetCentreView.financing => tr.budgetHeaderFinancingSubtitle,
-    OcptBudgetCentreView.regie => tr.budgetHeaderRegieSubtitle,
-    OcptBudgetCentreView.sharing => tr.budgetHeaderSharingSubtitle,
+  /// The current page's own one-line subtitle, exactly as the header band prints it.
+  String _subtitleOf(Tr tr, _OcptBudgetHelpPage page) => switch (page) {
+    _OcptBudgetHelpPage.dashboard => tr.budgetHeaderDashboardSubtitle,
+    _OcptBudgetHelpPage.costTracking => tr.budgetHeaderSubtitle,
+    _OcptBudgetHelpPage.cashJournal => tr.budgetHeaderCashJournalSubtitle,
+    _OcptBudgetHelpPage.committed => tr.budgetHeaderCommittedSubtitle,
+    _OcptBudgetHelpPage.financing => tr.budgetHeaderFinancingSubtitle,
+    _OcptBudgetHelpPage.regie => tr.budgetHeaderRegieSubtitle,
+    _OcptBudgetHelpPage.sharing => tr.budgetHeaderSharingSubtitle,
   };
 
-  /// The current view's own explanation, one short paragraph per entry — the substance
+  /// The current page's own explanation, one short paragraph per entry — the substance
   /// `docs/architecture/budget.md` states, in plain language, with every cross-reference to a
   /// figure or another view worded exactly as its own label or chip already reads.
-  List<String> _bodyOf(Tr tr, OcptBudgetCentreView view, bool isSimplified) => switch (view) {
-    OcptBudgetCentreView.dashboard => [
+  List<String> _bodyOf(Tr tr, _OcptBudgetHelpPage page, bool isSimplified) => switch (page) {
+    _OcptBudgetHelpPage.dashboard => [
       tr.budgetHelpDashboardBody1(tr.budgetDashboardPaidLabel, tr.budgetDashboardCommittedLabel),
       tr.budgetHelpDashboardBody2,
       tr.budgetHelpDashboardBody3,
       tr.budgetHelpDashboardBody4(tr.budgetDashboardFeedSectionTitle),
     ],
-    OcptBudgetCentreView.costTracking => [
+    _OcptBudgetHelpPage.costTracking => [
       tr.budgetHelpCostTrackingBody1(tr.budgetCostTrackingColumnQuote),
       tr.budgetHelpCostTrackingBody2(
         tr.budgetCostTrackingColumnPaid,
@@ -120,13 +153,13 @@ class OcptBudgetHelp extends StatelessWidget {
       ),
       tr.budgetHelpCostTrackingBody4,
     ],
-    OcptBudgetCentreView.cashJournal => [
+    _OcptBudgetHelpPage.cashJournal => [
       tr.budgetHelpCashJournalBody1(tr.budgetCashJournalDebitLabel, tr.budgetCashJournalCreditLabel),
       tr.budgetHelpCashJournalBody2(tr.budgetCostTrackingOffQuoteLabel),
       tr.budgetHelpCashJournalBody3(tr.budgetCashJournalBalanceLabel),
       tr.budgetHelpCashJournalBody4,
     ],
-    OcptBudgetCentreView.committed => [
+    _OcptBudgetHelpPage.committed => [
       tr.budgetHelpCommittedBody1,
       tr.budgetHelpCommittedBody2(
         tr.budgetCommittedStatusSettledLabel,
@@ -134,7 +167,7 @@ class OcptBudgetHelp extends StatelessWidget {
       ),
       tr.budgetHelpCommittedBody3(tr.budgetCommittedProjectionTitle),
     ],
-    OcptBudgetCentreView.financing => [
+    _OcptBudgetHelpPage.financing => [
       tr.budgetHelpFinancingBody1,
       tr.budgetHelpFinancingBody2(
         tr.budgetFinancingColumnStatus,
@@ -143,40 +176,40 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpFinancingBody3,
       tr.budgetHelpFinancingBody4(
         tr.budgetResourceDialogReimbursableFieldLabel,
-        tr.budgetHeaderSharingSegmentLabel,
+        tr.budgetHeaderDocumentSharingSegmentLabel,
       ),
     ],
-    OcptBudgetCentreView.regie => [
+    _OcptBudgetHelpPage.regie => [
       tr.budgetHelpRegieBody1,
       tr.budgetHelpRegieBody2,
       tr.budgetHelpRegieBody3,
       tr.budgetHelpRegieBody4,
     ],
-    OcptBudgetCentreView.sharing => [
+    _OcptBudgetHelpPage.sharing => [
       tr.budgetHelpSharingBody1,
       tr.budgetHelpSharingBody2,
       tr.budgetHelpSharingBody3,
     ],
   };
 
-  /// Which cell(s) of [_OcptBudgetHelpMap] [view] occupies, so the map can highlight where the
+  /// Which cell(s) of [_OcptBudgetHelpMap] [page] occupies, so the map can highlight where the
   /// reader currently stands.
   ///
   /// `cashJournal` occupies both cells of the "has moved" column at once — the journal is where
   /// both a credit and a debit are read. `dashboard`, `costTracking` (the quote, stated as sitting
   /// outside the map), `regie` and `sharing` occupy none of the four: each reads across the whole
   /// map, or a different figure entirely, rather than standing in one cell of it.
-  Set<_OcptBudgetHelpMapCell> _highlightedCellsOf(OcptBudgetCentreView view) => switch (view) {
-    OcptBudgetCentreView.financing => const {_OcptBudgetHelpMapCell.financing},
-    OcptBudgetCentreView.committed => const {_OcptBudgetHelpMapCell.committed},
-    OcptBudgetCentreView.cashJournal => const {
+  Set<_OcptBudgetHelpMapCell> _highlightedCellsOf(_OcptBudgetHelpPage page) => switch (page) {
+    _OcptBudgetHelpPage.financing => const {_OcptBudgetHelpMapCell.financing},
+    _OcptBudgetHelpPage.committed => const {_OcptBudgetHelpMapCell.committed},
+    _OcptBudgetHelpPage.cashJournal => const {
       _OcptBudgetHelpMapCell.cashCredits,
       _OcptBudgetHelpMapCell.cashDebits,
     },
-    OcptBudgetCentreView.dashboard ||
-    OcptBudgetCentreView.costTracking ||
-    OcptBudgetCentreView.regie ||
-    OcptBudgetCentreView.sharing => const {},
+    _OcptBudgetHelpPage.dashboard ||
+    _OcptBudgetHelpPage.costTracking ||
+    _OcptBudgetHelpPage.regie ||
+    _OcptBudgetHelpPage.sharing => const {},
   };
 }
 

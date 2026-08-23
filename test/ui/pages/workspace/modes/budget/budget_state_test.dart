@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -268,7 +269,7 @@ void main() {
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selectedPosteId: "poste-1",
+        selection: const OcptBudgetPosteSelection("poste-1"),
       );
 
       expect(state.selectedPoste, poste);
@@ -283,7 +284,7 @@ void main() {
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selectedPosteId: "gone",
+        selection: const OcptBudgetPosteSelection("gone"),
       );
 
       expect(state.selectedPoste, isNull);
@@ -307,14 +308,16 @@ void main() {
   });
 
   group("OcptBudgetState.copyWith", () {
-    test("clears selectedPosteId only through its own clear flag", () {
-      final withSelection = const OcptBudgetState.init().copyWith(selectedPosteId: "poste-1");
+    test("clears the selection only through its own clear flag", () {
+      final withSelection = const OcptBudgetState.init().copyWith(
+        selection: const OcptBudgetPosteSelection("poste-1"),
+      );
       expect(withSelection.selectedPosteId, "poste-1");
 
-      final stillSelected = withSelection.copyWith(centreView: withSelection.centreView);
+      final stillSelected = withSelection.copyWith(document: withSelection.document);
       expect(stillSelected.selectedPosteId, "poste-1");
 
-      final cleared = withSelection.copyWith(clearSelectedPosteId: true);
+      final cleared = withSelection.copyWith(clearSelection: true);
       expect(cleared.selectedPosteId, isNull);
     });
 
@@ -602,7 +605,7 @@ void main() {
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selectedResourceId: "resource-1",
+        selection: const OcptBudgetResourceSelection("resource-1"),
       );
 
       expect(state.selectedResource, resource);
@@ -618,7 +621,7 @@ void main() {
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selectedResourceId: "gone",
+        selection: const OcptBudgetResourceSelection("gone"),
       );
 
       expect(state.selectedResource, isNull);
@@ -627,13 +630,15 @@ void main() {
 
   group("OcptBudgetState.copyWith clears selectedResourceId", () {
     test("only through its own clear flag", () {
-      final withSelection = const OcptBudgetState.init().copyWith(selectedResourceId: "resource-1");
+      final withSelection = const OcptBudgetState.init().copyWith(
+        selection: const OcptBudgetResourceSelection("resource-1"),
+      );
       expect(withSelection.selectedResourceId, "resource-1");
 
-      final stillSelected = withSelection.copyWith(centreView: withSelection.centreView);
+      final stillSelected = withSelection.copyWith(document: withSelection.document);
       expect(stillSelected.selectedResourceId, "resource-1");
 
-      final cleared = withSelection.copyWith(clearSelectedResourceId: true);
+      final cleared = withSelection.copyWith(clearSelection: true);
       expect(cleared.selectedResourceId, isNull);
     });
   });

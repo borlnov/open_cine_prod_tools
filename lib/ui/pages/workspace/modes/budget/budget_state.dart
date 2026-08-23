@@ -23,9 +23,11 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
@@ -78,9 +80,9 @@ class OcptBudgetIoNotice extends Equatable {
 ///
 /// [pendingFieldEdits] is this mode's own single pending-edit map, over every free-text field of
 /// every poste and every line — see `OcptBudgetField`'s own doc comment for why one flat map rather
-/// than one per entity kind. [centreView], [isSimplified] and [taxBasis] are **not persisted**: the
-/// schedule mode's own agenda mode is the precedent, only [rightDockFraction] and
-/// [lastRightDockTab] surviving a relaunch.
+/// than one per entity kind. [document], [reading], [subPage], [isSimplified] and [taxBasis] are
+/// **not persisted**: the schedule mode's own agenda mode is the precedent, only
+/// [rightDockFraction] and [lastRightDockTab] surviving a relaunch.
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     with MixinOcptProjectVersionsState<OcptBudgetState>, MixinOcptProjectPackageState<OcptBudgetState> {
   /// Whether the quote read is still being loaded from the project database.
@@ -97,8 +99,17 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// the first read lands, mirroring `OcptResourcesState.currencyCode`.
   final String currencyCode;
 
-  /// Which of the two centre views is currently shown.
-  final OcptBudgetCentreView centreView;
+  /// Which of the mode's three documents is currently shown.
+  final OcptBudgetDocument document;
+
+  /// Which order [document]'s own rows are currently read in — meaningful for
+  /// [OcptBudgetDocument.expenses] alone today, since the other two documents offer only
+  /// [OcptBudgetDocumentReading.byTree] (`OcptBudgetDocumentReading`'s own doc comment).
+  final OcptBudgetDocumentReading reading;
+
+  /// The sub-page of [document] currently shown, or null while at its own top level — the
+  /// breadcrumb's own "you are here", and the only thing it draws past `Expenses` while non-null.
+  final OcptBudgetSubPage? subPage;
 
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
@@ -106,14 +117,24 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// Which basis the header's excluding/including-tax toggle currently reads every amount in.
   final OcptBudgetTaxBasis taxBasis;
 
-  /// The id of the currently selected poste, or null while none is.
+  /// What is currently selected for the right dock's own fiche, once it exists — replaces the
+  /// separate `selectedPosteId`/`selectedResourceId` id fields this state used to carry: see
+  /// `OcptBudgetSelection`'s own doc comment for why one field now answers both. [selectedPosteId]
+  /// and [selectedResourceId] below are the narrow getters every dock panel already reads, resolved
+  /// off this one field so neither had to learn about the sealed type for this milestone.
+  final OcptBudgetSelection? selection;
+
+  /// The id of the currently selected poste, or null while [selection] does not name one.
   ///
   /// **A selection, and nothing else.** It drives the right dock's inspector and the row's own
   /// highlight; it narrows no view. It used to be the cash journal's filter too, one field doing
   /// two jobs, and that conflation was the fault: clicking a row in the quote silently filtered a
   /// view the reader was not even looking at, and they found out on arriving there. What narrows a
   /// view is [filterPosteId], which is only ever set by a gesture that says so.
-  final String? selectedPosteId;
+  String? get selectedPosteId => switch (selection) {
+    OcptBudgetPosteSelection(:final posteId) => posteId,
+    _ => null,
+  };
 
   /// The poste every view of the mode is currently narrowed to, or null for the whole project.
   ///
@@ -124,11 +145,14 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// sharing) say so rather than pretending to honour it.
   final String? filterPosteId;
 
-  /// The id of the currently selected financing resource, or null while none is — the financing
-  /// view's own selection, read and written exactly as [selectedPosteId] is, but drawn as a plain
-  /// highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc comment
-  /// for why this view carries no inspector of its own.
-  final String? selectedResourceId;
+  /// The id of the currently selected financing resource, or null while [selection] does not name
+  /// one — the financing view's own selection, read exactly as [selectedPosteId] is, but drawn as a
+  /// plain highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc
+  /// comment for why this view carries no inspector of its own.
+  String? get selectedResourceId => switch (selection) {
+    OcptBudgetResourceSelection(:final resourceId) => resourceId,
+    _ => null,
+  };
 
   /// The id of the currently selected revenue sharing taking, or null while none is — the sharing
   /// view's own left-column selection, read and written exactly as [selectedResourceId] is, and for
@@ -489,12 +513,13 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.title,
     required this.snapshot,
     required this.currencyCode,
-    required this.centreView,
+    required this.document,
+    required this.reading,
+    required this.subPage,
     required this.isSimplified,
     required this.taxBasis,
-    required this.selectedPosteId,
+    required this.selection,
     required this.filterPosteId,
-    required this.selectedResourceId,
     required this.selectedRevenueId,
     required this.selectedShareId,
     required this.expandedLineId,
@@ -527,12 +552,15 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       title = "",
       snapshot = null,
       currencyCode = ocptDefaultCurrencyCode,
-      centreView = OcptBudgetCentreView.dashboard,
+      // The mode opens on the same default it always has — the read-only overview — carried today
+      // as expenses's own dashboard sub-page rather than a standalone fourth document.
+      document = OcptBudgetDocument.expenses,
+      reading = OcptBudgetDocumentReading.byTree,
+      subPage = OcptBudgetSubPage.dashboard,
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
-      selectedPosteId = null,
+      selection = null,
       filterPosteId = null,
-      selectedResourceId = null,
       selectedRevenueId = null,
       selectedShareId = null,
       expandedLineId = null,
@@ -561,8 +589,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
-  /// [selectedPosteId], [filterPosteId], [selectedResourceId], [expandedLineId] and
-  /// [rightDockTab] all legitimately
+  /// [selection], [filterPosteId], [subPage], [expandedLineId] and [rightDockTab] all legitimately
   /// go back to null while the mode is alive, so each has its own clear flag. [pendingFieldEdits]
   /// is always replaced wholesale — the caller (the bloc's own field-edit handler) always computes
   /// the full next map.
@@ -572,15 +599,16 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     String? title,
     OcptBudgetSnapshot? snapshot,
     String? currencyCode,
-    OcptBudgetCentreView? centreView,
+    OcptBudgetDocument? document,
+    OcptBudgetDocumentReading? reading,
+    OcptBudgetSubPage? subPage,
+    bool clearSubPage = false,
     bool? isSimplified,
     OcptBudgetTaxBasis? taxBasis,
-    String? selectedPosteId,
-    bool clearSelectedPosteId = false,
+    OcptBudgetSelection? selection,
+    bool clearSelection = false,
     String? filterPosteId,
     bool clearFilterPosteId = false,
-    String? selectedResourceId,
-    bool clearSelectedResourceId = false,
     String? selectedRevenueId,
     bool clearSelectedRevenueId = false,
     String? selectedShareId,
@@ -623,12 +651,13 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     title: title ?? this.title,
     snapshot: snapshot ?? this.snapshot,
     currencyCode: currencyCode ?? this.currencyCode,
-    centreView: centreView ?? this.centreView,
+    document: document ?? this.document,
+    reading: reading ?? this.reading,
+    subPage: clearSubPage ? null : (subPage ?? this.subPage),
     isSimplified: isSimplified ?? this.isSimplified,
     taxBasis: taxBasis ?? this.taxBasis,
-    selectedPosteId: clearSelectedPosteId ? null : (selectedPosteId ?? this.selectedPosteId),
+    selection: clearSelection ? null : (selection ?? this.selection),
     filterPosteId: clearFilterPosteId ? null : (filterPosteId ?? this.filterPosteId),
-    selectedResourceId: clearSelectedResourceId ? null : (selectedResourceId ?? this.selectedResourceId),
     selectedRevenueId: clearSelectedRevenueId ? null : (selectedRevenueId ?? this.selectedRevenueId),
     selectedShareId: clearSelectedShareId ? null : (selectedShareId ?? this.selectedShareId),
     expandedLineId: clearExpandedLineId ? null : (expandedLineId ?? this.expandedLineId),
@@ -721,12 +750,13 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     title,
     snapshot,
     currencyCode,
-    centreView,
+    document,
+    reading,
+    subPage,
     isSimplified,
     taxBasis,
-    selectedPosteId,
+    selection,
     filterPosteId,
-    selectedResourceId,
     selectedRevenueId,
     selectedShareId,
     expandedLineId,

@@ -22,11 +22,12 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -436,8 +437,9 @@ class _BudgetViewState extends State<_BudgetView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Builds the shell's `centre`: the header band, then whichever of the dashboard or the
-  /// cost-tracking table [OcptBudgetState.centreView] currently names.
+  /// Builds the shell's `centre`: the header band, then whichever widget the current route
+  /// ([OcptBudgetState.document], [OcptBudgetState.reading] and [OcptBudgetState.subPage]) names —
+  /// see [_buildRoute].
   Widget _buildCentre(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
 
@@ -445,8 +447,14 @@ class _BudgetViewState extends State<_BudgetView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OcptBudgetHeader(
-          centreView: state.centreView,
-          onCentreViewSelected: (view) => bloc.add(OcptBudgetCentreViewSelectedEvent(view: view)),
+          document: state.document,
+          onDocumentSelected: (document) =>
+              bloc.add(OcptBudgetDocumentSelectedEvent(document: document)),
+          reading: state.reading,
+          onReadingSelected: (reading) =>
+              bloc.add(OcptBudgetDocumentReadingSelectedEvent(reading: reading)),
+          subPage: state.subPage,
+          onSubPageSelected: (subPage) => bloc.add(OcptBudgetSubPageSelectedEvent(subPage: subPage)),
           isSimplified: state.isSimplified,
           onSimplifiedChanged: (value) =>
               bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
@@ -456,20 +464,26 @@ class _BudgetViewState extends State<_BudgetView> {
           filterPosteId: state.filterPosteId,
           onPosteFilterSelected: (posteId) =>
               bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
+          alerts: state.alerts,
+          currencyCode: state.currencyCode,
+          onAlertPosteActionRequested: (posteId) {
+            bloc
+              ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
+              ..add(
+                const OcptBudgetDocumentReadingSelectedEvent(
+                  reading: OcptBudgetDocumentReading.byTree,
+                ),
+              );
+          },
+          onCashProjectionAlertActionRequested: () => bloc.add(
+            const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
+          ),
         ),
         const SizedBox(height: 12),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: switch (state.centreView) {
-              OcptBudgetCentreView.dashboard => _buildDashboard(context, state),
-              OcptBudgetCentreView.costTracking => _buildCostTracking(context, state),
-              OcptBudgetCentreView.cashJournal => _buildCashJournal(context, state),
-              OcptBudgetCentreView.committed ||
-              OcptBudgetCentreView.financing => _buildPlanned(context, state),
-              OcptBudgetCentreView.regie => _buildRegie(context, state),
-              OcptBudgetCentreView.sharing => _buildSharing(context, state),
-            },
+            child: _buildRoute(context, state),
           ),
         ),
         const SizedBox(height: 24),
@@ -477,33 +491,27 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Builds the merged `Planned` view: its own sub-switch, then whichever of the two halves
-  /// [OcptBudgetState.centreView] currently names.
-  ///
-  /// The financing plan and the committed spending share one header chip and one place in the
-  /// mode, since both read money that is promised and has not moved — one in each direction. See
-  /// `OcptBudgetPlannedSubSwitch`.
-  Widget _buildPlanned(BuildContext context, OcptBudgetState state) {
-    final bloc = context.read<OcptBudgetBloc>();
+  /// Builds whichever widget the current route names — `docs/plans/budget-mode-ux.md` M2's own
+  /// table, unchanged from the seven views `OcptBudgetCentreView` used to switch over: only the
+  /// switch's own shape moved, from one flat enum to a document, a reading and an optional
+  /// sub-page.
+  Widget _buildRoute(BuildContext context, OcptBudgetState state) {
+    final subPage = state.subPage;
+    if (subPage != null) {
+      return switch (subPage) {
+        OcptBudgetSubPage.committedSpending => _buildCommittedSpending(context, state),
+        OcptBudgetSubPage.regie => _buildRegie(context, state),
+        OcptBudgetSubPage.dashboard => _buildDashboard(context, state),
+      };
+    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OcptBudgetPlannedSubSwitch(
-            value: state.centreView,
-            onChanged: (view) => bloc.add(OcptBudgetCentreViewSelectedEvent(view: view)),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: state.centreView == OcptBudgetCentreView.financing
-              ? _buildFinancing(context, state)
-              : _buildCommittedSpending(context, state),
-        ),
-      ],
-    );
+    return switch (state.document) {
+      OcptBudgetDocument.expenses => state.reading == OcptBudgetDocumentReading.byDate
+          ? _buildCashJournal(context, state)
+          : _buildCostTracking(context, state),
+      OcptBudgetDocument.resources => _buildFinancing(context, state),
+      OcptBudgetDocument.sharing => _buildSharing(context, state),
+    };
   }
 
   /// Builds the dashboard.
@@ -530,10 +538,14 @@ class _BudgetViewState extends State<_BudgetView> {
       onPosteOpened: (posteId) {
         bloc
           ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
-          ..add(const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.costTracking));
+          ..add(
+            const OcptBudgetDocumentReadingSelectedEvent(
+              reading: OcptBudgetDocumentReading.byTree,
+            ),
+          );
       },
       onCashAlertActionRequested: () => bloc.add(
-        const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.committed),
+        const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
       ),
       onBreakdownFeedRequested: () => context.read<OcptWorkspaceBloc>().add(
         const OcptWorkspaceModeSelectedEvent(
@@ -545,7 +557,7 @@ class _BudgetViewState extends State<_BudgetView> {
         const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
       ),
       onCateringFeedRequested: () =>
-          bloc.add(const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.regie)),
+          bloc.add(const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.regie)),
     );
   }
 
@@ -1847,9 +1859,9 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Builds the right dock, or null while it's closed.
   ///
   /// **The `Inspector` tab is offered only where there is something to inspect**
-  /// (`ocptBudgetCentreViewHasInspector`). Where it is not, a stored `Inspector` preference draws
-  /// `Help` instead — and is **not overwritten**, so a reader who left the quote on the inspector
-  /// comes back to it rather than to whatever the régie happened to show them.
+  /// (`ocptBudgetHasInspector`). Where it is not, a stored `Inspector` preference draws `Help`
+  /// instead — and is **not overwritten**, so a reader who left the quote on the inspector comes
+  /// back to it rather than to whatever the régie happened to show them.
   Widget? _buildRightDock(BuildContext context, OcptBudgetState state) {
     final storedTab = state.rightDockTab;
     if (storedTab == null) {
@@ -1859,7 +1871,11 @@ class _BudgetViewState extends State<_BudgetView> {
     final availableTabs = [
       for (final tab in OcptBudgetRightDockTab.values)
         if (tab != OcptBudgetRightDockTab.inspector ||
-            ocptBudgetCentreViewHasInspector(state.centreView))
+            ocptBudgetHasInspector(
+              document: state.document,
+              reading: state.reading,
+              subPage: state.subPage,
+            ))
           tab,
     ];
     final rightDockTab = availableTabs.contains(storedTab)
@@ -1880,8 +1896,12 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Builds the `Help` tab's own content — never withheld under a preview, since it writes
   /// nothing (`OcptBudgetHelp`'s own doc comment).
-  Widget _buildHelp(BuildContext context, OcptBudgetState state) =>
-      OcptBudgetHelp(centreView: state.centreView, isSimplified: state.isSimplified);
+  Widget _buildHelp(BuildContext context, OcptBudgetState state) => OcptBudgetHelp(
+    document: state.document,
+    reading: state.reading,
+    subPage: state.subPage,
+    isSimplified: state.isSimplified,
+  );
 
   /// Builds the `Inspector` tab's own content.
   ///
@@ -1941,7 +1961,7 @@ class _BudgetViewState extends State<_BudgetView> {
           ? null
           : (lineId) => unawaited(_handleLineCommitRequested(context, state, lineId)),
       onLineShowCommitmentRequested: (_) => context.read<OcptBudgetBloc>().add(
-        const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.committed),
+        const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
       ),
       onLineUncommitRequested: isReadOnly
           ? null

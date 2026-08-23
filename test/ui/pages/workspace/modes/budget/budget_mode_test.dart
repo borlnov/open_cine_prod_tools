@@ -97,72 +97,92 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Switches the centre from the default dashboard to the cost-tracking table, whose own table
-  /// this test suite exercises most.
-  Future<void> openCostTracking(WidgetTester tester) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetHeaderCostTrackingSegmentLabel));
+  /// Taps the header's own control (a chip, a reading segment, a breadcrumb ancestor…) labelled
+  /// [label], scoped to `OcptBudgetHeader` — the help panel's own map, and a route's own title,
+  /// often reuse the very same words for its cells, so a plain `find.text` is ambiguous whenever
+  /// the Help tab is open beside the header.
+  Future<void> tapHeaderChip(WidgetTester tester, String label) async {
+    await tester.tap(
+      find.descendant(of: find.byType(OcptBudgetHeader), matching: find.text(label)).first,
+    );
     await tester.pumpAndSettle();
   }
 
-  /// Switches the centre to the régie view.
+  /// Returns to the current document's own top level: the breadcrumb's own ancestor when standing
+  /// on one of its sub-pages, a no-op otherwise — an unambiguous alternative to tapping the
+  /// document switch's own chip by its text, which reads the same word and, while already active,
+  /// takes no click at all.
+  Future<void> returnToDocumentTopLevel(WidgetTester tester) async {
+    final ancestor = find.byKey(const Key("ocptBudgetBreadcrumbAncestor"));
+    if (ancestor.evaluate().isEmpty) {
+      return;
+    }
+
+    await tester.tap(ancestor.first);
+    await tester.pumpAndSettle();
+  }
+
+  /// Switches to document [label] via the header's own chip, first returning to whichever
+  /// document is currently on screen's own top level — the chip reads active, and so takes no
+  /// click, the moment a sub-page has already returned there itself.
+  Future<void> openDocument(WidgetTester tester, String label) async {
+    await returnToDocumentTopLevel(tester);
+    await tapHeaderChip(tester, label);
+  }
+
+  /// Opens the header's own breadcrumb sub-page menu and picks the entry labelled [label] —
+  /// `OcptBudgetHeader`'s own way in to a sub-page of expenses, reachable from wherever expenses
+  /// is already on screen. The menu is offered on expenses alone, so this switches to it first
+  /// whichever document was on screen.
+  Future<void> openSubPage(WidgetTester tester, String label) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await openDocument(tester, tr.budgetHeaderDocumentExpensesSegmentLabel);
+
+    await tester.tap(find.byKey(const Key("ocptBudgetSubPageMenuButton")).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label).last);
+    await tester.pumpAndSettle();
+  }
+
+  /// Switches the centre from the default read-only overview to the cost-tracking table, whose
+  /// own table this test suite exercises most — the header's own reading switch, always offered on
+  /// expenses whatever sub-page (if any) is on screen, and the way back to the top level from one.
+  Future<void> openCostTracking(WidgetTester tester) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await returnToDocumentTopLevel(tester);
+    await tapHeaderChip(tester, tr.budgetHeaderReadingByTreeSegmentLabel);
+  }
+
+  /// Switches the centre to the régie view, through the breadcrumb's own sub-page menu.
   Future<void> openRegie(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetHeaderRegieSegmentLabel));
-    await tester.pumpAndSettle();
+    await openSubPage(tester, tr.budgetHeaderRegieSegmentLabel);
   }
 
   /// Switches the centre to the cash journal view.
   Future<void> openCashJournal(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetHeaderCashJournalSegmentLabel));
-    await tester.pumpAndSettle();
+    await tapHeaderChip(tester, tr.budgetHeaderReadingByDateSegmentLabel);
   }
 
-  /// Clicks the header's own `Planned` chip, which lands on the financing plan.
-  ///
-  /// Does nothing at all when one of the two halves is already on screen: the chip is then the
-  /// active one and takes no click, exactly as every other segment of that switch behaves.
-  Future<void> openPlanned(WidgetTester tester) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    final chip = find.text(tr.budgetHeaderPlannedSegmentLabel);
-    if (chip.evaluate().isEmpty) {
-      return;
-    }
-
-    await tester.tap(chip);
-    await tester.pumpAndSettle();
-  }
-
-  /// Switches the centre to the committed-spending view: the `Planned` chip, then that view's own
-  /// `Going out` half — two taps now that the two forecasting views share one chip.
+  /// Switches the centre to the committed-spending view, through the breadcrumb's own sub-page
+  /// menu — the financing plan and the committed spending no longer share one chip, each now
+  /// living in its own document/sub-page.
   Future<void> openCommitted(WidgetTester tester) async {
-    await openPlanned(tester);
-
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetPlannedOutgoingSegmentLabel));
-    await tester.pumpAndSettle();
+    await openSubPage(tester, tr.budgetCommittedSectionTitle);
   }
 
-  /// Switches the centre to the financing view — the `Planned` chip's own landing half, so the
-  /// chip alone is enough.
+  /// Switches the centre to the financing view — the header's own `Resources` document chip.
   Future<void> openFinancing(WidgetTester tester) async {
-    await openPlanned(tester);
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tapHeaderChip(tester, tr.budgetHeaderDocumentResourcesSegmentLabel);
   }
 
   /// A finder scoped to the export panel's own `AlertDialog`, so its card titles can't collide
   /// with anything else on screen — mirrors `schedule_mode_test.dart`'s own `inPanel`.
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
-
-  /// Taps the header's own view chip labelled [label], scoped to `OcptBudgetHeader` — the help
-  /// panel's own map reuses a couple of the very same chip labels (`Financing`, `Committed`) for
-  /// its cells, so a plain `find.text` is ambiguous whenever the Help tab is open beside the
-  /// header.
-  Future<void> tapHeaderChip(WidgetTester tester, String label) async {
-    await tester.tap(find.descendant(of: find.byType(OcptBudgetHeader), matching: find.text(label)));
-    await tester.pumpAndSettle();
-  }
 
   testWidgets("the ten CNC postes are seeded and shown on first entry", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
@@ -791,23 +811,16 @@ void main() {
       RegExp(RegExp.escape(tr.budgetHelpMapCurrentViewBadge)),
     );
 
-    // The dashboard reads across the whole map rather than standing in one cell of it.
+    // The read-only overview reads across the whole map rather than standing in one cell of it.
     expect(currentCells(), findsNothing);
 
-    // The financing plan and the committed spending share one header chip, and each still stands
-    // in one cell of its own: the map speaks about the half actually on screen, not about the chip.
-    await tapHeaderChip(tester, tr.budgetHeaderPlannedSegmentLabel);
+    // The financing plan — the resources document's own top level — stands in one cell of its own.
+    await openFinancing(tester);
     expect(currentCells(), findsOneWidget);
 
-    // Scoped to the sub-switch: the help map's own rows deliberately read `Coming in`/`Going out`
-    // too, which is the very mental model the sub-switch was named after, so both are on screen.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(OcptBudgetPlannedSubSwitch),
-        matching: find.text(tr.budgetPlannedOutgoingSegmentLabel),
-      ),
-    );
-    await tester.pumpAndSettle();
+    // So does the committed spending, now a sub-page of expenses rather than the financing plan's
+    // own sub-switch half.
+    await openCommitted(tester);
     expect(currentCells(), findsOneWidget);
 
     // The cash journal occupies both cells of the "has moved" column at once.

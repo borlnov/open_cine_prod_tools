@@ -10625,6 +10625,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderDocumentExpensesSegmentLabel": "Expenses",
+  "@budgetHeaderDocumentExpensesSegmentLabel": {
+    "description": "Label of the header's Expenses document chip",
+    "context": "Displayed on the budget mode's own document switch, and reused by its breadcrumb",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderDocumentResourcesSegmentLabel": "Resources",
+  "@budgetHeaderDocumentResourcesSegmentLabel": {
+    "description": "Label of the header's Resources document chip",
+    "context": "Displayed on the budget mode's own document switch, and reused by its breadcrumb",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderDocumentSharingSegmentLabel": "Sharing",
+  "@budgetHeaderDocumentSharingSegmentLabel": {
+    "description": "Label of the header's Sharing document chip",
+    "context": "Displayed on the budget mode's own document switch, and reused by its breadcrumb",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderReadingByTreeSegmentLabel": "By poste",
+  "@budgetHeaderReadingByTreeSegmentLabel": {
+    "description": "Label of the header's reading switch segment that reads the current document poste by poste",
+    "context": "Displayed on the budget mode's own reading switch, offered on the expenses document alone",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderReadingByDateSegmentLabel": "By date",
+  "@budgetHeaderReadingByDateSegmentLabel": {
+    "description": "Label of the header's reading switch segment that reads the current document in the order money actually moved",
+    "context": "Displayed on the budget mode's own reading switch, offered on the expenses document alone",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderResourcesTitle": "Financing plan",
+  "@budgetHeaderResourcesTitle": {
+    "description": "Title of the budget mode's own header band while showing the resources document",
+    "context": "Displayed at the top of the budget mode's centre, above the document chips",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetHeaderSimplifiedSegmentLabel": "Simplified",
   "@budgetHeaderSimplifiedSegmentLabel": {
     "description": "Label of the header's simplified segment",
@@ -10668,6 +10710,10 @@
   "budgetHeaderPosteFilterNotHereCaption": "Not applied here",
   "@budgetHeaderPosteFilterNotHereCaption": {
     "description": "Caption on the header's poste filter while a poste is filtered but the view on screen has no poste dimension to honour it with — the financing plan, the régie and the revenue sharing."
+  },
+  "budgetHeaderSubPageMenuTooltip": "More pages",
+  "@budgetHeaderSubPageMenuTooltip": {
+    "description": "Tooltip of the header's small breadcrumb menu, opening any of the expenses document's own sub-pages"
   },
   "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
   "@budgetStatsPostes": {

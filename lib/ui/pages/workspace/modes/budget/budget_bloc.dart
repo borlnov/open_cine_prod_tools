@@ -41,8 +41,10 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
@@ -241,7 +243,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetRightDockToggledEvent>(_onRightDockToggled);
     on<OcptBudgetRightDockClosedEvent>(_onRightDockClosed);
     on<OcptBudgetRightDockFractionChangedEvent>(_onRightDockFractionChanged);
-    on<OcptBudgetCentreViewSelectedEvent>(_onCentreViewSelected);
+    on<OcptBudgetDocumentSelectedEvent>(_onDocumentSelected);
+    on<OcptBudgetDocumentReadingSelectedEvent>(_onDocumentReadingSelected);
+    on<OcptBudgetSubPageSelectedEvent>(_onSubPageSelected);
     on<OcptBudgetSimplifiedToggledEvent>(_onSimplifiedToggled);
     on<OcptBudgetTaxBasisChangedEvent>(_onTaxBasisChanged);
     on<OcptBudgetPosteSelectedEvent>(_onPosteSelected);
@@ -307,16 +311,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
   /// about to swap the database can't send it into the previewed version instead, then clears the
-  /// selected poste and expanded line: either selected out of the working copy's own catalogue
-  /// means nothing once a preview swaps that data out.
+  /// selection and expanded line: either selected out of the working copy's own catalogue means
+  /// nothing once a preview swaps that data out.
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
     await _flushPendingFieldEdits(emitter);
     emitter(
       state.copyWith(
-        clearSelectedPosteId: true,
-        clearSelectedResourceId: true,
+        clearSelection: true,
         clearSelectedRevenueId: true,
         clearSelectedShareId: true,
         clearExpandedLineId: true,
@@ -356,8 +359,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
           clearPreviewedVersionId: true,
-          clearSelectedPosteId: true,
-          clearSelectedResourceId: true,
+          clearSelection: true,
           clearSelectedRevenueId: true,
           clearSelectedShareId: true,
           clearExpandedLineId: true,
@@ -383,8 +385,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         clearPreviewedVersionId: previewedVersion == null,
         snapshot: loaded.snapshot,
         currencyCode: loaded.snapshot.currencyCode,
-        clearSelectedPosteId: true,
-        clearSelectedResourceId: true,
+        clearSelection: true,
         clearSelectedRevenueId: true,
         clearSelectedShareId: true,
         clearExpandedLineId: true,
@@ -630,20 +631,53 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _propertiesManager.budgetLastRightDockTab.store(tab);
   }
 
-  /// Switches the centre between the dashboard and the cost-tracking table.
-  Future<void> _onCentreViewSelected(
-    OcptBudgetCentreViewSelectedEvent event,
+  /// Switches which of the mode's three documents is shown, and returns to its own top level —
+  /// dispatched by one of the header's own three chips, and by the breadcrumb's own document
+  /// ancestor.
+  Future<void> _onDocumentSelected(
+    OcptBudgetDocumentSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
     // Flushed here for the reason a selection change and a dock tab change already flush: the user
     // has stopped typing and is about to *read* figures somewhere else. Without it, an amount typed
-    // in the cost-tracking table and followed straight by a click on `Dashboard` was still sitting
-    // in the debounce, so the dashboard drew the snapshot from before it — and corrected itself two
+    // in the cost-tracking table and followed straight by a click on `Resources` was still sitting
+    // in the debounce, so that document drew the snapshot from before it — and corrected itself two
     // seconds later, once the timer fired. The write was never lost; it simply was not shown, which
     // reads exactly like an app that ignores what it is told.
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(centreView: event.view));
+    emitter(state.copyWith(document: event.document, clearSubPage: true));
+  }
+
+  /// Switches which order the current document's own rows are read in, and returns to its own top
+  /// level — dispatched by the header's own reading switch, offered on
+  /// `OcptBudgetDocument.expenses` alone.
+  ///
+  /// **Also clears `OcptBudgetState.subPage`**, mirroring [_onDocumentSelected]'s own reason:
+  /// picking a reading is itself a "go to this top-level reading" gesture, and is the way back to
+  /// either the cost-tracking table or the cash journal from inside a sub-page.
+  Future<void> _onDocumentReadingSelected(
+    OcptBudgetDocumentReadingSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    emitter(state.copyWith(reading: event.reading, clearSubPage: true));
+  }
+
+  /// Opens sub-page `event.subPage` of `OcptBudgetDocument.expenses` — dispatched by whichever
+  /// gesture already led to it before this milestone (`OcptBudgetSubPageSelectedEvent`'s own doc
+  /// comment names every one of them).
+  ///
+  /// Sets [OcptBudgetState.document] to `expenses` defensively: every gesture that reaches this
+  /// today already stands on that document, but a sub-page belongs to it and to no other.
+  Future<void> _onSubPageSelected(
+    OcptBudgetSubPageSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    emitter(state.copyWith(document: OcptBudgetDocument.expenses, subPage: event.subPage));
   }
 
   /// Toggles the header's simplified/detailed switch.
@@ -686,7 +720,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     emitter(
       state.copyWith(
-        selectedPosteId: event.posteId,
+        selection: OcptBudgetPosteSelection(event.posteId),
         clearExpandedLineId: true,
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
@@ -710,7 +744,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     if (posteId != null) {
       emitter(
         state.copyWith(
-          selectedPosteId: posteId,
+          selection: OcptBudgetPosteSelection(posteId),
           clearExpandedLineId: true,
           rightDockTab: OcptBudgetRightDockTab.inspector,
           lastRightDockTab: OcptBudgetRightDockTab.inspector,
@@ -1435,6 +1469,21 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final resourceStillExists =
         state.selectedResourceId == null ||
         snapshot.resources.any((resource) => resource.id == state.selectedResourceId);
+    // One field now names either kind of selection, so reconciling it is one switch over which
+    // variant it currently is — a poste or a resource read [posteStillExists]/[resourceStillExists]
+    // above, exactly as the two separate fields this replaced did; every other variant is not yet
+    // written by this bloc (the fiche that would is a later milestone's), so there is nothing here
+    // that could have gone stale.
+    final selectionStillExists = switch (state.selection) {
+      null => true,
+      OcptBudgetPosteSelection() => posteStillExists,
+      OcptBudgetResourceSelection() => resourceStillExists,
+      OcptBudgetLineSelection() ||
+      OcptBudgetCommitmentSelection() ||
+      OcptBudgetEntrySelection() ||
+      OcptBudgetRevenueSelection() ||
+      OcptBudgetReceiptSelection() => true,
+    };
     final revenueStillExists =
         state.selectedRevenueId == null ||
         snapshot.revenues.any((revenue) => revenue.id == state.selectedRevenueId);
@@ -1456,10 +1505,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
             ? state.provisionPosteId
             : _defaultProvisionPosteIdOf(loaded.snapshot.postes),
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
-        clearSelectedPosteId: !posteStillExists,
+        clearSelection: !selectionStillExists,
         clearFilterPosteId: !filterStillExists,
         clearExpandedLineId: !lineStillExists,
-        clearSelectedResourceId: !resourceStillExists,
         clearSelectedRevenueId: !revenueStillExists,
         clearSelectedShareId: !shareStillExists,
       ),
@@ -1482,7 +1530,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    emitter(state.copyWith(selectedResourceId: event.resourceId));
+    emitter(state.copyWith(selection: OcptBudgetResourceSelection(event.resourceId)));
   }
 
   /// Creates a new financing resource from `event.fields` and selects it.
@@ -1512,7 +1560,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _applyBudgetSnapshot(emitter, project);
     if (resourceId != null) {
-      emitter(state.copyWith(selectedResourceId: resourceId));
+      emitter(state.copyWith(selection: OcptBudgetResourceSelection(resourceId)));
     }
   }
 

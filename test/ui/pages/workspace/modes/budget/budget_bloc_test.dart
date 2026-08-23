@@ -29,8 +29,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
@@ -519,15 +519,15 @@ void main() {
         (state) => state.pendingFieldEdits[(lineId, OcptBudgetField.lineUnitAmount)] == "12.50",
       );
 
-      // Switching view, well inside the debounce window, must write it rather than wait it out.
-      bloc.add(const OcptBudgetCentreViewSelectedEvent(view: OcptBudgetCentreView.dashboard));
+      // Switching document, well inside the debounce window, must write it rather than wait it out.
+      bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.resources));
 
       // The flush emits the cleared edits first and reloads the snapshot after, so the state worth
       // waiting for is the one that carries the written figure, not merely an empty pending map.
       final switched = await waitForState(
         bloc,
         (state) =>
-            state.centreView == OcptBudgetCentreView.dashboard &&
+            state.document == OcptBudgetDocument.resources &&
             state.postes
                     .firstWhere((poste) => poste.id == posteId)
                     .lines

@@ -16,9 +16,10 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 
@@ -84,18 +85,60 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, fraction];
 }
 
-/// Selects which of the two centre views the mode shows, dispatched by the header's own view
-/// chips.
-class OcptBudgetCentreViewSelectedEvent extends OcptBudgetEvent {
-  /// The view to select.
-  final OcptBudgetCentreView view;
+/// Selects which of the mode's three documents is shown, dispatched by the header's own three
+/// chips — and by the breadcrumb's own `Expenses`/`Resources`/`Sharing` ancestor, since returning
+/// to a document's own top level is naming that same document again.
+///
+/// **Always clears `OcptBudgetState.subPage`.** Picking a document, even the one already active, is
+/// how the breadcrumb's own "way back up" works: standing on a sub-page and clicking the document
+/// ancestor is this very event, naming the document already on screen.
+class OcptBudgetDocumentSelectedEvent extends OcptBudgetEvent {
+  /// The document to select.
+  final OcptBudgetDocument document;
 
   /// Class constructor
-  const OcptBudgetCentreViewSelectedEvent({required this.view});
+  const OcptBudgetDocumentSelectedEvent({required this.document});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, view];
+  List<Object?> get props => [...super.props, document];
+}
+
+/// Selects which order the current document's own rows are read in, dispatched by the header's own
+/// reading switch — offered on `OcptBudgetDocument.expenses` alone
+/// (`ocptBudgetHasInspector`'s sibling doc comments explain why the other two documents have
+/// nothing to switch to yet).
+///
+/// **Also clears `OcptBudgetState.subPage`**: picking a reading is itself a "go to this top-level
+/// reading" gesture, and is the way back to either the cost-tracking table or the cash journal from
+/// inside a sub-page — the mirror of what [OcptBudgetDocumentSelectedEvent] already does for the
+/// document itself.
+class OcptBudgetDocumentReadingSelectedEvent extends OcptBudgetEvent {
+  /// The reading to select.
+  final OcptBudgetDocumentReading reading;
+
+  /// Class constructor
+  const OcptBudgetDocumentReadingSelectedEvent({required this.reading});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, reading];
+}
+
+/// Opens sub-page [subPage] of `OcptBudgetDocument.expenses`, dispatched by whichever gesture
+/// already led to it before this milestone: the dashboard's own cash-projection alert action (the
+/// committed spending), its catering feed link (the catering-and-travel pass), and the poste
+/// inspector's own `Show the commitment` link (the committed spending again).
+class OcptBudgetSubPageSelectedEvent extends OcptBudgetEvent {
+  /// The sub-page to open.
+  final OcptBudgetSubPage subPage;
+
+  /// Class constructor
+  const OcptBudgetSubPageSelectedEvent({required this.subPage});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, subPage];
 }
 
 /// Toggles the header's simplified/detailed switch. Session-only, never persisted, mirroring the
