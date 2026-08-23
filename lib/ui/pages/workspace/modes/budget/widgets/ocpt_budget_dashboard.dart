@@ -424,7 +424,10 @@ class _OcptDashboardPosteRow extends StatelessWidget {
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          vertical: 6,
+          horizontal: ocptTableRowHorizontalPadding,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -767,7 +770,10 @@ class _OcptDashboardFeedRow extends StatelessWidget {
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          vertical: 8,
+          horizontal: ocptTableRowHorizontalPadding,
+        ),
         child: Row(
           children: [
             SizedBox(

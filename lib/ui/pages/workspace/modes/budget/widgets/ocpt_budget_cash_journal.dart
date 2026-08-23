@@ -41,7 +41,7 @@ const double _ocptCashJournalMenuColumnWidth = 36;
 /// the row overflowed — which is exactly what opening the right dock on a laptop screen does. No
 /// column is dropped and none shrinks; the reader gets a horizontal scrollbar and keeps the whole
 /// ledger, the treatment the rest of the app already gives a table too wide for its slot.
-const double _ocptCashJournalMinTableWidth = 960;
+const double _ocptCashJournalMinTableWidth = 984;
 
 /// Every entry row's own fixed height, in logical pixels.
 const double _ocptCashJournalRowHeight = 44;
@@ -194,29 +194,32 @@ class OcptBudgetCashJournal extends StatelessWidget {
                     // figures out from under their own headings.
                     child: SizedBox(
                       width: math.max(constraints.maxWidth, _ocptCashJournalMinTableWidth),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const _OcptCashJournalHeaderRow(),
-                          Expanded(
-                            child: ListView.builder(
-                              itemCount: filteredRows.length,
-                              itemBuilder: (context, index) => _OcptCashJournalRow(
-                                row: filteredRows[index],
-                                poste: _posteById(filteredRows[index].entry.posteId),
-                                receipt: receiptsByEntryId[filteredRows[index].entry.id],
-                                isSimplified: isSimplified,
-                                currencyCode: currencyCode,
-                                onTap: isReadOnly || onEntryTapped == null
-                                    ? null
-                                    : () => onEntryTapped?.call(filteredRows[index].entry),
-                                onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
-                                    ? null
-                                    : () => onEntryDeletionRequested?.call(filteredRows[index].entry.id),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const _OcptCashJournalHeaderRow(),
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: filteredRows.length,
+                                itemBuilder: (context, index) => _OcptCashJournalRow(
+                                  row: filteredRows[index],
+                                  poste: _posteById(filteredRows[index].entry.posteId),
+                                  receipt: receiptsByEntryId[filteredRows[index].entry.id],
+                                  isSimplified: isSimplified,
+                                  currencyCode: currencyCode,
+                                  onTap: isReadOnly || onEntryTapped == null
+                                      ? null
+                                      : () => onEntryTapped?.call(filteredRows[index].entry),
+                                  onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
+                                      ? null
+                                      : () => onEntryDeletionRequested?.call(filteredRows[index].entry.id),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

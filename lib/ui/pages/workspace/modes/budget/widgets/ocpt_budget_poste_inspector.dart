@@ -424,7 +424,10 @@ class _OcptBudgetRelatedEntryRow extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+        horizontal: ocptTableRowHorizontalPadding,
+      ),
       child: Row(
         children: [
           Text(

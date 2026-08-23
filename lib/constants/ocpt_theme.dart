@@ -121,6 +121,16 @@ const double ocptModeSwitcherHeight = 64;
 /// rather than a solid fill.
 const double ocptSelectedStateAlpha = 0.16;
 
+/// The horizontal inset every row of a data table gets, in logical pixels — the budget mode's
+/// tables to begin with.
+///
+/// A row is its own click target: it paints a hover wash and, selected, a tinted background. Drawn
+/// without this, that wash runs edge to edge against the card's own border and the first column's
+/// text touches it, which reads as a rendering fault rather than as a row. The **header row takes
+/// the very same inset**, since the two share one set of fixed column widths and insetting only
+/// the rows would slide every figure out from under its own heading.
+const double ocptTableRowHorizontalPadding = 12;
+
 /// The mouse cursor every clickable control of the app shows: the pointing hand when the control
 /// is enabled, the plain arrow when it is disabled.
 ///

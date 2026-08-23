@@ -474,7 +474,10 @@ class _OcptSharingPotLine extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+        horizontal: ocptTableRowHorizontalPadding,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -518,7 +521,12 @@ class _OcptSharingRepaymentHeaderRow extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.fromLTRB(
+        ocptTableRowHorizontalPadding,
+        0,
+        ocptTableRowHorizontalPadding,
+        4,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -589,7 +597,10 @@ class _OcptSharingRepaymentLenderRow extends StatelessWidget {
     final isOutstanding = line.outstandingCents > 0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+        horizontal: ocptTableRowHorizontalPadding,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -714,7 +725,10 @@ class _OcptSharingRevenueRow extends StatelessWidget {
       child: ColoredBox(
         color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+            horizontal: ocptTableRowHorizontalPadding,
+          ),
           child: Row(
             children: [
               SizedBox(
@@ -985,7 +999,12 @@ class _OcptSharingDistributionHeaderRow extends StatelessWidget {
     ).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.fromLTRB(
+        ocptTableRowHorizontalPadding,
+        0,
+        ocptTableRowHorizontalPadding,
+        4,
+      ),
       child: Row(
         children: [
           Expanded(child: Text(tr.budgetSharingParticipantColumnLabel.toUpperCase(), style: labelStyle)),
@@ -1095,7 +1114,10 @@ class _OcptSharingShareRow extends StatelessWidget {
       child: ColoredBox(
         color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+            horizontal: ocptTableRowHorizontalPadding,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -1228,7 +1250,10 @@ class _OcptSharingTotalRow extends StatelessWidget {
     final boldStyle = theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        vertical: 6,
+        horizontal: ocptTableRowHorizontalPadding,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [

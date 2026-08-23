@@ -470,7 +470,12 @@ class _OcptFinancingColumnHeaderRow extends StatelessWidget {
         border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+        padding: const EdgeInsets.fromLTRB(
+          ocptTableRowHorizontalPadding,
+          0,
+          ocptTableRowHorizontalPadding,
+          6,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -607,7 +612,10 @@ class _OcptFinancingResourceRow extends StatelessWidget {
       child: ColoredBox(
         color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+            horizontal: ocptTableRowHorizontalPadding,
+          ),
           child: Row(
             children: [
               Expanded(
