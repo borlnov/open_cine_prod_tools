@@ -171,6 +171,10 @@ class OcptProjectVersionPayload extends Equatable {
   /// in, tombstones included.
   final List<OcptBudgetShareRow> budgetShares;
 
+  /// Every `budget_allowances` row of the project at the moment this payload was sealed,
+  /// tombstones included.
+  final List<OcptBudgetAllowanceRow> budgetAllowances;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -291,6 +295,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.budgetMileageRates,
     required this.budgetRevenues,
     required this.budgetShares,
+    required this.budgetAllowances,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -330,6 +335,7 @@ class OcptProjectVersionPayload extends Equatable {
       "budgetResources: ${budgetResources.length}, "
       "budgetMileageRates: ${budgetMileageRates.length}, "
       "budgetRevenues: ${budgetRevenues.length}, budgetShares: ${budgetShares.length}, "
+      "budgetAllowances: ${budgetAllowances.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
       "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage, "
@@ -379,6 +385,7 @@ class OcptProjectVersionPayload extends Equatable {
     budgetMileageRates,
     budgetRevenues,
     budgetShares,
+    budgetAllowances,
     rowFieldVersions,
     pageSetup,
     settingsJson,

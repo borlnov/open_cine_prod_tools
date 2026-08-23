@@ -9,6 +9,7 @@ import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_allowances_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_commitments_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
@@ -61,13 +62,15 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptShootingSlotAnchorEdgeConverter, OcptScreenplayLanguageConverter,
 // OcptRoleCandidateStatusConverter, OcptShootingDayKindConverter,
 // OcptBudgetCommitmentStatusConverter, OcptBudgetResourceGroupKindConverter,
-// OcptBudgetResourceStatusConverter, OcptBudgetRevenueStatusConverter), but
+// OcptBudgetResourceStatusConverter, OcptBudgetRevenueStatusConverter,
+// OcptBudgetAllowanceKindConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
@@ -231,6 +234,7 @@ part 'ocpt_project_database.g.dart';
     OcptBudgetResourcesTable,
     OcptBudgetRevenuesTable,
     OcptBudgetSharesTable,
+    OcptBudgetAllowancesTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -304,7 +308,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 30;
+  static const currentSchemaVersion = 31;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -860,6 +864,13 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
             'ALTER TABLE budget_resources RENAME COLUMN status_step TO status',
           );
         }
+      }
+
+      if (from < 31) {
+        // One table, referencing `people` alone — created above for a file older than version 6 —
+        // so this is never a forward reference. Nothing else changes: the defrayals replace a
+        // *computation* the régie view used to do in memory, never a column.
+        await m.createTable(ocptBudgetAllowancesTable);
       }
     },
     beforeOpen: (details) async {

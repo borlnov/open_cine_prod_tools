@@ -421,6 +421,9 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptBudgetResourcesTable, payload.budgetResources)
         ..insertAll(database.ocptBudgetRevenuesTable, payload.budgetRevenues)
         ..insertAll(database.ocptBudgetSharesTable, payload.budgetShares)
+        // `budget_allowances` only optionally names a `people` row already inserted well above,
+        // and nothing references it, so it may land anywhere after `people`.
+        ..insertAll(database.ocptBudgetAllowancesTable, payload.budgetAllowances)
         ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
@@ -680,6 +683,7 @@ class OcptProjectVersionsService {
       budgetMileageRates: await database.select(database.ocptBudgetMileageRatesTable).get(),
       budgetRevenues: await database.select(database.ocptBudgetRevenuesTable).get(),
       budgetShares: await database.select(database.ocptBudgetSharesTable).get(),
+      budgetAllowances: await database.select(database.ocptBudgetAllowancesTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
@@ -1166,6 +1170,15 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
+      table: database.ocptBudgetAllowancesTable,
+      payloadRows: payload.budgetAllowances,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
       table: database.ocptBudgetEntriesTable,
       payloadRows: payload.budgetEntries,
       rowIdOf: (row) => row.id,
@@ -1339,6 +1352,10 @@ class OcptProjectVersionsService {
       // itself still resolves and there is nothing here for this scrub to rewrite.
       budgetRevenues: payload.budgetRevenues,
       budgetShares: payload.budgetShares,
+      // A defrayal may name a person, through `personId`, exactly as a share does just above:
+      // the row it points at is blanked, not dropped, so the link still resolves and there is
+      // nothing here for this scrub to rewrite.
+      budgetAllowances: payload.budgetAllowances,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,

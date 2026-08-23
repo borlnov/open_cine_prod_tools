@@ -893,6 +893,7 @@ void main() {
                   budgetMileageRates: payload.budgetMileageRates,
                   budgetRevenues: payload.budgetRevenues,
                   budgetShares: payload.budgetShares,
+                  budgetAllowances: payload.budgetAllowances,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,

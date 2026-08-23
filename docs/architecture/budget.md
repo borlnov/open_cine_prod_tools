@@ -621,6 +621,38 @@ are all here, and this file is the whole record of them.
   would both cost more than the reading is worth. `OcptBudgetState.selectedResourceId` is therefore
   a plain highlight, reconciled against a freshly loaded snapshot exactly as `selectedPosteId` is.
 
+## A defrayal is typed, never deduced
+
+- The régie view used to compute what a traveller costs as **one return trip per day of presence**,
+  from their own home-to-set distance and their own mileage rate. A real shoot does not work that
+  way, and the product owner said so plainly: somebody travels in on the first day, is housed near
+  the set for a fortnight and travels home on the last; somebody else is defrayed for two journeys
+  out of fifteen days; technicians claim expenses too, not only the cast. None of that is derivable
+  from a presence.
+- `budget_allowances` is therefore a **synchronised table of typed rows** — a person (nullable, the
+  way `budget_shares.personId` is), a nature (`OcptBudgetAllowanceKind`: travel, accommodation,
+  meal, other), a wording, a date and an optional end date for a stay, a `quantityMilli` and a
+  `unitAmountMilliCents`. This is schema **v31**, and `OcptProjectVersionCodec` reads it under
+  **payload format 27**, whose upgrade from format 26 materialises an **empty list**: a version
+  sealed before the table truthfully defrayed nobody, and what the view then showed was a
+  computation held in memory and stored nowhere, so there is no earlier figure to carry over and
+  nothing for the upgrade to invent.
+- **The mileage scale did not become useless, it became a pre-fill.** Opening the dialog on a
+  person whose `commuteKmMilli` and `mileageRateId` are known offers that distance and that rate
+  already filled in; changing either is an ordinary edit, and neither is read again afterwards. The
+  rate suggests, it never decides — the same register "A resource is received by being named, and a
+  rate is nobody's to seed" already argues for the scale itself.
+- `unitAmountMilliCents` is in **thousandths of a cent** for `budget_mileage_rates`' own reason: a
+  published scale reads 0,529 €/km, which whole cents cannot state. `ocptBudgetAllowanceAmountCents`
+  multiplies then rounds **half up once, at the very end** — 168 km at that scale is 88,87 €, which
+  rounding the rate first would have turned into 88,90 € or 88,04 €. Totals round **each row before
+  summing**, never the sum: each row is a figure somebody is actually owed, and rounding the total
+  instead would leave the printed rows disagreeing with the printed total by a cent nobody could
+  account for.
+- **No money triple**, for the third time this mode makes that argument: a defrayal row is what the
+  provisioning reads to write a quote line, and it is that line which carries the tax basis and the
+  VAT rate. Asking for the VAT twice would be asking the same question in two places.
+
 ## What is promised is one place, read in two directions
 
 - The financing plan and the committed spending share **one header chip, `Planned`**
