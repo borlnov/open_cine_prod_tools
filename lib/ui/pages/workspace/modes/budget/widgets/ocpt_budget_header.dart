@@ -19,9 +19,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 const double _ocptBudgetSegmentPadding = 12;
 
 /// The narrowest the header is drawn with its title and subtitle at all, in logical pixels. Under
-/// this, only the controls are left — they are the only way to change what the centre shows,
+/// this, the breadcrumb and the controls are left — the controls because they are the only way to
+/// change what the centre shows, the breadcrumb because it is the only thing that says which
+/// sub-page the reader is standing in and offers the way back up. The title and subtitle go first,
 /// exactly the reasoning `OcptBreakdownHeader`'s own doc comment gives for shedding its own hint
-/// and progress bar first.
+/// and progress bar first: they name a page the breadcrumb has already named.
 ///
 /// **Recomputed from scratch for this milestone's three-chip header**, rather than continuing the
 /// incremental history the seven-chip one carried: the control *set* changed shape, not merely its
@@ -169,12 +171,6 @@ class OcptBudgetHeader extends StatelessWidget {
                     isSimplified: isSimplified,
                     onChanged: onPosteFilterSelected,
                   ),
-                // The narrow layout draws no breadcrumb at all (below), so its own sub-page menu
-                // rides along as a control instead — otherwise a sub-page reached by a business
-                // gesture (the dashboard's own catering row) would become the only way to any of
-                // its siblings the moment the window narrows.
-                if (!isTitleShown && document == OcptBudgetDocument.expenses)
-                  _OcptBudgetSubPageMenu(current: subPage, onSelected: onSubPageSelected),
               ];
 
               // Under the title's own threshold the controls **wrap onto a second line** rather
@@ -184,12 +180,27 @@ class OcptBudgetHeader extends StatelessWidget {
               // roughly 580 px of it — and a plain `Row` then clips silently, taking a control off
               // the screen altogether. A control that has scrolled out of a clipped row is worse
               // than a disabled one, since nothing on screen says it exists at all.
+              // **The breadcrumb rides along even here**, ahead of the controls, rather than
+              // being dropped with the title: it is the only thing on screen that says which
+              // sub-page a reader is standing in and offers the way back up, and the width that
+              // triggers this layout is not an unusual one — the right dock opening takes roughly
+              // 580 px of the centre pane, so an ordinary screen reaches it the moment the
+              // inspector is used. A page that says neither where it is nor how to leave is worse
+              // than one drawn on two lines.
               if (!isTitleShown) {
                 return Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: 12,
                   runSpacing: 8,
-                  children: controls,
+                  children: [
+                    _OcptBudgetBreadcrumb(
+                      document: document,
+                      subPage: subPage,
+                      onDocumentSelected: onDocumentSelected,
+                      onSubPageSelected: onSubPageSelected,
+                    ),
+                    ...controls,
+                  ],
                 );
               }
 

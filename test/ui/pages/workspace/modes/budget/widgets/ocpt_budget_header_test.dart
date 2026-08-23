@@ -100,7 +100,9 @@ void main() {
     // Every control is still on screen, the last one included — the document switch, the reading
     // switch, the simplified switch, the tax-basis switch and the poste filter all honoured at
     // expenses's own top level.
-    expect(find.text(tr.budgetHeaderDocumentExpensesSegmentLabel), findsOneWidget);
+    // Twice for the document on screen: its own chip, and the breadcrumb that rides along beside
+    // the controls at this width and names the document it stands in.
+    expect(find.text(tr.budgetHeaderDocumentExpensesSegmentLabel), findsNWidgets(2));
     expect(find.text(tr.budgetHeaderDocumentSharingSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderReadingByDateSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
@@ -110,6 +112,36 @@ void main() {
     // And it is still tappable, which a clipped one would not be.
     await tester.tap(find.text(tr.budgetHeaderExcludingTaxSegmentLabel));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("a centre too narrow to hold the title still says which sub-page it is showing", (
+    tester,
+  ) async {
+    // The width the right dock leaves the centre on an ordinary window — which is exactly when a
+    // reader is inside a sub-page, since the inspector is what opened the dock. Shedding the
+    // breadcrumb here would leave the page saying neither where it is nor how to leave it.
+    tester.view.physicalSize = const Size(700, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    OcptBudgetDocument? reported;
+    final tr = await pumpHeader(
+      tester,
+      subPage: OcptBudgetSubPage.regie,
+      onDocumentSelected: (document) => reported = document,
+    );
+
+    // The trail names the sub-page, and its ancestor is the way back up.
+    expect(find.text(tr.budgetHeaderRegieSegmentLabel), findsOneWidget);
+    expect(find.byKey(const Key("ocptBudgetBreadcrumbAncestor")), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key("ocptBudgetBreadcrumbAncestor")));
+    expect(reported, OcptBudgetDocument.expenses);
+
+    // The sub-page menu is drawn **once**, by the breadcrumb itself — never a second copy riding
+    // along among the controls.
+    expect(find.byKey(const Key("ocptBudgetSubPageMenuButton")), findsOneWidget);
   });
 
   group("the document switch", () {
@@ -536,9 +568,10 @@ void main() {
     });
   });
 
-  // The narrow-window case (title/subtitle/breadcrumb shed, the controls kept) is
+  // The narrow-window case (title and subtitle shed, the breadcrumb and the controls kept) is
   // `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth` threshold, argued in its class doc
-  // comment; not re-asserted here as a layout test, since `flutter_test`'s own substituted test
-  // font renders these short labels far wider than any real one does, which would make the
-  // threshold's own safety margin — comfortable against a real font — read as flaky here.
+  // comment; the two tests above assert what survives it rather than the threshold itself, since
+  // `flutter_test`'s own substituted test font renders these short labels far wider than any real
+  // one does, which would make the threshold's own safety margin — comfortable against a real
+  // font — read as flaky here.
 }
