@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_capture_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
@@ -280,15 +281,18 @@ void main() {
     await tester.tap(find.text(tr.budgetCashJournalEntryCreationAction));
     await tester.pumpAndSettle();
 
+    // Scoped to the dialog itself: the capture band sits on the very same document
+    // (`docs/plans/budget-mode-ux.md` M3) and reuses these very same field labels for its own
+    // fields, so an unscoped finder is ambiguous the moment both are on screen at once.
     await tester.enterText(
-      find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+      inPanel(find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel)),
       "Camera rental",
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
+      inPanel(find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel)),
       "50.00",
     );
-    await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+    await tester.tap(inPanel(find.text(tr.budgetEntryDialogConfirmAction)));
     await tester.pumpAndSettle();
 
     expect(find.text("Camera rental"), findsOneWidget);
@@ -852,6 +856,88 @@ void main() {
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
     expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
     expect(find.text(tr.budgetHelpDashboardBody3), findsOneWidget);
+
+    // Leave the preview so the working copy is what the next test opens onto.
+    await projectsManager.exitPreview();
+  });
+
+  testWidgets(
+    "the capture band is offered on expenses and on resources at their own top level, absent on "
+    "sharing",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      // The mode opens on the read-only overview, itself a sub-page of expenses — the capture
+      // band is withheld there (covered by its own test below); its own top level shows it.
+      await openCostTracking(tester);
+      expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
+
+      // Its own byDate reading is still the same document's own top level.
+      await openCashJournal(tester);
+      expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
+
+      // Resources.
+      await openFinancing(tester);
+      expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
+
+      // Sharing carries no capture band at all.
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      await tapHeaderChip(tester, tr.budgetHeaderDocumentSharingSegmentLabel);
+      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+    },
+  );
+
+  testWidgets("the capture band is withheld on every sub-page of expenses", (tester) async {
+    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+
+    await openCommitted(tester);
+    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+
+    await openRegie(tester);
+    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await openSubPage(tester, tr.budgetHeaderDashboardSegmentLabel);
+    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+
+    // Back at the document's own top level, it returns.
+    await returnToDocumentTopLevel(tester);
+    expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
+  });
+
+  testWidgets("the capture band is withheld whole under a previewed version", (tester) async {
+    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    expect(version, isNotNull);
+    final versionId = version!.id;
+    final previewResult = await projectsManager.previewVersion(versionId);
+    expect(previewResult.status.isSuccess, isTrue);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+
+    // Not built at all — withheld, not disabled.
+    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+
+    // Still absent on resources, the other document that offers it while live.
+    await openFinancing(tester);
+    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
     // Leave the preview so the working copy is what the next test opens onto.
     await projectsManager.exitPreview();

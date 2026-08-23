@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_allowance_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_capture_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_committed_spending.dart';
@@ -73,6 +74,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
@@ -480,6 +482,13 @@ class _BudgetViewState extends State<_BudgetView> {
           ),
         ),
         const SizedBox(height: 12),
+        if (_showsCaptureBand(state)) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _buildCaptureBand(context, state, bloc),
+          ),
+          const SizedBox(height: 12),
+        ],
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -489,6 +498,186 @@ class _BudgetViewState extends State<_BudgetView> {
         const SizedBox(height: 24),
       ],
     );
+  }
+
+  /// Whether [OcptBudgetCaptureBand] is mounted at all: [OcptBudgetState.document] is `expenses`
+  /// or `resources`, at its own top level ([OcptBudgetState.subPage] null) — never on `sharing`,
+  /// never on a sub-page — and the project is not a previewed version, which withholds the band
+  /// **whole** rather than drawing it disabled (`docs/plans/budget-mode-ux.md` M3).
+  bool _showsCaptureBand(OcptBudgetState state) =>
+      !state.isPreviewingVersion &&
+      state.subPage == null &&
+      (state.document == OcptBudgetDocument.expenses ||
+          state.document == OcptBudgetDocument.resources);
+
+  /// Builds the capture band — keyed by [OcptBudgetState.document] so switching between `expenses`
+  /// and `resources` remounts it fresh, its own draft cleared and its own direction back to
+  /// [OcptBudgetDocument.expenses]'s debit default or [OcptBudgetDocument.resources]'s credit one,
+  /// rather than carrying a draft typed for one document's own direction into the other's.
+  ///
+  /// **The three callbacks are where a suggestion's own kind is turned into a domain write** — the
+  /// band itself only ever reports what was typed (see `OcptBudgetCaptureBand`'s own class doc
+  /// comment): [_handleCaptureBandSuggestionAccepted] is this method's own mirror of
+  /// [_handleCommitmentSettleRequested] and [_handleResourceReceiptRequested], reusing the very same
+  /// events, this time built from the band's own draft instead of a dialog's.
+  Widget _buildCaptureBand(BuildContext context, OcptBudgetState state, OcptBudgetBloc bloc) =>
+      OcptBudgetCaptureBand(
+        key: ValueKey(state.document),
+        initialIsDebit: state.document == OcptBudgetDocument.expenses,
+        commitments: state.commitments,
+        allowances: state.allowances,
+        resources: state.resources,
+        revenues: state.revenues,
+        receivedByResourceId: state.receivedByResourceId,
+        receivedByRevenueId: state.receivedByRevenueId,
+        projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+        postes: state.postes,
+        currencyCode: state.currencyCode,
+        onEntryCaptured: (fields) =>
+            bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields)),
+        onOtherRequested: (fields) =>
+            unawaited(_handleCaptureBandOtherRequested(context, state, fields)),
+        onSuggestionAccepted: (suggestion, fields) =>
+            _handleCaptureBandSuggestionAccepted(bloc, state, suggestion, fields),
+      );
+
+  /// `Autre chose…`: opens `OcptBudgetEntryDialog` prefilled with the capture band's own draft,
+  /// then dispatches the creation if the user confirmed it — mirrors `_handleEntryCreationRequested`
+  /// with [fields] standing in for an empty dialog.
+  Future<void> _handleCaptureBandOtherRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetEntryFormFields fields,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final result = await OcptBudgetEntryDialog.show(
+      context,
+      existing: null,
+      prefill: fields,
+      postes: state.postes,
+      resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (result == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: result));
+  }
+
+  /// `C'est ça`: turns the capture band's own [suggestion] and [fields] into the write its own
+  /// kind calls for — see `OcptBudgetCaptureBand`'s own class doc comment for why this mapping
+  /// lives here rather than in the band itself.
+  ///
+  /// **The commitment case is the only one adding fields the draft never carried**
+  /// ([OcptBudgetCommitment.posteId], its own tax basis and its own VAT rate) — mirrors
+  /// [_handleCommitmentSettleRequested]'s own prefill. The other three keep every one of [fields]'s
+  /// own values, only naming the matched row (`resourceId`/`revenueId`) or, for a defrayal, adopting
+  /// its own [OcptBudgetMatchSuggestion.label] in place of the draft's — the one asymmetry
+  /// `OcptBudgetCaptureBand._headlineOf`'s own doc comment already argues for: nothing in the schema
+  /// lets a defrayal be marked settled, so the label is the only trace this movement can leave of it.
+  void _handleCaptureBandSuggestionAccepted(
+    OcptBudgetBloc bloc,
+    OcptBudgetState state,
+    OcptBudgetMatchSuggestion suggestion,
+    OcptBudgetEntryFormFields fields,
+  ) {
+    switch (suggestion.kind) {
+      case OcptBudgetMatchCandidateKind.commitment:
+        final commitment = state.commitments
+            .where((candidate) => candidate.id == suggestion.candidateId)
+            .firstOrNull;
+        if (commitment == null) {
+          return;
+        }
+        bloc.add(
+          OcptBudgetCommitmentSettlementConfirmedEvent(
+            commitmentId: commitment.id,
+            fields: OcptBudgetEntryFormFields(
+              date: fields.date,
+              label: fields.label,
+              posteId: commitment.posteId,
+              resourceId: null,
+              revenueId: null,
+              shareId: null,
+              isDebit: fields.isDebit,
+              amountCents: fields.amountCents,
+              isTaxInclusive: commitment.amount.isTaxInclusive,
+              vatRateBasisPoints: commitment.amount.vatRateBasisPoints,
+              voucherNumber: null,
+              pickedReceiptPath: null,
+              isReceiptDetached: false,
+            ),
+          ),
+        );
+      case OcptBudgetMatchCandidateKind.resource:
+        bloc.add(
+          OcptBudgetEntryCreationConfirmedEvent(
+            fields: OcptBudgetEntryFormFields(
+              date: fields.date,
+              label: fields.label,
+              posteId: null,
+              resourceId: suggestion.candidateId,
+              revenueId: null,
+              shareId: null,
+              isDebit: fields.isDebit,
+              amountCents: fields.amountCents,
+              isTaxInclusive: fields.isTaxInclusive,
+              vatRateBasisPoints: fields.vatRateBasisPoints,
+              voucherNumber: null,
+              pickedReceiptPath: null,
+              isReceiptDetached: false,
+            ),
+          ),
+        );
+      case OcptBudgetMatchCandidateKind.revenue:
+        bloc.add(
+          OcptBudgetEntryCreationConfirmedEvent(
+            fields: OcptBudgetEntryFormFields(
+              date: fields.date,
+              label: fields.label,
+              posteId: null,
+              resourceId: null,
+              revenueId: suggestion.candidateId,
+              shareId: null,
+              isDebit: fields.isDebit,
+              amountCents: fields.amountCents,
+              isTaxInclusive: fields.isTaxInclusive,
+              vatRateBasisPoints: fields.vatRateBasisPoints,
+              voucherNumber: null,
+              pickedReceiptPath: null,
+              isReceiptDetached: false,
+            ),
+          ),
+        );
+      case OcptBudgetMatchCandidateKind.defrayal:
+        bloc.add(
+          OcptBudgetEntryCreationConfirmedEvent(
+            fields: OcptBudgetEntryFormFields(
+              date: fields.date,
+              label: suggestion.label,
+              posteId: null,
+              resourceId: null,
+              revenueId: null,
+              shareId: null,
+              isDebit: fields.isDebit,
+              amountCents: fields.amountCents,
+              isTaxInclusive: fields.isTaxInclusive,
+              vatRateBasisPoints: fields.vatRateBasisPoints,
+              voucherNumber: null,
+              pickedReceiptPath: null,
+              isReceiptDetached: false,
+            ),
+          ),
+        );
+    }
   }
 
   /// Builds whichever widget the current route names — `docs/plans/budget-mode-ux.md` M2's own

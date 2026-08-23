@@ -14282,6 +14282,172 @@
     "context": "Displayed on the budget mode's own Help tab while revenue sharing is the centre view",
     "type": "text",
     "placeholders": {}
+  },
+
+  "budgetCaptureBandTitle": "What's just moved?",
+  "@budgetCaptureBandTitle": {
+    "description": "Title of the capture band, above its own direction choice",
+    "context": "Displayed at the top of OcptBudgetCaptureBand, on expenses and on resources",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandOutOption": "Out of the account",
+  "@budgetCaptureBandOutOption": {
+    "description": "Label of the capture band's own debit segment — always plain wording, never the isSimplified/detailed pair",
+    "context": "Displayed on OcptBudgetCaptureBand's own direction choice",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandInOption": "Into the account",
+  "@budgetCaptureBandInOption": {
+    "description": "Label of the capture band's own credit segment — always plain wording, never the isSimplified/detailed pair",
+    "context": "Displayed on OcptBudgetCaptureBand's own direction choice",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandNoSuggestionHint": "The rest — poste, VAT, what it settles — is proposed here as soon as something matches. There is nothing else to fill in.",
+  "@budgetCaptureBandNoSuggestionHint": {
+    "description": "Under-band hint shown while no suggestion has been found for the typed draft",
+    "context": "Displayed under OcptBudgetCaptureBand's own fields row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandWhyAmountClause": "same amount",
+  "@budgetCaptureBandWhyAmountClause": {
+    "description": "One clause of a suggestion's own why line, when the draft's amount matches exactly",
+    "context": "Composed with its siblings into OcptBudgetCaptureBand's own suggestion why line",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandWhyDateClause": "same day",
+  "@budgetCaptureBandWhyDateClause": {
+    "description": "One clause of a suggestion's own why line, when the draft's date falls close to the candidate's own",
+    "context": "Composed with its siblings into OcptBudgetCaptureBand's own suggestion why line",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandWhyWordingClause": "same wording",
+  "@budgetCaptureBandWhyWordingClause": {
+    "description": "One clause of a suggestion's own why line, when the draft's wording shares a significant word with the candidate's own",
+    "context": "Composed with its siblings into OcptBudgetCaptureBand's own suggestion why line",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandCommitmentHeadlineDated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}, due {date}.",
+  "@budgetCaptureBandCommitmentHeadlineDated": {
+    "description": "Headline of a capture band suggestion matching a commitment that carries a due date",
+    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "posteLabel": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetCaptureBandCommitmentHeadlineUndated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}.",
+  "@budgetCaptureBandCommitmentHeadlineUndated": {
+    "description": "Headline of a capture band suggestion matching a commitment that carries no due date",
+    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "posteLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetCaptureBandResourceHeadline": "Records a receipt against « {label} » — {promised} promised, {received} received, {outstanding} still to come.",
+  "@budgetCaptureBandResourceHeadline": {
+    "description": "Headline of a capture band suggestion matching a financing resource",
+    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "promised": {
+        "type": "String"
+      },
+      "received": {
+        "type": "String"
+      },
+      "outstanding": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetCaptureBandRevenueHeadline": "Records the taking « {label} » — {promised} expected, {received} received, {outstanding} still to come.",
+  "@budgetCaptureBandRevenueHeadline": {
+    "description": "Headline of a capture band suggestion matching a taking",
+    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "promised": {
+        "type": "String"
+      },
+      "received": {
+        "type": "String"
+      },
+      "outstanding": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetCaptureBandDefrayalHeadline": "Records this as the defrayal « {label} » — {amount}. There is nothing to mark as paid here — only the movement itself is written.",
+  "@budgetCaptureBandDefrayalHeadline": {
+    "description": "Headline of a capture band suggestion matching a defrayal — worded to say plainly that nothing is being marked settled, since a defrayal carries no such state",
+    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetCaptureBandAcceptAction": "That's it",
+  "@budgetCaptureBandAcceptAction": {
+    "description": "Primary action of a capture band suggestion row, accepting it",
+    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandOtherAction": "Something else…",
+  "@budgetCaptureBandOtherAction": {
+    "description": "Secondary action of the capture band's own first suggestion row, opening the full entry dialog prefilled",
+    "context": "Displayed by OcptBudgetCaptureBand, the first suggestion row only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCaptureBandMoreSuggestionsToggle": "{count, plural, one{1 more possibility} other{{count} more possibilities}}",
+  "@budgetCaptureBandMoreSuggestionsToggle": {
+    "description": "Label of the capture band's own discreet expander, offering the suggestions past the first",
+    "context": "Displayed by OcptBudgetCaptureBand, under the first suggestion row, while more than one was found",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 
 }

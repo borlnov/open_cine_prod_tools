@@ -1907,5 +1907,20 @@
   "budgetHelpRegieBody4": "Un rôle pas encore distribué ne peut pas être distingué de l'équipe, il compte donc à part tant qu'il n'est pas distribué.",
   "budgetHelpSharingBody1": "Cette page ne prend son sens qu'une fois que le film rapporte quelque chose : les recettes réellement encaissées.",
   "budgetHelpSharingBody2": "Ce que chacun a mis est listé, que cela revienne ou non : la deuxième colonne dit ce qui est dû, et le menu de la ligne enregistre un remboursement. Les apports remboursables sont pris en totalité en haut de la cascade, avant tout partage, qu'ils soient déjà revenus ou non.",
-  "budgetHelpSharingBody3": "Ce qui reste se répartit selon les parts convenues. Les parts sont déclarées, jamais contrôlées, et aucun reliquat n'est redistribué si elles ne totalisent pas l'ensemble."
+  "budgetHelpSharingBody3": "Ce qui reste se répartit selon les parts convenues. Les parts sont déclarées, jamais contrôlées, et aucun reliquat n'est redistribué si elles ne totalisent pas l'ensemble.",
+  "budgetCaptureBandTitle": "Qu'est-ce qui a bougé ?",
+  "budgetCaptureBandOutOption": "Sorti du compte",
+  "budgetCaptureBandInOption": "Rentré sur le compte",
+  "budgetCaptureBandNoSuggestionHint": "Le reste — poste, TVA, ce que ça solde — est proposé ici dès que quelque chose correspond. Il n'y a rien d'autre à remplir.",
+  "budgetCaptureBandWhyAmountClause": "même montant",
+  "budgetCaptureBandWhyDateClause": "même jour",
+  "budgetCaptureBandWhyWordingClause": "même libellé",
+  "budgetCaptureBandCommitmentHeadlineDated": "Solde l'engagement « {label} » — {amount}, poste {posteLabel}, échéance {date}.",
+  "budgetCaptureBandCommitmentHeadlineUndated": "Solde l'engagement « {label} » — {amount}, poste {posteLabel}.",
+  "budgetCaptureBandResourceHeadline": "Enregistre un encaissement pour « {label} » — {promised} promis, {received} reçu, {outstanding} restant.",
+  "budgetCaptureBandRevenueHeadline": "Enregistre la recette « {label} » — {promised} attendu, {received} reçu, {outstanding} restant.",
+  "budgetCaptureBandDefrayalHeadline": "Enregistre ceci comme le défraiement « {label} » — {amount}. Il n'y a rien à marquer comme payé ici — seul le mouvement lui-même est écrit.",
+  "budgetCaptureBandAcceptAction": "C'est ça",
+  "budgetCaptureBandOtherAction": "Autre chose…",
+  "budgetCaptureBandMoreSuggestionsToggle": "{count, plural, one{1 autre possibilité} other{{count} autres possibilités}}"
 }
