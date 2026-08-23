@@ -14,8 +14,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 /// The `N°` column's own fixed width, in logical pixels — detailed header only.
 const double _ocptCostTrackingNumberColumnWidth = 44;
 
-/// The `Quote`, `Paid`, `Committed`, `Remaining`, `Variance` and `Consumed` columns' own fixed
-/// width, in logical pixels.
+/// The `Quote`, `Paid`, `Committed`, `Remaining`, `Estimate to complete`, `Final cost`, `Variance`
+/// and `Consumed` columns' own fixed width, in logical pixels.
 const double _ocptCostTrackingAmountColumnWidth = 108;
 
 /// The trailing `⋮` menu column's own fixed width, in logical pixels.
@@ -58,7 +58,7 @@ const double _ocptCostTrackingTotalRowHeight = 48;
 /// creation footer — this mode's own working surface.
 ///
 /// **The `N°` and `Poste` columns are pinned**, drawn in their own pane at the left edge that
-/// never moves; only the six amount columns and the trailing `⋮` menu, in a second pane to their
+/// never moves; only the eight amount columns and the trailing `⋮` menu, in a second pane to their
 /// right, scroll horizontally once the centre dock narrows past
 /// [_ocptCostTrackingPosteColumnMinWidth] — a poste nobody can name is worse than a figure nobody
 /// can read yet, so a row's own identity survives the scroll even when its own numbers no longer
@@ -84,6 +84,17 @@ const double _ocptCostTrackingTotalRowHeight = 48;
 /// is the one column that still prints [ocptBudgetEmptyValue]: it is a ratio, and
 /// [ocptBudgetConsumedRatioOf] answers null for a poste carrying no quote at all, where a
 /// percentage would be a division by zero rather than a figure.
+///
+/// **`Estimate to complete` and `Final cost` sit between `Remaining` and `Variance`**, the
+/// trade's own cost-report reading order. `Estimate to complete` reads
+/// [OcptBudgetPoste.estimateToCompleteCents] through [ocptBudgetEstimateToCompleteCents]: while it
+/// is null the cell prints the derived figure — `max(0, Remaining)` — in
+/// [ColorScheme.onSurfaceVariant], the same dimmed ink [_OcptCostTrackingQuoteCell] already paints a
+/// line's inherited VAT rate in; a typed figure prints in the ordinary ink every other cell of this
+/// row already reads in. `Final cost` reads [ocptBudgetFinalCostCents] over that very same resolved
+/// estimate — resolved once per row, not once per cell — and carries no colour of its own. `Variance`
+/// keeps reading [ocptBudgetVarianceCents] exactly as it always has: the two readings answer
+/// different questions and both stay on screen.
 ///
 /// **[offQuoteTotal] draws one extra row, `Off quote`, between the last poste and the `Total`
 /// row** — the total of every debit naming no poste at all
@@ -180,13 +191,15 @@ class OcptBudgetCostTracking extends StatelessWidget {
     );
     final coveredPosteCount = _coveredPosteCountOf();
     final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuoteTotal]);
+    final (:estimateToCompleteCents, :finalCostCents) = _finalCostTotalsOf();
     final showOffQuoteRow = offQuoteTotal.lineCount > 0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final identityFixedWidth = isSimplified ? 0.0 : _ocptCostTrackingNumberColumnWidth;
-        // Quote, Paid, Committed, Remaining, Variance, Consumed — six amount columns.
-        final amountsWidth = 6 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
+        // Quote, Paid, Committed, Remaining, Estimate to complete, Final cost, Variance, Consumed —
+        // eight amount columns.
+        final amountsWidth = 8 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
         final posteWidth = (constraints.maxWidth - identityFixedWidth - amountsWidth).clamp(
           _ocptCostTrackingPosteColumnMinWidth,
           double.infinity,
@@ -272,6 +285,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
                               _OcptCostTrackingAmountsTotalRow(
                                 total: total,
                                 paidTotal: paidTotal,
+                                estimateToCompleteCents: estimateToCompleteCents,
+                                finalCostCents: finalCostCents,
                                 currencyCode: currencyCode,
                                 posteCount: postes.length,
                                 coveredPosteCount: coveredPosteCount,
@@ -308,6 +323,42 @@ class OcptBudgetCostTracking extends StatelessWidget {
       }
     }
     return count;
+  }
+
+  /// The grand `Estimate to complete` and `Final cost` totals, each summed **poste by poste**
+  /// (`ocpt_budget_totals.dart`'s own "row by row, then summed" doctrine) rather than re-derived
+  /// from the grand `Quote`/`Paid`/`Committed` totals: a typed estimate on one poste cannot be
+  /// reconstructed from any project-wide figure, and [ocptBudgetEstimateToCompleteCents]'s own
+  /// `max(0, …)` clamp does not commute with a sum — summing the clamped, per-poste figures is not
+  /// the same amount as clamping the sum.
+  ({int estimateToCompleteCents, int finalCostCents}) _finalCostTotalsOf() {
+    var estimateToCompleteCents = 0;
+    var finalCostCents = 0;
+
+    for (final poste in postes) {
+      final quoted = ocptBudgetTotalOf(
+        poste.lines,
+        basis: taxBasis,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      );
+      final paidCents = paidByPosteId[poste.id]?.amountCents ?? 0;
+      final committedCents = committedCentsOf(poste.id);
+      final posteEstimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
+        quotedAmountCents: quoted.amountCents,
+        paidCents: paidCents,
+        committedCents: committedCents,
+        typedEstimateToCompleteCents: poste.estimateToCompleteCents,
+      );
+
+      estimateToCompleteCents += posteEstimateToCompleteCents;
+      finalCostCents += ocptBudgetFinalCostCents(
+        paidCents: paidCents,
+        committedCents: committedCents,
+        estimateToCompleteCents: posteEstimateToCompleteCents,
+      );
+    }
+
+    return (estimateToCompleteCents: estimateToCompleteCents, finalCostCents: finalCostCents);
   }
 }
 
@@ -362,8 +413,8 @@ class _OcptCostTrackingIdentityHeaderCell extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own header row: the six amount column headings, then a blank cell over the
-/// `⋮` menu column.
+/// The scrolling pane's own header row: the eight amount column headings, then a blank cell over
+/// the `⋮` menu column.
 class _OcptCostTrackingAmountsHeaderRow extends StatelessWidget {
   /// Class constructor
   const _OcptCostTrackingAmountsHeaderRow();
@@ -389,6 +440,8 @@ class _OcptCostTrackingAmountsHeaderRow extends StatelessWidget {
             _headerCell(tr.budgetCostTrackingColumnPaid, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnCommitted, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnRemaining, labelStyle),
+            _headerCell(tr.budgetCostTrackingColumnEstimateToComplete, labelStyle),
+            _headerCell(tr.budgetCostTrackingColumnFinalCost, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnVariance, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnConsumed, labelStyle),
             const SizedBox(width: _ocptCostTrackingMenuColumnWidth),
@@ -493,7 +546,7 @@ class _OcptCostTrackingIdentityRow extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own row: one poste's six amount cells and its own `⋮` menu — see
+/// The scrolling pane's own row: one poste's eight amount cells and its own `⋮` menu — see
 /// [_OcptCostTrackingIdentityRow]'s own doc comment for why it shares [isSelected] and [onTap]
 /// with the pinned half of the very same row.
 class _OcptCostTrackingAmountsRow extends StatelessWidget {
@@ -570,6 +623,19 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
       poste.lines,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
+    // Resolved once per row, not once per cell, so the Estimate to complete and Final cost cells
+    // can never disagree about which figure — derived or typed — they are both reading.
+    final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
+      quotedAmountCents: quoted.amountCents,
+      paidCents: paidCents,
+      committedCents: committedCents,
+      typedEstimateToCompleteCents: poste.estimateToCompleteCents,
+    );
+    final finalCostCents = ocptBudgetFinalCostCents(
+      paidCents: paidCents,
+      committedCents: committedCents,
+      estimateToCompleteCents: estimateToCompleteCents,
+    );
 
     return InkWell(
       onTap: onTap,
@@ -604,6 +670,21 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
                   currencyCode,
                 ),
               ),
+              SizedBox(
+                width: _ocptCostTrackingAmountColumnWidth,
+                child: Text(
+                  ocptBudgetAmountLabel(estimateToCompleteCents, currencyCode),
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: poste.estimateToCompleteCents == null
+                        ? theme.colorScheme.onSurfaceVariant
+                        : null,
+                  ),
+                ),
+              ),
+              _amountCell(context, ocptBudgetAmountLabel(finalCostCents, currencyCode)),
               _amountCell(
                 context,
                 ocptBudgetAmountLabel(
@@ -737,9 +818,9 @@ class _OcptCostTrackingOffQuoteIdentityRow extends StatelessWidget {
 
 /// The scrolling pane's own off-quote row: only the `Paid` cell carries a figure —
 /// [offQuoteTotal]'s own tax-inclusive amount, plain, exactly as an ordinary poste row's own `Paid`
-/// cell is. `Quote`, `Committed`, `Remaining`, `Variance` and `Consumed` all print
-/// [ocptBudgetEmptyValue]: there is no quote behind this row to measure any of them against, the
-/// same silence `Consumed` already keeps for a poste with no quote at all
+/// cell is. `Quote`, `Committed`, `Remaining`, `Estimate to complete`, `Final cost`, `Variance` and
+/// `Consumed` all print [ocptBudgetEmptyValue]: there is no quote behind this row to measure any of
+/// them against, the same silence `Consumed` already keeps for a poste with no quote at all
 /// (`docs/architecture/budget.md`).
 ///
 /// **No `⋮` menu column, unlike an ordinary poste's own amounts row.** Every one of that menu's
@@ -767,6 +848,8 @@ class _OcptCostTrackingOffQuoteAmountsRow extends StatelessWidget {
           _amountCell(theme, ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode)), // Paid
           _emptyCell(theme), // Committed
           _emptyCell(theme), // Remaining
+          _emptyCell(theme), // Estimate to complete
+          _emptyCell(theme), // Final cost
           _emptyCell(theme), // Variance
           _emptyCell(theme), // Consumed
           const SizedBox(width: _ocptCostTrackingMenuColumnWidth), // no ⋮ menu at all
@@ -913,14 +996,27 @@ class _OcptCostTrackingIdentityTotalRow extends StatelessWidget {
 /// `committedCentsOf` across every poste is not a reduction this table has a reading for (a
 /// commitment is always against a poste, so there is no off-quote committed total to fold in), and
 /// `Remaining`/`Variance`/`Consumed` are each read against a poste's own quote, which a grand total
-/// has none of. See [_OcptCostTrackingIdentityTotalRow]'s own doc comment for the pinned half of
-/// the very same row.
+/// has none of.
+///
+/// `Estimate to complete` and `Final cost` are the exception: [estimateToCompleteCents] and
+/// [finalCostCents] each **are** a grand total, computed by `OcptBudgetCostTracking._finalCostTotalsOf`
+/// poste by poste and only then summed — a typed estimate on one poste is a fact this widget cannot
+/// reconstruct from any of the other grand totals it already holds, so the caller resolves it row
+/// by row rather than this row re-deriving it from `total`/`paidTotal`. See
+/// [_OcptCostTrackingIdentityTotalRow]'s own doc comment for the pinned half of the very same row.
 class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   /// The grand total, in the header's own selected basis, and how many lines it covers.
   final OcptBudgetCoveredTotal total;
 
   /// The grand `Paid` total — every poste's own paid total folded with the off-quote total.
   final OcptBudgetCoveredTotal paidTotal;
+
+  /// The grand `Estimate to complete` total — see the class doc comment for why this is summed
+  /// poste by poste rather than derived from [total]/[paidTotal].
+  final int estimateToCompleteCents;
+
+  /// The grand `Final cost` total — see the class doc comment.
+  final int finalCostCents;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
@@ -935,6 +1031,8 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   const _OcptCostTrackingAmountsTotalRow({
     required this.total,
     required this.paidTotal,
+    required this.estimateToCompleteCents,
+    required this.finalCostCents,
     required this.currencyCode,
     required this.posteCount,
     required this.coveredPosteCount,
@@ -985,7 +1083,7 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < 2; i++)
               SizedBox(
                 width: _ocptCostTrackingAmountColumnWidth,
                 child: Text(
@@ -993,7 +1091,36 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: theme.textTheme.bodySmall,
                 ),
+              ), // Committed, Remaining
+            SizedBox(
+              width: _ocptCostTrackingAmountColumnWidth,
+              child: Text(
+                ocptBudgetAmountLabel(estimateToCompleteCents, currencyCode),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
+            ),
+            SizedBox(
+              width: _ocptCostTrackingAmountColumnWidth,
+              child: Text(
+                ocptBudgetAmountLabel(finalCostCents, currencyCode),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            for (var i = 0; i < 2; i++)
+              SizedBox(
+                width: _ocptCostTrackingAmountColumnWidth,
+                child: Text(
+                  ocptBudgetEmptyValue,
+                  textAlign: TextAlign.right,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ), // Variance, Consumed
             const SizedBox(width: _ocptCostTrackingMenuColumnWidth),
           ],
         ),

@@ -10773,6 +10773,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetCostTrackingColumnEstimateToComplete": "Estimate to complete",
+  "@budgetCostTrackingColumnEstimateToComplete": {
+    "description": "Header of the cost-tracking table's estimate-to-complete column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingColumnFinalCost": "Final cost",
+  "@budgetCostTrackingColumnFinalCost": {
+    "description": "Header of the cost-tracking table's final-cost column",
+    "context": "Displayed at the top of the budget mode's cost-tracking table",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetCostTrackingColumnVariance": "Variance",
   "@budgetCostTrackingColumnVariance": {
     "description": "Header of the cost-tracking table's variance column",

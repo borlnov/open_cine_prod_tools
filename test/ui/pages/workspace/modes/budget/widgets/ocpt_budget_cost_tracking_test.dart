@@ -40,12 +40,13 @@ final Finder _amountsPaneScrollFinder = find.byWidgetPredicate(
       widget.scrollDirection == Axis.horizontal,
 );
 
-/// A quote line priced at 10.00 €, tax-inclusive, whose rate is known only when
-/// `vatRateBasisPoints` is given.
+/// A quote line priced at [amountCents] (10.00 € by default), tax-inclusive, whose rate is known
+/// only when `vatRateBasisPoints` is given.
 OcptBudgetLine _line({
   required String id,
   required String posteId,
   int? vatRateBasisPoints,
+  int amountCents = 1000,
 }) => OcptBudgetLine(
   id: id,
   posteId: posteId,
@@ -53,7 +54,7 @@ OcptBudgetLine _line({
   quantityMilli: 1000,
   unit: "u",
   unitPrice: OcptMoney(
-    amountCents: 1000,
+    amountCents: amountCents,
     isTaxInclusive: true,
     vatRateBasisPoints: vatRateBasisPoints,
   ),
@@ -459,7 +460,11 @@ void main() {
       // spending here), so 12.00 € is drawn twice: this poste's own row, and the total row.
       expect(find.text(ocptBudgetAmountLabel(1200, "EUR")), findsNWidgets(2));
       expect(find.text(ocptBudgetAmountLabel(300, "EUR")), findsOneWidget);
-      expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsOneWidget);
+      // 35.00 € is drawn three times: Remaining reads it, so does the derived Estimate to
+      // complete beside it (`max(0, Remaining)`, the poste's own `estimateToCompleteCents` being
+      // null here — the two coincide whenever a poste isn't over its own quote), and so does the
+      // total row's own grand Estimate to complete, this single poste being the whole table.
+      expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsNWidgets(3));
       expect(find.text(ocptBudgetAmountLabel(-3500, "EUR")), findsOneWidget);
       expect(find.text("30 %"), findsOneWidget);
       // The total row's own `Committed`, `Remaining`, `Variance` and `Consumed` cells always print
@@ -541,8 +546,10 @@ void main() {
 
       // Five dashes: this poste's own Consumed cell (no quote to divide by), plus the total row's
       // own `Committed`, `Remaining`, `Variance` and `Consumed` cells (see the earlier tests' own
-      // comment on that row). The total row's own `Quote` and `Paid` cells both read a real
-      // 0.00 € here (an empty quote and no off-quote spending), not the em dash.
+      // comment on that row). The total row's own `Quote`, `Paid`, `Estimate to complete` and
+      // `Final cost` cells all read a real 0.00 € here (an empty quote, no off-quote spending, and
+      // `max(0, 0 - 0 - 0)` is zero rather than nothing), not the em dash — this poste's own
+      // Estimate to complete and Final cost cells read the very same real zero.
       expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
     },
   );
@@ -639,9 +646,11 @@ void main() {
         // Exactly one ⋮ menu on screen: the single poste's own — none for the off-quote row.
         expect(find.byType(PopupMenuButton<String>), findsOneWidget);
 
-        // Quote, Committed, Remaining, Variance, Consumed: five em dashes on the off-quote row's
-        // own line, its `Paid` cell the one cell that is not one of them.
-        expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+        // Quote, Committed, Remaining, Estimate to complete, Final cost, Variance, Consumed: seven
+        // em dashes on the off-quote row's own line, its `Paid` cell the one cell that is not one
+        // of them — plus the total row's own standing four (`Committed`, `Remaining`, `Variance`,
+        // `Consumed`, see the earlier tests' own comment on that row): eleven in all.
+        expect(find.text(ocptBudgetEmptyValue), findsNWidgets(11));
 
         await tester.tap(find.text(tr.budgetCostTrackingOffQuoteLabel));
         await tester.pumpAndSettle();
@@ -650,4 +659,272 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+    "the header shows both the Estimate to complete and the Final cost columns",
+    (tester) async {
+      const poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Poste one",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a0",
+        lines: [],
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [poste],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidByPosteId: const {},
+            committedCentsOf: (_) => 0,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(
+        find.text(tr.budgetCostTrackingColumnEstimateToComplete.toUpperCase()),
+        findsOneWidget,
+      );
+      expect(find.text(tr.budgetCostTrackingColumnFinalCost.toUpperCase()), findsOneWidget);
+    },
+  );
+
+  group("Estimate to complete and Final cost", () {
+    /// A poste quoted at 100.00 € (one line: 1 × 100.00 €).
+    OcptBudgetPoste poste({required int? estimateToCompleteCents}) => OcptBudgetPoste(
+      id: "poste-1",
+      code: "1",
+      label: "Poste one",
+      simpleLabel: null,
+      estimateToCompleteCents: estimateToCompleteCents,
+      sortKey: "a0",
+      lines: [_line(id: "line-1", posteId: "poste-1", amountCents: 10000)],
+    );
+
+    testWidgets(
+      "shows the derived figure in dimmed ink, and the Final cost then equals the quote",
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            OcptBudgetCostTracking(
+              postes: [poste(estimateToCompleteCents: null)],
+              selectedPosteId: null,
+              isSimplified: false,
+              taxBasis: OcptBudgetTaxBasis.includingTax,
+              defaultVatRateBasisPoints: null,
+              currencyCode: "EUR",
+              paidByPosteId: {
+                "poste-1": const OcptBudgetCoveredTotal(
+                  amountCents: 2000,
+                  coveredLineCount: 1,
+                  lineCount: 1,
+                ),
+              },
+              committedCentsOf: (_) => 1000,
+              offQuoteTotal: const OcptBudgetCoveredTotal(
+                amountCents: 0,
+                coveredLineCount: 0,
+                lineCount: 0,
+              ),
+              isReadOnly: false,
+              onPosteSelected: (_) {},
+              onPosteCreationRequested: () {},
+              onPosteReorderRequested: (_, {required moveUp}) {},
+              onPosteDeletionRequested: (_) {},
+            ),
+          ),
+        );
+
+        final theme = Theme.of(tester.element(find.byType(OcptBudgetCostTracking)));
+        // Quote 100.00 €, Paid 20.00 €, Committed 10.00 €: Remaining and the derived Estimate to
+        // complete both read 70.00 € (max(0, 100 - 20 - 10)) — at least one of every widget
+        // showing that text is painted in the dimmed ink the VAT-rate cell already uses for an
+        // inherited rate.
+        final dimmedText = ocptBudgetAmountLabel(7000, "EUR");
+        final matches = tester.widgetList<Text>(find.text(dimmedText));
+        expect(
+          matches.any((text) => text.style?.color == theme.colorScheme.onSurfaceVariant),
+          isTrue,
+          reason: "no widget reading $dimmedText is painted in the dimmed ink",
+        );
+
+        // Paid + Committed + the derived estimate brings the Final cost back to exactly the
+        // quote: both the poste's own row and the total row draw 100.00 € for each of the two
+        // columns, four widgets in all.
+        expect(find.text(ocptBudgetAmountLabel(10000, "EUR")), findsNWidgets(4));
+      },
+    );
+
+    testWidgets(
+      "a typed figure wins over the derived one, and prints in ordinary ink",
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            OcptBudgetCostTracking(
+              postes: [poste(estimateToCompleteCents: 9000)],
+              selectedPosteId: null,
+              isSimplified: false,
+              taxBasis: OcptBudgetTaxBasis.includingTax,
+              defaultVatRateBasisPoints: null,
+              currencyCode: "EUR",
+              paidByPosteId: {
+                "poste-1": const OcptBudgetCoveredTotal(
+                  amountCents: 2000,
+                  coveredLineCount: 1,
+                  lineCount: 1,
+                ),
+              },
+              committedCentsOf: (_) => 1000,
+              offQuoteTotal: const OcptBudgetCoveredTotal(
+                amountCents: 0,
+                coveredLineCount: 0,
+                lineCount: 0,
+              ),
+              isReadOnly: false,
+              onPosteSelected: (_) {},
+              onPosteCreationRequested: () {},
+              onPosteReorderRequested: (_, {required moveUp}) {},
+              onPosteDeletionRequested: (_) {},
+            ),
+          ),
+        );
+
+        final theme = Theme.of(tester.element(find.byType(OcptBudgetCostTracking)));
+        // The typed 90.00 € is drawn instead of the derived 70.00 € (Remaining, unaffected by the
+        // typed estimate, still reads 70.00 € on its own) — no widget reading 90.00 € is painted
+        // in the dimmed ink a derived figure would be.
+        final typedText = ocptBudgetAmountLabel(9000, "EUR");
+        final matches = tester.widgetList<Text>(find.text(typedText));
+        expect(matches, isNotEmpty);
+        expect(
+          matches.every((text) => text.style?.color != theme.colorScheme.onSurfaceVariant),
+          isTrue,
+          reason: "a widget reading $typedText is painted in the dimmed ink",
+        );
+
+        // Final cost: 20.00 + 10.00 + 90.00 = 120.00 €.
+        expect(find.text(ocptBudgetAmountLabel(12000, "EUR")), findsWidgets);
+      },
+    );
+  });
+
+  testWidgets(
+    "the off-quote row prints the empty value for both Estimate to complete and Final cost",
+    (tester) async {
+      const offQuoteTotal = OcptBudgetCoveredTotal(amountCents: 2500, coveredLineCount: 1, lineCount: 1);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: [quotedPoste()],
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidByPosteId: const {},
+            committedCentsOf: (_) => 0,
+            offQuoteTotal: offQuoteTotal,
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      // Seven em dashes on the off-quote row's own line, its `Paid` cell the one cell that is not
+      // one of them — see the group above's own comment for the full count including the total
+      // row's own standing four.
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(11));
+    },
+  );
+
+  testWidgets(
+    "the total row sums the two new columns poste by poste, never re-derived from the grand "
+    "Quote, Paid and Committed",
+    (tester) async {
+      final postes = [
+        // Quote 100.00 €, Paid 30.00 €, Committed 20.00 €: derived Estimate to complete
+        // 50.00 € (max(0, 100 - 30 - 20)), Final cost 100.00 € (30 + 20 + 50).
+        OcptBudgetPoste(
+          id: "poste-1",
+          code: "1",
+          label: "Poste one",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a0",
+          lines: [_line(id: "line-1", posteId: "poste-1", amountCents: 10000)],
+        ),
+        // Quote 60.00 €, Paid 10.00 €, Committed 5.00 €, a typed Estimate to complete of 40.00 €
+        // (the derived one would have been 45.00 €): Final cost 55.00 € (10 + 5 + 40).
+        OcptBudgetPoste(
+          id: "poste-2",
+          code: "2",
+          label: "Poste two",
+          simpleLabel: null,
+          estimateToCompleteCents: 4000,
+          sortKey: "a1",
+          lines: [_line(id: "line-2", posteId: "poste-2", amountCents: 6000)],
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCostTracking(
+            postes: postes,
+            selectedPosteId: null,
+            isSimplified: false,
+            taxBasis: OcptBudgetTaxBasis.includingTax,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            paidByPosteId: {
+              "poste-1": const OcptBudgetCoveredTotal(
+                amountCents: 3000,
+                coveredLineCount: 1,
+                lineCount: 1,
+              ),
+              "poste-2": const OcptBudgetCoveredTotal(
+                amountCents: 1000,
+                coveredLineCount: 1,
+                lineCount: 1,
+              ),
+            },
+            committedCentsOf: (posteId) => posteId == "poste-1" ? 2000 : 500,
+            offQuoteTotal: const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
+            isReadOnly: false,
+            onPosteSelected: (_) {},
+            onPosteCreationRequested: () {},
+            onPosteReorderRequested: (_, {required moveUp}) {},
+            onPosteDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      // The honest grand Estimate to complete is 50.00 + 40.00 = 90.00 € — summed poste by poste,
+      // the derived figure resolved for poste-1 and the typed one read verbatim for poste-2.
+      // Re-deriving it from the grand Quote (160.00 €), Paid (40.00 €) and Committed (25.00 €)
+      // would instead answer max(0, 160 - 40 - 25) = 95.00 €, which never appears anywhere.
+      expect(find.text(ocptBudgetAmountLabel(9000, "EUR")), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(9500, "EUR")), findsNothing);
+
+      // The grand Final cost is 100.00 + 55.00 = 155.00 €, once again summed poste by poste.
+      expect(find.text(ocptBudgetAmountLabel(15500, "EUR")), findsOneWidget);
+    },
+  );
 }

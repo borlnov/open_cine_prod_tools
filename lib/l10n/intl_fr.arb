@@ -1442,6 +1442,8 @@
   "budgetCostTrackingColumnPaid": "Payé",
   "budgetCostTrackingColumnCommitted": "Engagé",
   "budgetCostTrackingColumnRemaining": "Reste",
+  "budgetCostTrackingColumnEstimateToComplete": "Reste à engager",
+  "budgetCostTrackingColumnFinalCost": "Coût final",
   "budgetCostTrackingColumnVariance": "Écart",
   "budgetCostTrackingColumnConsumed": "Consommé",
   "budgetPosteUnnamed": "Poste sans nom",
