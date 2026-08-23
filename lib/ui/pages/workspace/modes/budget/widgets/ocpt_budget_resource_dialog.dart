@@ -247,6 +247,13 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
                 falseLabel: tr.budgetResourceDialogNotReimbursableOption,
                 onChanged: (value) => setState(() => _isReimbursable = value),
               ),
+              if (_groupKind == OcptBudgetResourceGroupKind.inKind) ...[
+                const SizedBox(height: 4),
+                Text(
+                  tr.budgetResourceDialogReimbursableHelperInKind,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _notesController,
@@ -325,6 +332,14 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
     OcptBudgetResourceGroupKind.inKind => tr.budgetResourceDialogAmountHelperInKind,
   };
 
+  /// **Why the choice is offered on an in-kind contribution at all, rather than forced off.**
+  /// The common case is the one it reads against: a camera lent, a location made available, a
+  /// vehicle — valued in the quote, never collected, so nothing can ever come back out. But a
+  /// co-producer's contribution in industry — a lab, a post house, a rental company entering the
+  /// contract — is recouped from the takings exactly as cash is, and that is the normal
+  /// counterpart of their entering it at all. Forcing the choice off would have made this app
+  /// unable to state an ordinary co-production, so the helper below states which case is which and
+  /// leaves the decision where it belongs.
   /// The `Status` field's own helper text, worded for [_groupKind]. **No status is hidden or
   /// disabled by kind** — only the wording changes, never which of the three steps may be picked:
   /// the mode's standing rule that the UI carries no conditional branch on the state of the data.

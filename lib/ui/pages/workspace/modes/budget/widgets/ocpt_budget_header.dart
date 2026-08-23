@@ -86,11 +86,7 @@ class OcptBudgetHeader extends StatelessWidget {
           final isTitleShown = constraints.maxWidth >= _ocptBudgetHeaderTitleMinWidth;
 
           final controls = [
-            _OcptBudgetCentreViewSwitch(
-              value: centreView,
-              isSimplified: isSimplified,
-              onChanged: onCentreViewSelected,
-            ),
+            _OcptBudgetCentreViewSwitch(value: centreView, onChanged: onCentreViewSelected),
             _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
             _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
           ];
@@ -159,20 +155,23 @@ class OcptBudgetHeader extends StatelessWidget {
   /// plainly contradicts, and a reader trusts the band before they trust their own reading of the
   /// table.
   ///
-  /// The two views [_OcptBudgetCentreViewSwitch] re-words under the simplified reading are titled
-  /// with **that same word** here: a band announcing `Cash journal` over a chip that says
-  /// `Spending` would hand the crew back, in the largest type on the screen, the very trade word
-  /// the switch was set to spare them.
+  /// **No view is re-worded under the simplified reading any more.** The two that were — the cash
+  /// journal and the committed spending — each said one word as a chip and another as a title, and
+  /// the reader had to hold both. `Cash flow` needs no plainer synonym, and the committed spending
+  /// is now reached through the `Planned` chip's own sub-switch, which words itself.
+  ///
+  /// The two halves of `Planned` are titled by that chip and that sub-switch **joined**, so the
+  /// band, the chip and the sub-switch never say three different things about one screen.
   String _titleOf(Tr tr) => switch (centreView) {
     OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardTitle,
     OcptBudgetCentreView.costTracking => tr.budgetHeaderTitle,
-    OcptBudgetCentreView.cashJournal => isSimplified
-        ? tr.budgetHeaderCashJournalSimpleSegmentLabel
-        : tr.budgetHeaderCashJournalTitle,
-    OcptBudgetCentreView.committed => isSimplified
-        ? tr.budgetHeaderCommittedSimpleSegmentLabel
-        : tr.budgetHeaderCommittedTitle,
-    OcptBudgetCentreView.financing => tr.budgetHeaderFinancingTitle,
+    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalTitle,
+    OcptBudgetCentreView.committed => tr.budgetHeaderPlannedTitle(
+      tr.budgetPlannedOutgoingSegmentLabel,
+    ),
+    OcptBudgetCentreView.financing => tr.budgetHeaderPlannedTitle(
+      tr.budgetPlannedIncomingSegmentLabel,
+    ),
     OcptBudgetCentreView.regie => tr.budgetHeaderRegieTitle,
     OcptBudgetCentreView.sharing => tr.budgetHeaderSharingTitle,
   };
@@ -281,47 +280,28 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
   );
 }
 
-/// The seven view chips.
+/// The six view chips, in the order the money itself runs.
 ///
-/// **Two of the seven are worded by [isSimplified], and five are not.** `Cash journal` and
-/// `Committed` are trade words: they name what an accountant calls those two ledgers, and they are
-/// exactly what the simplified reading exists to spare a five-person crew, who know the same two
-/// things as `Spending` and `To pay`. `Dashboard`, `Cost tracking`, `Financing`, `Régie` (the
-/// French reading of the catering-and-travel view, kept as the trade word exactly as `cashJournal`
-/// keeps `Trésorerie` — `docs/architecture/budget.md`) and `Revenue sharing` need no such
-/// translation — they already say, in every reading, the plain thing they are — so giving them a
-/// second wording would be inventing a difference the words themselves don't carry.
+/// **No chip is worded by the simplified reading any more.** Two were: `Cash journal` and
+/// `Committed` are trade words, and the switch handed a five-person crew `Spending` and `To pay`
+/// instead. Both re-wordings have since lost their reason. The journal's chip now says
+/// `Cash flow`, which needs no plainer synonym and is what the band and the help panel say too;
+/// and the committed spending is no longer a chip at all — it is one half of `Planned`, reached
+/// through a sub-switch that words itself in either reading.
 ///
-/// **`Cash journal` sits third, ahead of `Financing` — not fourth, where `OcptBudgetCentreView`
-/// itself places it. `Committed`, `Régie` and `Revenue sharing` sit after it, in that order,
-/// matching the enum after all.** The enum's own order is when each view shipped; this row's order
-/// is the order most productions actually use the mode in. Most productions using this app do no
-/// planning at all: they keep a cash flow, so the view they open every working day cannot sit
-/// behind two forecasting views — a quote (`Cost tracking`) and a financing plan (`Financing`)
-/// neither of which a five-person crew necessarily builds before the shoot starts. `Cash journal`
-/// moving up to third is that reading applied to the chip order itself: the quote, then what has
-/// actually moved (`Cash journal`), then what pays for it (`Financing`) and what is still owed
-/// (`Committed`), then the catering-and-travel pass read off all of it (`Régie`), then, long after
-/// all of it, what the finished film earns (`Revenue sharing`). Listing the segments explicitly,
-/// rather than iterating `OcptBudgetCentreView.values`, is what lets the two orders diverge on
-/// purpose without one silently following the other.
+/// What is left is a bar that reads as a sentence: `Dashboard`, then `Quote`, `Planned` and
+/// `Cash flow` — what the film should cost, what is promised in either direction, what has
+/// actually moved — then `Régie` (the French reading of the catering-and-travel view, kept as the
+/// trade word, `docs/architecture/budget.md`) and `Revenue sharing`.
 class _OcptBudgetCentreViewSwitch extends StatelessWidget {
   /// The switch's own current value.
   final OcptBudgetCentreView value;
-
-  /// Whether the header's simplified/detailed switch currently reads simplified — see the class
-  /// doc comment for which two segments it re-words, and why only those two.
-  final bool isSimplified;
 
   /// Called with the view just clicked.
   final ValueChanged<OcptBudgetCentreView> onChanged;
 
   /// Class constructor
-  const _OcptBudgetCentreViewSwitch({
-    required this.value,
-    required this.isSimplified,
-    required this.onChanged,
-  });
+  const _OcptBudgetCentreViewSwitch({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -341,18 +321,6 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
           label: tr.budgetHeaderCostTrackingSegmentLabel,
           onChanged: onChanged,
         ),
-        // Cash journal sits third, ahead of Financing and Committed — see the class doc comment
-        // for why this deliberately does not follow OcptBudgetCentreView's own, purely historical
-        // order: most productions using this app keep a cash flow and do no planning at all, so the
-        // view they open every day must not sit behind two forecasting views.
-        _OcptBudgetSwitchSegment(
-          value: OcptBudgetCentreView.cashJournal,
-          current: value,
-          label: isSimplified
-              ? tr.budgetHeaderCashJournalSimpleSegmentLabel
-              : tr.budgetHeaderCashJournalSegmentLabel,
-          onChanged: onChanged,
-        ),
         // `Planned` is **one chip standing for two views**: what is promised to the production and
         // what the production has promised are the same kind of money — nothing has moved for
         // either — read in two directions, and a bar of seven chips was asking a reader to hold
@@ -369,8 +337,22 @@ class _OcptBudgetCentreViewSwitch extends StatelessWidget {
           label: tr.budgetHeaderPlannedSegmentLabel,
           onChanged: onChanged,
         ),
+        // Cash flow sits **after** Planned rather than ahead of it. It used to come first, on the
+        // ground that a production keeping a cash flow and doing no planning at all should not
+        // have to walk past two forecasting views to reach the one it opens daily. That reasoning
+        // undervalued what the three chips say when read in a row: `Quote`, `Planned`, `Cash flow`
+        // is the money's own life — what the film should cost, what is promised in either
+        // direction, what has actually moved — and a reader who has that order once needs no
+        // explanation of any single view again. Reaching a daily view one chip further along is a
+        // cost paid once per session; misreading the mode's shape is paid every time.
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetCentreView.cashJournal,
+          current: value,
+          label: tr.budgetHeaderCashJournalSegmentLabel,
+          onChanged: onChanged,
+        ),
         // Régie and Revenue sharing sit last, in that order — see the class doc comment for why
-        // these two segments do follow OcptBudgetCentreView's own order, unlike Cash journal above.
+        // these two segments do follow OcptBudgetCentreView's own order.
         _OcptBudgetSwitchSegment(
           value: OcptBudgetCentreView.regie,
           current: value,

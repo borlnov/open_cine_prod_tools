@@ -406,25 +406,37 @@ are all here, and this file is the whole record of them.
   already reads, resolved as an ICU argument (`intl_utils`'s own convention, "The four documents"
   below) rather than restated by hand — so the help text can never drift from the very word it is
   pointing at.
-  The header's six view chips (`Dashboard`, `Cost tracking`, `Trésorerie` in French — `Cash
-  journal` in English, deliberately renamed off "Journal de caisse" once that first choice turned
-  out to name a petty-cash book rather than the bank account the view actually reads — `Planned`,
-  which stands for two views at once (see "What is promised is one place, read in two directions"),
-  `Régie` in French — `Catering & travel` in English, the same asymmetry and for the same reason:
-  the trade word has no one-word English equivalent — and `Revenue sharing`) and its
-  two further toggles, simplified/detailed and excluding/including-tax, are
+  The header's six view chips (`Dashboard`, `Quote`, `Planned`, which stands for two views at once
+  (see "What is promised is one place, read in two directions"), `Flux de trésorerie` in French —
+  `Cash flow` in English, deliberately renamed off "Journal de caisse" once that first choice
+  turned out to name a petty-cash book rather than the bank account the view actually reads, and
+  off `Cash journal`/`Trésorerie` once the pair `Quote`, `Planned`, `Cash flow` turned out to read
+  as one sentence — `Régie` in French — `Catering & travel` in English, the same asymmetry and for
+  the same reason: the trade word has no one-word English equivalent — and `Revenue sharing`) and
+  its two further toggles, simplified/detailed and excluding/including-tax, are
   **always offered, whatever the project holds**: neither is ever withheld or disabled according to
   the state of the data, there is no conditional branch in
   `OcptBudgetHeader` at all, only a value that may turn out empty once the centre reads it.
+  **No chip is worded by the simplified reading, and none should be.** Two were: `Cash journal`
+  and `Committed` are trade words, and the switch handed a five-person crew `Spending` and `To pay`
+  instead. Both re-wordings lost their reason at once — the journal's chip now says `Cash flow`,
+  which needs no plainer synonym and is what the band and the help panel say too, and the committed
+  spending is no longer a chip at all but one half of `Planned`, reached through a sub-switch that
+  words itself in either reading. What the simplified toggle still governs is the ten CNC poste
+  labels (`budget_postes.simpleLabel`) and the two empty-state sentences that name the ledgers in
+  prose: real translations of opaque trade language, unlike a second name for a view that already
+  said the plain thing it was.
   **The chips are deliberately not in `OcptBudgetCentreView`'s own order.** That enum grows strictly
   by the end, so a value never moves under a reader who stored one; the header, by contrast, lists
-  its segments explicitly and orders them the way most productions actually use the mode. Most
-  productions using this app do no planning at all: they keep a cash flow, so the view they open
-  every working day must not sit behind two forecasting views a five-person crew does not
-  necessarily build before the shoot starts — `Cash journal` therefore sits third, right after the
-  quote (`Cost tracking`) and ahead of both `Financing` and `Committed`. The order reads, in full:
-  the quote, then what has actually moved, then what pays for it and what is still owed, then what
-  the shoot eats and drives, then, long after all of it, what the finished film earns.
+  its segments explicitly and orders them so that reading the bar left to right *is* the
+  explanation: `Quote`, `Planned`, `Cash flow` — what the film should cost, what is promised in
+  either direction, what has actually moved — then what the shoot eats and drives, then, long
+  after all of it, what the finished film earns.
+  `Cash flow` used to sit ahead of `Planned`, on the ground that a production keeping a cash flow
+  and doing no planning at all should not have to walk past two forecasting views to reach the one
+  it opens daily. That reasoning undervalued what the three chips say in a row: a reader who has
+  that order once needs no explanation of any single view again, whereas reaching a daily view one
+  chip further along is a cost paid once per session.
   `_OcptBudgetCentreViewSwitch` says so where the segments are listed, since a divergence nobody
   argued for would look like a mistake the next time somebody adds a view. Each chip also widens
   that one switch, so `_ocptBudgetHeaderTitleMinWidth` — the width under which the header sheds its

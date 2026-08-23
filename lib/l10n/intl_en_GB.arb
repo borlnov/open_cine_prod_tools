@@ -10576,21 +10576,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCashJournalSimpleSegmentLabel": "Spending",
-  "@budgetHeaderCashJournalSimpleSegmentLabel": {
-    "description": "Cash journal view chip's label while the header's simplified switch reads simplified",
-    "context": "Shown in OcptBudgetHeader's own view switch, in place of the detailed wording",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCommittedSimpleSegmentLabel": "To pay",
-  "@budgetHeaderCommittedSimpleSegmentLabel": {
-    "description": "Committed spending view chip's label while the header's simplified switch reads simplified",
-    "context": "Shown in OcptBudgetHeader's own view switch, in place of the detailed wording",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCashJournalTitle": "Cash journal",
+  "budgetHeaderCashJournalTitle": "Cash flow",
   "@budgetHeaderCashJournalTitle": {
     "description": "Title of the budget mode's header band while the cash journal is shown",
     "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
@@ -10601,13 +10587,6 @@
   "@budgetHeaderCashJournalSubtitle": {
     "description": "Subtitle of the budget mode's header band while the cash journal is shown",
     "context": "Shown at the left of OcptBudgetHeader, under its own title",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCommittedTitle": "Committed",
-  "@budgetHeaderCommittedTitle": {
-    "description": "Title of the budget mode's header band while the committed spending view is shown",
-    "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
     "type": "text",
     "placeholders": {}
   },
@@ -10639,7 +10618,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCostTrackingSegmentLabel": "Cost tracking",
+  "budgetHeaderCostTrackingSegmentLabel": "Quote",
   "@budgetHeaderCostTrackingSegmentLabel": {
     "description": "Label of the header's Cost tracking view chip",
     "context": "Displayed on the budget mode's own view switch",
@@ -11495,7 +11474,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCashJournalSegmentLabel": "Cash journal",
+  "budgetHeaderCashJournalSegmentLabel": "Cash flow",
   "@budgetHeaderCashJournalSegmentLabel": {
     "description": "Label of the header's Cash journal view chip",
     "context": "Displayed on the budget mode's own view switch",
@@ -11821,13 +11800,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCommittedSegmentLabel": "Committed",
-  "@budgetHeaderCommittedSegmentLabel": {
-    "description": "Label of the header's Committed view chip",
-    "context": "Displayed on the budget mode's own view switch",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCommittedEmptyHint": "Record a quote, a contract or an invoice to start tracking commitments.",
   "@budgetCommittedEmptyHint": {
     "description": "Hint of the committed-spending view's own empty state",
@@ -12080,6 +12052,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderPlannedTitle": "Planned · {half}",
+  "@budgetHeaderPlannedTitle": {
+    "description": "Title of the budget mode's header band, and heading of its help page, while either half of the Planned view is on screen — {half} is the sub-switch's own wording for that half, so the band, the chip and the sub-switch all agree.",
+    "placeholders": {
+      "half": {}
+    }
+  },
   "budgetPlannedIncomingSegmentLabel": "Coming in",
   "@budgetPlannedIncomingSegmentLabel": {
     "description": "Label of the Planned view's own sub-switch segment showing the financing plan",
@@ -12091,20 +12070,6 @@
   "@budgetPlannedOutgoingSegmentLabel": {
     "description": "Label of the Planned view's own sub-switch segment showing the committed spending",
     "context": "Displayed above the budget mode's own Planned view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderFinancingSegmentLabel": "Financing",
-  "@budgetHeaderFinancingSegmentLabel": {
-    "description": "Label of the header's Financing view chip",
-    "context": "Displayed on the budget mode's own view switch",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderFinancingTitle": "Financing",
-  "@budgetHeaderFinancingTitle": {
-    "description": "Title of the header band while the financing view is on screen",
-    "context": "Displayed above the budget mode's own financing view",
     "type": "text",
     "placeholders": {}
   },
@@ -12487,6 +12452,10 @@
     "context": "Displayed inside OcptBudgetResourceDialog",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetResourceDialogReimbursableHelperInKind": "A contribution in kind is normally not reimbursed: no cash was ever received for it. The exception is a co-producer's contribution in industry, recouped from the takings like any cash contribution.",
+  "@budgetResourceDialogReimbursableHelperInKind": {
+    "description": "Helper under the reimbursable choice of the resource dialog, shown only while the resource is a contribution in kind."
   },
   "budgetEntryDialogResourceFieldLabel": "Resource",
   "@budgetEntryDialogResourceFieldLabel": {

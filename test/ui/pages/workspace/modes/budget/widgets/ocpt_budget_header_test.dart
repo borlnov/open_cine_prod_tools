@@ -164,7 +164,7 @@ void main() {
     expect(reported, OcptBudgetTaxBasis.excludingTax);
   });
 
-  testWidgets("the two trade-word chips read plainly under the simplified switch", (tester) async {
+  testWidgets("no chip changes its wording under the simplified switch", (tester) async {
     useWideWindow(tester);
 
     /// Pumps the header on [view], simplified or not, and answers the words it drew.
@@ -185,26 +185,27 @@ void main() {
       return Tr.of(tester.element(find.byType(OcptBudgetHeader)));
     }
 
-    var tr = await pumpOn(OcptBudgetCentreView.cashJournal, isSimplified: true);
-    expect(find.text(tr.budgetHeaderCashJournalSimpleSegmentLabel), findsWidgets);
-    // The trade word is gone from the chip and from the band's own title alike.
-    expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsNothing);
-    expect(find.text(tr.budgetHeaderCashJournalTitle), findsNothing);
+    // The cash journal's chip used to read `Spending` here and `Cash journal` there. It now says
+    // one thing in both readings, and the band above it says the very same thing.
+    for (final isSimplified in [true, false]) {
+      final tr = await pumpOn(OcptBudgetCentreView.cashJournal, isSimplified: isSimplified);
+      expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsWidgets);
+    }
 
-    // The committed spending has no chip of its own any more — it shares `Planned` with the
-    // financing plan — but the band's own title still re-words for it, which is what this asserts.
-    tr = await pumpOn(OcptBudgetCentreView.committed, isSimplified: true);
-    expect(find.text(tr.budgetHeaderCommittedSimpleSegmentLabel), findsOneWidget);
-    expect(find.text(tr.budgetHeaderCommittedTitle), findsNothing);
+    // The committed spending has no chip of its own at all — it is one half of `Planned`, and the
+    // band names it by that chip joined to the sub-switch's own word for the half.
+    for (final isSimplified in [true, false]) {
+      final tr = await pumpOn(OcptBudgetCentreView.committed, isSimplified: isSimplified);
+      expect(find.text(tr.budgetHeaderPlannedSegmentLabel), findsOneWidget);
+      expect(
+        find.text(tr.budgetHeaderPlannedTitle(tr.budgetPlannedOutgoingSegmentLabel)),
+        findsOneWidget,
+      );
+    }
 
-    // The other three chips carry one wording only: they already say the plain thing they are.
-    expect(find.text(tr.budgetHeaderDashboardSegmentLabel), findsOneWidget);
+    final tr = await pumpOn(OcptBudgetCentreView.dashboard, isSimplified: true);
+    expect(find.text(tr.budgetHeaderDashboardSegmentLabel), findsWidgets);
     expect(find.text(tr.budgetHeaderCostTrackingSegmentLabel), findsOneWidget);
-    expect(find.text(tr.budgetHeaderPlannedSegmentLabel), findsOneWidget);
-
-    tr = await pumpOn(OcptBudgetCentreView.cashJournal, isSimplified: false);
-    expect(find.text(tr.budgetHeaderCashJournalSegmentLabel), findsWidgets);
-    expect(find.text(tr.budgetHeaderCashJournalSimpleSegmentLabel), findsNothing);
   });
 
   testWidgets("the title and subtitle name the view on screen, not the mode", (tester) async {
@@ -232,25 +233,33 @@ void main() {
     expect(find.text(tr.budgetHeaderDashboardTitle), findsOneWidget);
     expect(find.text(tr.budgetHeaderDashboardSubtitle), findsOneWidget);
 
+    // `findsWidgets`, not `findsOneWidget`: from here down every title is word for word its own
+    // view chip's label, which is drawn in the same band.
     tr = await pumpOn(OcptBudgetCentreView.costTracking);
-    expect(find.text(tr.budgetHeaderTitle), findsOneWidget);
+    expect(find.text(tr.budgetHeaderTitle), findsWidgets);
     expect(find.text(tr.budgetHeaderSubtitle), findsOneWidget);
 
-    // `findsWidgets`, not `findsOneWidget`: these two titles are word for word their own view
-    // chip's label, which is drawn in the same band.
     tr = await pumpOn(OcptBudgetCentreView.cashJournal);
     expect(find.text(tr.budgetHeaderCashJournalTitle), findsWidgets);
     expect(find.text(tr.budgetHeaderCashJournalSubtitle), findsOneWidget);
     // The band must not go on announcing the nomenclature over a list of bank movements.
     expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
 
+    // The two halves of `Planned` are titled by that chip joined to the sub-switch's own word for
+    // the half, so the band never says a third thing about a screen the chip already names.
     tr = await pumpOn(OcptBudgetCentreView.committed);
-    expect(find.text(tr.budgetHeaderCommittedTitle), findsWidgets);
+    expect(
+      find.text(tr.budgetHeaderPlannedTitle(tr.budgetPlannedOutgoingSegmentLabel)),
+      findsOneWidget,
+    );
     expect(find.text(tr.budgetHeaderCommittedSubtitle), findsOneWidget);
     expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
 
     tr = await pumpOn(OcptBudgetCentreView.financing);
-    expect(find.text(tr.budgetHeaderFinancingTitle), findsWidgets);
+    expect(
+      find.text(tr.budgetHeaderPlannedTitle(tr.budgetPlannedIncomingSegmentLabel)),
+      findsOneWidget,
+    );
     expect(find.text(tr.budgetHeaderFinancingSubtitle), findsOneWidget);
     expect(find.text(tr.budgetHeaderSubtitle), findsNothing);
 
@@ -344,7 +353,7 @@ void main() {
     expect(regieChipCentre.dx, greaterThan(plannedChipCentre.dx));
   });
 
-  testWidgets("Cash journal sits third, ahead of Planned", (tester) async {
+  testWidgets("the chips read Quote, Planned, Cash flow, in that order", (tester) async {
     useWideWindow(tester);
 
     await tester.pumpWidget(
@@ -365,10 +374,12 @@ void main() {
     final cashJournalCentre = tester.getCenter(find.text(tr.budgetHeaderCashJournalSegmentLabel));
     final plannedCentre = tester.getCenter(find.text(tr.budgetHeaderPlannedSegmentLabel));
 
-    // Cash journal sits right after Cost tracking, ahead of Planned — not fourth, where
-    // OcptBudgetCentreView itself places it.
-    expect(cashJournalCentre.dx, greaterThan(costTrackingCentre.dx));
-    expect(plannedCentre.dx, greaterThan(cashJournalCentre.dx));
+    // The three read as the money's own life: what the film should cost, what is promised in
+    // either direction, what has actually moved. Neither this order nor the enum's own is the
+    // other: `committed` still sits between `cashJournal` and `financing` in `OcptBudgetCentreView`
+    // itself, which is a stored preference's order and nothing else.
+    expect(plannedCentre.dx, greaterThan(costTrackingCentre.dx));
+    expect(cashJournalCentre.dx, greaterThan(plannedCentre.dx));
   });
 
   // The narrow-window case (title/subtitle shed, the three controls kept) is

@@ -42,10 +42,7 @@ class OcptBudgetHelp extends StatelessWidget {
         children: [
           Text(tr.budgetHelpMapIntro, style: theme.textTheme.bodySmall),
           const SizedBox(height: 12),
-          _OcptBudgetHelpMap(
-            isSimplified: isSimplified,
-            highlighted: _highlightedCellsOf(centreView),
-          ),
+          _OcptBudgetHelpMap(highlighted: _highlightedCellsOf(centreView)),
           const SizedBox(height: 8),
           Text(
             tr.budgetHelpMapQuoteNote,
@@ -57,7 +54,7 @@ class OcptBudgetHelp extends StatelessWidget {
           const SizedBox(height: 20),
           Divider(height: 1, color: theme.colorScheme.outlineVariant),
           const SizedBox(height: 16),
-          Text(_titleOf(tr, centreView, isSimplified), style: theme.textTheme.titleSmall),
+          Text(_titleOf(tr, centreView), style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(
             _subtitleOf(tr, centreView),
@@ -76,16 +73,16 @@ class OcptBudgetHelp extends StatelessWidget {
   /// The current view's own page heading — the very word its band shows above the centre, so the
   /// reader finds the same name here as on screen (`OcptBudgetHeader._titleOf`'s own reasoning,
   /// reimplemented here rather than shared, since that method is private to that widget).
-  String _titleOf(Tr tr, OcptBudgetCentreView view, bool isSimplified) => switch (view) {
+  String _titleOf(Tr tr, OcptBudgetCentreView view) => switch (view) {
     OcptBudgetCentreView.dashboard => tr.budgetHeaderDashboardTitle,
     OcptBudgetCentreView.costTracking => tr.budgetHeaderTitle,
-    OcptBudgetCentreView.cashJournal => isSimplified
-        ? tr.budgetHeaderCashJournalSimpleSegmentLabel
-        : tr.budgetHeaderCashJournalTitle,
-    OcptBudgetCentreView.committed => isSimplified
-        ? tr.budgetHeaderCommittedSimpleSegmentLabel
-        : tr.budgetHeaderCommittedTitle,
-    OcptBudgetCentreView.financing => tr.budgetHeaderFinancingTitle,
+    OcptBudgetCentreView.cashJournal => tr.budgetHeaderCashJournalTitle,
+    OcptBudgetCentreView.committed => tr.budgetHeaderPlannedTitle(
+      tr.budgetPlannedOutgoingSegmentLabel,
+    ),
+    OcptBudgetCentreView.financing => tr.budgetHeaderPlannedTitle(
+      tr.budgetPlannedIncomingSegmentLabel,
+    ),
     OcptBudgetCentreView.regie => tr.budgetHeaderRegieTitle,
     OcptBudgetCentreView.sharing => tr.budgetHeaderSharingTitle,
   };
@@ -191,15 +188,11 @@ enum _OcptBudgetHelpMapCell { financing, committed, cashCredits, cashDebits }
 /// `.committed` are each one cell of it; `.cashJournal` is the whole "has moved" column, since the
 /// journal is where both a credit and a debit are read.
 class _OcptBudgetHelpMap extends StatelessWidget {
-  /// Whether the header's simplified/detailed switch currently reads simplified — see
-  /// [OcptBudgetHelp.isSimplified].
-  final bool isSimplified;
-
   /// Which cell(s) to highlight as "you are here".
   final Set<_OcptBudgetHelpMapCell> highlighted;
 
   /// Class constructor
-  const _OcptBudgetHelpMap({required this.isSimplified, required this.highlighted});
+  const _OcptBudgetHelpMap({required this.highlighted});
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +215,7 @@ class _OcptBudgetHelpMap extends StatelessWidget {
           children: [
             _OcptBudgetHelpMapHeaderCell(label: tr.budgetHelpMapRowComingInLabel),
             _OcptBudgetHelpMapDataCell(
-              label: tr.budgetHeaderFinancingSegmentLabel,
+              label: tr.budgetHeaderPlannedSegmentLabel,
               isHighlighted: highlighted.contains(_OcptBudgetHelpMapCell.financing),
               currentLabel: tr.budgetHelpMapCurrentViewBadge,
             ),
@@ -237,9 +230,7 @@ class _OcptBudgetHelpMap extends StatelessWidget {
           children: [
             _OcptBudgetHelpMapHeaderCell(label: tr.budgetHelpMapRowGoingOutLabel),
             _OcptBudgetHelpMapDataCell(
-              label: isSimplified
-                  ? tr.budgetHeaderCommittedSimpleSegmentLabel
-                  : tr.budgetHeaderCommittedSegmentLabel,
+              label: tr.budgetHeaderPlannedSegmentLabel,
               isHighlighted: highlighted.contains(_OcptBudgetHelpMapCell.committed),
               currentLabel: tr.budgetHelpMapCurrentViewBadge,
             ),
