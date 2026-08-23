@@ -258,7 +258,11 @@ class OcptBudgetFinancingPlanPdfService {
     return pw.TableRow(
       children: [
         _textCell(painter: painter, text: resource.label, align: pw.TextAlign.left),
-        _textCell(painter: painter, text: labels.statusLabelOf(resource.status), align: pw.TextAlign.left),
+        _textCell(
+          painter: painter,
+          text: labels.statusLabelOf(resource.groupKind, resource.status),
+          align: pw.TextAlign.left,
+        ),
         _textCell(
           painter: painter,
           text: ocptBudgetExportAmountLabel(resource.amountCents, snapshot.currencyCode),

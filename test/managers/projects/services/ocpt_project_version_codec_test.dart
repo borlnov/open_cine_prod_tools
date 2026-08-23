@@ -917,7 +917,7 @@ void main() {
         personId: "person-1",
         label: "Caméra prêtée",
         amountCents: 150000,
-        status: OcptBudgetResourceStatus.secured,
+        status: OcptBudgetResourceStatus.confirmed,
         isReimbursable: true,
         notes: "Prêt du loueur",
       ),
@@ -928,7 +928,7 @@ void main() {
         groupKind: OcptBudgetResourceGroupKind.subsidy,
         label: "",
         amountCents: 0,
-        status: OcptBudgetResourceStatus.applied,
+        status: OcptBudgetResourceStatus.pending,
         isReimbursable: false,
         notes: "",
       ),
@@ -5021,6 +5021,51 @@ void main() {
         expect(result.value!.budgetRevenues, buildRichPayload().budgetRevenues);
       },
     );
+
+    test('a stored format-25 payload has its financing statuses re-read as steps', () {
+      // Format 25 is the last one whose `budgetResources` rows named one of the four words the
+      // three groups used to share. [_upgradeFormat25To26] rewrites each onto the step it already
+      // stated — the codec's first upgrade that changes what a column *means* rather than adding or
+      // removing one — and it has to, since [_budgetResourceFromJson] reads the key strictly: a
+      // payload still saying `applied` would be refused outright, not defaulted. The fixture is the
+      // current encoding with the words put back and the format wound back, rather than a second
+      // hand-written literal.
+      const retired = <String, String>{
+        "pending": "applied",
+        "agreed": "notified",
+        "confirmed": "secured",
+      };
+
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+      final resources = [
+        for (final row in encoded["budgetResources"] as List)
+          {...row as Map<String, dynamic>, "status": retired[row["status"]] ?? row["status"]},
+      ];
+      // One row put back as `valued`, the one word that was already a group's rather than a step's:
+      // it said a figure was on the resource and nothing signed, so it lands on `agreed`.
+      (resources.first)["status"] = "valued";
+      encoded["budgetResources"] = resources;
+      encoded["payloadFormat"] = 25;
+
+      final result = codec.decode(jsonEncode(encoded));
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(result.value!.budgetResources.first.status, OcptBudgetResourceStatus.agreed);
+      expect(
+        result.value!.budgetResources.map((row) => row.status).skip(1),
+        buildRichPayload().budgetResources.map((row) => row.status).skip(1),
+      );
+      // Nothing else about a resource was disturbed on the way through: no row changed group.
+      expect(
+        result.value!.budgetResources.map((row) => row.groupKind),
+        buildRichPayload().budgetResources.map((row) => row.groupKind),
+      );
+      expect(
+        result.value!.budgetResources.map((row) => row.label),
+        buildRichPayload().budgetResources.map((row) => row.label),
+      );
+      expect(result.value!.budgetRevenues, buildRichPayload().budgetRevenues);
+    });
   });
 
   group('OcptProjectVersionCodec malformed payloads', () {

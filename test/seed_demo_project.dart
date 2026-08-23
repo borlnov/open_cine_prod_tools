@@ -1069,20 +1069,20 @@ void main() {
       OcptBudgetResourceGroupKind.subsidy,
       "Regional production fund",
       800000,
-      OcptBudgetResourceStatus.secured,
+      OcptBudgetResourceStatus.confirmed,
     );
     final ownContribution = await resource(
       OcptBudgetResourceGroupKind.cash,
       "The production's own contribution",
       350000,
-      OcptBudgetResourceStatus.secured,
+      OcptBudgetResourceStatus.confirmed,
       isReimbursable: true,
     );
     await resource(
       OcptBudgetResourceGroupKind.inKind,
       "Harbour office lent for the shoot",
       120000,
-      OcptBudgetResourceStatus.valued,
+      OcptBudgetResourceStatus.agreed,
     );
 
     // The cash journal, including the credit that makes the reimbursable contribution received.

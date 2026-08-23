@@ -12271,30 +12271,65 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingStatusAppliedLabel": "Applied",
-  "@budgetFinancingStatusAppliedLabel": {
-    "description": "Word for OcptBudgetResourceStatus.applied",
+  "budgetFinancingStatusSubsidyPendingLabel": "Applied",
+  "@budgetFinancingStatusSubsidyPendingLabel": {
+    "description": "Word for OcptBudgetResourceStatus.pending on an OcptBudgetResourceGroupKind.subsidy resource",
     "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingStatusNotifiedLabel": "Notified",
-  "@budgetFinancingStatusNotifiedLabel": {
-    "description": "Word for OcptBudgetResourceStatus.notified",
+  "budgetFinancingStatusSubsidyAgreedLabel": "Notified",
+  "@budgetFinancingStatusSubsidyAgreedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.agreed on an OcptBudgetResourceGroupKind.subsidy resource",
     "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingStatusSecuredLabel": "Secured",
-  "@budgetFinancingStatusSecuredLabel": {
-    "description": "Word for OcptBudgetResourceStatus.secured",
+  "budgetFinancingStatusSubsidyConfirmedLabel": "Secured",
+  "@budgetFinancingStatusSubsidyConfirmedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.confirmed on an OcptBudgetResourceGroupKind.subsidy resource",
     "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingStatusValuedLabel": "Valued",
-  "@budgetFinancingStatusValuedLabel": {
-    "description": "Word for OcptBudgetResourceStatus.valued",
+  "budgetFinancingStatusCashPendingLabel": "Requested",
+  "@budgetFinancingStatusCashPendingLabel": {
+    "description": "Word for OcptBudgetResourceStatus.pending on an OcptBudgetResourceGroupKind.cash resource",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusCashAgreedLabel": "Agreed",
+  "@budgetFinancingStatusCashAgreedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.agreed on an OcptBudgetResourceGroupKind.cash resource",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusCashConfirmedLabel": "Contracted",
+  "@budgetFinancingStatusCashConfirmedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.confirmed on an OcptBudgetResourceGroupKind.cash resource",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusInKindPendingLabel": "Promised",
+  "@budgetFinancingStatusInKindPendingLabel": {
+    "description": "Word for OcptBudgetResourceStatus.pending on an OcptBudgetResourceGroupKind.inKind resource",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusInKindAgreedLabel": "Valued",
+  "@budgetFinancingStatusInKindAgreedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.agreed on an OcptBudgetResourceGroupKind.inKind resource",
+    "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingStatusInKindConfirmedLabel": "Signed",
+  "@budgetFinancingStatusInKindConfirmedLabel": {
+    "description": "Word for OcptBudgetResourceStatus.confirmed on an OcptBudgetResourceGroupKind.inKind resource",
     "context": "Displayed on a financing resource's own status pill, and in OcptBudgetResourceDialog's own status picker",
     "type": "text",
     "placeholders": {}

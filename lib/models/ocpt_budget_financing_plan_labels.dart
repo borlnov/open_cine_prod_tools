@@ -40,8 +40,12 @@ class OcptBudgetFinancingPlanLabels extends Equatable {
   /// `OcptBudgetFinancing` draws none for it.
   final Map<OcptBudgetResourceGroupKind, String> groupTitles;
 
-  /// The label of each `OcptBudgetResourceStatus`.
-  final Map<OcptBudgetResourceStatus, String> statusLabels;
+  /// The label of each `OcptBudgetResourceStatus`, **for each `OcptBudgetResourceGroupKind`**: a
+  /// step's word belongs to the group a resource sits in, never to the step alone — see
+  /// `OcptBudgetResourceStatus`'s own doc comment. The exported plan therefore prints `Secured`
+  /// under `Subsidies` and `Signed` under `In kind` for two rows standing at the very same step,
+  /// exactly as the financing view does on screen.
+  final Map<OcptBudgetResourceGroupKind, Map<OcptBudgetResourceStatus, String>> statusLabels;
 
   /// The header of a resource's own label column.
   final String labelHeader;
@@ -112,8 +116,10 @@ class OcptBudgetFinancingPlanLabels extends Equatable {
   /// The section title of [kind], or an empty string if [groupTitles] holds none for it.
   String groupTitleOf(OcptBudgetResourceGroupKind kind) => groupTitles[kind] ?? "";
 
-  /// The label of [status], or an empty string if [statusLabels] holds none for it.
-  String statusLabelOf(OcptBudgetResourceStatus status) => statusLabels[status] ?? "";
+  /// The label of [status] on a [kind] resource, or an empty string if [statusLabels] holds none
+  /// for that pair.
+  String statusLabelOf(OcptBudgetResourceGroupKind kind, OcptBudgetResourceStatus status) =>
+      statusLabels[kind]?[status] ?? "";
 
   /// Object string representation, useful for debugging and logging.
   @override

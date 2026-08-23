@@ -143,28 +143,55 @@ String ocptBudgetResourceGroupKindLabel(Tr tr, OcptBudgetResourceGroupKind kind)
   OcptBudgetResourceGroupKind.inKind => tr.budgetFinancingGroupInKindLabel,
 };
 
-/// [status]'s own localized word — shared between the financing view's own status pill and the
-/// resource dialog's own status picker, lifted here for the very reason
+/// [status]'s own localized word **for a [kind] resource** — shared between the financing view's
+/// own status pill and the resource dialog's own status picker, lifted here for the very reason
 /// [ocptBudgetCommitmentStatusLabel] already is: both always agree on the wording rather than each
 /// resolving it independently.
-String ocptBudgetResourceStatusLabel(Tr tr, OcptBudgetResourceStatus status) => switch (status) {
-  OcptBudgetResourceStatus.applied => tr.budgetFinancingStatusAppliedLabel,
-  OcptBudgetResourceStatus.notified => tr.budgetFinancingStatusNotifiedLabel,
-  OcptBudgetResourceStatus.secured => tr.budgetFinancingStatusSecuredLabel,
-  OcptBudgetResourceStatus.valued => tr.budgetFinancingStatusValuedLabel,
+///
+/// **[kind] is not decoration: the word is the group's, only the step is the enum's** —
+/// `OcptBudgetResourceStatus`'s own doc comment argues why. A subsidy is applied for, notified,
+/// secured; a cash contribution requested, agreed, contracted; a contribution in kind promised,
+/// valued, signed. Nine words, three steps, one stored column.
+String ocptBudgetResourceStatusLabel(
+  Tr tr,
+  OcptBudgetResourceGroupKind kind,
+  OcptBudgetResourceStatus status,
+) => switch ((kind, status)) {
+  (OcptBudgetResourceGroupKind.subsidy, OcptBudgetResourceStatus.pending) =>
+    tr.budgetFinancingStatusSubsidyPendingLabel,
+  (OcptBudgetResourceGroupKind.subsidy, OcptBudgetResourceStatus.agreed) =>
+    tr.budgetFinancingStatusSubsidyAgreedLabel,
+  (OcptBudgetResourceGroupKind.subsidy, OcptBudgetResourceStatus.confirmed) =>
+    tr.budgetFinancingStatusSubsidyConfirmedLabel,
+  (OcptBudgetResourceGroupKind.cash, OcptBudgetResourceStatus.pending) =>
+    tr.budgetFinancingStatusCashPendingLabel,
+  (OcptBudgetResourceGroupKind.cash, OcptBudgetResourceStatus.agreed) =>
+    tr.budgetFinancingStatusCashAgreedLabel,
+  (OcptBudgetResourceGroupKind.cash, OcptBudgetResourceStatus.confirmed) =>
+    tr.budgetFinancingStatusCashConfirmedLabel,
+  (OcptBudgetResourceGroupKind.inKind, OcptBudgetResourceStatus.pending) =>
+    tr.budgetFinancingStatusInKindPendingLabel,
+  (OcptBudgetResourceGroupKind.inKind, OcptBudgetResourceStatus.agreed) =>
+    tr.budgetFinancingStatusInKindAgreedLabel,
+  (OcptBudgetResourceGroupKind.inKind, OcptBudgetResourceStatus.confirmed) =>
+    tr.budgetFinancingStatusInKindConfirmedLabel,
 };
 
 /// [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex — mirroring
 /// [ocptBudgetCommitmentStatusAccentColor]'s own reading: [OcptBudgetResourceStatus.index] already
-/// orders its four values from the lightest step (merely applied for) to the one nearest to
-/// actually financing the production (given a figure), so this mirrors that declared order rather
-/// than re-deriving which of two statuses reads heavier.
+/// orders its three steps from the lightest (merely in play) to the one nearest to actually
+/// financing the production (held on paper), so this mirrors that declared order rather than
+/// re-deriving which of two statuses reads heavier.
+///
+/// **Takes no `OcptBudgetResourceGroupKind`, unlike [ocptBudgetResourceStatusLabel]**: what a step
+/// is *called* belongs to the group, but how far along it is does not — a contribution in kind that
+/// is signed and a subsidy that is secured stand at the same place, and the eye should read them
+/// the same.
 Color ocptBudgetResourceStatusAccentColor(ColorScheme colorScheme, OcptBudgetResourceStatus status) =>
     switch (status) {
-      OcptBudgetResourceStatus.applied => colorScheme.onSurfaceVariant,
-      OcptBudgetResourceStatus.notified => colorScheme.secondary,
-      OcptBudgetResourceStatus.secured => colorScheme.tertiary,
-      OcptBudgetResourceStatus.valued => colorScheme.primary,
+      OcptBudgetResourceStatus.pending => colorScheme.onSurfaceVariant,
+      OcptBudgetResourceStatus.agreed => colorScheme.tertiary,
+      OcptBudgetResourceStatus.confirmed => colorScheme.primary,
     };
 
 /// [status]'s own localized word — the sharing view's own `Takings received` card and the revenue
@@ -300,8 +327,11 @@ OcptBudgetFinancingPlanLabels ocptBudgetFinancingPlanLabelsOf(BuildContext conte
         kind: ocptBudgetResourceGroupKindLabel(tr, kind),
     },
     statusLabels: {
-      for (final status in OcptBudgetResourceStatus.values)
-        status: ocptBudgetResourceStatusLabel(tr, status),
+      for (final kind in OcptBudgetResourceGroupKind.values)
+        kind: {
+          for (final status in OcptBudgetResourceStatus.values)
+            status: ocptBudgetResourceStatusLabel(tr, kind, status),
+        },
     },
     labelHeader: tr.budgetExportFinancingPlanLabelHeader,
     statusHeader: tr.budgetExportFinancingPlanStatusHeader,

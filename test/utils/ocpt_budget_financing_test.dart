@@ -44,7 +44,7 @@ void main() {
     OcptBudgetResourceGroupKind groupKind = OcptBudgetResourceGroupKind.subsidy,
     String label = "A resource",
     int amountCents = 0,
-    OcptBudgetResourceStatus status = OcptBudgetResourceStatus.applied,
+    OcptBudgetResourceStatus status = OcptBudgetResourceStatus.pending,
     bool isReimbursable = false,
     String notes = "",
     String sortKey = "V",
@@ -145,15 +145,14 @@ void main() {
     test("groups by status, a status with no resource getting no key", () {
       final resources = [
         buildResource(id: "r1", amountCents: 10000),
-        buildResource(id: "r2", status: OcptBudgetResourceStatus.secured, amountCents: 4000),
+        buildResource(id: "r2", status: OcptBudgetResourceStatus.confirmed, amountCents: 4000),
       ];
 
       final byStatus = ocptBudgetResourcesTotalByStatus(resources);
 
-      expect(byStatus[OcptBudgetResourceStatus.applied], 10000);
-      expect(byStatus[OcptBudgetResourceStatus.secured], 4000);
-      expect(byStatus.containsKey(OcptBudgetResourceStatus.notified), isFalse);
-      expect(byStatus.containsKey(OcptBudgetResourceStatus.valued), isFalse);
+      expect(byStatus[OcptBudgetResourceStatus.pending], 10000);
+      expect(byStatus[OcptBudgetResourceStatus.confirmed], 4000);
+      expect(byStatus.containsKey(OcptBudgetResourceStatus.agreed), isFalse);
     });
   });
 

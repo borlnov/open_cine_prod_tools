@@ -51,7 +51,7 @@ OcptBudgetResource _existingResource({
   OcptBudgetResourceGroupKind groupKind = OcptBudgetResourceGroupKind.subsidy,
   String label = "Regional grant",
   int amountCents = 500000,
-  OcptBudgetResourceStatus status = OcptBudgetResourceStatus.applied,
+  OcptBudgetResourceStatus status = OcptBudgetResourceStatus.pending,
   bool isReimbursable = false,
   String notes = "",
 }) => OcptBudgetResource(
@@ -197,7 +197,7 @@ void main() {
     // three creation gestures opened this dialog, so it is not asked for again here.
     expect(find.text(tr.budgetFinancingGroupSubsidyLabel), findsNothing);
     expect(find.text(tr.budgetResourceDialogCreateSubsidyTitle), findsOneWidget);
-    expect(find.text(tr.budgetFinancingStatusAppliedLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusSubsidyPendingLabel), findsOneWidget);
 
     await tester.enterText(
       find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
@@ -213,7 +213,7 @@ void main() {
     final fields = routerManager.poppedValue! as OcptBudgetResourceFormFields;
     expect(fields.groupKind, OcptBudgetResourceGroupKind.subsidy);
     expect(fields.personId, isNull);
-    expect(fields.status, OcptBudgetResourceStatus.applied);
+    expect(fields.status, OcptBudgetResourceStatus.pending);
     expect(fields.isReimbursable, isFalse);
   });
 
@@ -227,10 +227,31 @@ void main() {
     expect(find.text(tr.budgetResourceDialogCreateInKindTitle), findsOneWidget);
   });
 
+  testWidgets("the status picker reads in the kind's own vocabulary", (tester) async {
+    // The same three steps, worded by the group the resource sits in: a subsidy is applied for,
+    // notified, secured, and never — as it once could be — "valued" like a lent camera.
+    final tr = await pumpDialog(tester);
+
+    expect(find.text(tr.budgetFinancingStatusSubsidyPendingLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusSubsidyAgreedLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusSubsidyConfirmedLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusInKindAgreedLabel), findsNothing);
+    expect(find.text(tr.budgetFinancingStatusCashConfirmedLabel), findsNothing);
+  });
+
+  testWidgets("a fresh in-kind contribution is promised, valued, signed", (tester) async {
+    final tr = await pumpDialog(tester, groupKind: OcptBudgetResourceGroupKind.inKind);
+
+    expect(find.text(tr.budgetFinancingStatusInKindPendingLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusInKindAgreedLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusInKindConfirmedLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusSubsidyPendingLabel), findsNothing);
+  });
+
   testWidgets("editing pre-fills every field, title kept generic", (tester) async {
     final existing = _existingResource(
       groupKind: OcptBudgetResourceGroupKind.inKind,
-      status: OcptBudgetResourceStatus.valued,
+      status: OcptBudgetResourceStatus.agreed,
       isReimbursable: true,
       notes: "Camera lent by the lab",
     );
@@ -250,7 +271,7 @@ void main() {
     expect(routerManager.popped, isTrue);
     final fields = routerManager.poppedValue! as OcptBudgetResourceFormFields;
     expect(fields.groupKind, OcptBudgetResourceGroupKind.inKind);
-    expect(fields.status, OcptBudgetResourceStatus.valued);
+    expect(fields.status, OcptBudgetResourceStatus.agreed);
     expect(fields.isReimbursable, isTrue);
     expect(fields.notes, "Camera lent by the lab");
     expect(fields.amountCents, 500000);
@@ -262,7 +283,10 @@ void main() {
 
     await tester.tap(find.text(tr.budgetFinancingGroupInKindLabel));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.budgetFinancingStatusValuedLabel));
+
+    // Picking the in-kind group has just re-worded the status chips: the middle step reads
+    // `Valued` here, where the subsidy this resource was a moment ago called it `Notified`.
+    await tester.tap(find.text(tr.budgetFinancingStatusInKindAgreedLabel));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
@@ -270,13 +294,13 @@ void main() {
 
     final fields = routerManager.poppedValue! as OcptBudgetResourceFormFields;
     expect(fields.groupKind, OcptBudgetResourceGroupKind.inKind);
-    expect(fields.status, OcptBudgetResourceStatus.valued);
+    expect(fields.status, OcptBudgetResourceStatus.agreed);
   });
 
   testWidgets("picking a different status while creating reports the pick", (tester) async {
     final tr = await pumpDialog(tester);
 
-    await tester.tap(find.text(tr.budgetFinancingStatusValuedLabel));
+    await tester.tap(find.text(tr.budgetFinancingStatusSubsidyAgreedLabel));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -292,7 +316,7 @@ void main() {
 
     final fields = routerManager.poppedValue! as OcptBudgetResourceFormFields;
     expect(fields.groupKind, OcptBudgetResourceGroupKind.subsidy);
-    expect(fields.status, OcptBudgetResourceStatus.valued);
+    expect(fields.status, OcptBudgetResourceStatus.agreed);
   });
 
   testWidgets("picking a person reports the pick", (tester) async {

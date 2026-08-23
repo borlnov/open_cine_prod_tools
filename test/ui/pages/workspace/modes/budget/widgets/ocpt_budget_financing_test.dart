@@ -34,7 +34,7 @@ OcptBudgetResource _resource({
   OcptBudgetResourceGroupKind groupKind = OcptBudgetResourceGroupKind.subsidy,
   String label = "Resource",
   int amountCents = 10000,
-  OcptBudgetResourceStatus status = OcptBudgetResourceStatus.applied,
+  OcptBudgetResourceStatus status = OcptBudgetResourceStatus.pending,
   bool isReimbursable = false,
   String notes = "",
 }) => OcptBudgetResource(
@@ -367,6 +367,32 @@ void main() {
     expect(find.text(tr.budgetFinancingColumnAmount.toUpperCase()), findsOneWidget);
     expect(find.text(tr.budgetFinancingColumnReceived.toUpperCase()), findsOneWidget);
     expect(find.text(tr.budgetFinancingColumnOutstanding.toUpperCase()), findsOneWidget);
+  });
+
+  testWidgets("a status pill reads in its own group's vocabulary", (tester) async {
+    // Three rows standing at the very same step, one per group: the pill says `Notified` under
+    // `Subsidies`, `Agreed` under cash and `Valued` under in kind. The step is one stored value;
+    // the word is the group's.
+    final resources = [
+      _resource(id: "r1", status: OcptBudgetResourceStatus.agreed),
+      _resource(
+        id: "r2",
+        groupKind: OcptBudgetResourceGroupKind.cash,
+        status: OcptBudgetResourceStatus.agreed,
+      ),
+      _resource(
+        id: "r3",
+        groupKind: OcptBudgetResourceGroupKind.inKind,
+        status: OcptBudgetResourceStatus.agreed,
+      ),
+    ];
+
+    await pumpView(tester, resources: resources);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+    expect(find.text(tr.budgetFinancingStatusSubsidyAgreedLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusCashAgreedLabel), findsOneWidget);
+    expect(find.text(tr.budgetFinancingStatusInKindAgreedLabel), findsOneWidget);
   });
 
   testWidgets("Record a receipt is offered on a resource that has received nothing", (

@@ -638,7 +638,10 @@ class _OcptFinancingResourceRow extends StatelessWidget {
               ),
               SizedBox(
                 width: _ocptFinancingStatusColumnWidth,
-                child: _OcptFinancingStatusPill(status: resource.status),
+                child: _OcptFinancingStatusPill(
+                  groupKind: resource.groupKind,
+                  status: resource.status,
+                ),
               ),
               SizedBox(
                 width: _ocptFinancingAmountColumnWidth,
@@ -721,35 +724,45 @@ class _OcptFinancingResourceRow extends StatelessWidget {
   }
 }
 
-/// One of `OcptBudgetResourceStatus`'s own four badges — mirrors `OcptBudgetCommittedSpending`'s
-/// own `_OcptCommittedStatusBadge`, generic over a different enum: a bordered outline while merely
-/// applied for, growing into a solid fill once a figure has actually been put on the resource.
+/// One of `OcptBudgetResourceStatus`'s own three badges — mirrors `OcptBudgetCommittedSpending`'s
+/// own `_OcptCommittedStatusBadge`, generic over a different enum: a bordered outline while the
+/// resource is merely in play, growing into a solid fill once it is held on paper.
+///
+/// **Takes the row's own [groupKind] as well as its [status]**, because the word a step is called
+/// belongs to the group — `Secured` under `Subsidies`, `Signed` under `In kind`, for two rows
+/// standing at the very same step. The *colour* is the step's alone, so the eye reads how far along
+/// a row is without having to read which group it sits in: `OcptBudgetResourceStatus`'s own doc
+/// comment argues both halves.
 class _OcptFinancingStatusPill extends StatelessWidget {
+  /// The group the resource this pill belongs to sits in — what its [status] is called depends on
+  /// it.
+  final OcptBudgetResourceGroupKind groupKind;
+
   /// The status this pill paints.
   final OcptBudgetResourceStatus status;
 
   /// Class constructor
-  const _OcptFinancingStatusPill({required this.status});
+  const _OcptFinancingStatusPill({required this.groupKind, required this.status});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final accent = ocptBudgetResourceStatusAccentColor(theme.colorScheme, status);
-    final isSolid = status == OcptBudgetResourceStatus.valued;
+    final isSolid = status == OcptBudgetResourceStatus.confirmed;
     final alpha = status.index / (OcptBudgetResourceStatus.values.length - 1);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: isSolid ? accent : accent.withValues(alpha: alpha),
-        border: status == OcptBudgetResourceStatus.applied
+        border: status == OcptBudgetResourceStatus.pending
             ? Border.all(color: accent.withValues(alpha: 0.6))
             : null,
         borderRadius: BorderRadius.circular(ocptRadiusSmall),
       ),
       child: Text(
-        ocptBudgetResourceStatusLabel(tr, status),
+        ocptBudgetResourceStatusLabel(tr, groupKind, status),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.labelSmall?.copyWith(

@@ -1310,7 +1310,7 @@ void main() {
             personId: null,
             label: "Camera loan",
             amountCents: 250000,
-            status: OcptBudgetResourceStatus.valued,
+            status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "Lent by the lab",
           ),
@@ -1323,7 +1323,7 @@ void main() {
       expect(resource.groupKind, OcptBudgetResourceGroupKind.inKind);
       expect(resource.label, "Camera loan");
       expect(resource.amountCents, 250000);
-      expect(resource.status, OcptBudgetResourceStatus.valued);
+      expect(resource.status, OcptBudgetResourceStatus.agreed);
       expect(resource.notes, "Lent by the lab");
       expect(state.selectedResourceId, resource.id);
     });
@@ -1351,7 +1351,7 @@ void main() {
             personId: null,
             label: "Renamed",
             amountCents: 500,
-            status: OcptBudgetResourceStatus.secured,
+            status: OcptBudgetResourceStatus.confirmed,
             isReimbursable: true,
             notes: "Repaid before the split",
           ),
@@ -1362,7 +1362,7 @@ void main() {
       final resource = state.resources.single;
       expect(resource.groupKind, OcptBudgetResourceGroupKind.cash);
       expect(resource.amountCents, 500);
-      expect(resource.status, OcptBudgetResourceStatus.secured);
+      expect(resource.status, OcptBudgetResourceStatus.confirmed);
       expect(resource.isReimbursable, isTrue);
       expect(resource.notes, "Repaid before the split");
     });

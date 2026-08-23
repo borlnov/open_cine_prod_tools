@@ -110,7 +110,7 @@ OcptBudgetResource _resource({required String id, required String label}) => Ocp
   personId: null,
   label: label,
   amountCents: 10000,
-  status: OcptBudgetResourceStatus.applied,
+  status: OcptBudgetResourceStatus.pending,
   isReimbursable: false,
   notes: "",
   sortKey: "a0",

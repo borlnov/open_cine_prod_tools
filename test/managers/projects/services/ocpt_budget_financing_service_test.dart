@@ -51,7 +51,7 @@ void main() {
       final resources = await service.loadResources(database: database);
       expect(resources.map((resource) => resource.id), [firstId, secondId]);
       expect(resources.first.groupKind, OcptBudgetResourceGroupKind.subsidy);
-      expect(resources.first.status, OcptBudgetResourceStatus.applied);
+      expect(resources.first.status, OcptBudgetResourceStatus.pending);
       expect(resources.first.amountCents, 0);
       expect(resources.first.isReimbursable, isFalse);
     });
@@ -64,7 +64,7 @@ void main() {
         resourceId: id,
         groupKind: const Value(OcptBudgetResourceGroupKind.inKind),
         amountCents: const Value(150000),
-        status: const Value(OcptBudgetResourceStatus.secured),
+        status: const Value(OcptBudgetResourceStatus.confirmed),
         isReimbursable: const Value(true),
         notes: const Value("Caméra prêtée par le loueur"),
       );
@@ -73,7 +73,7 @@ void main() {
       expect(resource.label, "CNC — aide");
       expect(resource.groupKind, OcptBudgetResourceGroupKind.inKind);
       expect(resource.amountCents, 150000);
-      expect(resource.status, OcptBudgetResourceStatus.secured);
+      expect(resource.status, OcptBudgetResourceStatus.confirmed);
       expect(resource.isReimbursable, isTrue);
       expect(resource.notes, "Caméra prêtée par le loueur");
     });

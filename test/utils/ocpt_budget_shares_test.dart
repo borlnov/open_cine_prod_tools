@@ -68,7 +68,7 @@ void main() {
     String? personId,
     String label = "A contribution",
     int amountCents = 0,
-    OcptBudgetResourceStatus status = OcptBudgetResourceStatus.secured,
+    OcptBudgetResourceStatus status = OcptBudgetResourceStatus.confirmed,
     bool isReimbursable = false,
     String notes = "",
     String sortKey = "V",

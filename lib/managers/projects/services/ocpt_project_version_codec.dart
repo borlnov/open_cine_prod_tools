@@ -65,7 +65,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 25;
+  static const currentPayloadFormat = 26;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -985,6 +985,7 @@ class OcptProjectVersionCodec {
     22: _upgradeFormat22To23,
     23: _upgradeFormat23To24,
     24: _upgradeFormat24To25,
+    25: _upgradeFormat25To26,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1677,6 +1678,41 @@ class OcptProjectVersionCodec {
       _budgetResourcesKey: resources,
       _projectSettingsKey: projectSettings,
     };
+  }
+
+  /// Turns a format-**25** JSON object into a format-**26** one: every `budgetResources` row's
+  /// [_statusKey] is **rewritten**, from one of the four words the four groups used to share
+  /// (`applied`, `notified`, `secured`, `valued`) to one of the three steps that replaced them
+  /// (`pending`, `agreed`, `confirmed`).
+  ///
+  /// **A fourth kind of upgrade step**, alongside [_upgradeFormat1To2]'s empty list,
+  /// [_upgradeFormat3To4]'s null and [_upgradeFormat7To8]'s removal: nothing arrives and nothing
+  /// goes, one column simply stops meaning what it meant. It has to happen here rather than being
+  /// tolerated at read time, because [_budgetResourceFromJson] reads [_statusKey] **strictly**
+  /// through `OcptBudgetResourceStatus.values.asNameMap()` — a payload still saying `applied` would
+  /// be refused outright, not defaulted, exactly as [_upgradeFormat4To5] had to write an element's
+  /// status in for the same reason.
+  ///
+  /// **Nothing is reconstructed**, as everywhere else in this codec. Each old word lands on the
+  /// step it already stated, `valued` included: it said a figure was on the resource and nothing
+  /// signed, which is `agreed`. No row changes group, none moves forward or back a step, and a
+  /// status a user typed is never replaced by a default — the very same mapping the v29-to-v30
+  /// schema migration applies to the working copy, so a version restored across that boundary and
+  /// the project it is restored into say the same thing about the same resource.
+  static Map<String, dynamic> _upgradeFormat25To26(Map<String, dynamic> json) {
+    const steps = <String, String>{
+      "applied": "pending",
+      "notified": "agreed",
+      "secured": "confirmed",
+      "valued": "agreed",
+    };
+
+    final resources = [
+      for (final row in _rows(json, _budgetResourcesKey))
+        {...row, _statusKey: steps[row[_statusKey]] ?? row[_statusKey]},
+    ];
+
+    return {...json, _budgetResourcesKey: resources};
   }
 
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the

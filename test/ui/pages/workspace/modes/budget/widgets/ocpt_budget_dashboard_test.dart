@@ -69,7 +69,7 @@ OcptBudgetResource _resource({
   personId: null,
   label: "Resource $id",
   amountCents: amountCents,
-  status: OcptBudgetResourceStatus.applied,
+  status: OcptBudgetResourceStatus.pending,
   isReimbursable: false,
   notes: "",
   sortKey: "a0",

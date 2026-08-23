@@ -304,7 +304,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 29;
+  static const currentSchemaVersion = 30;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -813,6 +813,52 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // guarded `from >= 6`.
         if (from >= 27) {
           await m.addColumn(ocptBudgetResourcesTable, ocptBudgetResourcesTable.personId);
+        }
+      }
+
+      if (from < 30) {
+        // The first migration step of this file that **rewrites values rather than the shape** they
+        // are stored in: `budget_resources.status` stopped naming a word and started naming a step.
+        // A financing resource's status used to be one of four words shared by all three groups
+        // (`applied`, `notified`, `secured`, `valued`), which asked a production to call a lent
+        // camera "applied for"; it is now one of three steps (`pending`, `agreed`, `confirmed`)
+        // whose word is resolved from the group the row sits in, so a subsidy reads `Secured` where
+        // a contribution in kind reads `Signed`. `OcptBudgetResourceStatus`'s own doc comment
+        // argues it.
+        //
+        // The mapping keeps every row at the step its old word actually stated, and `valued` — the
+        // one word that was already a group's rather than a step's — lands on `agreed`, which is
+        // exactly what it said: a figure is on this resource, nothing is signed. **Nothing is
+        // invented**: no row changes group, no row moves forward or back a step, and a status the
+        // user typed is never replaced by a default.
+        //
+        // The column is **rebuilt**, not merely updated in place, because the words also live in
+        // its own `DEFAULT`, which SQLite gives no way to alter: a file that kept `DEFAULT
+        // 'applied'` would write a retired word onto the next resource created in it, and
+        // `OcptBudgetResourceStatusConverter` reads the column strictly. Adding the column afresh,
+        // filling it, dropping the old one and taking its name is the whole of it — four
+        // statements that touch no other table, since nothing references `budget_resources.status`,
+        // and that land this file on exactly the declaration `onCreate` writes.
+        //
+        // Guarded `from >= 27` for the reason every `addColumn` above is: a file older than that
+        // has just had the table created fresh, from the current declaration, so its column is
+        // already the new one and adding a second would fail.
+        if (from >= 27) {
+          await customStatement(
+            "ALTER TABLE budget_resources ADD COLUMN status_step TEXT NOT NULL DEFAULT 'pending'",
+          );
+          await customStatement(
+            "UPDATE budget_resources SET status_step = CASE status "
+            "WHEN 'applied' THEN 'pending' "
+            "WHEN 'notified' THEN 'agreed' "
+            "WHEN 'secured' THEN 'confirmed' "
+            "WHEN 'valued' THEN 'agreed' "
+            "ELSE status END",
+          );
+          await customStatement('ALTER TABLE budget_resources DROP COLUMN status');
+          await customStatement(
+            'ALTER TABLE budget_resources RENAME COLUMN status_step TO status',
+          );
         }
       }
     },

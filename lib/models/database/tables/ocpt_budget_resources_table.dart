@@ -93,10 +93,16 @@ class OcptBudgetResourcesTable extends Table {
   /// The amount this resource comes to, exactly as typed, in cents.
   IntColumn get amountCents => integer().withDefault(const Constant(0))();
 
-  /// How far this resource has progressed towards actually financing the production.
+  /// How far this resource has progressed towards actually financing the production — the step it
+  /// stands at, whose *word* is the group's rather than the step's: see
+  /// [OcptBudgetResourceStatus]'s own doc comment.
+  // The stored literal below must match `OcptBudgetResourceStatus.pending.name` exactly, for the
+  // reason `groupKind`'s own default gives. A file written before schema v30 declared the retired
+  // `'applied'` here; the v29-to-v30 migration rebuilds the column rather than only rewriting what
+  // it holds, so an upgraded file and a fresh one declare the very same default.
   TextColumn get status => text()
       .map(const OcptBudgetResourceStatusConverter())
-      .withDefault(const Constant('applied'))();
+      .withDefault(const Constant('pending'))();
 
   /// Whether this resource has to be repaid before the revenue sharing splits what is left —
   /// the revenue sharing's own "reimbursable contributions repaid before anything is split".

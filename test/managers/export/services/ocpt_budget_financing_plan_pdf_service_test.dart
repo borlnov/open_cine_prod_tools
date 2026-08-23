@@ -32,10 +32,21 @@ const _labels = OcptBudgetFinancingPlanLabels(
     OcptBudgetResourceGroupKind.inKind: "In-kind contributions",
   },
   statusLabels: {
-    OcptBudgetResourceStatus.applied: "Applied",
-    OcptBudgetResourceStatus.notified: "Notified",
-    OcptBudgetResourceStatus.secured: "Secured",
-    OcptBudgetResourceStatus.valued: "Valued",
+    OcptBudgetResourceGroupKind.subsidy: {
+      OcptBudgetResourceStatus.pending: "Applied",
+      OcptBudgetResourceStatus.agreed: "Notified",
+      OcptBudgetResourceStatus.confirmed: "Secured",
+    },
+    OcptBudgetResourceGroupKind.cash: {
+      OcptBudgetResourceStatus.pending: "Requested",
+      OcptBudgetResourceStatus.agreed: "Agreed",
+      OcptBudgetResourceStatus.confirmed: "Contracted",
+    },
+    OcptBudgetResourceGroupKind.inKind: {
+      OcptBudgetResourceStatus.pending: "Promised",
+      OcptBudgetResourceStatus.agreed: "Valued",
+      OcptBudgetResourceStatus.confirmed: "Signed",
+    },
   },
   labelHeader: "Label",
   statusHeader: "Status",
@@ -59,7 +70,7 @@ OcptBudgetResource _buildResource({
   required OcptBudgetResourceGroupKind groupKind,
   String label = "Resource",
   int amountCents = 100000,
-  OcptBudgetResourceStatus status = OcptBudgetResourceStatus.applied,
+  OcptBudgetResourceStatus status = OcptBudgetResourceStatus.pending,
   bool isReimbursable = false,
 }) => OcptBudgetResource(
   id: id,

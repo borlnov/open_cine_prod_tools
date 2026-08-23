@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 ///
 /// **`Label` is the dialog's own only required field**, unlike the commitment dialog's own two: a
 /// resource's `Group` and `Status` both already carry a sensible default the moment the dialog
-/// opens (the first group, [OcptBudgetResourceStatus.applied]), so there is no second field a
+/// opens (the first group, [OcptBudgetResourceStatus.pending]), so there is no second field a
 /// fresh resource could be missing the way a commitment is missing its poste until somebody picks
 /// one.
 ///
@@ -39,11 +39,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// **The `Amount` field's own label and helper text are worded for the kind picked**, per this
 /// whole change's own point: a valuation and real money read the same in every other field, but not
 /// in what the figure itself means — see `_amountFieldLabel`/`_amountFieldHelper`. The `Status`
-/// field keeps its own helper worded per kind too (`_statusFieldHelper`), and **no status is ever
-/// hidden or disabled by kind**: the mode's standing rule that the UI carries no conditional branch on the
-/// state of the data holds exactly as `docs/architecture/budget.md`'s own "An in-kind contribution
-/// is valued, not collected" already argues — `valued` is what an in-kind contribution normally
-/// wears, but it is the user who says so, not a branch in the code.
+/// **The `Status` picker reads in the kind's own vocabulary**, and this is the other half of the
+/// same point: a subsidy is `Applied` for, `Notified`, `Secured`; a cash contribution `Requested`,
+/// `Agreed`, `Contracted`; a contribution in kind `Promised`, `Valued`, `Signed`. Asking a
+/// production to call a lent camera "applied for" was asking it to file a dossier at a commission
+/// that does not exist. **Nothing is hidden or disabled by kind for all that** — the mode's
+/// standing rule that the UI carries no conditional branch on the state of the data holds intact:
+/// the picker always offers the same three steps, and only their words change with the kind
+/// picked, `OcptBudgetResourceStatus`'s own doc comment. The field keeps its own helper worded per
+/// kind too (`_statusFieldHelper`). Changing the kind of a resource being edited therefore never
+/// invalidates its status: the step survives and simply re-words itself.
 ///
 /// **Carries no tax basis or VAT rate field**, unlike every other form of this mode: see
 /// `OcptBudgetResourceFormFields`'s own doc comment for why a financing resource asks for neither.
@@ -136,7 +141,7 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
     final existing = widget.existing;
 
     _groupKind = existing?.groupKind ?? widget.groupKind;
-    _status = existing?.status ?? OcptBudgetResourceStatus.applied;
+    _status = existing?.status ?? OcptBudgetResourceStatus.pending;
     _isReimbursable = existing?.isReimbursable ?? false;
     _personId = existing?.personId;
 
@@ -221,6 +226,7 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
               ),
               const SizedBox(height: 4),
               _OcptResourceStatusPicker(
+                groupKind: _groupKind,
                 value: _status,
                 onChanged: (value) => setState(() => _status = value),
               ),
@@ -320,9 +326,8 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
   };
 
   /// The `Status` field's own helper text, worded for [_groupKind]. **No status is hidden or
-  /// disabled by kind** — only the wording of what progress means changes, never which of the four
-  /// values may be picked: the mode's standing rule that the UI carries no conditional branch on the
-  /// state of the data.
+  /// disabled by kind** — only the wording changes, never which of the three steps may be picked:
+  /// the mode's standing rule that the UI carries no conditional branch on the state of the data.
   String _statusFieldHelper(Tr tr) => switch (_groupKind) {
     OcptBudgetResourceGroupKind.subsidy => tr.budgetResourceDialogStatusHelperSubsidy,
     OcptBudgetResourceGroupKind.cash => tr.budgetResourceDialogStatusHelperCash,
@@ -381,11 +386,18 @@ class _OcptResourceGroupKindPicker extends StatelessWidget {
   }
 }
 
-/// The resource dialog's own `Status` picker: `OcptBudgetResourceStatus`'s own four values as a
+/// The resource dialog's own `Status` picker: `OcptBudgetResourceStatus`'s own three steps as a
 /// wrapped row of small, clickable chips, painted in [ocptBudgetResourceStatusAccentColor] — the
 /// same colour and word the financing view's own status pill reads them in, mirroring
 /// `OcptBudgetCommitmentDialog`'s own `_OcptCommitmentStatusPicker`.
+///
+/// **[groupKind] words the chips**, and re-words them the moment the picker above changes it: see
+/// [OcptBudgetResourceDialog]'s own class doc comment.
 class _OcptResourceStatusPicker extends StatelessWidget {
+  /// The group the resource being edited sits in — what each of the three steps is called depends
+  /// on it.
+  final OcptBudgetResourceGroupKind groupKind;
+
   /// The picker's current value.
   final OcptBudgetResourceStatus value;
 
@@ -393,7 +405,11 @@ class _OcptResourceStatusPicker extends StatelessWidget {
   final ValueChanged<OcptBudgetResourceStatus> onChanged;
 
   /// Class constructor
-  const _OcptResourceStatusPicker({required this.value, required this.onChanged});
+  const _OcptResourceStatusPicker({
+    required this.groupKind,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) => Wrap(
@@ -421,7 +437,7 @@ class _OcptResourceStatusPicker extends StatelessWidget {
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
         ),
         child: Text(
-          ocptBudgetResourceStatusLabel(tr, status),
+          ocptBudgetResourceStatusLabel(tr, groupKind, status),
           style: theme.textTheme.labelMedium?.copyWith(
             color: isActive ? accent : theme.colorScheme.onSurfaceVariant,
             fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,

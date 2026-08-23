@@ -337,6 +337,25 @@ are all here, and this file is the whole record of them.
   **null** `isBudgetSimplified` — a version sealed before either column existed truthfully named no
   lender for any resource and had never chosen between the two header views, exactly the reading
   format 24's own upgrade already gives what it materialises.
+  One last change touches no table and no column: `budget_resources.status` stops naming a *word*
+  and starts naming a *step*. The four values the three groups used to share (`applied`, `notified`,
+  `secured`, `valued`) become three (`pending`, `agreed`, `confirmed`), whose word is resolved from
+  the group the row sits in — see "The word a status is called is the group's" below. The migration
+  is the **first in the file that rewrites values rather than a shape**, and it rebuilds the column
+  rather than only refilling it: the retired words also live in the column's own `DEFAULT`, which
+  SQLite gives no way to alter in place, so a file that kept `DEFAULT 'applied'` would write a
+  retired word onto the next resource created in it and `OcptBudgetResourceStatusConverter` reads
+  the column strictly. Adding the column afresh, filling it from the old one, dropping that one and
+  taking its name is the whole of it — four statements against a column nothing references, landing
+  an upgraded file on exactly the declaration `onCreate` writes, which is what the migration test's
+  own shape comparison checks. This is schema **v30**. `OcptProjectVersionCodec` reads the same
+  column under **payload format 26**, whose upgrade from format 25 maps each retired word onto the
+  step it already stated — a **fourth kind** of upgrade step beside the empty list, the null and the
+  removal: nothing arrives and nothing goes, one column simply stops meaning what it meant. It has
+  to happen there rather than being tolerated at read time, because the codec reads the key
+  strictly: a payload still saying `applied` would be refused outright, not defaulted. **Nothing is
+  invented** on either side — `valued`, the one word that was already a group's rather than a step's,
+  lands on `agreed`, which is exactly what it said: a figure is on this resource, nothing is signed.
 
 ## The mode's own shape
 
@@ -565,10 +584,9 @@ are all here, and this file is the whole record of them.
 - `OcptBudgetFinancing` groups the plan by `OcptBudgetResourceGroupKind` — subsidies, cash
   contributions, contributions in kind — one bordered card each, a group holding no resource simply
   not drawn, since an empty card with a zero subtotal states nothing. `OcptBudgetResourceStatus` is
-  **flat and four-valued** (`applied`, `notified`, `secured`, `valued`), nothing hidden or disabled
-  according to which group a row sits in: `valued` is what an in-kind contribution normally wears,
-  but it is the user who says so, not a branch in the code — the mode's standing rule that the UI
-  carries no conditional branch on the state of the data.
+  **flat and three-valued** (`pending`, `agreed`, `confirmed`) — three *steps*, deliberately
+  anonymous, because the word a step is called belongs to the group and not to the enum: see "The
+  word a status is called is the group's" below.
   The one silence this view keeps is a different thing from a withheld affordance: an `inKind`
   resource prints `ocptBudgetEmptyValue` for both *received* and *outstanding* **while no journal
   entry names it**, because a contribution in kind is valued rather than collected — no cash will
@@ -595,16 +613,45 @@ are all here, and this file is the whole record of them.
   Once the kind is known, the `Amount` field's own label and helper text are worded for it — an
   in-kind contribution's figure is `Valued at`, what it is *valued at*, never an amount that will be
   received, while a subsidy or a cash contribution keeps the plain `Amount` label — and the `Status`
-  field keeps a helper of its own saying what progress means for that kind. **No status is ever
-  hidden or disabled by kind**: `valued` is what an in-kind contribution normally wears, but nothing
-  here stops a production from marking a subsidy `valued` too if that is genuinely what happened —
-  the mode's standing rule that the UI carries no conditional branch on the state of the data holds
-  exactly as it already does for `OcptBudgetResourceStatus` itself.
+  field's own chips are worded for it too, alongside a helper saying what progress means for that
+  kind ("The word a status is called is the group's", below).
   A resource row is **selected and highlighted, and opens no inspector**. The right dock's
   `Inspector` tab is built entirely around a poste's own quote lines, and a resource has none;
   growing a conditional branch onto that dock, or inventing a second inspector concept beside it,
   would both cost more than the reading is worth. `OcptBudgetState.selectedResourceId` is therefore
   a plain highlight, reconciled against a freshly loaded snapshot exactly as `selectedPosteId` is.
+
+## The word a status is called is the group's
+
+- A financing resource's status used to be one flat list of four words shared by all three groups,
+  and the product owner's objection to it is the same one that had already split `+ Resource` into
+  three gestures: with three different ways of creating a resource, one should not be able to
+  create it at a status that has nothing to do with what is being created. Asking a production to
+  mark a lent camera `applied` was asking it to file a dossier at a commission that does not exist.
+- The answer is **not a per-group subset of one word list**, which would have left `applied` meaning
+  a filed dossier in one card and something vaguer in the next. `OcptBudgetResourceStatus` stores a
+  **step** — `pending`, `agreed`, `confirmed`, deliberately anonymous — and
+  `ocptBudgetResourceStatusLabel(tr, kind, status)` resolves the word from the row's own
+  `OcptBudgetResourceGroupKind` **and** its step. Nine words, three steps, one stored column: a
+  subsidy is `Applied`, `Notified`, `Secured`; a cash contribution `Requested`, `Agreed`,
+  `Contracted`; a contribution in kind `Promised`, `Valued`, `Signed`. In French, where the gender
+  follows the group's own noun: `Déposée`/`Notifiée`/`Acquise`, `Sollicité`/`Accordé`/
+  `Contractualisé`, `Convenu`/`Valorisé`/`Signé`.
+- **What the three steps have in common is what makes them one enum**: a resource is first merely in
+  play, then answered — a figure is on it — then held on paper. That progression is the same
+  whichever group a row sits in, and it is what lets a production reclassify a resource without its
+  status becoming meaningless: the step survives the change of kind and the picker simply re-words
+  itself under the user's hand, which the resource dialog's own test pins.
+- **Nothing is hidden or disabled by kind, and nothing needs to be.** The mode's standing rule that
+  the UI carries no conditional branch on the state of the data survives this change rather than
+  being spent on it: the picker always offers the same three chips, and only their words change.
+  The *colour* is the step's alone, never the group's — `ocptBudgetResourceStatusAccentColor` takes
+  no kind — so a contribution in kind that is signed and a subsidy that is secured read as equally
+  far along, which is what they are.
+- The exported financing plan reads the same words as the screen, and the same way: the labels
+  object it is handed carries a map **per group** (`OcptBudgetFinancingPlanLabels.statusLabels`,
+  `statusLabelOf(kind, status)`), built from the very same resolver the view uses, so a printed plan
+  can never disagree with the screen about what a step is called.
 
 ## The catering and travel pass types nothing at all
 
