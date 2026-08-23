@@ -262,7 +262,8 @@ are all here, and this file is the whole record of them.
   `project_info` gains three nullable columns read the same way `minimumRestMinutes` already is —
   null means "nobody has recorded a figure," never a claim about the figure's absence:
   `defaultVatRateBasisPoints`, `mealPriceCents` and `snackPriceCents`, the last two read by no view
-  before M3's catering pass. This is schema **v25**. `OcptProjectVersionCodec` gains both tables and
+  before the catering pass existed. This is schema **v25**. `OcptProjectVersionCodec` gains both
+  tables and
   the three columns in all three of its required places — the payload, `contentDigest` and
   `_applyPayload` — under **payload format 21**, whose upgrade from every earlier format
   **materialises** `budgetPostes` and `budgetLines` as empty lists and the three project columns as
@@ -406,12 +407,26 @@ are all here, and this file is the whole record of them.
   argued for would look like a mistake the next time somebody adds a view. Each chip also widens
   that one switch, so `_ocptBudgetHeaderTitleMinWidth` — the width under which the header sheds its
   title rather than crowd its controls — moves out by a segment's own width every time one lands.
+  **Shedding the title is not enough on its own**, and the header does not stop there: under that
+  same threshold the three controls **wrap onto a second line**, and the seven chips wrap inside
+  their own border too, as `OcptScheduleHeader`'s controls already do. The centre narrows for a
+  reason the header cannot see — the right dock opening takes roughly 580 px of it — and a plain
+  `Row` then clips silently in release, which had been taking the tax-basis switch off the screen
+  altogether. A control scrolled out of a clipped row is worse than a disabled one: nothing on
+  screen says it exists. `OcptBudgetFinancing`'s own KPI row wraps for the same reason, its three
+  captioned figures having outgrown any centre under roughly 1,120 px.
   Every
   other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder, a
   delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
   code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
-  on a selection change, a dock tab change, entering a version preview and the mode's own
-  `deactivate()`. A line's VAT override is the one field with no direct mirror: an empty or
+  on a selection change, a dock tab change, **a change of centre view or of either header toggle**,
+  entering a version preview and the mode's own `deactivate()`. Those three last paths were added
+  after the fact and are the reason the mode once looked like it ignored what it was told: an
+  amount typed in the cost-tracking table and followed straight by a click on `Dashboard` was still
+  sitting in the debounce, so the dashboard drew the snapshot from before it and corrected itself
+  two seconds later. The write was never lost; it simply was not shown. Every path that stops the
+  typing and starts the reading has to flush.
+  A line's VAT override is the one field with no direct mirror: an empty or
   unparseable submission reads as "leave the override exactly as it is," never "clear it," since a
   stray backspace must not silently drop an override typed on purpose — going back to inheriting the
   project's rate is its own dedicated, immediate gesture
@@ -753,7 +768,8 @@ are all here, and this file is the whole record of them.
   `lib/utils/ocpt_budget_shares.dart` is where that order is arithmetic rather than layout: the
   takings come in, the reimbursable contributions are taken off the top, and only what is left is
   anybody's to split. `ocptBudgetReimbursableTotalCents` reads `budget_resources.isReimbursable` —
-  the column M3 stored and no view read until now — and nothing there branches on
+  the column the financing plan stored and no view read until the sharing landed — and nothing
+  there branches on
   `OcptBudgetResourceGroupKind`: an in-kind contribution counts if the user marked it reimbursable,
   which is the mode's standing rule that the code carries no conditional branch on the state of the
   data. `ocptBudgetRepaidContributionsTotalOf` is the other half of the sentence
