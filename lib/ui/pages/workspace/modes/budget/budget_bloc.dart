@@ -1082,13 +1082,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     final fields = event.fields;
+    final revenueId = await _createNewRevenueOf(project, fields);
     final entryId = await _budgetJournalService.createEntry(
       database: project.database,
       date: fields.date,
       label: fields.label,
       posteId: fields.posteId,
       resourceId: fields.resourceId,
-      revenueId: fields.revenueId,
+      revenueId: revenueId ?? fields.revenueId,
       shareId: fields.shareId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
@@ -1119,6 +1120,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     final fields = event.fields;
     final voucherNumber = fields.voucherNumber;
+    final revenueId = await _createNewRevenueOf(project, fields);
     await _budgetJournalService.updateEntry(
       database: project.database,
       entryId: event.entryId,
@@ -1126,7 +1128,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       label: Value(fields.label),
       posteId: Value(fields.posteId),
       resourceId: Value(fields.resourceId),
-      revenueId: Value(fields.revenueId),
+      revenueId: Value(revenueId ?? fields.revenueId),
       shareId: Value(fields.shareId),
       debitCents: Value(fields.isDebit ? fields.amountCents : 0),
       creditCents: Value(fields.isDebit ? 0 : fields.amountCents),
@@ -1137,6 +1139,34 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _writeEntryReceiptChange(project, event.entryId, fields);
 
     await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Creates the taking `fields` carries as still-to-be-made
+  /// ([OcptBudgetEntryFormFields.newRevenue]) and answers its fresh id, or null while it carries
+  /// none — which is the ordinary case.
+  ///
+  /// **Written exactly the way [_onRevenueCreationConfirmed] writes one**, through the same two
+  /// calls, so a taking born in the journal is indistinguishable from one born in the sharing
+  /// view: the door differs, never the row.
+  Future<String?> _createNewRevenueOf(
+    OcptOpenProjectModel project,
+    OcptBudgetEntryFormFields fields,
+  ) async {
+    final newRevenue = fields.newRevenue;
+    if (newRevenue == null) {
+      return null;
+    }
+
+    final revenueId = await _budgetSharingService.createRevenue(
+      database: project.database,
+      date: newRevenue.date,
+      label: newRevenue.label,
+    );
+    if (revenueId != null) {
+      await _writeRevenueFields(project, revenueId, newRevenue);
+    }
+
+    return revenueId;
   }
 
   /// Writes whatever `fields` collected about a journal entry's own voucher, once the entry itself

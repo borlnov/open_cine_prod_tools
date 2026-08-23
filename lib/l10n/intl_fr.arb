@@ -1773,6 +1773,8 @@
   "budgetDeleteShareConfirmMessage": "Cette action est irréversible.",
   "budgetEntryDialogRevenueFieldLabel": "Recette",
   "budgetEntryDialogNoRevenueLabel": "Aucune recette",
+  "budgetEntryDialogNewRevenueAction": "Nouvelle recette…",
+  "budgetEntryDialogNewRevenuePicked": "{label} (nouvelle)",
   "budgetEntryDialogShareFieldLabel": "Participant",
   "budgetEntryDialogNoShareLabel": "Aucun participant",
   "budgetRevenueDialogCreateTitle": "Nouvelle recette",

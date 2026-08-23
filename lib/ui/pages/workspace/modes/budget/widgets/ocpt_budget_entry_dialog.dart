@@ -15,9 +15,11 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_revenue_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
@@ -172,6 +174,20 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   State<OcptBudgetEntryDialog> createState() => _OcptBudgetEntryDialogState();
 }
 
+/// The `Taking` picker's own value standing for the taking `New taking…` has just collected but
+/// nothing has created yet.
+///
+/// A sentinel rather than a real id, because there is no id: the row is minted by the bloc, after
+/// this dialog closes. It cannot collide with one either — a `budget_revenues` id is a UUID.
+const String _ocptNewRevenuePickedValue = "#new-revenue";
+
+/// The `Taking` picker's own value standing for the `New taking…` action itself.
+///
+/// Distinct from [_ocptNewRevenuePickedValue] on purpose: a `DropdownButton` asserts that at most
+/// one of its entries carries the value it is showing, so the action and the taking it produced
+/// cannot share one.
+const String _ocptNewRevenueActionValue = "#new-revenue-action";
+
 /// The state of [OcptBudgetEntryDialog].
 class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// The form used to validate the entered label and amount.
@@ -207,6 +223,10 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// The share currently picked, or null for "no participant" — the normal case, see the class doc
   /// comment.
   String? _shareId;
+
+  /// The taking the `New taking…` entry just collected, waiting to be created along with this
+  /// movement, or null while none was — see [OcptBudgetEntryFormFields.newRevenue].
+  OcptBudgetRevenueFormFields? _newRevenue;
 
   /// Whether the direction currently picked is a debit (money that left the account).
   late bool _isDebit;
@@ -350,15 +370,40 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
                 onChanged: (value) => setState(() => _resourceId = value),
               ),
               const SizedBox(height: 12),
+              // **The one picker that can name something that does not exist yet.** Money coming
+              // in against a taking the project has never recorded — a festival prize, a first
+              // sale — used to mean leaving the journal for the sharing view, creating the taking
+              // there and coming back. `New taking…` opens the very same dialog the sharing view
+              // opens, so a taking is still stated in exactly one way; only the door is new.
               DropdownButtonFormField<String?>(
+                // Keyed, so a taking just collected shows as the picked entry: see
+                // `OcptBudgetAllowanceDialog`'s own dropdown for why `initialValue` alone cannot.
+                key: ValueKey("$_revenueId/${_newRevenue?.label}"),
                 initialValue: _revenueId,
                 decoration: InputDecoration(labelText: tr.budgetEntryDialogRevenueFieldLabel),
+                isExpanded: true,
                 items: [
                   DropdownMenuItem(child: Text(tr.budgetEntryDialogNoRevenueLabel)),
                   for (final revenue in widget.revenues)
-                    DropdownMenuItem(value: revenue.id, child: Text(revenue.label)),
+                    DropdownMenuItem(
+                      value: revenue.id,
+                      child: Text(revenue.label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                  if (_newRevenue case final newRevenue?)
+                    DropdownMenuItem(
+                      value: _ocptNewRevenuePickedValue,
+                      child: Text(
+                        tr.budgetEntryDialogNewRevenuePicked(newRevenue.label),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  DropdownMenuItem(
+                    value: _ocptNewRevenueActionValue,
+                    child: Text(tr.budgetEntryDialogNewRevenueAction),
+                  ),
                 ],
-                onChanged: (value) => setState(() => _revenueId = value),
+                onChanged: _onRevenuePicked,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
@@ -539,6 +584,33 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     });
   }
 
+  /// Applies the `Taking` picker's own choice: an ordinary taking is simply named, while
+  /// `New taking…` opens `OcptBudgetRevenueDialog` — the very dialog the sharing view opens — and
+  /// keeps what it collected until this movement is saved.
+  ///
+  /// **Cancelling the taking dialog leaves the picker exactly where it was**, rather than on a
+  /// half-made choice: opening a dialog by mistake must cost nothing.
+  Future<void> _onRevenuePicked(String? value) async {
+    if (value != _ocptNewRevenueActionValue) {
+      setState(() => _revenueId = value);
+      return;
+    }
+
+    final fields = await OcptBudgetRevenueDialog.show(
+      context,
+      existing: null,
+      currencyCode: widget.currencyCode,
+    );
+    if (fields == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _newRevenue = fields;
+      _revenueId = _ocptNewRevenuePickedValue;
+    });
+  }
+
   /// Validates the form and, if it passes, pops the dialog returning every field collected.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {
@@ -558,7 +630,10 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         label: _labelController.text.trim(),
         posteId: _posteId,
         resourceId: _resourceId,
-        revenueId: _revenueId,
+        // The sentinel never leaves this dialog: a taking still to be created travels as
+        // `newRevenue`, and the bloc writes its fresh id where this would have gone.
+        revenueId: _revenueId == _ocptNewRevenuePickedValue ? null : _revenueId,
+        newRevenue: _newRevenue,
         shareId: _shareId,
         isDebit: _isDebit,
         amountCents: amountCents,

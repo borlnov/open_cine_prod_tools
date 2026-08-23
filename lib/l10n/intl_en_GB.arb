@@ -13289,6 +13289,17 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetEntryDialogNewRevenueAction": "New taking…",
+  "@budgetEntryDialogNewRevenueAction": {
+    "description": "The entry dialog's own Taking picker entry that opens the taking dialog, so a taking the project has never recorded can be created without leaving the journal."
+  },
+  "budgetEntryDialogNewRevenuePicked": "{label} (new)",
+  "@budgetEntryDialogNewRevenuePicked": {
+    "description": "How the Taking picker shows a taking collected by New taking… but not yet created — it exists only as what the dialog collected until the movement is saved.",
+    "placeholders": {
+      "label": {}
+    }
+  },
   "budgetEntryDialogShareFieldLabel": "Participant",
   "@budgetEntryDialogShareFieldLabel": {
     "description": "Label of the entry dialog's own Participant picker",

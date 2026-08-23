@@ -473,6 +473,26 @@ are all here, and this file is the whole record of them.
   every other mode's bloc does, which is what let a colleague receive this project as a portable
   `.ocptz` a milestone before the mode printed a single PDF of its own.
 
+## Money is added in one way, reached through several doors
+
+- **There is exactly one gesture that writes a movement**: `OcptBudgetEntryDialog`, which already
+  carries all four of an entry's links (`posteId`, `resourceId`, `revenueId`, `shareId`). What the
+  financing plan and the sharing view offer as `Record a receipt` / `Record a payout` are
+  **facilitators onto that same dialog**, pre-filled — never a second way of writing money.
+- The one thing that door could not do was **mint** a taking, so recording a festival prize meant
+  leaving the journal for the sharing view, creating the taking there and coming back. The
+  `Taking` picker now carries a `New taking…` entry that opens `OcptBudgetRevenueDialog` — the very
+  dialog the sharing view opens — and the taking travels back on
+  `OcptBudgetEntryFormFields.newRevenue`, which the bloc creates through the same two service calls
+  `OcptBudgetRevenueCreationConfirmedEvent` uses. A taking born in the journal is byte for byte one
+  born in the sharing view: the door differs, the row never does.
+- The picker holds it as a **sentinel value**, not an id, since no row exists until the movement is
+  saved; the sentinel never leaves the dialog. Cancelling the taking dialog leaves the picker where
+  it was, an accidental open costing nothing.
+- The rule the help panel states in one line, and the reason there is no fourth way: **a taking or
+  a financing resource is an expectation; a journal entry is a movement.** The first says what is
+  owed to the film, the second says what the account has actually seen.
+
 ## A travel defrayal is priced by a scale, and remembers only the number
 
 - `OcptBudgetAllowanceDialog` draws a **mileage-scale dropdown in place of the unit price** while

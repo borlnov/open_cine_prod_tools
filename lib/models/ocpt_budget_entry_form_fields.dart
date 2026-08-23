@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 
 /// What `OcptBudgetEntryDialog` collected, handed back to the mode that opened it — one shape for
 /// both creating and editing a `budget_entries` movement, the decision taken for this milestone
@@ -36,6 +37,18 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// The participant this entry actually pays, or null meaning "no participant" — mirrors
   /// [revenueId], set instead by the sharing view's own `Record a payout` gesture.
   final String? shareId;
+
+  /// A taking to **create and then attach** this entry to, or null — the ordinary case.
+  ///
+  /// The one field here that names something that does not exist yet. Recording a festival prize
+  /// used to mean leaving the journal for the sharing view, creating the taking there and coming
+  /// back, because a taking could be named here but never minted; the dialog's own
+  /// `New taking…` entry closes that, opening the very same `OcptBudgetRevenueDialog` the sharing
+  /// view opens so nothing about a taking is stated in two places or two ways.
+  ///
+  /// **Never meaningful at the same time as [revenueId]**: the pick is one or the other, and the
+  /// bloc creates this taking first and writes its fresh id where [revenueId] would have gone.
+  final OcptBudgetRevenueFormFields? newRevenue;
 
   /// Whether [amountCents] left the account (`true`) or came into it (`false`).
   final bool isDebit;
@@ -89,6 +102,7 @@ class OcptBudgetEntryFormFields extends Equatable {
     required this.resourceId,
     required this.revenueId,
     required this.shareId,
+    this.newRevenue,
     required this.isDebit,
     required this.amountCents,
     required this.isTaxInclusive,
@@ -113,6 +127,7 @@ class OcptBudgetEntryFormFields extends Equatable {
     resourceId,
     revenueId,
     shareId,
+    newRevenue,
     isDebit,
     amountCents,
     isTaxInclusive,

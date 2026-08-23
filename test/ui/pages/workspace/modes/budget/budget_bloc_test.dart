@@ -707,6 +707,52 @@ void main() {
   });
 
   group("creating a cash-journal entry", () {
+    test("a taking named as still to be made is created, and the entry names it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 6),
+            label: "Festival prize paid",
+            posteId: null,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            newRevenue: OcptBudgetRevenueFormFields(
+              date: DateTime(2026, 5),
+              label: "Clermont-Ferrand — grand prix",
+              amountCents: 200000,
+              status: OcptBudgetRevenueStatus.expected,
+              notes: "",
+            ),
+            isDebit: false,
+            amountCents: 200000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+
+      // The taking is written exactly as the sharing view would have written it — every field,
+      // not just the label the journal needed to name it by.
+      expect(state.revenues, hasLength(1));
+      final revenue = state.revenues.single;
+      expect(revenue.label, "Clermont-Ferrand — grand prix");
+      expect(revenue.date, DateTime(2026, 5));
+      expect(revenue.amountCents, 200000);
+
+      // And the movement points at it, so the sharing view reads the money as actually received
+      // rather than as an unattached credit.
+      expect(state.entries.single.revenueId, revenue.id);
+    });
+
     test("writes the typed amount onto debitCents when isDebit is true", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
