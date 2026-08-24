@@ -224,7 +224,7 @@ class OcptBudgetQuoteService {
   /// `OcptBudgetLinesTable.provisionKey`. Every other caller leaves all three at [Value.absent],
   /// and the line then reads as one somebody typed, which is what it is.
   ///
-  /// [elementId] and [unitAmountCents] are what `OcptBudgetPosteInspector`'s own `From breakdown`
+  /// [elementId] and [unitAmountCents] are what `OcptBudgetFiche`'s own `From breakdown`
   /// gesture fills in — a line minted from a breakdown element, its own unit price seeded from
   /// `OcptElement.cost` — and what the ordinary `+ Add` footer leaves at [Value.absent], the plain
   /// `+ Add` line reading exactly as it always has. **A null `elements.cost` is passed on as

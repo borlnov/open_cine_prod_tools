@@ -21,7 +21,7 @@ const double _ocptElementPickerWidth = 420;
 const double _ocptElementPickerHeight = 420;
 
 /// Offers every breakdown element `OcptBudgetState.unpricedElements` names — every live element no
-/// live quote line prices yet — picked by `OcptBudgetPosteInspector`'s own `+ From breakdown`
+/// live quote line prices yet — picked by `OcptBudgetFiche`'s own `+ From breakdown`
 /// action.
 ///
 /// **A plain searchable list, not `OcptCardChoiceDialog`'s own two-column card grid.** That dialog

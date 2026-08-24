@@ -91,10 +91,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// Every write but the free-text fields (which ride [_fieldEditDebounce], flushed by
 /// [_flushPendingFieldEdits] on a selection change, a dock tab change, a version preview and the
 /// mode's own `deactivate()`) lands the moment it is dispatched, then reloads the quote snapshot
-/// through [_applyBudgetSnapshot] — which also reconciles [OcptBudgetState.selectedPosteId]/
-/// [OcptBudgetState.expandedLineId] against the freshly loaded snapshot, and, while the `Versions`
-/// tab is open, asks [MixinOcptProjectVersionsBloc] for a fresh working-copy capture, the mode's own
-/// stand-in for "a save landing while it is open".
+/// through [_applyBudgetSnapshot] — which also reconciles [OcptBudgetState.selection] against the
+/// freshly loaded snapshot, and, while the `Versions` tab is open, asks
+/// [MixinOcptProjectVersionsBloc] for a fresh working-copy capture, the mode's own stand-in for "a
+/// save landing while it is open".
 ///
 /// It mixes in [MixinOcptProjectPackageBloc] too: the `Export` panel's own standing project-package
 /// card is wired here exactly as every other mode's is, even though this milestone offers no
@@ -256,7 +256,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetLineSelectedEvent>(_onLineSelected);
     on<OcptBudgetCommitmentSelectedEvent>(_onCommitmentSelected);
     on<OcptBudgetEntrySelectedEvent>(_onEntrySelected);
-    on<OcptBudgetLineExpandedEvent>(_onLineExpanded);
     on<OcptBudgetLineCreatedEvent>(_onLineCreated);
     on<OcptBudgetLineCreatedFromElementEvent>(_onLineCreatedFromElement);
     on<OcptBudgetLineDeletionConfirmedEvent>(_onLineDeletionConfirmed);
@@ -315,8 +314,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
   /// about to swap the database can't send it into the previewed version instead, then clears the
-  /// selection and expanded line: either selected out of the working copy's own catalogue means
-  /// nothing once a preview swaps that data out.
+  /// selection: whatever it named out of the working copy's own catalogue means nothing once a
+  /// preview swaps that data out.
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
@@ -326,7 +325,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         clearSelection: true,
         clearSelectedRevenueId: true,
         clearSelectedShareId: true,
-        clearExpandedLineId: true,
       ),
     );
   }
@@ -341,10 +339,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// ten CNC postes on the first read of an empty table), the currency and the default VAT rate.
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
-  /// which version is being previewed alongside the read it just performed. The selected poste, the
-  /// expanded line and any pending field edit are always cleared on a (re)load: a preview or a
-  /// restore changes the whole database underneath, so a stale selection is dropped rather than
-  /// trusted to still mean something.
+  /// which version is being previewed alongside the read it just performed. The selection and any
+  /// pending field edit are always cleared on a (re)load: a preview or a restore changes the whole
+  /// database underneath, so a stale selection is dropped rather than trusted to still mean
+  /// something.
   Future<void> _onLoadRequested(
     OcptBudgetLoadRequestedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -366,7 +364,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           clearSelection: true,
           clearSelectedRevenueId: true,
           clearSelectedShareId: true,
-          clearExpandedLineId: true,
           pendingFieldEdits: const {},
           roles: const [],
           people: const [],
@@ -392,7 +389,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         clearSelection: true,
         clearSelectedRevenueId: true,
         clearSelectedShareId: true,
-        clearExpandedLineId: true,
         pendingFieldEdits: const {},
         roles: loaded.roles,
         people: loaded.people,
@@ -708,8 +704,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWith(taxBasis: event.basis));
   }
 
-  /// Selects poste `event.posteId`, opening the right dock on the `Inspector` tab and collapsing
-  /// whichever line card was open — the two panels are about different postes now. A poste id
+  /// Selects poste `event.posteId`, opening the right dock on the `Inspector` tab. A poste id
   /// naming no live poste is ignored. Flushes any pending field edit first: switching which poste's
   /// own fields are on screen is exactly the selection change every other mode flushes on.
   Future<void> _onPosteSelected(
@@ -725,7 +720,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(
       state.copyWith(
         selection: OcptBudgetPosteSelection(event.posteId),
-        clearExpandedLineId: true,
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
       ),
@@ -749,7 +743,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       emitter(
         state.copyWith(
           selection: OcptBudgetPosteSelection(posteId),
-          clearExpandedLineId: true,
           rightDockTab: OcptBudgetRightDockTab.inspector,
           lastRightDockTab: OcptBudgetRightDockTab.inspector,
         ),
@@ -869,26 +862,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Expands or collapses quote line `event.lineId`'s own card, flushing any pending field edit
-  /// first: the field of a card about to collapse must reach the database before it goes, exactly
-  /// as a poste selection change does.
-  Future<void> _onLineExpanded(
-    OcptBudgetLineExpandedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    final isAlreadyExpanded = state.expandedLineId == event.lineId;
-    emitter(
-      state.copyWith(
-        expandedLineId: isAlreadyExpanded ? null : event.lineId,
-        clearExpandedLineId: isAlreadyExpanded,
-      ),
-    );
-  }
-
   /// Creates a new, unnamed quote line inside poste `event.posteId`, appended at the end of its own
-  /// lines, and expands it.
+  /// lines, and selects it, opening the right dock on the `Inspector` tab — a line is now selected
+  /// rather than expanded, mirroring [_onLineSelected].
   Future<void> _onLineCreated(
     OcptBudgetLineCreatedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -906,12 +882,18 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _applyBudgetSnapshot(emitter, project);
     if (lineId != null) {
-      emitter(state.copyWith(expandedLineId: lineId));
+      emitter(
+        state.copyWith(
+          selection: OcptBudgetLineSelection(lineId),
+          rightDockTab: OcptBudgetRightDockTab.inspector,
+          lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        ),
+      );
     }
   }
 
   /// Creates a new quote line inside poste `event.posteId` **from** breakdown element
-  /// `event.elementId`, and expands it — dispatched by the poste inspector's own `+ From breakdown`
+  /// `event.elementId`, and selects it — dispatched by the poste fiche's own `From breakdown`
   /// action once its picker has returned an element. An element id naming no live element of
   /// [OcptBudgetState.elements] is ignored: the picker only ever offers a live one, so this should
   /// not happen outside a stale dialog result.
@@ -952,7 +934,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _applyBudgetSnapshot(emitter, project);
     if (lineId != null) {
-      emitter(state.copyWith(expandedLineId: lineId));
+      emitter(
+        state.copyWith(
+          selection: OcptBudgetLineSelection(lineId),
+          rightDockTab: OcptBudgetRightDockTab.inspector,
+          lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        ),
+      );
     }
   }
 
@@ -1141,6 +1129,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
             database: project.database,
             posteId: targetId,
             code: Value(value),
+          );
+        case OcptBudgetField.posteSimpleLabel:
+          await _budgetQuoteService.updatePoste(
+            database: project.database,
+            posteId: targetId,
+            simpleLabel: Value(value.isEmpty ? null : value),
           );
         case OcptBudgetField.posteEstimateToComplete:
           final amountCents = ocptCostCentsOf(value);
@@ -1519,11 +1513,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Re-reads the quote of [project] and applies it, reconciling
-  /// [OcptBudgetState.selectedPosteId]/[OcptBudgetState.expandedLineId]/
-  /// [OcptBudgetState.selectedResourceId] against what the fresh snapshot still holds — a selected
-  /// poste, an expanded line or a selected resource that disappeared is dropped rather than trusted
-  /// to still mean something.
+  /// Re-reads the quote of [project] and applies it, reconciling [OcptBudgetState.selection]
+  /// against what the fresh snapshot still holds — whichever object it names, gone missing, is
+  /// dropped rather than trusted to still mean something. `OcptBudgetReceiptSelection` is not yet
+  /// dispatched by this bloc (M6 wires it), so it is treated as always live, exactly as a null
+  /// selection is.
   ///
   /// Every handler that writes to the quote tables ends here, which is also the mode's own
   /// stand-in for "a save landing while the `Versions` tab is open": [OcptProjectWorkingCopyRefreshRequestedEvent]
@@ -1536,35 +1530,24 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final loaded = await _loadBudgetSnapshot(project);
     final snapshot = loaded.snapshot;
 
-    final posteStillExists =
-        state.selectedPosteId == null ||
-        snapshot.postes.any((poste) => poste.id == state.selectedPosteId);
     // The filter is reconciled exactly as the selection is: a poste deleted while every view was
     // narrowed to it would otherwise leave the mode showing nothing at all, with a header chip
     // naming a poste the project no longer has.
     final filterStillExists =
         state.filterPosteId == null ||
         snapshot.postes.any((poste) => poste.id == state.filterPosteId);
-    final lineStillExists =
-        posteStillExists &&
-        state.expandedLineId != null &&
-        snapshot.postes.any((poste) => poste.lines.any((line) => line.id == state.expandedLineId));
-    final resourceStillExists =
-        state.selectedResourceId == null ||
-        snapshot.resources.any((resource) => resource.id == state.selectedResourceId);
-    // One field now names either kind of selection, so reconciling it is one switch over which
-    // variant it currently is — a poste or a resource read [posteStillExists]/[resourceStillExists]
-    // above, exactly as the two separate fields this replaced did; every other variant is not yet
-    // written by this bloc (the fiche that would is a later milestone's), so there is nothing here
-    // that could have gone stale.
     final selectionStillExists = switch (state.selection) {
       null => true,
-      OcptBudgetPosteSelection() => posteStillExists,
-      OcptBudgetResourceSelection() => resourceStillExists,
-      OcptBudgetLineSelection() ||
-      OcptBudgetCommitmentSelection() ||
-      OcptBudgetEntrySelection() ||
-      OcptBudgetRevenueSelection() ||
+      OcptBudgetPosteSelection(:final posteId) => snapshot.postes.any((poste) => poste.id == posteId),
+      OcptBudgetLineSelection(:final lineId) =>
+        snapshot.postes.any((poste) => poste.lines.any((line) => line.id == lineId)),
+      OcptBudgetCommitmentSelection(:final commitmentId) =>
+        snapshot.commitments.any((commitment) => commitment.id == commitmentId),
+      OcptBudgetEntrySelection(:final entryId) => snapshot.entries.any((entry) => entry.id == entryId),
+      OcptBudgetResourceSelection(:final resourceId) =>
+        snapshot.resources.any((resource) => resource.id == resourceId),
+      OcptBudgetRevenueSelection(:final revenueId) =>
+        snapshot.revenues.any((revenue) => revenue.id == revenueId),
       OcptBudgetReceiptSelection() => true,
     };
     final revenueStillExists =
@@ -1590,7 +1573,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         clearSelection: !selectionStillExists,
         clearFilterPosteId: !filterStillExists,
-        clearExpandedLineId: !lineStillExists,
         clearSelectedRevenueId: !revenueStillExists,
         clearSelectedShareId: !shareStillExists,
       ),

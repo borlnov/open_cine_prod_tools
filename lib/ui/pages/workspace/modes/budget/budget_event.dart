@@ -224,28 +224,9 @@ class OcptBudgetPosteDeletionConfirmedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, posteId];
 }
 
-/// Expands or collapses quote line [lineId]'s own card in the poste inspector — the already-expanded
-/// line collapses back, any other one expands and replaces whichever was open, at most one line
-/// ever expanded at a time.
-class OcptBudgetLineExpandedEvent extends OcptBudgetEvent {
-  /// The id of the line whose card was clicked.
-  final String lineId;
-
-  /// Class constructor
-  const OcptBudgetLineExpandedEvent({required this.lineId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, lineId];
-}
-
 /// Expands or collapses expenses-tree node [nodeId] — a poste's or a quote line's own id, whichever
 /// twisty was clicked: an already-expanded node collapses, a collapsed one expands, independently
 /// of every other one, so several branches of the tree can stand open together.
-///
-/// **A different gesture from [OcptBudgetLineExpandedEvent].** That one opens at most one line's
-/// own card in the poste inspector; this one opens or closes one node of the cost-tracking table's
-/// own tree, in the centre, and never touches `OcptBudgetState.expandedLineId`.
 class OcptBudgetRowExpansionToggledEvent extends OcptBudgetEvent {
   /// The id of the node whose twisty was clicked.
   final String nodeId;

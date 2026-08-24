@@ -163,20 +163,11 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// view's own right-column selection, mirroring [selectedRevenueId].
   final String? selectedShareId;
 
-  /// The id of the quote line whose card is currently expanded in the poste inspector, or null
-  /// while none is — at most one line is ever expanded at a time.
-  final String? expandedLineId;
-
   /// Which nodes of the expenses tree are currently expanded, keyed by their own id — a poste id
   /// or a quote line id, whichever twisty was last clicked open. A commitment or an entry sub-row
   /// carries no twisty of its own and so never appears here: it is revealed or hidden wholesale
-  /// with whichever line, or poste, it sits directly under.
-  ///
-  /// **A different fact from [expandedLineId].** That one is the poste inspector's own single
-  /// expanded card, drawn in the right dock; this one is the cost-tracking table's own tree, drawn
-  /// in the centre. A poste or a line can be open in both, in neither, or in only one — the two
-  /// sets are never folded together. Not persisted across a relaunch, mirroring [document],
-  /// [reading], [subPage], [isSimplified] and [taxBasis] above.
+  /// with whichever line, or poste, it sits directly under. Not persisted across a relaunch,
+  /// mirroring [document], [reading], [subPage], [isSimplified] and [taxBasis] above.
   final Set<String> expandedNodeIds;
 
   /// The right dock's currently active tab, or null if the dock is closed.
@@ -462,77 +453,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     return null;
   }
 
-  /// The id of the poste that owns whatever [selection] currently names: the selected poste
-  /// itself, or the poste of the selected line, commitment or entry — or null while [selection]
-  /// names none of the four, or names one that has since disappeared from a freshly loaded
-  /// [snapshot].
-  ///
-  /// **M5 replaces this** with the polymorphic fiche reading [selection] directly. Until then, the
-  /// `Inspector` dock panel reads this instead of [selectedPosteId] alone, so a click anywhere in
-  /// the expenses tree — a line, a commitment, the entry that settled it — keeps the dock showing
-  /// the poste it belongs to, rather than going blank the moment the click lands on anything but a
-  /// poste's own row.
-  String? get selectedOwningPosteId => switch (selection) {
-    OcptBudgetPosteSelection(:final posteId) => posteId,
-    OcptBudgetLineSelection(:final lineId) => _posteIdOfLine(lineId),
-    OcptBudgetCommitmentSelection(:final commitmentId) => _posteIdOfCommitment(commitmentId),
-    OcptBudgetEntrySelection(:final entryId) => _posteIdOfEntry(entryId),
-    _ => null,
-  };
-
-  /// The poste [selectedOwningPosteId] names, or null while it names none — see that getter's own
-  /// doc comment for why the `Inspector` dock panel reads this instead of [selectedPoste].
-  OcptBudgetPoste? get selectedOwningPoste {
-    final posteId = selectedOwningPosteId;
-    if (posteId == null) {
-      return null;
-    }
-
-    for (final poste in postes) {
-      if (poste.id == posteId) {
-        return poste;
-      }
-    }
-
-    return null;
-  }
-
-  /// The id of the poste [lineId]'s own quote line belongs to, or null while no live poste carries
-  /// it.
-  String? _posteIdOfLine(String lineId) {
-    for (final poste in postes) {
-      if (poste.lines.any((line) => line.id == lineId)) {
-        return poste.id;
-      }
-    }
-
-    return null;
-  }
-
-  /// [commitmentId]'s own `OcptBudgetCommitment.posteId`, or null while no live commitment carries
-  /// that id.
-  String? _posteIdOfCommitment(String commitmentId) {
-    for (final commitment in commitments) {
-      if (commitment.id == commitmentId) {
-        return commitment.posteId;
-      }
-    }
-
-    return null;
-  }
-
-  /// [entryId]'s own `OcptBudgetEntry.posteId`, or null while no live entry carries that id, or the
-  /// entry it names prices no poste at all.
-  String? _posteIdOfEntry(String entryId) {
-    for (final entry in entries) {
-      if (entry.id == entryId) {
-        return entry.posteId;
-      }
-    }
-
-    return null;
-  }
-
   /// The selected financing resource, or null while none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot]) — mirrors [selectedPoste].
   OcptBudgetResource? get selectedResource {
@@ -605,7 +525,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.filterPosteId,
     required this.selectedRevenueId,
     required this.selectedShareId,
-    required this.expandedLineId,
     required this.expandedNodeIds,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -647,7 +566,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       filterPosteId = null,
       selectedRevenueId = null,
       selectedShareId = null,
-      expandedLineId = null,
       expandedNodeIds = const {},
       rightDockTab = null,
       lastRightDockTab = OcptBudgetRightDockTab.inspector,
@@ -674,8 +592,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
-  /// [selection], [filterPosteId], [subPage], [expandedLineId] and [rightDockTab] all legitimately
-  /// go back to null while the mode is alive, so each has its own clear flag. [pendingFieldEdits]
+  /// [selection], [filterPosteId], [subPage] and [rightDockTab] all legitimately go back to null
+  /// while the mode is alive, so each has its own clear flag. [pendingFieldEdits]
   /// is always replaced wholesale — the caller (the bloc's own field-edit handler) always computes
   /// the full next map.
   @override
@@ -698,8 +616,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     bool clearSelectedRevenueId = false,
     String? selectedShareId,
     bool clearSelectedShareId = false,
-    String? expandedLineId,
-    bool clearExpandedLineId = false,
     Set<String>? expandedNodeIds,
     OcptBudgetRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -746,7 +662,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     filterPosteId: clearFilterPosteId ? null : (filterPosteId ?? this.filterPosteId),
     selectedRevenueId: clearSelectedRevenueId ? null : (selectedRevenueId ?? this.selectedRevenueId),
     selectedShareId: clearSelectedShareId ? null : (selectedShareId ?? this.selectedShareId),
-    expandedLineId: clearExpandedLineId ? null : (expandedLineId ?? this.expandedLineId),
     expandedNodeIds: expandedNodeIds ?? this.expandedNodeIds,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -846,7 +761,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     filterPosteId,
     selectedRevenueId,
     selectedShareId,
-    expandedLineId,
     expandedNodeIds,
     rightDockTab,
     lastRightDockTab,

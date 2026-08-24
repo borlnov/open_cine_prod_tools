@@ -63,7 +63,7 @@ OcptBudgetElementLinkCounts ocptBudgetElementLinkCountsOf({
 }
 
 /// Every one of [elements] no live quote line of [postes] prices yet, in [elements]' own order —
-/// what `OcptBudgetPosteInspector`'s own `+ From breakdown` picker offers: an element already
+/// what `OcptBudgetFiche`'s own `+ From breakdown` picker offers: an element already
 /// answered by a line is not offered a second time.
 List<OcptElement> ocptBudgetUnpricedElementsOf({
   required List<OcptBudgetPoste> postes,

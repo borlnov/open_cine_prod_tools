@@ -26,6 +26,13 @@ enum OcptBudgetField {
   /// Maps to `OcptBudgetQuoteService.updatePoste`'s `code`.
   posteCode,
 
+  /// Maps to `OcptBudgetQuoteService.updatePoste`'s `simpleLabel` — an empty submission is written
+  /// as `null`, unlike every other free-text field here: a simple label's own null already means
+  /// something (falling back to [posteLabel], `docs/architecture/budget.md`'s own reading), so
+  /// clearing the field is the plain, unambiguous way back to it, with no second gesture needed the
+  /// way [lineVatRateOverride] or [posteEstimateToComplete] need one.
+  posteSimpleLabel,
+
   /// Maps to `OcptBudgetQuoteService.updatePoste`'s `estimateToCompleteCents`, read through
   /// `ocptCostCentsOf` exactly as [lineUnitAmount] is. An empty or unparseable submission is
   /// **skipped**, never written as null and never as zero — the same "null, never zero" honesty

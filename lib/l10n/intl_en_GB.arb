@@ -11279,13 +11279,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorEmptyHint": "Select a poste to see its quote.",
-  "@budgetInspectorEmptyHint": {
-    "description": "Hint shown in the Inspector tab while no poste is selected",
-    "context": "Displayed in the budget mode's right dock Inspector tab",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetInspectorPosteLabelFieldLabel": "Label",
   "@budgetInspectorPosteLabelFieldLabel": {
     "description": "Label of the poste inspector's own label field",
@@ -11297,6 +11290,13 @@
   "@budgetInspectorPosteCodeFieldLabel": {
     "description": "Label of the poste inspector's own code field",
     "context": "Displayed above the poste's code field in the budget mode's Inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetInspectorPosteSimpleLabelFieldLabel": "Simple label",
+  "@budgetInspectorPosteSimpleLabelFieldLabel": {
+    "description": "Label of the poste fiche's own simple-label field — the plain-language name shown under the header's simplified switch, falling back to the ordinary label while empty",
+    "context": "Displayed above the poste's simple-label field in the budget mode's fiche",
     "type": "text",
     "placeholders": {}
   },
@@ -11552,6 +11552,95 @@
   "budgetLineUncommitSettledHint": "This commitment has been settled by a journal entry, so it can no longer be cancelled from here.",
   "@budgetLineUncommitSettledHint": {
     "description": "Shown in place of Cancel the commitment when the commitment the line produced is already settled."
+  },
+  "budgetFicheEmptyHint": "Select a row to see its figures.",
+  "@budgetFicheEmptyHint": {
+    "description": "Hint shown in the right dock's fiche while nothing is selected",
+    "context": "Displayed in the budget mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheStepEstimatedLabel": "Estimated",
+  "@budgetFicheStepEstimatedLabel": {
+    "description": "First step of the fiche's own expenses-side stepper (Estimated — Committed — Paid), and the matching figure label",
+    "context": "Displayed in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheStepPromisedLabel": "Promised",
+  "@budgetFicheStepPromisedLabel": {
+    "description": "First step of the fiche's own resources-side stepper (Promised — Received), and the matching figure label",
+    "context": "Displayed in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheKindCommitmentLabel": "Commitment",
+  "@budgetFicheKindCommitmentLabel": {
+    "description": "Last breadcrumb segment of a commitment's own fiche, naming what kind of object is shown",
+    "context": "Displayed in the budget mode's fiche breadcrumb",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheKindEntryLabel": "Entry",
+  "@budgetFicheKindEntryLabel": {
+    "description": "Last breadcrumb segment of a journal entry's own fiche, naming what kind of object is shown",
+    "context": "Displayed in the budget mode's fiche breadcrumb",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheCommitmentHint": "{status} · {dueDate}",
+  "@budgetFicheCommitmentHint": {
+    "description": "Hint line of a commitment's own fiche: its own status word, then its own due date (or the no-due-date label)",
+    "context": "Displayed under a commitment's own title in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {
+      "status": {},
+      "dueDate": {}
+    }
+  },
+  "budgetFicheEntryHint": "{date} · {voucher}",
+  "@budgetFicheEntryHint": {
+    "description": "Hint line of a journal entry's own fiche: its own date, then its own voucher number",
+    "context": "Displayed under an entry's own title in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {
+      "date": {},
+      "voucher": {}
+    }
+  },
+  "budgetFicheEntrySettlesLabel": "Settles: {name}",
+  "@budgetFicheEntrySettlesLabel": {
+    "description": "Extra hint line of an entry's own fiche, naming the commitment, resource or taking it settles, while it settles one",
+    "context": "Displayed under an entry's own title in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "budgetFichePayAction": "Pay {amount}",
+  "@budgetFichePayAction": {
+    "description": "Primary action of a commitment's own fiche, or of a promoted quote line's own fiche, opening the entry dialog pre-filled with the amount",
+    "context": "Displayed in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "budgetFicheReceiveAction": "Receive {amount}",
+  "@budgetFicheReceiveAction": {
+    "description": "Primary action of a resource's or a taking's own fiche, opening the entry dialog pre-filled with the amount still outstanding",
+    "context": "Displayed in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "budgetFicheLineStillToCommitLabel": "Still to commit",
+  "@budgetFicheLineStillToCommitLabel": {
+    "description": "Outstanding block's own label on a quote line's own fiche while it has not been promoted into a commitment yet",
+    "context": "Displayed in the budget mode's fiche",
+    "type": "text",
+    "placeholders": {}
   },
   "budgetExportPanelTitle": "Export the budget",
   "@budgetExportPanelTitle": {

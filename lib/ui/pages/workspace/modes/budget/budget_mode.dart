@@ -45,12 +45,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_element_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financial_report_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_quote_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
@@ -2095,11 +2095,7 @@ class _BudgetViewState extends State<_BudgetView> {
     final availableTabs = [
       for (final tab in OcptBudgetRightDockTab.values)
         if (tab != OcptBudgetRightDockTab.inspector ||
-            ocptBudgetHasInspector(
-              document: state.document,
-              reading: state.reading,
-              subPage: state.subPage,
-            ))
+            ocptBudgetHasInspector(document: state.document, subPage: state.subPage))
           tab,
     ];
     final rightDockTab = availableTabs.contains(storedTab)
@@ -2109,7 +2105,7 @@ class _BudgetViewState extends State<_BudgetView> {
     return OcptBudgetRightDock(
       activeTab: rightDockTab,
       availableTabs: availableTabs,
-      inspectorChild: _buildInspector(context, state),
+      inspectorChild: _buildFiche(context, state),
       versionsChild: _buildVersionsPanel(context, state),
       helpChild: _buildHelp(context, state),
       onTabSelected: (tab) =>
@@ -2127,37 +2123,32 @@ class _BudgetViewState extends State<_BudgetView> {
     isSimplified: state.isSimplified,
   );
 
-  /// Builds the `Inspector` tab's own content.
-  ///
-  /// The selected poste's own related entries are read out of [OcptBudgetState.entries] here,
-  /// rather than in the widget itself: filtered down to the selected poste's own id and handed to
-  /// [OcptBudgetPosteInspector] in reverse — [OcptBudgetState.entries] is chronological (the
-  /// journal's own order), so reversing it once here is what puts the newest entry at the top of
-  /// the inspector's own list, which never reorders what it is given.
-  Widget _buildInspector(BuildContext context, OcptBudgetState state) {
+  /// Builds the `Inspector` tab's own content: the polymorphic fiche, wired to every handler its
+  /// own selection variant might need — every one of them already exists, reused rather than
+  /// duplicated.
+  Widget _buildFiche(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
-    final selectedPoste = state.selectedOwningPoste;
-    final relatedEntries = selectedPoste == null
-        ? const <OcptBudgetEntry>[]
-        : [
-            for (final entry in state.entries.reversed)
-              if (entry.posteId == selectedPoste.id) entry,
-          ];
     final elementNameByElementId = {
       for (final element in state.elements) element.id: element.name,
     };
 
-    return OcptBudgetPosteInspector(
-      poste: selectedPoste,
+    return OcptBudgetFiche(
+      selection: state.selection,
+      postes: state.postes,
+      commitments: state.commitments,
+      entries: state.entries,
+      resources: state.resources,
+      revenues: state.revenues,
       taxBasis: state.taxBasis,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
-      paidCents: selectedPoste == null ? 0 : state.paidCentsOf(selectedPoste.id),
-      committedCents: selectedPoste == null ? 0 : state.committedCentsOf(selectedPoste.id),
-      entries: relatedEntries,
-      expandedLineId: state.expandedLineId,
+      isSimplified: state.isSimplified,
       isReadOnly: isReadOnly,
+      elementNameByElementId: elementNameByElementId,
+      receiptsByEntryId: state.receiptsByEntryId,
+      receivedByResourceId: state.receivedByResourceId,
+      receivedByRevenueId: state.receivedByRevenueId,
       fieldValueOf: state.fieldValueOf,
       onFieldChanged: isReadOnly
           ? null
@@ -2168,7 +2159,6 @@ class _BudgetViewState extends State<_BudgetView> {
           ? null
           : (posteId) =>
                 bloc.add(OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: posteId)),
-      onLineExpanded: (lineId) => bloc.add(OcptBudgetLineExpandedEvent(lineId: lineId)),
       onLineTaxInclusiveChanged: isReadOnly
           ? null
           : (lineId, {required isTaxInclusive}) => bloc.add(
@@ -2177,13 +2167,18 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineVatRateInheritedRequested: isReadOnly
           ? null
           : (lineId) => bloc.add(OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId)),
-      commitmentSettledByLineId: {
-        for (final commitment in state.commitments)
-          if (commitment.lineId case final lineId?) lineId: commitment.isSettled,
-      },
+      onLineCreationRequested: isReadOnly
+          ? null
+          : (posteId) => bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId)),
+      onLineFromElementRequested: isReadOnly
+          ? null
+          : (posteId) => unawaited(_handleLineFromElementRequested(context, state, posteId)),
       onLineCommitRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineCommitRequested(context, state, lineId)),
+      onLineSettleRequested: isReadOnly
+          ? null
+          : (lineId) => unawaited(_handleLineSettleRequested(context, state, lineId)),
       onLineShowCommitmentRequested: (_) => context.read<OcptBudgetBloc>().add(
         const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
       ),
@@ -2193,14 +2188,59 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineDeletionRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineDeletionRequested(context, lineId)),
-      onLineCreationRequested: isReadOnly || selectedPoste == null
+      onCommitmentSettleRequested: isReadOnly
           ? null
-          : () => bloc.add(OcptBudgetLineCreatedEvent(posteId: selectedPoste.id)),
-      onLineFromElementRequested: isReadOnly || selectedPoste == null
+          : (commitment) => unawaited(_handleCommitmentSettleRequested(context, state, commitment)),
+      onCommitmentEditRequested: isReadOnly
           ? null
-          : () => unawaited(_handleLineFromElementRequested(context, state, selectedPoste.id)),
-      elementNameByElementId: elementNameByElementId,
+          : (commitment) => unawaited(_handleCommitmentEditRequested(context, state, commitment)),
+      onCommitmentDeletionRequested: isReadOnly
+          ? null
+          : (commitmentId) => unawaited(_handleCommitmentDeletionRequested(context, commitmentId)),
+      onEntryEditRequested: isReadOnly
+          ? null
+          : (entry) => unawaited(_handleEntryEditRequested(context, state, entry)),
+      onEntryDeletionRequested: isReadOnly
+          ? null
+          : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
+      onResourceReceiptRequested: isReadOnly
+          ? null
+          : (resource) => unawaited(_handleResourceReceiptRequested(context, state, resource)),
+      onResourceEditRequested: isReadOnly
+          ? null
+          : (resource) => unawaited(_handleResourceEditRequested(context, state, resource)),
+      onResourceDeletionRequested: isReadOnly
+          ? null
+          : (resourceId) => unawaited(_handleResourceDeletionRequested(context, resourceId)),
+      onRevenueReceiptRequested: isReadOnly
+          ? null
+          : (revenue) => unawaited(_handleRevenueReceiptRequested(context, state, revenue)),
+      onRevenueEditRequested: isReadOnly
+          ? null
+          : (revenue) => unawaited(_handleRevenueEditRequested(context, state, revenue)),
+      onRevenueDeletionRequested: isReadOnly
+          ? null
+          : (revenueId) => unawaited(_handleRevenueDeletionRequested(context, revenueId)),
     );
+  }
+
+  /// Opens the entry dialog pre-filled from the commitment quote line [lineId] was promoted into
+  /// (today's date, its own label, poste, amount, tax basis and rate, as a debit), then dispatches
+  /// the settlement if the user confirmed it — the quote line's own fiche reaches the very same
+  /// gesture a commitment's own `Pay` action does, once it is promoted and unsettled.
+  Future<void> _handleLineSettleRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    String lineId,
+  ) async {
+    final commitment = state.commitments
+        .where((commitment) => commitment.lineId == lineId && !commitment.isSettled)
+        .firstOrNull;
+    if (commitment == null) {
+      return;
+    }
+
+    await _handleCommitmentSettleRequested(context, state, commitment);
   }
 
   /// Opens `OcptBudgetElementPickerDialog` over `OcptBudgetState.unpricedElements`, then dispatches

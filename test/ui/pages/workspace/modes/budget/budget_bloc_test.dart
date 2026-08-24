@@ -425,16 +425,20 @@ void main() {
   });
 
   group("creating and deleting a quote line", () {
-    test("creates an empty line inside the poste and expands it, then deletes it", () async {
+    test("creates an empty line inside the poste and selects it, then deletes it", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
       final posteId = loaded.postes.first.id;
 
       bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
-      final withLine = await waitForState(bloc, (state) => state.expandedLineId != null);
-      final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
-      expect(withLine.expandedLineId, lineId);
+      final loadedWithLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = loadedWithLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+      final withLine = await waitForState(
+        bloc,
+        (state) => state.selection == OcptBudgetLineSelection(lineId),
+      );
+      expect(withLine.selection, OcptBudgetLineSelection(lineId));
 
       bloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
       final withoutLine = await waitForState(
@@ -2656,7 +2660,7 @@ void main() {
   });
 
   group("selecting a quote line, a commitment or an entry", () {
-    test("selecting a line opens the Inspector on the poste it belongs to", () async {
+    test("selecting a line names it in the selection and opens the Inspector", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
@@ -2673,7 +2677,7 @@ void main() {
       bloc.add(OcptBudgetLineSelectedEvent(lineId: lineId));
       final state = await waitForState(
         bloc,
-        (state) => state.selectedOwningPosteId == posteId,
+        (state) => state.selection == OcptBudgetLineSelection(lineId),
       );
 
       expect(state.selection, OcptBudgetLineSelection(lineId));
@@ -2692,7 +2696,27 @@ void main() {
       expect(bloc.state.selection, isNull);
     });
 
-    test("selecting a commitment opens the Inspector on the poste it belongs to", () async {
+    test("deleting a selected line clears the selection on the next snapshot", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+      await waitForState(bloc, (state) => state.selection == OcptBudgetLineSelection(lineId));
+
+      bloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isEmpty,
+      );
+
+      expect(state.selection, isNull);
+    });
+
+    test("selecting a commitment names it in the selection and opens the Inspector", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
@@ -2720,7 +2744,7 @@ void main() {
         (state) => state.selection == OcptBudgetCommitmentSelection(commitmentId),
       );
 
-      expect(state.selectedOwningPosteId, posteId);
+      expect(state.selection, OcptBudgetCommitmentSelection(commitmentId));
       expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
     });
 
@@ -2735,7 +2759,7 @@ void main() {
       expect(bloc.state.selection, isNull);
     });
 
-    test("selecting an entry opens the Inspector on the poste it belongs to", () async {
+    test("selecting an entry names it in the selection and opens the Inspector", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
@@ -2769,7 +2793,7 @@ void main() {
         (state) => state.selection == OcptBudgetEntrySelection(entryId),
       );
 
-      expect(state.selectedOwningPosteId, posteId);
+      expect(state.selection, OcptBudgetEntrySelection(entryId));
       expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
     });
 

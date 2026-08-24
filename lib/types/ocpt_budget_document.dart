@@ -73,17 +73,19 @@ bool ocptBudgetHonoursPosteFilter({
   OcptBudgetDocument.resources || OcptBudgetDocument.sharing => false,
 };
 
-/// Whether the current route has anything for the right dock's `Inspector` tab to inspect.
+/// Whether the current route has anything for the right dock's `Inspector` tab — the polymorphic
+/// fiche — to show.
 ///
-/// **Only the cost-tracking table does**, mirroring the retired `ocptBudgetCentreViewHasInspector`:
-/// the inspector reads `OcptBudgetState.selectedPosteId` and draws that poste's own figures and
-/// lines, and [OcptBudgetDocument.expenses] read [OcptBudgetDocumentReading.byTree] at its own top
-/// level ([subPage] null) is the one route where a poste is selected at all.
-bool ocptBudgetHasInspector({
-  required OcptBudgetDocument document,
-  required OcptBudgetDocumentReading reading,
-  required OcptBudgetSubPage? subPage,
-}) =>
-    document == OcptBudgetDocument.expenses &&
-    reading == OcptBudgetDocumentReading.byTree &&
-    subPage == null;
+/// **Expenses (either reading) and resources, both at their own top level.** The fiche reads
+/// `OcptBudgetState.selection` directly, and both readings of [OcptBudgetDocument.expenses] select
+/// something of their own — the poste tree a poste, a line, a commitment or an entry, the
+/// chronological journal an entry — as does [OcptBudgetDocument.resources]' own row. Neither a
+/// sub-page (the read-only overview, the committed spending on its own, the catering-and-travel
+/// pass) nor [OcptBudgetDocument.sharing] selects anything the fiche can show yet — a taking and a
+/// share are still a plain highlight, `docs/architecture/budget.md`'s own "A taking is received by
+/// being named, a participant is paid the same way" reading unchanged by this milestone.
+bool ocptBudgetHasInspector({required OcptBudgetDocument document, required OcptBudgetSubPage? subPage}) =>
+    switch (document) {
+      OcptBudgetDocument.expenses || OcptBudgetDocument.resources => subPage == null,
+      OcptBudgetDocument.sharing => false,
+    };
