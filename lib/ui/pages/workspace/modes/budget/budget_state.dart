@@ -80,8 +80,8 @@ class OcptBudgetIoNotice extends Equatable {
 /// [pendingFieldEdits] is this mode's own single pending-edit map, over every free-text field of
 /// every poste and every line — see `OcptBudgetField`'s own doc comment for why one flat map rather
 /// than one per entity kind. [view], [isSimplified] and [taxBasis] are **not persisted**: the
-/// schedule mode's own agenda mode is the precedent, only [rightDockFraction] and
-/// [lastRightDockTab] surviving a relaunch.
+/// schedule mode's own agenda mode is the precedent, only [leftDockFraction], [rightDockFraction]
+/// and [lastRightDockTab] surviving a relaunch.
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     with MixinOcptProjectVersionsState<OcptBudgetState>, MixinOcptProjectPackageState<OcptBudgetState> {
   /// Whether the quote read is still being loaded from the project database.
@@ -175,9 +175,12 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// selected, mirroring `OcptScheduleState.lastRightDockTab`.
   final OcptBudgetRightDockTab lastRightDockTab;
 
+  /// The left dock's width, as a fraction of the mode's content row width. Persisted through
+  /// `OcptPropertiesManager.budgetLeftDockFraction`.
+  final double leftDockFraction;
+
   /// The right dock's width, as a fraction of the mode's content row width. Persisted through
-  /// `OcptPropertiesManager.budgetRightDockFraction`. There is no left fraction: this mode has no
-  /// left dock.
+  /// `OcptPropertiesManager.budgetRightDockFraction`.
   final double rightDockFraction;
 
   /// Every free-text field still sitting in the field-edit debounce, keyed by which poste or line
@@ -524,6 +527,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.expandedNodeIds,
     required this.rightDockTab,
     required this.lastRightDockTab,
+    required this.leftDockFraction,
     required this.rightDockFraction,
     required this.pendingFieldEdits,
     required this.roles,
@@ -562,6 +566,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       expandedNodeIds = const {},
       rightDockTab = null,
       lastRightDockTab = OcptBudgetRightDockTab.inspector,
+      leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       pendingFieldEdits = const {},
       roles = const [],
@@ -607,6 +612,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     OcptBudgetRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
     OcptBudgetRightDockTab? lastRightDockTab,
+    double? leftDockFraction,
     double? rightDockFraction,
     Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits,
     List<OcptRole>? roles,
@@ -649,6 +655,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     expandedNodeIds: expandedNodeIds ?? this.expandedNodeIds,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
+    leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     roles: roles ?? this.roles,
@@ -745,6 +752,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     expandedNodeIds,
     rightDockTab,
     lastRightDockTab,
+    leftDockFraction,
     rightDockFraction,
     pendingFieldEdits,
     roles,

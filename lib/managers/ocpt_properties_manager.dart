@@ -214,13 +214,20 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     castTo: (value) => value.name,
   );
 
+  /// This is the key used to store the budget mode's left (postes) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from every other mode's own dock-fraction key for the same reason those are
+  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
+  /// equivalent to `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final budgetLeftDockFraction = SharedPreferencesItem<double>("BUDGET_LEFT_DOCK_FRACTION");
+
   /// This is the key used to store the budget mode's right (inspector/versions) dock width, as a
   /// fraction of its editing row width.
   ///
   /// Kept separate from every other mode's own dock-fraction key for the same reason those are
-  /// kept apart from each other. There is no `budgetLeftDockFraction`: this mode has no left dock
-  /// (`docs/architecture/budget.md`). Loading it returns null if nothing has been stored yet,
-  /// which is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
+  /// equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
   final budgetRightDockFraction = SharedPreferencesItem<double>("BUDGET_RIGHT_DOCK_FRACTION");
 
   /// This is the key used to store the tab the budget mode's right dock last showed, so reopening

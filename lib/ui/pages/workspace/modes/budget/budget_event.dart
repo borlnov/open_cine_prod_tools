@@ -70,8 +70,21 @@ class OcptBudgetRightDockClosedEvent extends OcptBudgetEvent {
   const OcptBudgetRightDockClosedEvent();
 }
 
-/// Applies and persists the right dock's new width fraction once a divider drag ends. There is no
-/// left-side counterpart: this mode has no left dock (`docs/architecture/budget.md`).
+/// Applies and persists the left dock's new width fraction once a divider drag ends — mirrors
+/// [OcptBudgetRightDockFractionChangedEvent], the same store-then-emit shape.
+class OcptBudgetLeftDockFractionChangedEvent extends OcptBudgetEvent {
+  /// The left dock's new fraction of the mode's content row width.
+  final double fraction;
+
+  /// Class constructor
+  const OcptBudgetLeftDockFractionChangedEvent({required this.fraction});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fraction];
+}
+
+/// Applies and persists the right dock's new width fraction once a divider drag ends.
 class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetEvent {
   /// The right dock's new fraction of the mode's content row width.
   final double fraction;

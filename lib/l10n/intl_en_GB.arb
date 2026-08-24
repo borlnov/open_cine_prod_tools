@@ -10836,6 +10836,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetPosteDockTitle": "Postes",
+  "@budgetPosteDockTitle": {
+    "description": "Title of the budget mode's left dock, the poste list",
+    "context": "Displayed at the top of the budget mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteDockClearFilterLabel": "All",
+  "@budgetPosteDockClearFilterLabel": {
+    "description": "Link clearing the poste filter, shown only while one is set",
+    "context": "Displayed at the top of the budget mode's left dock, beside its title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteDockEmptyHint": "No poste yet.",
+  "@budgetPosteDockEmptyHint": {
+    "description": "Hint shown in place of the poste list while the project holds no live poste",
+    "context": "Displayed in the budget mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetPosteDockFilterOnlyAction": "Show this poste only",
+  "@budgetPosteDockFilterOnlyAction": {
+    "description": "Entry of a poste card's own ⋮ menu narrowing every view to that poste",
+    "context": "Displayed in the budget mode's left dock, on a poste card's own ⋮ menu",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetPosteRenameAction": "Rename",
   "@budgetPosteRenameAction": {
     "description": "Entry of a poste row's own ⋮ menu opening its inspector to rename it",

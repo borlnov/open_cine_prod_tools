@@ -49,6 +49,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_quote_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
@@ -78,12 +79,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The budget production mode: the quote, poste by poste — the cost-tracking table this milestone
-/// builds, `Inspector`, `Versions` and `Help` in the right dock.
+/// builds, `Inspector`, `Versions` and `Help` in the right dock, and the left dock's own poste list
+/// (`OcptBudgetPosteDock`), drawn on every view of the mode.
 ///
-/// **There is no left dock** (the mockup shows none for this mode, `docs/architecture/budget.md`,
-/// M1) and **no episode selector**: one budget serves the whole production (ADR 0019), its
-/// catalogue naming no episode at all, exactly the schedule mode's own reason — not for want of a
-/// bloc.
+/// **No episode selector**: one budget serves the whole production (ADR 0019), its catalogue
+/// naming no episode at all, exactly the schedule mode's own reason — not for want of a bloc.
 ///
 /// **The `Export` control now opens onto four real documents**: the quote, the financing plan, the
 /// cash journal and the financial report (`OcptBudgetExportDocument`), each with its own card in
@@ -129,8 +129,9 @@ class _BudgetView extends StatefulWidget {
 }
 
 /// The state of [_BudgetView]: owns the dock layout controller and keeps it in sync with the
-/// fraction the bloc holds. Only the right dock is ever shown, so the controller's own
-/// [OcptWorkspaceDockLayoutController.leftFraction] is never read past its constructor default.
+/// fractions the bloc holds — both docks are always shown, the left one drawing the poste list on
+/// every view of the mode, so [OcptWorkspaceDockLayoutController.leftFraction] is synced exactly as
+/// its own right one already is.
 class _BudgetViewState extends State<_BudgetView> {
   /// The live source of truth for the right dock fraction while dragging the divider.
   final OcptWorkspaceDockLayoutController _dockLayoutController = OcptWorkspaceDockLayoutController(
@@ -181,6 +182,7 @@ class _BudgetViewState extends State<_BudgetView> {
           const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help),
         ),
         banner: _buildReadOnlyBanner(context, state),
+        leftPanel: _buildLeftDock(context, state),
         rightPanel: _buildRightDock(context, state),
         centre: _buildCentre(context, state),
         statusBar: OcptBudgetStatusBar(
@@ -191,6 +193,10 @@ class _BudgetViewState extends State<_BudgetView> {
         ),
         dockLayoutController: _dockLayoutController,
         onDockFractionsChanged: (fractions) {
+          final left = fractions.left;
+          if (left != null) {
+            context.read<OcptBudgetBloc>().add(OcptBudgetLeftDockFractionChangedEvent(fraction: left));
+          }
           final right = fractions.right;
           if (right != null) {
             context.read<OcptBudgetBloc>().add(OcptBudgetRightDockFractionChangedEvent(fraction: right));
@@ -2073,6 +2079,38 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
   }
 
+  /// Builds the left dock: the poste list, drawn on every view of the mode — see
+  /// `OcptBudgetPosteDock`'s own class doc comment for why, and for the argument behind its two
+  /// gestures.
+  ///
+  /// `onPosteFilterRequested` and `onFilterClearRequested` are withheld together, on the very same
+  /// views the header's own poste filter chip already says it cannot honour
+  /// (`ocptBudgetViewHonoursPosteFilter`) — a card's own `⋮` menu carries no filter entry there,
+  /// and neither does the footer's own `Tout` link.
+  Widget _buildLeftDock(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+    final honoursPosteFilter = ocptBudgetViewHonoursPosteFilter(state.view);
+
+    return OcptBudgetPosteDock(
+      postes: state.postes,
+      selection: state.selection,
+      isSimplified: state.isSimplified,
+      currencyCode: state.currencyCode,
+      paidCentsOf: state.paidCentsOf,
+      committedCentsOf: state.committedCentsOf,
+      filterPosteId: state.filterPosteId,
+      // Never withheld: a selection only ever reads — see `OcptBudgetPosteDock`'s own class doc
+      // comment.
+      onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
+      onPosteFilterRequested: honoursPosteFilter
+          ? (posteId) => bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId))
+          : null,
+      onFilterClearRequested: honoursPosteFilter
+          ? () => bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null))
+          : null,
+    );
+  }
+
   /// Builds the right dock, or null while it's closed.
   ///
   /// **The `Inspector` tab is offered only where there is something to inspect**
@@ -2330,13 +2368,12 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fraction, the transient version
+  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient version
   /// notice SnackBar, the missing-files question and the transient package notice SnackBar —
-  /// mirrors `OcptScheduleMode._onStateChanged`. There is no left fraction to sync: the controller's
-  /// own left one stays at its unused default.
+  /// mirrors `OcptScheduleMode._onStateChanged`.
   void _onStateChanged(BuildContext context, OcptBudgetState state) {
     _dockLayoutController.syncFromPersisted(
-      leftFraction: OcptWorkspaceDock.leftDefaultFraction,
+      leftFraction: state.leftDockFraction,
       rightFraction: state.rightDockFraction,
     );
 

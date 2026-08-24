@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart' show BuildContext, Color, ColorScheme;
+import 'package:flutter/material.dart' show BuildContext, Color, ColorScheme, Theme;
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -19,6 +19,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_percent_permille.dart';
 
 /// The placeholder shown in place of a budget figure that cannot be read at all — this mode's own
@@ -255,6 +257,32 @@ Color ocptBudgetRevenueStatusAccentColor(ColorScheme colorScheme, OcptBudgetReve
       OcptBudgetRevenueStatus.confirmed => colorScheme.secondary,
       OcptBudgetRevenueStatus.invoiced => colorScheme.primary,
     };
+
+/// [strain]'s own colour, read off [context]'s theme — the left dock's own poste cards and, once a
+/// second reader arrives, whatever draws next: `ocptBudgetPosteStrainOf` had no UI reader before the
+/// poste dock, and this is the one place the colour is decided so the two never disagree.
+///
+/// **Takes a [BuildContext], unlike the three `…AccentColor` helpers above**: [OcptBudgetPosteStrain
+/// .near] reads [ocptWarningColor], which resolves through the theme's own colour extension rather
+/// than a bare [ColorScheme], so a `ColorScheme`-only signature could not reach it.
+///
+/// **Each of the three strains is painted for what it is, not for how close it is to the next
+/// one**: [OcptBudgetPosteStrain.within] reads [ColorScheme.primary], the app's own calm accent —
+/// a poste inside its own quote is the ordinary state, nothing here asks for a second look.
+/// [OcptBudgetPosteStrain.near] reads [ocptWarningColor], the app's one colour for "worth watching,
+/// not yet broken" — the same amber the read-only preview banner and the shot list's own difficulty
+/// threshold already paint with, so a poste closing in on its quote reads exactly as urgently as
+/// every other thing in this app that isn't wrong yet but might become so. [OcptBudgetPosteStrain
+/// .over] reads [ColorScheme.error]: the poste has already spent past what it was quoted, a fact
+/// rather than a warning, and this is the one colour Material 3 reserves for exactly that.
+Color ocptBudgetPosteStrainColor(BuildContext context, OcptBudgetPosteStrain strain) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (strain) {
+    OcptBudgetPosteStrain.within => colorScheme.primary,
+    OcptBudgetPosteStrain.near => ocptWarningColor(context),
+    OcptBudgetPosteStrain.over => colorScheme.error,
+  };
+}
 
 /// [cents] formatted as a **displayed** amount in [currencyCode]: grouped, carrying the currency
 /// symbol — `NumberFormat.simpleCurrency`, the precedent `OcptElementSheetSourcingCard` sets for
