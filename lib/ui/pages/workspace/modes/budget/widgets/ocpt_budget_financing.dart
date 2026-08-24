@@ -41,15 +41,12 @@ const double _ocptFinancingMenuColumnWidth = 36;
 /// the form itself is worded once the kind is known. The kind stays editable on an existing
 /// resource, exactly as it is today.
 ///
-/// **No inspector.** A resource's row selects it ([onResourceSelected]) purely as a highlight —
-/// `OcptBudgetState.selectedResourceId`, read and written exactly as `selectedPosteId` already is —
-/// rather than opening a right-dock tab. `OcptBudgetRightDockTab` carries exactly two tabs,
-/// `Inspector` (built entirely around a poste's own quote lines) and `Versions`, and a resource has
-/// no lines, no expandable card and nothing this dock's existing `Inspector` tab could show without
-/// growing a conditional branch of its own onto a shape it was never built to hold. Rather than
-/// inventing a second, competing inspector concept for one more record kind, this view keeps its
-/// own selection **select-and-highlight only**: a resource's own fields are read and written
-/// through `OcptBudgetResourceDialog` instead, reached from the row's own `⋮` menu.
+/// **A row's own selection ([onResourceSelected]) opens the right dock's polymorphic fiche
+/// (`OcptBudgetFiche`) on it**, exactly as a poste's or a quote line's own row already does —
+/// `OcptBudgetState.selectedResourceId`, read and written exactly as `selectedPosteId` already is.
+/// A resource's own fields stay read and written through `OcptBudgetResourceDialog`, reached from
+/// the row's own `⋮` menu or from the fiche's own `Edit` action: the fiche never edits a field
+/// directly, unlike the poste's or the quote line's own.
 ///
 /// **The one row kind with a branch: an in-kind resource with no entry naming it.** A contribution
 /// in kind is *valued*, not collected — equipment lent free of charge, work donated, a lab pass

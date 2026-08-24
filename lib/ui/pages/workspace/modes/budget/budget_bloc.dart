@@ -1583,10 +1583,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
-  /// Selects financing resource `event.resourceId`, drawn as a plain highlight by the financing
-  /// view rather than opening a dock tab — see `OcptBudgetFinancing`'s own class doc comment for
-  /// why this mode grows no second inspector concept for it. A resource id naming no live resource
-  /// is ignored, mirroring [_onPosteSelected].
+  /// Selects financing resource `event.resourceId`, opening the right dock on the `Inspector` tab —
+  /// mirrors [_onPosteSelected]. A resource id naming no live resource is ignored.
   Future<void> _onResourceSelected(
     OcptBudgetResourceSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1595,7 +1593,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    emitter(state.copyWith(selection: OcptBudgetResourceSelection(event.resourceId)));
+    emitter(
+      state.copyWith(
+        selection: OcptBudgetResourceSelection(event.resourceId),
+        rightDockTab: OcptBudgetRightDockTab.inspector,
+        lastRightDockTab: OcptBudgetRightDockTab.inspector,
+      ),
+    );
   }
 
   /// Creates a new financing resource from `event.fields` and selects it.
