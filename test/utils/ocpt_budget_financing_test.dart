@@ -5,8 +5,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
@@ -56,6 +58,24 @@ void main() {
     amountCents: amountCents,
     status: status,
     isReimbursable: isReimbursable,
+    notes: notes,
+    sortKey: sortKey,
+  );
+
+  OcptBudgetRevenue buildRevenue({
+    String id = "revenue-1",
+    DateTime? date,
+    String label = "A revenue",
+    int amountCents = 0,
+    OcptBudgetRevenueStatus status = OcptBudgetRevenueStatus.expected,
+    String notes = "",
+    String sortKey = "V",
+  }) => OcptBudgetRevenue(
+    id: id,
+    date: date ?? DateTime(2026),
+    label: label,
+    amountCents: amountCents,
+    status: status,
     notes: notes,
     sortKey: sortKey,
   );
@@ -204,6 +224,214 @@ void main() {
       // The balance itself is still readable off whatever the needs side currently states.
       expect(balance.differenceCents, 0);
       expect(balance.isBalanced, isTrue);
+    });
+  });
+
+  group("ocptBudgetResourcesCoverageOf", () {
+    test("a plan that covers the quote", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1);
+      final resources = [buildResource(id: "r1", amountCents: 10000)];
+      final receivedByResourceId = {
+        "r1": const OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1),
+      };
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: const [],
+        receivedByResourceId: receivedByResourceId,
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.amountCents, 10000);
+      expect(coverage.promisedCents, 0);
+      expect(coverage.plannedCents, 10000);
+      expect(coverage.missingCents, 0);
+      expect(coverage.isCovered, isTrue);
+    });
+
+    test("a plan that falls short of the quote", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1);
+      final resources = [buildResource(id: "r1", amountCents: 6000)];
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: const [],
+        receivedByResourceId: const {},
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.amountCents, 0);
+      expect(coverage.promisedCents, 6000);
+      expect(coverage.plannedCents, 6000);
+      expect(coverage.missingCents, 4000);
+      expect(coverage.isCovered, isFalse);
+    });
+
+    test("a resource received in part splits between received and promised", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1);
+      final resources = [buildResource(id: "r1", amountCents: 10000)];
+      final receivedByResourceId = {
+        "r1": const OcptBudgetCoveredTotal(amountCents: 4000, coveredLineCount: 1, lineCount: 1),
+      };
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: const [],
+        receivedByResourceId: receivedByResourceId,
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.amountCents, 4000);
+      expect(coverage.promisedCents, 6000);
+      expect(coverage.plannedCents, 10000);
+    });
+
+    test("an in-kind resource no entry names counts wholly as promised", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1);
+      final resources = [
+        buildResource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 3000),
+      ];
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: const [],
+        // No key for r1 at all: no credit will ever name an in-kind contribution.
+        receivedByResourceId: const {},
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.amountCents, 0);
+      expect(coverage.promisedCents, 3000);
+    });
+
+    test("an in-kind resource an entry does name is read like any other row", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1);
+      final resources = [
+        buildResource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 3000),
+      ];
+      final receivedByResourceId = {
+        "r1": const OcptBudgetCoveredTotal(amountCents: 3000, coveredLineCount: 1, lineCount: 1),
+      };
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: const [],
+        receivedByResourceId: receivedByResourceId,
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.amountCents, 3000);
+      expect(coverage.promisedCents, 0);
+    });
+
+    test("an over-received row does not lend its excess to another row's promise", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 20000, coveredLineCount: 1, lineCount: 1);
+      final resources = [
+        buildResource(id: "r1", amountCents: 5000),
+        buildResource(id: "r2", amountCents: 5000),
+      ];
+      final receivedByResourceId = {
+        // Over-received by 5000, which must not offset r2's own shortfall.
+        "r1": const OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1),
+      };
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: const [],
+        receivedByResourceId: receivedByResourceId,
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.amountCents, 10000);
+      // r1 promises 0 (already over-received), r2 still promises its whole 5000.
+      expect(coverage.promisedCents, 5000);
+      expect(coverage.plannedCents, 15000);
+    });
+
+    test("revenues are counted on both the received and the promised side", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 20000, coveredLineCount: 1, lineCount: 1);
+      final resources = [buildResource(id: "r1", amountCents: 5000)];
+      final revenues = [buildRevenue(id: "v1", amountCents: 15000)];
+      final receivedByResourceId = {
+        "r1": const OcptBudgetCoveredTotal(amountCents: 5000, coveredLineCount: 1, lineCount: 1),
+      };
+      final receivedByRevenueId = {
+        "v1": const OcptBudgetCoveredTotal(amountCents: 6000, coveredLineCount: 1, lineCount: 1),
+      };
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: revenues,
+        receivedByResourceId: receivedByResourceId,
+        receivedByRevenueId: receivedByRevenueId,
+      );
+
+      expect(coverage.received.amountCents, 11000);
+      expect(coverage.promisedCents, 9000);
+      expect(coverage.plannedCents, 20000);
+      expect(coverage.isCovered, isTrue);
+    });
+
+    test("an incomplete receipt leaves the received side's own coverage false", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1);
+      final resources = [buildResource(id: "r1", amountCents: 5000)];
+      final receivedByResourceId = {
+        // Only 1 of 2 credits naming r1 carried a known rate.
+        "r1": const OcptBudgetCoveredTotal(amountCents: 3000, coveredLineCount: 1, lineCount: 2),
+      };
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: resources,
+        revenues: const [],
+        receivedByResourceId: receivedByResourceId,
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.isComplete, isFalse);
+      expect(coverage.received.coveredLineCount, 1);
+      expect(coverage.received.lineCount, 2);
+    });
+
+    test("an empty plan is wholly promised and never covers a non-zero quote", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 10000, coveredLineCount: 1, lineCount: 1);
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: const [],
+        revenues: const [],
+        receivedByResourceId: const {},
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.received.amountCents, 0);
+      expect(coverage.received.lineCount, 0);
+      expect(coverage.promisedCents, 0);
+      expect(coverage.plannedCents, 0);
+      expect(coverage.missingCents, 10000);
+      expect(coverage.isCovered, isFalse);
+    });
+
+    test("a quote with no needs at all reads as covered by an empty plan", () {
+      const needs = OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
+
+      final coverage = ocptBudgetResourcesCoverageOf(
+        needs: needs,
+        resources: const [],
+        revenues: const [],
+        receivedByResourceId: const {},
+        receivedByRevenueId: const {},
+      );
+
+      expect(coverage.missingCents, 0);
+      expect(coverage.isCovered, isTrue);
     });
   });
 }

@@ -2,9 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
+
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
@@ -232,3 +235,119 @@ OcptBudgetNeedsResourcesBalance ocptBudgetNeedsResourcesBalanceOf({
   resourcesCents: resourcesCents,
   differenceCents: resourcesCents - needs.amountCents,
 );
+
+/// The resources document's own coverage band: does the financing plan — together with the
+/// takings the resources document now also holds — cover the quote, and how much of that cover
+/// has really arrived rather than merely been promised.
+///
+/// **A different question from [OcptBudgetNeedsResourcesBalance], which stays exactly as it is**:
+/// the dashboard still reads that one, comparing the quote against the financing plan's own
+/// resources alone, as a single total. This one adds the takings the resources document now holds
+/// too, and splits what has really come in from what is only promised — a split
+/// [OcptBudgetNeedsResourcesBalance]'s own single [OcptBudgetNeedsResourcesBalance.resourcesCents]
+/// cannot state.
+class OcptBudgetResourcesCoverage extends Equatable {
+  /// The quote's own total, and how much of it is actually known — the same reason
+  /// [OcptBudgetNeedsResourcesBalance.needs] is carried whole rather than as a plain amount: the
+  /// band can say the needs side is still incomplete through [OcptBudgetCoveredTotal.isComplete]
+  /// rather than inventing a second way to say it.
+  ///
+  /// **Handed in tax-inclusive, and read as such.** Money coming in is always read tax-inclusive
+  /// — the tax-basis switch lives on the expenses document alone
+  /// (`docs/architecture/budget.md`'s "Money that has moved is read tax-inclusive, always") — so
+  /// [ocptBudgetResourcesCoverageOf] never sees a basis and never applies one: [needs] is resolved
+  /// by the caller, the same tax-inclusive reading the dashboard's own balance bar already uses.
+  final OcptBudgetCoveredTotal needs;
+
+  /// What has really come in, folded row by row out of every resource's and every revenue's own
+  /// received total: a credit whose tax-inclusive reading is unknown is *not covered*, exactly as
+  /// [ocptBudgetReceivedByResourceId] already reports per resource, so the receipts side keeps its
+  /// own coverage too.
+  final OcptBudgetCoveredTotal received;
+
+  /// What is promised and has not come in yet — the per-row shortfall of every resource and every
+  /// revenue, summed. See [ocptBudgetResourcesCoverageOf]'s own doc comment for why an in-kind
+  /// contribution needs no branch here.
+  final int promisedCents;
+
+  /// [received]'s own amount plus [promisedCents] — the plan as it stands, arrived or not.
+  int get plannedCents => received.amountCents + promisedCents;
+
+  /// How far [plannedCents] still falls short of [needs]' own amount, floored at zero.
+  final int missingCents;
+
+  /// Whether the plan, arrived or promised, covers the quote — [plannedCents] at or above
+  /// [needs]' own amount. Over-financing is still a plan that holds; a shortfall alone reads as
+  /// uncovered, the same register [OcptBudgetNeedsResourcesBalance.isBalanced] already reads in.
+  bool get isCovered => plannedCents >= needs.amountCents;
+
+  /// Class constructor
+  const OcptBudgetResourcesCoverage({
+    required this.needs,
+    required this.received,
+    required this.promisedCents,
+    required this.missingCents,
+  });
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptBudgetResourcesCoverage(needs: $needs, received: $received, "
+      "promisedCents: $promisedCents, missingCents: $missingCents)";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [needs, received, promisedCents, missingCents];
+}
+
+/// Builds the resources document's own coverage band — see [OcptBudgetResourcesCoverage]'s own
+/// doc comment for the question it answers and how it differs from
+/// [OcptBudgetNeedsResourcesBalance].
+///
+/// [receivedByResourceId] and [receivedByRevenueId] are read directly —
+/// [ocptBudgetReceivedByResourceId]'s and `ocptBudgetReceivedByRevenueId`'s
+/// (`lib/utils/ocpt_budget_shares.dart`) own maps — never re-derived from the underlying entries
+/// here: a row no map carries a key for contributes nothing at all, which is the same
+/// "null, never zero" reading the maps themselves already keep.
+///
+/// **An in-kind contribution needs no branch here, and that is worth a sentence.**
+/// `docs/plans/budget-mode-ux.md` §3 says a valued contribution counts as promised and never as
+/// still to come, and the ordinary formula already says exactly that: no credit names such a
+/// resource (`docs/architecture/budget.md`'s "An in-kind contribution is valued, not collected"),
+/// so [receivedByResourceId] carries no key for it, and its whole
+/// [OcptBudgetResource.amountCents] therefore falls on the promised side through the very same
+/// `max(0, amount − received)` every other row goes through. The moment an entry does name that
+/// resource, its real figures are read like any other row's — the nuance
+/// `docs/architecture/budget.md`'s own "An in-kind contribution is valued, not collected" already
+/// argues, kept here rather than re-decided.
+OcptBudgetResourcesCoverage ocptBudgetResourcesCoverageOf({
+  required OcptBudgetCoveredTotal needs,
+  required List<OcptBudgetResource> resources,
+  required List<OcptBudgetRevenue> revenues,
+  required Map<String, OcptBudgetCoveredTotal> receivedByResourceId,
+  required Map<String, OcptBudgetCoveredTotal> receivedByRevenueId,
+}) {
+  final received = ocptBudgetCoveredTotalsFoldOf([
+    for (final resource in resources)
+      if (receivedByResourceId[resource.id] != null) receivedByResourceId[resource.id]!,
+    for (final revenue in revenues)
+      if (receivedByRevenueId[revenue.id] != null) receivedByRevenueId[revenue.id]!,
+  ]);
+
+  var promisedCents = 0;
+  for (final resource in resources) {
+    final receivedCents = receivedByResourceId[resource.id]?.amountCents ?? 0;
+    promisedCents += math.max(0, resource.amountCents - receivedCents);
+  }
+  for (final revenue in revenues) {
+    final receivedCents = receivedByRevenueId[revenue.id]?.amountCents ?? 0;
+    promisedCents += math.max(0, revenue.amountCents - receivedCents);
+  }
+
+  return OcptBudgetResourcesCoverage(
+    needs: needs,
+    received: received,
+    promisedCents: promisedCents,
+    missingCents: math.max(0, needs.amountCents - (received.amountCents + promisedCents)),
+  );
+}
