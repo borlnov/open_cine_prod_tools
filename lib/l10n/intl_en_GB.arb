@@ -10599,36 +10599,54 @@
   },
   "budgetHeaderDocumentExpensesSegmentLabel": "Expenses",
   "@budgetHeaderDocumentExpensesSegmentLabel": {
-    "description": "Label of the header's Expenses document chip",
-    "context": "Displayed on the budget mode's own document switch, and reused by its breadcrumb",
+    "description": "Name of the expenses document, as a cross-reference in the fiche's own breadcrumb and in the help panel's own body text",
     "type": "text",
     "placeholders": {}
   },
   "budgetHeaderDocumentResourcesSegmentLabel": "Resources",
   "@budgetHeaderDocumentResourcesSegmentLabel": {
-    "description": "Label of the header's Resources document chip",
-    "context": "Displayed on the budget mode's own document switch, and reused by its breadcrumb",
+    "description": "Name of the resources document, as a cross-reference in the fiche's own breadcrumb and in the help panel's own body text",
     "type": "text",
     "placeholders": {}
   },
   "budgetHeaderDocumentSharingSegmentLabel": "Sharing",
   "@budgetHeaderDocumentSharingSegmentLabel": {
-    "description": "Label of the header's Sharing document chip",
-    "context": "Displayed on the budget mode's own document switch, and reused by its breadcrumb",
+    "description": "Name of the sharing document, as a cross-reference in the fiche's own breadcrumb and in the help panel's own body text",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderReadingByTreeSegmentLabel": "By poste",
-  "@budgetHeaderReadingByTreeSegmentLabel": {
-    "description": "Label of the header's reading switch segment that reads the current document poste by poste",
-    "context": "Displayed on the budget mode's own reading switch, offered on the expenses document alone",
+  "budgetHeaderCostTrackingSegmentLabel": "Cost tracking",
+  "@budgetHeaderCostTrackingSegmentLabel": {
+    "description": "Label of the header's own cost-tracking view chip",
+    "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderReadingByDateSegmentLabel": "By date",
-  "@budgetHeaderReadingByDateSegmentLabel": {
-    "description": "Label of the header's reading switch segment that reads the current document in the order money actually moved",
-    "context": "Displayed on the budget mode's own reading switch, offered on the expenses document alone",
+  "budgetHeaderCashJournalSegmentLabel": "Cash journal",
+  "@budgetHeaderCashJournalSegmentLabel": {
+    "description": "Label of the header's own cash-journal view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCommittedSegmentLabel": "Committed",
+  "@budgetHeaderCommittedSegmentLabel": {
+    "description": "Label of the header's own committed-spending view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderFinancingSegmentLabel": "Financing",
+  "@budgetHeaderFinancingSegmentLabel": {
+    "description": "Label of the header's own financing view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderSharingSegmentLabel": "Revenue sharing",
+  "@budgetHeaderSharingSegmentLabel": {
+    "description": "Label of the header's own revenue-sharing view chip",
+    "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
   },
@@ -10678,10 +10696,6 @@
   "budgetHeaderPosteFilterClearTooltip": "Show every poste again",
   "@budgetHeaderPosteFilterClearTooltip": {
     "description": "Tooltip of the small clear button on the header's poste filter, shown only while a poste is filtered."
-  },
-  "budgetHeaderSubPageMenuTooltip": "More pages",
-  "@budgetHeaderSubPageMenuTooltip": {
-    "description": "Tooltip of the header's small breadcrumb menu, opening any of the expenses document's own sub-pages"
   },
   "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
   "@budgetStatsPostes": {
@@ -12043,13 +12057,6 @@
   "@budgetCommitmentDialogMissingPosteHint": {
     "description": "Hint next to Save while the poste is still missing",
     "context": "Displayed next to OcptBudgetCommitmentDialog's own Save action while it is withheld",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderPlannedSegmentLabel": "Planned",
-  "@budgetHeaderPlannedSegmentLabel": {
-    "description": "Label of the header's Planned view chip, which stands for both the financing plan and the committed spending",
-    "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
   },
