@@ -18,8 +18,11 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_capture_band.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -165,8 +168,21 @@ void main() {
 
     await openCostTracking(tester);
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    expect(find.text(tr.budgetCncPosteArtisticRights), findsOneWidget);
-    expect(find.text(tr.budgetCncPosteOverheads), findsOneWidget);
+    // Scoped to the cost-tracking table: the left dock now prints every poste's own name too.
+    expect(
+      find.descendant(
+        of: find.byType(OcptBudgetCostTracking),
+        matching: find.text(tr.budgetCncPosteArtisticRights),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(OcptBudgetCostTracking),
+        matching: find.text(tr.budgetCncPosteOverheads),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets("the simplified switch swaps every poste's label and hides the N° column", (
@@ -182,14 +198,17 @@ void main() {
     await openCostTracking(tester);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    expect(find.text(tr.budgetCncPosteArtisticRights), findsOneWidget);
-    expect(find.text("1"), findsWidgets);
+    // Scoped to the cost-tracking table: the left dock now prints every poste's own name too.
+    Finder inCostTracking(Finder matching) =>
+        find.descendant(of: find.byType(OcptBudgetCostTracking), matching: matching);
+    expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsOneWidget);
+    expect(inCostTracking(find.text("1")), findsWidgets);
 
     await tester.tap(find.text(tr.budgetHeaderSimplifiedSegmentLabel));
     await tester.pumpAndSettle();
 
-    expect(find.text(tr.budgetCncPosteArtisticRights), findsNothing);
-    expect(find.text(tr.budgetCncPosteSimpleArtisticRights), findsOneWidget);
+    expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsNothing);
+    expect(inCostTracking(find.text(tr.budgetCncPosteSimpleArtisticRights)), findsOneWidget);
   });
 
   testWidgets("deleting a poste asks through OcptConfirmDialog", (tester) async {
@@ -719,9 +738,15 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-    // Selecting a poste in the quote opens the dock on its inspector.
+    // Selecting a poste in the quote opens the dock on its inspector. Scoped to the
+    // cost-tracking table: the left dock now prints every poste's own name too.
     await openCostTracking(tester);
-    await tester.tap(find.text(tr.budgetCncPosteArtisticRights));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OcptBudgetCostTracking),
+        matching: find.text(tr.budgetCncPosteArtisticRights),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
 
@@ -1000,4 +1025,103 @@ void main() {
     // Leave the preview so the working copy is what the next test opens onto.
     await projectsManager.exitPreview();
   });
+
+  testWidgets(
+    "clicking a dock card selects the poste and does not narrow every other view",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openCostTracking(tester);
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      // The right dock is closed until something is selected.
+      expect(find.byType(OcptBudgetFiche), findsNothing);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(OcptBudgetPosteDock),
+          matching: find.text(tr.budgetCncPosteArtisticRights),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Selected: the click opened the fiche on this very poste.
+      expect(find.byType(OcptBudgetFiche), findsOneWidget);
+
+      // Not filtered: the header's own chip still reads "every poste" — the one place every
+      // view of the mode agrees on whether it is narrowed.
+      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
+
+      // The cash journal, a document the filter would narrow if it were set, still lists the
+      // whole quote's own filter caption as unfiltered too.
+      await openCashJournal(tester);
+      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
+    },
+  );
+
+  testWidgets("a dock card's own ⋮ menu narrows every view to that poste", (tester) async {
+    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpAndSettle();
+    await openCostTracking(tester);
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+    await tester.tap(
+      find
+          .descendant(of: find.byType(OcptBudgetPosteDock), matching: find.byType(PopupMenuButton<void>))
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.budgetPosteDockFilterOnlyAction));
+    await tester.pumpAndSettle();
+
+    // The header's own chip now names the poste rather than reading "every poste" — the mode
+    // is narrowed, and every view that can honour the filter now agrees on it.
+    expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing);
+    expect(find.text(tr.budgetCncPosteArtisticRights), findsWidgets);
+  });
+
+  testWidgets(
+    "the poste dock is drawn on financing, régie and sharing, its filter entry withheld",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      Future<void> expectDockWithNoFilterEntry() async {
+        expect(find.byType(OcptBudgetPosteDock), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(OcptBudgetPosteDock),
+            matching: find.byType(PopupMenuButton<void>),
+          ),
+          findsNothing,
+        );
+      }
+
+      await openFinancing(tester);
+      await expectDockWithNoFilterEntry();
+
+      await openRegie(tester);
+      await expectDockWithNoFilterEntry();
+
+      await openSharing(tester);
+      await expectDockWithNoFilterEntry();
+    },
+  );
 }
