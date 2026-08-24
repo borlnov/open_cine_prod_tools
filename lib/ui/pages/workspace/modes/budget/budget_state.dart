@@ -154,12 +154,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     _ => null,
   };
 
-  /// The id of the currently selected revenue sharing taking, or null while [selection] does not
-  /// name one — the sharing view's own left-column selection, read exactly as [selectedResourceId]
-  /// is and drawn there as a plain highlight rather than opening a dock tab, since
-  /// `ocptBudgetHasInspector` is false for `OcptBudgetDocument.sharing`. The resources tree's own
-  /// revenue row reads and dispatches the very same fact, and *does* open the fiche on it — the one
-  /// difference between the two rows being which document is on screen, not what is selected.
+  /// The id of the currently selected taking, or null while [selection] does not name one — the
+  /// resources tree's own revenue row reads and dispatches this, opening the fiche on it exactly
+  /// as [selectedResourceId] does for a resource row.
   String? get selectedRevenueId => switch (selection) {
     OcptBudgetRevenueSelection(:final revenueId) => revenueId,
     _ => null,

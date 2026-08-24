@@ -6,10 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_sharing.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
@@ -27,24 +25,6 @@ Widget _wrap(Widget child) => MaterialApp(
   ],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(body: SizedBox(width: 1400, height: 900, child: child)),
-);
-
-/// A minimal taking, everything but what each test actually varies neutral.
-OcptBudgetRevenue _revenue({
-  required String id,
-  DateTime? date,
-  String label = "Festival prize",
-  int amountCents = 10000,
-  OcptBudgetRevenueStatus status = OcptBudgetRevenueStatus.expected,
-  String notes = "",
-}) => OcptBudgetRevenue(
-  id: id,
-  date: date ?? DateTime(2026, 3),
-  label: label,
-  amountCents: amountCents,
-  status: status,
-  notes: notes,
-  sortKey: "a0",
 );
 
 /// A minimal share, everything but what each test actually varies neutral.
@@ -117,22 +97,13 @@ void main() {
   /// Pumps [OcptBudgetSharing] with every callback a no-op unless overridden.
   Future<void> pumpView(
     WidgetTester tester, {
-    List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
-    Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
     OcptBudgetSharingPot? sharingPot,
     List<OcptBudgetRepaymentLine> repaymentLines = const [],
     List<OcptBudgetShareSplit>? shareSplits,
     List<OcptPerson> people = const [],
-    String? selectedRevenueId,
     String? selectedShareId,
     bool isReadOnly = false,
-    VoidCallback? onRevenueCreationRequested,
-    ValueChanged<String>? onRevenueSelected,
-    ValueChanged<OcptBudgetRevenue>? onRevenueEditRequested,
-    ValueChanged<OcptBudgetRevenue>? onRevenueReceiptRequested,
-    void Function(String revenueId, {required bool moveUp})? onRevenueReorderRequested,
-    ValueChanged<String>? onRevenueDeletionRequested,
     VoidCallback? onShareCreationRequested,
     ValueChanged<String>? onShareSelected,
     ValueChanged<OcptBudgetShare>? onShareEditRequested,
@@ -162,23 +133,14 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetSharing(
-          revenues: revenues,
           shares: shares,
-          receivedByRevenueId: receivedByRevenueId,
           sharingPot: pot,
           repaymentLines: repaymentLines,
           shareSplits: splits,
           people: people,
           currencyCode: "EUR",
-          selectedRevenueId: selectedRevenueId,
           selectedShareId: selectedShareId,
           isReadOnly: isReadOnly,
-          onRevenueCreationRequested: onRevenueCreationRequested ?? () {},
-          onRevenueSelected: onRevenueSelected ?? (_) {},
-          onRevenueEditRequested: onRevenueEditRequested ?? (_) {},
-          onRevenueReceiptRequested: onRevenueReceiptRequested ?? (_) {},
-          onRevenueReorderRequested: onRevenueReorderRequested ?? (_, {required moveUp}) {},
-          onRevenueDeletionRequested: onRevenueDeletionRequested ?? (_) {},
           onShareCreationRequested: onShareCreationRequested ?? () {},
           onShareSelected: onShareSelected ?? (_) {},
           onShareEditRequested: onShareEditRequested ?? (_) {},
@@ -191,78 +153,20 @@ void main() {
     );
   }
 
-  testWidgets(
-    "a taking whose received figure differs from its expected one prints both",
-    (tester) async {
-      final revenue = _revenue(id: "r1", amountCents: 5000);
-
-      await pumpView(
-        tester,
-        revenues: [revenue],
-        receivedByRevenueId: const {
-          "r1": OcptBudgetCoveredTotal(amountCents: 3000, coveredLineCount: 1, lineCount: 1),
-        },
-      );
-
-      expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsWidgets);
-      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-    },
-  );
-
-  testWidgets(
-    "a taking whose received figure matches its expected one prints it only once",
-    (tester) async {
-      final revenue = _revenue(id: "r1", amountCents: 5000);
-
-      await pumpView(
-        tester,
-        revenues: [revenue],
-        receivedByRevenueId: const {
-          "r1": OcptBudgetCoveredTotal(amountCents: 5000, coveredLineCount: 1, lineCount: 1),
-        },
-      );
-
-      // Once for the row's own received figure, once for the footer total — never a third time as
-      // a quiet "expected" caption, since the two amounts agree.
-      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsNWidgets(2));
-    },
-  );
-
-  testWidgets("the takings coverage read-out appears while some takings carry no known rate", (
+  testWidgets("the view draws no takings row at all — the resources tree owns them now", (
     tester,
   ) async {
-    final revenue = _revenue(id: "r1", amountCents: 5000);
+    await pumpView(tester);
 
-    await pumpView(
-      tester,
-      revenues: [revenue],
-      receivedByRevenueId: const {
-        "r1": OcptBudgetCoveredTotal(amountCents: 5000, coveredLineCount: 0, lineCount: 1),
-      },
-    );
-
+    // Nothing left of the `Takings received` card: no title, no `+ Taking` creation footer. Only
+    // two cards remain — `Repaying the contributions` and `Distribution` — where a third,
+    // `Takings received`, used to sit above them.
     final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
-    expect(
-      find.text(tr.budgetSharingTakingsCoverageReadOut(ocptBudgetAmountLabel(5000, "EUR"), 0, 1)),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets("the takings coverage read-out disappears once every taking is fully known", (
-    tester,
-  ) async {
-    final revenue = _revenue(id: "r1", amountCents: 5000);
-
-    await pumpView(
-      tester,
-      revenues: [revenue],
-      receivedByRevenueId: const {
-        "r1": OcptBudgetCoveredTotal(amountCents: 5000, coveredLineCount: 1, lineCount: 1),
-      },
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
-    expect(find.text(tr.budgetSharingTakingsCoverageReadOut(ocptBudgetAmountLabel(5000, "EUR"), 1, 1)), findsNothing);
+    expect(find.text("Takings received"), findsNothing);
+    expect(find.text("+ Taking"), findsNothing);
+    expect(find.byType(Card), findsNWidgets(2));
+    expect(find.text(tr.budgetSharingRepayingTitle), findsOneWidget);
+    expect(find.text(tr.budgetSharingDistributionTitle), findsOneWidget);
   });
 
   testWidgets("the shares mismatch line appears when the live shares do not sum to 1000", (
@@ -315,17 +219,6 @@ void main() {
     expect(find.textContaining("Alice"), findsOneWidget);
   });
 
-  testWidgets("clicking a taking row selects it, and only that", (tester) async {
-    final revenue = _revenue(id: "r1", label: "Regional prize");
-    String? selected;
-
-    await pumpView(tester, revenues: [revenue], onRevenueSelected: (id) => selected = id);
-
-    await tester.tap(find.text("Regional prize"));
-
-    expect(selected, "r1");
-  });
-
   testWidgets("clicking a share row selects it, and only that", (tester) async {
     final share = _share(id: "s1", label: "Regional co-producer");
     String? selected;
@@ -335,28 +228,6 @@ void main() {
     await tester.tap(find.text("Regional co-producer"));
 
     expect(selected, "s1");
-  });
-
-  testWidgets("a taking row's ⋮ menu Delete entry asks through the callback rather than deleting", (
-    tester,
-  ) async {
-    final revenue = _revenue(id: "r1", label: "Regional prize");
-    String? deletionRequested;
-
-    await pumpView(
-      tester,
-      revenues: [revenue],
-      onRevenueDeletionRequested: (id) => deletionRequested = id,
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
-    await tester.tap(find.byIcon(Icons.more_vert).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.budgetCommittedDeleteAction));
-    await tester.pumpAndSettle();
-
-    expect(deletionRequested, "r1");
-    expect(find.text("Regional prize"), findsOneWidget);
   });
 
   testWidgets("a share row's ⋮ menu offers Record a payout, reporting the share it names", (
@@ -502,13 +373,11 @@ void main() {
   });
 
   testWidgets("every writing affordance is withheld under a read-only preview", (tester) async {
-    final revenue = _revenue(id: "r1", label: "Regional prize");
     final share = _share(id: "s1", label: "Regional co-producer");
 
-    await pumpView(tester, revenues: [revenue], shares: [share], isReadOnly: true);
+    await pumpView(tester, shares: [share], isReadOnly: true);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
-    expect(find.text(tr.budgetSharingRevenueCreationAction), findsNothing);
     expect(find.text(tr.budgetSharingShareCreationAction), findsNothing);
     // No menu at all: every one of its own entries would be withheld.
     expect(find.byIcon(Icons.more_vert), findsNothing);

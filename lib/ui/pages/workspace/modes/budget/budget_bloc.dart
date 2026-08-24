@@ -1799,13 +1799,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Selects taking `event.revenueId` — sets [OcptBudgetState.selection] whichever document
-  /// dispatched it, and opens the right dock on the `Inspector` tab **only from the resources
-  /// tree**, mirroring [_onResourceSelected]. The sharing view dispatches this same event for its
-  /// own left-column row, and must keep drawing a plain highlight with the dock left exactly where
-  /// it was: `ocptBudgetHasInspector` is false for `OcptBudgetDocument.sharing`, and unconditionally
-  /// opening the dock the way [_onResourceSelected] does would reopen or retarget it on a click that
-  /// used to touch nothing but the selection. A revenue id naming no live revenue is ignored.
+  /// Selects taking `event.revenueId`, opening the right dock on the `Inspector` tab — mirrors
+  /// [_onResourceSelected]. A revenue id naming no live revenue is ignored.
   Future<void> _onRevenueSelected(
     OcptBudgetRevenueSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1814,15 +1809,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    final selection = OcptBudgetRevenueSelection(event.revenueId);
     emitter(
-      state.document == OcptBudgetDocument.resources
-          ? state.copyWith(
-              selection: selection,
-              rightDockTab: OcptBudgetRightDockTab.inspector,
-              lastRightDockTab: OcptBudgetRightDockTab.inspector,
-            )
-          : state.copyWith(selection: selection),
+      state.copyWith(
+        selection: OcptBudgetRevenueSelection(event.revenueId),
+        rightDockTab: OcptBudgetRightDockTab.inspector,
+        lastRightDockTab: OcptBudgetRightDockTab.inspector,
+      ),
     );
   }
 

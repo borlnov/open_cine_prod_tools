@@ -3,27 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The width, in logical pixels, under which the two columns stack instead of sitting side by
 /// side — mirrors `OcptBudgetRegie`'s own `_ocptRegieWrapWidth`.
 const double _ocptSharingWrapWidth = 1000;
 
-/// The `Status` column's own fixed width, in logical pixels — matches `OcptBudgetFinancing`'s own
-/// status column.
-const double _ocptSharingStatusColumnWidth = 132;
-
-/// The `Received`/`Share`/`Due`/`Paid`/`Reinvested` columns' own fixed width, in logical pixels —
-/// matches `OcptBudgetFinancing`'s own amount columns.
+/// The `Share`/`Due`/`Paid`/`Reinvested` columns' own fixed width, in logical pixels — matches
+/// `OcptBudgetFinancing`'s own amount columns.
 const double _ocptSharingAmountColumnWidth = 108;
 
 /// The `Share` column's own fixed width, in logical pixels — narrower than an amount column, a
@@ -43,10 +35,6 @@ const double _ocptSharingRepaymentMenuColumnWidth = 36;
 /// of this mode's own menu column.
 const double _ocptSharingMenuColumnWidth = 36;
 
-/// The date format the `Takings received` card's own rows print their date in — mirrors
-/// `OcptBudgetCommittedSpending`'s own due-date reading.
-final DateFormat _ocptSharingDateFormat = DateFormat.yMd();
-
 /// The budget mode's revenue sharing view: two columns side by side, wrapping onto one another
 /// once the centre narrows past [_ocptSharingWrapWidth] — the layout the validated mockup lays
 /// this view out as, mirroring `OcptBudgetRegie`'s own two-column reading.
@@ -60,18 +48,19 @@ final DateFormat _ocptSharingDateFormat = DateFormat.yMd();
 /// rather than a `ListView`. Wide, each column scrolls on its own (`SingleChildScrollView`,
 /// side by side in a `Row`); narrow, one scroll view carries both columns in sequence.
 ///
-/// **Left column**: `Takings received` (one row per live [revenues]) above `Repaying the
-/// contributions` ([sharingPot]'s own four-line read-out, the order that card exists to make
-/// legible — the reimbursable contributions come before any sharing at all). **Right column**:
-/// `Distribution`, one row per [shareSplits] — what is left is split by the agreed shares, and each
-/// participant may reinvest theirs in the next production.
+/// **Left column**: `Repaying the contributions` ([sharingPot]'s own four-line read-out, the order
+/// that card exists to make legible — the reimbursable contributions come before any sharing at
+/// all) — the whole of the column, the takings themselves having left for the resources document's
+/// own tree. **Right column**: `Distribution`, one row per [shareSplits] — what is left is split by
+/// the agreed shares, and each participant may reinvest theirs in the next production.
 ///
 /// **No inspector**, mirroring `OcptBudgetFinancing`'s own class doc comment for the very same
-/// reason: neither a taking nor a participant carries a line of its own the right dock's existing
-/// `Inspector` tab, built entirely around a poste's own quote lines, could show. A row's own click
-/// only ever selects it ([onRevenueSelected]/[onShareSelected]), read and written exactly as
-/// `OcptBudgetState.selectedResourceId` already is; a row's own fields are read and written through
-/// `OcptBudgetRevenueDialog`/`OcptBudgetShareDialog` instead, reached from the row's own `⋮` menu.
+/// reason: a participant carries no line of its own the right dock's existing `Inspector` tab,
+/// built entirely around a poste's own quote lines, could show — a taking is answered by the fiche
+/// the resources document opens on it these days. A share row's own click only ever selects it
+/// ([onShareSelected]), read and written exactly as `OcptBudgetState.selectedResourceId` already
+/// is; a row's own fields are read and written through `OcptBudgetShareDialog` instead, reached
+/// from the row's own `⋮` menu.
 ///
 /// **The sum of the shares is stated, never policed.** Where [ocptBudgetSharesPermilleTotal] is not
 /// `1000`, the `Distribution` table says so in a line of its own, rather than refusing the write or
@@ -84,18 +73,11 @@ final DateFormat _ocptSharingDateFormat = DateFormat.yMd();
 /// than a null callback per affordance, and withholds — never disables — every one of its own
 /// writing affordances under it: both `+ Add` footers and every row's own `⋮` menu entries.
 class OcptBudgetSharing extends StatelessWidget {
-  /// Every live taking, in `sortKey` order.
-  final List<OcptBudgetRevenue> revenues;
-
   /// Every live share, in `sortKey` order.
   final List<OcptBudgetShare> shares;
 
-  /// What has actually come in against each taking, keyed by its own id — read raw, rather than
-  /// through a `?? 0` reading, so a taking whose received figure differs from its own
-  /// [OcptBudgetRevenue.amountCents] can print the expected amount as a quiet second line.
-  final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
-
-  /// What there is to share, and what stands between the takings and it.
+  /// What there is to share, and what stands between the takings and it — still summed from the
+  /// takings, by `lib/utils/ocpt_budget_shares.dart`, even though this view no longer draws them.
   final OcptBudgetSharingPot sharingPot;
 
   /// `resources`' own reimbursable ones, grouped by lender — `ocptBudgetRepaymentLinesOf`
@@ -121,39 +103,12 @@ class OcptBudgetSharing extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// The id of the currently selected taking, or null while none is.
-  final String? selectedRevenueId;
-
   /// The id of the currently selected share, or null while none is.
   final String? selectedShareId;
 
   /// Whether the mode shows a project version being previewed read-only — see the class doc
   /// comment.
   final bool isReadOnly;
-
-  /// Called when the `Takings received` card's own `+ Add` footer is clicked, or null while
-  /// [isReadOnly].
-  final VoidCallback? onRevenueCreationRequested;
-
-  /// Called with a taking's id when its row is clicked — selects it, and only that.
-  final ValueChanged<String> onRevenueSelected;
-
-  /// Called with a taking when its row's own `⋮` menu asks to edit it, or null while [isReadOnly].
-  /// Opens `OcptBudgetRevenueDialog` on it.
-  final ValueChanged<OcptBudgetRevenue>? onRevenueEditRequested;
-
-  /// Called with a taking when its row's own `⋮` menu asks to record a receipt against it, or null
-  /// while [isReadOnly]. Opens `OcptBudgetEntryDialog` pre-filled from it, as a credit.
-  final ValueChanged<OcptBudgetRevenue>? onRevenueReceiptRequested;
-
-  /// Called with a taking's id and a direction when its row's own `⋮` menu asks to move it, or
-  /// null while [isReadOnly]. `moveUp` is named, never positional, mirroring
-  /// `OcptBudgetCostTracking.onPosteReorderRequested`.
-  final void Function(String revenueId, {required bool moveUp})? onRevenueReorderRequested;
-
-  /// Called with a taking's id when its row's own `⋮` menu asks to delete it, or null while
-  /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
-  final ValueChanged<String>? onRevenueDeletionRequested;
 
   /// Called when the `Distribution` table's own `+ Add` footer is clicked, or null while
   /// [isReadOnly].
@@ -171,34 +126,26 @@ class OcptBudgetSharing extends StatelessWidget {
   final ValueChanged<OcptBudgetShare>? onSharePayoutRequested;
 
   /// Called with a share's id and a direction when its row's own `⋮` menu asks to move it, or null
-  /// while [isReadOnly]. Mirrors [onRevenueReorderRequested].
+  /// while [isReadOnly]. `moveUp` is named, never positional, mirroring
+  /// `OcptBudgetCostTracking.onPosteReorderRequested`.
   final void Function(String shareId, {required bool moveUp})? onShareReorderRequested;
 
   /// Called with a share's id when its row's own `⋮` menu asks to delete it, or null while
-  /// [isReadOnly]. Mirrors [onRevenueDeletionRequested].
+  /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onShareDeletionRequested;
 
   /// Class constructor
   const OcptBudgetSharing({
     super.key,
-    required this.revenues,
     required this.shares,
-    required this.receivedByRevenueId,
     required this.sharingPot,
     required this.repaymentLines,
     required this.onRepaymentRequested,
     required this.shareSplits,
     required this.people,
     required this.currencyCode,
-    required this.selectedRevenueId,
     required this.selectedShareId,
     required this.isReadOnly,
-    required this.onRevenueCreationRequested,
-    required this.onRevenueSelected,
-    required this.onRevenueEditRequested,
-    required this.onRevenueReceiptRequested,
-    required this.onRevenueReorderRequested,
-    required this.onRevenueDeletionRequested,
     required this.onShareCreationRequested,
     required this.onShareSelected,
     required this.onShareEditRequested,
@@ -213,22 +160,12 @@ class OcptBudgetSharing extends StatelessWidget {
     final theme = Theme.of(context);
 
     final leftColumn = _OcptSharingLeftColumn(
-      revenues: revenues,
-      receivedByRevenueId: receivedByRevenueId,
       sharingPot: sharingPot,
       repaymentLines: repaymentLines,
       shares: shares,
       onRepaymentRequested: onRepaymentRequested,
       people: people,
       currencyCode: currencyCode,
-      selectedRevenueId: selectedRevenueId,
-      isReadOnly: isReadOnly,
-      onRevenueCreationRequested: onRevenueCreationRequested,
-      onRevenueSelected: onRevenueSelected,
-      onRevenueEditRequested: onRevenueEditRequested,
-      onRevenueReceiptRequested: onRevenueReceiptRequested,
-      onRevenueReorderRequested: onRevenueReorderRequested,
-      onRevenueDeletionRequested: onRevenueDeletionRequested,
     );
     final rightColumn = _OcptSharingDistributionColumn(
       shares: shares,
@@ -288,11 +225,10 @@ class OcptBudgetSharing extends StatelessWidget {
   }
 }
 
-/// The left column: `Takings received` above `Repaying the contributions`.
+/// The left column: `Repaying the contributions`, the whole of it — the takings themselves are
+/// drawn by the resources document's own tree these days.
 class _OcptSharingLeftColumn extends StatelessWidget {
   /// See [OcptBudgetSharing]'s own fields of the same name.
-  final List<OcptBudgetRevenue> revenues;
-  final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
   final OcptBudgetSharingPot sharingPot;
   final List<OcptBudgetRepaymentLine> repaymentLines;
 
@@ -305,115 +241,25 @@ class _OcptSharingLeftColumn extends StatelessWidget {
   final ValueChanged<OcptBudgetRepaymentLine>? onRepaymentRequested;
   final List<OcptPerson> people;
   final String currencyCode;
-  final String? selectedRevenueId;
-  final bool isReadOnly;
-  final VoidCallback? onRevenueCreationRequested;
-  final ValueChanged<String> onRevenueSelected;
-  final ValueChanged<OcptBudgetRevenue>? onRevenueEditRequested;
-  final ValueChanged<OcptBudgetRevenue>? onRevenueReceiptRequested;
-  final void Function(String revenueId, {required bool moveUp})? onRevenueReorderRequested;
-  final ValueChanged<String>? onRevenueDeletionRequested;
 
   /// Class constructor
   const _OcptSharingLeftColumn({
-    required this.revenues,
-    required this.receivedByRevenueId,
     required this.sharingPot,
     required this.repaymentLines,
     required this.shares,
     required this.onRepaymentRequested,
     required this.people,
     required this.currencyCode,
-    required this.selectedRevenueId,
-    required this.isReadOnly,
-    required this.onRevenueCreationRequested,
-    required this.onRevenueSelected,
-    required this.onRevenueEditRequested,
-    required this.onRevenueReceiptRequested,
-    required this.onRevenueReorderRequested,
-    required this.onRevenueDeletionRequested,
   });
 
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final received = ocptBudgetRevenuesReceivedTotalOf(
-      revenues: revenues,
-      receivedByRevenueId: receivedByRevenueId,
-    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(tr.budgetSharingTakingsReceivedTitle, style: theme.textTheme.titleSmall),
-        const SizedBox(height: 4),
-        Card(
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (revenues.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: Text(
-                        tr.budgetSharingTakingsEmptyHint,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  for (final (index, revenue) in revenues.indexed)
-                    _OcptSharingRevenueRow(
-                      revenue: revenue,
-                      received: receivedByRevenueId[revenue.id],
-                      currencyCode: currencyCode,
-                      isSelected: revenue.id == selectedRevenueId,
-                      onTap: () => onRevenueSelected(revenue.id),
-                      onEditRequested: isReadOnly || onRevenueEditRequested == null
-                          ? null
-                          : () => onRevenueEditRequested?.call(revenue),
-                      onReceiptRequested: isReadOnly || onRevenueReceiptRequested == null
-                          ? null
-                          : () => onRevenueReceiptRequested?.call(revenue),
-                      onMoveUpRequested: isReadOnly || onRevenueReorderRequested == null || index == 0
-                          ? null
-                          : () => onRevenueReorderRequested?.call(revenue.id, moveUp: true),
-                      onMoveDownRequested:
-                          isReadOnly || onRevenueReorderRequested == null || index == revenues.length - 1
-                          ? null
-                          : () => onRevenueReorderRequested?.call(revenue.id, moveUp: false),
-                      onDeletionRequested: isReadOnly || onRevenueDeletionRequested == null
-                          ? null
-                          : () => onRevenueDeletionRequested?.call(revenue.id),
-                    ),
-                const Divider(height: 1),
-                _OcptSharingTotalRow(
-                  label: tr.budgetCostTrackingTotalRowLabel,
-                  valueText: ocptBudgetAmountLabel(received.amountCents, currencyCode),
-                  caption: received.isComplete
-                      ? null
-                      : tr.budgetSharingTakingsCoverageReadOut(
-                          ocptBudgetAmountLabel(received.amountCents, currencyCode),
-                          received.coveredLineCount,
-                          received.lineCount,
-                        ),
-                ),
-                if (!isReadOnly && onRevenueCreationRequested != null)
-                  _OcptSharingCreationFooter(
-                    label: tr.budgetSharingRevenueCreationAction,
-                    onTap: onRevenueCreationRequested!,
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
         Text(tr.budgetSharingRepayingTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
         Card(
@@ -753,216 +599,6 @@ class _OcptSharingRepaymentLenderRow extends StatelessWidget {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// One taking row: its date, its label, its status pill, its received amount — a quiet second line
-/// naming the expected amount whenever it differs from what was actually received — then its own
-/// `⋮` menu.
-class _OcptSharingRevenueRow extends StatelessWidget {
-  /// The revenue this row draws.
-  final OcptBudgetRevenue revenue;
-
-  /// What has actually come in against [revenue], or null while no entry names it at all.
-  final OcptBudgetCoveredTotal? received;
-
-  /// The project's currency, an ISO 4217 code.
-  final String currencyCode;
-
-  /// Whether this revenue is the currently selected one.
-  final bool isSelected;
-
-  /// Called when this row is clicked — selects it, and only that.
-  final VoidCallback onTap;
-
-  /// Called when this row's own `⋮` menu asks to edit it, or null while withheld.
-  final VoidCallback? onEditRequested;
-
-  /// Called when this row's own `⋮` menu asks to record a receipt against it, or null while
-  /// withheld.
-  final VoidCallback? onReceiptRequested;
-
-  /// Called when this row's own `⋮` menu asks to move it up, or null while withheld (including
-  /// while already first).
-  final VoidCallback? onMoveUpRequested;
-
-  /// Called when this row's own `⋮` menu asks to move it down, or null while withheld (including
-  /// while already last).
-  final VoidCallback? onMoveDownRequested;
-
-  /// Called when this row's own `⋮` menu asks to delete it, or null while withheld.
-  final VoidCallback? onDeletionRequested;
-
-  /// Class constructor
-  const _OcptSharingRevenueRow({
-    required this.revenue,
-    required this.received,
-    required this.currencyCode,
-    required this.isSelected,
-    required this.onTap,
-    required this.onEditRequested,
-    required this.onReceiptRequested,
-    required this.onMoveUpRequested,
-    required this.onMoveDownRequested,
-    required this.onDeletionRequested,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final hasMenu =
-        onEditRequested != null ||
-        onReceiptRequested != null ||
-        onMoveUpRequested != null ||
-        onMoveDownRequested != null ||
-        onDeletionRequested != null;
-
-    final receivedCents = received?.amountCents;
-    // The expected amount prints as a quiet second line only where it actually differs from what
-    // was received — an announced prize and a cashed one are told apart, but a row nobody has been
-    // paid against yet (received null) says nothing more than its own expected figure once, on its
-    // main line.
-    final showsExpectedCaption = receivedCents != null && receivedCents != revenue.amountCents;
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      child: ColoredBox(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 8,
-            horizontal: ocptTableRowHorizontalPadding,
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: _ocptSharingAmountColumnWidth,
-                child: Text(
-                  _ocptSharingDateFormat.format(revenue.date),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    revenue.label.isEmpty ? tr.budgetPosteUnnamed : revenue.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: _ocptSharingStatusColumnWidth,
-                child: _OcptSharingRevenueStatusPill(status: revenue.status),
-              ),
-              SizedBox(
-                width: _ocptSharingAmountColumnWidth,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      receivedCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(receivedCents, currencyCode),
-                      textAlign: TextAlign.right,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (showsExpectedCaption)
-                      Text(
-                        ocptBudgetAmountLabel(revenue.amountCents, currencyCode),
-                        textAlign: TextAlign.right,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: _ocptSharingMenuColumnWidth,
-                child: !hasMenu
-                    ? null
-                    : PopupMenuButton<String>(
-                        tooltip: "",
-                        icon: const Icon(Icons.more_vert, size: 18),
-                        onSelected: (value) => switch (value) {
-                          "edit" => onEditRequested?.call(),
-                          "receipt" => onReceiptRequested?.call(),
-                          "up" => onMoveUpRequested?.call(),
-                          "down" => onMoveDownRequested?.call(),
-                          "delete" => onDeletionRequested?.call(),
-                          _ => null,
-                        },
-                        itemBuilder: (context) => [
-                          if (onEditRequested != null)
-                            PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
-                          if (onReceiptRequested != null)
-                            PopupMenuItem<String>(
-                              value: "receipt",
-                              child: Text(tr.budgetFinancingRecordReceiptAction),
-                            ),
-                          if (onMoveUpRequested != null)
-                            PopupMenuItem<String>(value: "up", child: Text(tr.budgetPosteMoveUpAction)),
-                          if (onMoveDownRequested != null)
-                            PopupMenuItem<String>(value: "down", child: Text(tr.budgetPosteMoveDownAction)),
-                          if (onDeletionRequested != null)
-                            PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
-                        ],
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One of `OcptBudgetRevenueStatus`'s own three badges — mirrors `OcptBudgetFinancing`'s own
-/// `_OcptFinancingStatusPill`, generic over a different enum.
-class _OcptSharingRevenueStatusPill extends StatelessWidget {
-  /// The status this pill paints.
-  final OcptBudgetRevenueStatus status;
-
-  /// Class constructor
-  const _OcptSharingRevenueStatusPill({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final accent = ocptBudgetRevenueStatusAccentColor(theme.colorScheme, status);
-    final isSolid = status == OcptBudgetRevenueStatus.invoiced;
-    final alpha = status.index / (OcptBudgetRevenueStatus.values.length - 1);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isSolid ? accent : accent.withValues(alpha: alpha),
-        border: status == OcptBudgetRevenueStatus.expected
-            ? Border.all(color: accent.withValues(alpha: 0.6))
-            : null,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      ),
-      child: Text(
-        ocptBudgetRevenueStatusLabel(tr, status),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: isSolid ? theme.colorScheme.onPrimary : accent,
-          fontWeight: FontWeight.w600,
-        ),
       ),
     );
   }
@@ -1337,8 +973,7 @@ class _OcptSharingShareRow extends StatelessWidget {
   }
 }
 
-/// One bold total row, right-aligned, its own quiet coverage caption underneath while [caption] is
-/// given — shared by both columns' own footers.
+/// One bold total row, right-aligned — the `Distribution` table's own `Reinvested` footer.
 class _OcptSharingTotalRow extends StatelessWidget {
   /// The row's own label.
   final String label;
@@ -1346,11 +981,8 @@ class _OcptSharingTotalRow extends StatelessWidget {
   /// The row's own value.
   final String valueText;
 
-  /// A quiet caption underneath, or null while the figure is already complete.
-  final String? caption;
-
   /// Class constructor
-  const _OcptSharingTotalRow({required this.label, required this.valueText, this.caption});
+  const _OcptSharingTotalRow({required this.label, required this.valueText});
 
   @override
   Widget build(BuildContext context) {
@@ -1362,20 +994,10 @@ class _OcptSharingTotalRow extends StatelessWidget {
         vertical: 6,
         horizontal: ocptTableRowHorizontalPadding,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(label, style: boldStyle)),
-              Text(valueText, style: boldStyle),
-            ],
-          ),
-          if (caption != null)
-            Text(
-              caption!,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
+          Expanded(child: Text(label, style: boldStyle)),
+          Text(valueText, style: boldStyle),
         ],
       ),
     );

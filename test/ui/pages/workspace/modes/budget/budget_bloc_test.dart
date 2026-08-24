@@ -1823,7 +1823,7 @@ void main() {
       expect(state.selectedRevenueId, revenueId);
     });
 
-    test("opens the Inspector from the resources document, but not from sharing", () async {
+    test("opens the Inspector tab, mirroring selecting a resource", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final project = projectsManager.currentProject!;
@@ -1837,28 +1837,12 @@ void main() {
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
       await waitForState(bloc, (state) => state.revenues.isNotEmpty);
 
-      // From the sharing document (the default document offers no inspector for a revenue either,
-      // but sharing is the row's own ordinary home): the dock is left exactly where it was.
-      bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.sharing));
-      await waitForState(bloc, (state) => state.document == OcptBudgetDocument.sharing);
-
       bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId!));
-      final sharingState = await waitForState(
-        bloc,
-        (state) => state.selectedRevenueId == revenueId,
-      );
-      expect(sharingState.rightDockTab, isNot(OcptBudgetRightDockTab.inspector));
-
-      // From the resources document, the very same event opens the fiche.
-      bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.resources));
-      await waitForState(bloc, (state) => state.document == OcptBudgetDocument.resources);
-
-      bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId));
-      final resourcesState = await waitForState(
+      final state = await waitForState(
         bloc,
         (state) => state.rightDockTab == OcptBudgetRightDockTab.inspector,
       );
-      expect(resourcesState.selection, OcptBudgetRevenueSelection(revenueId));
+      expect(state.selection, OcptBudgetRevenueSelection(revenueId));
     });
   });
 

@@ -13318,44 +13318,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetSharingTakingsReceivedTitle": "Takings received",
-  "@budgetSharingTakingsReceivedTitle": {
-    "description": "Title of the sharing view's own left card listing every taking",
-    "context": "Displayed above OcptBudgetSharing's own takings card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetSharingTakingsEmptyHint": "No taking has been recorded yet.",
-  "@budgetSharingTakingsEmptyHint": {
-    "description": "Hint shown in place of the takings table while the project holds no taking at all",
-    "context": "Displayed centred inside OcptBudgetSharing's own takings card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetSharingRevenueCreationAction": "+ Taking",
-  "@budgetSharingRevenueCreationAction": {
-    "description": "Label of the action that creates a new taking",
-    "context": "Displayed as the takings card's own footer action in OcptBudgetSharing",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetSharingTakingsCoverageReadOut": "{amount} · over {coveredCount} of the {revenueCount} takings",
-  "@budgetSharingTakingsCoverageReadOut": {
-    "description": "The takings card's total row own coverage read-out, while some takings carry no known rate",
-    "context": "Displayed in place of the plain total once every taking's own figure is fully known, this disappears",
-    "type": "text",
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      },
-      "coveredCount": {
-        "type": "int"
-      },
-      "revenueCount": {
-        "type": "int"
-      }
-    }
-  },
   "budgetSharingRepayingTitle": "What each person put in",
   "@budgetSharingRepayingTitle": {
     "description": "Title of the sharing view's own left card reading the pot",

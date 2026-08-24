@@ -1154,10 +1154,10 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Builds the resources view: the nesting tree of subsidies, contributions and takings, and its
-  /// own coverage band. Every revenue callback reuses the very same handler `_buildSharing` already
-  /// calls — `_handleRevenueCreationRequested`, `_handleRevenueEditRequested`,
-  /// `_handleRevenueReceiptRequested`, `_revenueReorderedPosition`,
-  /// `_handleRevenueDeletionRequested` — rather than a second copy of each.
+  /// own coverage band. Every revenue callback — `_handleRevenueCreationRequested`,
+  /// `_handleRevenueEditRequested`, `_handleRevenueReceiptRequested`, `_revenueReorderedPosition`,
+  /// `_handleRevenueDeletionRequested` — is this tree's own, the sharing view having lost its own
+  /// copy of the takings.
   Widget _buildFinancing(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
@@ -1616,38 +1616,14 @@ class _BudgetViewState extends State<_BudgetView> {
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptBudgetSharing(
-      revenues: state.revenues,
       shares: state.shares,
-      receivedByRevenueId: state.receivedByRevenueId,
       sharingPot: state.sharingPot,
       repaymentLines: state.repaymentLines,
       shareSplits: state.shareSplits,
       people: state.people,
       currencyCode: state.currencyCode,
-      selectedRevenueId: state.selectedRevenueId,
       selectedShareId: state.selectedShareId,
       isReadOnly: isReadOnly,
-      onRevenueCreationRequested: isReadOnly
-          ? null
-          : () => unawaited(_handleRevenueCreationRequested(context, state)),
-      onRevenueSelected: (revenueId) => bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId)),
-      onRevenueEditRequested: isReadOnly
-          ? null
-          : (revenue) => unawaited(_handleRevenueEditRequested(context, state, revenue)),
-      onRevenueReceiptRequested: isReadOnly
-          ? null
-          : (revenue) => unawaited(_handleRevenueReceiptRequested(context, state, revenue)),
-      onRevenueReorderRequested: isReadOnly
-          ? null
-          : (revenueId, {required moveUp}) => bloc.add(
-              OcptBudgetRevenueReorderedEvent(
-                revenueId: revenueId,
-                newPosition: _revenueReorderedPosition(state, revenueId, moveUp),
-              ),
-            ),
-      onRevenueDeletionRequested: isReadOnly
-          ? null
-          : (revenueId) => unawaited(_handleRevenueDeletionRequested(context, revenueId)),
       onShareCreationRequested: isReadOnly
           ? null
           : () => unawaited(_handleShareCreationRequested(context, state)),

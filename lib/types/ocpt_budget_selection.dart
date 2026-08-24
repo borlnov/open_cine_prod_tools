@@ -11,8 +11,8 @@ import 'package:equatable/equatable.dart';
 /// **One fact, not several id fields.** The poste tree's own selection and the financing view's
 /// own highlight used to be two independent ids; a fiche able to show any object can only ever be
 /// looking at one of them at a time. `OcptBudgetState.selectedRevenueId` folds onto
-/// [OcptBudgetRevenueSelection] — a plain getter now, read by the sharing view exactly as before —
-/// while `.selectedShareId` stays its own field: a share opens no fiche in any document this
+/// [OcptBudgetRevenueSelection] — a plain getter now, read by the resources tree's own revenue row
+/// — while `.selectedShareId` stays its own field: a share opens no fiche in any document this
 /// milestone reaches, so it has nothing to fold onto yet.
 ///
 /// Every variant carries only the id it names — mirroring the `state` holding the actual objects,
