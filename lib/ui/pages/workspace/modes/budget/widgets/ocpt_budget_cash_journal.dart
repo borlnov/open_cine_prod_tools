@@ -459,14 +459,18 @@ class _OcptCashJournalHeaderRow extends StatelessWidget {
 /// the row itself only selects it, opening the right dock's fiche on it — never a write, so never
 /// withheld under a previewed version.
 ///
-/// [row]'s own debit reads in [ColorScheme.error] wherever it is actually known, its own credit in
-/// [ColorScheme.primary] — the same pairing a movement's own colour already carries wherever else
-/// the app draws one, so a debit or a credit reads the same way whichever view shows it. Both
-/// figures print exactly as [ocptBudgetJournalRowsOf] gives them, zero included: an entry recorded
-/// entirely on one side of the account shows a real `0,00 €` on the other, never an invented dash.
-/// [row]'s own null figures ([OcptBudgetJournalRow.debitCents]/`.creditCents`/`.balanceAfterCents`,
-/// always null together for an entry that cannot be read tax-inclusive) print [ocptBudgetEmptyValue]
-/// instead, in the ordinary muted body colour rather than either accent.
+/// **Only the side money actually moved on is tinted** — a debit in [ColorScheme.error], a credit
+/// in [ColorScheme.primary], each read off the entry's own raw column rather than off the row's
+/// tax-inclusive figure, so the tint says which way the movement went and the figure says how much.
+/// Every ordinary entry moves on one side alone, so every ordinary row carries exactly one coloured
+/// cell: colouring both would paint an accent onto the untouched side's zero and leave a reader
+/// with two competing signals per line, which is the opposite of what the colour is there for.
+///
+/// Both figures print exactly as [ocptBudgetJournalRowsOf] gives them, zero included: an entry
+/// recorded entirely on one side of the account shows a real `0,00 €` on the other, never an
+/// invented dash. [row]'s own null figures ([OcptBudgetJournalRow.debitCents]/`.creditCents`/
+/// `.balanceAfterCents`, always null together for an entry that cannot be read tax-inclusive) print
+/// [ocptBudgetEmptyValue] instead, in the ordinary muted body colour rather than either accent.
 class _OcptCashJournalRow extends StatelessWidget {
   /// The row this widget draws.
   final OcptBudgetJournalRow row;
@@ -587,8 +591,16 @@ class _OcptCashJournalRow extends StatelessWidget {
                 ),
               ),
             ),
-            _amountCell(context, debitCents, color: debitCents != null ? theme.colorScheme.error : null),
-            _amountCell(context, creditCents, color: creditCents != null ? theme.colorScheme.primary : null),
+            _amountCell(
+              context,
+              debitCents,
+              color: (debitCents != null && entry.debitCents != 0) ? theme.colorScheme.error : null,
+            ),
+            _amountCell(
+              context,
+              creditCents,
+              color: (creditCents != null && entry.creditCents != 0) ? theme.colorScheme.primary : null,
+            ),
             _amountCell(context, balanceCents, bold: true),
             SizedBox(
               width: _ocptCashJournalMenuColumnWidth,
