@@ -202,9 +202,6 @@ class OcptBudgetRegie extends StatelessWidget {
   /// beside [breakdownPricedElementCount].
   final int breakdownUnpricedElementCount;
 
-  /// How many shooting days the schedule holds — [OcptBudgetFeedCard]'s own schedule row.
-  final int shootingDayCount;
-
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
@@ -212,14 +209,13 @@ class OcptBudgetRegie extends StatelessWidget {
   /// affordance is withheld rather than disabled.
   final bool isReadOnly;
 
-  /// Called when the reader asks to go and look at the schedule the head counts are read from.
+  /// Called when the reader asks to go and look at the schedule the head counts are read from —
+  /// the catering column's own caption link and [OcptBudgetFeedCard]'s own schedule row alike, the
+  /// two gestures being the same request made from two places.
   final VoidCallback onScheduleOpenRequested;
 
   /// Called when [OcptBudgetFeedCard]'s own breakdown row is clicked.
   final VoidCallback onBreakdownFeedRequested;
-
-  /// Called when [OcptBudgetFeedCard]'s own schedule row is clicked.
-  final VoidCallback onScheduleFeedRequested;
 
   /// Called when the reader asks to go and edit the project's own unit prices.
   final VoidCallback onProjectSettingsRequested;
@@ -273,12 +269,10 @@ class OcptBudgetRegie extends StatelessWidget {
     required this.people,
     required this.breakdownPricedElementCount,
     required this.breakdownUnpricedElementCount,
-    required this.shootingDayCount,
     required this.currencyCode,
     required this.isReadOnly,
     required this.onScheduleOpenRequested,
     required this.onBreakdownFeedRequested,
-    required this.onScheduleFeedRequested,
     required this.onProjectSettingsRequested,
     required this.onPersonOpenRequested,
     required this.onAllowanceCreationRequested,
@@ -296,11 +290,11 @@ class OcptBudgetRegie extends StatelessWidget {
       child: OcptBudgetFeedCard(
         breakdownPricedElementCount: breakdownPricedElementCount,
         breakdownUnpricedElementCount: breakdownUnpricedElementCount,
-        shootingDayCount: shootingDayCount,
+        shootingDayCount: days.length,
         mealCount: cateringTotals.mealCount,
         buffetCount: cateringTotals.buffetCount,
         onBreakdownFeedRequested: onBreakdownFeedRequested,
-        onScheduleFeedRequested: onScheduleFeedRequested,
+        onScheduleFeedRequested: onScheduleOpenRequested,
         // Withheld: this is the page it would have named — see the class doc comment.
         onCateringFeedRequested: null,
       ),

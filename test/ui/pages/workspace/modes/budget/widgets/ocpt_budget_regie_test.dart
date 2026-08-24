@@ -209,12 +209,10 @@ void main() {
     List<OcptPerson> people = const [],
     int breakdownPricedElementCount = 0,
     int breakdownUnpricedElementCount = 0,
-    int shootingDayCount = 0,
     bool isReadOnly = false,
     ValueChanged<String>? onPersonOpenRequested,
     VoidCallback? onScheduleOpenRequested,
     VoidCallback? onBreakdownFeedRequested,
-    VoidCallback? onScheduleFeedRequested,
     VoidCallback? onProjectSettingsRequested,
     VoidCallback? onAllowanceCreationRequested,
     ValueChanged<String>? onAllowanceEditRequested,
@@ -249,7 +247,6 @@ void main() {
           people: people,
           breakdownPricedElementCount: breakdownPricedElementCount,
           breakdownUnpricedElementCount: breakdownUnpricedElementCount,
-          shootingDayCount: shootingDayCount,
           currencyCode: "EUR",
           isReadOnly: isReadOnly,
           onAllowanceCreationRequested: onAllowanceCreationRequested ?? () {},
@@ -260,7 +257,6 @@ void main() {
           provisionNote: provisionNote,
           onScheduleOpenRequested: onScheduleOpenRequested ?? () {},
           onBreakdownFeedRequested: onBreakdownFeedRequested ?? () {},
-          onScheduleFeedRequested: onScheduleFeedRequested ?? () {},
           onProjectSettingsRequested: onProjectSettingsRequested ?? () {},
           onPersonOpenRequested: onPersonOpenRequested ?? (_) {},
         ),
@@ -295,13 +291,12 @@ void main() {
         days: days,
         breakdownPricedElementCount: 3,
         breakdownUnpricedElementCount: 2,
-        shootingDayCount: 12,
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
       expect(find.byType(OcptBudgetFeedCard), findsOneWidget);
       expect(find.text(tr.budgetDashboardFeedBreakdownReadOut(3, 5)), findsOneWidget);
-      expect(find.text(tr.budgetDashboardFeedScheduleReadOut(12)), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedScheduleReadOut(days.length)), findsOneWidget);
       // Withheld — this very page is what the catering row would have named.
       expect(find.text(tr.budgetDashboardFeedCateringTitle), findsNothing);
     });
@@ -323,9 +318,11 @@ void main() {
         tester,
         days: days,
         onBreakdownFeedRequested: () => breakdownRequested = true,
-        onScheduleFeedRequested: () => scheduleRequested = true,
+        onScheduleOpenRequested: () => scheduleRequested = true,
       );
 
+      // The schedule row reports through `onScheduleOpenRequested` — the very callback the
+      // catering column's own caption link already carries, both being the same request.
       final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
       await tester.tap(find.text(tr.budgetDashboardFeedBreakdownTitle));
       await tester.tap(find.text(tr.budgetDashboardFeedScheduleTitle));

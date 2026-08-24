@@ -1404,12 +1404,10 @@ class _BudgetViewState extends State<_BudgetView> {
       people: state.people,
       breakdownPricedElementCount: elementLinkCounts.pricedCount,
       breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
-      shootingDayCount: state.regieDays.length,
       currencyCode: state.currencyCode,
       isReadOnly: isReadOnly,
       onScheduleOpenRequested: () => _handleScheduleFeedRequested(context),
       onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
-      onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
       onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
       onPersonOpenRequested: (personId) => context.read<OcptWorkspaceBloc>().add(
         OcptWorkspaceModeSelectedEvent(
