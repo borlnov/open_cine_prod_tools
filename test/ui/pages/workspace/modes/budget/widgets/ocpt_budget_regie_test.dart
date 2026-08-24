@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
@@ -206,9 +207,14 @@ void main() {
     int? buffetPriceCents,
     List<OcptRole> roles = const [],
     List<OcptPerson> people = const [],
+    int breakdownPricedElementCount = 0,
+    int breakdownUnpricedElementCount = 0,
+    int shootingDayCount = 0,
     bool isReadOnly = false,
     ValueChanged<String>? onPersonOpenRequested,
     VoidCallback? onScheduleOpenRequested,
+    VoidCallback? onBreakdownFeedRequested,
+    VoidCallback? onScheduleFeedRequested,
     VoidCallback? onProjectSettingsRequested,
     VoidCallback? onAllowanceCreationRequested,
     ValueChanged<String>? onAllowanceEditRequested,
@@ -241,6 +247,9 @@ void main() {
           provisionedTotalCents: provisionedTotalCents,
           roles: roles,
           people: people,
+          breakdownPricedElementCount: breakdownPricedElementCount,
+          breakdownUnpricedElementCount: breakdownUnpricedElementCount,
+          shootingDayCount: shootingDayCount,
           currencyCode: "EUR",
           isReadOnly: isReadOnly,
           onAllowanceCreationRequested: onAllowanceCreationRequested ?? () {},
@@ -250,6 +259,8 @@ void main() {
           onProvisionRequested: onProvisionRequested ?? () {},
           provisionNote: provisionNote,
           onScheduleOpenRequested: onScheduleOpenRequested ?? () {},
+          onBreakdownFeedRequested: onBreakdownFeedRequested ?? () {},
+          onScheduleFeedRequested: onScheduleFeedRequested ?? () {},
           onProjectSettingsRequested: onProjectSettingsRequested ?? () {},
           onPersonOpenRequested: onPersonOpenRequested ?? (_) {},
         ),
@@ -261,6 +272,68 @@ void main() {
     await pumpView(tester, days: const []);
 
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
+    // The feed card is drawn above the empty state too — see the class doc comment.
+    expect(find.byType(OcptBudgetFeedCard), findsOneWidget);
+  });
+
+  group("the feed card", () {
+    testWidgets("sits at the top, above the two columns, its own catering row withheld", (
+      tester,
+    ) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+
+      await pumpView(
+        tester,
+        days: days,
+        breakdownPricedElementCount: 3,
+        breakdownUnpricedElementCount: 2,
+        shootingDayCount: 12,
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      expect(find.byType(OcptBudgetFeedCard), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedBreakdownReadOut(3, 5)), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedScheduleReadOut(12)), findsOneWidget);
+      // Withheld — this very page is what the catering row would have named.
+      expect(find.text(tr.budgetDashboardFeedCateringTitle), findsNothing);
+    });
+
+    testWidgets("its breakdown and schedule rows each report their own click", (tester) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+      var breakdownRequested = false;
+      var scheduleRequested = false;
+
+      await pumpView(
+        tester,
+        days: days,
+        onBreakdownFeedRequested: () => breakdownRequested = true,
+        onScheduleFeedRequested: () => scheduleRequested = true,
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      await tester.tap(find.text(tr.budgetDashboardFeedBreakdownTitle));
+      await tester.tap(find.text(tr.budgetDashboardFeedScheduleTitle));
+      await tester.pumpAndSettle();
+
+      expect(breakdownRequested, isTrue);
+      expect(scheduleRequested, isTrue);
+    });
   });
 
   testWidgets(

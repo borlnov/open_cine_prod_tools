@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
@@ -134,6 +135,11 @@ void main() {
       coveredLineCount: 0,
       lineCount: 0,
     ),
+    int breakdownPricedElementCount = 0,
+    int breakdownUnpricedElementCount = 0,
+    int shootingDayCount = 0,
+    int mealCount = 0,
+    int buffetCount = 0,
     bool isReadOnly = false,
     ValueChanged<String>? onPosteSelected,
     ValueChanged<String>? onLineSelected,
@@ -149,6 +155,9 @@ void main() {
     ValueChanged<String>? onCommitmentDeletionRequested,
     ValueChanged<OcptBudgetEntry>? onEntryEditRequested,
     ValueChanged<String>? onEntryDeletionRequested,
+    VoidCallback? onBreakdownFeedRequested,
+    VoidCallback? onScheduleFeedRequested,
+    VoidCallback? onCateringFeedRequested,
   }) => OcptBudgetCostTracking(
     postes: postes,
     commitments: commitments,
@@ -162,6 +171,11 @@ void main() {
     paidByPosteId: paidByPosteId,
     committedCentsOf: committedCentsOf,
     offQuoteTotal: offQuoteTotal,
+    breakdownPricedElementCount: breakdownPricedElementCount,
+    breakdownUnpricedElementCount: breakdownUnpricedElementCount,
+    shootingDayCount: shootingDayCount,
+    mealCount: mealCount,
+    buffetCount: buffetCount,
     isReadOnly: isReadOnly,
     onPosteSelected: onPosteSelected ?? (_) {},
     onLineSelected: onLineSelected ?? (_) {},
@@ -177,6 +191,9 @@ void main() {
     onCommitmentDeletionRequested: onCommitmentDeletionRequested,
     onEntryEditRequested: onEntryEditRequested,
     onEntryDeletionRequested: onEntryDeletionRequested,
+    onBreakdownFeedRequested: onBreakdownFeedRequested ?? () {},
+    onScheduleFeedRequested: onScheduleFeedRequested ?? () {},
+    onCateringFeedRequested: onCateringFeedRequested ?? () {},
   );
 
   testWidgets(
@@ -208,7 +225,17 @@ void main() {
   testWidgets(
     "the header shows the six columns in the Devis, Engagé, Payé, Reste, Coût final, Écart order",
     (tester) async {
-      await tester.pumpWidget(_wrap(buildTable()));
+      const poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Poste one",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a0",
+        lines: [],
+      );
+
+      await tester.pumpWidget(_wrap(buildTable(postes: [poste])));
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
       expect(find.text(tr.budgetCostTrackingColumnQuote.toUpperCase()), findsOneWidget);
@@ -1018,6 +1045,80 @@ void main() {
           .length;
       // The commitment's own sub-row is drawn in two panes, both highlighted.
       expect(highlightedCount, 2);
+    });
+  });
+
+  group("the empty state", () {
+    testWidgets("draws the empty hint and the feed card in place of the two-pane table", (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            breakdownPricedElementCount: 3,
+            breakdownUnpricedElementCount: 2,
+            shootingDayCount: 12,
+            mealCount: 8,
+            buffetCount: 8,
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(find.text(tr.budgetDashboardEmptyHint), findsOneWidget);
+      expect(find.byType(OcptBudgetFeedCard), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedBreakdownReadOut(3, 5)), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedScheduleReadOut(12)), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFeedCateringReadOut(8, 8)), findsOneWidget);
+    });
+
+    testWidgets("keeps the creation footer below the feed card, exactly as it is drawn today", (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(buildTable(onPosteCreationRequested: () {})),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(find.text(tr.budgetPosteCreationAction), findsOneWidget);
+    });
+
+    testWidgets("withholds the creation footer while isReadOnly, exactly as the populated table "
+        "does", (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(isReadOnly: true, onPosteCreationRequested: () {}),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(find.text(tr.budgetPosteCreationAction), findsNothing);
+    });
+
+    testWidgets("every one of the feed card's own three rows reports its own click", (tester) async {
+      var breakdownRequested = false;
+      var scheduleRequested = false;
+      var cateringRequested = false;
+
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            onBreakdownFeedRequested: () => breakdownRequested = true,
+            onScheduleFeedRequested: () => scheduleRequested = true,
+            onCateringFeedRequested: () => cateringRequested = true,
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      await tester.tap(find.text(tr.budgetDashboardFeedBreakdownTitle));
+      await tester.tap(find.text(tr.budgetDashboardFeedScheduleTitle));
+      await tester.tap(find.text(tr.budgetDashboardFeedCateringTitle));
+      await tester.pumpAndSettle();
+
+      expect(breakdownRequested, isTrue);
+      expect(scheduleRequested, isTrue);
+      expect(cateringRequested, isTrue);
     });
   });
 }

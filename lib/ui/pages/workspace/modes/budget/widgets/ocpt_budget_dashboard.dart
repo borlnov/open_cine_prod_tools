@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
@@ -28,7 +29,7 @@ const double _ocptDashboardBarHeight = 6;
 ///
 /// **The balance bar and the feed card each read a figure this view could not support before.** The
 /// balance bar ([_OcptDashboardBalanceBar]) is built on [ocptBudgetNeedsResourcesBalanceOf], over
-/// [resources]; the feed card ([_OcptDashboardFeedCard]) reads the breakdown's own link
+/// [resources]; the feed card ([OcptBudgetFeedCard]) reads the breakdown's own link
 /// ([breakdownPricedElementCount]/[breakdownUnpricedElementCount]), the schedule's own day count
 /// ([shootingDayCount]) and the catering pass's own head counts ([mealCount]/[buffetCount]) — see
 /// each widget's own doc comment for how it reads what it is handed. Purely computed, like
@@ -285,7 +286,7 @@ class OcptBudgetDashboard extends StatelessWidget {
             onTap: () => onPosteOpened(poste.id),
           ),
         const SizedBox(height: 16),
-        _OcptDashboardFeedCard(
+        OcptBudgetFeedCard(
           breakdownPricedElementCount: breakdownPricedElementCount,
           breakdownUnpricedElementCount: breakdownUnpricedElementCount,
           shootingDayCount: shootingDayCount,
@@ -658,150 +659,6 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// The "what feeds this budget" card: three rows, each a title, a one-line reading and a click that
-/// only ever *reports* upward — see `OcptBudgetDashboard`'s own class doc comment for why none of
-/// the three navigates on its own.
-///
-/// **The unpriced-elements count read by [_OcptDashboardFeedRow]'s own breakdown row is deliberately
-/// not a third alert.** `ocptComputeBudgetAlerts`'s own two rules each state a standing fact that
-/// something is *wrong*; a dozen elements still waiting to be priced during preparation is the
-/// normal state of a production still building its breakdown, true for months on end — the mockup
-/// places this reading in this card for that reason, and so does this widget.
-class _OcptDashboardFeedCard extends StatelessWidget {
-  /// How many live elements a live quote line already prices.
-  final int breakdownPricedElementCount;
-
-  /// How many live elements no live line prices yet.
-  final int breakdownUnpricedElementCount;
-
-  /// How many shooting days the schedule holds.
-  final int shootingDayCount;
-
-  /// How many meals the schedule's own presences produce.
-  final int mealCount;
-
-  /// How many heads the buffet serves, from the schedule's own presences.
-  final int buffetCount;
-
-  /// Called when the breakdown row is clicked.
-  final VoidCallback onBreakdownFeedRequested;
-
-  /// Called when the schedule row is clicked.
-  final VoidCallback onScheduleFeedRequested;
-
-  /// Called when the catering row is clicked.
-  final VoidCallback onCateringFeedRequested;
-
-  /// Class constructor
-  const _OcptDashboardFeedCard({
-    required this.breakdownPricedElementCount,
-    required this.breakdownUnpricedElementCount,
-    required this.shootingDayCount,
-    required this.mealCount,
-    required this.buffetCount,
-    required this.onBreakdownFeedRequested,
-    required this.onScheduleFeedRequested,
-    required this.onCateringFeedRequested,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final elementCount = breakdownPricedElementCount + breakdownUnpricedElementCount;
-
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              tr.budgetDashboardFeedSectionTitle,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _OcptDashboardFeedRow(
-              title: tr.budgetDashboardFeedBreakdownTitle,
-              readOut: tr.budgetDashboardFeedBreakdownReadOut(breakdownPricedElementCount, elementCount),
-              onTap: onBreakdownFeedRequested,
-            ),
-            _OcptDashboardFeedRow(
-              title: tr.budgetDashboardFeedScheduleTitle,
-              readOut: tr.budgetDashboardFeedScheduleReadOut(shootingDayCount),
-              onTap: onScheduleFeedRequested,
-            ),
-            _OcptDashboardFeedRow(
-              title: tr.budgetDashboardFeedCateringTitle,
-              readOut: tr.budgetDashboardFeedCateringReadOut(mealCount, buffetCount),
-              onTap: onCateringFeedRequested,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// One row of [_OcptDashboardFeedCard]: a title, a one-line reading, and a `›` chevron hinting the
-/// whole row is a click through to wherever [readOut] was typed.
-class _OcptDashboardFeedRow extends StatelessWidget {
-  /// The row's own title.
-  final String title;
-
-  /// The row's own one-line reading.
-  final String readOut;
-
-  /// Called when this row is clicked.
-  final VoidCallback onTap;
-
-  /// Class constructor
-  const _OcptDashboardFeedRow({required this.title, required this.readOut, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: 8,
-          horizontal: ocptTableRowHorizontalPadding,
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 96,
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                readOut,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-            Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant),
-          ],
-        ),
-      ),
     );
   }
 }

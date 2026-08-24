@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
@@ -150,8 +151,14 @@ double _ocptRegieStackedCardHeight(int rowCount, double rowHeight) =>
 /// dispatch, exactly as it already does for the dashboard's own alert actions.
 ///
 /// Empty state: a project holding no shooting day **and** no defrayal shows [OcptWorkspaceEmptyMode]
-/// over the whole view. A project with defrayals but no schedule keeps the full layout, since there
-/// is now a `+` action of this view's own to keep a heading band drawn for.
+/// in place of the two columns. A project with defrayals but no schedule keeps the full layout,
+/// since there is now a `+` action of this view's own to keep a heading band drawn for.
+///
+/// **[OcptBudgetFeedCard] sits at the very top, above the two columns, in both readings** — the
+/// empty one included, since a project with nothing here yet is exactly when a way through to the
+/// schedule is most useful. Its own catering row is withheld (`onCateringFeedRequested` passed
+/// null): it would name this very page, and a link to the page the reader is already standing on is
+/// not a link at all.
 class OcptBudgetRegie extends StatelessWidget {
   /// Every live shooting day's own catering reading, in the schedule's own day-number order.
   final List<OcptBudgetRegieDay> days;
@@ -187,6 +194,17 @@ class OcptBudgetRegie extends StatelessWidget {
   /// Every live person of the project's address book.
   final List<OcptPerson> people;
 
+  /// How many live elements a live quote line already prices — [OcptBudgetFeedCard]'s own
+  /// breakdown row.
+  final int breakdownPricedElementCount;
+
+  /// How many live elements no live line prices yet — [OcptBudgetFeedCard]'s own breakdown row,
+  /// beside [breakdownPricedElementCount].
+  final int breakdownUnpricedElementCount;
+
+  /// How many shooting days the schedule holds — [OcptBudgetFeedCard]'s own schedule row.
+  final int shootingDayCount;
+
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
@@ -196,6 +214,12 @@ class OcptBudgetRegie extends StatelessWidget {
 
   /// Called when the reader asks to go and look at the schedule the head counts are read from.
   final VoidCallback onScheduleOpenRequested;
+
+  /// Called when [OcptBudgetFeedCard]'s own breakdown row is clicked.
+  final VoidCallback onBreakdownFeedRequested;
+
+  /// Called when [OcptBudgetFeedCard]'s own schedule row is clicked.
+  final VoidCallback onScheduleFeedRequested;
 
   /// Called when the reader asks to go and edit the project's own unit prices.
   final VoidCallback onProjectSettingsRequested;
@@ -247,9 +271,14 @@ class OcptBudgetRegie extends StatelessWidget {
     required this.provisionedTotalCents,
     required this.roles,
     required this.people,
+    required this.breakdownPricedElementCount,
+    required this.breakdownUnpricedElementCount,
+    required this.shootingDayCount,
     required this.currencyCode,
     required this.isReadOnly,
     required this.onScheduleOpenRequested,
+    required this.onBreakdownFeedRequested,
+    required this.onScheduleFeedRequested,
     required this.onProjectSettingsRequested,
     required this.onPersonOpenRequested,
     required this.onAllowanceCreationRequested,
@@ -262,10 +291,33 @@ class OcptBudgetRegie extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final feedCard = Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: OcptBudgetFeedCard(
+        breakdownPricedElementCount: breakdownPricedElementCount,
+        breakdownUnpricedElementCount: breakdownUnpricedElementCount,
+        shootingDayCount: shootingDayCount,
+        mealCount: cateringTotals.mealCount,
+        buffetCount: cateringTotals.buffetCount,
+        onBreakdownFeedRequested: onBreakdownFeedRequested,
+        onScheduleFeedRequested: onScheduleFeedRequested,
+        // Withheld: this is the page it would have named — see the class doc comment.
+        onCateringFeedRequested: null,
+      ),
+    );
+
     if (days.isEmpty && allowances.isEmpty) {
-      return OcptWorkspaceEmptyMode(
-        icon: Icons.restaurant_outlined,
-        message: Tr.of(context).budgetRegieEmptyHint,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          feedCard,
+          Expanded(
+            child: OcptWorkspaceEmptyMode(
+              icon: Icons.restaurant_outlined,
+              message: Tr.of(context).budgetRegieEmptyHint,
+            ),
+          ),
+        ],
       );
     }
 
@@ -296,6 +348,7 @@ class OcptBudgetRegie extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        feedCard,
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {

@@ -11,6 +11,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
@@ -86,6 +88,10 @@ const double _ocptCostTrackingDotDiameter = 8;
 /// [_OcptCostTrackingSubLabel]'s own build method.
 const double _ocptCostTrackingBadgeMaxWidth = 84;
 
+/// The widest the empty state's own [OcptWorkspaceEmptyMode]/[OcptBudgetFeedCard] pair is ever
+/// drawn, in logical pixels — centred rather than run the width of the screen.
+const double _ocptCostTrackingEmptyStateMaxWidth = 480;
+
 /// The budget mode's cost-tracking view: the expenses tree — one row per poste, opening onto its
 /// own quote lines, each of those opening onto its own commitments and the entries that settle
 /// them, the poste's own off-line commitments and entries drawn at a quote line's own indentation
@@ -109,6 +115,12 @@ const double _ocptCostTrackingBadgeMaxWidth = 84;
 /// footer, a poste row's own `⋮` menu, a commitment or an entry sub-row's own `⋮` menu, the reorder
 /// they open onto — the null callbacks that withhold them under a version preview, so a control
 /// added later here can't be gated in one place and forgotten in the other.
+///
+/// **A project with no live poste at all draws [OcptBudgetFeedCard] in place of the two-pane
+/// table**, centred and width-constrained, above the very same `+ Poste` creation footer this view
+/// always draws — the way through to a first poste before there is a table for it to belong to.
+/// Every one of the card's own three rows is offered here, unlike `OcptBudgetRegie`'s own copy: no
+/// page this empty state could be standing on names itself.
 ///
 /// [isSimplified] switches every poste's own displayed name between [OcptBudgetPoste.simpleLabel]
 /// (falling back to [OcptBudgetPoste.label] when null) and [OcptBudgetPoste.label] itself, and
@@ -205,6 +217,25 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// The total of every debit that names no poste at all — see the class doc comment.
   final OcptBudgetCoveredTotal offQuoteTotal;
 
+  /// How many live elements a live quote line already prices — [OcptBudgetFeedCard]'s own
+  /// breakdown row, drawn while [postes] is empty.
+  final int breakdownPricedElementCount;
+
+  /// How many live elements no live line prices yet — [OcptBudgetFeedCard]'s own breakdown row,
+  /// beside [breakdownPricedElementCount].
+  final int breakdownUnpricedElementCount;
+
+  /// How many shooting days the schedule holds — [OcptBudgetFeedCard]'s own schedule row.
+  final int shootingDayCount;
+
+  /// How many meals the schedule's own presences produce — [OcptBudgetFeedCard]'s own catering
+  /// row.
+  final int mealCount;
+
+  /// How many heads the buffet serves, from the schedule's own presences — [OcptBudgetFeedCard]'s
+  /// own catering row, beside [mealCount].
+  final int buffetCount;
+
   /// Whether the mode shows a project version being previewed read-only — see the class doc
   /// comment.
   final bool isReadOnly;
@@ -265,6 +296,15 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onEntryDeletionRequested;
 
+  /// Called when the empty state's own [OcptBudgetFeedCard] breakdown row is clicked.
+  final VoidCallback onBreakdownFeedRequested;
+
+  /// Called when the empty state's own [OcptBudgetFeedCard] schedule row is clicked.
+  final VoidCallback onScheduleFeedRequested;
+
+  /// Called when the empty state's own [OcptBudgetFeedCard] catering row is clicked.
+  final VoidCallback onCateringFeedRequested;
+
   /// Class constructor
   const OcptBudgetCostTracking({
     super.key,
@@ -280,6 +320,11 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.paidByPosteId,
     required this.committedCentsOf,
     required this.offQuoteTotal,
+    required this.breakdownPricedElementCount,
+    required this.breakdownUnpricedElementCount,
+    required this.shootingDayCount,
+    required this.mealCount,
+    required this.buffetCount,
     required this.isReadOnly,
     required this.onPosteSelected,
     required this.onLineSelected,
@@ -295,10 +340,17 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.onCommitmentDeletionRequested,
     required this.onEntryEditRequested,
     required this.onEntryDeletionRequested,
+    required this.onBreakdownFeedRequested,
+    required this.onScheduleFeedRequested,
+    required this.onCateringFeedRequested,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (postes.isEmpty) {
+      return _buildEmptyState(context);
+    }
+
     final allLines = [for (final poste in postes) ...poste.lines];
     final total = ocptBudgetTotalOf(
       allLines,
@@ -390,6 +442,48 @@ class OcptBudgetCostTracking extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+
+  /// The empty state drawn in place of the two-pane table while [postes] is empty — see the class
+  /// doc comment. The creation footer is kept, exactly as it is drawn today, so the way to create
+  /// the first poste never disappears.
+  Widget _buildEmptyState(BuildContext context) {
+    final tr = Tr.of(context);
+    final showFooter = !isReadOnly && onPosteCreationRequested != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _ocptCostTrackingEmptyStateMaxWidth),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OcptWorkspaceEmptyMode(
+                    icon: Icons.payments_outlined,
+                    message: tr.budgetDashboardEmptyHint,
+                  ),
+                  const SizedBox(height: 16),
+                  OcptBudgetFeedCard(
+                    breakdownPricedElementCount: breakdownPricedElementCount,
+                    breakdownUnpricedElementCount: breakdownUnpricedElementCount,
+                    shootingDayCount: shootingDayCount,
+                    mealCount: mealCount,
+                    buffetCount: buffetCount,
+                    onBreakdownFeedRequested: onBreakdownFeedRequested,
+                    onScheduleFeedRequested: onScheduleFeedRequested,
+                    onCateringFeedRequested: onCateringFeedRequested,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (showFooter) _OcptCostTrackingCreationFooter(onTap: onPosteCreationRequested!),
+      ],
     );
   }
 

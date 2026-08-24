@@ -742,24 +742,36 @@ class _BudgetViewState extends State<_BudgetView> {
       onCashAlertActionRequested: () => bloc.add(
         const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
       ),
-      onBreakdownFeedRequested: () => context.read<OcptWorkspaceBloc>().add(
-        const OcptWorkspaceModeSelectedEvent(
-          mode: OcptWorkspaceMode.resources,
-          revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.elements),
-        ),
-      ),
-      onScheduleFeedRequested: () => context.read<OcptWorkspaceBloc>().add(
-        const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
-      ),
-      onCateringFeedRequested: () =>
-          bloc.add(const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.regie)),
+      onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
+      onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
+      onCateringFeedRequested: () => _handleCateringFeedRequested(bloc),
     );
   }
+
+  /// Opens the resources mode's own elements tab — `OcptBudgetFeedCard`'s own breakdown row,
+  /// wherever the card is drawn.
+  void _handleBreakdownFeedRequested(BuildContext context) => context.read<OcptWorkspaceBloc>().add(
+    const OcptWorkspaceModeSelectedEvent(
+      mode: OcptWorkspaceMode.resources,
+      revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.elements),
+    ),
+  );
+
+  /// Opens the schedule mode — `OcptBudgetFeedCard`'s own schedule row, wherever the card is drawn.
+  void _handleScheduleFeedRequested(BuildContext context) => context.read<OcptWorkspaceBloc>().add(
+    const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
+  );
+
+  /// Opens the catering-and-travel pass — `OcptBudgetFeedCard`'s own catering row, drawn only where
+  /// that pass is not itself already on screen.
+  void _handleCateringFeedRequested(OcptBudgetBloc bloc) =>
+      bloc.add(const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.regie));
 
   /// Builds the cost-tracking table.
   Widget _buildCostTracking(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
+    final elementLinkCounts = state.elementLinkCounts;
 
     return OcptBudgetCostTracking(
       // **The filter is applied here, not inside the view.** Every one of these widgets draws
@@ -780,6 +792,11 @@ class _BudgetViewState extends State<_BudgetView> {
       paidByPosteId: state.paidByPosteId,
       committedCentsOf: state.committedCentsOf,
       offQuoteTotal: state.offQuotePaidTotal,
+      breakdownPricedElementCount: elementLinkCounts.pricedCount,
+      breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
+      shootingDayCount: state.regieDays.length,
+      mealCount: state.regieTotals.mealCount,
+      buffetCount: state.regieTotals.buffetCount,
       isReadOnly: isReadOnly,
       onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
       onLineSelected: (lineId) => bloc.add(OcptBudgetLineSelectedEvent(lineId: lineId)),
@@ -821,6 +838,9 @@ class _BudgetViewState extends State<_BudgetView> {
       onEntryDeletionRequested: isReadOnly
           ? null
           : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
+      onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
+      onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
+      onCateringFeedRequested: () => _handleCateringFeedRequested(bloc),
     );
   }
 
@@ -1397,6 +1417,7 @@ class _BudgetViewState extends State<_BudgetView> {
   Widget _buildRegie(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
+    final elementLinkCounts = state.elementLinkCounts;
     // The plan is computed for the band as well as for the gesture: a provisioning that would do
     // nothing is withheld, and the band says why in its place rather than answering a click with a
     // dialog that only says "no".
@@ -1422,11 +1443,14 @@ class _BudgetViewState extends State<_BudgetView> {
       provisionedTotalCents: _provisionedTotalCentsOf(state),
       roles: state.roles,
       people: state.people,
+      breakdownPricedElementCount: elementLinkCounts.pricedCount,
+      breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
+      shootingDayCount: state.regieDays.length,
       currencyCode: state.currencyCode,
       isReadOnly: isReadOnly,
-      onScheduleOpenRequested: () => context.read<OcptWorkspaceBloc>().add(
-        const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
-      ),
+      onScheduleOpenRequested: () => _handleScheduleFeedRequested(context),
+      onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
+      onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
       onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
       onPersonOpenRequested: (personId) => context.read<OcptWorkspaceBloc>().add(
         OcptWorkspaceModeSelectedEvent(
