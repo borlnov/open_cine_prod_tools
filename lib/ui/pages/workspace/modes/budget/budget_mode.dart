@@ -2116,7 +2116,6 @@ class _BudgetViewState extends State<_BudgetView> {
     document: state.document,
     reading: state.reading,
     subPage: state.subPage,
-    isSimplified: state.isSimplified,
   );
 
   /// Builds the `Inspector` tab's own content: the polymorphic fiche, wired to every handler its

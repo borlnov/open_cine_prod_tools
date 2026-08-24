@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_capture_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -730,7 +731,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
-      expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
+      expect(find.byType(OcptBudgetHelp), findsOneWidget);
 
       // Clicking the toolbar's Help button again, while the tab is already showing, closes the
       // dock — the same toggle reading every other dock toggle already has.
@@ -738,7 +739,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(tr.budgetRightDockHelpTabLabel), findsNothing);
-      expect(find.text(tr.budgetHelpMapIntro), findsNothing);
+      expect(find.byType(OcptBudgetHelp), findsNothing);
     },
   );
 
@@ -764,12 +765,12 @@ void main() {
     await openRegie(tester);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsNothing);
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
-    expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
+    expect(find.byType(OcptBudgetHelp), findsOneWidget);
 
     // Coming back brings the inspector back: the stored preference was never overwritten.
     await openCostTracking(tester);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
-    expect(find.text(tr.budgetHelpMapIntro), findsNothing);
+    expect(find.byType(OcptBudgetHelp), findsNothing);
   });
 
   testWidgets(
@@ -842,8 +843,8 @@ void main() {
     expect(find.text(tr.budgetHelpCashJournalBody4), findsOneWidget);
   });
 
-  testWidgets("the map highlights the cell the current view occupies", (tester) async {
-    // Comfortably wide, so the map's own cells are read in the shape they normally wear.
+  testWidgets("the chain highlights the step the current route stands on", (tester) async {
+    // Comfortably wide, so the chain's own cells are read in the shape they normally wear.
     tester.view.physicalSize = const Size(2200, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -857,28 +858,28 @@ void main() {
     await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
     await tester.pumpAndSettle();
 
-    // The current cell wears no words: it is announced, not drawn — the same wash-and-weight the
-    // header's own chips use. So the badge is looked for in the semantics tree.
-    Finder currentCells() => find.bySemanticsLabel(
-      RegExp(RegExp.escape(tr.budgetHelpMapCurrentViewBadge)),
+    // The current step wears no words of its own: it is announced, not drawn — the same
+    // wash-and-weight the header's own chips use. So the badge is looked for in the semantics
+    // tree.
+    Finder currentSteps() => find.bySemanticsLabel(
+      RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge)),
     );
 
-    // The cost-tracking table (the mode's own default view) reads across the whole map rather
-    // than standing in one cell of it — the quote sits outside the map entirely.
-    expect(currentCells(), findsNothing);
+    // The cost report (the mode's own default view) reads every column at once, so no single step
+    // of the chain stands for it in particular.
+    expect(currentSteps(), findsNothing);
 
-    // The financing plan — the resources document's own top level — stands in one cell of its own.
+    // Neither does the resources document's own top level — its tree reads both columns at once.
     await openFinancing(tester);
-    expect(currentCells(), findsOneWidget);
+    expect(currentSteps(), findsNothing);
 
-    // So does the committed spending, now a sub-page of expenses rather than the financing plan's
-    // own sub-switch half.
+    // The committed spending is the expenses chain's own `Committed` step.
     await openCommitted(tester);
-    expect(currentCells(), findsOneWidget);
+    expect(currentSteps(), findsOneWidget);
 
-    // The cash journal occupies both cells of the "has moved" column at once.
+    // Expenses read by date is the expenses chain's own `Paid` step.
     await openCashJournal(tester);
-    expect(currentCells(), findsNWidgets(2));
+    expect(currentSteps(), findsOneWidget);
   });
 
   testWidgets("offers the help panel under a previewed version", (tester) async {
@@ -903,7 +904,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
-    expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
+    expect(find.byType(OcptBudgetHelp), findsOneWidget);
     expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
 
     // Leave the preview so the working copy is what the next test opens onto.

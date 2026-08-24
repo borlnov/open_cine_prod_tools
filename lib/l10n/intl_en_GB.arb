@@ -13788,68 +13788,106 @@
       }
     }
   },
-  "budgetHelpMapIntro": "Every page below answers one of two questions: what is only promised, or what has actually moved.",
-  "@budgetHelpMapIntro": {
-    "description": "Lead-in sentence above the budget mode's help map",
-    "context": "Displayed at the top of every page of the budget mode's own Help tab",
+  "budgetHelpChainCurrentStepBadge": "You are here",
+  "@budgetHelpChainCurrentStepBadge": {
+    "description": "Small badge announced on the budget mode's help chain's own highlighted step",
+    "context": "Announced, never drawn, on the current route's own step of the budget mode's own help chain",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapQuoteNote": "The quote sits outside this map: it is what the film is planned to cost, and nothing else feeds it.",
-  "@budgetHelpMapQuoteNote": {
-    "description": "Note under the budget mode's help map, stating that the quote is not one of its four cells",
-    "context": "Displayed under the map on every page of the budget mode's own Help tab",
+  "budgetHelpChainExpensesEstimatedCaption": "(the quote)",
+  "@budgetHelpChainExpensesEstimatedCaption": {
+    "description": "Caption under the Estimated step of the expenses document's own help chain",
+    "context": "Displayed under the Estimated step of the budget mode's own help chain, on the expenses document",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapColumnPromisedLabel": "Promised",
-  "@budgetHelpMapColumnPromisedLabel": {
-    "description": "Column header of the budget mode's help map, for the Financing/Committed column",
-    "context": "Displayed above the Financing and Committed cells of the budget mode's own help map",
+  "budgetHelpChainExpensesCommittedCaption": "(a commitment)",
+  "@budgetHelpChainExpensesCommittedCaption": {
+    "description": "Caption under the Committed step of the expenses document's own help chain",
+    "context": "Displayed under the Committed step of the budget mode's own help chain, on the expenses document",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapColumnMovedLabel": "Has moved",
-  "@budgetHelpMapColumnMovedLabel": {
-    "description": "Column header of the budget mode's help map, for the cash journal column",
-    "context": "Displayed above the cash journal's credits and debits cells of the budget mode's own help map",
+  "budgetHelpChainExpensesPaidCaption": "(an entry)",
+  "@budgetHelpChainExpensesPaidCaption": {
+    "description": "Caption under the Paid step of the expenses document's own help chain",
+    "context": "Displayed under the Paid step of the budget mode's own help chain, on the expenses document",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapRowComingInLabel": "Coming in",
-  "@budgetHelpMapRowComingInLabel": {
-    "description": "Row header of the budget mode's help map, for money coming in",
-    "context": "Displayed beside the Financing and cash-journal-credits cells of the budget mode's own help map",
+  "budgetHelpChainExpensesSentence": "A quote line becomes a commitment, and the commitment is settled by an entry that names it.",
+  "@budgetHelpChainExpensesSentence": {
+    "description": "Sentence under the expenses document's own help chain, saying how one step becomes the next",
+    "context": "Displayed under the budget mode's own help chain, on the expenses document",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapRowGoingOutLabel": "Going out",
-  "@budgetHelpMapRowGoingOutLabel": {
-    "description": "Row header of the budget mode's help map, for money going out",
-    "context": "Displayed beside the Committed and cash-journal-debits cells of the budget mode's own help map",
+  "budgetHelpChainResourcesPromisedCaption": "(a resource or a taking)",
+  "@budgetHelpChainResourcesPromisedCaption": {
+    "description": "Caption under the Promised step of the resources document's own help chain",
+    "context": "Displayed under the Promised step of the budget mode's own help chain, on the resources document",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapCellCreditsLabel": "The journal's credits",
-  "@budgetHelpMapCellCreditsLabel": {
-    "description": "Cell of the budget mode's help map for money the cash journal has recorded coming in",
-    "context": "Displayed in the Has moved / Coming in cell of the budget mode's own help map",
+  "budgetHelpChainResourcesReceivedCaption": "(an entry naming it)",
+  "@budgetHelpChainResourcesReceivedCaption": {
+    "description": "Caption under the Received step of the resources document's own help chain",
+    "context": "Displayed under the Received step of the budget mode's own help chain, on the resources document",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapCellDebitsLabel": "The journal's debits",
-  "@budgetHelpMapCellDebitsLabel": {
-    "description": "Cell of the budget mode's help map for money the cash journal has recorded going out",
-    "context": "Displayed in the Has moved / Going out cell of the budget mode's own help map",
+  "budgetHelpChainResourcesSentence": "Nothing here is settled by hand — what has arrived is summed from the journal's credits that name the row.",
+  "@budgetHelpChainResourcesSentence": {
+    "description": "Sentence under the resources document's own help chain, saying how one step becomes the next",
+    "context": "Displayed under the budget mode's own help chain, on the resources document",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpMapCurrentViewBadge": "You are here",
-  "@budgetHelpMapCurrentViewBadge": {
-    "description": "Small badge under the budget mode's help map cell that matches the centre view currently on screen",
-    "context": "Displayed under the highlighted cell of the budget mode's own help map",
+  "budgetHelpChainSharingReceivedCaption": "(the takings)",
+  "@budgetHelpChainSharingReceivedCaption": {
+    "description": "Caption under the Received step of the sharing document's own help chain",
+    "context": "Displayed under the Received step of the budget mode's own help chain, on the sharing document",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetHelpChainSharingRepaidCaption": "(the reimbursable contributions)",
+  "@budgetHelpChainSharingRepaidCaption": {
+    "description": "Caption under the Already repaid step of the sharing document's own help chain",
+    "context": "Displayed under the Already repaid step of the budget mode's own help chain, on the sharing document",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHelpChainSharingLeftToShareCaption": "(the agreed shares)",
+  "@budgetHelpChainSharingLeftToShareCaption": {
+    "description": "Caption under the Left to share step of the sharing document's own help chain",
+    "context": "Displayed under the Left to share step of the budget mode's own help chain, on the sharing document",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHelpChainSharingSentence": "The takings come in, the reimbursable contributions come off the top, and only what is left is divided by the agreed shares.",
+  "@budgetHelpChainSharingSentence": {
+    "description": "Sentence under the sharing document's own help chain, saying how one step becomes the next",
+    "context": "Displayed under the budget mode's own help chain, on the sharing document",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHelpCaptureBandBody": "{title} asks for four things: a direction, an amount, a name, a date. The moment they are typed, the app proposes what the movement settles — {accept} answers in one click, {other} opens the full form instead.",
+  "@budgetHelpCaptureBandBody": {
+    "description": "Paragraph of the budget mode's help panel explaining the capture band, opening the expenses and the resources documents",
+    "context": "Displayed on the budget mode's own Help tab, on the expenses and the resources documents",
+    "type": "text",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "accept": {
+        "type": "String"
+      },
+      "other": {
+        "type": "String"
+      }
+    }
   },
   "budgetHelpCostTrackingBody1": "This is the quote itself, poste by poste — the only page where {quote} is typed. The ten CNC postes are seeded once and become ordinary rows from then on: rename, reorder or delete them freely.",
   "@budgetHelpCostTrackingBody1": {
@@ -13896,6 +13934,40 @@
     "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetHelpCostTrackingBody5": "{estimateToComplete} is the one figure a producer adjusts by hand — derived until then, and printed in grey while it is. {finalCost} reads {paid} plus {committed} plus {estimateToComplete}; {variance} is read against it.",
+  "@budgetHelpCostTrackingBody5": {
+    "description": "Fifth paragraph of the budget mode's help panel for the cost-tracking view, stating the estimate-to-complete, final-cost and variance columns",
+    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+    "type": "text",
+    "placeholders": {
+      "estimateToComplete": {
+        "type": "String"
+      },
+      "finalCost": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "committed": {
+        "type": "String"
+      },
+      "variance": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpCashJournalIntro": "This is {expenses} again, not a ledger of its own — the same rows, read in date order rather than poste order.",
+  "@budgetHelpCashJournalIntro": {
+    "description": "Lead paragraph of the budget mode's help panel for the cash journal view, stating it is the expenses document read in date order",
+    "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
+    "type": "text",
+    "placeholders": {
+      "expenses": {
+        "type": "String"
+      }
+    }
   },
   "budgetHelpCashJournalBody1": "Every row is a movement that actually happened, in the order it happened. A {debit} is money out, a {credit} is money in.",
   "@budgetHelpCashJournalBody1": {
@@ -13972,7 +14044,7 @@
       }
     }
   },
-  "budgetHelpFinancingBody1": "This page states what pays for the film: a subsidy, a cash contribution, or a contribution in kind. Adding a valuation is not the same gesture as adding real money, which is why creating a resource offers three separate buttons rather than one.",
+  "budgetHelpFinancingBody1": "This document states what pays for the film — a subsidy, a cash contribution, a contribution in kind — and what the film itself earns, a taking. Adding a valuation is not the same gesture as adding real money, which is why the document's own Add menu names each of the four rather than offering one blank row.",
   "@budgetHelpFinancingBody1": {
     "description": "First paragraph of the budget mode's help panel for the financing view",
     "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
@@ -14014,6 +14086,20 @@
       }
     }
   },
+  "budgetHelpFinancingBody5": "The band at the foot of the document answers whether this covers the film: one tone for what is {received}, another for what is only {promised}, and, in words, how much would still be missing if nothing more arrived.",
+  "@budgetHelpFinancingBody5": {
+    "description": "Fifth paragraph of the budget mode's help panel for the financing view, stating the coverage band",
+    "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
+    "type": "text",
+    "placeholders": {
+      "received": {
+        "type": "String"
+      },
+      "promised": {
+        "type": "String"
+      }
+    }
+  },
   "budgetHelpRegieBody1": "This page types nothing at all: every figure on it is read from somewhere else.",
   "@budgetHelpRegieBody1": {
     "description": "First paragraph of the budget mode's help panel for the catering-and-travel view",
@@ -14042,12 +14128,30 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpSharingBody1": "This page only matters once the film earns something: the takings actually received.",
+  "budgetHelpRegieBody5": "Reached from {expenses}, as {regie} in its breadcrumb — not a document of its own.",
+  "@budgetHelpRegieBody5": {
+    "description": "Fifth paragraph of the budget mode's help panel for the catering-and-travel view, stating that it is reached through the expenses breadcrumb",
+    "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
+    "type": "text",
+    "placeholders": {
+      "expenses": {
+        "type": "String"
+      },
+      "regie": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpSharingBody1": "The takings themselves are recorded in {resources}. This document reads what they add up to once the reimbursable contributions come off the top.",
   "@budgetHelpSharingBody1": {
     "description": "First paragraph of the budget mode's help panel for the revenue-sharing view",
     "context": "Displayed on the budget mode's own Help tab while revenue sharing is the centre view",
     "type": "text",
-    "placeholders": {}
+    "placeholders": {
+      "resources": {
+        "type": "String"
+      }
+    }
   },
   "budgetHelpSharingBody2": "What each person put in is listed whether or not it comes back: the second column says how much of it is owed, and the row's own menu records a repayment. The reimbursable contributions are taken off the top in full before anything else is split — whether or not they have actually gone back yet.",
   "@budgetHelpSharingBody2": {
