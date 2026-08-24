@@ -23,11 +23,10 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -438,9 +437,8 @@ class _BudgetViewState extends State<_BudgetView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Builds the shell's `centre`: the header band, then whichever widget the current route
-  /// ([OcptBudgetState.document], [OcptBudgetState.reading] and [OcptBudgetState.subPage]) names —
-  /// see [_buildRoute].
+  /// Builds the shell's `centre`: the header band, then whichever widget the current
+  /// [OcptBudgetState.view] names — see [_buildRoute].
   Widget _buildCentre(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
 
@@ -448,14 +446,8 @@ class _BudgetViewState extends State<_BudgetView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OcptBudgetHeader(
-          document: state.document,
-          onDocumentSelected: (document) =>
-              bloc.add(OcptBudgetDocumentSelectedEvent(document: document)),
-          reading: state.reading,
-          onReadingSelected: (reading) =>
-              bloc.add(OcptBudgetDocumentReadingSelectedEvent(reading: reading)),
-          subPage: state.subPage,
-          onSubPageSelected: (subPage) => bloc.add(OcptBudgetSubPageSelectedEvent(subPage: subPage)),
+          view: state.view,
+          onViewSelected: (view) => bloc.add(OcptBudgetViewSelectedEvent(view: view)),
           isSimplified: state.isSimplified,
           onSimplifiedChanged: (value) =>
               bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
@@ -476,15 +468,10 @@ class _BudgetViewState extends State<_BudgetView> {
           onAlertPosteActionRequested: (posteId) {
             bloc
               ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
-              ..add(
-                const OcptBudgetDocumentReadingSelectedEvent(
-                  reading: OcptBudgetDocumentReading.byTree,
-                ),
-              );
+              ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.costTracking));
           },
-          onCashProjectionAlertActionRequested: () => bloc.add(
-            const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
-          ),
+          onCashProjectionAlertActionRequested: () =>
+              bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.committed)),
         ),
         const SizedBox(height: 12),
         if (_showsCaptureBand(state)) ...[
@@ -505,21 +492,35 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Whether [OcptBudgetCaptureBand] is mounted at all: [OcptBudgetState.document] is `expenses`
-  /// or `resources`, at its own top level ([OcptBudgetState.subPage] null) — never on `sharing`,
-  /// never on a sub-page — and the project is not a previewed version, which withholds the band
-  /// **whole** rather than drawing it disabled, the standing rule for an affordance a preview
-  /// takes away (`docs/architecture/budget.md`).
+  /// Whether [OcptBudgetCaptureBand] is mounted at all: [OcptBudgetState.view] is
+  /// [OcptBudgetView.costTracking], [OcptBudgetView.cashJournal] or [OcptBudgetView.financing] —
+  /// never [OcptBudgetView.committed], [OcptBudgetView.regie] or [OcptBudgetView.sharing] — and
+  /// the project is not a previewed version, which withholds the band **whole** rather than
+  /// drawing it disabled, the standing rule for an affordance a preview takes away
+  /// (`docs/architecture/budget.md`).
   bool _showsCaptureBand(OcptBudgetState state) =>
-      !state.isPreviewingVersion &&
-      state.subPage == null &&
-      (state.document == OcptBudgetDocument.expenses ||
-          state.document == OcptBudgetDocument.resources);
+      !state.isPreviewingVersion && _capturesBandDirectionOf(state.view) != null;
 
-  /// Builds the capture band — keyed by [OcptBudgetState.document] so switching between `expenses`
-  /// and `resources` remounts it fresh, its own draft cleared and its own direction back to
-  /// [OcptBudgetDocument.expenses]'s debit default or [OcptBudgetDocument.resources]'s credit one,
-  /// rather than carrying a draft typed for one document's own direction into the other's.
+  /// The band's own initial direction while [view] shows it at all, or null while [view] shows no
+  /// band — [_showsCaptureBand]'s own other half, and [_buildCaptureBand]'s own key.
+  ///
+  /// **`true` (a debit) for [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal],
+  /// `false` (a credit) for [OcptBudgetView.financing].** Both of the first two are the very same
+  /// document the pre-rework mode read in two orders, poste by poste or by date, and a reader
+  /// moving between them is not switching what the band is capturing — only how the rest of the
+  /// screen reads it — so the band must not remount and lose a half-typed draft merely because the
+  /// reader clicked from one to the other.
+  bool? _capturesBandDirectionOf(OcptBudgetView view) => switch (view) {
+    OcptBudgetView.costTracking || OcptBudgetView.cashJournal => true,
+    OcptBudgetView.financing => false,
+    OcptBudgetView.committed || OcptBudgetView.regie || OcptBudgetView.sharing => null,
+  };
+
+  /// Builds the capture band — keyed by [_capturesBandDirectionOf] so it remounts fresh, its own
+  /// draft cleared, exactly when the band's own default direction changes (moving into or out of
+  /// [OcptBudgetView.financing]), and stays mounted with its draft intact while the reader moves
+  /// between [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal] — two readings of the
+  /// very same document, sharing the very same debit default.
   ///
   /// **The three callbacks are where a suggestion's own kind is turned into a domain write** — the
   /// band itself only ever reports what was typed (see `OcptBudgetCaptureBand`'s own class doc
@@ -528,8 +529,8 @@ class _BudgetViewState extends State<_BudgetView> {
   /// events, this time built from the band's own draft instead of a dialog's.
   Widget _buildCaptureBand(BuildContext context, OcptBudgetState state, OcptBudgetBloc bloc) =>
       OcptBudgetCaptureBand(
-        key: ValueKey(state.document),
-        initialIsDebit: state.document == OcptBudgetDocument.expenses,
+        key: ValueKey(_capturesBandDirectionOf(state.view)),
+        initialIsDebit: _capturesBandDirectionOf(state.view)!,
         commitments: state.commitments,
         allowances: state.allowances,
         resources: state.resources,
@@ -686,26 +687,17 @@ class _BudgetViewState extends State<_BudgetView> {
     }
   }
 
-  /// Builds whichever widget the current route names. Every one of them is the very widget the
-  /// seven values of `OcptBudgetCentreView` used to switch over: only the switch's own shape moved,
-  /// from one flat enum to a document, a reading and an optional sub-page.
-  Widget _buildRoute(BuildContext context, OcptBudgetState state) {
-    final subPage = state.subPage;
-    if (subPage != null) {
-      return switch (subPage) {
-        OcptBudgetSubPage.committedSpending => _buildCommittedSpending(context, state),
-        OcptBudgetSubPage.regie => _buildRegie(context, state),
-      };
-    }
-
-    return switch (state.document) {
-      OcptBudgetDocument.expenses => state.reading == OcptBudgetDocumentReading.byDate
-          ? _buildCashJournal(context, state)
-          : _buildCostTracking(context, state),
-      OcptBudgetDocument.resources => _buildFinancing(context, state),
-      OcptBudgetDocument.sharing => _buildSharing(context, state),
-    };
-  }
+  /// Builds whichever widget [OcptBudgetState.view] names. Every one of them is the very widget the
+  /// seven values of the retired `OcptBudgetCentreView` used to switch over: only the switch's own
+  /// shape moved.
+  Widget _buildRoute(BuildContext context, OcptBudgetState state) => switch (state.view) {
+    OcptBudgetView.costTracking => _buildCostTracking(context, state),
+    OcptBudgetView.cashJournal => _buildCashJournal(context, state),
+    OcptBudgetView.financing => _buildFinancing(context, state),
+    OcptBudgetView.committed => _buildCommittedSpending(context, state),
+    OcptBudgetView.regie => _buildRegie(context, state),
+    OcptBudgetView.sharing => _buildSharing(context, state),
+  };
 
   /// Opens the resources mode's own elements tab — `OcptBudgetFeedCard`'s own breakdown row,
   /// wherever the card is drawn.
@@ -724,7 +716,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Opens the catering-and-travel pass — `OcptBudgetFeedCard`'s own catering row, drawn only where
   /// that pass is not itself already on screen.
   void _handleCateringFeedRequested(OcptBudgetBloc bloc) =>
-      bloc.add(const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.regie));
+      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.regie));
 
   /// Builds the cost-tracking table.
   Widget _buildCostTracking(BuildContext context, OcptBudgetState state) {
@@ -842,8 +834,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// [state]'s own postes, narrowed to the one the header's filter names — or every one of them
   /// while nothing is filtered.
   ///
-  /// See `ocptBudgetCentreViewHonoursPosteFilter` for which views read this and which say they
-  /// cannot.
+  /// See `ocptBudgetViewHonoursPosteFilter` for which views read this and which say they cannot.
   List<OcptBudgetPoste> _filteredPostesOf(OcptBudgetState state) {
     final filterPosteId = state.filterPosteId;
 
@@ -1196,7 +1187,7 @@ class _BudgetViewState extends State<_BudgetView> {
           : (revenueId) => unawaited(_handleRevenueDeletionRequested(context, revenueId)),
       onReceiptSelected: (receiptId) => bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: receiptId)),
       onExpensesRequested: () =>
-          bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.expenses)),
+          bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.costTracking)),
     );
   }
 
@@ -2079,7 +2070,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Builds the right dock, or null while it's closed.
   ///
   /// **The `Inspector` tab is offered only where there is something to inspect**
-  /// (`ocptBudgetHasInspector`). Where it is not, a stored `Inspector` preference draws `Help`
+  /// (`ocptBudgetViewHasInspector`). Where it is not, a stored `Inspector` preference draws `Help`
   /// instead — and is **not overwritten**, so a reader who left the quote on the inspector comes
   /// back to it rather than to whatever the régie happened to show them.
   Widget? _buildRightDock(BuildContext context, OcptBudgetState state) {
@@ -2090,8 +2081,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
     final availableTabs = [
       for (final tab in OcptBudgetRightDockTab.values)
-        if (tab != OcptBudgetRightDockTab.inspector ||
-            ocptBudgetHasInspector(document: state.document, subPage: state.subPage))
+        if (tab != OcptBudgetRightDockTab.inspector || ocptBudgetViewHasInspector(state.view))
           tab,
     ];
     final rightDockTab = availableTabs.contains(storedTab)
@@ -2112,11 +2102,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Builds the `Help` tab's own content — never withheld under a preview, since it writes
   /// nothing (`OcptBudgetHelp`'s own doc comment).
-  Widget _buildHelp(BuildContext context, OcptBudgetState state) => OcptBudgetHelp(
-    document: state.document,
-    reading: state.reading,
-    subPage: state.subPage,
-  );
+  Widget _buildHelp(BuildContext context, OcptBudgetState state) => OcptBudgetHelp(view: state.view);
 
   /// Builds the `Inspector` tab's own content: the polymorphic fiche, wired to every handler its
   /// own selection variant might need — every one of them already exists, reused rather than
@@ -2175,7 +2161,7 @@ class _BudgetViewState extends State<_BudgetView> {
           ? null
           : (lineId) => unawaited(_handleLineSettleRequested(context, state, lineId)),
       onLineShowCommitmentRequested: (_) => context.read<OcptBudgetBloc>().add(
-        const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
+        const OcptBudgetViewSelectedEvent(view: OcptBudgetView.committed),
       ),
       onLineUncommitRequested: isReadOnly
           ? null
