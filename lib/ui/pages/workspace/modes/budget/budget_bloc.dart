@@ -252,6 +252,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetPosteCreatedEvent>(_onPosteCreated);
     on<OcptBudgetPosteReorderedEvent>(_onPosteReordered);
     on<OcptBudgetPosteDeletionConfirmedEvent>(_onPosteDeletionConfirmed);
+    on<OcptBudgetRowExpansionToggledEvent>(_onRowExpansionToggled);
+    on<OcptBudgetLineSelectedEvent>(_onLineSelected);
+    on<OcptBudgetCommitmentSelectedEvent>(_onCommitmentSelected);
+    on<OcptBudgetEntrySelectedEvent>(_onEntrySelected);
     on<OcptBudgetLineExpandedEvent>(_onLineExpanded);
     on<OcptBudgetLineCreatedEvent>(_onLineCreated);
     on<OcptBudgetLineCreatedFromElementEvent>(_onLineCreatedFromElement);
@@ -784,6 +788,85 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _budgetQuoteService.deletePoste(database: project.database, posteId: event.posteId);
     await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Expands or collapses expenses-tree node `event.nodeId` — an already-expanded one collapses, a
+  /// collapsed one expands, independently of every other node.
+  Future<void> _onRowExpansionToggled(
+    OcptBudgetRowExpansionToggledEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final expandedNodeIds = Set<String>.of(state.expandedNodeIds);
+    if (!expandedNodeIds.remove(event.nodeId)) {
+      expandedNodeIds.add(event.nodeId);
+    }
+
+    emitter(state.copyWith(expandedNodeIds: expandedNodeIds));
+  }
+
+  /// Selects quote line `event.lineId`, opening the right dock on the `Inspector` tab — mirrors
+  /// [_onPosteSelected], flushing any pending field edit first for the same reason: the newly
+  /// selected line may belong to a different poste than whichever one's fields are on screen. A
+  /// line id naming no live line is ignored.
+  Future<void> _onLineSelected(
+    OcptBudgetLineSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    if (!state.postes.any((poste) => poste.lines.any((line) => line.id == event.lineId))) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        selection: OcptBudgetLineSelection(event.lineId),
+        rightDockTab: OcptBudgetRightDockTab.inspector,
+        lastRightDockTab: OcptBudgetRightDockTab.inspector,
+      ),
+    );
+  }
+
+  /// Selects commitment `event.commitmentId`, opening the right dock on the `Inspector` tab —
+  /// mirrors [_onLineSelected]. A commitment id naming no live commitment is ignored.
+  Future<void> _onCommitmentSelected(
+    OcptBudgetCommitmentSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    if (!state.commitments.any((commitment) => commitment.id == event.commitmentId)) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        selection: OcptBudgetCommitmentSelection(event.commitmentId),
+        rightDockTab: OcptBudgetRightDockTab.inspector,
+        lastRightDockTab: OcptBudgetRightDockTab.inspector,
+      ),
+    );
+  }
+
+  /// Selects journal entry `event.entryId`, opening the right dock on the `Inspector` tab —
+  /// mirrors [_onLineSelected]. An entry id naming no live entry is ignored.
+  Future<void> _onEntrySelected(
+    OcptBudgetEntrySelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    if (!state.entries.any((entry) => entry.id == event.entryId)) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        selection: OcptBudgetEntrySelection(event.entryId),
+        rightDockTab: OcptBudgetRightDockTab.inspector,
+        lastRightDockTab: OcptBudgetRightDockTab.inspector,
+      ),
+    );
   }
 
   /// Expands or collapses quote line `event.lineId`'s own card, flushing any pending field edit

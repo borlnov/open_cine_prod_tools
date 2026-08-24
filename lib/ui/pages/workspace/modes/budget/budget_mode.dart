@@ -759,9 +759,14 @@ class _BudgetViewState extends State<_BudgetView> {
       // **The filter is applied here, not inside the view.** Every one of these widgets draws
       // exactly the rows it is handed and totals exactly those, so narrowing the list is the whole
       // of it: a filtered table's own `Total` reads the total of what is on screen, which is the
-      // only honest thing it can say.
+      // only honest thing it can say. The commitments and entries the tree reads its own sub-rows
+      // from are handed in whole — a poste already outside the filter draws no row at all, so its
+      // own commitments and entries never reach the screen either.
       postes: _filteredPostesOf(state),
-      selectedPosteId: state.selectedPosteId,
+      commitments: state.commitments,
+      entries: state.entries,
+      selection: state.selection,
+      expandedNodeIds: state.expandedNodeIds,
       isSimplified: state.isSimplified,
       taxBasis: state.taxBasis,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
@@ -771,6 +776,12 @@ class _BudgetViewState extends State<_BudgetView> {
       offQuoteTotal: state.offQuotePaidTotal,
       isReadOnly: isReadOnly,
       onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
+      onLineSelected: (lineId) => bloc.add(OcptBudgetLineSelectedEvent(lineId: lineId)),
+      onCommitmentSelected: (commitmentId) =>
+          bloc.add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitmentId)),
+      onEntrySelected: (entryId) => bloc.add(OcptBudgetEntrySelectedEvent(entryId: entryId)),
+      onNodeExpansionToggled: (nodeId) =>
+          bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
       onPosteCreationRequested: isReadOnly
           ? null
           : () => bloc.add(const OcptBudgetPosteCreatedEvent()),
@@ -785,6 +796,25 @@ class _BudgetViewState extends State<_BudgetView> {
       onPosteDeletionRequested: isReadOnly
           ? null
           : (posteId) => unawaited(_handlePosteDeletionRequested(context, posteId)),
+      onCommitmentEditRequested: isReadOnly
+          ? null
+          : (commitment) => unawaited(_handleCommitmentEditRequested(context, state, commitment)),
+      onCommitmentSettleRequested: isReadOnly
+          ? null
+          : (commitment) => unawaited(_handleCommitmentSettleRequested(context, state, commitment)),
+      onCommitmentUnsettleRequested: isReadOnly
+          ? null
+          : (commitmentId) =>
+                bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId)),
+      onCommitmentDeletionRequested: isReadOnly
+          ? null
+          : (commitmentId) => unawaited(_handleCommitmentDeletionRequested(context, commitmentId)),
+      onEntryEditRequested: isReadOnly
+          ? null
+          : (entry) => unawaited(_handleEntryEditRequested(context, state, entry)),
+      onEntryDeletionRequested: isReadOnly
+          ? null
+          : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
     );
   }
 
@@ -2102,7 +2132,7 @@ class _BudgetViewState extends State<_BudgetView> {
   Widget _buildInspector(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
-    final selectedPoste = state.selectedPoste;
+    final selectedPoste = state.selectedOwningPoste;
     final relatedEntries = selectedPoste == null
         ? const <OcptBudgetEntry>[]
         : [

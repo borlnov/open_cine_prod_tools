@@ -105,6 +105,25 @@ OcptBudgetEntry _buildEntry({required String id, String? posteId, int debitCents
       shareId: null,
     );
 
+/// Builds a minimal commitment, everything but [id]/[posteId]/[lineId] neutral.
+OcptBudgetCommitment _buildCommitment({
+  required String id,
+  required String posteId,
+  String? lineId,
+  int amountCents = 0,
+  String? settledEntryId,
+}) => OcptBudgetCommitment(
+  id: id,
+  dueDate: null,
+  label: "Commitment $id",
+  posteId: posteId,
+  amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
+  status: OcptBudgetCommitmentStatus.quoteAccepted,
+  settledEntryId: settledEntryId,
+  lineId: lineId,
+  sortKey: "a0",
+);
+
 /// Builds a minimal financing resource, everything but [id] neutral.
 OcptBudgetResource _buildResource({
   required String id,
@@ -288,6 +307,109 @@ void main() {
       );
 
       expect(state.selectedPoste, isNull);
+    });
+  });
+
+  group("OcptBudgetState.selectedOwningPosteId / selectedOwningPoste", () {
+    /// A snapshot holding [poste-1], one line, one commitment (settling [entry-1] once
+    /// [settledEntryId] is given) and one entry — enough to select any of the four kinds
+    /// [selectedOwningPosteId] resolves.
+    OcptBudgetSnapshot buildSnapshot({String? settledEntryId}) => OcptBudgetSnapshot.build(
+      postes: [
+        _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+      ],
+      entries: [_buildEntry(id: "entry-1", posteId: "poste-1")],
+      commitments: [
+        _buildCommitment(
+          id: "commitment-1",
+          posteId: "poste-1",
+          lineId: "line-1",
+          settledEntryId: settledEntryId,
+        ),
+      ],
+      defaultVatRateBasisPoints: null,
+      currencyCode: "EUR",
+    );
+
+    test("resolves a selected poste to itself", () {
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: buildSnapshot(),
+        selection: const OcptBudgetPosteSelection("poste-1"),
+      );
+
+      expect(state.selectedOwningPosteId, "poste-1");
+      expect(state.selectedOwningPoste?.id, "poste-1");
+    });
+
+    test("resolves a selected line to the poste it belongs to", () {
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: buildSnapshot(),
+        selection: const OcptBudgetLineSelection("line-1"),
+      );
+
+      expect(state.selectedOwningPosteId, "poste-1");
+      expect(state.selectedOwningPoste?.id, "poste-1");
+    });
+
+    test("resolves a selected commitment to the poste it belongs to", () {
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: buildSnapshot(),
+        selection: const OcptBudgetCommitmentSelection("commitment-1"),
+      );
+
+      expect(state.selectedOwningPosteId, "poste-1");
+      expect(state.selectedOwningPoste?.id, "poste-1");
+    });
+
+    test("resolves a selected entry to the poste it belongs to", () {
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: buildSnapshot(),
+        selection: const OcptBudgetEntrySelection("entry-1"),
+      );
+
+      expect(state.selectedOwningPosteId, "poste-1");
+      expect(state.selectedOwningPoste?.id, "poste-1");
+    });
+
+    test("is null while an entry prices no poste at all", () {
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: OcptBudgetSnapshot.build(
+          postes: const [],
+          entries: [_buildEntry(id: "entry-1")],
+          commitments: const [],
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+        ),
+        selection: const OcptBudgetEntrySelection("entry-1"),
+      );
+
+      expect(state.selectedOwningPosteId, isNull);
+      expect(state.selectedOwningPoste, isNull);
+    });
+
+    test("is null while the selection names a line, a commitment or an entry that has since "
+        "disappeared", () {
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: buildSnapshot(),
+        selection: const OcptBudgetLineSelection("gone"),
+      );
+
+      expect(state.selectedOwningPosteId, isNull);
+      expect(state.selectedOwningPoste, isNull);
+    });
+
+    test("is null while nothing at all is selected, and for a selection kind it does not cover "
+        "(a resource)", () {
+      const unselected = OcptBudgetState.init();
+      expect(unselected.selectedOwningPosteId, isNull);
+
+      final state = const OcptBudgetState.init().copyWith(
+        snapshot: buildSnapshot(),
+        selection: const OcptBudgetResourceSelection("resource-1"),
+      );
+
+      expect(state.selectedOwningPosteId, isNull);
+      expect(state.selectedOwningPoste, isNull);
     });
   });
 

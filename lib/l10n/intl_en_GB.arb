@@ -10937,6 +10937,13 @@
       }
     }
   },
+  "budgetCostTrackingNoEntryHint": "No entry — nothing has left the account",
+  "@budgetCostTrackingNoEntryHint": {
+    "description": "Muted hint drawn under an unsettled commitment in the expenses tree",
+    "context": "Displayed in the Poste column, in place of an entry sub-row, until the commitment is settled",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetDashboardEmptyHint": "Add a poste to start the quote.",
   "@budgetDashboardEmptyHint": {
     "description": "Hint shown on the dashboard while the project holds no poste at all",

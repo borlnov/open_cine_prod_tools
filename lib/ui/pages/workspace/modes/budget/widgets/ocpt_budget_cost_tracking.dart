@@ -5,17 +5,24 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_tree.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 
 /// The `N°` column's own fixed width, in logical pixels — detailed header only.
 const double _ocptCostTrackingNumberColumnWidth = 44;
 
-/// The `Quote`, `Paid`, `Committed`, `Remaining`, `Estimate to complete`, `Final cost`, `Variance`
-/// and `Consumed` columns' own fixed width, in logical pixels.
+/// The `Devis`, `Engagé`, `Payé`, `Reste`, `Coût final` and `Écart` columns' own fixed width, in
+/// logical pixels.
 const double _ocptCostTrackingAmountColumnWidth = 108;
 
 /// The trailing `⋮` menu column's own fixed width, in logical pixels.
@@ -27,20 +34,28 @@ const double _ocptCostTrackingMenuColumnWidth = 36;
 /// `_ocptRecapElementColumnMinWidth`.
 const double _ocptCostTrackingPosteColumnMinWidth = 220;
 
-/// Every poste row's own fixed height, in logical pixels — tall enough for the `Quote` cell's own
+/// Every poste row's own fixed height, in logical pixels — tall enough for the `Devis` cell's own
 /// two stacked lines (the headline figure, then the other tax basis and, when a poste's lines all
 /// share one, the rate underneath it).
 ///
 /// The table draws as two independently laid-out panes side by side — the pinned `N°`/`Poste`
 /// columns, the scrolling amount columns — each its own plain `Column`, sharing no `RenderObject`
 /// with the other. A row sized to its own content, the ordinary Flutter way, would let a poste
-/// whose lines carry a priced second basis (a taller `Quote` cell) sit a few pixels taller than a
-/// neighbour with none — and since the `Quote` cell lives in the *scrolling* pane while the poste
+/// whose lines carry a priced second basis (a taller `Devis` cell) sit a few pixels taller than a
+/// neighbour with none — and since the `Devis` cell lives in the *scrolling* pane while the poste
 /// name lives in the *pinned* one, the two panes would drift out of step by exactly that many
 /// pixels, row after row. Claiming this one named height, whatever a particular row actually holds,
 /// is what keeps a poste's own name level with its own figures with neither `IntrinsicHeight` nor a
 /// `ScrollController` shared between the panes' two `SingleChildScrollView`s.
 const double _ocptCostTrackingRowHeight = 48;
+
+/// A line, a commitment, an entry or the muted "no entry" hint's own fixed height, in logical
+/// pixels — one step shorter than [_ocptCostTrackingRowHeight], the mockup's own reading for a
+/// sub-row, and, for the very same reason that constant argues, a **named** height rather than one
+/// sized to a sub-row's own content: the identity pane draws a sub-row's indentation and its own
+/// label while the amounts pane draws its figures, and the two have to agree on a height with
+/// nothing shared to agree through but this constant.
+const double _ocptCostTrackingSubRowHeight = 36;
 
 /// The header row's own fixed height, in logical pixels — see [_ocptCostTrackingRowHeight]'s own
 /// doc comment for why the two panes need every row, the header included, to claim a named height
@@ -54,22 +69,46 @@ const double _ocptCostTrackingHeaderRowHeight = 36;
 /// own, is what keeps this row's two panes aligned.
 const double _ocptCostTrackingTotalRowHeight = 48;
 
-/// The budget mode's cost-tracking view: one row per poste, a total row, then a `+ Poste`
-/// creation footer — this mode's own working surface.
+/// How far a sub-row indents for every step of tree depth, in logical pixels — a quote line sits
+/// one step in from its own poste, a commitment or an entry two.
+const double _ocptCostTrackingIndentStep = 16;
+
+/// The twisty's own fixed width, in logical pixels, whether it draws an arrow or sits blank —
+/// reserved on every row a twisty could appear on (a poste, a quote line) so a poste or line with
+/// nothing to expand still lines its own label up with a sibling that does.
+const double _ocptCostTrackingTwistyWidth = 20;
+
+/// The diameter of a commitment or an entry sub-row's own coloured dot, in logical pixels.
+const double _ocptCostTrackingDotDiameter = 8;
+
+/// The widest a commitment or an entry sub-row's own trailing badge is ever drawn, in logical
+/// pixels — capped so a long status word never overflows the row it sits in, see
+/// [_OcptCostTrackingSubLabel]'s own build method.
+const double _ocptCostTrackingBadgeMaxWidth = 84;
+
+/// The budget mode's cost-tracking view: the expenses tree — one row per poste, opening onto its
+/// own quote lines, each of those opening onto its own commitments and the entries that settle
+/// them, the poste's own off-line commitments and entries drawn at a quote line's own indentation
+/// once it is open — then a total row, then a `+ Poste` creation footer.
 ///
 /// **The `N°` and `Poste` columns are pinned**, drawn in their own pane at the left edge that
-/// never moves; only the eight amount columns and the trailing `⋮` menu, in a second pane to their
+/// never moves; only the six amount columns and the trailing `⋮` menu, in a second pane to their
 /// right, scroll horizontally once the centre dock narrows past
 /// [_ocptCostTrackingPosteColumnMinWidth] — a poste nobody can name is worse than a figure nobody
 /// can read yet, so a row's own identity survives the scroll even when its own numbers no longer
 /// fit. The two panes share one vertical scroll, so the whole table still moves together, and, row
-/// for row, the exact same height ([_ocptCostTrackingRowHeight]'s own doc comment argues why).
+/// for row, the exact same height ([_ocptCostTrackingRowHeight]'s and
+/// [_ocptCostTrackingSubRowHeight]'s own doc comments argue why).
+///
+/// **The tree is flattened once, top to bottom, into [_buildRows]' own list**, and both panes then
+/// walk that very same list, row for row — never two independent walks that could drift apart on
+/// which rows are actually on screen.
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
-/// than a null callback per affordance, and hands its own three writing affordances — the creation
-/// footer, a row's own `⋮` menu, the reorder it opens onto — the null callbacks that withholds them
-/// under a version preview, so a control added later here can't be gated in one place and
-/// forgotten in the other.
+/// than a null callback per affordance, and hands its own writing affordances — the creation
+/// footer, a poste row's own `⋮` menu, a commitment or an entry sub-row's own `⋮` menu, the reorder
+/// they open onto — the null callbacks that withhold them under a version preview, so a control
+/// added later here can't be gated in one place and forgotten in the other.
 ///
 /// [isSimplified] switches every poste's own displayed name between [OcptBudgetPoste.simpleLabel]
 /// (falling back to [OcptBudgetPoste.label] when null) and [OcptBudgetPoste.label] itself, and
@@ -80,29 +119,40 @@ const double _ocptCostTrackingTotalRowHeight = 48;
 /// `lib/utils/ocpt_budget_journal.dart`/`ocpt_budget_projection.dart`): a poste with no entry or
 /// commitment against it answers **0**, honestly, rather than a stand-in for an unknown figure —
 /// the journal exists and is kept, so "nothing has moved" is a fact this table can state outright.
-/// `Paid`, `Committed`, `Remaining` and `Variance` therefore always print a real amount. `Consumed`
-/// is the one column that still prints [ocptBudgetEmptyValue]: it is a ratio, and
-/// [ocptBudgetConsumedRatioOf] answers null for a poste carrying no quote at all, where a
-/// percentage would be a division by zero rather than a figure.
+/// `Payé`, `Engagé`, `Reste` and `Écart` therefore always print a real amount at poste level. A
+/// quote line's own `Engagé`/`Payé` are read the very same honest way, through
+/// [ocptBudgetLineCommittedTotalOf]/[ocptBudgetLinePaidTotalOf] — pure functions of [commitments]
+/// and [entries], narrowed to the one line each row draws.
 ///
-/// **`Estimate to complete` and `Final cost` sit between `Remaining` and `Variance`**, the
-/// trade's own cost-report reading order. `Estimate to complete` reads
-/// [OcptBudgetPoste.estimateToCompleteCents] through [ocptBudgetEstimateToCompleteCents]: while it
-/// is null the cell prints the derived figure — `max(0, Remaining)` — in
-/// [ColorScheme.onSurfaceVariant], the same dimmed ink [_OcptCostTrackingQuoteCell] already paints a
-/// line's inherited VAT rate in; a typed figure prints in the ordinary ink every other cell of this
-/// row already reads in. `Final cost` reads [ocptBudgetFinalCostCents] over that very same resolved
-/// estimate — resolved once per row, not once per cell — and carries no colour of its own. `Variance`
-/// keeps reading [ocptBudgetVarianceCents] exactly as it always has: the two readings answer
-/// different questions and both stay on screen.
+/// **`Coût final` reads [ocptBudgetFinalCostCents] over the resolved estimate to complete** —
+/// [OcptBudgetPoste.estimateToCompleteCents] through [ocptBudgetEstimateToCompleteCents] at poste
+/// level, resolved once per row, not once per cell; **always derived** at line level, since the
+/// estimate a human can type is held per poste, never per line
+/// (`docs/plans/budget-mode-ux.md` §4.4). `Écart` keeps reading [ocptBudgetVarianceCents] exactly
+/// as it always has: the two readings answer different questions and both stay on screen. Neither
+/// `Estimate to complete` nor `Consumed` is drawn as its own column any more — the reading behind
+/// `Coût final` survives their removal exactly as before.
+///
+/// **A quote line with no commitment and no entry under it draws no twisty at all** — an empty
+/// expansion is worse than none. A commitment or an entry sub-row draws no twisty of its own:
+/// `OcptBudgetState.expandedNodeIds` is keyed by poste and line ids alone, so a commitment's own
+/// child — the entry that settled it, or, while it is still owed, the muted
+/// `tr.budgetCostTrackingNoEntryHint` row — shows or hides wholesale with whichever line, or
+/// poste, it sits directly under.
+///
+/// **A commitment sub-row prints its own amount in `Engagé` while unsettled, in `Payé` once
+/// settled, and the em dash in every other column; an entry sub-row prints its own debit in `Payé`
+/// and the em dash elsewhere** — the mockup's own reading, and the reason the "no entry" hint row
+/// exists at all: an unsettled commitment has nothing of its own to show under
+/// [ocptBudgetEntryDebitCentsOf], so the hint says why in words instead of drawing nothing.
 ///
 /// **[offQuoteTotal] draws one extra row, `Off quote`, between the last poste and the `Total`
 /// row** — the total of every debit naming no poste at all
 /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/utils/ocpt_budget_journal.dart`), which
 /// [paidByPosteId] never keys at all. It is drawn only while [offQuoteTotal] actually holds
-/// something ([OcptBudgetCoveredTotal.lineCount] above zero) and only its own `Paid` cell carries a
+/// something ([OcptBudgetCoveredTotal.lineCount] above zero) and only its own `Payé` cell carries a
 /// figure; it is not a poste, so it carries no `N°`, no `⋮` menu and no selection of its own — see
-/// `_OcptCostTrackingOffQuoteIdentityRow`'s own doc comment. The total row's own `Paid` cell then
+/// `_OcptCostTrackingOffQuoteIdentityRow`'s own doc comment. The total row's own `Payé` cell then
 /// folds [paidByPosteId] and [offQuoteTotal] together
 /// ([ocptBudgetCoveredTotalsFoldOf]), since together they are what actually left the account.
 ///
@@ -113,13 +163,25 @@ const double _ocptCostTrackingTotalRowHeight = 48;
 /// saying *which* row is being talked about, which is not this table's problem: every row already
 /// opens straight onto its own poste's fields the moment it is clicked. A poste's own `Label` and
 /// `Code` fields living in its inspector, exactly where a person's or an element's own name field
-/// lives in the resources mode's sheets, is the reading this table follows instead.
+/// lives in the resources mode's sheets, is the reading this table follows instead. A quote line's
+/// own fields live there too, so a line sub-row carries no `⋮` menu at all.
 class OcptBudgetCostTracking extends StatelessWidget {
   /// Every live poste, in display order.
   final List<OcptBudgetPoste> postes;
 
-  /// The id of the currently selected poste, or null while none is.
-  final String? selectedPosteId;
+  /// Every live commitment of the project, settled or not — narrowed, row by row, to the one line
+  /// or poste each sub-row draws.
+  final List<OcptBudgetCommitment> commitments;
+
+  /// Every live journal entry of the project — narrowed the same way [commitments] is.
+  final List<OcptBudgetEntry> entries;
+
+  /// What is currently selected for the right dock's own fiche, or null while none is.
+  final OcptBudgetSelection? selection;
+
+  /// Which nodes of the tree are currently expanded — a poste id or a quote line id, see
+  /// `OcptBudgetState.expandedNodeIds`'s own doc comment.
+  final Set<String> expandedNodeIds;
 
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
@@ -150,6 +212,21 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// Called with a poste's id when its row is clicked, opening the `Inspector` tab on it.
   final ValueChanged<String> onPosteSelected;
 
+  /// Called with a quote line's id when its row is clicked, opening the `Inspector` tab on the
+  /// poste it belongs to.
+  final ValueChanged<String> onLineSelected;
+
+  /// Called with a commitment's id when its row is clicked, opening the `Inspector` tab on the
+  /// poste it belongs to.
+  final ValueChanged<String> onCommitmentSelected;
+
+  /// Called with an entry's id when its row is clicked, opening the `Inspector` tab on the poste
+  /// it belongs to.
+  final ValueChanged<String> onEntrySelected;
+
+  /// Called with a poste's or a quote line's own id when its twisty is clicked.
+  final ValueChanged<String> onNodeExpansionToggled;
+
   /// Called when the footer's `+ Poste` action is clicked, or null while [isReadOnly].
   final VoidCallback? onPosteCreationRequested;
 
@@ -162,11 +239,40 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onPosteDeletionRequested;
 
+  /// Called with a commitment when its sub-row's own `⋮` menu asks to edit it, or null while
+  /// [isReadOnly]. Opens `OcptBudgetCommitmentDialog`.
+  final ValueChanged<OcptBudgetCommitment>? onCommitmentEditRequested;
+
+  /// Called with a commitment when its sub-row's own `⋮` menu asks to record its payment (only
+  /// offered while it isn't settled yet), or null while [isReadOnly]. Opens
+  /// `OcptBudgetEntryDialog` pre-filled from the commitment.
+  final ValueChanged<OcptBudgetCommitment>? onCommitmentSettleRequested;
+
+  /// Called with a commitment's id when its sub-row's own `⋮` menu asks to undo its settlement
+  /// (only offered while it is settled), or null while [isReadOnly].
+  final ValueChanged<String>? onCommitmentUnsettleRequested;
+
+  /// Called with a commitment's id when its sub-row's own `⋮` menu asks to delete it, or null
+  /// while [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching
+  /// anything.
+  final ValueChanged<String>? onCommitmentDeletionRequested;
+
+  /// Called with an entry when its sub-row's own `⋮` menu asks to edit it, or null while
+  /// [isReadOnly]. Opens `OcptBudgetEntryDialog`.
+  final ValueChanged<OcptBudgetEntry>? onEntryEditRequested;
+
+  /// Called with an entry's id when its sub-row's own `⋮` menu asks to delete it, or null while
+  /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
+  final ValueChanged<String>? onEntryDeletionRequested;
+
   /// Class constructor
   const OcptBudgetCostTracking({
     super.key,
     required this.postes,
-    required this.selectedPosteId,
+    required this.commitments,
+    required this.entries,
+    required this.selection,
+    required this.expandedNodeIds,
     required this.isSimplified,
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
@@ -176,9 +282,19 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.offQuoteTotal,
     required this.isReadOnly,
     required this.onPosteSelected,
+    required this.onLineSelected,
+    required this.onCommitmentSelected,
+    required this.onEntrySelected,
+    required this.onNodeExpansionToggled,
     required this.onPosteCreationRequested,
     required this.onPosteReorderRequested,
     required this.onPosteDeletionRequested,
+    required this.onCommitmentEditRequested,
+    required this.onCommitmentSettleRequested,
+    required this.onCommitmentUnsettleRequested,
+    required this.onCommitmentDeletionRequested,
+    required this.onEntryEditRequested,
+    required this.onEntryDeletionRequested,
   });
 
   @override
@@ -191,15 +307,15 @@ class OcptBudgetCostTracking extends StatelessWidget {
     );
     final coveredPosteCount = _coveredPosteCountOf();
     final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuoteTotal]);
-    final (:estimateToCompleteCents, :finalCostCents) = _finalCostTotalsOf();
+    final finalCostCents = _finalCostTotalOf();
     final showOffQuoteRow = offQuoteTotal.lineCount > 0;
+    final rows = _buildRows();
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final identityFixedWidth = isSimplified ? 0.0 : _ocptCostTrackingNumberColumnWidth;
-        // Quote, Paid, Committed, Remaining, Estimate to complete, Final cost, Variance, Consumed —
-        // eight amount columns.
-        final amountsWidth = 8 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
+        // Devis, Engagé, Payé, Reste, Coût final, Écart — six amount columns.
+        final amountsWidth = 6 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
         final posteWidth = (constraints.maxWidth - identityFixedWidth - amountsWidth).clamp(
           _ocptCostTrackingPosteColumnMinWidth,
           double.infinity,
@@ -224,14 +340,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
                             isSimplified: isSimplified,
                             posteWidth: posteWidth,
                           ),
-                          for (final poste in postes)
-                            _OcptCostTrackingIdentityRow(
-                              poste: poste,
-                              isSelected: poste.id == selectedPosteId,
-                              isSimplified: isSimplified,
-                              posteWidth: posteWidth,
-                              onTap: () => onPosteSelected(poste.id),
-                            ),
+                          for (final row in rows)
+                            _identityRowOf(row, posteWidth: posteWidth),
                           if (showOffQuoteRow)
                             _OcptCostTrackingOffQuoteIdentityRow(
                               isSimplified: isSimplified,
@@ -253,30 +363,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const _OcptCostTrackingAmountsHeaderRow(),
-                              for (final poste in postes)
-                                _OcptCostTrackingAmountsRow(
-                                  poste: poste,
-                                  isSelected: poste.id == selectedPosteId,
-                                  taxBasis: taxBasis,
-                                  defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-                                  currencyCode: currencyCode,
-                                  paidCents: paidByPosteId[poste.id]?.amountCents ?? 0,
-                                  committedCents: committedCentsOf(poste.id),
-                                  onTap: () => onPosteSelected(poste.id),
-                                  onRenameRequested: isReadOnly
-                                      ? null
-                                      : () => onPosteSelected(poste.id),
-                                  onMoveUpRequested: isReadOnly
-                                      ? null
-                                      : () => onPosteReorderRequested?.call(poste.id, moveUp: true),
-                                  onMoveDownRequested: isReadOnly
-                                      ? null
-                                      : () =>
-                                            onPosteReorderRequested?.call(poste.id, moveUp: false),
-                                  onDeletionRequested: isReadOnly
-                                      ? null
-                                      : () => onPosteDeletionRequested?.call(poste.id),
-                                ),
+                              for (final row in rows) _amountsRowOf(row),
                               if (showOffQuoteRow)
                                 _OcptCostTrackingOffQuoteAmountsRow(
                                   offQuoteTotal: offQuoteTotal,
@@ -285,7 +372,6 @@ class OcptBudgetCostTracking extends StatelessWidget {
                               _OcptCostTrackingAmountsTotalRow(
                                 total: total,
                                 paidTotal: paidTotal,
-                                estimateToCompleteCents: estimateToCompleteCents,
                                 finalCostCents: finalCostCents,
                                 currencyCode: currencyCode,
                                 posteCount: postes.length,
@@ -307,6 +393,334 @@ class OcptBudgetCostTracking extends StatelessWidget {
     );
   }
 
+  /// The whole tree, flattened top to bottom into one list both panes walk in lockstep — see the
+  /// class doc comment.
+  ///
+  /// A poste draws whenever it is live, whatever [expandedNodeIds] holds; its own children —
+  /// [OcptBudgetPoste.lines], then its off-line commitments and entries — draw only while its own
+  /// id is in [expandedNodeIds]. A quote line's own children — its commitments, and, for each one,
+  /// either the entry that settled it or the muted "no entry" hint — draw only while the line's own
+  /// id is in [expandedNodeIds] too.
+  List<_OcptTreeRow> _buildRows() {
+    final rows = <_OcptTreeRow>[];
+    // Every entry named by some commitment's own `settledEntryId`, wherever that commitment lives
+    // — an off-line entry list must never repeat one of these, since it already draws nested under
+    // the very commitment it settles.
+    final settlingEntryIds = {
+      for (final commitment in commitments)
+        if (commitment.settledEntryId case final entryId?) entryId,
+    };
+
+    for (final poste in postes) {
+      final offLineCommitments = [
+        for (final commitment in commitments)
+          if (commitment.posteId == poste.id && commitment.lineId == null) commitment,
+      ];
+      final offLineEntries = [
+        for (final entry in entries)
+          if (entry.posteId == poste.id && !settlingEntryIds.contains(entry.id)) entry,
+      ];
+      final isPosteExpandable =
+          poste.lines.isNotEmpty || offLineCommitments.isNotEmpty || offLineEntries.isNotEmpty;
+      final isPosteExpanded = isPosteExpandable && expandedNodeIds.contains(poste.id);
+
+      rows.add(
+        _OcptPosteTreeRow(poste: poste, isExpandable: isPosteExpandable, isExpanded: isPosteExpanded),
+      );
+      if (!isPosteExpanded) {
+        continue;
+      }
+
+      for (final line in poste.lines) {
+        final lineCommitments = [
+          for (final commitment in commitments)
+            if (commitment.lineId == line.id) commitment,
+        ];
+        final isLineExpanded = lineCommitments.isNotEmpty && expandedNodeIds.contains(line.id);
+
+        rows.add(
+          _OcptLineTreeRow(line: line, lineCommitments: lineCommitments, isExpanded: isLineExpanded),
+        );
+        if (!isLineExpanded) {
+          continue;
+        }
+
+        _addCommitmentRows(rows, lineCommitments, depth: 2);
+      }
+
+      _addCommitmentRows(rows, offLineCommitments, depth: 1);
+      for (final entry in offLineEntries) {
+        rows.add(_OcptEntryTreeRow(entry: entry, depth: 1));
+      }
+    }
+
+    return rows;
+  }
+
+  /// Appends one row per commitment of [rowCommitments], each immediately followed by the entry
+  /// that settled it (found in [entries]) while it is settled, or by the muted "no entry" hint
+  /// while it is not — both at [depth], siblings of the commitment itself, never a level deeper.
+  void _addCommitmentRows(
+    List<_OcptTreeRow> rows,
+    List<OcptBudgetCommitment> rowCommitments, {
+    required int depth,
+  }) {
+    for (final commitment in rowCommitments) {
+      rows.add(_OcptCommitmentTreeRow(commitment: commitment, depth: depth));
+
+      if (commitment.isSettled) {
+        final settledEntry = entries.where((entry) => entry.id == commitment.settledEntryId).firstOrNull;
+        if (settledEntry != null) {
+          rows.add(_OcptEntryTreeRow(entry: settledEntry, depth: depth));
+        }
+      } else {
+        rows.add(_OcptCommitmentHintTreeRow(depth: depth));
+      }
+    }
+  }
+
+  /// The pinned pane's own widget for [row].
+  Widget _identityRowOf(_OcptTreeRow row, {required double posteWidth}) => switch (row) {
+    _OcptPosteTreeRow() => _OcptCostTrackingPosteIdentityRow(
+      poste: row.poste,
+      isSelected: _isPosteSelected(row.poste.id),
+      isSimplified: isSimplified,
+      posteWidth: posteWidth,
+      isExpandable: row.isExpandable,
+      isExpanded: row.isExpanded,
+      onTap: () => onPosteSelected(row.poste.id),
+      onTwistyTap: () => onNodeExpansionToggled(row.poste.id),
+    ),
+    _OcptLineTreeRow() => _OcptCostTrackingSubIdentityRow(
+      depth: 1,
+      isSimplified: isSimplified,
+      posteWidth: posteWidth,
+      isSelected: _isLineSelected(row.line.id),
+      isSmall: false,
+      isExpandable: row.isExpandable,
+      isExpanded: row.isExpanded,
+      onTwistyTap: () => onNodeExpansionToggled(row.line.id),
+      onTap: () => onLineSelected(row.line.id),
+      builder: (context) {
+        final tr = Tr.of(context);
+        final label = row.line.label;
+        return _OcptCostTrackingSubLabel(
+          label: label.isEmpty ? tr.budgetLineUnnamed : label,
+          isItalic: label.isEmpty,
+        );
+      },
+    ),
+    _OcptCommitmentTreeRow() => _OcptCostTrackingSubIdentityRow(
+      depth: row.depth,
+      isSimplified: isSimplified,
+      posteWidth: posteWidth,
+      isSelected: _isCommitmentSelected(row.commitment.id),
+      isSmall: true,
+      isExpandable: false,
+      isExpanded: false,
+      onTwistyTap: null,
+      onTap: () => onCommitmentSelected(row.commitment.id),
+      builder: (context) {
+        final tr = Tr.of(context);
+        final isSettled = row.commitment.isSettled;
+        return _OcptCostTrackingSubLabel(
+          label: row.commitment.label,
+          isMuted: true,
+          dotColor: isSettled
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : ocptBudgetCommitmentStatusAccentColor(Theme.of(context).colorScheme, row.commitment.status),
+          badgeText: isSettled
+              ? tr.budgetCommittedStatusSettledLabel
+              : ocptBudgetCommitmentStatusLabel(tr, row.commitment.status),
+          badgeColor: isSettled
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : ocptBudgetCommitmentStatusAccentColor(Theme.of(context).colorScheme, row.commitment.status),
+        );
+      },
+    ),
+    _OcptCommitmentHintTreeRow() => _OcptCostTrackingSubIdentityRow(
+      depth: row.depth,
+      isSimplified: isSimplified,
+      posteWidth: posteWidth,
+      isSelected: false,
+      isSmall: true,
+      isExpandable: false,
+      isExpanded: false,
+      onTwistyTap: null,
+      onTap: null,
+      builder: (context) => _OcptCostTrackingSubLabel(
+        label: Tr.of(context).budgetCostTrackingNoEntryHint,
+        isMuted: true,
+        isItalic: true,
+      ),
+    ),
+    _OcptEntryTreeRow() => _OcptCostTrackingSubIdentityRow(
+      depth: row.depth,
+      isSimplified: isSimplified,
+      posteWidth: posteWidth,
+      isSelected: _isEntrySelected(row.entry.id),
+      isSmall: true,
+      isExpandable: false,
+      isExpanded: false,
+      onTwistyTap: null,
+      onTap: () => onEntrySelected(row.entry.id),
+      builder: (context) => _OcptCostTrackingSubLabel(
+        label: row.entry.label,
+        isMuted: true,
+        dotColor: Theme.of(context).colorScheme.primary,
+        badgeText: row.entry.voucherNumber,
+        badgeColor: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  };
+
+  /// The scrolling pane's own widget for [row].
+  Widget _amountsRowOf(_OcptTreeRow row) => switch (row) {
+    _OcptPosteTreeRow() => _OcptCostTrackingPosteAmountsRow(
+      poste: row.poste,
+      isSelected: _isPosteSelected(row.poste.id),
+      taxBasis: taxBasis,
+      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+      currencyCode: currencyCode,
+      paidCents: paidByPosteId[row.poste.id]?.amountCents ?? 0,
+      committedCents: committedCentsOf(row.poste.id),
+      onTap: () => onPosteSelected(row.poste.id),
+      onRenameRequested: isReadOnly ? null : () => onPosteSelected(row.poste.id),
+      onMoveUpRequested: isReadOnly
+          ? null
+          : () => onPosteReorderRequested?.call(row.poste.id, moveUp: true),
+      onMoveDownRequested: isReadOnly
+          ? null
+          : () => onPosteReorderRequested?.call(row.poste.id, moveUp: false),
+      onDeletionRequested: isReadOnly ? null : () => onPosteDeletionRequested?.call(row.poste.id),
+    ),
+    _OcptLineTreeRow() => _OcptCostTrackingLineAmountsRow(
+      line: row.line,
+      lineCommitments: row.lineCommitments,
+      entries: entries,
+      taxBasis: taxBasis,
+      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+      currencyCode: currencyCode,
+      isSelected: _isLineSelected(row.line.id),
+      onTap: () => onLineSelected(row.line.id),
+    ),
+    _OcptCommitmentTreeRow() => _OcptCostTrackingSubAmountsRow(
+      isSelected: _isCommitmentSelected(row.commitment.id),
+      onTap: () => onCommitmentSelected(row.commitment.id),
+      activeColumnIndex: row.commitment.isSettled ? 2 : 1,
+      activeCents: ocptBudgetCommitmentCashCentsOf(
+        row.commitment,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      ),
+      currencyCode: currencyCode,
+      menuBuilder: (context) => _commitmentMenuOf(context, row.commitment),
+    ),
+    _OcptCommitmentHintTreeRow() => const _OcptCostTrackingSubAmountsRow(
+      isSelected: false,
+      onTap: null,
+      activeColumnIndex: null,
+      activeCents: null,
+      currencyCode: "",
+      menuBuilder: null,
+    ),
+    _OcptEntryTreeRow() => _OcptCostTrackingSubAmountsRow(
+      isSelected: _isEntrySelected(row.entry.id),
+      onTap: () => onEntrySelected(row.entry.id),
+      activeColumnIndex: 2,
+      activeCents: ocptBudgetEntryDebitCentsOf(
+        row.entry,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      ),
+      currencyCode: currencyCode,
+      menuBuilder: (context) => _entryMenuOf(context, row.entry),
+    ),
+  };
+
+  /// Whether poste [posteId] is the currently selected one.
+  bool _isPosteSelected(String posteId) {
+    final selection = this.selection;
+    return selection is OcptBudgetPosteSelection && selection.posteId == posteId;
+  }
+
+  /// Whether quote line [lineId] is the currently selected one.
+  bool _isLineSelected(String lineId) {
+    final selection = this.selection;
+    return selection is OcptBudgetLineSelection && selection.lineId == lineId;
+  }
+
+  /// Whether commitment [commitmentId] is the currently selected one.
+  bool _isCommitmentSelected(String commitmentId) {
+    final selection = this.selection;
+    return selection is OcptBudgetCommitmentSelection && selection.commitmentId == commitmentId;
+  }
+
+  /// Whether entry [entryId] is the currently selected one.
+  bool _isEntrySelected(String entryId) {
+    final selection = this.selection;
+    return selection is OcptBudgetEntrySelection && selection.entryId == entryId;
+  }
+
+  /// [commitment]'s own `⋮` menu, or null while every one of its own entries is withheld — see the
+  /// class doc comment.
+  Widget? _commitmentMenuOf(BuildContext context, OcptBudgetCommitment commitment) {
+    final onEdit = isReadOnly ? null : onCommitmentEditRequested;
+    final onSettle = isReadOnly || commitment.isSettled ? null : onCommitmentSettleRequested;
+    final onUnsettle = isReadOnly || !commitment.isSettled ? null : onCommitmentUnsettleRequested;
+    final onDelete = isReadOnly ? null : onCommitmentDeletionRequested;
+    if (onEdit == null && onSettle == null && onUnsettle == null && onDelete == null) {
+      return null;
+    }
+
+    final tr = Tr.of(context);
+    return PopupMenuButton<String>(
+      tooltip: "",
+      icon: const Icon(Icons.more_vert, size: 18),
+      onSelected: (value) => switch (value) {
+        "edit" => onEdit?.call(commitment),
+        "settle" => onSettle?.call(commitment),
+        "unsettle" => onUnsettle?.call(commitment.id),
+        "delete" => onDelete?.call(commitment.id),
+        _ => null,
+      },
+      itemBuilder: (context) => [
+        if (onEdit != null)
+          PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
+        if (onSettle != null)
+          PopupMenuItem<String>(value: "settle", child: Text(tr.budgetCommittedSettleAction)),
+        if (onUnsettle != null)
+          PopupMenuItem<String>(value: "unsettle", child: Text(tr.budgetCommittedUnsettleAction)),
+        if (onDelete != null)
+          PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+      ],
+    );
+  }
+
+  /// [entry]'s own `⋮` menu, or null while every one of its own entries is withheld.
+  Widget? _entryMenuOf(BuildContext context, OcptBudgetEntry entry) {
+    final onEdit = isReadOnly ? null : onEntryEditRequested;
+    final onDelete = isReadOnly ? null : onEntryDeletionRequested;
+    if (onEdit == null && onDelete == null) {
+      return null;
+    }
+
+    final tr = Tr.of(context);
+    return PopupMenuButton<String>(
+      tooltip: "",
+      icon: const Icon(Icons.more_vert, size: 18),
+      onSelected: (value) => switch (value) {
+        "edit" => onEdit?.call(entry),
+        "delete" => onDelete?.call(entry.id),
+        _ => null,
+      },
+      itemBuilder: (context) => [
+        if (onEdit != null)
+          PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
+        if (onDelete != null)
+          PopupMenuItem<String>(value: "delete", child: Text(tr.budgetEntryDeleteAction)),
+      ],
+    );
+  }
+
   /// How many postes count as covered under [taxBasis] — "every one of its own lines does"
   /// (`docs/architecture/budget.md`) — what the total row's own coverage read-out counts
   /// against `postes.length`.
@@ -325,14 +739,13 @@ class OcptBudgetCostTracking extends StatelessWidget {
     return count;
   }
 
-  /// The grand `Estimate to complete` and `Final cost` totals, each summed **poste by poste**
+  /// The grand `Coût final` total, summed **poste by poste**
   /// (`ocpt_budget_totals.dart`'s own "row by row, then summed" doctrine) rather than re-derived
-  /// from the grand `Quote`/`Paid`/`Committed` totals: a typed estimate on one poste cannot be
-  /// reconstructed from any project-wide figure, and [ocptBudgetEstimateToCompleteCents]'s own
-  /// `max(0, …)` clamp does not commute with a sum — summing the clamped, per-poste figures is not
-  /// the same amount as clamping the sum.
-  ({int estimateToCompleteCents, int finalCostCents}) _finalCostTotalsOf() {
-    var estimateToCompleteCents = 0;
+  /// from the grand `Devis`/`Payé`/`Engagé` totals: a typed estimate to complete on one poste
+  /// cannot be reconstructed from any project-wide figure, and [ocptBudgetEstimateToCompleteCents]'s
+  /// own `max(0, …)` clamp does not commute with a sum — summing the clamped, per-poste figures is
+  /// not the same amount as clamping the sum.
+  int _finalCostTotalOf() {
     var finalCostCents = 0;
 
     for (final poste in postes) {
@@ -343,23 +756,99 @@ class OcptBudgetCostTracking extends StatelessWidget {
       );
       final paidCents = paidByPosteId[poste.id]?.amountCents ?? 0;
       final committedCents = committedCentsOf(poste.id);
-      final posteEstimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
+      final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
         quotedAmountCents: quoted.amountCents,
         paidCents: paidCents,
         committedCents: committedCents,
         typedEstimateToCompleteCents: poste.estimateToCompleteCents,
       );
 
-      estimateToCompleteCents += posteEstimateToCompleteCents;
       finalCostCents += ocptBudgetFinalCostCents(
         paidCents: paidCents,
         committedCents: committedCents,
-        estimateToCompleteCents: posteEstimateToCompleteCents,
+        estimateToCompleteCents: estimateToCompleteCents,
       );
     }
 
-    return (estimateToCompleteCents: estimateToCompleteCents, finalCostCents: finalCostCents);
+    return finalCostCents;
   }
+}
+
+/// One flattened row of the expenses tree — see [OcptBudgetCostTracking._buildRows]'s own doc
+/// comment for how the list this sealed class populates is built.
+sealed class _OcptTreeRow {
+  const _OcptTreeRow();
+}
+
+/// A poste row — the tree's own top level.
+class _OcptPosteTreeRow extends _OcptTreeRow {
+  /// The poste this row draws.
+  final OcptBudgetPoste poste;
+
+  /// Whether this poste has anything at all to expand onto.
+  final bool isExpandable;
+
+  /// Whether this poste is currently expanded.
+  final bool isExpanded;
+
+  /// Class constructor
+  const _OcptPosteTreeRow({required this.poste, required this.isExpandable, required this.isExpanded});
+}
+
+/// A quote line row — one step under its own poste.
+class _OcptLineTreeRow extends _OcptTreeRow {
+  /// The line this row draws.
+  final OcptBudgetLine line;
+
+  /// This line's own commitments, settled or not, in the order [OcptBudgetCostTracking.commitments]
+  /// gives them.
+  final List<OcptBudgetCommitment> lineCommitments;
+
+  /// Whether this line is currently expanded.
+  final bool isExpanded;
+
+  /// Whether this line has anything at all to expand onto.
+  bool get isExpandable => lineCommitments.isNotEmpty;
+
+  /// Class constructor
+  const _OcptLineTreeRow({required this.line, required this.lineCommitments, required this.isExpanded});
+}
+
+/// A commitment row — two steps under its own poste while it names a line, one step while it does
+/// not (the poste's own off-line commitments).
+class _OcptCommitmentTreeRow extends _OcptTreeRow {
+  /// The commitment this row draws.
+  final OcptBudgetCommitment commitment;
+
+  /// This row's own indentation, in steps from the poste.
+  final int depth;
+
+  /// Class constructor
+  const _OcptCommitmentTreeRow({required this.commitment, required this.depth});
+}
+
+/// The muted "no entry" hint drawn under an unsettled commitment, at the very same indentation as
+/// that commitment — see [OcptBudgetCostTracking]'s own class doc comment.
+class _OcptCommitmentHintTreeRow extends _OcptTreeRow {
+  /// This row's own indentation, in steps from the poste — always the same as the commitment it
+  /// sits under.
+  final int depth;
+
+  /// Class constructor
+  const _OcptCommitmentHintTreeRow({required this.depth});
+}
+
+/// An entry row — either the entry that settled a commitment, at that commitment's own
+/// indentation, or one of the poste's own off-line entries, one step under it.
+class _OcptEntryTreeRow extends _OcptTreeRow {
+  /// The entry this row draws.
+  final OcptBudgetEntry entry;
+
+  /// This row's own indentation, in steps from the poste.
+  final int depth;
+
+  /// Class constructor
+  const _OcptEntryTreeRow({required this.entry, required this.depth});
 }
 
 /// The pinned pane's own header cell: the `N°` and `Poste` column headings.
@@ -413,7 +902,7 @@ class _OcptCostTrackingIdentityHeaderCell extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own header row: the eight amount column headings, then a blank cell over
+/// The scrolling pane's own header row: the six amount column headings, then a blank cell over
 /// the `⋮` menu column.
 class _OcptCostTrackingAmountsHeaderRow extends StatelessWidget {
   /// Class constructor
@@ -437,13 +926,11 @@ class _OcptCostTrackingAmountsHeaderRow extends StatelessWidget {
         child: Row(
           children: [
             _headerCell(tr.budgetCostTrackingColumnQuote, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnPaid, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnCommitted, labelStyle),
+            _headerCell(tr.budgetCostTrackingColumnPaid, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnRemaining, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnEstimateToComplete, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnFinalCost, labelStyle),
             _headerCell(tr.budgetCostTrackingColumnVariance, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnConsumed, labelStyle),
             const SizedBox(width: _ocptCostTrackingMenuColumnWidth),
           ],
         ),
@@ -464,14 +951,15 @@ class _OcptCostTrackingAmountsHeaderRow extends StatelessWidget {
   );
 }
 
-/// The pinned pane's own row: one poste's `N°` and `Poste` cells.
+/// The pinned pane's own row: one poste's `N°` and `Poste` cells, with a leading twisty while it
+/// has anything at all to expand onto.
 ///
-/// **This row is one half of the poste's own row** — [_OcptCostTrackingAmountsRow] draws the
+/// **This row is one half of the poste's own row** — [_OcptCostTrackingPosteAmountsRow] draws the
 /// other, in the scrolling pane, for the very same [poste]. The two share [isSelected], so they
 /// paint the very same background, and each carries its own tap target calling the very same
 /// [onTap], so a click on either half selects the poste: together they read as one row to the
 /// user even though they are two separate widgets with no `RenderObject` in common.
-class _OcptCostTrackingIdentityRow extends StatelessWidget {
+class _OcptCostTrackingPosteIdentityRow extends StatelessWidget {
   /// The poste this row shows.
   final OcptBudgetPoste poste;
 
@@ -484,16 +972,28 @@ class _OcptCostTrackingIdentityRow extends StatelessWidget {
   /// The `Poste` column's own width, computed by the table.
   final double posteWidth;
 
+  /// Whether this poste has anything at all to expand onto.
+  final bool isExpandable;
+
+  /// Whether this poste is currently expanded.
+  final bool isExpanded;
+
   /// Called when this row is clicked.
   final VoidCallback onTap;
 
+  /// Called when this row's own twisty is clicked, or null while [isExpandable] is false.
+  final VoidCallback onTwistyTap;
+
   /// Class constructor
-  const _OcptCostTrackingIdentityRow({
+  const _OcptCostTrackingPosteIdentityRow({
     required this.poste,
     required this.isSelected,
     required this.isSimplified,
     required this.posteWidth,
+    required this.isExpandable,
+    required this.isExpanded,
     required this.onTap,
+    required this.onTwistyTap,
   });
 
   @override
@@ -528,13 +1028,24 @@ class _OcptCostTrackingIdentityRow extends StatelessWidget {
                 width: posteWidth,
                 child: Padding(
                   padding: const EdgeInsets.only(left: 12, right: 8),
-                  child: Text(
-                    label.isEmpty ? tr.budgetPosteUnnamed : label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontStyle: label.isEmpty ? FontStyle.italic : FontStyle.normal,
-                    ),
+                  child: Row(
+                    children: [
+                      _OcptCostTrackingTwisty(
+                        isExpandable: isExpandable,
+                        isExpanded: isExpanded,
+                        onTap: onTwistyTap,
+                      ),
+                      Expanded(
+                        child: Text(
+                          label.isEmpty ? tr.budgetPosteUnnamed : label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontStyle: label.isEmpty ? FontStyle.italic : FontStyle.normal,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -546,10 +1057,49 @@ class _OcptCostTrackingIdentityRow extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own row: one poste's eight amount cells and its own `⋮` menu — see
-/// [_OcptCostTrackingIdentityRow]'s own doc comment for why it shares [isSelected] and [onTap]
-/// with the pinned half of the very same row.
-class _OcptCostTrackingAmountsRow extends StatelessWidget {
+/// The twisty every poste and quote line row draws — an arrow while [isExpandable], nothing but
+/// its own reserved width otherwise, so a row with nothing to expand still lines its own label up
+/// with a sibling that does.
+class _OcptCostTrackingTwisty extends StatelessWidget {
+  /// Whether this row has anything at all to expand onto.
+  final bool isExpandable;
+
+  /// Whether this row is currently expanded.
+  final bool isExpanded;
+
+  /// Called when this twisty is clicked, or null while [isExpandable] is false.
+  final VoidCallback? onTap;
+
+  /// Class constructor
+  const _OcptCostTrackingTwisty({required this.isExpandable, required this.isExpanded, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isExpandable) {
+      return const SizedBox(width: _ocptCostTrackingTwistyWidth);
+    }
+
+    return SizedBox(
+      width: _ocptCostTrackingTwistyWidth,
+      height: _ocptCostTrackingTwistyWidth,
+      child: InkWell(
+        onTap: onTap,
+        mouseCursor: ocptClickableCursor,
+        borderRadius: BorderRadius.circular(_ocptCostTrackingTwistyWidth / 2),
+        child: Icon(
+          isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+          size: 18,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// The scrolling pane's own row: one poste's six amount cells and its own `⋮` menu — see
+/// [_OcptCostTrackingPosteIdentityRow]'s own doc comment for why it shares [isSelected] and
+/// [onTap] with the pinned half of the very same row.
+class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
   /// The poste this row shows.
   final OcptBudgetPoste poste;
 
@@ -587,7 +1137,7 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
   final VoidCallback? onDeletionRequested;
 
   /// Class constructor
-  const _OcptCostTrackingAmountsRow({
+  const _OcptCostTrackingPosteAmountsRow({
     required this.poste,
     required this.isSelected,
     required this.taxBasis,
@@ -623,8 +1173,8 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
       poste.lines,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    // Resolved once per row, not once per cell, so the Estimate to complete and Final cost cells
-    // can never disagree about which figure — derived or typed — they are both reading.
+    // Resolved once per row, not once per cell, so no two cells reading the resolved estimate to
+    // complete can ever disagree about which figure — derived or typed — they are both reading.
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
@@ -657,8 +1207,8 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
                   currencyCode: currencyCode,
                 ),
               ),
-              _amountCell(context, ocptBudgetAmountLabel(paidCents, currencyCode)),
               _amountCell(context, ocptBudgetAmountLabel(committedCents, currencyCode)),
+              _amountCell(context, ocptBudgetAmountLabel(paidCents, currencyCode)),
               _amountCell(
                 context,
                 ocptBudgetAmountLabel(
@@ -668,20 +1218,6 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
                     committedCents: committedCents,
                   ),
                   currencyCode,
-                ),
-              ),
-              SizedBox(
-                width: _ocptCostTrackingAmountColumnWidth,
-                child: Text(
-                  ocptBudgetAmountLabel(estimateToCompleteCents, currencyCode),
-                  textAlign: TextAlign.right,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: poste.estimateToCompleteCents == null
-                        ? theme.colorScheme.onSurfaceVariant
-                        : null,
-                  ),
                 ),
               ),
               _amountCell(context, ocptBudgetAmountLabel(finalCostCents, currencyCode)),
@@ -696,7 +1232,6 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
                   currencyCode,
                 ),
               ),
-              _amountCell(context, _consumedTextOf(quoted.amountCents)),
               SizedBox(
                 width: _ocptCostTrackingMenuColumnWidth,
                 child: (onRenameRequested == null &&
@@ -738,39 +1273,409 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
     );
   }
 
-  /// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [text] is null — only the
-  /// `Consumed` column ever hands this null, see [_consumedTextOf]'s own doc comment.
-  Widget _amountCell(BuildContext context, String? text) => SizedBox(
+  /// One amount cell, right-aligned.
+  Widget _amountCell(BuildContext context, String text) => SizedBox(
     width: _ocptCostTrackingAmountColumnWidth,
     child: Text(
-      text ?? ocptBudgetEmptyValue,
+      text,
       textAlign: TextAlign.right,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: Theme.of(context).textTheme.bodySmall,
     ),
   );
+}
 
-  /// The `Consumed` column's own percentage text, or [ocptBudgetEmptyValue] while
-  /// [ocptBudgetConsumedRatioOf] answers null (a poste carrying no quote at all).
-  String _consumedTextOf(int quotedAmountCents) {
-    final ratio = ocptBudgetConsumedRatioOf(
-      quotedAmountCents: quotedAmountCents,
-      paidCents: paidCents,
-      committedCents: committedCents,
+/// One line of a sub-row's own identity label: an optional coloured dot, the label itself, and an
+/// optional trailing badge pill — [_OcptCostTrackingSubIdentityRow]'s own `builder` hands one of
+/// these back for every sub-row kind.
+class _OcptCostTrackingSubLabel extends StatelessWidget {
+  /// The text shown.
+  final String label;
+
+  /// Whether [label] prints in the muted, one-step-smaller ink the mockup draws every sub-row in.
+  final bool isMuted;
+
+  /// Whether [label] prints in italics — an unnamed line, or the "no entry" hint.
+  final bool isItalic;
+
+  /// The colour of the leading dot, or null while this row draws none.
+  final Color? dotColor;
+
+  /// The trailing badge's own text, or null while this row draws none.
+  final String? badgeText;
+
+  /// The trailing badge's own colour, read together with [badgeText].
+  final Color? badgeColor;
+
+  /// Class constructor
+  const _OcptCostTrackingSubLabel({
+    required this.label,
+    this.isMuted = false,
+    this.isItalic = false,
+    this.dotColor,
+    this.badgeText,
+    this.badgeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.labelSmall?.copyWith(
+      color: isMuted ? theme.colorScheme.onSurfaceVariant : null,
+      fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
     );
-    if (ratio == null) {
-      return ocptBudgetEmptyValue;
-    }
+    final dotColor = this.dotColor;
+    final badgeText = this.badgeText;
 
-    return "${(ratio * 100).round()} %";
+    return Row(
+      children: [
+        if (dotColor != null) ...[
+          Container(
+            width: _ocptCostTrackingDotDiameter,
+            height: _ocptCostTrackingDotDiameter,
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+        ],
+        Expanded(
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+        ),
+        if (badgeText != null && badgeText.isNotEmpty) ...[
+          const SizedBox(width: 6),
+          // Capped, never left to its own natural width: at the pinned pane's own narrowest
+          // ([_ocptCostTrackingPosteColumnMinWidth]), a long status word ("Quote accepted") would
+          // otherwise overflow the row outright rather than sharing the little room there is with
+          // the label beside it.
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _ocptCostTrackingBadgeMaxWidth),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: (badgeColor ?? theme.colorScheme.onSurfaceVariant).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              ),
+              child: Text(
+                badgeText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: badgeColor ?? theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
+}
+
+/// The pinned pane's own generic sub-row: a quote line, a commitment, an entry or the muted "no
+/// entry" hint — every one but the line one step smaller and muted, indented [depth] steps, a
+/// twisty reserved only for a quote line. [builder] draws the row's own content (label, dot,
+/// badge) — see [_OcptCostTrackingSubLabel].
+class _OcptCostTrackingSubIdentityRow extends StatelessWidget {
+  /// This row's own indentation, in steps from the poste.
+  final int depth;
+
+  /// Whether the header's simplified/detailed switch currently reads simplified.
+  final bool isSimplified;
+
+  /// The `Poste` column's own width, computed by the table.
+  final double posteWidth;
+
+  /// Whether this row is the currently selected one.
+  final bool isSelected;
+
+  /// Whether this row prints one step smaller than a line row — every commitment, entry and hint
+  /// row does; a line row does not.
+  final bool isSmall;
+
+  /// Whether this row has anything at all to expand onto — a quote line alone.
+  final bool isExpandable;
+
+  /// Whether this row is currently expanded.
+  final bool isExpanded;
+
+  /// Called when this row's own twisty is clicked, or null while it draws none.
+  final VoidCallback? onTwistyTap;
+
+  /// Called when this row is clicked, or null while it draws no selection at all (the hint row).
+  final VoidCallback? onTap;
+
+  /// Builds this row's own content.
+  final WidgetBuilder builder;
+
+  /// Class constructor
+  const _OcptCostTrackingSubIdentityRow({
+    required this.depth,
+    required this.isSimplified,
+    required this.posteWidth,
+    required this.isSelected,
+    required this.isSmall,
+    required this.isExpandable,
+    required this.isExpanded,
+    required this.onTwistyTap,
+    required this.onTap,
+    required this.builder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onTap = this.onTap;
+
+    final content = SizedBox(
+      width: posteWidth,
+      child: Padding(
+        padding: EdgeInsets.only(left: 12 + depth * _ocptCostTrackingIndentStep, right: 8),
+        child: Row(
+          children: [
+            if (isExpandable || !isSmall)
+              _OcptCostTrackingTwisty(
+                isExpandable: isExpandable,
+                isExpanded: isExpanded,
+                onTap: onTwistyTap,
+              ),
+            Expanded(child: builder(context)),
+          ],
+        ),
+      ),
+    );
+
+    return SizedBox(
+      height: isSmall ? _ocptCostTrackingSubRowHeight : _ocptCostTrackingRowHeight,
+      child: ColoredBox(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
+        child: onTap == null
+            ? Row(
+                children: [
+                  if (!isSimplified) const SizedBox(width: _ocptCostTrackingNumberColumnWidth),
+                  content,
+                ],
+              )
+            : InkWell(
+                onTap: onTap,
+                mouseCursor: ocptClickableCursor,
+                child: Row(
+                  children: [
+                    if (!isSimplified) const SizedBox(width: _ocptCostTrackingNumberColumnWidth),
+                    content,
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+/// A quote line's own six amount cells — [OcptBudgetCostTracking]'s own class doc comment argues
+/// why `Engagé`/`Payé` are read through [ocptBudgetLineCommittedTotalOf]/[ocptBudgetLinePaidTotalOf]
+/// and why the estimate to complete behind `Coût final` is always derived here.
+class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
+  /// The line this row shows.
+  final OcptBudgetLine line;
+
+  /// This line's own commitments, settled or not.
+  final List<OcptBudgetCommitment> lineCommitments;
+
+  /// Every live entry of the project — searched for the one settling each of [lineCommitments]'
+  /// own settled commitments.
+  final List<OcptBudgetEntry> entries;
+
+  /// Which basis the header's excluding/including-tax switch currently reads every amount in.
+  final OcptBudgetTaxBasis taxBasis;
+
+  /// The project's default VAT rate, in basis points, or null.
+  final int? defaultVatRateBasisPoints;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Whether this line is the currently selected one.
+  final bool isSelected;
+
+  /// Called when this row is clicked.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _OcptCostTrackingLineAmountsRow({
+    required this.line,
+    required this.lineCommitments,
+    required this.entries,
+    required this.taxBasis,
+    required this.defaultVatRateBasisPoints,
+    required this.currencyCode,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final quoted = ocptBudgetTotalOf(
+      [line],
+      basis: taxBasis,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final committed = ocptBudgetLineCommittedTotalOf(
+      lineCommitments,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final paid = ocptBudgetLinePaidTotalOf(
+      lineCommitments,
+      entries: entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    // A line carries no estimate to complete of its own — always derived, never typed
+    // (`docs/plans/budget-mode-ux.md` §4.4).
+    final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
+      quotedAmountCents: quoted.amountCents,
+      paidCents: paid.amountCents,
+      committedCents: committed.amountCents,
+      typedEstimateToCompleteCents: null,
+    );
+    final finalCostCents = ocptBudgetFinalCostCents(
+      paidCents: paid.amountCents,
+      committedCents: committed.amountCents,
+      estimateToCompleteCents: estimateToCompleteCents,
+    );
+    final remainingCents = ocptBudgetRemainingCents(
+      quotedAmountCents: quoted.amountCents,
+      paidCents: paid.amountCents,
+      committedCents: committed.amountCents,
+    );
+    final varianceCents = ocptBudgetVarianceCents(
+      quotedAmountCents: quoted.amountCents,
+      paidCents: paid.amountCents,
+      committedCents: committed.amountCents,
+    );
+
+    return InkWell(
+      onTap: onTap,
+      mouseCursor: ocptClickableCursor,
+      child: ColoredBox(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
+        child: SizedBox(
+          height: _ocptCostTrackingSubRowHeight,
+          child: Row(
+            children: [
+              _cell(context, ocptBudgetAmountLabel(quoted.amountCents, currencyCode)),
+              _cell(context, ocptBudgetAmountLabel(committed.amountCents, currencyCode)),
+              _cell(context, ocptBudgetAmountLabel(paid.amountCents, currencyCode)),
+              _cell(context, ocptBudgetAmountLabel(remainingCents, currencyCode)),
+              _cell(context, ocptBudgetAmountLabel(finalCostCents, currencyCode)),
+              _cell(context, ocptBudgetAmountLabel(varianceCents, currencyCode)),
+              const SizedBox(width: _ocptCostTrackingMenuColumnWidth),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// One amount cell, right-aligned, one step smaller than a poste row's own.
+  Widget _cell(BuildContext context, String text) => SizedBox(
+    width: _ocptCostTrackingAmountColumnWidth,
+    child: Text(
+      text,
+      textAlign: TextAlign.right,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.labelSmall,
+    ),
+  );
+}
+
+/// The scrolling pane's own generic sub-row: a commitment or an entry, printing exactly one figure
+/// — at [activeColumnIndex], or the em dash there while [activeCents] is null — and the em dash in
+/// every other one of the six columns, then an optional `⋮` menu. The "no entry" hint row reuses
+/// this same widget with [activeColumnIndex] null, so every one of its own six cells reads the em
+/// dash and it carries no menu at all.
+class _OcptCostTrackingSubAmountsRow extends StatelessWidget {
+  /// Whether this row is the currently selected one.
+  final bool isSelected;
+
+  /// Called when this row is clicked, or null while it draws no selection at all (the hint row).
+  final VoidCallback? onTap;
+
+  /// Which of the six columns (`0` `Devis` … `5` `Écart`) carries [activeCents], or null while this
+  /// row has no figure of its own at all.
+  final int? activeColumnIndex;
+
+  /// The one figure this row prints, in cents, at [activeColumnIndex] — or null while it cannot be
+  /// read, in which case that column reads the em dash too.
+  final int? activeCents;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Builds this row's own `⋮` menu, or null while it carries none — and may itself answer null
+  /// too, once every one of its own entries is withheld, see
+  /// [OcptBudgetCostTracking._commitmentMenuOf]/[OcptBudgetCostTracking._entryMenuOf].
+  final Widget? Function(BuildContext context)? menuBuilder;
+
+  /// Class constructor
+  const _OcptCostTrackingSubAmountsRow({
+    required this.isSelected,
+    required this.onTap,
+    required this.activeColumnIndex,
+    required this.activeCents,
+    required this.currencyCode,
+    required this.menuBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final activeCents = this.activeCents;
+    final activeText = activeCents == null ? null : ocptBudgetAmountLabel(activeCents, currencyCode);
+    final onTap = this.onTap;
+
+    final row = Row(
+      children: [
+        for (var index = 0; index < 6; index++)
+          _cell(context, index == activeColumnIndex ? activeText : null),
+        SizedBox(width: _ocptCostTrackingMenuColumnWidth, child: menuBuilder?.call(context)),
+      ],
+    );
+
+    return SizedBox(
+      height: _ocptCostTrackingSubRowHeight,
+      child: ColoredBox(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
+        child: onTap == null
+            ? row
+            : InkWell(onTap: onTap, mouseCursor: ocptClickableCursor, child: row),
+      ),
+    );
+  }
+
+  /// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [text] is null.
+  Widget _cell(BuildContext context, String? text) => SizedBox(
+    width: _ocptCostTrackingAmountColumnWidth,
+    child: Text(
+      text ?? ocptBudgetEmptyValue,
+      textAlign: TextAlign.right,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.labelSmall,
+    ),
+  );
 }
 
 /// The pinned pane's own off-quote row: just the `Off quote` label, in the `Poste` column's own
 /// place — the identity half of the very same row [_OcptCostTrackingOffQuoteAmountsRow] draws the
-/// other half of, exactly the way [_OcptCostTrackingIdentityRow] and [_OcptCostTrackingAmountsRow]
-/// split an ordinary poste's row.
+/// other half of, exactly the way [_OcptCostTrackingPosteIdentityRow] and
+/// [_OcptCostTrackingPosteAmountsRow] split an ordinary poste's row.
 ///
 /// **This row is not a poste, and draws nothing that would let it pass for one**: no `N°`, no
 /// selection highlight and — [_OcptCostTrackingOffQuoteAmountsRow]'s own doc comment argues why —
@@ -816,18 +1721,17 @@ class _OcptCostTrackingOffQuoteIdentityRow extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own off-quote row: only the `Paid` cell carries a figure —
-/// [offQuoteTotal]'s own tax-inclusive amount, plain, exactly as an ordinary poste row's own `Paid`
-/// cell is. `Quote`, `Committed`, `Remaining`, `Estimate to complete`, `Final cost`, `Variance` and
-/// `Consumed` all print [ocptBudgetEmptyValue]: there is no quote behind this row to measure any of
-/// them against, the same silence `Consumed` already keeps for a poste with no quote at all
-/// (`docs/architecture/budget.md`).
+/// The scrolling pane's own off-quote row: only the `Payé` cell carries a figure —
+/// [offQuoteTotal]'s own tax-inclusive amount, plain, exactly as an ordinary poste row's own `Payé`
+/// cell is. `Devis`, `Engagé`, `Reste`, `Coût final` and `Écart` all print [ocptBudgetEmptyValue]:
+/// there is no quote behind this row to measure any of them against, the same silence
+/// `docs/architecture/budget.md` already keeps for a figure with nothing to divide by.
 ///
 /// **No `⋮` menu column, unlike an ordinary poste's own amounts row.** Every one of that menu's
 /// entries — rename, move, delete — acts on a poste, and this row is not one: it is a reading over
 /// the journal's own poste-less debits, with no record of its own to rename, reorder or delete.
 class _OcptCostTrackingOffQuoteAmountsRow extends StatelessWidget {
-  /// The total of every debit naming no poste at all — this row's own `Paid` figure.
+  /// The total of every debit naming no poste at all — this row's own `Payé` figure.
   final OcptBudgetCoveredTotal offQuoteTotal;
 
   /// The project's currency, an ISO 4217 code.
@@ -844,14 +1748,12 @@ class _OcptCostTrackingOffQuoteAmountsRow extends StatelessWidget {
       height: _ocptCostTrackingRowHeight,
       child: Row(
         children: [
-          _emptyCell(theme), // Quote
-          _amountCell(theme, ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode)), // Paid
-          _emptyCell(theme), // Committed
-          _emptyCell(theme), // Remaining
-          _emptyCell(theme), // Estimate to complete
-          _emptyCell(theme), // Final cost
-          _emptyCell(theme), // Variance
-          _emptyCell(theme), // Consumed
+          _emptyCell(theme), // Devis
+          _emptyCell(theme), // Engagé
+          _amountCell(theme, ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode)), // Payé
+          _emptyCell(theme), // Reste
+          _emptyCell(theme), // Coût final
+          _emptyCell(theme), // Écart
           const SizedBox(width: _ocptCostTrackingMenuColumnWidth), // no ⋮ menu at all
         ],
       ),
@@ -877,7 +1779,7 @@ class _OcptCostTrackingOffQuoteAmountsRow extends StatelessWidget {
   );
 }
 
-/// The `Quote` column's own cell: the primary figure, then, in small type, the other basis' own
+/// The `Devis` column's own cell: the primary figure, then, in small type, the other basis' own
 /// figure and — only when the poste's lines all share one — the rate it reads under.
 class _OcptCostTrackingQuoteCell extends StatelessWidget {
   /// The amount shown as the headline figure, in the header's own selected basis.
@@ -988,34 +1890,30 @@ class _OcptCostTrackingIdentityTotalRow extends StatelessWidget {
   }
 }
 
-/// The scrolling pane's own total row: the grand `Quote` total (with its own coverage read-out) and
-/// the grand `Paid` total — [paidTotal], [ocptBudgetCoveredTotalsFoldOf]'s own fold of every
+/// The scrolling pane's own total row: the grand `Devis` total (with its own coverage read-out) and
+/// the grand `Payé` total — [paidTotal], [ocptBudgetCoveredTotalsFoldOf]'s own fold of every
 /// poste's own paid total and the off-quote total (`OcptBudgetCostTracking`'s own class doc
 /// comment), so this column adds up to what has actually left the account, off-quote spending
-/// included. `Committed`, `Remaining`, `Variance` and `Consumed` are left blank: summing
-/// `committedCentsOf` across every poste is not a reduction this table has a reading for (a
-/// commitment is always against a poste, so there is no off-quote committed total to fold in), and
-/// `Remaining`/`Variance`/`Consumed` are each read against a poste's own quote, which a grand total
-/// has none of.
+/// included. `Engagé`, `Reste` and `Écart` are left blank: summing `committedCentsOf` across every
+/// poste is not a reduction this table has a reading for (a commitment is always against a poste,
+/// so there is no off-quote committed total to fold in), and `Reste`/`Écart` are each read against
+/// a poste's own quote, which a grand total has none of.
 ///
-/// `Estimate to complete` and `Final cost` are the exception: [estimateToCompleteCents] and
-/// [finalCostCents] each **are** a grand total, computed by `OcptBudgetCostTracking._finalCostTotalsOf`
-/// poste by poste and only then summed — a typed estimate on one poste is a fact this widget cannot
-/// reconstruct from any of the other grand totals it already holds, so the caller resolves it row
-/// by row rather than this row re-deriving it from `total`/`paidTotal`. See
-/// [_OcptCostTrackingIdentityTotalRow]'s own doc comment for the pinned half of the very same row.
+/// `Coût final` is the exception: [finalCostCents] **is** a grand total, computed by
+/// `OcptBudgetCostTracking._finalCostTotalOf` poste by poste and only then summed — a typed
+/// estimate to complete on one poste is a fact this widget cannot reconstruct from any of the
+/// other grand totals it already holds, so the caller resolves it row by row rather than this row
+/// re-deriving it from `total`/`paidTotal`. See [_OcptCostTrackingIdentityTotalRow]'s own doc
+/// comment for the pinned half of the very same row.
 class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   /// The grand total, in the header's own selected basis, and how many lines it covers.
   final OcptBudgetCoveredTotal total;
 
-  /// The grand `Paid` total — every poste's own paid total folded with the off-quote total.
+  /// The grand `Payé` total — every poste's own paid total folded with the off-quote total.
   final OcptBudgetCoveredTotal paidTotal;
 
-  /// The grand `Estimate to complete` total — see the class doc comment for why this is summed
-  /// poste by poste rather than derived from [total]/[paidTotal].
-  final int estimateToCompleteCents;
-
-  /// The grand `Final cost` total — see the class doc comment.
+  /// The grand `Coût final` total — see the class doc comment for why this is summed poste by
+  /// poste rather than derived from [total]/[paidTotal].
   final int finalCostCents;
 
   /// The project's currency, an ISO 4217 code.
@@ -1031,7 +1929,6 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
   const _OcptCostTrackingAmountsTotalRow({
     required this.total,
     required this.paidTotal,
-    required this.estimateToCompleteCents,
     required this.finalCostCents,
     required this.currencyCode,
     required this.posteCount,
@@ -1076,6 +1973,14 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
             SizedBox(
               width: _ocptCostTrackingAmountColumnWidth,
               child: Text(
+                ocptBudgetEmptyValue,
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodySmall,
+              ),
+            ), // Engagé
+            SizedBox(
+              width: _ocptCostTrackingAmountColumnWidth,
+              child: Text(
                 paidCoverageText ?? paidAmountText,
                 textAlign: TextAlign.right,
                 maxLines: 2,
@@ -1083,25 +1988,14 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            for (var i = 0; i < 2; i++)
-              SizedBox(
-                width: _ocptCostTrackingAmountColumnWidth,
-                child: Text(
-                  ocptBudgetEmptyValue,
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ), // Committed, Remaining
             SizedBox(
               width: _ocptCostTrackingAmountColumnWidth,
               child: Text(
-                ocptBudgetAmountLabel(estimateToCompleteCents, currencyCode),
+                ocptBudgetEmptyValue,
                 textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.bodySmall,
               ),
-            ),
+            ), // Reste
             SizedBox(
               width: _ocptCostTrackingAmountColumnWidth,
               child: Text(
@@ -1112,15 +2006,14 @@ class _OcptCostTrackingAmountsTotalRow extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            for (var i = 0; i < 2; i++)
-              SizedBox(
-                width: _ocptCostTrackingAmountColumnWidth,
-                child: Text(
-                  ocptBudgetEmptyValue,
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ), // Variance, Consumed
+            SizedBox(
+              width: _ocptCostTrackingAmountColumnWidth,
+              child: Text(
+                ocptBudgetEmptyValue,
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodySmall,
+              ),
+            ), // Écart
             const SizedBox(width: _ocptCostTrackingMenuColumnWidth),
           ],
         ),

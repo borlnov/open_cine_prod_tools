@@ -239,6 +239,69 @@ class OcptBudgetLineExpandedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, lineId];
 }
 
+/// Expands or collapses expenses-tree node [nodeId] — a poste's or a quote line's own id, whichever
+/// twisty was clicked: an already-expanded node collapses, a collapsed one expands, independently
+/// of every other one, so several branches of the tree can stand open together.
+///
+/// **A different gesture from [OcptBudgetLineExpandedEvent].** That one opens at most one line's
+/// own card in the poste inspector; this one opens or closes one node of the cost-tracking table's
+/// own tree, in the centre, and never touches `OcptBudgetState.expandedLineId`.
+class OcptBudgetRowExpansionToggledEvent extends OcptBudgetEvent {
+  /// The id of the node whose twisty was clicked.
+  final String nodeId;
+
+  /// Class constructor
+  const OcptBudgetRowExpansionToggledEvent({required this.nodeId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, nodeId];
+}
+
+/// Selects quote line [lineId] — a sub-row of the expenses tree — dispatched by its row's own
+/// click. A [lineId] naming no live line is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
+class OcptBudgetLineSelectedEvent extends OcptBudgetEvent {
+  /// The id of the line to select.
+  final String lineId;
+
+  /// Class constructor
+  const OcptBudgetLineSelectedEvent({required this.lineId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, lineId];
+}
+
+/// Selects commitment [commitmentId] — a sub-row of the expenses tree — dispatched by its row's own
+/// click. Draws as a plain highlight; its own `⋮` menu is what edits, settles or deletes it. A
+/// [commitmentId] naming no live commitment is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
+class OcptBudgetCommitmentSelectedEvent extends OcptBudgetEvent {
+  /// The id of the commitment to select.
+  final String commitmentId;
+
+  /// Class constructor
+  const OcptBudgetCommitmentSelectedEvent({required this.commitmentId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, commitmentId];
+}
+
+/// Selects journal entry [entryId] — a sub-row of the expenses tree, whether it settles a
+/// commitment or names its own poste directly — dispatched by its row's own click. A [entryId]
+/// naming no live entry is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
+class OcptBudgetEntrySelectedEvent extends OcptBudgetEvent {
+  /// The id of the entry to select.
+  final String entryId;
+
+  /// Class constructor
+  const OcptBudgetEntrySelectedEvent({required this.entryId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, entryId];
+}
+
 /// Creates a new, unnamed quote line inside poste [posteId], appended at the end of its own lines,
 /// and expands it — dispatched by the poste inspector's own `+ Add` action, mirroring
 /// `OcptBudgetPosteCreatedEvent`'s own "created empty" idiom.

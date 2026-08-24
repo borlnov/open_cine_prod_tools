@@ -36,6 +36,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -2612,6 +2613,175 @@ void main() {
       expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.exportFailed);
 
       await bloc.close();
+    });
+  });
+
+  group("toggling the expenses tree's own expansion", () {
+    test("expands a node it did not hold, and collapses one it did — independently of any "
+        "other node", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetRowExpansionToggledEvent(nodeId: "poste-1"));
+      final firstExpanded = await waitForState(
+        bloc,
+        (state) => state.expandedNodeIds.contains("poste-1"),
+      );
+      expect(firstExpanded.expandedNodeIds, {"poste-1"});
+
+      bloc.add(const OcptBudgetRowExpansionToggledEvent(nodeId: "line-1"));
+      final bothExpanded = await waitForState(
+        bloc,
+        (state) => state.expandedNodeIds.contains("line-1"),
+      );
+      expect(bothExpanded.expandedNodeIds, {"poste-1", "line-1"});
+
+      bloc.add(const OcptBudgetRowExpansionToggledEvent(nodeId: "poste-1"));
+      final onlyLineLeft = await waitForState(
+        bloc,
+        (state) => !state.expandedNodeIds.contains("poste-1"),
+      );
+      expect(onlyLineLeft.expandedNodeIds, {"line-1"});
+    });
+
+    test("is not persisted across a fresh load — every bloc starts with nothing expanded",
+        () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.expandedNodeIds, isEmpty);
+    });
+  });
+
+  group("selecting a quote line, a commitment or an entry", () {
+    test("selecting a line opens the Inspector on the poste it belongs to", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+
+      // A poste selection first, so the switch away from it is what this test actually proves.
+      bloc.add(OcptBudgetPosteSelectedEvent(posteId: loaded.postes.last.id));
+      await waitForState(bloc, (state) => state.selectedPosteId == loaded.postes.last.id);
+
+      bloc.add(OcptBudgetLineSelectedEvent(lineId: lineId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.selectedOwningPosteId == posteId,
+      );
+
+      expect(state.selection, OcptBudgetLineSelection(lineId));
+      expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
+    });
+
+    test("a line id naming no live line is ignored", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetLineSelectedEvent(lineId: "gone"));
+      // Nothing to wait for: give the bloc a beat to (not) react, then assert it never did.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.selection, isNull);
+    });
+
+    test("selecting a commitment opens the Inspector on the poste it belongs to", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetCommitmentCreationConfirmedEvent(
+          fields: OcptBudgetCommitmentFormFields(
+            dueDate: null,
+            label: "Insurance",
+            posteId: posteId,
+            amountCents: 12000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            status: OcptBudgetCommitmentStatus.quoteAccepted,
+          ),
+        ),
+      );
+      final withCommitment = await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+      final commitmentId = withCommitment.commitments.single.id;
+
+      bloc.add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitmentId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.selection == OcptBudgetCommitmentSelection(commitmentId),
+      );
+
+      expect(state.selectedOwningPosteId, posteId);
+      expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
+    });
+
+    test("a commitment id naming no live commitment is ignored", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetCommitmentSelectedEvent(commitmentId: "gone"));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.selection, isNull);
+    });
+
+    test("selecting an entry opens the Inspector on the poste it belongs to", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Camera rental",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withEntry = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+      final entryId = withEntry.entries.single.id;
+
+      bloc.add(OcptBudgetEntrySelectedEvent(entryId: entryId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.selection == OcptBudgetEntrySelection(entryId),
+      );
+
+      expect(state.selectedOwningPosteId, posteId);
+      expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
+    });
+
+    test("an entry id naming no live entry is ignored", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetEntrySelectedEvent(entryId: "gone"));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.selection, isNull);
     });
   });
 }
