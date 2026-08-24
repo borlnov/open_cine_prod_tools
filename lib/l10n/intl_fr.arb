@@ -1420,7 +1420,7 @@
   "budgetHeaderDocumentExpensesSegmentLabel": "Dépenses",
   "budgetHeaderDocumentResourcesSegmentLabel": "Ressources",
   "budgetHeaderDocumentSharingSegmentLabel": "Partage",
-  "budgetHeaderCostTrackingSegmentLabel": "Suivi des coûts",
+  "budgetHeaderCostTrackingSegmentLabel": "Suivi de coût",
   "budgetHeaderCashJournalSegmentLabel": "Trésorerie",
   "budgetHeaderCommittedSegmentLabel": "Engagé",
   "budgetHeaderFinancingSegmentLabel": "Financement",
