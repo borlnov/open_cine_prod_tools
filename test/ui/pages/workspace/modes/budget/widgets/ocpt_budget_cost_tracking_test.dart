@@ -561,6 +561,113 @@ void main() {
         expect(selectedPosteId, isNull);
       },
     );
+
+    testWidgets("draws a twisty while it holds something to expand onto", (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            postes: [quotedPoste()],
+            entries: [_entry(id: "e1", debitCents: 2500)],
+            offQuoteTotal: offQuoteTotal,
+          ),
+        ),
+      );
+
+      // The poste's own twisty (one line to expand onto) plus the off-quote row's own: two closed
+      // arrows on screen.
+      expect(find.byIcon(Icons.keyboard_arrow_right), findsNWidgets(2));
+    });
+
+    testWidgets(
+      "toggling its own twisty reports its own reserved id, distinct from any poste or line",
+      (tester) async {
+        String? toggledId;
+
+        await tester.pumpWidget(
+          _wrap(
+            buildTable(
+              postes: [quotedPoste()],
+              entries: [_entry(id: "e1", debitCents: 2500)],
+              offQuoteTotal: offQuoteTotal,
+              onNodeExpansionToggled: (id) => toggledId = id,
+            ),
+          ),
+        );
+
+        // The off-quote row draws after the poste in the tree, so its own twisty is the second —
+        // and last — closed arrow on screen.
+        await tester.tap(find.byIcon(Icons.keyboard_arrow_right).last);
+        await tester.pumpAndSettle();
+
+        expect(toggledId, isNotNull);
+        expect(toggledId, isNot("poste-1"));
+        expect(toggledId, isNot("line-1"));
+      },
+    );
+
+    testWidgets(
+      "once expanded, reveals the poste-less debits it sums, each selectable and carrying its "
+      "own ⋮ menu",
+      (tester) async {
+        String? capturedToggleId;
+        String? selectedEntryId;
+        OcptBudgetEntry? editedEntry;
+        final entries = [_entry(id: "e1", debitCents: 2500, label: "Off-quote spend")];
+
+        // First pump: read back whichever id the twisty itself reports.
+        await tester.pumpWidget(
+          _wrap(
+            buildTable(
+              postes: [quotedPoste()],
+              entries: entries,
+              offQuoteTotal: offQuoteTotal,
+              onNodeExpansionToggled: (id) => capturedToggleId = id,
+            ),
+          ),
+        );
+        await tester.tap(find.byIcon(Icons.keyboard_arrow_right).last);
+        await tester.pumpAndSettle();
+        final sentinelId = capturedToggleId!;
+
+        // Second pump: that very id, now in expandedNodeIds, opens the row onto its own entry.
+        await tester.pumpWidget(
+          _wrap(
+            buildTable(
+              postes: [quotedPoste()],
+              entries: entries,
+              offQuoteTotal: offQuoteTotal,
+              expandedNodeIds: {sentinelId},
+              onEntrySelected: (entryId) => selectedEntryId = entryId,
+              onEntryEditRequested: (entry) => editedEntry = entry,
+            ),
+          ),
+        );
+
+        expect(find.text("Off-quote spend"), findsOneWidget);
+
+        await tester.tap(find.text("Off-quote spend"));
+        await tester.pumpAndSettle();
+        expect(selectedEntryId, "e1");
+
+        // The poste's own ⋮ menu plus this entry sub-row's own: two menus on screen.
+        final menus = find.byType(PopupMenuButton<String>);
+        expect(menus, findsNWidgets(2));
+
+        // The last one is this entry sub-row's own — the scrolling pane's own list draws the
+        // poste's row first, this one after it — but it sits past the amounts pane's own
+        // horizontal scroll, exactly as the tree's own established `⋮` menu tests already scroll
+        // to it first.
+        final entryMenu = menus.last;
+        await tester.ensureVisible(entryMenu);
+        await tester.tap(entryMenu);
+        await tester.pumpAndSettle();
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+        await tester.tap(find.text(tr.budgetFinancingEditAction));
+        await tester.pumpAndSettle();
+
+        expect(editedEntry?.id, "e1");
+      },
+    );
   });
 
   group("Coût final", () {

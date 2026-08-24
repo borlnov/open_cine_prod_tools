@@ -169,11 +169,13 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// Which nodes of the expenses tree or of the resources tree are currently expanded, keyed by
   /// their own id — a poste id, a quote line id, a resource id or a revenue id, whichever twisty
   /// was last clicked open, or an `OcptBudgetResourceFamily`'s own `name` for a family row, which
-  /// mints no id of its own. A commitment sub-row, an entry sub-row and a receipt sub-row carry no
-  /// twisty of their own and so never appear here: each is revealed or hidden wholesale with
-  /// whichever line, poste, resource, revenue or family it sits directly under. Not persisted
-  /// across a relaunch, mirroring [document], [reading], [subPage], [isSimplified] and [taxBasis]
-  /// above.
+  /// mints no id of its own. The expenses tree also keys one reserved node naming no record at all
+  /// — `OcptBudgetCostTracking`'s own off-quote total, which sums a reading over the journal rather
+  /// than a poste or a line, and so mints no id either. A commitment sub-row, an entry sub-row and
+  /// a receipt sub-row carry no twisty of their own and so never appear here: each is revealed or
+  /// hidden wholesale with whichever line, poste, resource, revenue or family it sits directly
+  /// under. Not persisted across a relaunch, mirroring [document], [reading], [subPage],
+  /// [isSimplified] and [taxBasis] above.
   final Set<String> expandedNodeIds;
 
   /// The right dock's currently active tab, or null if the dock is closed.

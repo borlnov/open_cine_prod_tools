@@ -92,6 +92,12 @@ const double _ocptCostTrackingBadgeMaxWidth = 84;
 /// drawn, in logical pixels — centred rather than run the width of the screen.
 const double _ocptCostTrackingEmptyStateMaxWidth = 480;
 
+/// The off-quote row's own reserved id in `OcptBudgetState.expandedNodeIds` — no poste, quote line,
+/// resource or revenue can ever collide with it, since every one of those mints a UUID and this
+/// string is not one. The off-quote row sums a reading over the journal rather than naming a record
+/// of its own, so it has no id to key its own expansion by except one this file reserves for it.
+const String _ocptCostTrackingOffQuoteNodeId = "off-quote";
+
 /// The budget mode's cost-tracking view: the expenses tree — one row per poste, opening onto its
 /// own quote lines, each of those opening onto its own commitments and the entries that settle
 /// them, the poste's own off-line commitments and entries drawn at a quote line's own indentation
@@ -158,15 +164,20 @@ const double _ocptCostTrackingEmptyStateMaxWidth = 480;
 /// exists at all: an unsettled commitment has nothing of its own to show under
 /// [ocptBudgetEntryDebitCentsOf], so the hint says why in words instead of drawing nothing.
 ///
-/// **[offQuoteTotal] draws one extra row, `Off quote`, between the last poste and the `Total`
-/// row** — the total of every debit naming no poste at all
+/// **`_buildRows` folds one extra row into the tree, `Off quote`, after the last poste and before
+/// the `Total` row** — the total of every debit naming no poste at all
 /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/utils/ocpt_budget_journal.dart`), which
-/// [paidByPosteId] never keys at all. It is drawn only while [offQuoteTotal] actually holds
-/// something ([OcptBudgetCoveredTotal.lineCount] above zero) and only its own `Payé` cell carries a
-/// figure; it is not a poste, so it carries no `N°`, no `⋮` menu and no selection of its own — see
-/// `_OcptCostTrackingOffQuoteIdentityRow`'s own doc comment. The total row's own `Payé` cell then
-/// folds [paidByPosteId] and [offQuoteTotal] together
-/// ([ocptBudgetCoveredTotalsFoldOf]), since together they are what actually left the account.
+/// [paidByPosteId] never keys at all. It is drawn only while some such debit exists and only its
+/// own `Payé` cell carries a figure; it is not a poste, so it carries no `N°`, no `⋮` menu and no
+/// selection of its own — see `_OcptCostTrackingOffQuoteIdentityRow`'s own doc comment. **It gains
+/// a twisty, opening onto the very debits it sums**, each an ordinary entry sub-row keyed by the
+/// reserved [_ocptCostTrackingOffQuoteNodeId] rather than by a poste or a line id, since the row
+/// sums a reading over the journal and names no record of its own to key one by. An entry drawn
+/// here that also settles a commitment nested under some poste is not excluded the way a poste's
+/// own off-line entries are — `_buildRows`' own doc comment argues why it legitimately appears in
+/// both places. The total row's own `Payé` cell then folds [paidByPosteId] and [offQuoteTotal]
+/// together ([ocptBudgetCoveredTotalsFoldOf]), since together they are what actually left the
+/// account.
 ///
 /// **A row's own `Rename` menu entry selects it and opens the `Inspector` tab rather than editing
 /// its name in place.** This app has no precedent for renaming a record inline inside a plain list
@@ -360,7 +371,6 @@ class OcptBudgetCostTracking extends StatelessWidget {
     final coveredPosteCount = _coveredPosteCountOf();
     final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuoteTotal]);
     final finalCostCents = _finalCostTotalOf();
-    final showOffQuoteRow = offQuoteTotal.lineCount > 0;
     final rows = _buildRows();
 
     return LayoutBuilder(
@@ -394,11 +404,6 @@ class OcptBudgetCostTracking extends StatelessWidget {
                           ),
                           for (final row in rows)
                             _identityRowOf(row, posteWidth: posteWidth),
-                          if (showOffQuoteRow)
-                            _OcptCostTrackingOffQuoteIdentityRow(
-                              isSimplified: isSimplified,
-                              posteWidth: posteWidth,
-                            ),
                           _OcptCostTrackingIdentityTotalRow(
                             isSimplified: isSimplified,
                             posteWidth: posteWidth,
@@ -416,11 +421,6 @@ class OcptBudgetCostTracking extends StatelessWidget {
                             children: [
                               const _OcptCostTrackingAmountsHeaderRow(),
                               for (final row in rows) _amountsRowOf(row),
-                              if (showOffQuoteRow)
-                                _OcptCostTrackingOffQuoteAmountsRow(
-                                  offQuoteTotal: offQuoteTotal,
-                                  currencyCode: currencyCode,
-                                ),
                               _OcptCostTrackingAmountsTotalRow(
                                 total: total,
                                 paidTotal: paidTotal,
@@ -495,6 +495,17 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// id is in [expandedNodeIds]. A quote line's own children — its commitments, and, for each one,
   /// either the entry that settled it or the muted "no entry" hint — draw only while the line's own
   /// id is in [expandedNodeIds] too.
+  ///
+  /// **The off-quote row follows the last poste, drawn exactly as it always was — only while
+  /// [offQuoteTotal] holds something ([OcptBudgetCoveredTotal.lineCount] above zero).** Its own
+  /// children — every debit naming no poste at all — draw only while
+  /// [_ocptCostTrackingOffQuoteNodeId] is in [expandedNodeIds] too. Unlike a poste's own off-line
+  /// entries, this list is **not** narrowed by `settlingEntryIds`: a poste-less debit that also
+  /// settles a commitment nested under some poste is exactly the case the off-quote total sums, and
+  /// hiding it here because it is reachable elsewhere would leave the total's own children not
+  /// actually adding up to the figure it prints. It legitimately draws twice — once here, once
+  /// nested under the commitment it settles — and that is the honest reading of a poste-less
+  /// payment that happens to also be a settlement.
   List<_OcptTreeRow> _buildRows() {
     final rows = <_OcptTreeRow>[];
     // Every entry named by some commitment's own `settledEntryId`, wherever that commitment lives
@@ -545,6 +556,23 @@ class OcptBudgetCostTracking extends StatelessWidget {
       _addCommitmentRows(rows, offLineCommitments, depth: 1);
       for (final entry in offLineEntries) {
         rows.add(_OcptEntryTreeRow(entry: entry, depth: 1));
+      }
+    }
+
+    if (offQuoteTotal.lineCount > 0) {
+      // The very same predicate `ocptBudgetOffQuotePaidTotalOf` sums, so this row's own children
+      // always add up to the figure it prints — see this method's own doc comment for why
+      // `settlingEntryIds` is deliberately not applied here.
+      final offQuoteEntries = [
+        for (final entry in entries)
+          if (entry.posteId == null && entry.debitCents != 0) entry,
+      ];
+      final isOffQuoteExpanded = expandedNodeIds.contains(_ocptCostTrackingOffQuoteNodeId);
+      rows.add(_OcptOffQuoteTreeRow(isExpanded: isOffQuoteExpanded));
+      if (isOffQuoteExpanded) {
+        for (final entry in offQuoteEntries) {
+          rows.add(_OcptEntryTreeRow(entry: entry, depth: 1));
+        }
       }
     }
 
@@ -666,6 +694,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
         badgeColor: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     ),
+    _OcptOffQuoteTreeRow() => _OcptCostTrackingOffQuoteIdentityRow(
+      isSimplified: isSimplified,
+      posteWidth: posteWidth,
+      isExpanded: row.isExpanded,
+      onTwistyTap: () => onNodeExpansionToggled(_ocptCostTrackingOffQuoteNodeId),
+    ),
   };
 
   /// The scrolling pane's own widget for [row].
@@ -727,6 +761,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
       ),
       currencyCode: currencyCode,
       menuBuilder: (context) => _entryMenuOf(context, row.entry),
+    ),
+    _OcptOffQuoteTreeRow() => _OcptCostTrackingOffQuoteAmountsRow(
+      offQuoteTotal: offQuoteTotal,
+      currencyCode: currencyCode,
     ),
   };
 
@@ -933,7 +971,8 @@ class _OcptCommitmentHintTreeRow extends _OcptTreeRow {
 }
 
 /// An entry row — either the entry that settled a commitment, at that commitment's own
-/// indentation, or one of the poste's own off-line entries, one step under it.
+/// indentation, or one of the poste's own off-line entries, one step under it, or one of the
+/// off-quote total's own children, also one step under it (see [_OcptOffQuoteTreeRow]).
 class _OcptEntryTreeRow extends _OcptTreeRow {
   /// The entry this row draws.
   final OcptBudgetEntry entry;
@@ -943,6 +982,17 @@ class _OcptEntryTreeRow extends _OcptTreeRow {
 
   /// Class constructor
   const _OcptEntryTreeRow({required this.entry, required this.depth});
+}
+
+/// The off-quote total row — the tree's own last row before `Total`, naming no poste and no line.
+/// See [OcptBudgetCostTracking._buildRows]'s own doc comment for which entries draw under it once
+/// expanded.
+class _OcptOffQuoteTreeRow extends _OcptTreeRow {
+  /// Whether this row is currently expanded.
+  final bool isExpanded;
+
+  /// Class constructor
+  const _OcptOffQuoteTreeRow({required this.isExpanded});
 }
 
 /// The pinned pane's own header cell: the `N°` and `Poste` column headings.
@@ -1770,16 +1820,22 @@ class _OcptCostTrackingSubAmountsRow extends StatelessWidget {
   );
 }
 
-/// The pinned pane's own off-quote row: just the `Off quote` label, in the `Poste` column's own
-/// place — the identity half of the very same row [_OcptCostTrackingOffQuoteAmountsRow] draws the
-/// other half of, exactly the way [_OcptCostTrackingPosteIdentityRow] and
-/// [_OcptCostTrackingPosteAmountsRow] split an ordinary poste's row.
+/// The pinned pane's own off-quote row: a twisty, then the `Off quote` label, in the `Poste`
+/// column's own place — the identity half of the very same row
+/// [_OcptCostTrackingOffQuoteAmountsRow] draws the other half of, exactly the way
+/// [_OcptCostTrackingPosteIdentityRow] and [_OcptCostTrackingPosteAmountsRow] split an ordinary
+/// poste's row.
 ///
-/// **This row is not a poste, and draws nothing that would let it pass for one**: no `N°`, no
+/// **This row is not a poste, and draws nothing else that would let it pass for one**: no `N°`, no
 /// selection highlight and — [_OcptCostTrackingOffQuoteAmountsRow]'s own doc comment argues why —
-/// no `⋮` menu either. Neither half carries an `onTap` at all: it is a reading over the journal, not
-/// a record anybody can rename, reorder or delete, so clicking it does nothing rather than quietly
-/// calling [OcptBudgetCostTracking.onPosteSelected] with nothing to select.
+/// no `⋮` menu either. Neither half carries an `onTap` of its own at all: it is a reading over the
+/// journal, not a record anybody can rename, reorder or delete, so clicking the label does nothing
+/// rather than quietly calling [OcptBudgetCostTracking.onPosteSelected] with nothing to select.
+///
+/// **The twisty is the one thing this row can do**: `OcptBudgetCostTracking._buildRows` draws it
+/// only while the total holds at least one debit, so it is always expandable the moment it is
+/// drawn at all, and opens onto exactly the debits that make the total up — a reader who lands on
+/// the aggregate can reach what it sums without knowing another view of the journal exists.
 class _OcptCostTrackingOffQuoteIdentityRow extends StatelessWidget {
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
@@ -1787,8 +1843,19 @@ class _OcptCostTrackingOffQuoteIdentityRow extends StatelessWidget {
   /// The `Poste` column's own width, computed by the table.
   final double posteWidth;
 
+  /// Whether this row is currently expanded.
+  final bool isExpanded;
+
+  /// Called when this row's own twisty is clicked.
+  final VoidCallback onTwistyTap;
+
   /// Class constructor
-  const _OcptCostTrackingOffQuoteIdentityRow({required this.isSimplified, required this.posteWidth});
+  const _OcptCostTrackingOffQuoteIdentityRow({
+    required this.isSimplified,
+    required this.posteWidth,
+    required this.isExpanded,
+    required this.onTwistyTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1805,11 +1872,24 @@ class _OcptCostTrackingOffQuoteIdentityRow extends StatelessWidget {
             width: posteWidth,
             child: Padding(
               padding: const EdgeInsets.only(left: 12, right: 8),
-              child: Text(
-                tr.budgetCostTrackingOffQuoteLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              child: Row(
+                children: [
+                  _OcptCostTrackingTwisty(
+                    isExpandable: true,
+                    isExpanded: isExpanded,
+                    onTap: onTwistyTap,
+                  ),
+                  Expanded(
+                    child: Text(
+                      tr.budgetCostTrackingOffQuoteLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
