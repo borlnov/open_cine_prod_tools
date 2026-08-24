@@ -42,7 +42,7 @@ const double _ocptPosteDockBarHeight = 6;
 /// [onPosteFilterRequested] and [onFilterClearRequested] are **withheld together**, both null on the
 /// three views with no poste dimension at all (`financing`, `regie`, `sharing` —
 /// `ocptBudgetViewHonoursPosteFilter`): a card's own `⋮` menu carries no filter entry there, and the
-/// footer's own `Tout` link draws nowhere either, even while [filterPosteId] still names a poste —
+/// title row's own `Tout` link draws nowhere either, even while [filterPosteId] still names a poste —
 /// the filter is still set, and leaving brings it back, exactly as the header's own chip already
 /// reads it on those views.
 class OcptBudgetPosteDock extends StatelessWidget {
@@ -66,8 +66,8 @@ class OcptBudgetPosteDock extends StatelessWidget {
   final int Function(String posteId) committedCentsOf;
 
   /// The poste every view of the mode is currently narrowed to, or null for the whole project —
-  /// `OcptBudgetState.filterPosteId`, read here only to decide whether the footer's own `Tout` link
-  /// draws; the header's own chip stays the single source of truth for the filter itself.
+  /// `OcptBudgetState.filterPosteId`, read here only to decide whether the title row's own `Tout`
+  /// link draws; the header's own chip stays the single source of truth for the filter itself.
   final String? filterPosteId;
 
   /// Called with a poste's id when its card is clicked — a selection, never a filter. Never
@@ -78,7 +78,7 @@ class OcptBudgetPosteDock extends StatelessWidget {
   /// on the three views with no poste dimension — see the class doc comment.
   final ValueChanged<String>? onPosteFilterRequested;
 
-  /// Called when the footer's own `Tout` link is clicked, or null on the three views with no poste
+  /// Called when the title row's own `Tout` link is clicked, or null on the three views with no poste
   /// dimension, mirroring [onPosteFilterRequested]'s own nullness.
   final VoidCallback? onFilterClearRequested;
 
@@ -164,7 +164,12 @@ class OcptBudgetPosteDock extends StatelessWidget {
                   ),
                 ),
         ),
-        _OcptBudgetPosteDockFooter(postes: postes, currencyCode: currencyCode, paidCentsOf: paidCentsOf, committedCentsOf: committedCentsOf),
+        _OcptBudgetPosteDockFooter(
+          postes: postes,
+          currencyCode: currencyCode,
+          paidCentsOf: paidCentsOf,
+          committedCentsOf: committedCentsOf,
+        ),
       ],
     );
   }

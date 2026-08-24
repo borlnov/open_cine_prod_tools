@@ -133,7 +133,7 @@ class _BudgetView extends StatefulWidget {
 /// every view of the mode, so [OcptWorkspaceDockLayoutController.leftFraction] is synced exactly as
 /// its own right one already is.
 class _BudgetViewState extends State<_BudgetView> {
-  /// The live source of truth for the right dock fraction while dragging the divider.
+  /// The live source of truth for both dock fractions while a divider is being dragged.
   final OcptWorkspaceDockLayoutController _dockLayoutController = OcptWorkspaceDockLayoutController(
     leftFraction: OcptWorkspaceDock.leftDefaultFraction,
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
@@ -2086,7 +2086,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// `onPosteFilterRequested` and `onFilterClearRequested` are withheld together, on the very same
   /// views the header's own poste filter chip already says it cannot honour
   /// (`ocptBudgetViewHonoursPosteFilter`) — a card's own `⋮` menu carries no filter entry there,
-  /// and neither does the footer's own `Tout` link.
+  /// and neither does the title row's own `Tout` link.
   Widget _buildLeftDock(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final honoursPosteFilter = ocptBudgetViewHonoursPosteFilter(state.view);
