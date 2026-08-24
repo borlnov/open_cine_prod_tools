@@ -79,6 +79,8 @@ OcptBudgetEntry _entry({
   String? revenueId,
   int creditCents = 1000,
   String label = "Wire transfer",
+  bool isTaxInclusive = true,
+  int? vatRateBasisPoints,
 }) => OcptBudgetEntry(
   id: id,
   date: DateTime(2026, 4),
@@ -86,8 +88,8 @@ OcptBudgetEntry _entry({
   posteId: null,
   debitCents: 0,
   creditCents: creditCents,
-  isTaxInclusive: true,
-  vatRateBasisPoints: null,
+  isTaxInclusive: isTaxInclusive,
+  vatRateBasisPoints: vatRateBasisPoints,
   voucherNumber: "J-001",
   sortKey: "a0",
   resourceId: resourceId,
@@ -129,6 +131,7 @@ void main() {
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetEntry> entries = const [],
     List<OcptBudgetPoste> postes = const [],
+    int? defaultVatRateBasisPoints,
     Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
     int Function(String resourceId)? receivedCentsOf,
     Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
@@ -163,7 +166,7 @@ void main() {
           revenues: revenues,
           entries: entries,
           postes: postes,
-          defaultVatRateBasisPoints: null,
+          defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           receivedByResourceId: receivedByResourceId,
           receivedCentsOf: receivedCentsOf ?? (id) => receivedByResourceId[id]?.amountCents ?? 0,
           receivedByRevenueId: receivedByRevenueId,
@@ -197,7 +200,7 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
-    expect(find.text(tr.budgetFinancingColumnLabel.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.budgetFinancingColumnResource.toUpperCase()), findsOneWidget);
     expect(find.text(tr.budgetFinancingCreationAction), findsOneWidget);
   });
 
@@ -536,6 +539,46 @@ void main() {
       find.ancestor(of: find.textContaining("Wire transfer"), matching: find.byType(ColoredBox)).first,
     );
     expect(coloredBox.color, isNot(Colors.transparent));
+  });
+
+  testWidgets("a receipt sub-row prints its own credit tax-inclusive, like the column above it", (
+    tester,
+  ) async {
+    final resource = _resource(id: "r1", amountCents: 90000);
+    final receipt = _entry(
+      id: "e1",
+      resourceId: "r1",
+      creditCents: 5000,
+      isTaxInclusive: false,
+      vatRateBasisPoints: 2000,
+    );
+
+    await pumpView(
+      tester,
+      resources: [resource],
+      entries: [receipt],
+      expandedNodeIds: const {"subsidies", "r1"},
+    );
+
+    // 50,00 excluding tax at 20% is 60,00, which is what the column above reads as received: a
+    // sub-row printing the 50,00 it was typed at would disagree with the very total it sits under.
+    expect(find.text(ocptBudgetAmountLabel(6000, "EUR")), findsWidgets);
+    expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsNothing);
+  });
+
+  testWidgets("a receipt sub-row whose rate cannot be read prints an em dash", (tester) async {
+    final resource = _resource(id: "r1", amountCents: 90000);
+    final receipt = _entry(id: "e1", resourceId: "r1", creditCents: 5000, isTaxInclusive: false);
+
+    await pumpView(
+      tester,
+      resources: [resource],
+      entries: [receipt],
+      expandedNodeIds: const {"subsidies", "r1"},
+    );
+
+    expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsNothing);
+    expect(find.text(ocptBudgetEmptyValue), findsWidgets);
   });
 
   testWidgets("the ⋮ menu offers Record a receipt on a resource, reporting the resource it names", (

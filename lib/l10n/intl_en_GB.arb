@@ -12391,8 +12391,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingColumnLabel": "Resource",
-  "@budgetFinancingColumnLabel": {
+  "budgetFinancingColumnResource": "Resource",
+  "@budgetFinancingColumnResource": {
     "description": "Column heading for the resources tree's own flexible column: a resource's or a taking's own label, or a receipt's own date and wording",
     "context": "Displayed above the budget mode's own resources tree",
     "type": "text",

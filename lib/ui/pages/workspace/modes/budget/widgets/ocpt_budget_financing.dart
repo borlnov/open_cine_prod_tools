@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The `Dossier` column's own fixed width, in logical pixels — matches
@@ -76,6 +77,11 @@ const double _ocptResourcesTwistyWidth = 20;
 
 /// A receipt sub-row's own leading dot, in logical pixels.
 const double _ocptResourcesDotDiameter = 8;
+
+/// The coverage band's own leading column width, in logical pixels — what the film costs, stated
+/// at a width of its own so a long coverage read-out wraps inside it rather than pushing the bar
+/// beside it off the card.
+const double _ocptResourcesCoverageNeedsColumnWidth = 200;
 
 /// The two-tone coverage bar's own height, in logical pixels.
 const double _ocptResourcesCoverageBarHeight = 8;
@@ -512,10 +518,12 @@ class OcptBudgetFinancing extends StatelessWidget {
       onEditRequested: isReadOnly || onResourceEditRequested == null
           ? null
           : () => onResourceEditRequested?.call(row.resource),
-      onReceiptRequested: isReadOnly || onResourceReceiptRequested == null || !_canOfferReceipt(row.resource, row.figures)
+      onReceiptRequested:
+          isReadOnly || onResourceReceiptRequested == null || !_canOfferReceipt(row.resource, row.figures)
           ? null
           : () => onResourceReceiptRequested?.call(row.resource),
-      onReceiptUndoRequested: isReadOnly || onResourceReceiptUndoRequested == null || !(row.figures.receivedCents != null && row.figures.receivedCents! > 0)
+      onReceiptUndoRequested:
+          isReadOnly || onResourceReceiptUndoRequested == null || !_hasReceivedSomething(row.figures)
           ? null
           : () => onResourceReceiptUndoRequested?.call(row.resource),
       onDeletionRequested: isReadOnly || onResourceDeletionRequested == null
@@ -549,11 +557,17 @@ class OcptBudgetFinancing extends StatelessWidget {
     ),
     _OcptReceiptTreeRow() => _OcptResourcesReceiptRow(
       entry: row.entry,
+      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode,
       isSelected: _isReceiptSelected(row.entry.id),
       onTap: () => onReceiptSelected(row.entry.id),
     ),
   };
+
+  /// Whether [figures] show anything actually received — what `Undo the last receipt` is withheld
+  /// until, there being no last receipt to undo before then.
+  bool _hasReceivedSomething(_OcptRowFigures figures) =>
+      figures.receivedCents != null && figures.receivedCents! > 0;
 
   /// `Record a receipt` has nothing left to offer on an in-kind resource (valued, never collected)
   /// or on one that has already received at least its own amount — see the class doc comment.
@@ -708,7 +722,7 @@ class _OcptResourcesHeaderRow extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: Text(tr.budgetFinancingColumnLabel.toUpperCase(), style: labelStyle),
+                  child: Text(tr.budgetFinancingColumnResource.toUpperCase(), style: labelStyle),
                 ),
               ),
               SizedBox(
@@ -1210,6 +1224,10 @@ class _OcptResourcesReceiptRow extends StatelessWidget {
   /// The journal entry this row draws.
   final OcptBudgetEntry entry;
 
+  /// The project's own default VAT rate, in basis points, or null while it declares none — what
+  /// [entry]'s own credit is read tax-inclusive against.
+  final int? defaultVatRateBasisPoints;
+
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
@@ -1222,6 +1240,7 @@ class _OcptResourcesReceiptRow extends StatelessWidget {
   /// Class constructor
   const _OcptResourcesReceiptRow({
     required this.entry,
+    required this.defaultVatRateBasisPoints,
     required this.currencyCode,
     required this.isSelected,
     required this.onTap,
@@ -1233,6 +1252,13 @@ class _OcptResourcesReceiptRow extends StatelessWidget {
     final tr = Tr.of(context);
     final dateText = DateFormat.yMd().format(entry.date);
     final label = entry.label.isEmpty ? dateText : "$dateText · ${entry.label}";
+    // Read exactly the way the `Rentré` column above it is — tax-inclusive, through the journal's
+    // own reading rather than off `creditCents` raw — so a sub-row can never disagree with the
+    // total it sits under, and an entry whose rate is unknown prints the same em dash everywhere.
+    final creditCents = ocptBudgetEntryCreditCentsOf(
+      entry,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
 
     return InkWell(
       onTap: onTap,
@@ -1295,7 +1321,9 @@ class _OcptResourcesReceiptRow extends StatelessWidget {
                 SizedBox(
                   width: _ocptResourcesAmountColumnWidth,
                   child: Text(
-                    ocptBudgetAmountLabel(entry.creditCents, currencyCode),
+                    creditCents == null
+                        ? ocptBudgetEmptyValue
+                        : ocptBudgetAmountLabel(creditCents, currencyCode),
                     textAlign: TextAlign.right,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1589,16 +1617,19 @@ class _OcptResourcesCoverageBand extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  tr.budgetFinancingCoverageTitle.toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                Text(needsText, style: theme.textTheme.titleMedium),
-              ],
+            SizedBox(
+              width: _ocptResourcesCoverageNeedsColumnWidth,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    tr.budgetFinancingCoverageTitle.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  Text(needsText, style: theme.textTheme.titleMedium),
+                ],
+              ),
             ),
             const SizedBox(width: 24),
             Expanded(

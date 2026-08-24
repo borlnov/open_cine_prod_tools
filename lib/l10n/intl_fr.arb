@@ -1653,7 +1653,7 @@
   "budgetFinancingEditAction": "Modifier",
   "budgetFinancingRecordReceiptAction": "Enregistrer un encaissement",
   "budgetFinancingUndoReceiptAction": "Annuler le dernier encaissement",
-  "budgetFinancingColumnLabel": "Ressource",
+  "budgetFinancingColumnResource": "Ressource",
   "budgetFinancingColumnDossier": "Dossier",
   "budgetFinancingColumnAmount": "Promis",
   "budgetFinancingColumnReceived": "Rentré",
