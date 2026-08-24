@@ -140,7 +140,7 @@ const double _ocptCostTrackingEmptyStateMaxWidth = 480;
 /// [OcptBudgetPoste.estimateToCompleteCents] through [ocptBudgetEstimateToCompleteCents] at poste
 /// level, resolved once per row, not once per cell; **always derived** at line level, since the
 /// estimate a human can type is held per poste, never per line
-/// (`docs/plans/budget-mode-ux.md` §4.4). `Écart` keeps reading [ocptBudgetVarianceCents] exactly
+/// (`docs/architecture/budget.md`). `Écart` keeps reading [ocptBudgetVarianceCents] exactly
 /// as it always has: the two readings answer different questions and both stay on screen. Neither
 /// `Estimate to complete` nor `Consumed` is drawn as its own column any more — the reading behind
 /// `Coût final` survives their removal exactly as before.
@@ -1626,7 +1626,7 @@ class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     // A line carries no estimate to complete of its own — always derived, never typed
-    // (`docs/plans/budget-mode-ux.md` §4.4).
+    // (`docs/architecture/budget.md`).
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paid.amountCents,

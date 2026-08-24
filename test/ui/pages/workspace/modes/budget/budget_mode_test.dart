@@ -281,9 +281,9 @@ void main() {
     await tester.tap(find.text(tr.budgetCashJournalEntryCreationAction));
     await tester.pumpAndSettle();
 
-    // Scoped to the dialog itself: the capture band sits on the very same document
-    // (`docs/plans/budget-mode-ux.md` M3) and reuses these very same field labels for its own
-    // fields, so an unscoped finder is ambiguous the moment both are on screen at once.
+    // Scoped to the dialog itself: the capture band sits on the very same document and reuses
+    // these very same field labels for its own fields, so an unscoped finder is ambiguous the
+    // moment both are on screen at once.
     await tester.enterText(
       inPanel(find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel)),
       "Camera rental",

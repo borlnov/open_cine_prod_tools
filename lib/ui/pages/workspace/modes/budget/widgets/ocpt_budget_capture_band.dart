@@ -38,7 +38,7 @@ const double _ocptBudgetCaptureBandFieldsMinWidth = 760;
 ///
 /// Mounted by `budget_mode.dart`'s own `_buildCentre`, between `OcptBudgetHeader` and the routed
 /// widget, on `OcptBudgetDocument.expenses` and `OcptBudgetDocument.resources` alone, at their own
-/// top level (`docs/plans/budget-mode-ux.md` §3, §4.3, §5 — M3). **Withheld whole, not disabled,**
+/// top level (`docs/architecture/budget.md`). **Withheld whole, not disabled,**
 /// under a previewed version: `budget_mode.dart` simply does not build it, the way every other
 /// affordance without a live project to write to is withheld across the app.
 ///
@@ -57,11 +57,10 @@ const double _ocptBudgetCaptureBandFieldsMinWidth = 760;
 /// **Wording the suggestion is this widget's job, not the util's** — `OcptBudgetHeader`'s own
 /// `_buildAlertCard` is this mode's established precedent for the shape: a pure structure
 /// ([OcptBudgetMatchSuggestion]) produced by a util, worded here with [Tr] and
-/// [ocptBudgetAmountLabel]. `docs/plans/budget-mode-ux.md` §4.3 once phrased this the other way
-/// round ("taking its suggestion as a resolved labels object so it never sees a `Tr`"); that
-/// sentence is superseded by the alerts precedent, which is this mode's actual established shape
-/// and which already respects the standing rule in full — no manager, service or util here ever
-/// sees a `Tr`, [ocptBudgetMatchSuggestionsOf] included.
+/// [ocptBudgetAmountLabel]. Handing the band a resolved labels object instead would respect the
+/// standing rule just as well, and was considered; the alerts precedent won because it is the shape
+/// this mode already has. Either way no manager, service or util here ever sees a `Tr`,
+/// [ocptBudgetMatchSuggestionsOf] included.
 ///
 /// **What each answer does is entirely the caller's.** [onEntryCaptured], [onSuggestionAccepted]
 /// and [onOtherRequested] each hand back the very same [OcptBudgetEntryFormFields] built from what
@@ -75,8 +74,8 @@ const double _ocptBudgetCaptureBandFieldsMinWidth = 760;
 ///
 /// **The band clears itself the moment any of the three is called** — every controller emptied,
 /// the date back to today, the direction back to [initialIsDebit] — win or lose, exactly as a save
-/// gesture with no queue behind it should: `docs/plans/budget-mode-ux.md` §3's own "nothing queues,
-/// so nothing has to remember that it was queued."
+/// gesture with no queue behind it should: nothing queues, so nothing has to remember that it was
+/// queued.
 class OcptBudgetCaptureBand extends StatefulWidget {
   /// The direction the band starts on, and returns to once it clears — `false` (a credit) on
   /// `OcptBudgetDocument.resources`, `true` (a debit) everywhere else the band is offered. The

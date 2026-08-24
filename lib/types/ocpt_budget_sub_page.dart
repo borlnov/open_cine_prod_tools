@@ -9,8 +9,8 @@
 /// level and one of these two values inside one of them — the breadcrumb itself draws
 /// `Expenses` alone in the first case and `Expenses › Catering & travel` in the second, and clicking
 /// the `Expenses` ancestor is what returns to null. Both values here belonged to
-/// `OcptBudgetCentreView` before three documents existed; each keeps the widget it already rendered
-/// (`docs/plans/budget-mode-ux.md` M2's own table), only its door having moved.
+/// `OcptBudgetCentreView` before three documents existed; each keeps the widget it already
+/// rendered, only its door having moved.
 enum OcptBudgetSubPage {
   /// The committed spending: every live commitment, due-date ordered, with its own cash projection
   /// — `OcptBudgetCommittedSpending`.

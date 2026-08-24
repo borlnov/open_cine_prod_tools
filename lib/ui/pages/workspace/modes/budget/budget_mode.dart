@@ -508,7 +508,8 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Whether [OcptBudgetCaptureBand] is mounted at all: [OcptBudgetState.document] is `expenses`
   /// or `resources`, at its own top level ([OcptBudgetState.subPage] null) — never on `sharing`,
   /// never on a sub-page — and the project is not a previewed version, which withholds the band
-  /// **whole** rather than drawing it disabled (`docs/plans/budget-mode-ux.md` M3).
+  /// **whole** rather than drawing it disabled, the standing rule for an affordance a preview
+  /// takes away (`docs/architecture/budget.md`).
   bool _showsCaptureBand(OcptBudgetState state) =>
       !state.isPreviewingVersion &&
       state.subPage == null &&
@@ -685,10 +686,9 @@ class _BudgetViewState extends State<_BudgetView> {
     }
   }
 
-  /// Builds whichever widget the current route names — `docs/plans/budget-mode-ux.md` M2's own
-  /// table, unchanged from the seven views `OcptBudgetCentreView` used to switch over: only the
-  /// switch's own shape moved, from one flat enum to a document, a reading and an optional
-  /// sub-page.
+  /// Builds whichever widget the current route names. Every one of them is the very widget the
+  /// seven values of `OcptBudgetCentreView` used to switch over: only the switch's own shape moved,
+  /// from one flat enum to a document, a reading and an optional sub-page.
   Widget _buildRoute(BuildContext context, OcptBudgetState state) {
     final subPage = state.subPage;
     if (subPage != null) {

@@ -312,8 +312,8 @@ class OcptBudgetResourcesCoverage extends Equatable {
 /// "null, never zero" reading the maps themselves already keep.
 ///
 /// **An in-kind contribution needs no branch here, and that is worth a sentence.**
-/// `docs/plans/budget-mode-ux.md` §3 says a valued contribution counts as promised and never as
-/// still to come, and the ordinary formula already says exactly that: no credit names such a
+/// A valued contribution counts as promised and never as still to come, and the ordinary formula
+/// already says exactly that: no credit names such a
 /// resource (`docs/architecture/budget.md`'s "An in-kind contribution is valued, not collected"),
 /// so [receivedByResourceId] carries no key for it, and its whole
 /// [OcptBudgetResource.amountCents] therefore falls on the promised side through the very same
