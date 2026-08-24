@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
@@ -79,8 +80,9 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and withholds — never disables — every one of its own
-/// writing affordances under it: the `+ Entry` action, a row's own click (which opens the entry
-/// dialog to edit it) and its own `⋮` menu `Delete` entry.
+/// writing affordances under it: the `+ Entry` action and its own `⋮` menu's `Edit`/`Delete`
+/// entries. A row's own click never writes — it selects the entry, opening the right dock's fiche
+/// on it, mirroring `OcptBudgetCostTracking`'s own row selection.
 ///
 /// **This view no longer says a filter is on, and no longer offers to remove it.** It used to, in
 /// a caption and a `Remove filter` button inside its own top band, which was the only place in the
@@ -125,6 +127,10 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// `OcptBudgetState.filterPosteId` itself, the mode's own single filter.
   final String? filterPosteId;
 
+  /// What is currently selected for the right dock's own fiche — a row reads highlighted while it
+  /// is an [OcptBudgetEntrySelection] naming its own id.
+  final OcptBudgetSelection? selection;
+
   /// Whether the header's simplified/detailed switch currently reads simplified — switches a
   /// poste's own displayed name between `simpleLabel` and `code · label`.
   final bool isSimplified;
@@ -142,9 +148,13 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// Called when the top band's own `+ Entry` action is clicked, or null while [isReadOnly].
   final VoidCallback? onEntryCreationRequested;
 
-  /// Called with an entry when its row is clicked, opening the entry dialog on it, or null while
-  /// [isReadOnly].
-  final ValueChanged<OcptBudgetEntry>? onEntryTapped;
+  /// Called with an entry's id when its row is clicked — never withheld under [isReadOnly], since
+  /// selecting only opens the right dock's own fiche on it, it writes nothing.
+  final ValueChanged<String>? onEntrySelected;
+
+  /// Called with an entry when its row's own `⋮` menu asks to edit it, opening the entry dialog on
+  /// it, or null while [isReadOnly].
+  final ValueChanged<OcptBudgetEntry>? onEntryEditRequested;
 
   /// Called with an entry's id when its row's own `⋮` menu asks to delete it, or null while
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
@@ -157,12 +167,14 @@ class OcptBudgetCashJournal extends StatelessWidget {
     required this.postes,
     required this.receiptsByEntryId,
     required this.filterPosteId,
+    required this.selection,
     required this.isSimplified,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
     required this.isReadOnly,
     required this.onEntryCreationRequested,
-    required this.onEntryTapped,
+    required this.onEntrySelected,
+    required this.onEntryEditRequested,
     required this.onEntryDeletionRequested,
   });
 
@@ -243,11 +255,15 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                   row: filteredDebitRows[index],
                                   poste: _posteById(filteredDebitRows[index].entry.posteId),
                                   receipt: receiptsByEntryId[filteredDebitRows[index].entry.id],
+                                  isSelected: _isEntrySelected(filteredDebitRows[index].entry.id),
                                   isSimplified: isSimplified,
                                   currencyCode: currencyCode,
-                                  onTap: isReadOnly || onEntryTapped == null
+                                  onTap: onEntrySelected == null
                                       ? null
-                                      : () => onEntryTapped?.call(filteredDebitRows[index].entry),
+                                      : () => onEntrySelected?.call(filteredDebitRows[index].entry.id),
+                                  onEditRequested: isReadOnly || onEntryEditRequested == null
+                                      ? null
+                                      : () => onEntryEditRequested?.call(filteredDebitRows[index].entry),
                                   onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
                                       ? null
                                       : () =>
@@ -271,6 +287,13 @@ class OcptBudgetCashJournal extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Whether entry [entryId] is the currently selected one — mirrors
+  /// `OcptBudgetCostTracking._isEntrySelected`.
+  bool _isEntrySelected(String entryId) {
+    final selection = this.selection;
+    return selection is OcptBudgetEntrySelection && selection.entryId == entryId;
   }
 
   /// [postes]' own entry naming [posteId], or null while [posteId] is null or names no live poste —
@@ -442,7 +465,9 @@ class _OcptCashJournalHeaderRow extends StatelessWidget {
 }
 
 /// One entry row: date, voucher number, poste, label, debit, running balance, then its own `⋮`
-/// menu — `Delete` alone, mirroring `OcptBudgetCostTracking`'s own row-menu idiom.
+/// menu — `Edit`/`Delete`, mirroring `OcptBudgetCostTracking`'s own row-menu idiom. Clicking the
+/// row itself only selects it, opening the right dock's fiche on it — never a write, so never
+/// withheld under a previewed version.
 ///
 /// **Debits only** — [OcptBudgetCashJournal] filters this reading to them before a row is ever
 /// built here, so this row never draws a credit at all. Its own debit reads in
@@ -461,6 +486,9 @@ class _OcptCashJournalRow extends StatelessWidget {
   /// This entry's own voucher, or null while it carries none.
   final OcptAssetRef? receipt;
 
+  /// Whether this row's own entry is the one currently selected.
+  final bool isSelected;
+
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
@@ -470,6 +498,9 @@ class _OcptCashJournalRow extends StatelessWidget {
   /// Called when this row is clicked, or null while withheld.
   final VoidCallback? onTap;
 
+  /// Called when this row's own `⋮` menu asks to edit it, or null while withheld.
+  final VoidCallback? onEditRequested;
+
   /// Called when this row's own `⋮` menu asks to delete it, or null while withheld.
   final VoidCallback? onDeletionRequested;
 
@@ -478,9 +509,11 @@ class _OcptCashJournalRow extends StatelessWidget {
     required this.row,
     required this.poste,
     required this.receipt,
+    required this.isSelected,
     required this.isSimplified,
     required this.currencyCode,
     required this.onTap,
+    required this.onEditRequested,
     required this.onDeletionRequested,
   });
 
@@ -498,10 +531,14 @@ class _OcptCashJournalRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       mouseCursor: onTap == null ? null : ocptClickableCursor,
-      child: SizedBox(
-        height: _ocptCashJournalRowHeight,
-        child: Row(
-          children: [
+      child: ColoredBox(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
+        child: SizedBox(
+          height: _ocptCashJournalRowHeight,
+          child: Row(
+            children: [
             SizedBox(
               width: _ocptCashJournalDateColumnWidth,
               child: Text(
@@ -562,22 +599,29 @@ class _OcptCashJournalRow extends StatelessWidget {
             _amountCell(context, balanceCents, bold: true),
             SizedBox(
               width: _ocptCashJournalMenuColumnWidth,
-              child: onDeletionRequested == null
+              child: onEditRequested == null && onDeletionRequested == null
                   ? null
                   : PopupMenuButton<String>(
                       tooltip: "",
                       icon: const Icon(Icons.more_vert, size: 18),
-                      onSelected: (value) {
-                        if (value == "delete") {
-                          onDeletionRequested?.call();
-                        }
+                      onSelected: (value) => switch (value) {
+                        "edit" => onEditRequested?.call(),
+                        "delete" => onDeletionRequested?.call(),
+                        _ => null,
                       },
                       itemBuilder: (context) => [
-                        PopupMenuItem<String>(value: "delete", child: Text(tr.budgetEntryDeleteAction)),
+                        if (onEditRequested != null)
+                          PopupMenuItem<String>(
+                            value: "edit",
+                            child: Text(tr.budgetFinancingEditAction),
+                          ),
+                        if (onDeletionRequested != null)
+                          PopupMenuItem<String>(value: "delete", child: Text(tr.budgetEntryDeleteAction)),
                       ],
                     ),
             ),
           ],
+        ),
         ),
       ),
     );

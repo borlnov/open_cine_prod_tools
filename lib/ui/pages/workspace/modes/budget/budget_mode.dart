@@ -897,11 +897,14 @@ class _BudgetViewState extends State<_BudgetView> {
   Widget _buildCashJournal(BuildContext context, OcptBudgetState state) {
     final isReadOnly = state.isPreviewingVersion;
 
+    final bloc = context.read<OcptBudgetBloc>();
+
     return OcptBudgetCashJournal(
       entries: state.entries,
       postes: state.postes,
       receiptsByEntryId: state.receiptsByEntryId,
       filterPosteId: state.filterPosteId,
+      selection: state.selection,
       isSimplified: state.isSimplified,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
@@ -909,7 +912,8 @@ class _BudgetViewState extends State<_BudgetView> {
       onEntryCreationRequested: isReadOnly
           ? null
           : () => unawaited(_handleEntryCreationRequested(context, state)),
-      onEntryTapped: isReadOnly
+      onEntrySelected: (entryId) => bloc.add(OcptBudgetEntrySelectedEvent(entryId: entryId)),
+      onEntryEditRequested: isReadOnly
           ? null
           : (entry) => unawaited(_handleEntryEditRequested(context, state, entry)),
       onEntryDeletionRequested: isReadOnly

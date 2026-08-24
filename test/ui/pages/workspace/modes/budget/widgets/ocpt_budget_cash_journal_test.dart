@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
@@ -90,12 +91,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
         width: 760,
@@ -125,12 +128,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
       ),
@@ -147,12 +152,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: true,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
       ),
@@ -173,12 +180,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () => created++,
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
       ),
@@ -209,12 +218,14 @@ void main() {
             postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Grant")],
             receiptsByEntryId: const {},
             filterPosteId: "poste-1",
+          selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntryTapped: (_) {},
+            onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -251,12 +262,14 @@ void main() {
             postes: const [],
             receiptsByEntryId: const {},
             filterPosteId: null,
+          selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntryTapped: (_) {},
+            onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -280,12 +293,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
       ),
@@ -314,12 +329,14 @@ void main() {
             postes: const [],
             receiptsByEntryId: const {},
             filterPosteId: null,
+          selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntryTapped: (_) {},
+            onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -347,12 +364,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
       ),
@@ -374,12 +393,14 @@ void main() {
             postes: const [],
             receiptsByEntryId: const {},
             filterPosteId: null,
+          selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntryTapped: (_) {},
+            onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -414,12 +435,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
       ),
@@ -445,12 +468,14 @@ void main() {
           postes: const [],
           receiptsByEntryId: const {},
           filterPosteId: null,
+          selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
           onEntryCreationRequested: () {},
-          onEntryTapped: (_) {},
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
         ),
       ),
@@ -460,9 +485,10 @@ void main() {
   });
 
   testWidgets(
-    "withholds every writing affordance under a previewed version",
+    "withholds every writing affordance under a previewed version, but still selects",
     (tester) async {
-      var tapped = false;
+      var written = false;
+      var selected = false;
       final entries = [
         _entry(id: "e1", date: DateTime(2026), posteId: "poste-1", debitCents: 1000),
       ];
@@ -475,13 +501,15 @@ void main() {
             postes: postes,
             receiptsByEntryId: const {},
             filterPosteId: "poste-1",
+            selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: true,
-            onEntryCreationRequested: () => tapped = true,
-            onEntryTapped: (_) => tapped = true,
-            onEntryDeletionRequested: (_) => tapped = true,
+            onEntryCreationRequested: () => written = true,
+            onEntrySelected: (_) => selected = true,
+            onEntryEditRequested: (_) => written = true,
+            onEntryDeletionRequested: (_) => written = true,
           ),
         ),
       );
@@ -491,13 +519,131 @@ void main() {
         find.widgetWithText(FilledButton, tr.budgetCashJournalEntryCreationAction),
         findsNothing,
       );
+      // No writing affordance survives the row's own `⋮` menu either, so the menu itself is
+      // withheld whole rather than offered with nothing left in it.
       expect(find.byType(PopupMenuButton<String>), findsNothing);
+
+      // A row's own click never writes — it only selects, opening the right dock's fiche on it —
+      // so it is never withheld under a previewed version.
+      await tester.tap(find.text(entries.first.label));
+      await tester.pumpAndSettle();
+      expect(selected, isTrue);
+      expect(written, isFalse);
+    },
+  );
+
+  group("selecting a row and its own menu", () {
+    testWidgets("clicking a row selects it, dispatching its own id", (tester) async {
+      String? selectedId;
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            filterPosteId: null,
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntryCreationRequested: () {},
+            onEntrySelected: (entryId) => selectedId = entryId,
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
 
       await tester.tap(find.text(entries.first.label));
       await tester.pumpAndSettle();
-      expect(tapped, isFalse);
-    },
-  );
+
+      expect(selectedId, "e1");
+    });
+
+    testWidgets("the row's own menu offers Edit and Delete, each dispatching in its own way", (
+      tester,
+    ) async {
+      // Wide enough that the row's own trailing `⋮` menu sits inside the default 800×600 test
+      // surface: the row's menu column is its very last one, past the date, voucher, poste,
+      // label, debit and balance columns the [_wrap] default width already draws in full.
+      tester.view.physicalSize = const Size(1400, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      OcptBudgetEntry? edited;
+      String? deletedId;
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            filterPosteId: null,
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntryCreationRequested: () {},
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (entry) => edited = entry,
+            onEntryDeletionRequested: (entryId) => deletedId = entryId,
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetFinancingEditAction));
+      await tester.pumpAndSettle();
+
+      expect(edited?.id, "e1");
+      expect(deletedId, isNull);
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetEntryDeleteAction));
+      await tester.pumpAndSettle();
+
+      expect(deletedId, "e1");
+    });
+
+    testWidgets("a selected row's entry reads highlighted", (tester) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            filterPosteId: null,
+            selection: const OcptBudgetEntrySelection("e1"),
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntryCreationRequested: () {},
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final coloredBoxes = tester
+          .widgetList<ColoredBox>(find.byType(ColoredBox))
+          .where((box) => box.color != Colors.transparent);
+      expect(coloredBoxes, isNotEmpty);
+    });
+  });
 
   group("an entry's own voucher marker", () {
     testWidgets("an entry with no voucher shows no marker at all", (tester) async {
@@ -510,12 +656,14 @@ void main() {
             postes: const [],
             receiptsByEntryId: const {},
             filterPosteId: null,
+          selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntryTapped: (_) {},
+            onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -540,12 +688,14 @@ void main() {
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: tempFile.path)},
             filterPosteId: null,
+          selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntryTapped: (_) {},
+            onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -570,12 +720,14 @@ void main() {
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: "/nowhere/facture.pdf")},
             filterPosteId: null,
+          selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntryTapped: (_) {},
+            onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
