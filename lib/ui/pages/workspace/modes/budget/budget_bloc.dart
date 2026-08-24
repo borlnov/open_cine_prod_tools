@@ -41,7 +41,6 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
@@ -243,9 +242,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetRightDockToggledEvent>(_onRightDockToggled);
     on<OcptBudgetRightDockClosedEvent>(_onRightDockClosed);
     on<OcptBudgetRightDockFractionChangedEvent>(_onRightDockFractionChanged);
-    on<OcptBudgetDocumentSelectedEvent>(_onDocumentSelected);
-    on<OcptBudgetDocumentReadingSelectedEvent>(_onDocumentReadingSelected);
-    on<OcptBudgetSubPageSelectedEvent>(_onSubPageSelected);
+    on<OcptBudgetViewSelectedEvent>(_onViewSelected);
     on<OcptBudgetSimplifiedToggledEvent>(_onSimplifiedToggled);
     on<OcptBudgetTaxBasisChangedEvent>(_onTaxBasisChanged);
     on<OcptBudgetPosteSelectedEvent>(_onPosteSelected);
@@ -629,53 +626,21 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _propertiesManager.budgetLastRightDockTab.store(tab);
   }
 
-  /// Switches which of the mode's three documents is shown, and returns to its own top level —
-  /// dispatched by one of the header's own three chips, and by the breadcrumb's own document
-  /// ancestor.
-  Future<void> _onDocumentSelected(
-    OcptBudgetDocumentSelectedEvent event,
+  /// Switches which of the mode's views is shown — dispatched by one of the header's own chips,
+  /// and by every other gesture that leads to a view of its own.
+  Future<void> _onViewSelected(
+    OcptBudgetViewSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
     // Flushed here for the reason a selection change and a dock tab change already flush: the user
     // has stopped typing and is about to *read* figures somewhere else. Without it, an amount typed
-    // in the cost-tracking table and followed straight by a click on `Resources` was still sitting
-    // in the debounce, so that document drew the snapshot from before it — and corrected itself two
+    // in the cost-tracking table and followed straight by a click on `Financing` was still sitting
+    // in the debounce, so that view drew the snapshot from before it — and corrected itself two
     // seconds later, once the timer fired. The write was never lost; it simply was not shown, which
     // reads exactly like an app that ignores what it is told.
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(document: event.document, clearSubPage: true));
-  }
-
-  /// Switches which order the current document's own rows are read in, and returns to its own top
-  /// level — dispatched by the header's own reading switch, offered on
-  /// `OcptBudgetDocument.expenses` alone.
-  ///
-  /// **Also clears `OcptBudgetState.subPage`**, mirroring [_onDocumentSelected]'s own reason:
-  /// picking a reading is itself a "go to this top-level reading" gesture, and is the way back to
-  /// either the cost-tracking table or the cash journal from inside a sub-page.
-  Future<void> _onDocumentReadingSelected(
-    OcptBudgetDocumentReadingSelectedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    emitter(state.copyWith(reading: event.reading, clearSubPage: true));
-  }
-
-  /// Opens sub-page `event.subPage` of `OcptBudgetDocument.expenses` — dispatched by whichever
-  /// gesture already led to it before this milestone (`OcptBudgetSubPageSelectedEvent`'s own doc
-  /// comment names every one of them).
-  ///
-  /// Sets [OcptBudgetState.document] to `expenses` defensively: every gesture that reaches this
-  /// today already stands on that document, but a sub-page belongs to it and to no other.
-  Future<void> _onSubPageSelected(
-    OcptBudgetSubPageSelectedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    emitter(state.copyWith(document: OcptBudgetDocument.expenses, subPage: event.subPage));
+    emitter(state.copyWith(view: event.view));
   }
 
   /// Toggles the header's simplified/detailed switch.

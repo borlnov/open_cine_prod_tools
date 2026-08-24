@@ -23,12 +23,11 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
@@ -80,9 +79,9 @@ class OcptBudgetIoNotice extends Equatable {
 ///
 /// [pendingFieldEdits] is this mode's own single pending-edit map, over every free-text field of
 /// every poste and every line — see `OcptBudgetField`'s own doc comment for why one flat map rather
-/// than one per entity kind. [document], [reading], [subPage], [isSimplified] and [taxBasis] are
-/// **not persisted**: the schedule mode's own agenda mode is the precedent, only
-/// [rightDockFraction] and [lastRightDockTab] surviving a relaunch.
+/// than one per entity kind. [view], [isSimplified] and [taxBasis] are **not persisted**: the
+/// schedule mode's own agenda mode is the precedent, only [rightDockFraction] and
+/// [lastRightDockTab] surviving a relaunch.
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     with MixinOcptProjectVersionsState<OcptBudgetState>, MixinOcptProjectPackageState<OcptBudgetState> {
   /// Whether the quote read is still being loaded from the project database.
@@ -99,17 +98,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// the first read lands, mirroring `OcptResourcesState.currencyCode`.
   final String currencyCode;
 
-  /// Which of the mode's three documents is currently shown.
-  final OcptBudgetDocument document;
-
-  /// Which order [document]'s own rows are currently read in — meaningful for
-  /// [OcptBudgetDocument.expenses] alone today, since the other two documents offer only
-  /// [OcptBudgetDocumentReading.byTree] (`OcptBudgetDocumentReading`'s own doc comment).
-  final OcptBudgetDocumentReading reading;
-
-  /// The sub-page of [document] currently shown, or null while at its own top level — the
-  /// breadcrumb's own "you are here", and the only thing it draws past `Expenses` while non-null.
-  final OcptBudgetSubPage? subPage;
+  /// Which of the mode's views is currently shown.
+  final OcptBudgetView view;
 
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
@@ -174,8 +164,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// than a poste or a line, and so mints no id either. A commitment sub-row, an entry sub-row and
   /// a receipt sub-row carry no twisty of their own and so never appear here: each is revealed or
   /// hidden wholesale with whichever line, poste, resource, revenue or family it sits directly
-  /// under. Not persisted across a relaunch, mirroring [document], [reading], [subPage],
-  /// [isSimplified] and [taxBasis] above.
+  /// under. Not persisted across a relaunch, mirroring [view], [isSimplified] and [taxBasis]
+  /// above.
   final Set<String> expandedNodeIds;
 
   /// The right dock's currently active tab, or null if the dock is closed.
@@ -525,9 +515,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.title,
     required this.snapshot,
     required this.currencyCode,
-    required this.document,
-    required this.reading,
-    required this.subPage,
+    required this.view,
     required this.isSimplified,
     required this.taxBasis,
     required this.selection,
@@ -563,11 +551,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       title = "",
       snapshot = null,
       currencyCode = ocptDefaultCurrencyCode,
-      // The mode opens on the expenses document's own top level: the cost report, poste by
-      // poste — the one table a producer reads daily.
-      document = OcptBudgetDocument.expenses,
-      reading = OcptBudgetDocumentReading.byTree,
-      subPage = null,
+      // The mode opens on the cost report, poste by poste — the one table a producer reads
+      // daily.
+      view = OcptBudgetView.costTracking,
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selection = null,
@@ -599,20 +585,16 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
-  /// [selection], [filterPosteId], [subPage] and [rightDockTab] all legitimately go back to null
-  /// while the mode is alive, so each has its own clear flag. [pendingFieldEdits]
-  /// is always replaced wholesale — the caller (the bloc's own field-edit handler) always computes
-  /// the full next map.
+  /// [selection], [filterPosteId] and [rightDockTab] all legitimately go back to null while the
+  /// mode is alive, so each has its own clear flag. [pendingFieldEdits] is always replaced
+  /// wholesale — the caller (the bloc's own field-edit handler) always computes the full next map.
   @override
   OcptBudgetState copyWith({
     bool? isLoading,
     String? title,
     OcptBudgetSnapshot? snapshot,
     String? currencyCode,
-    OcptBudgetDocument? document,
-    OcptBudgetDocumentReading? reading,
-    OcptBudgetSubPage? subPage,
-    bool clearSubPage = false,
+    OcptBudgetView? view,
     bool? isSimplified,
     OcptBudgetTaxBasis? taxBasis,
     OcptBudgetSelection? selection,
@@ -658,9 +640,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     title: title ?? this.title,
     snapshot: snapshot ?? this.snapshot,
     currencyCode: currencyCode ?? this.currencyCode,
-    document: document ?? this.document,
-    reading: reading ?? this.reading,
-    subPage: clearSubPage ? null : (subPage ?? this.subPage),
+    view: view ?? this.view,
     isSimplified: isSimplified ?? this.isSimplified,
     taxBasis: taxBasis ?? this.taxBasis,
     selection: clearSelection ? null : (selection ?? this.selection),
@@ -756,9 +736,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     title,
     snapshot,
     currencyCode,
-    document,
-    reading,
-    subPage,
+    view,
     isSimplified,
     taxBasis,
     selection,
