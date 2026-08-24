@@ -10562,20 +10562,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderDashboardTitle": "Overview",
-  "@budgetHeaderDashboardTitle": {
-    "description": "Title of the budget mode's header band while the dashboard is shown",
-    "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderDashboardSubtitle": "What the production has quoted, paid and committed so far.",
-  "@budgetHeaderDashboardSubtitle": {
-    "description": "Subtitle of the budget mode's header band while the dashboard is shown",
-    "context": "Shown at the left of OcptBudgetHeader, under its own title",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetHeaderCashJournalTitle": "Cash flow",
   "@budgetHeaderCashJournalTitle": {
     "description": "Title of the budget mode's header band while the cash journal is shown",
@@ -10608,20 +10594,6 @@
   "@budgetHeaderSubtitle": {
     "description": "Muted subtitle of the budget mode's own header band",
     "context": "Displayed under the header's title",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderDashboardSegmentLabel": "Dashboard",
-  "@budgetHeaderDashboardSegmentLabel": {
-    "description": "Label of the header's Dashboard view chip",
-    "context": "Displayed on the budget mode's own view switch",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCostTrackingSegmentLabel": "Quote",
-  "@budgetHeaderCostTrackingSegmentLabel": {
-    "description": "Label of the header's Cost tracking view chip",
-    "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
   },
@@ -10706,10 +10678,6 @@
   "budgetHeaderPosteFilterClearTooltip": "Show every poste again",
   "@budgetHeaderPosteFilterClearTooltip": {
     "description": "Tooltip of the small clear button on the header's poste filter, shown only while a poste is filtered."
-  },
-  "budgetHeaderPosteFilterNotHereCaption": "Not applied here",
-  "@budgetHeaderPosteFilterNotHereCaption": {
-    "description": "Caption on the header's poste filter while a poste is filtered but the view on screen has no poste dimension to honour it with — the financing plan, the régie and the revenue sharing."
   },
   "budgetHeaderSubPageMenuTooltip": "More pages",
   "@budgetHeaderSubPageMenuTooltip": {
@@ -10951,95 +10919,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetDashboardQuotedTotalLabel": "Quoted total",
-  "@budgetDashboardQuotedTotalLabel": {
-    "description": "Label of the dashboard's own quoted-total KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardExcludingTaxTotalLabel": "Excluding tax",
-  "@budgetDashboardExcludingTaxTotalLabel": {
-    "description": "Label of the dashboard's own excluding-tax-total KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardCoverageCaption": "over {coveredCount} of {lineCount} lines",
-  "@budgetDashboardCoverageCaption": {
-    "description": "Caption under the dashboard's excluding-tax-total KPI, while some lines carry no known rate",
-    "context": "Displayed under the excluding-tax-total figure; disappears once every line declares a rate",
-    "type": "text",
-    "placeholders": {
-      "coveredCount": {
-        "type": "int"
-      },
-      "lineCount": {
-        "type": "int"
-      }
-    }
-  },
-  "budgetDashboardPosteCountLabel": "Postes",
-  "@budgetDashboardPosteCountLabel": {
-    "description": "Label of the dashboard's own poste-count KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardLineCountLabel": "Quote lines",
-  "@budgetDashboardLineCountLabel": {
-    "description": "Label of the dashboard's own line-count KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardPostesSectionTitle": "Postes",
-  "@budgetDashboardPostesSectionTitle": {
-    "description": "Title of the dashboard's own poste-by-poste section",
-    "context": "Displayed above the budget mode's dashboard poste rows",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardCashBalanceLabel": "Cash balance",
-  "@budgetDashboardCashBalanceLabel": {
-    "description": "Label of the dashboard's own cash-balance KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardPaidLabel": "Paid",
-  "@budgetDashboardPaidLabel": {
-    "description": "Label of the dashboard's own paid KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardCommittedLabel": "Committed",
-  "@budgetDashboardCommittedLabel": {
-    "description": "Label of the dashboard's own committed KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardResourcesTotalLabel": "Total resources",
-  "@budgetDashboardResourcesTotalLabel": {
-    "description": "Label of the dashboard's own financing KPI: the financing plan's own total",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardResourcesInKindCaption": "{amount} in kind",
-  "@budgetDashboardResourcesInKindCaption": {
-    "description": "Caption under the Total resources KPI, naming how much of it is in-kind",
-    "context": "Displayed in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {
-      "amount": {
-        "description": "The in-kind amount, already formatted with its currency symbol",
-        "type": "String"
-      }
-    }
-  },
   "budgetDashboardBalanceNeedsLabel": "Needs",
   "@budgetDashboardBalanceNeedsLabel": {
     "description": "Label of the needs/resources balance bar's own left-hand figure: the quote's own total",
@@ -11081,18 +10960,6 @@
     "context": "Displayed under the budget mode's dashboard balance bar",
     "type": "text",
     "placeholders": {}
-  },
-  "budgetDashboardBalanceShortfallMessage": "Short by {amount}.",
-  "@budgetDashboardBalanceShortfallMessage": {
-    "description": "Message under the balance bar while the financing plan still falls short of the quote",
-    "context": "Displayed under the budget mode's dashboard balance bar",
-    "type": "text",
-    "placeholders": {
-      "amount": {
-        "description": "How much the financing plan still falls short by, already formatted with its currency symbol",
-        "type": "String"
-      }
-    }
   },
   "budgetDashboardFeedSectionTitle": "What feeds this budget",
   "@budgetDashboardFeedSectionTitle": {
@@ -11328,13 +11195,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorFigureConsumed": "Consumed",
-  "@budgetInspectorFigureConsumed": {
-    "description": "Label of the poste inspector's own consumed figure",
-    "context": "Displayed above the poste's consumed ratio in the budget mode's Inspector tab",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetInspectorPosteEstimateToCompleteFieldLabel": "Estimate to complete",
   "@budgetInspectorPosteEstimateToCompleteFieldLabel": {
     "description": "Label of the poste inspector's own estimate-to-complete field",
@@ -11360,47 +11220,12 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorQuoteLinesSectionTitle": "Quote lines",
-  "@budgetInspectorQuoteLinesSectionTitle": {
-    "description": "Title of the poste inspector's own quote lines section",
-    "context": "Displayed above the poste's quote line cards in the budget mode's Inspector tab",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetInspectorNoLineHint": "This poste has no quote line yet.",
-  "@budgetInspectorNoLineHint": {
-    "description": "Hint shown in the poste inspector while the poste holds no quote line",
-    "context": "Displayed under the Quote lines title in the budget mode's Inspector tab",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetInspectorRelatedEntriesSectionTitle": "Related entries",
-  "@budgetInspectorRelatedEntriesSectionTitle": {
-    "description": "Title of the poste inspector's own related entries section",
-    "context": "Displayed under the quote lines in the budget mode's Inspector tab",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetInspectorRelatedEntriesEmptyHint": "No cash entry is attached to this poste yet.",
   "@budgetInspectorRelatedEntriesEmptyHint": {
     "description": "Hint shown under the Related entries title for a poste with no entry at all",
     "context": "Displayed under the Related entries title in the budget mode's Inspector tab, and in its cash journal view once a poste filter leaves no entry to show",
     "type": "text",
     "placeholders": {}
-  },
-  "budgetInspectorRelatedEntriesCoverageReadOut": "{coveredCount} of {entryCount} entries carry a known rate",
-  "@budgetInspectorRelatedEntriesCoverageReadOut": {
-    "description": "The related entries list's own coverage read-out, while some entries carry no known rate",
-    "context": "Displayed beneath the related entries list in the budget mode's Inspector tab, once every entry carries a known rate this disappears",
-    "type": "text",
-    "placeholders": {
-      "coveredCount": {
-        "type": "int"
-      },
-      "entryCount": {
-        "type": "int"
-      }
-    }
   },
   "budgetLineCreationAction": "Add",
   "@budgetLineCreationAction": {
@@ -11490,28 +11315,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetLineVatRateOverriddenLabel": "Overridden: {percent} %",
-  "@budgetLineVatRateOverriddenLabel": {
-    "description": "Small annotation reading a quote line's own overridden VAT rate, in the accent colour",
-    "context": "Displayed under a quote line's VAT rate field, expanded card",
-    "type": "text",
-    "placeholders": {
-      "percent": {
-        "type": "String"
-      }
-    }
-  },
-  "budgetLineVatRateInheritedLabel": "Inherited: {percent} %",
-  "@budgetLineVatRateInheritedLabel": {
-    "description": "Small annotation reading a quote line's own inherited VAT rate, in grey",
-    "context": "Displayed under a quote line's VAT rate field, expanded card",
-    "type": "text",
-    "placeholders": {
-      "percent": {
-        "type": "String"
-      }
-    }
-  },
   "budgetLineNotesFieldLabel": "Notes",
   "@budgetLineNotesFieldLabel": {
     "description": "Label of a quote line card's own notes field",
@@ -11530,10 +11333,6 @@
   "@budgetLineCommitAction": {
     "description": "Action on an expanded quote line card that promotes it into a commitment, opening the commitment dialog pre-filled from the line."
   },
-  "budgetLineCommittedBadge": "Committed",
-  "@budgetLineCommittedBadge": {
-    "description": "Badge on a quote line card that has already been promoted into a commitment."
-  },
   "budgetLineShowCommitmentAction": "Show the commitment",
   "@budgetLineShowCommitmentAction": {
     "description": "Action on an already-promoted quote line card that opens the committed spending on the commitment it produced."
@@ -11548,10 +11347,6 @@
     "placeholders": {
       "label": {}
     }
-  },
-  "budgetLineUncommitSettledHint": "This commitment has been settled by a journal entry, so it can no longer be cancelled from here.",
-  "@budgetLineUncommitSettledHint": {
-    "description": "Shown in place of Cancel the commitment when the commitment the line produced is already settled."
   },
   "budgetFicheEmptyHint": "Select a row to see its figures.",
   "@budgetFicheEmptyHint": {
@@ -11695,13 +11490,6 @@
   "@budgetDeleteConfirmAction": {
     "description": "Confirm action of the budget mode's own deletion confirmation dialogs",
     "context": "Shown by OcptConfirmDialog before a poste, a quote line or a cash entry is deleted",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCashJournalSegmentLabel": "Cash flow",
-  "@budgetHeaderCashJournalSegmentLabel": {
-    "description": "Label of the header's Cash journal view chip",
-    "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
   },
@@ -12195,13 +11983,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCommittedProjectionFinalBalanceLabel": "Balance after every commitment",
-  "@budgetCommittedProjectionFinalBalanceLabel": {
-    "description": "Label of the cash projection's own final balance, once every outstanding commitment has fallen due",
-    "context": "Displayed under the budget mode's own cash-projection steps",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCommittedProjectionCoverageReadOut": "over {coveredCount} of the {commitmentCount} commitments",
   "@budgetCommittedProjectionCoverageReadOut": {
     "description": "The cash projection's own coverage read-out, while some outstanding commitments carry no known rate",
@@ -12276,27 +12057,6 @@
   "@budgetHeaderPlannedSegmentLabel": {
     "description": "Label of the header's Planned view chip, which stands for both the financing plan and the committed spending",
     "context": "Displayed on the budget mode's own view switch",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderPlannedTitle": "Planned · {half}",
-  "@budgetHeaderPlannedTitle": {
-    "description": "Title of the budget mode's header band, and heading of its help page, while either half of the Planned view is on screen — {half} is the sub-switch's own wording for that half, so the band, the chip and the sub-switch all agree.",
-    "placeholders": {
-      "half": {}
-    }
-  },
-  "budgetPlannedIncomingSegmentLabel": "Coming in",
-  "@budgetPlannedIncomingSegmentLabel": {
-    "description": "Label of the Planned view's own sub-switch segment showing the financing plan",
-    "context": "Displayed above the budget mode's own Planned view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetPlannedOutgoingSegmentLabel": "Going out",
-  "@budgetPlannedOutgoingSegmentLabel": {
-    "description": "Label of the Planned view's own sub-switch segment showing the committed spending",
-    "context": "Displayed above the budget mode's own Planned view",
     "type": "text",
     "placeholders": {}
   },
@@ -13219,84 +12979,7 @@
       }
     }
   },
-  "budgetRegieTravelSectionTitle": "Mileage allowances",
-  "@budgetRegieTravelSectionTitle": {
-    "description": "Title of the catering-and-travel view's own right column",
-    "context": "Displayed above OcptBudgetRegie's own mileage table",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetRegieTravelHint": "Each traveller reads their own rate, set on their own sheet in Resources.",
-  "@budgetRegieTravelHint": {
-    "description": "Caption stating that a traveller's own mileage rate is read from their own sheet",
-    "context": "Displayed above OcptBudgetRegie's own mileage table",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetRegieColumnTraveller": "Traveller",
-  "@budgetRegieColumnTraveller": {
-    "description": "Header of the mileage table's own Traveller column",
-    "context": "Displayed in OcptBudgetRegie's own mileage table",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetRegieColumnReturnTrips": "Return trips",
-  "@budgetRegieColumnReturnTrips": {
-    "description": "Header of the mileage table's own Return trips column",
-    "context": "Displayed in OcptBudgetRegie's own mileage table",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetRegieColumnDistance": "Distance",
-  "@budgetRegieColumnDistance": {
-    "description": "Header of the mileage table's own Distance column",
-    "context": "Displayed in OcptBudgetRegie's own mileage table",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetRegieDistanceLabel": "{km} km",
-  "@budgetRegieDistanceLabel": {
-    "description": "A distance, already formatted, with its own unit",
-    "context": "Displayed in OcptBudgetRegie's own mileage table",
-    "type": "text",
-    "placeholders": {
-      "km": {
-        "type": "String"
-      }
-    }
-  },
-  "budgetRegieTravelCoverageReadOut": "{amount} · over {coveredCount} of the {travellerCount} travellers",
-  "@budgetRegieTravelCoverageReadOut": {
-    "description": "The mileage table's total row own coverage read-out, while a traveller's own distance or rate is unknown",
-    "context": "Displayed in place of the plain total once every traveller's own reimbursement is known, this disappears",
-    "type": "text",
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      },
-      "coveredCount": {
-        "type": "int"
-      },
-      "travellerCount": {
-        "type": "int"
-      }
-    }
-  },
-  "budgetRegieUnknownPersonLabel": "Unknown person",
-  "@budgetRegieUnknownPersonLabel": {
-    "description": "Fallback display name for a traveller the address book carries no live entry for",
-    "context": "Displayed in OcptBudgetRegie's own mileage table, in place of a person's own display name",
-    "type": "text",
-    "placeholders": {}
-  },
 
-  "budgetHeaderSharingSegmentLabel": "Revenue sharing",
-  "@budgetHeaderSharingSegmentLabel": {
-    "description": "Label of the header's own Revenue sharing view chip",
-    "context": "Displayed in OcptBudgetHeader's own view switch",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetHeaderSharingTitle": "Revenue sharing",
   "@budgetHeaderSharingTitle": {
     "description": "Title of the header band while the sharing view is on screen",
@@ -14167,45 +13850,6 @@
     "context": "Displayed under the highlighted cell of the budget mode's own help map",
     "type": "text",
     "placeholders": {}
-  },
-  "budgetHelpDashboardBody1": "Every figure here is read, never typed. The cash balance sums the whole journal; {paid} adds the journal's debits that name a poste to everything spent off quote; {committed} adds what commitments still have no settling entry.",
-  "@budgetHelpDashboardBody1": {
-    "description": "First paragraph of the budget mode's help panel for the dashboard view",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
-    "type": "text",
-    "placeholders": {
-      "paid": {
-        "type": "String"
-      },
-      "committed": {
-        "type": "String"
-      }
-    }
-  },
-  "budgetHelpDashboardBody2": "The needs/resources bar always reads tax-inclusive, whatever the header's own toggle shows — a resource is real money, and there is only one honest way to state that. It gives no verdict until the quote holds at least one line.",
-  "@budgetHelpDashboardBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the dashboard view",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHelpDashboardBody3": "The two alerts above compute themselves — a poste already over its own quote, or the cash projection about to go negative — and ask for no threshold to be set.",
-  "@budgetHelpDashboardBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the dashboard view",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHelpDashboardBody4": "{feedTitle} counts what the breakdown and the schedule already hold: how many elements still have no price, how many shooting days, and how many meals and buffet servings the timetable produces.",
-  "@budgetHelpDashboardBody4": {
-    "description": "Fourth paragraph of the budget mode's help panel for the dashboard view",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
-    "type": "text",
-    "placeholders": {
-      "feedTitle": {
-        "type": "String"
-      }
-    }
   },
   "budgetHelpCostTrackingBody1": "This is the quote itself, poste by poste — the only page where {quote} is typed. The ten CNC postes are seeded once and become ordinary rows from then on: rename, reorder or delete them freely.",
   "@budgetHelpCostTrackingBody1": {
