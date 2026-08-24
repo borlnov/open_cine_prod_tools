@@ -154,20 +154,29 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     _ => null,
   };
 
-  /// The id of the currently selected revenue sharing taking, or null while none is — the sharing
-  /// view's own left-column selection, read and written exactly as [selectedResourceId] is, and for
-  /// the same reason drawn as a plain highlight rather than opening a dock tab.
-  final String? selectedRevenueId;
+  /// The id of the currently selected revenue sharing taking, or null while [selection] does not
+  /// name one — the sharing view's own left-column selection, read exactly as [selectedResourceId]
+  /// is and drawn there as a plain highlight rather than opening a dock tab, since
+  /// `ocptBudgetHasInspector` is false for `OcptBudgetDocument.sharing`. The resources tree's own
+  /// revenue row reads and dispatches the very same fact, and *does* open the fiche on it — the one
+  /// difference between the two rows being which document is on screen, not what is selected.
+  String? get selectedRevenueId => switch (selection) {
+    OcptBudgetRevenueSelection(:final revenueId) => revenueId,
+    _ => null,
+  };
 
   /// The id of the currently selected revenue sharing share, or null while none is — the sharing
   /// view's own right-column selection, mirroring [selectedRevenueId].
   final String? selectedShareId;
 
-  /// Which nodes of the expenses tree are currently expanded, keyed by their own id — a poste id
-  /// or a quote line id, whichever twisty was last clicked open. A commitment or an entry sub-row
-  /// carries no twisty of its own and so never appears here: it is revealed or hidden wholesale
-  /// with whichever line, or poste, it sits directly under. Not persisted across a relaunch,
-  /// mirroring [document], [reading], [subPage], [isSimplified] and [taxBasis] above.
+  /// Which nodes of the expenses tree or of the resources tree are currently expanded, keyed by
+  /// their own id — a poste id, a quote line id, a resource id or a revenue id, whichever twisty
+  /// was last clicked open, or an `OcptBudgetResourceFamily`'s own `name` for a family row, which
+  /// mints no id of its own. A commitment sub-row, an entry sub-row and a receipt sub-row carry no
+  /// twisty of their own and so never appear here: each is revealed or hidden wholesale with
+  /// whichever line, poste, resource, revenue or family it sits directly under. Not persisted
+  /// across a relaunch, mirroring [document], [reading], [subPage], [isSimplified] and [taxBasis]
+  /// above.
   final Set<String> expandedNodeIds;
 
   /// The right dock's currently active tab, or null if the dock is closed.
@@ -523,7 +532,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.taxBasis,
     required this.selection,
     required this.filterPosteId,
-    required this.selectedRevenueId,
     required this.selectedShareId,
     required this.expandedNodeIds,
     required this.rightDockTab,
@@ -564,7 +572,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selection = null,
       filterPosteId = null,
-      selectedRevenueId = null,
       selectedShareId = null,
       expandedNodeIds = const {},
       rightDockTab = null,
@@ -612,8 +619,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     bool clearSelection = false,
     String? filterPosteId,
     bool clearFilterPosteId = false,
-    String? selectedRevenueId,
-    bool clearSelectedRevenueId = false,
     String? selectedShareId,
     bool clearSelectedShareId = false,
     Set<String>? expandedNodeIds,
@@ -660,7 +665,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     taxBasis: taxBasis ?? this.taxBasis,
     selection: clearSelection ? null : (selection ?? this.selection),
     filterPosteId: clearFilterPosteId ? null : (filterPosteId ?? this.filterPosteId),
-    selectedRevenueId: clearSelectedRevenueId ? null : (selectedRevenueId ?? this.selectedRevenueId),
     selectedShareId: clearSelectedShareId ? null : (selectedShareId ?? this.selectedShareId),
     expandedNodeIds: expandedNodeIds ?? this.expandedNodeIds,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
@@ -759,7 +763,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     taxBasis,
     selection,
     filterPosteId,
-    selectedRevenueId,
     selectedShareId,
     expandedNodeIds,
     rightDockTab,

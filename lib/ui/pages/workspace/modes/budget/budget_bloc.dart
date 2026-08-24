@@ -256,6 +256,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetLineSelectedEvent>(_onLineSelected);
     on<OcptBudgetCommitmentSelectedEvent>(_onCommitmentSelected);
     on<OcptBudgetEntrySelectedEvent>(_onEntrySelected);
+    on<OcptBudgetReceiptSelectedEvent>(_onReceiptSelected);
     on<OcptBudgetLineCreatedEvent>(_onLineCreated);
     on<OcptBudgetLineCreatedFromElementEvent>(_onLineCreatedFromElement);
     on<OcptBudgetLineDeletionConfirmedEvent>(_onLineDeletionConfirmed);
@@ -323,7 +324,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(
       state.copyWith(
         clearSelection: true,
-        clearSelectedRevenueId: true,
         clearSelectedShareId: true,
       ),
     );
@@ -362,7 +362,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           lastRightDockTab: lastRightDockTab,
           clearPreviewedVersionId: true,
           clearSelection: true,
-          clearSelectedRevenueId: true,
           clearSelectedShareId: true,
           pendingFieldEdits: const {},
           roles: const [],
@@ -387,7 +386,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         snapshot: loaded.snapshot,
         currencyCode: loaded.snapshot.currencyCode,
         clearSelection: true,
-        clearSelectedRevenueId: true,
         clearSelectedShareId: true,
         pendingFieldEdits: const {},
         roles: loaded.roles,
@@ -856,6 +854,27 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(
       state.copyWith(
         selection: OcptBudgetEntrySelection(event.entryId),
+        rightDockTab: OcptBudgetRightDockTab.inspector,
+        lastRightDockTab: OcptBudgetRightDockTab.inspector,
+      ),
+    );
+  }
+
+  /// Selects receipt `event.receiptId` — a sub-row of the resources tree — opening the right dock
+  /// on the `Inspector` tab. Mirrors [_onEntrySelected] exactly: a receipt is the very same
+  /// `budget_entries` row read under a different name, so it is looked up in [OcptBudgetState.entries]
+  /// the same way. A receipt id naming no live entry is ignored.
+  Future<void> _onReceiptSelected(
+    OcptBudgetReceiptSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    if (!state.entries.any((entry) => entry.id == event.receiptId)) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        selection: OcptBudgetReceiptSelection(event.receiptId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
       ),
@@ -1515,9 +1534,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Re-reads the quote of [project] and applies it, reconciling [OcptBudgetState.selection]
   /// against what the fresh snapshot still holds — whichever object it names, gone missing, is
-  /// dropped rather than trusted to still mean something. `OcptBudgetReceiptSelection` is not yet
-  /// dispatched by this bloc (M6 wires it), so it is treated as always live, exactly as a null
-  /// selection is.
+  /// dropped rather than trusted to still mean something. `OcptBudgetReceiptSelection` names a
+  /// `budget_entries` row exactly as `OcptBudgetEntrySelection` does, so it is checked against
+  /// [OcptBudgetSnapshot.entries] the same way; this also covers `OcptBudgetState.selectedRevenueId`,
+  /// which is now a getter over [OcptBudgetState.selection] rather than a field of its own.
   ///
   /// Every handler that writes to the quote tables ends here, which is also the mode's own
   /// stand-in for "a save landing while the `Versions` tab is open": [OcptProjectWorkingCopyRefreshRequestedEvent]
@@ -1548,11 +1568,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         snapshot.resources.any((resource) => resource.id == resourceId),
       OcptBudgetRevenueSelection(:final revenueId) =>
         snapshot.revenues.any((revenue) => revenue.id == revenueId),
-      OcptBudgetReceiptSelection() => true,
+      OcptBudgetReceiptSelection(:final receiptId) =>
+        snapshot.entries.any((entry) => entry.id == receiptId),
     };
-    final revenueStillExists =
-        state.selectedRevenueId == null ||
-        snapshot.revenues.any((revenue) => revenue.id == state.selectedRevenueId);
     final shareStillExists =
         state.selectedShareId == null ||
         snapshot.shares.any((share) => share.id == state.selectedShareId);
@@ -1573,7 +1591,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         clearSelection: !selectionStillExists,
         clearFilterPosteId: !filterStillExists,
-        clearSelectedRevenueId: !revenueStillExists,
         clearSelectedShareId: !shareStillExists,
       ),
     );
@@ -1782,9 +1799,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Selects taking `event.revenueId`, drawn as a plain highlight by the sharing view rather than
-  /// opening a dock tab — mirrors [_onResourceSelected]. A revenue id naming no live revenue is
-  /// ignored.
+  /// Selects taking `event.revenueId` — sets [OcptBudgetState.selection] whichever document
+  /// dispatched it, and opens the right dock on the `Inspector` tab **only from the resources
+  /// tree**, mirroring [_onResourceSelected]. The sharing view dispatches this same event for its
+  /// own left-column row, and must keep drawing a plain highlight with the dock left exactly where
+  /// it was: `ocptBudgetHasInspector` is false for `OcptBudgetDocument.sharing`, and unconditionally
+  /// opening the dock the way [_onResourceSelected] does would reopen or retarget it on a click that
+  /// used to touch nothing but the selection. A revenue id naming no live revenue is ignored.
   Future<void> _onRevenueSelected(
     OcptBudgetRevenueSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1793,7 +1814,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    emitter(state.copyWith(selectedRevenueId: event.revenueId));
+    final selection = OcptBudgetRevenueSelection(event.revenueId);
+    emitter(
+      state.document == OcptBudgetDocument.resources
+          ? state.copyWith(
+              selection: selection,
+              rightDockTab: OcptBudgetRightDockTab.inspector,
+              lastRightDockTab: OcptBudgetRightDockTab.inspector,
+            )
+          : state.copyWith(selection: selection),
+    );
   }
 
   /// Creates a new taking from `event.fields` and selects it — mirrors
@@ -1821,7 +1851,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _applyBudgetSnapshot(emitter, project);
     if (revenueId != null) {
-      emitter(state.copyWith(selectedRevenueId: revenueId));
+      emitter(state.copyWith(selection: OcptBudgetRevenueSelection(revenueId)));
     }
   }
 

@@ -1822,6 +1822,44 @@ void main() {
       final state = await waitForState(bloc, (state) => state.selectedRevenueId != null);
       expect(state.selectedRevenueId, revenueId);
     });
+
+    test("opens the Inspector from the resources document, but not from sharing", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+      final revenueId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Festival prize",
+      );
+      expect(revenueId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.revenues.isNotEmpty);
+
+      // From the sharing document (the default document offers no inspector for a revenue either,
+      // but sharing is the row's own ordinary home): the dock is left exactly where it was.
+      bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.sharing));
+      await waitForState(bloc, (state) => state.document == OcptBudgetDocument.sharing);
+
+      bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId!));
+      final sharingState = await waitForState(
+        bloc,
+        (state) => state.selectedRevenueId == revenueId,
+      );
+      expect(sharingState.rightDockTab, isNot(OcptBudgetRightDockTab.inspector));
+
+      // From the resources document, the very same event opens the fiche.
+      bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.resources));
+      await waitForState(bloc, (state) => state.document == OcptBudgetDocument.resources);
+
+      bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId));
+      final resourcesState = await waitForState(
+        bloc,
+        (state) => state.rightDockTab == OcptBudgetRightDockTab.inspector,
+      );
+      expect(resourcesState.selection, OcptBudgetRevenueSelection(revenueId));
+    });
   });
 
   group("creating a revenue", () {
@@ -2806,6 +2844,92 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       expect(bloc.state.selection, isNull);
+    });
+
+    test("selecting a receipt names the same entry in the selection and opens the Inspector", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Camera rental",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withEntry = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+      final entryId = withEntry.entries.single.id;
+
+      bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: entryId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.selection == OcptBudgetReceiptSelection(entryId),
+      );
+
+      expect(state.selection, OcptBudgetReceiptSelection(entryId));
+      expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
+    });
+
+    test("a receipt id naming no live entry is ignored", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetReceiptSelectedEvent(receiptId: "gone"));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.selection, isNull);
+    });
+
+    test("a selected receipt is dropped once its own entry is deleted", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 3),
+            label: "Camera rental",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withEntry = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+      final entryId = withEntry.entries.single.id;
+
+      bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: entryId));
+      await waitForState(bloc, (state) => state.selection == OcptBudgetReceiptSelection(entryId));
+
+      bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
+      final state = await waitForState(bloc, (state) => state.entries.isEmpty);
+
+      expect(state.selection, isNull);
     });
   });
 }

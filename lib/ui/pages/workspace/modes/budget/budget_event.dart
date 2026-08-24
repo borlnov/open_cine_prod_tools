@@ -283,6 +283,23 @@ class OcptBudgetEntrySelectedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
+/// Selects receipt [receiptId] — a sub-row of the resources tree, nested under the resource or the
+/// revenue the underlying `budget_entries` credit names — dispatched by its row's own click.
+/// Mirrors `OcptBudgetEntrySelectedEvent`: [receiptId] is a journal entry's own id, read as a
+/// receipt rather than as a debit or a credit of the expenses tree. A [receiptId] naming no live
+/// entry is ignored.
+class OcptBudgetReceiptSelectedEvent extends OcptBudgetEvent {
+  /// The id of the entry to select, read as a receipt.
+  final String receiptId;
+
+  /// Class constructor
+  const OcptBudgetReceiptSelectedEvent({required this.receiptId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, receiptId];
+}
+
 /// Creates a new, unnamed quote line inside poste [posteId], appended at the end of its own lines,
 /// and expands it — dispatched by the poste inspector's own `+ Add` action, mirroring
 /// `OcptBudgetPosteCreatedEvent`'s own "created empty" idiom.
@@ -735,9 +752,12 @@ class OcptBudgetResourceDeletionConfirmedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, resourceId];
 }
 
-/// Selects revenue sharing taking [revenueId] — a row of the sharing view's own left column —
-/// dispatched by its row's own click. Draws as a plain highlight, never an inspector, mirroring
-/// `OcptBudgetResourceSelectedEvent`. A [revenueId] naming no live revenue is ignored.
+/// Selects revenue sharing taking [revenueId] — a row of the sharing view's own left column, or of
+/// the resources tree's own `Takings` family — dispatched by its row's own click. In the sharing
+/// view this draws as a plain highlight, never an inspector — `ocptBudgetHasInspector` is false for
+/// `OcptBudgetDocument.sharing`; in the resources tree it opens the right dock's fiche exactly as
+/// `OcptBudgetResourceSelectedEvent` does, the one difference between the two rows being which
+/// document is on screen. A [revenueId] naming no live revenue is ignored.
 class OcptBudgetRevenueSelectedEvent extends OcptBudgetEvent {
   /// The id of the revenue to select.
   final String revenueId;
