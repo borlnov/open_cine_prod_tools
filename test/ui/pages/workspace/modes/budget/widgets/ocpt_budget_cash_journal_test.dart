@@ -115,7 +115,7 @@ void main() {
     expect(horizontalScroll, findsOneWidget);
     expect(
       tester.getSize(find.descendant(of: horizontalScroll, matching: find.byType(Column)).first).width,
-      852,
+      960,
     );
     expect(find.text("Camera rental"), findsOneWidget);
   });
@@ -315,8 +315,19 @@ void main() {
   });
 
   testWidgets(
-    "a credit never draws as a row — debits only — but still totals into the top band",
+    "a credit naming no poste, resource or revenue draws as an ordinary row, reachable like any "
+    "other entry",
     (tester) async {
+      // The regression case defect 1 leaves behind if this ever narrows again: a movement naming
+      // nothing has exactly one place it can be reached from, and this is it.
+      tester.view.physicalSize = const Size(1400, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      OcptBudgetEntry? edited;
+      String? deletedId;
+      String? selectedId;
       final entries = [
         _entry(id: "e1", date: DateTime(2026), debitCents: 1200),
         _entry(id: "e2", date: DateTime(2026, 1, 2), label: "Grant instalment", creditCents: 800),
@@ -329,24 +340,50 @@ void main() {
             postes: const [],
             receiptsByEntryId: const {},
             filterPosteId: null,
-          selection: null,
+            selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntryCreationRequested: () {},
-            onEntrySelected: (_) {},
-          onEntryEditRequested: (_) {},
-            onEntryDeletionRequested: (_) {},
+            onEntrySelected: (entryId) => selectedId = entryId,
+            onEntryEditRequested: (entry) => edited = entry,
+            onEntryDeletionRequested: (entryId) => deletedId = entryId,
           ),
         ),
       );
 
-      // The credit's own label never reaches a row of the table.
-      expect(find.text("Grant instalment"), findsNothing);
-      // Its amount is still the top band's own whole-journal `Credit` figure.
-      expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsOneWidget);
-      expect(find.text("Camera rental"), findsOneWidget);
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+
+      // The credit's own label reaches an ordinary row, its `Poste` cell reading the very same
+      // wording a poste-less debit already reads.
+      expect(find.text("Grant instalment"), findsOneWidget);
+      expect(find.text(tr.budgetCashJournalNoPosteLabel), findsNWidgets(2));
+      // Its amount is drawn in the `Credit` column — the amount also totals into the top band's
+      // own whole-journal figure, hence the two matches.
+      expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsNWidgets(2));
+
+      // It selects like any other row.
+      await tester.tap(find.text("Grant instalment"));
+      await tester.pumpAndSettle();
+      expect(selectedId, "e2");
+
+      // It carries the very same `⋮` menu every other row does — `Edit` and `Delete`, each
+      // dispatching this entry's own id.
+      final menus = find.byType(PopupMenuButton<String>);
+      expect(menus, findsNWidgets(2));
+
+      await tester.tap(menus.last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetFinancingEditAction));
+      await tester.pumpAndSettle();
+      expect(edited?.id, "e2");
+
+      await tester.tap(menus.last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetEntryDeleteAction));
+      await tester.pumpAndSettle();
+      expect(deletedId, "e2");
     },
   );
 
@@ -380,41 +417,6 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
     expect(find.text(tr.budgetCashJournalNoPosteLabel), findsOneWidget);
   });
-
-  testWidgets(
-    "a journal holding a credit but no debit shows the shorter empty state, not the ledger's own",
-    (tester) async {
-      final entries = [_entry(id: "e1", date: DateTime(2026), creditCents: 5000)];
-
-      await tester.pumpWidget(
-        _wrap(
-          OcptBudgetCashJournal(
-            entries: entries,
-            postes: const [],
-            receiptsByEntryId: const {},
-            filterPosteId: null,
-          selection: null,
-            isSimplified: false,
-            defaultVatRateBasisPoints: null,
-            currencyCode: "EUR",
-            isReadOnly: false,
-            onEntryCreationRequested: () {},
-            onEntrySelected: (_) {},
-          onEntryEditRequested: (_) {},
-            onEntryDeletionRequested: (_) {},
-          ),
-        ),
-      );
-
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
-      expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
-      expect(find.text(tr.budgetCashJournalNoDebitsHint), findsOneWidget);
-      expect(find.text(tr.budgetCashJournalEmptyHint), findsNothing);
-      // The top band still totals the credit — it is the production's bank account and stays
-      // drawn whatever the table shows.
-      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-    },
-  );
 
   testWidgets("the coverage read-out appears while an entry carries no known rate, and disappears "
       "once every entry does", (tester) async {

@@ -826,8 +826,9 @@ whole record of them.
   overflowed its frame: with the right dock open on a laptop screen the wording of every entry
   disappeared outright and the balance column ran off the edge, clipped rather than striped, since
   a release build draws no overflow banner.
-- The table is therefore laid out at `_ocptCashJournalMinTableWidth` (960 = 728 of fixed columns +
-  232 for the wording) whenever the slot is narrower, and **scrolls sideways inside its own frame**.
+- The table is therefore laid out at `_ocptCashJournalMinTableWidth` (984 = 728 of fixed columns +
+  24 for the row's own inset + 232 for the wording) whenever the slot is narrower, and **scrolls
+  sideways inside its own frame**.
   The header and the rows sit in the same scroll view, since they share those fixed widths and
   scrolling either alone would slide the figures out from under their own headings. No column is
   dropped and none shrinks: what does not fit is scrolled to, which is the treatment the rest of the

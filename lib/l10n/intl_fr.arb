@@ -1535,7 +1535,6 @@
   "budgetCashJournalSimpleEmptyHint": "Enregistrez une dépense que vous venez de payer, ou de l'argent qui vient d'arriver.",
   "budgetCommittedSimpleEmptyHint": "Enregistrez une somme que vous avez promise mais pas encore payée.",
   "budgetCashJournalEmptyHint": "Enregistrez un paiement ou une recette pour démarrer le journal de trésorerie.",
-  "budgetCashJournalNoDebitsHint": "Rien n'est encore sorti.",
   "budgetCashJournalDebitLabel": "Débit",
   "budgetCashJournalCreditLabel": "Crédit",
   "budgetCashJournalBalanceLabel": "Solde",

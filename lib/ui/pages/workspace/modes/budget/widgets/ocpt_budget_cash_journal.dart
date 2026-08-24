@@ -26,7 +26,7 @@ const double _ocptCashJournalVoucherColumnWidth = 76;
 /// The `Poste` column's own fixed width, in logical pixels.
 const double _ocptCashJournalPosteColumnWidth = 200;
 
-/// The `Debit` and `Balance` columns' own fixed width, in logical pixels.
+/// The `Debit`, `Credit` and `Balance` columns' own fixed width, in logical pixels.
 const double _ocptCashJournalAmountColumnWidth = 108;
 
 /// The trailing `⋮` menu column's own fixed width, in logical pixels — matches
@@ -34,20 +34,16 @@ const double _ocptCashJournalAmountColumnWidth = 108;
 const double _ocptCashJournalMenuColumnWidth = 36;
 
 /// The narrowest the entry table is ever drawn at, in logical pixels: every fixed column's own
-/// width — 92 + 76 + 200 + 2 × 108 + 36 = 620 — plus the row's own 24 px inset
+/// width — 92 + 76 + 200 + 3 × 108 + 36 = 728 — plus the row's own 24 px inset
 /// ([ocptTableRowHorizontalPadding], symmetric) and 232 for a `Label` column that can still hold a
-/// wording: 620 + 24 + 232 = 876.
-///
-/// **Recomputed for the `Credit` column's own removal** — the `byDate` reading is debits only (the
-/// class doc comment), so the table itself no longer carries one — down from the whole journal's
-/// own 984 (728 fixed + 24 inset + 232 label).
+/// wording: 728 + 24 + 232 = 984.
 ///
 /// Below it the table **scrolls sideways inside its own frame** rather than being crushed: the
 /// `Label` column is the only flexible one, so a narrower centre used to drive it to nothing and
 /// the row overflowed — which is exactly what opening the right dock on a laptop screen does. No
 /// column is dropped and none shrinks; the reader gets a horizontal scrollbar and keeps the whole
 /// ledger, the treatment the rest of the app already gives a table too wide for its slot.
-const double _ocptCashJournalMinTableWidth = 876;
+const double _ocptCashJournalMinTableWidth = 984;
 
 /// Every entry row's own fixed height, in logical pixels.
 const double _ocptCashJournalRowHeight = 44;
@@ -55,28 +51,32 @@ const double _ocptCashJournalRowHeight = 44;
 /// The header row's own fixed height, in logical pixels.
 const double _ocptCashJournalHeaderRowHeight = 36;
 
-/// `OcptBudgetDocument.expenses` read under `OcptBudgetDocumentReading.byDate`: the expenses
-/// document, in date order — **debits only**. A top band, the entry table, then a note — the layout
-/// the validated mockup lays this view out as.
+/// `OcptBudgetDocument.expenses` read under `OcptBudgetDocumentReading.byDate`: the whole account
+/// book, in date order — **every movement the project has ever recorded, debit and credit alike**.
+/// A top band, the entry table, then a note — the layout the validated mockup lays this view out
+/// as.
+///
+/// **This is the one place a movement naming nothing can still be reached.** A poste, a resource or
+/// a revenue each has a document of its own to be found under; an entry naming none of them — a
+/// till receipt for something the nomenclature never anticipated, a subsidy instalment recorded
+/// before anyone got round to naming the resource it pays — lives nowhere else, so this table draws
+/// **every** live entry the journal holds rather than a reading over some of them. Narrowing it to
+/// one direction, the way an earlier reading of this view once did, put exactly such an entry out
+/// of reach: a credit naming nothing was drawn in no view of the mode at all, and could be neither
+/// selected, edited nor deleted.
 ///
 /// **[entries] is always the whole journal, never a filtered subset.** [filterPosteId] — read
 /// straight off `OcptBudgetState.filterPosteId`, the mode-wide filter the header's own poste chip
-/// sets, rather than a filter state of this view's own — narrows which rows the *table*
-/// draws, through [ocptBudgetJournalRowsOf]'s own running balance computed first, over **every**
-/// entry — credits included — in the chronological order that function already reads them in;
-/// filtering the resulting rows down to the debits, and then to [filterPosteId] when one is set,
-/// only afterwards is what keeps a filtered balance reading exactly what the account actually stood
-/// at, rather than a number invented by silently skipping the entries in between. Both filters
-/// compose and neither reorders the other: dropping the credits first would be the very mistake the
-/// poste filter already had to avoid.
+/// sets, rather than a filter state of this view's own — narrows which rows the *table* draws,
+/// through [ocptBudgetJournalRowsOf]'s own running balance computed first, over **every** entry, in
+/// the chronological order that function already reads them in; filtering the resulting rows down
+/// to [filterPosteId], when one is set, only afterwards is what keeps a filtered balance reading
+/// exactly what the account actually stood at, rather than a number invented by silently skipping
+/// the entries in between.
 ///
-/// **The top band's own `Debit`/`Credit`/`Balance` figures stay the whole journal's, unchanged, on
-/// purpose.** It would be tempting to drop `Credit` from the band along with the column, but
+/// **The top band's own `Debit`/`Credit`/`Balance` figures are the whole journal's, unchanged.**
 /// Benoit's own ruling is that this is the production's bank account: an account does not change
-/// because a view narrowed to one side of it. And until `OcptBudgetDocument.resources` grows its
-/// own `byDate` reading — a later milestone — this `Credit` figure is the **only** place on screen
-/// money coming in is still totalled at all, so dropping it here would not simplify the view, it
-/// would erase a fact nowhere else says.
+/// because a view narrowed to one poste.
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and withholds — never disables — every one of its own
@@ -92,19 +92,14 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// one place to remove it.
 ///
 /// Empty state: [OcptWorkspaceEmptyMode] draws **in the table's place, under a top band that stays
-/// drawn**, whenever no debit exists at all in the **whole** journal — worded to tell the two ways
-/// that can happen apart. A project carrying no entry of any kind reads the ledger's own
-/// established hint; one that has been written in, credits included, but has never recorded a
-/// debit, reads a new, shorter hint of its own, since claiming the journal is empty would be false
-/// the moment a credit sits in it. The band stays drawn either way, for the very reason the top
-/// band's own figures do: `+ Entry` lives there, and a journal somebody has only ever credited is
-/// exactly the moment they reach for it next.
+/// drawn**, whenever the whole journal holds no live entry at all — `+ Entry` lives in that band,
+/// and an untouched journal is exactly the moment a reader reaches for it.
 ///
-/// **A third, narrower case is a different thing entirely**: the whole journal holds a debit, but
+/// **A narrower case is a different thing entirely**: the whole journal holds entries, but
 /// [filterPosteId] narrows this table to a poste none of them name. That is the poste filter
 /// finding nothing, not the journal holding nothing, so it prints the plain, un-iconed sentence
-/// `OcptBudgetFiche`'s own empty state already uses for the very same fact,
-/// never [OcptWorkspaceEmptyMode].
+/// `OcptBudgetFiche`'s own empty state already uses for the very same fact, never
+/// [OcptWorkspaceEmptyMode].
 ///
 /// A read-only view can return the empty state as its whole body because it writes nothing at
 /// all; this view cannot.
@@ -184,18 +179,14 @@ class OcptBudgetCashJournal extends StatelessWidget {
 
     final rows = ocptBudgetJournalRowsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
     final totals = ocptBudgetCashTotalsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
-    // Debits only — the `byDate` reading of expenses (the class doc comment) — filtered down
-    // **after** [rows] is computed over every entry, credits included, in chronological order: a
-    // running balance only means anything read in the order money actually moved.
-    final debitRows = [
-      for (final row in rows)
-        if (row.entry.debitCents > 0) row,
-    ];
+    // Filtered down **after** [rows] is computed over every entry, in chronological order: a
+    // running balance only means anything read in the order money actually moved, so narrowing to
+    // a poste has to happen once that order has already produced it.
     final filterPosteId = this.filterPosteId;
-    final filteredDebitRows = filterPosteId == null
-        ? debitRows
+    final filteredRows = filterPosteId == null
+        ? rows
         : [
-            for (final row in debitRows)
+            for (final row in rows)
               if (row.entry.posteId == filterPosteId) row,
           ];
 
@@ -217,15 +208,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                   // the one sentence somebody who has never opened this view will read.
                   message: isSimplified ? tr.budgetCashJournalSimpleEmptyHint : tr.budgetCashJournalEmptyHint,
                 )
-              : debitRows.isEmpty
-              // Written in — a credit at least — but nothing has gone out yet: a different fact
-              // from an untouched journal, so a different, shorter sentence (the class doc
-              // comment).
-              ? OcptWorkspaceEmptyMode(
-                  icon: Icons.account_balance_wallet_outlined,
-                  message: tr.budgetCashJournalNoDebitsHint,
-                )
-              : filteredDebitRows.isEmpty
+              : filteredRows.isEmpty
               ? Center(
                   child: Text(
                     tr.budgetInspectorRelatedEntriesEmptyHint,
@@ -250,24 +233,23 @@ class OcptBudgetCashJournal extends StatelessWidget {
                             const _OcptCashJournalHeaderRow(),
                             Expanded(
                               child: ListView.builder(
-                                itemCount: filteredDebitRows.length,
+                                itemCount: filteredRows.length,
                                 itemBuilder: (context, index) => _OcptCashJournalRow(
-                                  row: filteredDebitRows[index],
-                                  poste: _posteById(filteredDebitRows[index].entry.posteId),
-                                  receipt: receiptsByEntryId[filteredDebitRows[index].entry.id],
-                                  isSelected: _isEntrySelected(filteredDebitRows[index].entry.id),
+                                  row: filteredRows[index],
+                                  poste: _posteById(filteredRows[index].entry.posteId),
+                                  receipt: receiptsByEntryId[filteredRows[index].entry.id],
+                                  isSelected: _isEntrySelected(filteredRows[index].entry.id),
                                   isSimplified: isSimplified,
                                   currencyCode: currencyCode,
                                   onTap: onEntrySelected == null
                                       ? null
-                                      : () => onEntrySelected?.call(filteredDebitRows[index].entry.id),
+                                      : () => onEntrySelected?.call(filteredRows[index].entry.id),
                                   onEditRequested: isReadOnly || onEntryEditRequested == null
                                       ? null
-                                      : () => onEntryEditRequested?.call(filteredDebitRows[index].entry),
+                                      : () => onEntryEditRequested?.call(filteredRows[index].entry),
                                   onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
                                       ? null
-                                      : () =>
-                                            onEntryDeletionRequested?.call(filteredDebitRows[index].entry.id),
+                                      : () => onEntryDeletionRequested?.call(filteredRows[index].entry.id),
                                 ),
                               ),
                             ),
@@ -402,8 +384,8 @@ class _OcptCashJournalTopBand extends StatelessWidget {
   }
 }
 
-/// The entry table's own header row: `Date`, `Voucher`, `Poste`, `Label`, `Debit`, `Balance`, then
-/// a blank cell over the `⋮` menu column — `Poste` ahead of `Label`, mirroring
+/// The entry table's own header row: `Date`, `Voucher`, `Poste`, `Label`, `Debit`, `Credit`,
+/// `Balance`, then a blank cell over the `⋮` menu column — `Poste` ahead of `Label`, mirroring
 /// `OcptBudgetCostTracking`'s own pinned `Poste` column, since both readings of the very same
 /// expenses document now lead with the same identifying column.
 class _OcptCashJournalHeaderRow extends StatelessWidget {
@@ -451,6 +433,14 @@ class _OcptCashJournalHeaderRow extends StatelessWidget {
             SizedBox(
               width: _ocptCashJournalAmountColumnWidth,
               child: Text(
+                tr.budgetCashJournalColumnCredit.toUpperCase(),
+                textAlign: TextAlign.right,
+                style: labelStyle,
+              ),
+            ),
+            SizedBox(
+              width: _ocptCashJournalAmountColumnWidth,
+              child: Text(
                 tr.budgetCashJournalColumnBalance.toUpperCase(),
                 textAlign: TextAlign.right,
                 style: labelStyle,
@@ -464,18 +454,19 @@ class _OcptCashJournalHeaderRow extends StatelessWidget {
   }
 }
 
-/// One entry row: date, voucher number, poste, label, debit, running balance, then its own `⋮`
-/// menu — `Edit`/`Delete`, mirroring `OcptBudgetCostTracking`'s own row-menu idiom. Clicking the
-/// row itself only selects it, opening the right dock's fiche on it — never a write, so never
+/// One entry row: date, voucher number, poste, label, debit, credit, running balance, then its own
+/// `⋮` menu — `Edit`/`Delete`, mirroring `OcptBudgetCostTracking`'s own row-menu idiom. Clicking
+/// the row itself only selects it, opening the right dock's fiche on it — never a write, so never
 /// withheld under a previewed version.
 ///
-/// **Debits only** — [OcptBudgetCashJournal] filters this reading to them before a row is ever
-/// built here, so this row never draws a credit at all. Its own debit reads in
-/// [ColorScheme.error] wherever the amount is actually known — the very colour
-/// `_OcptBudgetRelatedEntryRow` already paints a debit in, so a movement reads the same way
-/// wherever the app shows it. [row]'s own null figures ([OcptBudgetJournalRow.debitCents]/
-/// `.balanceAfterCents`, both null together for an entry that cannot be read tax-inclusive) print
-/// [ocptBudgetEmptyValue] instead, in the ordinary muted body colour rather than the accent.
+/// [row]'s own debit reads in [ColorScheme.error] wherever it is actually known, its own credit in
+/// [ColorScheme.primary] — the same pairing a movement's own colour already carries wherever else
+/// the app draws one, so a debit or a credit reads the same way whichever view shows it. Both
+/// figures print exactly as [ocptBudgetJournalRowsOf] gives them, zero included: an entry recorded
+/// entirely on one side of the account shows a real `0,00 €` on the other, never an invented dash.
+/// [row]'s own null figures ([OcptBudgetJournalRow.debitCents]/`.creditCents`/`.balanceAfterCents`,
+/// always null together for an entry that cannot be read tax-inclusive) print [ocptBudgetEmptyValue]
+/// instead, in the ordinary muted body colour rather than either accent.
 class _OcptCashJournalRow extends StatelessWidget {
   /// The row this widget draws.
   final OcptBudgetJournalRow row;
@@ -525,6 +516,7 @@ class _OcptCashJournalRow extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     final dateLabel = DateFormat.yMMMd(locale).format(entry.date);
     final debitCents = row.debitCents;
+    final creditCents = row.creditCents;
     final balanceCents = row.balanceAfterCents;
     final poste = this.poste;
 
@@ -596,6 +588,7 @@ class _OcptCashJournalRow extends StatelessWidget {
               ),
             ),
             _amountCell(context, debitCents, color: debitCents != null ? theme.colorScheme.error : null),
+            _amountCell(context, creditCents, color: creditCents != null ? theme.colorScheme.primary : null),
             _amountCell(context, balanceCents, bold: true),
             SizedBox(
               width: _ocptCashJournalMenuColumnWidth,
