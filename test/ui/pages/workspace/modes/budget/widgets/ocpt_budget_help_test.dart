@@ -6,8 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a band wide
@@ -24,26 +23,17 @@ Widget _wrap(Widget child) => MaterialApp(
 );
 
 void main() {
-  /// Pumps [OcptBudgetHelp] for the given route and returns its own [Tr], resolved from its own
+  /// Pumps [OcptBudgetHelp] for the given view and returns its own [Tr], resolved from its own
   /// element — mirrors `ocpt_budget_fiche_test.dart`'s own `pumpFiche`.
-  Future<Tr> pumpHelp(
-    WidgetTester tester, {
-    required OcptBudgetDocument document,
-    OcptBudgetDocumentReading reading = OcptBudgetDocumentReading.byTree,
-    OcptBudgetSubPage? subPage,
-  }) async {
-    await tester.pumpWidget(
-      _wrap(
-        OcptBudgetHelp(document: document, reading: reading, subPage: subPage),
-      ),
-    );
+  Future<Tr> pumpHelp(WidgetTester tester, {required OcptBudgetView view}) async {
+    await tester.pumpWidget(_wrap(OcptBudgetHelp(view: view)));
     await tester.pumpAndSettle();
 
     return Tr.of(tester.element(find.byType(OcptBudgetHelp)));
   }
 
   testWidgets("draws the expenses chain: Estimated, Committed, Paid", (tester) async {
-    final tr = await pumpHelp(tester, document: OcptBudgetDocument.expenses);
+    final tr = await pumpHelp(tester, view: OcptBudgetView.costTracking);
 
     expect(find.text(tr.budgetFicheStepEstimatedLabel), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigureCommitted), findsOneWidget);
@@ -55,7 +45,7 @@ void main() {
   });
 
   testWidgets("draws the resources chain: Promised, Received", (tester) async {
-    final tr = await pumpHelp(tester, document: OcptBudgetDocument.resources);
+    final tr = await pumpHelp(tester, view: OcptBudgetView.financing);
 
     expect(find.text(tr.budgetFicheStepPromisedLabel), findsOneWidget);
     expect(find.text(tr.budgetFinancingColumnReceived), findsOneWidget);
@@ -65,7 +55,7 @@ void main() {
   });
 
   testWidgets("draws the sharing chain: Received, Already repaid, Left to share", (tester) async {
-    final tr = await pumpHelp(tester, document: OcptBudgetDocument.sharing);
+    final tr = await pumpHelp(tester, view: OcptBudgetView.sharing);
 
     expect(find.text(tr.budgetFinancingColumnReceived), findsOneWidget);
     expect(find.text(tr.budgetSharingRepaidLabel), findsOneWidget);
@@ -76,24 +66,16 @@ void main() {
     expect(find.text(tr.budgetHelpChainSharingSentence), findsOneWidget);
   });
 
-  testWidgets("draws the committed-spending sub-page on the expenses chain", (tester) async {
-    final tr = await pumpHelp(
-      tester,
-      document: OcptBudgetDocument.expenses,
-      subPage: OcptBudgetSubPage.committedSpending,
-    );
+  testWidgets("draws the committed spending on the expenses chain", (tester) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.committed);
 
     expect(find.text(tr.budgetFicheStepEstimatedLabel), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigureCommitted), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigurePaid), findsOneWidget);
   });
 
-  testWidgets("the régie sub-page draws no chain at all", (tester) async {
-    final tr = await pumpHelp(
-      tester,
-      document: OcptBudgetDocument.expenses,
-      subPage: OcptBudgetSubPage.regie,
-    );
+  testWidgets("the régie draws no chain at all", (tester) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.regie);
 
     // No chain of any of the three documents' own steps is drawn.
     expect(find.text(tr.budgetFicheStepEstimatedLabel), findsNothing);
@@ -115,13 +97,9 @@ void main() {
   });
 
   testWidgets(
-    "highlights the Paid step on expenses read by date, announced rather than drawn",
+    "highlights the Paid step on the cash journal, announced rather than drawn",
     (tester) async {
-      final tr = await pumpHelp(
-        tester,
-        document: OcptBudgetDocument.expenses,
-        reading: OcptBudgetDocumentReading.byDate,
-      );
+      final tr = await pumpHelp(tester, view: OcptBudgetView.cashJournal);
 
       // The badge rides the cell's own Semantics label — it is never drawn as a widget of its own.
       expect(find.text(tr.budgetHelpChainCurrentStepBadge), findsNothing);
@@ -140,13 +118,9 @@ void main() {
   );
 
   testWidgets(
-    "highlights the Committed step on the committed-spending sub-page, announced rather than drawn",
+    "highlights the Committed step on the committed spending, announced rather than drawn",
     (tester) async {
-      final tr = await pumpHelp(
-        tester,
-        document: OcptBudgetDocument.expenses,
-        subPage: OcptBudgetSubPage.committedSpending,
-      );
+      final tr = await pumpHelp(tester, view: OcptBudgetView.committed);
 
       expect(find.text(tr.budgetHelpChainCurrentStepBadge), findsNothing);
       expect(
@@ -161,8 +135,17 @@ void main() {
     },
   );
 
-  testWidgets("highlights nothing on the cost report (expenses read by tree)", (tester) async {
-    final tr = await pumpHelp(tester, document: OcptBudgetDocument.expenses);
+  testWidgets("highlights nothing on the cost report", (tester) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.costTracking);
+
+    expect(
+      find.bySemanticsLabel(RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge))),
+      findsNothing,
+    );
+  });
+
+  testWidgets("highlights nothing on the financing plan", (tester) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.financing);
 
     expect(
       find.bySemanticsLabel(RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge))),

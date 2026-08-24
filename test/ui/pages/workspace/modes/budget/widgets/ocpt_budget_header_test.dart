@@ -10,9 +10,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 
@@ -45,26 +44,22 @@ Widget _wrap(Widget child) => MaterialApp(
 );
 
 void main() {
-  /// Widens the test surface so the header's own title, subtitle and breadcrumb are shown — see
+  /// Widens the test surface so the header's own title and subtitle are shown — see
   /// `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth`.
   void useWideWindow(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.physicalSize = const Size(2200, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
   /// Pumps [OcptBudgetHeader] with every prop at a sensible default, overridable one at a time —
-  /// [document] at its own top level ([subPage] null) in [reading], with every control's own
-  /// callback recording nothing unless the test itself cares.
+  /// [view] at [OcptBudgetView.costTracking], with every control's own callback recording nothing
+  /// unless the test itself cares.
   Future<Tr> pumpHeader(
     WidgetTester tester, {
-    OcptBudgetDocument document = OcptBudgetDocument.expenses,
-    OcptBudgetDocumentReading reading = OcptBudgetDocumentReading.byTree,
-    OcptBudgetSubPage? subPage,
-    ValueChanged<OcptBudgetDocument>? onDocumentSelected,
-    ValueChanged<OcptBudgetDocumentReading>? onReadingSelected,
-    ValueChanged<OcptBudgetSubPage>? onSubPageSelected,
+    OcptBudgetView view = OcptBudgetView.costTracking,
+    ValueChanged<OcptBudgetView>? onViewSelected,
     bool isSimplified = false,
     ValueChanged<bool>? onSimplifiedChanged,
     OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
@@ -82,12 +77,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetHeader(
-          document: document,
-          onDocumentSelected: onDocumentSelected ?? (_) {},
-          reading: reading,
-          onReadingSelected: onReadingSelected ?? (_) {},
-          subPage: subPage,
-          onSubPageSelected: onSubPageSelected ?? (_) {},
+          view: view,
+          onViewSelected: onViewSelected ?? (_) {},
           isSimplified: isSimplified,
           onSimplifiedChanged: onSimplifiedChanged ?? (_) {},
           taxBasis: taxBasis,
@@ -122,14 +113,11 @@ void main() {
 
     final tr = await pumpHeader(tester);
 
-    // Every control is still on screen, the last one included — the document switch, the reading
-    // switch, the simplified switch, the tax-basis switch and the poste filter all honoured at
-    // expenses's own top level.
-    // Twice for the document on screen: its own chip, and the breadcrumb that rides along beside
-    // the controls at this width and names the document it stands in.
-    expect(find.text(tr.budgetHeaderDocumentExpensesSegmentLabel), findsNWidgets(2));
-    expect(find.text(tr.budgetHeaderDocumentSharingSegmentLabel), findsOneWidget);
-    expect(find.text(tr.budgetHeaderReadingByDateSegmentLabel), findsOneWidget);
+    // Every control is still on screen, the last one included — the view switch, the simplified
+    // switch, the tax-basis switch and the poste filter all honoured at
+    // [OcptBudgetView.costTracking].
+    expect(find.text(tr.budgetHeaderCostTrackingSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderSharingSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
@@ -139,96 +127,62 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets("a centre too narrow to hold the title still says which sub-page it is showing", (
-    tester,
-  ) async {
-    // The width the right dock leaves the centre on an ordinary window — which is exactly when a
-    // reader is inside a sub-page, since the inspector is what opened the dock. Shedding the
-    // breadcrumb here would leave the page saying neither where it is nor how to leave it.
-    tester.view.physicalSize = const Size(700, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    OcptBudgetDocument? reported;
-    final tr = await pumpHeader(
-      tester,
-      subPage: OcptBudgetSubPage.regie,
-      onDocumentSelected: (document) => reported = document,
-    );
-
-    // The trail names the sub-page, and its ancestor is the way back up.
-    expect(find.text(tr.budgetHeaderRegieSegmentLabel), findsOneWidget);
-    expect(find.byKey(const Key("ocptBudgetBreadcrumbAncestor")), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key("ocptBudgetBreadcrumbAncestor")));
-    expect(reported, OcptBudgetDocument.expenses);
-
-    // The sub-page menu is drawn **once**, by the breadcrumb itself — never a second copy riding
-    // along among the controls.
-    expect(find.byKey(const Key("ocptBudgetSubPageMenuButton")), findsOneWidget);
-  });
-
-  group("the document switch", () {
-    testWidgets("tapping Resources reports the document it names", (tester) async {
+  group("the view switch", () {
+    testWidgets("draws six segments, in chip order", (tester) async {
       useWideWindow(tester);
-      OcptBudgetDocument? reported;
-      final tr = await pumpHeader(tester, onDocumentSelected: (document) => reported = document);
+      final tr = await pumpHeader(tester);
 
-      await tester.tap(find.text(tr.budgetHeaderDocumentResourcesSegmentLabel));
+      final labels = [
+        tr.budgetHeaderCostTrackingSegmentLabel,
+        tr.budgetHeaderFinancingSegmentLabel,
+        tr.budgetHeaderCashJournalSegmentLabel,
+        tr.budgetHeaderCommittedSegmentLabel,
+        tr.budgetHeaderRegieSegmentLabel,
+        tr.budgetHeaderSharingSegmentLabel,
+      ];
+      for (final label in labels) {
+        expect(find.text(label), findsOneWidget);
+      }
 
-      expect(reported, OcptBudgetDocument.resources);
+      final positions = [
+        for (final label in labels) tester.getCenter(find.text(label)).dx,
+      ];
+      expect(positions, orderedEquals(List<double>.from(positions)..sort()));
+    });
+
+    testWidgets("the active view's own chip is marked", (tester) async {
+      useWideWindow(tester);
+      final tr = await pumpHeader(tester, view: OcptBudgetView.committed);
+
+      final segment = tester.widget<InkWell>(
+        find.ancestor(
+          of: find.text(tr.budgetHeaderCommittedSegmentLabel),
+          matching: find.byType(InkWell),
+        ),
+      );
+      // The active segment's own `InkWell.onTap` is null — it is already active, so tapping it
+      // again reports nothing (`_OcptBudgetSwitchSegment`'s own doc comment).
+      expect(segment.onTap, isNull);
+    });
+
+    testWidgets("clicking a segment reports that view, and only that view", (tester) async {
+      useWideWindow(tester);
+      final reported = <OcptBudgetView>[];
+      final tr = await pumpHeader(tester, onViewSelected: reported.add);
+
+      await tester.tap(find.text(tr.budgetHeaderFinancingSegmentLabel));
+
+      expect(reported, [OcptBudgetView.financing]);
     });
 
     testWidgets("tapping the active chip reports nothing", (tester) async {
       useWideWindow(tester);
       var callCount = 0;
-      final tr = await pumpHeader(tester, onDocumentSelected: (_) => callCount++);
+      final tr = await pumpHeader(tester, onViewSelected: (_) => callCount++);
 
-      // Scoped to an `InkWell` ancestor: at the document's own top level the breadcrumb also
-      // draws the very same word, as plain, non-interactive text.
-      await tester.tap(
-        find.ancestor(
-          of: find.text(tr.budgetHeaderDocumentExpensesSegmentLabel),
-          matching: find.byType(InkWell),
-        ),
-      );
+      await tester.tap(find.text(tr.budgetHeaderCostTrackingSegmentLabel));
 
       expect(callCount, 0);
-    });
-  });
-
-  group("the reading switch", () {
-    testWidgets("offered on expenses, tapping By date reports the reading", (tester) async {
-      useWideWindow(tester);
-      OcptBudgetDocumentReading? reported;
-      final tr = await pumpHeader(tester, onReadingSelected: (reading) => reported = reading);
-
-      await tester.tap(find.text(tr.budgetHeaderReadingByDateSegmentLabel));
-
-      expect(reported, OcptBudgetDocumentReading.byDate);
-    });
-
-    testWidgets("withheld on resources — nothing to switch to yet", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, document: OcptBudgetDocument.resources);
-
-      expect(find.text(tr.budgetHeaderReadingByTreeSegmentLabel), findsNothing);
-      expect(find.text(tr.budgetHeaderReadingByDateSegmentLabel), findsNothing);
-    });
-
-    testWidgets("withheld on sharing", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, document: OcptBudgetDocument.sharing);
-
-      expect(find.text(tr.budgetHeaderReadingByTreeSegmentLabel), findsNothing);
-    });
-
-    testWidgets("still offered inside a sub-page — the way back to the top level", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.regie);
-
-      expect(find.text(tr.budgetHeaderReadingByTreeSegmentLabel), findsOneWidget);
     });
   });
 
@@ -243,18 +197,24 @@ void main() {
       expect(reported, OcptBudgetTaxBasis.excludingTax);
     });
 
-    testWidgets("withheld on resources — money coming in is always tax-inclusive", (tester) async {
+    testWidgets("offered on the cash journal too", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(tester, document: OcptBudgetDocument.resources);
+      final tr = await pumpHeader(tester, view: OcptBudgetView.cashJournal);
 
-      expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsNothing);
+      expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
     });
 
-    testWidgets("withheld on sharing", (tester) async {
+    testWidgets("withheld outside the cost report and the cash journal", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(tester, document: OcptBudgetDocument.sharing);
-
-      expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsNothing);
+      for (final view in [
+        OcptBudgetView.financing,
+        OcptBudgetView.committed,
+        OcptBudgetView.regie,
+        OcptBudgetView.sharing,
+      ]) {
+        final tr = await pumpHeader(tester, view: view);
+        expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsNothing, reason: "$view");
+      }
     });
   });
 
@@ -273,34 +233,26 @@ void main() {
       expect(reported, isFalse);
     });
 
-    testWidgets("offered at expenses's own top level", (tester) async {
+    testWidgets("offered on the cost report, the cash journal and the committed spending", (
+      tester,
+    ) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(tester);
-
-      expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
+      for (final view in [
+        OcptBudgetView.costTracking,
+        OcptBudgetView.cashJournal,
+        OcptBudgetView.committed,
+      ]) {
+        final tr = await pumpHeader(tester, view: view);
+        expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget, reason: "$view");
+      }
     });
 
-    testWidgets("offered on the committed-spending sub-page", (tester) async {
+    testWidgets("withheld — never disabled — on financing, régie and sharing", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.committedSpending);
-
-      expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
-    });
-
-    testWidgets("withheld on the régie sub-page", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.regie);
-
-      expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing);
-    });
-
-    testWidgets("withheld on resources and sharing", (tester) async {
-      useWideWindow(tester);
-      var tr = await pumpHeader(tester, document: OcptBudgetDocument.resources);
-      expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing);
-
-      tr = await pumpHeader(tester, document: OcptBudgetDocument.sharing);
-      expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing);
+      for (final view in [OcptBudgetView.financing, OcptBudgetView.regie, OcptBudgetView.sharing]) {
+        final tr = await pumpHeader(tester, view: view);
+        expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing, reason: "$view");
+      }
     });
   });
 
@@ -315,7 +267,7 @@ void main() {
       lines: [],
     );
 
-    testWidgets("offered at expenses's own top level, reading Every poste while unfiltered", (
+    testWidgets("offered at the cost report, reading Every poste while unfiltered", (
       tester,
     ) async {
       useWideWindow(tester);
@@ -347,152 +299,64 @@ void main() {
       expect(reported, isNull);
     });
 
-    testWidgets("offered on the committed-spending sub-page", (tester) async {
+    testWidgets("offered on the committed spending too", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(
-        tester,
-        postes: [poste],
-        subPage: OcptBudgetSubPage.committedSpending,
-      );
+      final tr = await pumpHeader(tester, postes: [poste], view: OcptBudgetView.committed);
 
       expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
     });
 
-    testWidgets("withheld outright — never captioned — on a route with no poste dimension", (
+    testWidgets("withheld outright — never captioned — on financing, régie and sharing", (
       tester,
     ) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(
-        tester,
-        postes: [poste],
-        subPage: OcptBudgetSubPage.regie,
-      );
-
-      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing);
-      expect(find.text("Interpretation"), findsNothing);
-    });
-
-    testWidgets("withheld on resources and sharing", (tester) async {
-      useWideWindow(tester);
-      var tr = await pumpHeader(tester, postes: [poste], document: OcptBudgetDocument.resources);
-      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing);
-
-      tr = await pumpHeader(tester, postes: [poste], document: OcptBudgetDocument.sharing);
-      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing);
+      for (final view in [OcptBudgetView.financing, OcptBudgetView.regie, OcptBudgetView.sharing]) {
+        final tr = await pumpHeader(tester, postes: [poste], view: view);
+        expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing, reason: "$view");
+        expect(find.text("Interpretation"), findsNothing, reason: "$view");
+      }
     });
   });
 
-  group("the breadcrumb", () {
-    testWidgets("shows the document alone at its own top level", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, document: OcptBudgetDocument.resources);
+  testWidgets("no breadcrumb and no sub-page menu is drawn anywhere", (tester) async {
+    useWideWindow(tester);
+    for (final view in OcptBudgetView.values) {
+      await pumpHeader(tester, view: view);
 
-      expect(find.text(tr.budgetHeaderDocumentResourcesSegmentLabel), findsWidgets);
-      expect(find.text("›"), findsNothing);
-    });
-
-    testWidgets("shows the document then the sub-page inside one", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.regie);
-
-      expect(find.text("›"), findsOneWidget);
-      expect(find.text(tr.budgetHeaderRegieSegmentLabel), findsWidgets);
-    });
-
-    testWidgets("clicking the document ancestor reports it, to return to the top level", (
-      tester,
-    ) async {
-      useWideWindow(tester);
-      OcptBudgetDocument? reported;
-      await pumpHeader(
-        tester,
-        subPage: OcptBudgetSubPage.regie,
-        onDocumentSelected: (document) => reported = document,
-      );
-
-      // Scoped to the breadcrumb's own ancestor by key: the document switch also draws an
-      // `Expenses` chip, already active and so tapping it alone would report nothing.
-      await tester.tap(find.byKey(const Key("ocptBudgetBreadcrumbAncestor")));
-
-      expect(reported, OcptBudgetDocument.expenses);
-    });
-  });
-
-  group("the breadcrumb's own sub-page menu", () {
-    testWidgets("offered on expenses, reaches a sub-page from the top level", (tester) async {
-      useWideWindow(tester);
-      OcptBudgetSubPage? reported;
-      final tr = await pumpHeader(
-        tester,
-        onSubPageSelected: (subPage) => reported = subPage,
-      );
-
-      await tester.tap(find.byKey(const Key("ocptBudgetSubPageMenuButton")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.budgetHeaderRegieSegmentLabel).last);
-      await tester.pumpAndSettle();
-
-      expect(reported, OcptBudgetSubPage.regie);
-    });
-
-    testWidgets("reaches a sibling sub-page directly, with no walk back through the top level", (
-      tester,
-    ) async {
-      useWideWindow(tester);
-      OcptBudgetSubPage? reported;
-      final tr = await pumpHeader(
-        tester,
-        subPage: OcptBudgetSubPage.regie,
-        onSubPageSelected: (subPage) => reported = subPage,
-      );
-
-      await tester.tap(find.byKey(const Key("ocptBudgetSubPageMenuButton")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.budgetCommittedSectionTitle).last);
-      await tester.pumpAndSettle();
-
-      expect(reported, OcptBudgetSubPage.committedSpending);
-    });
-
-    testWidgets("withheld on resources and sharing", (tester) async {
-      useWideWindow(tester);
-      await pumpHeader(tester, document: OcptBudgetDocument.resources);
-
-      expect(find.byKey(const Key("ocptBudgetSubPageMenuButton")), findsNothing);
-    });
+      expect(find.byKey(const Key("ocptBudgetBreadcrumbAncestor")), findsNothing, reason: "$view");
+      expect(find.byKey(const Key("ocptBudgetSubPageMenuButton")), findsNothing, reason: "$view");
+      expect(find.text("›"), findsNothing, reason: "$view");
+    }
   });
 
   group("the title and subtitle", () {
-    testWidgets("name the route on screen, not the mode", (tester) async {
+    testWidgets("name the view on screen, not the mode", (tester) async {
       useWideWindow(tester);
 
       var tr = await pumpHeader(tester);
       expect(find.text(tr.budgetHeaderTitle), findsOneWidget);
       expect(find.text(tr.budgetHeaderSubtitle), findsOneWidget);
 
-      tr = await pumpHeader(tester, reading: OcptBudgetDocumentReading.byDate);
+      tr = await pumpHeader(tester, view: OcptBudgetView.cashJournal);
       expect(find.text(tr.budgetHeaderCashJournalTitle), findsOneWidget);
       expect(find.text(tr.budgetHeaderCashJournalSubtitle), findsOneWidget);
 
-      tr = await pumpHeader(tester, document: OcptBudgetDocument.resources);
-      expect(find.text(tr.budgetHeaderResourcesTitle), findsOneWidget);
-      expect(find.text(tr.budgetHeaderFinancingSubtitle), findsOneWidget);
-
-      tr = await pumpHeader(tester, document: OcptBudgetDocument.sharing);
-      expect(find.text(tr.budgetHeaderSharingTitle), findsOneWidget);
-      expect(find.text(tr.budgetHeaderSharingSubtitle), findsOneWidget);
-    });
-
-    testWidgets("follow the sub-page while inside one", (tester) async {
-      useWideWindow(tester);
-
-      var tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.committedSpending);
+      tr = await pumpHeader(tester, view: OcptBudgetView.committed);
       expect(find.text(tr.budgetCommittedSectionTitle), findsWidgets);
       expect(find.text(tr.budgetHeaderCommittedSubtitle), findsOneWidget);
 
-      tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.regie);
+      tr = await pumpHeader(tester, view: OcptBudgetView.financing);
+      expect(find.text(tr.budgetHeaderResourcesTitle), findsOneWidget);
+      expect(find.text(tr.budgetHeaderFinancingSubtitle), findsOneWidget);
+
+      tr = await pumpHeader(tester, view: OcptBudgetView.regie);
       expect(find.text(tr.budgetHeaderRegieTitle), findsWidgets);
       expect(find.text(tr.budgetHeaderRegieSubtitle), findsOneWidget);
+
+      // The chip and the title happen to read the same word here, exactly as they do for régie.
+      tr = await pumpHeader(tester, view: OcptBudgetView.sharing);
+      expect(find.text(tr.budgetHeaderSharingTitle), findsWidgets);
+      expect(find.text(tr.budgetHeaderSharingSubtitle), findsOneWidget);
     });
   });
 
@@ -563,11 +427,11 @@ void main() {
       expect(wasCalled, isTrue);
     });
 
-    testWidgets("drawn whatever document is on screen — a whole-project fact", (tester) async {
+    testWidgets("drawn whatever view is on screen — a whole-project fact", (tester) async {
       useWideWindow(tester);
       final tr = await pumpHeader(
         tester,
-        document: OcptBudgetDocument.sharing,
+        view: OcptBudgetView.sharing,
         alerts: const [
           OcptBudgetCashProjectionNegativeAlert(
             balanceCents: 500,
@@ -583,10 +447,24 @@ void main() {
   });
 
   group("the cash-projection card", () {
-    testWidgets("drawn on expenses while at least one commitment is unsettled", (tester) async {
+    testWidgets("drawn on the cost report while at least one commitment is unsettled", (
+      tester,
+    ) async {
       useWideWindow(tester);
       await pumpHeader(
         tester,
+        commitments: [_commitment(id: "c1")],
+        cashBalanceCents: 5000,
+      );
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsOneWidget);
+    });
+
+    testWidgets("drawn on the cash journal too", (tester) async {
+      useWideWindow(tester);
+      await pumpHeader(
+        tester,
+        view: OcptBudgetView.cashJournal,
         commitments: [_commitment(id: "c1")],
         cashBalanceCents: 5000,
       );
@@ -612,43 +490,29 @@ void main() {
       expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
     });
 
-    testWidgets("withheld on resources and sharing, even with an unsettled commitment", (
-      tester,
-    ) async {
+    testWidgets("withheld on financing, committed, régie and sharing, even with an unsettled "
+        "commitment", (tester) async {
       useWideWindow(tester);
-      await pumpHeader(
-        tester,
-        document: OcptBudgetDocument.resources,
-        commitments: [_commitment(id: "c1")],
-      );
-      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
-
-      await pumpHeader(
-        tester,
-        document: OcptBudgetDocument.sharing,
-        commitments: [_commitment(id: "c1")],
-      );
-      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
-    });
-
-    testWidgets("withheld on a sub-page of expenses, even with an unsettled commitment", (
-      tester,
-    ) async {
-      useWideWindow(tester);
-      await pumpHeader(
-        tester,
-        subPage: OcptBudgetSubPage.committedSpending,
-        commitments: [_commitment(id: "c1")],
-      );
-
-      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
+      for (final view in [
+        OcptBudgetView.financing,
+        OcptBudgetView.committed,
+        OcptBudgetView.regie,
+        OcptBudgetView.sharing,
+      ]) {
+        await pumpHeader(tester, view: view, commitments: [_commitment(id: "c1")]);
+        expect(
+          find.byKey(const Key("ocptBudgetCashProjectionToggle")),
+          findsNothing,
+          reason: "$view",
+        );
+      }
     });
   });
 
-  // The narrow-window case (title and subtitle shed, the breadcrumb and the controls kept) is
+  // The narrow-window case (title and subtitle shed, the controls kept) is
   // `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth` threshold, argued in its class doc
-  // comment; the two tests above assert what survives it rather than the threshold itself, since
-  // `flutter_test`'s own substituted test font renders these short labels far wider than any real
-  // one does, which would make the threshold's own safety margin — comfortable against a real
+  // comment; the wide-window tests above assert what survives it rather than the threshold itself,
+  // since `flutter_test`'s own substituted test font renders these short labels far wider than any
+  // real one does, which would make the threshold's own safety margin — comfortable against a real
   // font — read as flaky here.
 }

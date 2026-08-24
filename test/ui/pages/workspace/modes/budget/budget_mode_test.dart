@@ -99,10 +99,10 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Taps the header's own control (a chip, a reading segment, a breadcrumb ancestor…) labelled
-  /// [label], scoped to `OcptBudgetHeader` — the help panel's own map, and a route's own title,
-  /// often reuse the very same words for its cells, so a plain `find.text` is ambiguous whenever
-  /// the Help tab is open beside the header.
+  /// Taps the header's own control (a view chip, a switch segment…) labelled [label], scoped to
+  /// `OcptBudgetHeader` — the help panel's own map, and a view's own title, often reuse the very
+  /// same words for its cells, so a plain `find.text` is ambiguous whenever the Help tab is open
+  /// beside the header.
   Future<void> tapHeaderChip(WidgetTester tester, String label) async {
     await tester.tap(
       find.descendant(of: find.byType(OcptBudgetHeader), matching: find.text(label)).first,
@@ -110,75 +110,40 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Returns to the current document's own top level: the breadcrumb's own ancestor when standing
-  /// on one of its sub-pages, a no-op otherwise — an unambiguous alternative to tapping the
-  /// document switch's own chip by its text, which reads the same word and, while already active,
-  /// takes no click at all.
-  Future<void> returnToDocumentTopLevel(WidgetTester tester) async {
-    final ancestor = find.byKey(const Key("ocptBudgetBreadcrumbAncestor"));
-    if (ancestor.evaluate().isEmpty) {
-      return;
-    }
-
-    await tester.tap(ancestor.first);
-    await tester.pumpAndSettle();
-  }
-
-  /// Switches to document [label] via the header's own chip, first returning to whichever
-  /// document is currently on screen's own top level — the chip reads active, and so takes no
-  /// click, the moment a sub-page has already returned there itself.
-  Future<void> openDocument(WidgetTester tester, String label) async {
-    await returnToDocumentTopLevel(tester);
-    await tapHeaderChip(tester, label);
-  }
-
-  /// Opens the header's own breadcrumb sub-page menu and picks the entry labelled [label] —
-  /// `OcptBudgetHeader`'s own way in to a sub-page of expenses, reachable from wherever expenses
-  /// is already on screen. The menu is offered on expenses alone, so this switches to it first
-  /// whichever document was on screen.
-  Future<void> openSubPage(WidgetTester tester, String label) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openDocument(tester, tr.budgetHeaderDocumentExpensesSegmentLabel);
-
-    await tester.tap(find.byKey(const Key("ocptBudgetSubPageMenuButton")).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(label).last);
-    await tester.pumpAndSettle();
-  }
-
-  /// Switches the centre to the cost-tracking table, the mode's own default view and whose own
-  /// table this test suite exercises most — the header's own reading switch, always offered on
-  /// expenses whatever sub-page (if any) is on screen, and the way back to the top level from one.
+  /// Switches the centre to the cost-tracking table, the mode's own default view.
   Future<void> openCostTracking(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await returnToDocumentTopLevel(tester);
-    await tapHeaderChip(tester, tr.budgetHeaderReadingByTreeSegmentLabel);
+    await tapHeaderChip(tester, tr.budgetHeaderCostTrackingSegmentLabel);
   }
 
-  /// Switches the centre to the régie view, through the breadcrumb's own sub-page menu.
+  /// Switches the centre to the régie view.
   Future<void> openRegie(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openSubPage(tester, tr.budgetHeaderRegieSegmentLabel);
+    await tapHeaderChip(tester, tr.budgetHeaderRegieSegmentLabel);
   }
 
   /// Switches the centre to the cash journal view.
   Future<void> openCashJournal(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderReadingByDateSegmentLabel);
+    await tapHeaderChip(tester, tr.budgetHeaderCashJournalSegmentLabel);
   }
 
-  /// Switches the centre to the committed-spending view, through the breadcrumb's own sub-page
-  /// menu — the financing plan and the committed spending no longer share one chip, each now
-  /// living in its own document/sub-page.
+  /// Switches the centre to the committed-spending view.
   Future<void> openCommitted(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openSubPage(tester, tr.budgetCommittedSectionTitle);
+    await tapHeaderChip(tester, tr.budgetHeaderCommittedSegmentLabel);
   }
 
-  /// Switches the centre to the financing view — the header's own `Resources` document chip.
+  /// Switches the centre to the financing view.
   Future<void> openFinancing(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderDocumentResourcesSegmentLabel);
+    await tapHeaderChip(tester, tr.budgetHeaderFinancingSegmentLabel);
+  }
+
+  /// Switches the centre to the revenue-sharing view.
+  Future<void> openSharing(WidgetTester tester) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tapHeaderChip(tester, tr.budgetHeaderSharingSegmentLabel);
   }
 
   /// A finder scoped to the export panel's own `AlertDialog`, so its card titles can't collide
@@ -923,27 +888,28 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
-      // The mode opens on expenses's own top level, where the capture band already shows —
+      // The mode opens on the cost report, where the capture band already shows —
       // `openCostTracking` is a no-op here, kept for clarity.
       await openCostTracking(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
 
-      // Its own byDate reading is still the same document's own top level.
+      // The cash journal is the very same document, read in a different order.
       await openCashJournal(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
 
-      // Resources.
+      // Financing.
       await openFinancing(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
 
       // Sharing carries no capture band at all.
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-      await tapHeaderChip(tester, tr.budgetHeaderDocumentSharingSegmentLabel);
+      await openSharing(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsNothing);
     },
   );
 
-  testWidgets("the capture band is withheld on every sub-page of expenses", (tester) async {
+  testWidgets("the capture band is withheld on the committed spending and the régie", (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1750, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -958,8 +924,8 @@ void main() {
     await openRegie(tester);
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
-    // Back at the document's own top level, it returns.
-    await returnToDocumentTopLevel(tester);
+    // Back on the cost report, it returns.
+    await openCostTracking(tester);
     expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
   });
 

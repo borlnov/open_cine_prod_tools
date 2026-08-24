@@ -314,7 +314,7 @@ void main() {
       );
       expect(withSelection.selectedPosteId, "poste-1");
 
-      final stillSelected = withSelection.copyWith(document: withSelection.document);
+      final stillSelected = withSelection.copyWith(view: withSelection.view);
       expect(stillSelected.selectedPosteId, "poste-1");
 
       final cleared = withSelection.copyWith(clearSelection: true);
@@ -627,7 +627,7 @@ void main() {
       );
       expect(withSelection.selectedResourceId, "resource-1");
 
-      final stillSelected = withSelection.copyWith(document: withSelection.document);
+      final stillSelected = withSelection.copyWith(view: withSelection.view);
       expect(stillSelected.selectedResourceId, "resource-1");
 
       final cleared = withSelection.copyWith(clearSelection: true);

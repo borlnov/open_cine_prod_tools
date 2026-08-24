@@ -30,7 +30,6 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
@@ -38,6 +37,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -524,15 +524,15 @@ void main() {
         (state) => state.pendingFieldEdits[(lineId, OcptBudgetField.lineUnitAmount)] == "12.50",
       );
 
-      // Switching document, well inside the debounce window, must write it rather than wait it out.
-      bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.resources));
+      // Switching view, well inside the debounce window, must write it rather than wait it out.
+      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.financing));
 
       // The flush emits the cleared edits first and reloads the snapshot after, so the state worth
       // waiting for is the one that carries the written figure, not merely an empty pending map.
       final switched = await waitForState(
         bloc,
         (state) =>
-            state.document == OcptBudgetDocument.resources &&
+            state.view == OcptBudgetView.financing &&
             state.postes
                     .firstWhere((poste) => poste.id == posteId)
                     .lines
@@ -575,6 +575,40 @@ void main() {
 
       final line = flushed.postes.firstWhere((poste) => poste.id == posteId).lines.single;
       expect(line.unitPrice.amountCents, storedBefore);
+    });
+  });
+
+  group("selecting a view", () {
+    test("writes the view alone, leaving every other route-adjacent field untouched", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc
+        ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
+        ..add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId))
+        ..add(OcptBudgetRowExpansionToggledEvent(nodeId: posteId))
+        ..add(const OcptBudgetSimplifiedToggledEvent(isSimplified: true))
+        ..add(const OcptBudgetTaxBasisChangedEvent(basis: OcptBudgetTaxBasis.excludingTax));
+      await waitForState(
+        bloc,
+        (state) =>
+            state.selectedPosteId == posteId &&
+            state.filterPosteId == posteId &&
+            state.expandedNodeIds.contains(posteId) &&
+            state.isSimplified &&
+            state.taxBasis == OcptBudgetTaxBasis.excludingTax,
+      );
+
+      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.financing));
+      final switched = await waitForState(bloc, (state) => state.view == OcptBudgetView.financing);
+
+      expect(switched.selectedPosteId, posteId);
+      expect(switched.filterPosteId, posteId);
+      expect(switched.expandedNodeIds, contains(posteId));
+      expect(switched.isSimplified, isTrue);
+      expect(switched.taxBasis, OcptBudgetTaxBasis.excludingTax);
     });
   });
 
