@@ -374,6 +374,11 @@ void main() {
       await tester.pumpAndSettle();
       await openFinancing(tester);
 
+      // The resource sits under its own `Contributions` family row, which opens on the family's
+      // own twisty — the only family drawn here, this cash resource being the only live one.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
+      await tester.pumpAndSettle();
+
       await tester.tap(find.byIcon(Icons.more_vert).first);
       await tester.pumpAndSettle();
 
@@ -767,6 +772,50 @@ void main() {
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
     expect(find.text(tr.budgetHelpMapIntro), findsNothing);
   });
+
+  testWidgets(
+    "selecting a resource or a taking in the resources tree opens the Inspector tab",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final resourceId = await projectsManager.budgetFinancingService.createResource(
+        database: project.database,
+        label: "Regional grant",
+      );
+      final revenueId = await projectsManager.budgetSharingService.createRevenue(
+        database: project.database,
+        date: DateTime(2026, 3),
+        label: "Festival prize",
+      );
+      expect(resourceId, isNotNull);
+      expect(revenueId, isNotNull);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      await openFinancing(tester);
+
+      // The subsidy sits under its own family's twisty, the taking under the `Takings` one.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_right).last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text("Regional grant"));
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
+      expect(find.text("Regional grant"), findsWidgets);
+
+      await tester.tap(find.text("Festival prize"));
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
+      expect(find.text("Festival prize"), findsWidgets);
+    },
+  );
 
   testWidgets("the help panel follows the centre view, with no extra click", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);

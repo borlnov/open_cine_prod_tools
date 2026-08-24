@@ -2,103 +2,131 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
-/// The `Status` column's own fixed width, in logical pixels — matches
-/// `OcptBudgetCommittedSpending`'s own status column.
-const double _ocptFinancingStatusColumnWidth = 132;
+/// The `Dossier` column's own fixed width, in logical pixels — matches
+/// `OcptBudgetCostTracking`'s own status-shaped columns.
+const double _ocptResourcesDossierColumnWidth = 132;
 
-/// The `Amount`, `Received` and `Outstanding` columns' own fixed width, in logical pixels.
-const double _ocptFinancingAmountColumnWidth = 108;
+/// The `Promis`, `Rentré` and `Reste à venir` columns' own fixed width, in logical pixels.
+const double _ocptResourcesAmountColumnWidth = 108;
 
 /// The trailing `⋮` menu column's own fixed width, in logical pixels — matches every other table
 /// of this mode's own menu column.
-const double _ocptFinancingMenuColumnWidth = 36;
+const double _ocptResourcesMenuColumnWidth = 36;
 
-/// The budget mode's financing view: a KPI row across the top, then the plan itself, one bordered
-/// card per `OcptBudgetResourceGroupKind`, in enum order.
+/// The narrowest the `Ressource` column is ever drawn, in logical pixels — past this, the table
+/// scrolls sideways inside its own frame rather than crushing a resource's or a taking's own name,
+/// mirroring `OcptBudgetCostTracking`'s own `_ocptCostTrackingPosteColumnMinWidth`.
+const double _ocptResourcesRessourceColumnMinWidth = 220;
+
+/// The narrowest the whole table is ever drawn at, in logical pixels — every fixed column's own
+/// width plus [_ocptResourcesRessourceColumnMinWidth] and the row's own 24 px inset
+/// (`ocptTableRowHorizontalPadding`, symmetric). Mirrors `OcptBudgetCashJournal`'s own
+/// `_ocptCashJournalMinTableWidth`, and "The journal scrolls rather than losing a column" in
+/// `docs/architecture/budget.md`.
+const double _ocptResourcesMinTableWidth =
+    _ocptResourcesDossierColumnWidth +
+    3 * _ocptResourcesAmountColumnWidth +
+    _ocptResourcesMenuColumnWidth +
+    _ocptResourcesRessourceColumnMinWidth +
+    2 * ocptTableRowHorizontalPadding;
+
+/// A family, a resource or a revenue row's own fixed height, in logical pixels.
+const double _ocptResourcesRowHeight = 44;
+
+/// A receipt sub-row's own fixed height, in logical pixels — one step shorter than
+/// [_ocptResourcesRowHeight], mirroring `OcptBudgetCostTracking`'s own
+/// `_ocptCostTrackingSubRowHeight`.
+const double _ocptResourcesReceiptRowHeight = 32;
+
+/// The header row's own fixed height, in logical pixels.
+const double _ocptResourcesHeaderRowHeight = 36;
+
+/// The total row's own fixed height, in logical pixels — tall enough for the `Dossier` column's
+/// own two-line valued caption.
+const double _ocptResourcesTotalRowHeight = 44;
+
+/// How far a row indents for every step of tree depth, in logical pixels — a resource or a taking
+/// sits one step in from its own family, a receipt two, mirroring
+/// `OcptBudgetCostTracking`'s own `_ocptCostTrackingIndentStep`.
+const double _ocptResourcesIndentStep = 16;
+
+/// The twisty's own fixed width, in logical pixels, whether it draws an arrow or sits blank.
+const double _ocptResourcesTwistyWidth = 20;
+
+/// A receipt sub-row's own leading dot, in logical pixels.
+const double _ocptResourcesDotDiameter = 8;
+
+/// The two-tone coverage bar's own height, in logical pixels.
+const double _ocptResourcesCoverageBarHeight = 8;
+
+/// The budget mode's resources document: a nesting tree — three family rows (subsidies,
+/// contributions, takings), each opening onto its own resources or takings, each of those opening
+/// onto the receipts that name it — a total row, a creation footer and, under everything, the
+/// coverage band answering whether the plan covers the film.
 ///
-/// **Creating a resource is three explicit gestures, one per `OcptBudgetResourceGroupKind`, not
-/// one.** The product owner's own words motivate the split: *"Ajouter une caméra qui est valorisée
-/// n'est pas la même chose que d'ajouter du vrai argent qui va servir à la production pour acheter à
-/// manger"* — a valuation and real money are not the same gesture, even though both end up as a row
-/// of the same table. `_OcptFinancingKpiRow`'s own `+ Resource` control is a `MenuAnchor` anchored
-/// on one button, offering the three kinds by name (`Subvention`/`Apport en numéraire`/`Apport en
-/// nature`) — chosen over three separate buttons, which the row has no width to spare for beside its
-/// three KPIs, and over a `Wrap` of `MenuItemButton`s, which throws the moment a `MenuAnchor` hands
-/// one an unbounded width (`AGENTS.md`'s own known pitfall). Picking one calls
-/// [onResourceCreationRequested] with the kind picked, and `OcptBudgetResourceDialog` opens on it
-/// already set, stated in the dialog's own title — see that dialog's own class doc comment for how
-/// the form itself is worded once the kind is known. The kind stays editable on an existing
-/// resource, exactly as it is today.
+/// **The tree is flattened once, top to bottom, into [_buildRows]' own list**, mirroring
+/// `OcptBudgetCostTracking._buildRows`'s own reading exactly: a family row draws whenever it holds
+/// at least one resource or taking, its own children draw only while its id — `.name`, since a
+/// family mints no id of its own — sits in [expandedNodeIds]; a resource's or a revenue's own
+/// receipts draw only while *its* id sits there too, and only once it holds at least one.
 ///
-/// **A row's own selection ([onResourceSelected]) opens the right dock's polymorphic fiche
-/// (`OcptBudgetFiche`) on it**, exactly as a poste's or a quote line's own row already does —
-/// `OcptBudgetState.selectedResourceId`, read and written exactly as `selectedPosteId` already is.
-/// A resource's own fields stay read and written through `OcptBudgetResourceDialog`, reached from
-/// the row's own `⋮` menu or from the fiche's own `Edit` action: the fiche never edits a field
-/// directly, unlike the poste's or the quote line's own.
+/// **Three explicit creation gestures fold into one family reading.** `OcptBudgetResourceGroupKind`
+/// still answers *how* a `budget_resources` row was created — a subsidy, a cash contribution, an
+/// in-kind one — exactly as it always has; `OcptBudgetResourceFamily` answers *which card a row
+/// draws in*, merging cash and in-kind together the way the mock's own `Apports` card does. Neither
+/// table nor dialog ever reads the family: it is a display grouping alone.
 ///
-/// **The one row kind with a branch: an in-kind resource with no entry naming it.** A contribution
-/// in kind is *valued*, not collected — equipment lent free of charge, work donated, a lab pass
-/// given — so "how much of it has arrived" is not a question with an answer for as long as nothing
-/// has actually moved against it, exactly the silence `docs/architecture/budget.md`'s own "What the
-/// mode still does not show" already keeps for a poste's own `Consumed` column carrying no quote at
-/// all: a figure that cannot exist, not one that merely happens to be absent. The moment an entry
-/// does name such a resource — the production actually logs the loan, say, once it is returned or
-/// valued for real — `OcptBudgetSnapshot.receivedByResourceId` carries a key for it and the real
-/// figures print instead: this app never hides a movement that actually happened. No other row kind
-/// reads either column any differently, [receivedCentsOf] (the ordinary `?? 0` reading
-/// `OcptBudgetState.receivedCentsOf` already gives every other row) being enough for a subsidy or a
-/// cash contribution, which are real money either already in the account or genuinely still not.
+/// **Money.** A row's own `Promis` is its `amountCents`. `Rentré` is null for an in-kind resource no
+/// entry has ever named — "An in-kind contribution is valued, not collected"
+/// (`docs/architecture/budget.md`) — and the honest received figure for every other row, in-kind
+/// included the moment an entry does name it. `Reste à venir` is `amount − received`, null wherever
+/// `Rentré` is, drawn in the error colour when negative. A family's own three figures are the sum of
+/// its rows' own: `Promis` always known, `Rentré`/`Reste à venir` summing only the rows whose own
+/// figure is known and reading null only when **every** row's own is — never a family with one
+/// unentered in-kind resource losing the whole family's own honest figure to it.
 ///
-/// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
+/// **A composite panel** (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and withholds — never disables — every one of its own
-/// writing affordances under it: the `+ Resource` action and a row's own `⋮` menu entries
-/// (`Edit`/`Record a receipt`/`Undo the last receipt`/`Delete`).
-///
-/// **One column header, above every group card, rather than one per card.** The five columns
-/// (`Label`, `Status`, `Amount`, `Received`, `Outstanding`) read identically whichever group a row
-/// sits in, so naming them once, in [_OcptFinancingColumnHeaderRow], is what
-/// `OcptBudgetCostTracking`'s own header row already does for a table with one pinned pane rather
-/// than several bordered cards; repeating the same five words inside every card, above a group
-/// heading that already names the card itself, would be noise a reader has to skip past group after
-/// group. It sits between the KPI row and the list of cards, aligned to a row's own five columns by
-/// sharing their exact widths.
-///
-/// **`Record a receipt` is withheld — never disabled — once a resource is fully received
-/// (`received >= amount`), and on any in-kind resource at all, entered or not.** A contribution in
-/// kind is valued rather than collected (see "An in-kind contribution is valued, not collected" in
-/// `docs/architecture/budget.md`), so no cash will ever move for it and the gesture that records a
-/// cash movement has nothing to offer here; a resource whose received total already meets its own
-/// amount has nothing left to receive either, though a **partially** received one keeps offering
-/// it — the ordinary case of several instalments landing against the one resource. **`Undo the last
-/// receipt`** is the way back a mis-click into `Record a receipt` used to have none of: offered the
-/// moment a resource has received anything at all, it tombstones the most recently recorded live
-/// `budget_entries` credit naming that resource — `ocptBudgetLatestReceiptEntryIdOf`
-/// (`lib/utils/ocpt_budget_financing.dart`) resolves which one, and the mode alone dispatches the
-/// very same `OcptBudgetEntryDeletionConfirmedEvent` the cash journal's own `Delete` already uses,
-/// through `OcptConfirmDialog` first: deleting a journal entry is irreversible, exactly the dialog's
-/// own case.
-///
-/// Empty states, both mirroring the mode's own established readings: a group holding no resource of
-/// its own draws no card at all — an empty bordered card stating a zero subtotal says nothing a
-/// reader needs — and a project holding no resource whatsoever shows [OcptWorkspaceEmptyMode]
-/// **where the plan would be, under a KPI row that stays drawn**, `OcptBudgetCashJournal`'s own
-/// reading and for its own reason: `+ Resource` lives in that row, and a plan nobody has started is
-/// precisely the moment somebody reaches for it.
+/// writing affordances: the creation footer and a resource's or a revenue's own `⋮` menu.
 class OcptBudgetFinancing extends StatelessWidget {
   /// Every live resource, in `sortKey` order.
   final List<OcptBudgetResource> resources;
+
+  /// Every live taking, in `sortKey` order.
+  final List<OcptBudgetRevenue> revenues;
+
+  /// Every live journal entry of the project, in chronological order — narrowed, row by row, to the
+  /// live credits naming the one resource or revenue each receipt sub-row draws.
+  final List<OcptBudgetEntry> entries;
+
+  /// Every live poste of the quote, lines included — read only for [_needsOf]'s own total, the
+  /// coverage band's own `needs` figure.
+  final List<OcptBudgetPoste> postes;
+
+  /// The project's default VAT rate, in basis points, or null while nobody has recorded one — read
+  /// only for [_needsOf]'s own total.
+  final int? defaultVatRateBasisPoints;
 
   /// What has actually come in against each resource, keyed by its own id — read raw, rather than
   /// through [receivedCentsOf], for the one reading that needs to tell "no entry names this
@@ -110,22 +138,32 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// an in-kind one carrying no entry at all, which reads [receivedByResourceId] instead.
   final int Function(String resourceId) receivedCentsOf;
 
+  /// What has actually come in against each taking, keyed by its own id — read raw: a taking's own
+  /// "no entry names it" reads null directly off this map, with no `?? 0` reading of its own.
+  final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
+
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// The id of the currently selected resource, or null while none is.
-  final String? selectedResourceId;
+  /// What is currently selected for the right dock's own fiche, or null while none is.
+  final OcptBudgetSelection? selection;
+
+  /// Which nodes of the resources tree are currently expanded — an `OcptBudgetResourceFamily`'s own
+  /// `name`, a resource id or a revenue id, see `OcptBudgetState.expandedNodeIds`'s own doc comment.
+  final Set<String> expandedNodeIds;
 
   /// Whether the mode shows a project version being previewed read-only — see the class doc
   /// comment.
   final bool isReadOnly;
 
-  /// Called with the kind picked when the KPI row's own `+ Resource` menu asks to create a fresh
-  /// resource, or null while [isReadOnly] — see the class doc comment for why this is a choice of
-  /// kind now, rather than one gesture opening one form for all three.
+  /// Called with a family's, a resource's or a revenue's own node id when its twisty is clicked.
+  final ValueChanged<String> onNodeExpansionToggled;
+
+  /// Called with the kind picked when the creation footer's own menu asks to create a fresh
+  /// resource, or null while [isReadOnly].
   final ValueChanged<OcptBudgetResourceGroupKind>? onResourceCreationRequested;
 
-  /// Called with a resource's id when its row is clicked — selects it, and only that.
+  /// Called with a resource's id when its row is clicked — selects it and opens the fiche.
   final ValueChanged<String> onResourceSelected;
 
   /// Called with a resource when its row's own `⋮` menu asks to edit it, or null while
@@ -140,9 +178,7 @@ class OcptBudgetFinancing extends StatelessWidget {
   final ValueChanged<OcptBudgetResource>? onResourceReceiptRequested;
 
   /// Called with a resource when its row's own `⋮` menu asks to undo the most recent receipt
-  /// against it, or null while [isReadOnly]. The mode resolves which `budget_entries` credit that
-  /// is and answers through `OcptConfirmDialog` before dispatching its deletion — see the class doc
-  /// comment.
+  /// against it, or null while [isReadOnly].
   ///
   /// The row itself further withholds the menu entry that calls this until the resource has
   /// actually received something.
@@ -152,306 +188,503 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onResourceDeletionRequested;
 
+  /// Called when the creation footer's own menu asks to create a fresh taking, or null while
+  /// [isReadOnly].
+  final VoidCallback? onRevenueCreationRequested;
+
+  /// Called with a revenue's id when its row is clicked — selects it and opens the fiche.
+  final ValueChanged<String> onRevenueSelected;
+
+  /// Called with a revenue when its row's own `⋮` menu asks to edit it, or null while [isReadOnly].
+  /// Opens `OcptBudgetRevenueDialog` on it.
+  final ValueChanged<OcptBudgetRevenue>? onRevenueEditRequested;
+
+  /// Called with a revenue when its row's own `⋮` menu asks to record a receipt against it, or null
+  /// while [isReadOnly]. Opens `OcptBudgetEntryDialog` pre-filled from it, as a credit.
+  final ValueChanged<OcptBudgetRevenue>? onRevenueReceiptRequested;
+
+  /// Called with a revenue's id and a direction when its row's own `⋮` menu asks to move it, or
+  /// null while [isReadOnly]. Withheld at its own end of the takings family.
+  final void Function(String revenueId, {required bool moveUp})? onRevenueReorderRequested;
+
+  /// Called with a revenue's id when its row's own `⋮` menu asks to delete it, or null while
+  /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
+  final ValueChanged<String>? onRevenueDeletionRequested;
+
+  /// Called with a receipt's own entry id when its sub-row is clicked — selects it and opens the
+  /// fiche on it as a receipt.
+  final ValueChanged<String> onReceiptSelected;
+
+  /// Called when the coverage band's own action is clicked, returning to the expenses document.
+  final VoidCallback onExpensesRequested;
+
   /// Class constructor
   const OcptBudgetFinancing({
     super.key,
     required this.resources,
+    required this.revenues,
+    required this.entries,
+    required this.postes,
+    required this.defaultVatRateBasisPoints,
     required this.receivedByResourceId,
     required this.receivedCentsOf,
+    required this.receivedByRevenueId,
     required this.currencyCode,
-    required this.selectedResourceId,
+    required this.selection,
+    required this.expandedNodeIds,
     required this.isReadOnly,
+    required this.onNodeExpansionToggled,
     required this.onResourceCreationRequested,
     required this.onResourceSelected,
     required this.onResourceEditRequested,
     required this.onResourceReceiptRequested,
     required this.onResourceReceiptUndoRequested,
     required this.onResourceDeletionRequested,
+    required this.onRevenueCreationRequested,
+    required this.onRevenueSelected,
+    required this.onRevenueEditRequested,
+    required this.onRevenueReceiptRequested,
+    required this.onRevenueReorderRequested,
+    required this.onRevenueDeletionRequested,
+    required this.onReceiptSelected,
+    required this.onExpensesRequested,
   });
 
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
+    final isEmpty = resources.isEmpty && revenues.isEmpty;
+    final rows = isEmpty ? const <_OcptResourcesTreeRow>[] : _buildRows();
+    final grandTotal = _familyAggregatesOf(resources, revenues);
+    final drawnFamilyCount = OcptBudgetResourceFamily.values
+        .where((family) => _familyResources(family).isNotEmpty || _familyRevenues(family).isNotEmpty)
+        .length;
+    final hasInKind = resources.any((resource) => resource.groupKind == OcptBudgetResourceGroupKind.inKind);
+    final valuedCents = resources.fold(
+      0,
+      (sum, resource) =>
+          sum + (resource.groupKind == OcptBudgetResourceGroupKind.inKind ? resource.amountCents : 0),
+    );
+    final showFooter = !isReadOnly && (onResourceCreationRequested != null || onRevenueCreationRequested != null);
+    final needs = _needsOf();
+    final coverage = ocptBudgetResourcesCoverageOf(
+      needs: needs,
+      resources: resources,
+      revenues: revenues,
+      receivedByResourceId: receivedByResourceId,
+      receivedByRevenueId: receivedByRevenueId,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _OcptFinancingKpiRow(
-          resources: resources,
-          receivedCentsOf: receivedCentsOf,
-          currencyCode: currencyCode,
-          onResourceCreationRequested: isReadOnly ? null : onResourceCreationRequested,
-        ),
-        const SizedBox(height: 16),
         Expanded(
-          child: resources.isEmpty
-              ? OcptWorkspaceEmptyMode(icon: Icons.savings_outlined, message: tr.budgetFinancingEmptyHint)
-              : Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: math.max(constraints.maxWidth, _ocptResourcesMinTableWidth),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _OcptFinancingColumnHeaderRow(),
-                    const SizedBox(height: 4),
+                    const _OcptResourcesHeaderRow(),
                     Expanded(
-                      child: ListView(
-                        children: [
-                          for (final groupKind in OcptBudgetResourceGroupKind.values)
-                            _buildGroupCard(context, groupKind),
-                        ],
-                      ),
+                      child: isEmpty
+                          ? OcptWorkspaceEmptyMode(
+                              icon: Icons.savings_outlined,
+                              message: tr.budgetFinancingEmptyHint,
+                            )
+                          : ListView(children: [for (final row in rows) _rowOf(row)]),
                     ),
+                    if (!isEmpty)
+                      _OcptResourcesTotalRow(
+                        familyCount: drawnFamilyCount,
+                        aggregates: grandTotal,
+                        currencyCode: currencyCode,
+                        hasInKind: hasInKind,
+                        valuedCents: valuedCents,
+                      ),
                   ],
                 ),
-        ),
-      ],
-    );
-  }
-
-  /// The bordered card for [groupKind], or an empty widget while it holds no resource — see the
-  /// class doc comment for why a group with nothing in it draws no card at all.
-  Widget _buildGroupCard(BuildContext context, OcptBudgetResourceGroupKind groupKind) {
-    final groupResources = [for (final resource in resources) if (resource.groupKind == groupKind) resource];
-    if (groupResources.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-    final subtotalCents = groupResources.fold(0, (sum, resource) => sum + resource.amountCents);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    ocptBudgetResourceGroupKindLabel(tr, groupKind),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Text(
-                  ocptBudgetAmountLabel(subtotalCents, currencyCode),
-                  style: theme.textTheme.titleSmall,
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
-            for (final resource in groupResources)
-              _OcptFinancingResourceRow(
-                resource: resource,
-                receivedByResourceId: receivedByResourceId,
-                receivedCentsOf: receivedCentsOf,
-                currencyCode: currencyCode,
-                isSelected: resource.id == selectedResourceId,
-                onTap: () => onResourceSelected(resource.id),
-                onEditRequested: isReadOnly || onResourceEditRequested == null
-                    ? null
-                    : () => onResourceEditRequested?.call(resource),
-                onReceiptRequested: isReadOnly || onResourceReceiptRequested == null
-                    ? null
-                    : () => onResourceReceiptRequested?.call(resource),
-                onReceiptUndoRequested: isReadOnly || onResourceReceiptUndoRequested == null
-                    ? null
-                    : () => onResourceReceiptUndoRequested?.call(resource),
-                onDeletionRequested: isReadOnly || onResourceDeletionRequested == null
-                    ? null
-                    : () => onResourceDeletionRequested?.call(resource.id),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The top KPI row: `Total resources`, `Cash` (subsidy and cash combined, with what has come in and
-/// what is still to come underneath), `In-kind contributions` (in the accent colour, with a fixed
-/// hint underneath rather than a figure of its own kind), then `+ Resource`.
-class _OcptFinancingKpiRow extends StatelessWidget {
-  /// See [OcptBudgetFinancing]'s own fields of the same name.
-  final List<OcptBudgetResource> resources;
-  final int Function(String resourceId) receivedCentsOf;
-  final String currencyCode;
-  final ValueChanged<OcptBudgetResourceGroupKind>? onResourceCreationRequested;
-
-  /// Class constructor
-  const _OcptFinancingKpiRow({
-    required this.resources,
-    required this.receivedCentsOf,
-    required this.currencyCode,
-    required this.onResourceCreationRequested,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-    final totalCents = ocptBudgetResourcesTotalCents(resources);
-    final byGroupKind = ocptBudgetResourcesTotalByGroupKind(resources);
-    final inKindCents = byGroupKind[OcptBudgetResourceGroupKind.inKind] ?? 0;
-
-    final cashResources = [
-      for (final resource in resources)
-        if (resource.groupKind != OcptBudgetResourceGroupKind.inKind) resource,
-    ];
-    final cashAmountCents =
-        (byGroupKind[OcptBudgetResourceGroupKind.subsidy] ?? 0) +
-        (byGroupKind[OcptBudgetResourceGroupKind.cash] ?? 0);
-    final cashReceivedCents = cashResources.fold(
-      0,
-      (sum, resource) => sum + receivedCentsOf(resource.id),
-    );
-    final cashOutstandingCents = ocptBudgetResourceOutstandingCents(
-      amountCents: cashAmountCents,
-      receivedCents: cashReceivedCents,
-    );
-
-    // The three figures ride a `Wrap` inside an `Expanded`, exactly as `OcptBudgetDashboard`'s own
-    // KPI row does, rather than a plain `Row` whose only give was a `Spacer`. Each figure carries a
-    // caption as long as the words it states, so three of them plus the button outgrew any centre
-    // pane under roughly 1,120 px — the right dock opening is enough — and a `Row` clips silently
-    // in release rather than overflowing loudly. The button stays outside the `Wrap` so it keeps
-    // its place at the right whatever the figures do.
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Wrap(
-            spacing: 32,
-            runSpacing: 12,
-            children: [
-              _OcptFinancingKpi(
-                label: tr.budgetFinancingTotalResourcesLabel,
-                value: ocptBudgetAmountLabel(totalCents, currencyCode),
-              ),
-              _OcptFinancingKpi(
-                label: tr.budgetFinancingCashLabel,
-                value: ocptBudgetAmountLabel(cashAmountCents, currencyCode),
-                caption: tr.budgetFinancingCashCaption(
-                  ocptBudgetAmountLabel(cashReceivedCents, currencyCode),
-                  ocptBudgetAmountLabel(cashOutstandingCents, currencyCode),
-                ),
-              ),
-              _OcptFinancingKpi(
-                label: tr.budgetFinancingInKindLabel,
-                value: ocptBudgetAmountLabel(inKindCents, currencyCode),
-                valueColor: theme.colorScheme.primary,
-                caption: tr.budgetFinancingInKindHint,
-              ),
-            ],
           ),
         ),
-        if (onResourceCreationRequested != null) ...[
-          const SizedBox(width: 16),
-          _OcptAddResourceButton(onGroupKindPicked: onResourceCreationRequested!),
+        if (showFooter)
+          _OcptResourcesCreationFooter(
+            onResourceKindPicked: isReadOnly ? null : onResourceCreationRequested,
+            onRevenuePicked: isReadOnly ? null : onRevenueCreationRequested,
+          ),
+        if (needs.amountCents > 0) ...[
+          const SizedBox(height: 16),
+          _OcptResourcesCoverageBand(
+            coverage: coverage,
+            currencyCode: currencyCode,
+            onExpensesRequested: onExpensesRequested,
+          ),
         ],
       ],
     );
   }
-}
 
-/// The KPI row's own `+ Resource` control: a `MenuAnchor`/`MenuItemButton` menu offering the three
-/// `OcptBudgetResourceGroupKind` values by name, anchored on one `FilledButton` — see
-/// [OcptBudgetFinancing]'s own class doc comment for why three explicit gestures rather than one
-/// form. Built exactly the way `OcptResourcesMode`'s own `_OcptAddRoleButton`/`_OcptAddElementButton`
-/// are (`lib/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart`), so picking
-/// an entry closes the menu for free.
-class _OcptAddResourceButton extends StatelessWidget {
-  /// Called with the kind picked.
-  final ValueChanged<OcptBudgetResourceGroupKind> onGroupKindPicked;
-
-  /// Class constructor
-  const _OcptAddResourceButton({required this.onGroupKindPicked});
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-
-    return MenuAnchor(
-      menuChildren: [
-        MenuItemButton(
-          onPressed: () => onGroupKindPicked(OcptBudgetResourceGroupKind.subsidy),
-          child: Text(tr.budgetFinancingAddSubsidyAction),
-        ),
-        MenuItemButton(
-          onPressed: () => onGroupKindPicked(OcptBudgetResourceGroupKind.cash),
-          child: Text(tr.budgetFinancingAddCashAction),
-        ),
-        MenuItemButton(
-          onPressed: () => onGroupKindPicked(OcptBudgetResourceGroupKind.inKind),
-          child: Text(tr.budgetFinancingAddInKindAction),
-        ),
-      ],
-      builder: (context, controller, child) => FilledButton.icon(
-        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
-        icon: const Icon(Icons.add, size: 16),
-        label: Text(tr.budgetFinancingCreationAction),
-      ),
+  /// The quote's own total, read **tax-inclusive always** — money coming in is always read
+  /// tax-inclusive (`docs/architecture/budget.md`'s "Money that has moved is read tax-inclusive,
+  /// always"), and this document carries no tax-basis switch of its own to read a different basis
+  /// from, mirroring `OcptBudgetDashboard`'s own balance bar.
+  OcptBudgetCoveredTotal _needsOf() {
+    final allLines = [for (final poste in postes) ...poste.lines];
+    return ocptBudgetTotalOf(
+      allLines,
+      basis: OcptBudgetTaxBasis.includingTax,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
   }
-}
 
-/// One KPI of [_OcptFinancingKpiRow]: a muted label, a value (in [valueColor] while given), and an
-/// optional muted caption underneath.
-class _OcptFinancingKpi extends StatelessWidget {
-  /// The KPI's own label.
-  final String label;
+  /// [resources]' own rows belonging to [family] — subsidies stay their own, cash and in-kind fold
+  /// into contributions, takings holds none (a revenue carries no group kind at all).
+  List<OcptBudgetResource> _familyResources(OcptBudgetResourceFamily family) =>
+      family == OcptBudgetResourceFamily.takings
+          ? const []
+          : [for (final resource in resources) if (OcptBudgetResourceFamily.of(resource.groupKind) == family) resource];
 
-  /// The KPI's own value.
-  final String value;
+  /// [revenues], for [OcptBudgetResourceFamily.takings] alone.
+  List<OcptBudgetRevenue> _familyRevenues(OcptBudgetResourceFamily family) =>
+      family == OcptBudgetResourceFamily.takings ? revenues : const [];
 
-  /// [value]'s own colour, or null for the ordinary body colour.
-  final Color? valueColor;
+  /// The whole tree, flattened top to bottom into one list — see the class doc comment.
+  List<_OcptResourcesTreeRow> _buildRows() {
+    final rows = <_OcptResourcesTreeRow>[];
 
-  /// A muted caption under [value], or null for a KPI with nothing further to say.
-  final String? caption;
+    for (final family in OcptBudgetResourceFamily.values) {
+      final familyResources = _familyResources(family);
+      final familyRevenues = _familyRevenues(family);
+      if (familyResources.isEmpty && familyRevenues.isEmpty) {
+        continue;
+      }
 
-  /// Class constructor
-  const _OcptFinancingKpi({required this.label, required this.value, this.valueColor, this.caption});
+      final aggregates = _familyAggregatesOf(familyResources, familyRevenues);
+      final isExpanded = expandedNodeIds.contains(family.name);
+      rows.add(_OcptFamilyTreeRow(family: family, aggregates: aggregates, isExpanded: isExpanded));
+      if (!isExpanded) {
+        continue;
+      }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final caption = this.caption;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 2),
-        Text(value, style: theme.textTheme.titleMedium?.copyWith(color: valueColor)),
-        if (caption != null)
-          Text(
-            caption,
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      for (final resource in familyResources) {
+        final receipts = _receiptsOfResource(resource.id);
+        final isRowExpanded = receipts.isNotEmpty && expandedNodeIds.contains(resource.id);
+        rows.add(
+          _OcptResourceTreeRow(
+            resource: resource,
+            figures: _resourceFigures(resource),
+            isExpandable: receipts.isNotEmpty,
+            isExpanded: isRowExpanded,
           ),
-      ],
+        );
+        if (isRowExpanded) {
+          for (final receipt in receipts) {
+            rows.add(_OcptReceiptTreeRow(entry: receipt));
+          }
+        }
+      }
+
+      for (final revenue in familyRevenues) {
+        final receipts = _receiptsOfRevenue(revenue.id);
+        final isRowExpanded = receipts.isNotEmpty && expandedNodeIds.contains(revenue.id);
+        rows.add(
+          _OcptRevenueTreeRow(
+            revenue: revenue,
+            figures: _revenueFigures(revenue),
+            isExpandable: receipts.isNotEmpty,
+            isExpanded: isRowExpanded,
+          ),
+        );
+        if (isRowExpanded) {
+          for (final receipt in receipts) {
+            rows.add(_OcptReceiptTreeRow(entry: receipt));
+          }
+        }
+      }
+    }
+
+    return rows;
+  }
+
+  /// Every live credit naming [resourceId], in the chronological order [entries] is already loaded
+  /// in — the receipts a resource's own twisty reveals.
+  List<OcptBudgetEntry> _receiptsOfResource(String resourceId) => [
+    for (final entry in entries) if (entry.resourceId == resourceId && entry.creditCents > 0) entry,
+  ];
+
+  /// Every live credit naming [revenueId] — mirrors [_receiptsOfResource].
+  List<OcptBudgetEntry> _receiptsOfRevenue(String revenueId) => [
+    for (final entry in entries) if (entry.revenueId == revenueId && entry.creditCents > 0) entry,
+  ];
+
+  /// [resource]'s own `Promis`/`Rentré`/`Reste à venir` — see the class doc comment for the
+  /// in-kind reading.
+  _OcptRowFigures _resourceFigures(OcptBudgetResource resource) {
+    final isUnentriedInKind =
+        resource.groupKind == OcptBudgetResourceGroupKind.inKind &&
+        !receivedByResourceId.containsKey(resource.id);
+    final receivedCents = isUnentriedInKind ? null : receivedCentsOf(resource.id);
+    final outstandingCents = receivedCents == null
+        ? null
+        : ocptBudgetResourceOutstandingCents(amountCents: resource.amountCents, receivedCents: receivedCents);
+
+    return _OcptRowFigures(
+      promisedCents: resource.amountCents,
+      receivedCents: receivedCents,
+      outstandingCents: outstandingCents,
     );
   }
+
+  /// [revenue]'s own `Promis`/`Rentré`/`Reste à venir` — a taking's own "no entry names it" reads
+  /// null directly off [receivedByRevenueId], with no group-kind branch of its own.
+  _OcptRowFigures _revenueFigures(OcptBudgetRevenue revenue) {
+    final receivedCents = receivedByRevenueId[revenue.id]?.amountCents;
+    final outstandingCents = receivedCents == null
+        ? null
+        : ocptBudgetResourceOutstandingCents(amountCents: revenue.amountCents, receivedCents: receivedCents);
+
+    return _OcptRowFigures(
+      promisedCents: revenue.amountCents,
+      receivedCents: receivedCents,
+      outstandingCents: outstandingCents,
+    );
+  }
+
+  /// Folds every one of [familyResources]' and [familyRevenues]' own figures into one triple — see
+  /// the class doc comment for the "known rows only" rule [Rentré]/[Reste à venir] follow. Also used
+  /// with the *whole* project's own resources and revenues for the grand total row.
+  _OcptRowFigures _familyAggregatesOf(
+    List<OcptBudgetResource> familyResources,
+    List<OcptBudgetRevenue> familyRevenues,
+  ) {
+    var promisedCents = 0;
+    var receivedCents = 0;
+    var outstandingCents = 0;
+    var anyKnown = false;
+
+    for (final resource in familyResources) {
+      final figures = _resourceFigures(resource);
+      promisedCents += figures.promisedCents;
+      if (figures.receivedCents != null) {
+        anyKnown = true;
+        receivedCents += figures.receivedCents!;
+        outstandingCents += figures.outstandingCents!;
+      }
+    }
+    for (final revenue in familyRevenues) {
+      final figures = _revenueFigures(revenue);
+      promisedCents += figures.promisedCents;
+      if (figures.receivedCents != null) {
+        anyKnown = true;
+        receivedCents += figures.receivedCents!;
+        outstandingCents += figures.outstandingCents!;
+      }
+    }
+
+    return _OcptRowFigures(
+      promisedCents: promisedCents,
+      receivedCents: anyKnown ? receivedCents : null,
+      outstandingCents: anyKnown ? outstandingCents : null,
+    );
+  }
+
+  /// Builds the widget for one flattened [row].
+  Widget _rowOf(_OcptResourcesTreeRow row) => switch (row) {
+    _OcptFamilyTreeRow() => _OcptResourcesFamilyRow(
+      family: row.family,
+      aggregates: row.aggregates,
+      currencyCode: currencyCode,
+      isExpanded: row.isExpanded,
+      onTwistyTap: () => onNodeExpansionToggled(row.family.name),
+    ),
+    _OcptResourceTreeRow() => _OcptResourcesResourceRow(
+      resource: row.resource,
+      figures: row.figures,
+      currencyCode: currencyCode,
+      isSelected: _isResourceSelected(row.resource.id),
+      isExpandable: row.isExpandable,
+      isExpanded: row.isExpanded,
+      onTwistyTap: () => onNodeExpansionToggled(row.resource.id),
+      onTap: () => onResourceSelected(row.resource.id),
+      onEditRequested: isReadOnly || onResourceEditRequested == null
+          ? null
+          : () => onResourceEditRequested?.call(row.resource),
+      onReceiptRequested: isReadOnly || onResourceReceiptRequested == null || !_canOfferReceipt(row.resource, row.figures)
+          ? null
+          : () => onResourceReceiptRequested?.call(row.resource),
+      onReceiptUndoRequested: isReadOnly || onResourceReceiptUndoRequested == null || !(row.figures.receivedCents != null && row.figures.receivedCents! > 0)
+          ? null
+          : () => onResourceReceiptUndoRequested?.call(row.resource),
+      onDeletionRequested: isReadOnly || onResourceDeletionRequested == null
+          ? null
+          : () => onResourceDeletionRequested?.call(row.resource.id),
+    ),
+    _OcptRevenueTreeRow() => _OcptResourcesRevenueRow(
+      revenue: row.revenue,
+      figures: row.figures,
+      currencyCode: currencyCode,
+      isSelected: _isRevenueSelected(row.revenue.id),
+      isExpandable: row.isExpandable,
+      isExpanded: row.isExpanded,
+      onTwistyTap: () => onNodeExpansionToggled(row.revenue.id),
+      onTap: () => onRevenueSelected(row.revenue.id),
+      onEditRequested: isReadOnly || onRevenueEditRequested == null
+          ? null
+          : () => onRevenueEditRequested?.call(row.revenue),
+      onReceiptRequested: isReadOnly || onRevenueReceiptRequested == null
+          ? null
+          : () => onRevenueReceiptRequested?.call(row.revenue),
+      onMoveUpRequested: isReadOnly || onRevenueReorderRequested == null || _isFirstRevenue(row.revenue.id)
+          ? null
+          : () => onRevenueReorderRequested?.call(row.revenue.id, moveUp: true),
+      onMoveDownRequested: isReadOnly || onRevenueReorderRequested == null || _isLastRevenue(row.revenue.id)
+          ? null
+          : () => onRevenueReorderRequested?.call(row.revenue.id, moveUp: false),
+      onDeletionRequested: isReadOnly || onRevenueDeletionRequested == null
+          ? null
+          : () => onRevenueDeletionRequested?.call(row.revenue.id),
+    ),
+    _OcptReceiptTreeRow() => _OcptResourcesReceiptRow(
+      entry: row.entry,
+      currencyCode: currencyCode,
+      isSelected: _isReceiptSelected(row.entry.id),
+      onTap: () => onReceiptSelected(row.entry.id),
+    ),
+  };
+
+  /// `Record a receipt` has nothing left to offer on an in-kind resource (valued, never collected)
+  /// or on one that has already received at least its own amount — see the class doc comment.
+  bool _canOfferReceipt(OcptBudgetResource resource, _OcptRowFigures figures) =>
+      resource.groupKind != OcptBudgetResourceGroupKind.inKind &&
+      (figures.receivedCents ?? 0) < resource.amountCents;
+
+  /// Whether resource [resourceId] is the currently selected one.
+  bool _isResourceSelected(String resourceId) {
+    final selection = this.selection;
+    return selection is OcptBudgetResourceSelection && selection.resourceId == resourceId;
+  }
+
+  /// Whether revenue [revenueId] is the currently selected one.
+  bool _isRevenueSelected(String revenueId) {
+    final selection = this.selection;
+    return selection is OcptBudgetRevenueSelection && selection.revenueId == revenueId;
+  }
+
+  /// Whether receipt (journal entry) [receiptId] is the currently selected one.
+  bool _isReceiptSelected(String receiptId) {
+    final selection = this.selection;
+    return selection is OcptBudgetReceiptSelection && selection.receiptId == receiptId;
+  }
+
+  /// Whether [revenueId] is the first taking of the whole project — `Move up` withheld there.
+  bool _isFirstRevenue(String revenueId) => revenues.isNotEmpty && revenues.first.id == revenueId;
+
+  /// Whether [revenueId] is the last taking of the whole project — `Move down` withheld there.
+  bool _isLastRevenue(String revenueId) => revenues.isNotEmpty && revenues.last.id == revenueId;
 }
 
-/// The column header naming a resource row's own five columns — `Label`, `Status`, `Amount`,
-/// `Received`, `Outstanding` — sitting once above every group card, `OcptBudgetCostTracking`'s own
-/// header row read over `OcptBudgetFinancing`'s own layout: a plain [Row] rather than that table's
-/// two independently scrolling panes, since a resource row is never pinned or scrolled apart from
-/// its own figures. Its own widths mirror [_OcptFinancingResourceRow]'s own cells exactly, so a
-/// column lines up with its own heading whichever group card sits beneath it — see
-/// [OcptBudgetFinancing]'s own class doc comment for why one header rather than one per card.
-class _OcptFinancingColumnHeaderRow extends StatelessWidget {
+/// One resource's, one revenue's or one family's own `Promis`/`Rentré`/`Reste à venir`, in cents —
+/// [receivedCents]/[outstandingCents] null wherever the figure cannot be read, see
+/// `OcptBudgetFinancing`'s own class doc comment.
+class _OcptRowFigures {
+  /// This row's own promised amount — always known.
+  final int promisedCents;
+
+  /// This row's own received amount, or null while it cannot be read.
+  final int? receivedCents;
+
+  /// This row's own outstanding amount, or null alongside [receivedCents].
+  final int? outstandingCents;
+
   /// Class constructor
-  const _OcptFinancingColumnHeaderRow();
+  const _OcptRowFigures({required this.promisedCents, required this.receivedCents, required this.outstandingCents});
+}
+
+/// One flattened row of the resources tree — see `OcptBudgetFinancing._buildRows`'s own doc
+/// comment.
+sealed class _OcptResourcesTreeRow {
+  const _OcptResourcesTreeRow();
+}
+
+/// A family row — the tree's own top level.
+class _OcptFamilyTreeRow extends _OcptResourcesTreeRow {
+  /// The family this row draws.
+  final OcptBudgetResourceFamily family;
+
+  /// This family's own three aggregate figures.
+  final _OcptRowFigures aggregates;
+
+  /// Whether this family is currently expanded.
+  final bool isExpanded;
+
+  /// Class constructor
+  const _OcptFamilyTreeRow({required this.family, required this.aggregates, required this.isExpanded});
+}
+
+/// A resource row — one step under its own family.
+class _OcptResourceTreeRow extends _OcptResourcesTreeRow {
+  /// The resource this row draws.
+  final OcptBudgetResource resource;
+
+  /// This resource's own figures.
+  final _OcptRowFigures figures;
+
+  /// Whether this resource has at least one receipt to expand onto.
+  final bool isExpandable;
+
+  /// Whether this resource is currently expanded.
+  final bool isExpanded;
+
+  /// Class constructor
+  const _OcptResourceTreeRow({
+    required this.resource,
+    required this.figures,
+    required this.isExpandable,
+    required this.isExpanded,
+  });
+}
+
+/// A revenue row — one step under the takings family, mirrors [_OcptResourceTreeRow].
+class _OcptRevenueTreeRow extends _OcptResourcesTreeRow {
+  /// The revenue this row draws.
+  final OcptBudgetRevenue revenue;
+
+  /// This revenue's own figures.
+  final _OcptRowFigures figures;
+
+  /// Whether this revenue has at least one receipt to expand onto.
+  final bool isExpandable;
+
+  /// Whether this revenue is currently expanded.
+  final bool isExpanded;
+
+  /// Class constructor
+  const _OcptRevenueTreeRow({
+    required this.revenue,
+    required this.figures,
+    required this.isExpandable,
+    required this.isExpanded,
+  });
+}
+
+/// A receipt sub-row — two steps under its own family, drawn only while its parent resource or
+/// revenue is expanded.
+class _OcptReceiptTreeRow extends _OcptResourcesTreeRow {
+  /// The journal entry this row draws.
+  final OcptBudgetEntry entry;
+
+  /// Class constructor
+  const _OcptReceiptTreeRow({required this.entry});
+}
+
+/// The column header row: `Ressource` · `Dossier` · `Promis` · `Rentré` · `Reste à venir`, then a
+/// blank cell over the `⋮` menu column.
+class _OcptResourcesHeaderRow extends StatelessWidget {
+  /// Class constructor
+  const _OcptResourcesHeaderRow();
 
   @override
   Widget build(BuildContext context) {
@@ -466,50 +699,171 @@ class _OcptFinancingColumnHeaderRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          ocptTableRowHorizontalPadding,
-          0,
-          ocptTableRowHorizontalPadding,
-          6,
+      child: SizedBox(
+        height: _ocptResourcesHeaderRowHeight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+          child: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(tr.budgetFinancingColumnLabel.toUpperCase(), style: labelStyle),
+                ),
+              ),
+              SizedBox(
+                width: _ocptResourcesDossierColumnWidth,
+                child: Text(tr.budgetFinancingColumnDossier.toUpperCase(), style: labelStyle),
+              ),
+              _amountHeaderCell(tr.budgetFinancingColumnAmount, labelStyle),
+              _amountHeaderCell(tr.budgetFinancingColumnReceived, labelStyle),
+              _amountHeaderCell(tr.budgetFinancingColumnOutstanding, labelStyle),
+              const SizedBox(width: _ocptResourcesMenuColumnWidth),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  /// One amount column's own header cell, right-aligned like the figures underneath it.
+  Widget _amountHeaderCell(String label, TextStyle? style) => SizedBox(
+    width: _ocptResourcesAmountColumnWidth,
+    child: Text(
+      label.toUpperCase(),
+      textAlign: TextAlign.right,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    ),
+  );
+}
+
+/// The twisty every family, resource and revenue row draws — an arrow while [isExpandable],
+/// nothing but its own reserved width otherwise, so a row with nothing to expand still lines its
+/// own label up with a sibling that does.
+class _OcptResourcesTwisty extends StatelessWidget {
+  /// Whether this row has anything at all to expand onto.
+  final bool isExpandable;
+
+  /// Whether this row is currently expanded.
+  final bool isExpanded;
+
+  /// Called when this twisty is clicked, or null while [isExpandable] is false.
+  final VoidCallback? onTap;
+
+  /// Class constructor
+  const _OcptResourcesTwisty({required this.isExpandable, required this.isExpanded, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isExpandable) {
+      return const SizedBox(width: _ocptResourcesTwistyWidth);
+    }
+
+    return SizedBox(
+      width: _ocptResourcesTwistyWidth,
+      height: _ocptResourcesTwistyWidth,
+      child: InkWell(
+        onTap: onTap,
+        mouseCursor: ocptClickableCursor,
+        borderRadius: BorderRadius.circular(_ocptResourcesTwistyWidth / 2),
+        child: Icon(
+          isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+          size: 18,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [cents] is null, blank
+/// while [showBlank] (a receipt sub-row's own untouched columns), and the given amount otherwise.
+Widget _ocptResourcesAmountCell(
+  BuildContext context,
+  int? cents,
+  String currencyCode, {
+  bool showBlank = false,
+  TextStyle? style,
+}) {
+  final theme = Theme.of(context);
+  final isNegative = cents != null && cents < 0;
+  final baseStyle = style ?? theme.textTheme.bodySmall;
+
+  return SizedBox(
+    width: _ocptResourcesAmountColumnWidth,
+    child: Text(
+      showBlank ? "" : (cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode)),
+      textAlign: TextAlign.right,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: baseStyle?.copyWith(
+        color: isNegative ? theme.colorScheme.error : null,
+        fontWeight: isNegative ? FontWeight.w600 : null,
+      ),
+    ),
+  );
+}
+
+/// A family row: bold, a twisty, the three money aggregates, no `Dossier` cell and no menu.
+class _OcptResourcesFamilyRow extends StatelessWidget {
+  /// The family this row shows.
+  final OcptBudgetResourceFamily family;
+
+  /// This family's own three aggregate figures.
+  final _OcptRowFigures aggregates;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Whether this family is currently expanded.
+  final bool isExpanded;
+
+  /// Called when this row's own twisty is clicked.
+  final VoidCallback onTwistyTap;
+
+  /// Class constructor
+  const _OcptResourcesFamilyRow({
+    required this.family,
+    required this.aggregates,
+    required this.currencyCode,
+    required this.isExpanded,
+    required this.onTwistyTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final boldStyle = theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700);
+
+    return SizedBox(
+      height: _ocptResourcesRowHeight,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
         child: Row(
           children: [
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Text(tr.budgetFinancingColumnLabel.toUpperCase(), style: labelStyle),
+              child: Row(
+                children: [
+                  _OcptResourcesTwisty(isExpandable: true, isExpanded: isExpanded, onTap: onTwistyTap),
+                  Expanded(
+                    child: Text(
+                      ocptBudgetResourceFamilyLabel(tr, family),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: boldStyle,
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(
-              width: _ocptFinancingStatusColumnWidth,
-              child: Text(tr.budgetFinancingColumnStatus.toUpperCase(), style: labelStyle),
-            ),
-            SizedBox(
-              width: _ocptFinancingAmountColumnWidth,
-              child: Text(
-                tr.budgetFinancingColumnAmount.toUpperCase(),
-                textAlign: TextAlign.right,
-                style: labelStyle,
-              ),
-            ),
-            SizedBox(
-              width: _ocptFinancingAmountColumnWidth,
-              child: Text(
-                tr.budgetFinancingColumnReceived.toUpperCase(),
-                textAlign: TextAlign.right,
-                style: labelStyle,
-              ),
-            ),
-            SizedBox(
-              width: _ocptFinancingAmountColumnWidth,
-              child: Text(
-                tr.budgetFinancingColumnOutstanding.toUpperCase(),
-                textAlign: TextAlign.right,
-                style: labelStyle,
-              ),
-            ),
-            const SizedBox(width: _ocptFinancingMenuColumnWidth),
+            const SizedBox(width: _ocptResourcesDossierColumnWidth),
+            _ocptResourcesAmountCell(context, aggregates.promisedCents, currencyCode, style: boldStyle),
+            _ocptResourcesAmountCell(context, aggregates.receivedCents, currencyCode, style: boldStyle),
+            _ocptResourcesAmountCell(context, aggregates.outstandingCents, currencyCode, style: boldStyle),
+            const SizedBox(width: _ocptResourcesMenuColumnWidth),
           ],
         ),
       ),
@@ -517,50 +871,57 @@ class _OcptFinancingColumnHeaderRow extends StatelessWidget {
   }
 }
 
-/// One resource row: the label with its notes underneath, a status pill, the amount, what has been
-/// received and what is still to come, then its own `⋮` menu.
-class _OcptFinancingResourceRow extends StatelessWidget {
+/// One resource row: the label with its notes underneath, the `Dossier` badge, the three money
+/// cells, then its own `⋮` menu — see `OcptBudgetFinancing`'s own class doc comment for the money
+/// rules and the menu's own withholding rules.
+class _OcptResourcesResourceRow extends StatelessWidget {
   /// The resource this row draws.
   final OcptBudgetResource resource;
 
-  /// See [OcptBudgetFinancing]'s own fields of the same name.
-  final Map<String, OcptBudgetCoveredTotal> receivedByResourceId;
-  final int Function(String resourceId) receivedCentsOf;
+  /// This resource's own figures.
+  final _OcptRowFigures figures;
+
+  /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
   /// Whether this resource is the currently selected one.
   final bool isSelected;
 
-  /// Called when this row is clicked — selects it, and only that.
+  /// Whether this resource has at least one receipt to expand onto.
+  final bool isExpandable;
+
+  /// Whether this resource is currently expanded.
+  final bool isExpanded;
+
+  /// Called when this row's own twisty is clicked, or null while [isExpandable] is false.
+  final VoidCallback? onTwistyTap;
+
+  /// Called when this row is clicked.
   final VoidCallback onTap;
 
   /// Called when this row's own `⋮` menu asks to edit it, or null while withheld.
   final VoidCallback? onEditRequested;
 
   /// Called when this row's own `⋮` menu asks to record a receipt against it, or null while
-  /// withheld under a read-only preview.
-  ///
-  /// Withheld here too — the menu entry simply isn't drawn — once the resource is fully received
-  /// or is an in-kind one: see [OcptBudgetFinancing]'s own class doc comment.
+  /// withheld.
   final VoidCallback? onReceiptRequested;
 
   /// Called when this row's own `⋮` menu asks to undo the most recent receipt against it, or null
-  /// while withheld under a read-only preview.
-  ///
-  /// Withheld here too — the menu entry simply isn't drawn — until the resource has actually
-  /// received something: see [OcptBudgetFinancing]'s own class doc comment.
+  /// while withheld.
   final VoidCallback? onReceiptUndoRequested;
 
   /// Called when this row's own `⋮` menu asks to delete it, or null while withheld.
   final VoidCallback? onDeletionRequested;
 
   /// Class constructor
-  const _OcptFinancingResourceRow({
+  const _OcptResourcesResourceRow({
     required this.resource,
-    required this.receivedByResourceId,
-    required this.receivedCentsOf,
+    required this.figures,
     required this.currencyCode,
     required this.isSelected,
+    required this.isExpandable,
+    required this.isExpanded,
+    required this.onTwistyTap,
     required this.onTap,
     required this.onEditRequested,
     required this.onReceiptRequested,
@@ -572,35 +933,10 @@ class _OcptFinancingResourceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-
-    // An in-kind resource no entry has ever named reads em-dash on both columns — see
-    // `OcptBudgetFinancing`'s own class doc comment for why. Every other row, in-kind included once
-    // an entry does name it, reads the ordinary honest-zero figures.
-    final isUnentriedInKind =
-        resource.groupKind == OcptBudgetResourceGroupKind.inKind &&
-        !receivedByResourceId.containsKey(resource.id);
-
-    final receivedCents = isUnentriedInKind ? null : receivedCentsOf(resource.id);
-    final outstandingCents = receivedCents == null
-        ? null
-        : ocptBudgetResourceOutstandingCents(amountCents: resource.amountCents, receivedCents: receivedCents);
-    final isOutstandingNegative = outstandingCents != null && outstandingCents < 0;
-
-    // `Record a receipt` has nothing left to offer on an in-kind resource (valued, never
-    // collected) or on one that has already received at least its own amount — see
-    // `OcptBudgetFinancing`'s own class doc comment for both readings.
-    final canOfferReceipt =
-        resource.groupKind != OcptBudgetResourceGroupKind.inKind && (receivedCents ?? 0) < resource.amountCents;
-    final effectiveOnReceiptRequested = canOfferReceipt ? onReceiptRequested : null;
-
-    // `Undo the last receipt` only makes sense once the resource has actually received something.
-    final hasReceivedSomething = receivedCents != null && receivedCents > 0;
-    final effectiveOnReceiptUndoRequested = hasReceivedSomething ? onReceiptUndoRequested : null;
-
     final hasMenu =
         onEditRequested != null ||
-        effectiveOnReceiptRequested != null ||
-        effectiveOnReceiptUndoRequested != null ||
+        onReceiptRequested != null ||
+        onReceiptUndoRequested != null ||
         onDeletionRequested != null;
 
     return InkWell(
@@ -608,118 +944,504 @@ class _OcptFinancingResourceRow extends StatelessWidget {
       mouseCursor: ocptClickableCursor,
       child: ColoredBox(
         color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 8,
-            horizontal: ocptTableRowHorizontalPadding,
+        child: SizedBox(
+          height: _ocptResourcesRowHeight,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: _ocptResourcesIndentStep, right: 8),
+                    child: Row(
+                      children: [
+                        _OcptResourcesTwisty(
+                          isExpandable: isExpandable,
+                          isExpanded: isExpanded,
+                          onTap: onTwistyTap,
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              if (resource.notes.isNotEmpty)
+                                Text(
+                                  resource.notes,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: _ocptResourcesDossierColumnWidth,
+                  child: _OcptResourcesResourceStatusPill(groupKind: resource.groupKind, status: resource.status),
+                ),
+                _ocptResourcesAmountCell(context, figures.promisedCents, currencyCode),
+                _ocptResourcesAmountCell(context, figures.receivedCents, currencyCode),
+                _ocptResourcesAmountCell(context, figures.outstandingCents, currencyCode),
+                SizedBox(
+                  width: _ocptResourcesMenuColumnWidth,
+                  child: !hasMenu
+                      ? null
+                      : PopupMenuButton<String>(
+                          tooltip: "",
+                          icon: const Icon(Icons.more_vert, size: 18),
+                          onSelected: (value) => switch (value) {
+                            "edit" => onEditRequested?.call(),
+                            "receipt" => onReceiptRequested?.call(),
+                            "receiptUndo" => onReceiptUndoRequested?.call(),
+                            "delete" => onDeletionRequested?.call(),
+                            _ => null,
+                          },
+                          itemBuilder: (context) => [
+                            if (onEditRequested != null)
+                              PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
+                            if (onReceiptRequested != null)
+                              PopupMenuItem<String>(
+                                value: "receipt",
+                                child: Text(tr.budgetFinancingRecordReceiptAction),
+                              ),
+                            if (onReceiptUndoRequested != null)
+                              PopupMenuItem<String>(
+                                value: "receiptUndo",
+                                child: Text(tr.budgetFinancingUndoReceiptAction),
+                              ),
+                            if (onDeletionRequested != null)
+                              PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+                          ],
+                        ),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One revenue row: mirrors [_OcptResourcesResourceRow], its own `⋮` menu offering `Edit` /
+/// `Record a receipt` / `Move up` / `Move down` / `Delete` instead.
+class _OcptResourcesRevenueRow extends StatelessWidget {
+  /// The revenue this row draws.
+  final OcptBudgetRevenue revenue;
+
+  /// This revenue's own figures.
+  final _OcptRowFigures figures;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Whether this revenue is the currently selected one.
+  final bool isSelected;
+
+  /// Whether this revenue has at least one receipt to expand onto.
+  final bool isExpandable;
+
+  /// Whether this revenue is currently expanded.
+  final bool isExpanded;
+
+  /// Called when this row's own twisty is clicked, or null while [isExpandable] is false.
+  final VoidCallback? onTwistyTap;
+
+  /// Called when this row is clicked.
+  final VoidCallback onTap;
+
+  /// Called when this row's own `⋮` menu asks to edit it, or null while withheld.
+  final VoidCallback? onEditRequested;
+
+  /// Called when this row's own `⋮` menu asks to record a receipt against it, or null while
+  /// withheld.
+  final VoidCallback? onReceiptRequested;
+
+  /// Called when this row's own `⋮` menu asks to move it up, or null while withheld (including
+  /// while already first).
+  final VoidCallback? onMoveUpRequested;
+
+  /// Called when this row's own `⋮` menu asks to move it down, or null while withheld (including
+  /// while already last).
+  final VoidCallback? onMoveDownRequested;
+
+  /// Called when this row's own `⋮` menu asks to delete it, or null while withheld.
+  final VoidCallback? onDeletionRequested;
+
+  /// Class constructor
+  const _OcptResourcesRevenueRow({
+    required this.revenue,
+    required this.figures,
+    required this.currencyCode,
+    required this.isSelected,
+    required this.isExpandable,
+    required this.isExpanded,
+    required this.onTwistyTap,
+    required this.onTap,
+    required this.onEditRequested,
+    required this.onReceiptRequested,
+    required this.onMoveUpRequested,
+    required this.onMoveDownRequested,
+    required this.onDeletionRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final hasMenu =
+        onEditRequested != null ||
+        onReceiptRequested != null ||
+        onMoveUpRequested != null ||
+        onMoveDownRequested != null ||
+        onDeletionRequested != null;
+
+    return InkWell(
+      onTap: onTap,
+      mouseCursor: ocptClickableCursor,
+      child: ColoredBox(
+        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
+        child: SizedBox(
+          height: _ocptResourcesRowHeight,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: _ocptResourcesIndentStep, right: 8),
+                    child: Row(
+                      children: [
+                        _OcptResourcesTwisty(
+                          isExpandable: isExpandable,
+                          isExpanded: isExpanded,
+                          onTap: onTwistyTap,
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                revenue.label.isEmpty ? tr.budgetPosteUnnamed : revenue.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              if (revenue.notes.isNotEmpty)
+                                Text(
+                                  revenue.notes,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: _ocptResourcesDossierColumnWidth,
+                  child: _OcptResourcesRevenueStatusPill(status: revenue.status),
+                ),
+                _ocptResourcesAmountCell(context, figures.promisedCents, currencyCode),
+                _ocptResourcesAmountCell(context, figures.receivedCents, currencyCode),
+                _ocptResourcesAmountCell(context, figures.outstandingCents, currencyCode),
+                SizedBox(
+                  width: _ocptResourcesMenuColumnWidth,
+                  child: !hasMenu
+                      ? null
+                      : PopupMenuButton<String>(
+                          tooltip: "",
+                          icon: const Icon(Icons.more_vert, size: 18),
+                          onSelected: (value) => switch (value) {
+                            "edit" => onEditRequested?.call(),
+                            "receipt" => onReceiptRequested?.call(),
+                            "up" => onMoveUpRequested?.call(),
+                            "down" => onMoveDownRequested?.call(),
+                            "delete" => onDeletionRequested?.call(),
+                            _ => null,
+                          },
+                          itemBuilder: (context) => [
+                            if (onEditRequested != null)
+                              PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
+                            if (onReceiptRequested != null)
+                              PopupMenuItem<String>(
+                                value: "receipt",
+                                child: Text(tr.budgetFinancingRecordReceiptAction),
+                              ),
+                            if (onMoveUpRequested != null)
+                              PopupMenuItem<String>(value: "up", child: Text(tr.budgetPosteMoveUpAction)),
+                            if (onMoveDownRequested != null)
+                              PopupMenuItem<String>(value: "down", child: Text(tr.budgetPosteMoveDownAction)),
+                            if (onDeletionRequested != null)
+                              PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A receipt sub-row: a dot, a `Rentré` badge, the entry's own date and wording, its amount printed
+/// in the `Rentré` column alone — the other money cells left blank, no `Dossier` cell, no menu.
+class _OcptResourcesReceiptRow extends StatelessWidget {
+  /// The journal entry this row draws.
+  final OcptBudgetEntry entry;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Whether this receipt is the currently selected one.
+  final bool isSelected;
+
+  /// Called when this row is clicked.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _OcptResourcesReceiptRow({
+    required this.entry,
+    required this.currencyCode,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final dateText = DateFormat.yMd().format(entry.date);
+    final label = entry.label.isEmpty ? dateText : "$dateText · ${entry.label}";
+
+    return InkWell(
+      onTap: onTap,
+      mouseCursor: ocptClickableCursor,
+      child: ColoredBox(
+        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
+        child: SizedBox(
+          height: _ocptResourcesReceiptRowHeight,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      left: _ocptResourcesTwistyWidth + _ocptResourcesIndentStep * 2,
+                      right: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: _ocptResourcesDotDiameter,
+                          height: _ocptResourcesDotDiameter,
+                          decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                          ),
+                          child: Text(
+                            tr.budgetFinancingColumnReceived,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: _ocptResourcesDossierColumnWidth),
+                _ocptResourcesAmountCell(context, null, currencyCode, showBlank: true),
+                SizedBox(
+                  width: _ocptResourcesAmountColumnWidth,
+                  child: Text(
+                    ocptBudgetAmountLabel(entry.creditCents, currencyCode),
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall,
+                  ),
+                ),
+                _ocptResourcesAmountCell(context, null, currencyCode, showBlank: true),
+                const SizedBox(width: _ocptResourcesMenuColumnWidth),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The total row: `Total · N familles`, the three totals, and — in the `Dossier` column, while the
+/// project holds any in-kind resource at all — the quiet `dont {amount} valorisés` caption.
+class _OcptResourcesTotalRow extends StatelessWidget {
+  /// How many family rows are actually drawn.
+  final int familyCount;
+
+  /// The grand total across every drawn family.
+  final _OcptRowFigures aggregates;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Whether the project holds any in-kind resource at all.
+  final bool hasInKind;
+
+  /// The in-kind total, read only while [hasInKind].
+  final int valuedCents;
+
+  /// Class constructor
+  const _OcptResourcesTotalRow({
+    required this.familyCount,
+    required this.aggregates,
+    required this.currencyCode,
+    required this.hasInKind,
+    required this.valuedCents,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final boldStyle = theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: SizedBox(
+        height: _ocptResourcesTotalRowHeight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
           child: Row(
             children: [
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      if (resource.notes.isNotEmpty)
-                        Text(
-                          resource.notes,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: _ocptFinancingStatusColumnWidth,
-                child: _OcptFinancingStatusPill(
-                  groupKind: resource.groupKind,
-                  status: resource.status,
-                ),
-              ),
-              SizedBox(
-                width: _ocptFinancingAmountColumnWidth,
                 child: Text(
-                  ocptBudgetAmountLabel(resource.amountCents, currencyCode),
-                  textAlign: TextAlign.right,
+                  tr.budgetFinancingTotalRowLabel(familyCount),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                  style: boldStyle,
                 ),
               ),
               SizedBox(
-                width: _ocptFinancingAmountColumnWidth,
-                child: Text(
-                  receivedCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(receivedCents, currencyCode),
-                  textAlign: TextAlign.right,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              SizedBox(
-                width: _ocptFinancingAmountColumnWidth,
-                child: Text(
-                  outstandingCents == null
-                      ? ocptBudgetEmptyValue
-                      : ocptBudgetAmountLabel(outstandingCents, currencyCode),
-                  textAlign: TextAlign.right,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isOutstandingNegative ? theme.colorScheme.error : null,
-                    fontWeight: isOutstandingNegative ? FontWeight.w600 : null,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: _ocptFinancingMenuColumnWidth,
-                child: !hasMenu
+                width: _ocptResourcesDossierColumnWidth,
+                child: !hasInKind
                     ? null
-                    : PopupMenuButton<String>(
-                        tooltip: "",
-                        icon: const Icon(Icons.more_vert, size: 18),
-                        onSelected: (value) => switch (value) {
-                          "edit" => onEditRequested?.call(),
-                          "receipt" => effectiveOnReceiptRequested?.call(),
-                          "receiptUndo" => effectiveOnReceiptUndoRequested?.call(),
-                          "delete" => onDeletionRequested?.call(),
-                          _ => null,
-                        },
-                        itemBuilder: (context) => [
-                          if (onEditRequested != null)
-                            PopupMenuItem<String>(
-                              value: "edit",
-                              child: Text(tr.budgetFinancingEditAction),
-                            ),
-                          if (effectiveOnReceiptRequested != null)
-                            PopupMenuItem<String>(
-                              value: "receipt",
-                              child: Text(tr.budgetFinancingRecordReceiptAction),
-                            ),
-                          if (effectiveOnReceiptUndoRequested != null)
-                            PopupMenuItem<String>(
-                              value: "receiptUndo",
-                              child: Text(tr.budgetFinancingUndoReceiptAction),
-                            ),
-                          if (onDeletionRequested != null)
-                            PopupMenuItem<String>(
-                              value: "delete",
-                              child: Text(tr.budgetCommittedDeleteAction),
-                            ),
-                        ],
+                    : Text(
+                        tr.budgetFinancingValuedCaption(ocptBudgetAmountLabel(valuedCents, currencyCode)),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                       ),
+              ),
+              _ocptResourcesAmountCell(context, aggregates.promisedCents, currencyCode, style: boldStyle),
+              _ocptResourcesAmountCell(context, aggregates.receivedCents, currencyCode, style: boldStyle),
+              _ocptResourcesAmountCell(context, aggregates.outstandingCents, currencyCode, style: boldStyle),
+              const SizedBox(width: _ocptResourcesMenuColumnWidth),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The table's own creation footer: one control, mirroring `OcptBudgetCostTracking`'s own
+/// `+ Poste` footer's placement, opening a `MenuAnchor` naming the four creation gestures —
+/// `Subvention`, `Apport en numéraire`, `Apport en nature`, `Recette` — built the way
+/// `_OcptAddResourceButton` used to (never a `Wrap` of `MenuItemButton`s, `CLAUDE.md`'s own known
+/// pitfall).
+class _OcptResourcesCreationFooter extends StatelessWidget {
+  /// Called with the kind picked for the first three gestures, or null while every one of them is
+  /// withheld.
+  final ValueChanged<OcptBudgetResourceGroupKind>? onResourceKindPicked;
+
+  /// Called for the fourth gesture (a fresh taking), or null while withheld.
+  final VoidCallback? onRevenuePicked;
+
+  /// Class constructor
+  const _OcptResourcesCreationFooter({required this.onResourceKindPicked, required this.onRevenuePicked});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final onResourceKindPicked = this.onResourceKindPicked;
+    final onRevenuePicked = this.onRevenuePicked;
+
+    return MenuAnchor(
+      menuChildren: [
+        if (onResourceKindPicked != null) ...[
+          MenuItemButton(
+            onPressed: () => onResourceKindPicked(OcptBudgetResourceGroupKind.subsidy),
+            child: Text(tr.budgetFinancingAddSubsidyAction),
+          ),
+          MenuItemButton(
+            onPressed: () => onResourceKindPicked(OcptBudgetResourceGroupKind.cash),
+            child: Text(tr.budgetFinancingAddCashAction),
+          ),
+          MenuItemButton(
+            onPressed: () => onResourceKindPicked(OcptBudgetResourceGroupKind.inKind),
+            child: Text(tr.budgetFinancingAddInKindAction),
+          ),
+        ],
+        if (onRevenuePicked != null)
+          MenuItemButton(onPressed: onRevenuePicked, child: Text(tr.budgetFinancingAddRevenueAction)),
+      ],
+      builder: (context, controller, child) => InkWell(
+        onTap: () => controller.isOpen ? controller.close() : controller.open(),
+        mouseCursor: ocptClickableCursor,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                tr.budgetFinancingCreationAction,
+                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
               ),
             ],
           ),
@@ -729,16 +1451,10 @@ class _OcptFinancingResourceRow extends StatelessWidget {
   }
 }
 
-/// One of `OcptBudgetResourceStatus`'s own three badges — mirrors `OcptBudgetCommittedSpending`'s
-/// own `_OcptCommittedStatusBadge`, generic over a different enum: a bordered outline while the
-/// resource is merely in play, growing into a solid fill once it is held on paper.
-///
-/// **Takes the row's own [groupKind] as well as its [status]**, because the word a step is called
-/// belongs to the group — `Secured` under `Subsidies`, `Signed` under `In kind`, for two rows
-/// standing at the very same step. The *colour* is the step's alone, so the eye reads how far along
-/// a row is without having to read which group it sits in: `OcptBudgetResourceStatus`'s own doc
-/// comment argues both halves.
-class _OcptFinancingStatusPill extends StatelessWidget {
+/// One of `OcptBudgetResourceStatus`'s own three badges, for a resource row's own `Dossier` cell —
+/// mirrors `OcptBudgetCostTracking`'s own status pills: a bordered outline while merely in play,
+/// growing into a solid fill once held on paper.
+class _OcptResourcesResourceStatusPill extends StatelessWidget {
   /// The group the resource this pill belongs to sits in — what its [status] is called depends on
   /// it.
   final OcptBudgetResourceGroupKind groupKind;
@@ -747,7 +1463,7 @@ class _OcptFinancingStatusPill extends StatelessWidget {
   final OcptBudgetResourceStatus status;
 
   /// Class constructor
-  const _OcptFinancingStatusPill({required this.groupKind, required this.status});
+  const _OcptResourcesResourceStatusPill({required this.groupKind, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -773,6 +1489,182 @@ class _OcptFinancingStatusPill extends StatelessWidget {
         style: theme.textTheme.labelSmall?.copyWith(
           color: isSolid ? theme.colorScheme.onPrimary : accent,
           fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// One of `OcptBudgetRevenueStatus`'s own three badges — mirrors
+/// [_OcptResourcesResourceStatusPill], generic over a different enum.
+class _OcptResourcesRevenueStatusPill extends StatelessWidget {
+  /// The status this pill paints.
+  final OcptBudgetRevenueStatus status;
+
+  /// Class constructor
+  const _OcptResourcesRevenueStatusPill({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final accent = ocptBudgetRevenueStatusAccentColor(theme.colorScheme, status);
+    final isSolid = status == OcptBudgetRevenueStatus.invoiced;
+    final alpha = status.index / (OcptBudgetRevenueStatus.values.length - 1);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isSolid ? accent : accent.withValues(alpha: alpha),
+        border: status == OcptBudgetRevenueStatus.expected
+            ? Border.all(color: accent.withValues(alpha: 0.6))
+            : null,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      ),
+      child: Text(
+        ocptBudgetRevenueStatusLabel(tr, status),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: isSolid ? theme.colorScheme.onPrimary : accent,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// The coverage band, under everything: `Le film coûte` and the quote's own total on the left, a
+/// two-tone bar and a sentence in the middle, and an action back to the expenses document on the
+/// right.
+///
+/// **Draws only while [OcptBudgetResourcesCoverage.needs] holds something** — `OcptBudgetFinancing`
+/// itself withholds this widget entirely while the quote is empty, the same reading the cash
+/// projection card already follows.
+class _OcptResourcesCoverageBand extends StatelessWidget {
+  /// What the band reads — never computed here, always `ocptBudgetResourcesCoverageOf`'s own
+  /// answer.
+  final OcptBudgetResourcesCoverage coverage;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Called when the band's own action is clicked.
+  final VoidCallback onExpensesRequested;
+
+  /// Class constructor
+  const _OcptResourcesCoverageBand({
+    required this.coverage,
+    required this.currencyCode,
+    required this.onExpensesRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final needs = coverage.needs;
+    final needsAmount = ocptBudgetAmountLabel(needs.amountCents, currencyCode);
+    final needsText = needs.isComplete
+        ? needsAmount
+        : tr.budgetDashboardBalanceCoverageReadOut(needsAmount, needs.coveredLineCount, needs.lineCount);
+
+    final receivedFraction = needs.amountCents <= 0
+        ? (coverage.received.amountCents > 0 ? 1.0 : 0.0)
+        : (coverage.received.amountCents / needs.amountCents).clamp(0.0, 1.0);
+    final plannedFraction = needs.amountCents <= 0
+        ? (coverage.plannedCents > 0 ? 1.0 : 0.0)
+        : (coverage.plannedCents / needs.amountCents).clamp(0.0, 1.0);
+
+    final receivedAmount = ocptBudgetAmountLabel(coverage.received.amountCents, currencyCode);
+    final promisedAmount = ocptBudgetAmountLabel(coverage.promisedCents, currencyCode);
+    final suffixColor = coverage.isCovered ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.error;
+    final suffixText = coverage.isCovered
+        ? tr.budgetFinancingCoverageCoveredReadOut
+        : tr.budgetFinancingCoverageMissingReadOut(ocptBudgetAmountLabel(coverage.missingCents, currencyCode));
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  tr.budgetFinancingCoverageTitle.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                Text(needsText, style: theme.textTheme.titleMedium),
+              ],
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(_ocptResourcesCoverageBarHeight / 2),
+                        child: SizedBox(
+                          height: _ocptResourcesCoverageBarHeight,
+                          child: ColoredBox(color: theme.colorScheme.surfaceContainerHigh),
+                        ),
+                      ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(_ocptResourcesCoverageBarHeight / 2),
+                        child: FractionallySizedBox(
+                          widthFactor: plannedFraction,
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            height: _ocptResourcesCoverageBarHeight,
+                            child: ColoredBox(color: theme.colorScheme.primary.withValues(alpha: 0.35)),
+                          ),
+                        ),
+                      ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(_ocptResourcesCoverageBarHeight / 2),
+                        child: FractionallySizedBox(
+                          widthFactor: receivedFraction,
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            height: _ocptResourcesCoverageBarHeight,
+                            child: ColoredBox(color: theme.colorScheme.primary),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text.rich(
+                    TextSpan(
+                      style: theme.textTheme.bodySmall,
+                      children: [
+                        TextSpan(text: tr.budgetFinancingCoverageReadOut(receivedAmount, promisedAmount)),
+                        const TextSpan(text: " · "),
+                        TextSpan(
+                          text: suffixText,
+                          style: TextStyle(
+                            color: suffixColor,
+                            fontWeight: coverage.isCovered ? null : FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 24),
+            OutlinedButton(
+              onPressed: onExpensesRequested,
+              child: Text(tr.budgetFinancingCoverageExpensesAction),
+            ),
+          ],
         ),
       ),
     );

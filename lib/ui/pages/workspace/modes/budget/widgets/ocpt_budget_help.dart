@@ -170,7 +170,7 @@ class OcptBudgetHelp extends StatelessWidget {
     _OcptBudgetHelpPage.financing => [
       tr.budgetHelpFinancingBody1,
       tr.budgetHelpFinancingBody2(
-        tr.budgetFinancingColumnStatus,
+        tr.budgetFinancingColumnDossier,
         tr.budgetFinancingRecordReceiptAction,
       ),
       tr.budgetHelpFinancingBody3,

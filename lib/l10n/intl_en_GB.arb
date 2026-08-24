@@ -12328,82 +12328,45 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingEmptyHint": "Add a subsidy, a cash contribution or an in-kind contribution to start the financing plan.",
+  "budgetFinancingEmptyHint": "Add a subsidy, a cash contribution, an in-kind contribution or a taking to start the plan.",
   "@budgetFinancingEmptyHint": {
-    "description": "Message shown in place of the financing plan while the project holds no resource at all",
+    "description": "Message shown in place of the resources tree while the project holds neither a resource nor a taking",
     "context": "Displayed by OcptBudgetFinancing's own empty state",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingTotalResourcesLabel": "Total resources",
-  "@budgetFinancingTotalResourcesLabel": {
-    "description": "Label of the financing view's own first KPI: the whole plan's own total",
-    "context": "Displayed at the top of the budget mode's own financing view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingCashLabel": "Cash",
-  "@budgetFinancingCashLabel": {
-    "description": "Label of the financing view's own second KPI: the subsidy and cash groups combined",
-    "context": "Displayed at the top of the budget mode's own financing view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingCashCaption": "{received} received · {outstanding} to come",
-  "@budgetFinancingCashCaption": {
-    "description": "Caption under the Cash KPI, naming what has come in and what is still owed",
-    "context": "Displayed at the top of the budget mode's own financing view",
-    "type": "text",
-    "placeholders": {
-      "received": {
-        "description": "The received amount, already formatted with its currency symbol",
-        "type": "String"
-      },
-      "outstanding": {
-        "description": "The outstanding amount, already formatted with its currency symbol",
-        "type": "String"
-      }
-    }
-  },
-  "budgetFinancingInKindLabel": "In-kind contributions",
-  "@budgetFinancingInKindLabel": {
-    "description": "Label of the financing view's own third KPI: the in-kind group's own total",
-    "context": "Displayed at the top of the budget mode's own financing view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingInKindHint": "Valued on both sides of the budget.",
-  "@budgetFinancingInKindHint": {
-    "description": "Caption under the In-kind contributions KPI, explaining what that figure means",
-    "context": "Displayed at the top of the budget mode's own financing view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingCreationAction": "Resource",
+  "budgetFinancingCreationAction": "Add",
   "@budgetFinancingCreationAction": {
-    "description": "Button opening the menu of the three resource kinds at the end of the budget mode's own financing view's KPI row",
-    "context": "Displayed at the end of the budget mode's own financing view's KPI row",
+    "description": "Button opening the menu of the four creation gestures under the resources tree",
+    "context": "Displayed in the budget mode's own resources tree's own creation footer",
     "type": "text",
     "placeholders": {}
   },
   "budgetFinancingAddSubsidyAction": "Subsidy",
   "@budgetFinancingAddSubsidyAction": {
     "description": "Menu entry opening OcptBudgetResourceDialog on a fresh subsidy",
-    "context": "Displayed in the budget mode's own financing view's + Resource menu",
+    "context": "Displayed in the budget mode's own resources tree's own creation footer",
     "type": "text",
     "placeholders": {}
   },
   "budgetFinancingAddCashAction": "Cash contribution",
   "@budgetFinancingAddCashAction": {
     "description": "Menu entry opening OcptBudgetResourceDialog on a fresh cash contribution",
-    "context": "Displayed in the budget mode's own financing view's + Resource menu",
+    "context": "Displayed in the budget mode's own resources tree's own creation footer",
     "type": "text",
     "placeholders": {}
   },
   "budgetFinancingAddInKindAction": "In-kind contribution",
   "@budgetFinancingAddInKindAction": {
     "description": "Menu entry opening OcptBudgetResourceDialog on a fresh contribution in kind",
-    "context": "Displayed in the budget mode's own financing view's + Resource menu",
+    "context": "Displayed in the budget mode's own resources tree's own creation footer",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingAddRevenueAction": "Takings",
+  "@budgetFinancingAddRevenueAction": {
+    "description": "Menu entry opening OcptBudgetRevenueDialog on a fresh taking",
+    "context": "Displayed in the budget mode's own resources tree's own creation footer",
     "type": "text",
     "placeholders": {}
   },
@@ -12428,38 +12391,132 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingColumnLabel": "Label",
+  "budgetFinancingColumnLabel": "Resource",
   "@budgetFinancingColumnLabel": {
-    "description": "Column heading for a financing resource's own label",
-    "context": "Displayed above the budget mode's own financing plan",
+    "description": "Column heading for the resources tree's own flexible column: a resource's or a taking's own label, or a receipt's own date and wording",
+    "context": "Displayed above the budget mode's own resources tree",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingColumnStatus": "Status",
-  "@budgetFinancingColumnStatus": {
-    "description": "Column heading for a financing resource's own status",
-    "context": "Displayed above the budget mode's own financing plan",
+  "budgetFinancingColumnDossier": "Paperwork",
+  "@budgetFinancingColumnDossier": {
+    "description": "Column heading for a resource's or a taking's own paperwork status, held apart from the money columns",
+    "context": "Displayed above the budget mode's own resources tree",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingColumnAmount": "Amount",
+  "budgetFinancingColumnAmount": "Promised",
   "@budgetFinancingColumnAmount": {
-    "description": "Column heading for a financing resource's own amount",
-    "context": "Displayed above the budget mode's own financing plan",
+    "description": "Column heading for what a resource or a taking is promised to bring in",
+    "context": "Displayed above the budget mode's own resources tree",
     "type": "text",
     "placeholders": {}
   },
   "budgetFinancingColumnReceived": "Received",
   "@budgetFinancingColumnReceived": {
-    "description": "Column heading for what has actually come in against a financing resource",
-    "context": "Displayed above the budget mode's own financing plan",
+    "description": "Column heading for what has actually come in against a resource or a taking, and the badge a receipt sub-row prints",
+    "context": "Displayed above the budget mode's own resources tree, and on a receipt sub-row's own badge",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingColumnOutstanding": "Outstanding",
+  "budgetFinancingColumnOutstanding": "Still to come",
   "@budgetFinancingColumnOutstanding": {
-    "description": "Column heading for what is still outstanding against a financing resource",
-    "context": "Displayed above the budget mode's own financing plan",
+    "description": "Column heading for what is still outstanding against a resource or a taking",
+    "context": "Displayed above the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingFamilySubsidiesLabel": "Subsidies and grants",
+  "@budgetFinancingFamilySubsidiesLabel": {
+    "description": "The resources tree's own first family row",
+    "context": "Displayed by the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingFamilyContributionsLabel": "Contributions",
+  "@budgetFinancingFamilyContributionsLabel": {
+    "description": "The resources tree's own second family row, folding cash and in-kind contributions together",
+    "context": "Displayed by the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingFamilyTakingsLabel": "Takings",
+  "@budgetFinancingFamilyTakingsLabel": {
+    "description": "The resources tree's own third family row: every live taking",
+    "context": "Displayed by the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingTotalRowLabel": "Total · {count} families",
+  "@budgetFinancingTotalRowLabel": {
+    "description": "The resources tree's own total row, naming how many family rows it sums",
+    "context": "Displayed under the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "description": "How many family rows are actually drawn",
+        "type": "int"
+      }
+    }
+  },
+  "budgetFinancingValuedCaption": "of which {amount} valued",
+  "@budgetFinancingValuedCaption": {
+    "description": "The total row's own Paperwork-column caption, while the project holds any in-kind resource at all",
+    "context": "Displayed under the budget mode's own resources tree's total row",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "The in-kind total, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
+  "budgetFinancingCoverageTitle": "The film costs",
+  "@budgetFinancingCoverageTitle": {
+    "description": "The coverage band's own left-hand title, over the quote's own total",
+    "context": "Displayed under the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingCoverageReadOut": "{received} received, {promised} promised",
+  "@budgetFinancingCoverageReadOut": {
+    "description": "The coverage band's own sentence, stating what has really come in and what is only promised",
+    "context": "Displayed under the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {
+      "received": {
+        "description": "The received amount, already formatted with its currency symbol",
+        "type": "String"
+      },
+      "promised": {
+        "description": "The promised amount, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
+  "budgetFinancingCoverageMissingReadOut": "{missing} still missing",
+  "@budgetFinancingCoverageMissingReadOut": {
+    "description": "The coverage band's own sentence, appended in the error colour, while the plan falls short of the quote",
+    "context": "Displayed under the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {
+      "missing": {
+        "description": "The missing amount, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
+  "budgetFinancingCoverageCoveredReadOut": "covers the quote",
+  "@budgetFinancingCoverageCoveredReadOut": {
+    "description": "The coverage band's own sentence, appended once the plan, arrived or promised, covers the quote",
+    "context": "Displayed under the budget mode's own resources tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFinancingCoverageExpensesAction": "View expenses",
+  "@budgetFinancingCoverageExpensesAction": {
+    "description": "The coverage band's own action, returning to the expenses document",
+    "context": "Displayed under the budget mode's own resources tree",
     "type": "text",
     "placeholders": {}
   },

@@ -1427,7 +1427,15 @@ class _OcptBudgetFicheOutstanding extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: theme.textTheme.titleSmall),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall,
+            ),
+          ),
+          const SizedBox(width: 8),
           Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
         ],
       ),

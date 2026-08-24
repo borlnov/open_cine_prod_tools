@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_provision_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
@@ -143,6 +144,14 @@ String ocptBudgetResourceGroupKindLabel(Tr tr, OcptBudgetResourceGroupKind kind)
   OcptBudgetResourceGroupKind.subsidy => tr.budgetFinancingGroupSubsidyLabel,
   OcptBudgetResourceGroupKind.cash => tr.budgetFinancingGroupCashLabel,
   OcptBudgetResourceGroupKind.inKind => tr.budgetFinancingGroupInKindLabel,
+};
+
+/// [family]'s own localized word — the resources tree's own three family rows, in the order they
+/// draw: subsidies, contributions, takings.
+String ocptBudgetResourceFamilyLabel(Tr tr, OcptBudgetResourceFamily family) => switch (family) {
+  OcptBudgetResourceFamily.subsidies => tr.budgetFinancingFamilySubsidiesLabel,
+  OcptBudgetResourceFamily.contributions => tr.budgetFinancingFamilyContributionsLabel,
+  OcptBudgetResourceFamily.takings => tr.budgetFinancingFamilyTakingsLabel,
 };
 
 /// [status]'s own localized word **for a [kind] resource** — shared between the financing view's

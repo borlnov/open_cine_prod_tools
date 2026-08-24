@@ -1153,18 +1153,29 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Builds the financing view.
+  /// Builds the resources view: the nesting tree of subsidies, contributions and takings, and its
+  /// own coverage band. Every revenue callback reuses the very same handler `_buildSharing` already
+  /// calls — `_handleRevenueCreationRequested`, `_handleRevenueEditRequested`,
+  /// `_handleRevenueReceiptRequested`, `_revenueReorderedPosition`,
+  /// `_handleRevenueDeletionRequested` — rather than a second copy of each.
   Widget _buildFinancing(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptBudgetFinancing(
       resources: state.resources,
+      revenues: state.revenues,
+      entries: state.entries,
+      postes: state.postes,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       receivedByResourceId: state.receivedByResourceId,
       receivedCentsOf: state.receivedCentsOf,
+      receivedByRevenueId: state.receivedByRevenueId,
       currencyCode: state.currencyCode,
-      selectedResourceId: state.selectedResourceId,
+      selection: state.selection,
+      expandedNodeIds: state.expandedNodeIds,
       isReadOnly: isReadOnly,
+      onNodeExpansionToggled: (nodeId) => bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
       onResourceCreationRequested: isReadOnly
           ? null
           : (groupKind) =>
@@ -1183,6 +1194,30 @@ class _BudgetViewState extends State<_BudgetView> {
       onResourceDeletionRequested: isReadOnly
           ? null
           : (resourceId) => unawaited(_handleResourceDeletionRequested(context, resourceId)),
+      onRevenueCreationRequested: isReadOnly
+          ? null
+          : () => unawaited(_handleRevenueCreationRequested(context, state)),
+      onRevenueSelected: (revenueId) => bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId)),
+      onRevenueEditRequested: isReadOnly
+          ? null
+          : (revenue) => unawaited(_handleRevenueEditRequested(context, state, revenue)),
+      onRevenueReceiptRequested: isReadOnly
+          ? null
+          : (revenue) => unawaited(_handleRevenueReceiptRequested(context, state, revenue)),
+      onRevenueReorderRequested: isReadOnly
+          ? null
+          : (revenueId, {required moveUp}) => bloc.add(
+              OcptBudgetRevenueReorderedEvent(
+                revenueId: revenueId,
+                newPosition: _revenueReorderedPosition(state, revenueId, moveUp),
+              ),
+            ),
+      onRevenueDeletionRequested: isReadOnly
+          ? null
+          : (revenueId) => unawaited(_handleRevenueDeletionRequested(context, revenueId)),
+      onReceiptSelected: (receiptId) => bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: receiptId)),
+      onExpensesRequested: () =>
+          bloc.add(const OcptBudgetDocumentSelectedEvent(document: OcptBudgetDocument.expenses)),
     );
   }
 
