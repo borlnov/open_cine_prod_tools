@@ -877,8 +877,8 @@ void main() {
   });
 
   testWidgets(
-    "the capture band is offered on expenses and on resources at their own top level, absent on "
-    "sharing",
+    "the capture band is offered on the cost report, the cash journal and the financing plan, "
+    "absent on sharing",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -904,6 +904,52 @@ void main() {
       // Sharing carries no capture band at all.
       await openSharing(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "the capture band keeps a half-typed draft between the cost report and the cash journal, and "
+    "starts fresh on the financing plan",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      /// The draft as the band's own controllers hold it, read straight off them rather than
+      /// through `find.text`: a wording echoed by a suggestion row would match that just as well,
+      /// and what this test is about is whether the widget was remounted, not what is on screen.
+      (String wording, String amount) draftOf() => (
+        tester
+            .widget<TextFormField>(find.byKey(const Key("ocptBudgetCaptureBandWordingField")))
+            .controller!
+            .text,
+        tester
+            .widget<TextFormField>(find.byKey(const Key("ocptBudgetCaptureBandAmountField")))
+            .controller!
+            .text,
+      );
+
+      await tester.enterText(
+        find.byKey(const Key("ocptBudgetCaptureBandWordingField")),
+        "Half-typed wording",
+      );
+      await tester.enterText(find.byKey(const Key("ocptBudgetCaptureBandAmountField")), "250.00");
+      await tester.pumpAndSettle();
+      expect(draftOf(), ("Half-typed wording", "250.00"));
+
+      // The cash journal reads the very movements the cost report reads, in another order, and the
+      // band captures the same debit on both: moving between them must not throw a draft away.
+      await openCashJournal(tester);
+      expect(draftOf(), ("Half-typed wording", "250.00"));
+
+      // The financing plan captures a credit instead, so the band does remount there — its draft
+      // cleared rather than carried into a direction it was never typed for.
+      await openFinancing(tester);
+      expect(draftOf(), ("", ""));
     },
   );
 
