@@ -22,10 +22,10 @@ const double _ocptCashProjectionDueDateColumnWidth = 92;
 const double _ocptCashProjectionAmountColumnWidth = 108;
 
 /// The budget mode's cash projection: a collapsible card, re-homed here from the committed-spending
-/// sub-page (`docs/architecture/budget.md`'s own "What is promised is one place, read in two
-/// directions") into `OcptBudgetHeader`'s own alerts band, on `OcptBudgetDocument.expenses` alone
-/// and only while the project carries at least one unsettled commitment — the header decides both,
-/// this widget only ever draws what it is handed.
+/// view (`docs/architecture/budget.md`'s own "What is promised is one place, read in two
+/// directions") into `OcptBudgetHeader`'s own alerts band, on `OcptBudgetView.costTracking` and
+/// `OcptBudgetView.cashJournal` alone and only while the project carries at least one unsettled
+/// commitment — the header decides both, this widget only ever draws what it is handed.
 ///
 /// **Reads `ocptBudgetProjectionOf` and every rule it already states**, unchanged: [commitments] is
 /// handed in whole, not pre-filtered to the unsettled ones, since a settled commitment is excluded

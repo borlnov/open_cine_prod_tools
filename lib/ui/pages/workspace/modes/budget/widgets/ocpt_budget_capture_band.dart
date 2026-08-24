@@ -37,8 +37,8 @@ const double _ocptBudgetCaptureBandFieldsMinWidth = 760;
 /// arrived, in one line, and let the app propose what it settles.
 ///
 /// Mounted by `budget_mode.dart`'s own `_buildCentre`, between `OcptBudgetHeader` and the routed
-/// widget, on `OcptBudgetDocument.expenses` and `OcptBudgetDocument.resources` alone, at their own
-/// top level (`docs/architecture/budget.md`). **Withheld whole, not disabled,**
+/// widget, on `OcptBudgetView.costTracking`, `OcptBudgetView.cashJournal` and
+/// `OcptBudgetView.financing` alone (`docs/architecture/budget.md`). **Withheld whole, not disabled,**
 /// under a previewed version: `budget_mode.dart` simply does not build it, the way every other
 /// affordance without a live project to write to is withheld across the app.
 ///
@@ -87,9 +87,8 @@ const double _ocptBudgetCaptureBandFieldsMinWidth = 760;
 /// — whether or not [ocptBudgetMatchSuggestionsOf] found anything at all.
 class OcptBudgetCaptureBand extends StatefulWidget {
   /// The direction the band starts on, and returns to once it clears — `false` (a credit) on
-  /// `OcptBudgetDocument.resources`, `true` (a debit) everywhere else the band is offered. The
-  /// toggle itself stays reachable on both documents: a credit typed from expenses is simply a
-  /// credit.
+  /// `OcptBudgetView.financing`, `true` (a debit) everywhere else the band is offered. The toggle
+  /// itself stays reachable on every view: a credit typed on the cost report is simply a credit.
   final bool initialIsDebit;
 
   /// Every live commitment still owed, offered as a candidate against a debit — see

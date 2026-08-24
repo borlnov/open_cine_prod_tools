@@ -51,8 +51,8 @@ const double _ocptCashJournalRowHeight = 44;
 /// The header row's own fixed height, in logical pixels.
 const double _ocptCashJournalHeaderRowHeight = 36;
 
-/// `OcptBudgetDocument.expenses` read under `OcptBudgetDocumentReading.byDate`: the whole account
-/// book, in date order — **every movement the project has ever recorded, debit and credit alike**.
+/// `OcptBudgetView.cashJournal`: the whole account book, in date order — **every movement the
+/// project has ever recorded, debit and credit alike**.
 /// A top band, the entry table, then a note — the layout the validated mockup lays this view out
 /// as.
 ///
