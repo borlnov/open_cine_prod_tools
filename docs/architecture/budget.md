@@ -220,9 +220,12 @@ whole record of them.
   gained one nullable column, `estimateToCompleteCents`. **Null means "derive it"**:
   `ocptBudgetEstimateToCompleteCents` (`lib/utils/ocpt_budget_totals.dart`) answers
   `max(0, quote − paid − committed)` while the column is null, and the poste's own typed figure the
-  moment it is not. The cost-tracking table paints the derived figure in grey and a typed one in
-  ordinary ink — the same pairing `ocptEffectiveVatRateOf` already draws for a VAT rate — and the
-  fiche's own poste panel offers a `Derive again` gesture back to null.
+  moment it is not. **It is typed on the fiche's own poste panel and nowhere else** — the cost
+  report carries no column for it, only the `Coût final` it feeds. The field stands empty while the
+  column is null, its own placeholder printing the derived figure, so the reader sees what the app
+  would answer before deciding to overrule it — the same pairing `ocptEffectiveVatRateOf` already
+  draws for an inherited VAT rate — and a `Derive again` button beside it hands a typed figure back
+  to null.
   **It is held per poste, not per quote line, on purpose**: a line-level estimate would be a second
   plan running beside the quote, more machinery than a film of this size needs, and the derived
   reading already makes the column a restatement of the quote until a poste actually goes over — a

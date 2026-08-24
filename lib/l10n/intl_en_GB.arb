@@ -13935,15 +13935,12 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpCostTrackingBody5": "{estimateToComplete} is the one figure a producer adjusts by hand — derived until then, and printed in grey while it is. {finalCost} reads {paid} plus {committed} plus {estimateToComplete}; {variance} is read against it.",
+  "budgetHelpCostTrackingBody5": "{finalCost} is a column of its own: {paid} plus {committed} plus what is still expected to be spent. That last figure is typed on the poste's own fiche, as {estimateToComplete}, and never in the table — left empty it derives itself, the quote less what is already paid and committed, and {derive} hands a typed one back to that derived reading.",
   "@budgetHelpCostTrackingBody5": {
-    "description": "Fifth paragraph of the budget mode's help panel for the cost-tracking view, stating the estimate-to-complete, final-cost and variance columns",
+    "description": "Fifth paragraph of the budget mode's help panel for the cost-tracking view, stating the final-cost column and where the estimate to complete behind it is typed",
     "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
     "type": "text",
     "placeholders": {
-      "estimateToComplete": {
-        "type": "String"
-      },
       "finalCost": {
         "type": "String"
       },
@@ -13953,7 +13950,30 @@
       "committed": {
         "type": "String"
       },
+      "estimateToComplete": {
+        "type": "String"
+      },
+      "derive": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpCostTrackingBody6": "{variance} is read twice, under one word. The column here answers {paid} plus {committed} against the quote — what has actually moved. The fiche's own, beside {finalCost}, answers {finalCost} against the quote instead — what the poste is now expected to end up costing.",
+  "@budgetHelpCostTrackingBody6": {
+    "description": "Sixth paragraph of the budget mode's help panel for the cost-tracking view, telling the table's own variance from the fiche's",
+    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+    "type": "text",
+    "placeholders": {
       "variance": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "committed": {
+        "type": "String"
+      },
+      "finalCost": {
         "type": "String"
       }
     }

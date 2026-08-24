@@ -224,11 +224,19 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpCostTrackingBody3(tr.budgetCostTrackingOffQuoteLabel, tr.budgetCostTrackingColumnPaid),
       tr.budgetHelpCostTrackingBody4,
       tr.budgetHelpCostTrackingBody5(
-        tr.budgetCostTrackingColumnEstimateToComplete,
         tr.budgetCostTrackingColumnFinalCost,
         tr.budgetCostTrackingColumnPaid,
         tr.budgetCostTrackingColumnCommitted,
+        // The fiche's own field label, not the table's retired column of the same name: the
+        // estimate to complete is typed there and nowhere else.
+        tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
+        tr.budgetInspectorPosteEstimateToCompleteDeriveAction,
+      ),
+      tr.budgetHelpCostTrackingBody6(
         tr.budgetCostTrackingColumnVariance,
+        tr.budgetCostTrackingColumnPaid,
+        tr.budgetCostTrackingColumnCommitted,
+        tr.budgetCostTrackingColumnFinalCost,
       ),
     ],
     (OcptBudgetDocument.resources, _, null) => [
