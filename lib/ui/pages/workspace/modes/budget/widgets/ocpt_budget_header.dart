@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_projection.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
@@ -59,6 +61,18 @@ const double _ocptBudgetHeaderTitleMinWidth = 1600;
 /// places that read a poste-keyed row at all — and **withheld**, never disabled or captioned,
 /// everywhere else: the standing rule for an affordance without a subject
 /// (`docs/architecture/budget.md`).
+///
+/// **The alerts band also carries the cash projection**, [OcptBudgetCashProjection], re-homed here
+/// from the committed-spending sub-page: it draws ahead of every alert, on
+/// [OcptBudgetDocument.expenses]'s own top level alone — never on a sub-page, never on
+/// [OcptBudgetDocument.resources] or [OcptBudgetDocument.sharing] — and only while [commitments]
+/// carries at least one unsettled one, mirroring an alert card's own standing rule that a card with
+/// nothing to say draws nothing at all. Unlike the poste-over-quote and cash-negative alert cards
+/// beside it, it is never itself computed from `OcptBudgetState.alerts`: it is a reading, not a
+/// standing warning, so it draws whether the balance it projects ever goes negative or not. It
+/// reads [commitments] and [cashBalanceCents] **whole, never narrowed by [filterPosteId]** — the
+/// very argument "The journal's balance is the whole journal's" already makes for the top band's
+/// own figures, applied here to the projection that opens at that very balance.
 class OcptBudgetHeader extends StatelessWidget {
   /// Which of the mode's three documents is currently shown.
   final OcptBudgetDocument document;
@@ -107,6 +121,19 @@ class OcptBudgetHeader extends StatelessWidget {
   /// the day it dissolves that copy in favour of this one. Empty draws nothing.
   final List<OcptBudgetAlert> alerts;
 
+  /// Every live commitment of the project, whole — never narrowed by [filterPosteId] — read by the
+  /// alerts band's own [OcptBudgetCashProjection] card: both whether it draws at all (at least one
+  /// unsettled commitment) and what it projects.
+  final List<OcptBudgetCommitment> commitments;
+
+  /// The cash journal's own balance — the figure [OcptBudgetCashProjection] opens at, whole, for
+  /// the very same reason [commitments] is.
+  final int cashBalanceCents;
+
+  /// The project's default VAT rate, in basis points, or null — read by
+  /// [OcptBudgetCashProjection] exactly as every other reading of money that has moved is.
+  final int? defaultVatRateBasisPoints;
+
   /// The project's currency, an ISO 4217 code — the alert band's own amounts.
   final String currencyCode;
 
@@ -133,6 +160,9 @@ class OcptBudgetHeader extends StatelessWidget {
     required this.filterPosteId,
     required this.onPosteFilterSelected,
     required this.alerts,
+    required this.commitments,
+    required this.cashBalanceCents,
+    required this.defaultVatRateBasisPoints,
     required this.currencyCode,
     required this.onAlertPosteActionRequested,
     required this.onCashProjectionAlertActionRequested,
@@ -245,8 +275,17 @@ class OcptBudgetHeader extends StatelessWidget {
               );
             },
           ),
-          if (alerts.isNotEmpty) ...[
+          if (_showsCashProjection || alerts.isNotEmpty) ...[
             const SizedBox(height: 12),
+            if (_showsCashProjection) ...[
+              OcptBudgetCashProjection(
+                openingBalanceCents: cashBalanceCents,
+                commitments: commitments,
+                defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                currencyCode: currencyCode,
+              ),
+              const SizedBox(height: 8),
+            ],
             for (final alert in alerts) ...[
               _buildAlertCard(context, tr, alert),
               const SizedBox(height: 8),
@@ -256,6 +295,13 @@ class OcptBudgetHeader extends StatelessWidget {
       ),
     );
   }
+
+  /// Whether [OcptBudgetCashProjection] draws at all — see the class doc comment: expenses's own
+  /// top level, and at least one unsettled commitment to project.
+  bool get _showsCashProjection =>
+      document == OcptBudgetDocument.expenses &&
+      subPage == null &&
+      commitments.any((commitment) => !commitment.isSettled);
 
   /// Whether the current route honours the simplified/detailed switch and the poste filter —
   /// [OcptBudgetDocument.expenses] read at its own top level in either reading, or its own

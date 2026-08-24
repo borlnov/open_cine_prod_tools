@@ -467,6 +467,12 @@ class _BudgetViewState extends State<_BudgetView> {
           onPosteFilterSelected: (posteId) =>
               bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
           alerts: state.alerts,
+          // Whole, never narrowed by `state.filterPosteId` — see `OcptBudgetHeader`'s own class
+          // doc comment for why the cash-projection card reads exactly what the top band's own
+          // whole-journal figures do.
+          commitments: state.commitments,
+          cashBalanceCents: state.cashTotals.balanceCents,
+          defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
           currencyCode: state.currencyCode,
           onAlertPosteActionRequested: (posteId) {
             bloc
@@ -998,7 +1004,6 @@ class _BudgetViewState extends State<_BudgetView> {
     return OcptBudgetCommittedSpending(
       commitments: _filteredCommitmentsOf(state),
       postes: state.postes,
-      openingBalanceCents: state.cashTotals.balanceCents,
       isSimplified: state.isSimplified,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,

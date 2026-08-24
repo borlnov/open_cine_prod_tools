@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a wide, tall
-/// enough band that both columns are drawn side by side with no scroll needed to find a cell.
+/// enough band that the whole table is drawn with no scroll needed to find a cell.
 Widget _wrap(Widget child, {Size size = const Size(1400, 700)}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -26,6 +26,10 @@ Widget _wrap(Widget child, {Size size = const Size(1400, 700)}) => MaterialApp(
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(body: SizedBox(width: size.width, height: size.height, child: child)),
 );
+
+/// A minimal poste, everything but [id]/[label] neutral.
+OcptBudgetPoste _poste({required String id, required String label}) =>
+    OcptBudgetPoste(id: id, code: "1", label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: const []);
 
 /// A minimal commitment, everything but what each test actually varies neutral.
 OcptBudgetCommitment _commitment({
@@ -61,7 +65,6 @@ void main() {
     WidgetTester tester, {
     required List<OcptBudgetCommitment> commitments,
     List<OcptBudgetPoste> postes = const [],
-    int openingBalanceCents = 0,
     int? defaultVatRateBasisPoints,
     bool isReadOnly = false,
     VoidCallback? onCommitmentCreationRequested,
@@ -71,21 +74,12 @@ void main() {
     ValueChanged<String>? onCommitmentDeletionRequested,
     Size size = const Size(1400, 700),
   }) async {
-    // The default test surface is narrower than `_ocptCommittedWrapWidth`, which would silently
-    // switch every test onto the stacked layout instead of the side-by-side one this suite means
-    // to exercise — widened here so the wrapping `SizedBox` below isn't itself clamped down.
-    tester.view.physicalSize = Size(size.width + 200, size.height + 200);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     await tester.pumpWidget(
       _wrap(
         size: size,
         OcptBudgetCommittedSpending(
           commitments: commitments,
           postes: postes,
-          openingBalanceCents: openingBalanceCents,
           isSimplified: false,
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           currencyCode: "EUR",
@@ -122,14 +116,14 @@ void main() {
   });
 
   testWidgets(
-    "a settled commitment stays listed but is excluded from the outstanding total and the projection",
+    "a settled commitment stays listed but is excluded from the outstanding total",
     (tester) async {
       final commitments = [
         _commitment(id: "c1", dueDate: DateTime(2026), amountCents: 5000, status: OcptBudgetCommitmentStatus.declared),
         _commitment(id: "c2", dueDate: DateTime(2026, 1, 2), amountCents: 2000, settledEntryId: "entry-1"),
       ];
 
-      await pumpView(tester, commitments: commitments, openingBalanceCents: 10000);
+      await pumpView(tester, commitments: commitments);
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCommittedSpending)));
       // Both rows are drawn — the settled one is history worth keeping.
@@ -139,109 +133,48 @@ void main() {
       // The outstanding total counts only the unsettled 5000, not 7000.
       expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
       expect(find.text(ocptBudgetAmountLabel(7000, "EUR")), findsNothing);
-
-      // The projection only takes the unsettled 5000 out of the opening balance: 10000 - 5000 = 5000,
-      // never 10000 - 7000 = 3000.
-      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-      expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsNothing);
     },
   );
 
-  testWidgets("the projection's bars are scaled to the largest absolute balance in the list", (
-    tester,
-  ) async {
-    final commitments = [
-      _commitment(id: "c1", dueDate: DateTime(2026), amountCents: 2000),
-      _commitment(id: "c2", dueDate: DateTime(2026, 1, 2), amountCents: 8000),
-    ];
-
-    // Opening balance 10000: after c1, balance is 8000; after c2, balance is 0.
-    // Largest absolute balance in the list is 8000, so c1's own bar reads full (8000/8000 = 1.0)
-    // and c2's own bar reads empty (0/8000 = 0.0).
-    await pumpView(tester, commitments: commitments, openingBalanceCents: 10000);
-
-    final bars = tester.widgetList<LinearProgressIndicator>(find.byType(LinearProgressIndicator)).toList();
-    // The dashboard's own KPI bars share the same widget type but this view draws only the
-    // projection's own steps, one per commitment.
-    expect(bars, hasLength(2));
-    expect(bars[0].value, 1.0);
-    expect(bars[1].value, 0.0);
-  });
-
-  testWidgets("a step whose balance has gone negative reads differently from one that hasn't", (
-    tester,
-  ) async {
-    final commitments = [
-      _commitment(id: "c1", dueDate: DateTime(2026), amountCents: 3000),
-      _commitment(id: "c2", dueDate: DateTime(2026, 1, 2), amountCents: 5000),
-    ];
-
-    // Opening balance 4000: after c1, balance is 1000 (positive); after c2, balance is -4000
-    // (negative).
-    await pumpView(tester, commitments: commitments, openingBalanceCents: 4000);
-
-    final theme = Theme.of(tester.element(find.byType(OcptBudgetCommittedSpending)));
-    final positiveText = tester.widget<Text>(find.text(ocptBudgetAmountLabel(1000, "EUR")).last);
-    final negativeText = tester.widget<Text>(find.text(ocptBudgetAmountLabel(-4000, "EUR")).last);
-
-    expect(negativeText.style?.color, theme.colorScheme.error);
-    expect(positiveText.style?.color, isNot(theme.colorScheme.error));
-  });
-
   testWidgets(
-    "a commitment that cannot be read tax-inclusive produces no step, but still counts towards the "
-    "coverage read-out",
+    "a commitment that cannot be read tax-inclusive prints the em dash, but still counts towards "
+    "the coverage read-out",
     (tester) async {
       final commitments = [
         _commitment(id: "c1", dueDate: DateTime(2026), amountCents: 2000),
         _commitment(id: "c2", dueDate: DateTime(2026, 1, 2), isTaxInclusive: false),
       ];
 
-      await pumpView(tester, commitments: commitments, openingBalanceCents: 10000);
+      // Both commitments name a poste this view can resolve, so the only em dash left on screen is
+      // the one this test is actually about: the unreadable commitment's own `Amount` cell. A row
+      // whose poste is missing prints one in its `Poste` cell too, which would count here.
+      await pumpView(
+        tester,
+        commitments: commitments,
+        postes: [_poste(id: "poste-1", label: "Camera")],
+      );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCommittedSpending)));
-      // Only one of the two steps is drawn: the unreadable commitment produces none.
-      expect(find.byType(LinearProgressIndicator), findsOneWidget);
-      // The footer's own coverage read-out says so: 1 of the 2 outstanding commitments covers.
-      expect(find.text(tr.budgetCommittedProjectionCoverageReadOut(1, 2)), findsOneWidget);
-      // The outstanding total's own coverage read-out says the very same thing.
+      expect(find.text(ocptBudgetEmptyValue), findsOneWidget);
+      // The outstanding total's own coverage read-out says 1 of the 2 commitments covers.
       expect(find.text(tr.budgetCommittedCoverageReadOut(1, 2)), findsOneWidget);
     },
   );
 
-  testWidgets("an undated commitment is listed last and still lowers the projection", (tester) async {
+  testWidgets("an undated commitment is listed last, reading its own placeholder label", (
+    tester,
+  ) async {
     // Handed in already in the order `OcptBudgetJournalService.loadCommitments` would give them
-    // (dated first, undated last) — this view never reorders its own input, so the undated one
-    // stays last and its own bar is still the very last step of the projection.
+    // (dated first, undated last) — this view never reorders its own input.
     final commitments = [
       _commitment(id: "c1", dueDate: DateTime(2026), amountCents: 500),
       _commitment(id: "c2", amountCents: 1500),
     ];
 
-    await pumpView(tester, commitments: commitments, openingBalanceCents: 5000);
+    await pumpView(tester, commitments: commitments);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetCommittedSpending)));
-    expect(find.text(tr.budgetCommittedNoDueDateLabel), findsWidgets);
-    // The dated step alone: 5000 - 500 = 4500.
-    expect(find.text(ocptBudgetAmountLabel(4500, "EUR")), findsOneWidget);
-    // The undated commitment still takes its own 1500 out, last: 4500 - 1500 = 3000 — printed
-    // twice, once as the last step's own balance and once as the footer's final balance, since the
-    // undated commitment is indeed the last one taken out.
-    expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsNWidgets(2));
-  });
-
-  testWidgets("the projection with nothing outstanding shows the balance and nothing else", (
-    tester,
-  ) async {
-    final commitments = [
-      _commitment(id: "c1", amountCents: 4000, settledEntryId: "entry-1"),
-    ];
-
-    await pumpView(tester, commitments: commitments, openingBalanceCents: 9000);
-
-    // No step is drawn (nothing outstanding), and the balance shown is the opening one, unchanged.
-    expect(find.byType(LinearProgressIndicator), findsNothing);
-    expect(find.text(ocptBudgetAmountLabel(9000, "EUR")), findsOneWidget);
+    expect(find.text(tr.budgetCommittedNoDueDateLabel), findsOneWidget);
   });
 
   testWidgets("withholds every writing affordance under a previewed version", (tester) async {
@@ -271,24 +204,22 @@ void main() {
     expect(tapped, isFalse);
   });
 
-  group("a view too short for its two columns", () {
-    testWidgets("scrolls rather than crushing the table out of its own rows", (tester) async {
-      // Narrow enough to stack the two columns, and short enough that a share of what is left is
-      // under what either needs — the geometry that used to leave the `ListView` nothing at all,
-      // print a header with no commitment under it, and spill over the projection underneath.
-      await pumpView(
-        tester,
-        commitments: [_commitment(id: "c1", amountCents: 120000)],
-        size: const Size(800, 420),
-      );
+  testWidgets("the table scrolls sideways rather than overflowing a narrow centre", (tester) async {
+    // Narrow enough that the table's own fixed columns plus its floor for the wording no longer
+    // fit — the geometry `_ocptCommittedMinTableWidth` guards against.
+    await pumpView(
+      tester,
+      commitments: [_commitment(id: "c1", amountCents: 120000)],
+      size: const Size(600, 700),
+    );
 
-      expect(find.text("Camera rental"), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.vertical,
-        ),
-        findsWidgets,
-      );
-    });
+    expect(tester.takeException(), isNull);
+    expect(find.text("Camera rental"), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.horizontal,
+      ),
+      findsOneWidget,
+    );
   });
 }

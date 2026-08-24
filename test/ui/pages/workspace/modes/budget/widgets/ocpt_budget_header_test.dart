@@ -6,12 +6,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
+
+/// A minimal commitment, everything but what each test actually varies neutral.
+OcptBudgetCommitment _commitment({
+  required String id,
+  String? settledEntryId,
+}) => OcptBudgetCommitment(
+  id: id,
+  dueDate: DateTime(2026),
+  label: "Camera rental",
+  posteId: "poste-1",
+  amount: const OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: null),
+  status: OcptBudgetCommitmentStatus.quoteAccepted,
+  settledEntryId: settledEntryId,
+  lineId: null,
+  sortKey: "a0",
+);
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrap(Widget child) => MaterialApp(
@@ -54,6 +73,9 @@ void main() {
     String? filterPosteId,
     ValueChanged<String?>? onPosteFilterSelected,
     List<OcptBudgetAlert> alerts = const [],
+    List<OcptBudgetCommitment> commitments = const [],
+    int cashBalanceCents = 0,
+    int? defaultVatRateBasisPoints,
     ValueChanged<String>? onAlertPosteActionRequested,
     VoidCallback? onCashProjectionAlertActionRequested,
   }) async {
@@ -74,6 +96,9 @@ void main() {
           filterPosteId: filterPosteId,
           onPosteFilterSelected: onPosteFilterSelected ?? (_) {},
           alerts: alerts,
+          commitments: commitments,
+          cashBalanceCents: cashBalanceCents,
+          defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           currencyCode: "EUR",
           onAlertPosteActionRequested: onAlertPosteActionRequested ?? (_) {},
           onCashProjectionAlertActionRequested: onCashProjectionAlertActionRequested ?? () {},
@@ -565,6 +590,69 @@ void main() {
       );
 
       expect(find.text(tr.budgetDashboardCashNegativeAlertTitle), findsOneWidget);
+    });
+  });
+
+  group("the cash-projection card", () {
+    testWidgets("drawn on expenses while at least one commitment is unsettled", (tester) async {
+      useWideWindow(tester);
+      await pumpHeader(
+        tester,
+        commitments: [_commitment(id: "c1")],
+        cashBalanceCents: 5000,
+      );
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsOneWidget);
+    });
+
+    testWidgets("withheld while every commitment is settled", (tester) async {
+      useWideWindow(tester);
+      await pumpHeader(
+        tester,
+        commitments: [_commitment(id: "c1", settledEntryId: "entry-1")],
+        cashBalanceCents: 5000,
+      );
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
+    });
+
+    testWidgets("withheld while the project carries no commitment at all", (tester) async {
+      useWideWindow(tester);
+      await pumpHeader(tester, cashBalanceCents: 5000);
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
+    });
+
+    testWidgets("withheld on resources and sharing, even with an unsettled commitment", (
+      tester,
+    ) async {
+      useWideWindow(tester);
+      await pumpHeader(
+        tester,
+        document: OcptBudgetDocument.resources,
+        commitments: [_commitment(id: "c1")],
+      );
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
+
+      await pumpHeader(
+        tester,
+        document: OcptBudgetDocument.sharing,
+        commitments: [_commitment(id: "c1")],
+      );
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
+    });
+
+    testWidgets("withheld on a sub-page of expenses, even with an unsettled commitment", (
+      tester,
+    ) async {
+      useWideWindow(tester);
+      await pumpHeader(
+        tester,
+        subPage: OcptBudgetSubPage.committedSpending,
+        commitments: [_commitment(id: "c1")],
+      );
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
     });
   });
 

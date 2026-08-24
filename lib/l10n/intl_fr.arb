@@ -1612,6 +1612,7 @@
   "budgetDeleteCommitmentConfirmTitle": "Supprimer cet engagement ?",
   "budgetDeleteCommitmentConfirmMessage": "Cette action est irréversible.",
   "budgetCommittedProjectionTitle": "Projection de trésorerie",
+  "budgetCommittedProjectionCollapsedSummary": "{openingBalance} → {finalBalance}",
   "budgetCommittedProjectionHint": "Part du solde du journal de trésorerie, puis retire chaque engagement en cours dans l'ordre de ses échéances.",
   "budgetCommittedProjectionNoStepsHint": "Aucun des engagements en cours ne peut encore être lu toutes taxes comprises.",
   "budgetCommittedProjectionFinalBalanceLabel": "Solde après tous les engagements",
