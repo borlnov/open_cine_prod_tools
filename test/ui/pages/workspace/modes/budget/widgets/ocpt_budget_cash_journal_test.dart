@@ -112,7 +112,7 @@ void main() {
     expect(horizontalScroll, findsOneWidget);
     expect(
       tester.getSize(find.descendant(of: horizontalScroll, matching: find.byType(Column)).first).width,
-      960,
+      852,
     );
     expect(find.text("Camera rental"), findsOneWidget);
   });
@@ -241,7 +241,7 @@ void main() {
           debitCents: 1000,
           isTaxInclusive: false,
         ),
-        _entry(id: "e3", date: DateTime(2026, 1, 3), creditCents: 500),
+        _entry(id: "e3", date: DateTime(2026, 1, 3), debitCents: 500),
       ];
 
       await tester.pumpWidget(
@@ -262,19 +262,16 @@ void main() {
         ),
       );
 
-      // The unreadable row's own debit, credit and balance cells all print the em dash.
+      // The unreadable row's own debit and balance cells both print the em dash.
       expect(find.text(ocptBudgetEmptyValue), findsWidgets);
       // The row below it keeps counting from the balance the journal actually stood at
-      // (-2000), not from a poisoned figure: -2000 + 500 = -1500.
-      expect(find.text(ocptBudgetAmountLabel(-1500, "EUR")), findsWidgets);
+      // (-2000), not from a poisoned figure: -2000 - 500 = -2500.
+      expect(find.text(ocptBudgetAmountLabel(-2500, "EUR")), findsWidgets);
     },
   );
 
-  testWidgets("a credit row reads in a different colour from a debit row", (tester) async {
-    final entries = [
-      _entry(id: "e1", date: DateTime(2026), debitCents: 1200),
-      _entry(id: "e2", date: DateTime(2026, 1, 2), creditCents: 800),
-    ];
+  testWidgets("a debit row reads in the accent error colour", (tester) async {
+    final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1200)];
 
     await tester.pumpWidget(
       _wrap(
@@ -295,21 +292,52 @@ void main() {
     );
 
     final theme = Theme.of(tester.element(find.byType(OcptBudgetCashJournal)));
-    // Both amounts also appear, uncoloured, in the top band's own whole-journal totals (the sum
-    // of one entry each): the row's own cell is the last match in build order.
+    // The amount also appears, uncoloured, in the top band's own whole-journal `Debit` figure: the
+    // row's own cell is the last match in build order.
     final debitText = tester.widgetList<Text>(find.text(ocptBudgetAmountLabel(1200, "EUR"))).last;
-    final creditText = tester.widgetList<Text>(find.text(ocptBudgetAmountLabel(800, "EUR"))).last;
 
     expect(debitText.style?.color, theme.colorScheme.error);
-    expect(creditText.style?.color, theme.colorScheme.primary);
-    expect(debitText.style?.color, isNot(creditText.style?.color));
   });
+
+  testWidgets(
+    "a credit never draws as a row — debits only — but still totals into the top band",
+    (tester) async {
+      final entries = [
+        _entry(id: "e1", date: DateTime(2026), debitCents: 1200),
+        _entry(id: "e2", date: DateTime(2026, 1, 2), label: "Grant instalment", creditCents: 800),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            filterPosteId: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntryCreationRequested: () {},
+            onEntryTapped: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      // The credit's own label never reaches a row of the table.
+      expect(find.text("Grant instalment"), findsNothing);
+      // Its amount is still the top band's own whole-journal `Credit` figure.
+      expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsOneWidget);
+      expect(find.text("Camera rental"), findsOneWidget);
+    },
+  );
 
   testWidgets("an entry naming no poste reads as such rather than leaving the cell empty", (
     tester,
   ) async {
     final entries = [
-      _entry(id: "e1", date: DateTime(2026), creditCents: 1000),
+      _entry(id: "e1", date: DateTime(2026), debitCents: 1000),
     ];
 
     await tester.pumpWidget(
@@ -333,6 +361,39 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
     expect(find.text(tr.budgetCashJournalNoPosteLabel), findsOneWidget);
   });
+
+  testWidgets(
+    "a journal holding a credit but no debit shows the shorter empty state, not the ledger's own",
+    (tester) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), creditCents: 5000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            filterPosteId: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntryCreationRequested: () {},
+            onEntryTapped: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
+      expect(find.text(tr.budgetCashJournalNoDebitsHint), findsOneWidget);
+      expect(find.text(tr.budgetCashJournalEmptyHint), findsNothing);
+      // The top band still totals the credit — it is the production's bank account and stays
+      // drawn whatever the table shows.
+      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
+    },
+  );
 
   testWidgets("the coverage read-out appears while an entry carries no known rate, and disappears "
       "once every entry does", (tester) async {

@@ -11637,6 +11637,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetCashJournalNoDebitsHint": "Nothing has gone out yet.",
+  "@budgetCashJournalNoDebitsHint": {
+    "description": "Hint of the cash journal view's own empty state while it holds a credit but no debit",
+    "context": "Shown in place of the cash journal view — debits only — for a project that has recorded money coming in but has never recorded a payment",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetCashJournalDebitLabel": "Debit",
   "@budgetCashJournalDebitLabel": {
     "description": "Label of the cash journal view's own whole-journal debit figure",
