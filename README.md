@@ -102,14 +102,33 @@ somebody convoked on a day their own availability says they are away.
 
 ![The presence grid, eleven people against three shooting days, one cell flagged in red](docs/screenshots/schedule-presence.png)
 
+The budget mode, on what the film costs: one row per poste of the CNC nomenclature, opening on its
+own quote lines, and a line opening in turn on the commitment it became and on the entry that
+settled it. The band on top is the whole daily gesture - a direction, an amount, a name, a date -
+after which the app proposes what the movement settles, so the same figure is never typed twice.
+
+![The expenses document, a poste opened down to its commitment and its settling entry](docs/screenshots/budget-expenses.png)
+
+What pays for it, read the same way: subsidies, contributions and takings, each with the paperwork
+it is held on - which never means the money has arrived - and, at the foot, whether all of it
+covers the film. A contribution in kind is valued and never collected, so both of its cash columns
+read an em dash rather than a zero.
+
+![The resources document, three families with their paperwork and the coverage band](docs/screenshots/budget-resources.png)
+
+And what the film earns, once it earns something: the reimbursable contributions come off the top
+in full, and only what is left is divided by the agreed shares.
+
+![The sharing document, what each person put in beside the distribution](docs/screenshots/budget-sharing.png)
+
 ## Features
 
 What the app does today:
 
 - A workspace shell around the open project - toolbar, resizable side docks, status bar - with a
-  bottom mode switcher for the production tools. Screenplay, breakdown, shot list, resources and
-  schedule are implemented; the budget is still an empty state (see [Roadmap](#roadmap)). Dock sizes
-  and the mode you were last in come back with the project.
+  bottom mode switcher for the production tools. Screenplay, breakdown, shot list, resources,
+  schedule and budget are all implemented. Dock sizes and the mode you were last in come back with
+  the project.
 - One project, several episodes: a series is one `.ocpt` file, with one screenplay per episode and
   one address book, one set of locations and one schedule shared between them. The modes work on the
   episode the workspace has selected; the schedule reads them all at once, a shooting day regularly
@@ -166,6 +185,20 @@ What the app does today:
   than the production says it owes, a filming permit that does not cover the date. Exports the seven
   documents a shoot runs on: the general call sheet and one sheet per recipient, the shooting plan
   as a PDF and as a workbook, the Day Out of Days, the one-line schedule and the day's sides.
+- A budget mode: what the film costs, what pays for it, and how what it earns is shared. The quote
+  against the CNC nomenclature, read as the cost report a production actually works from - quote,
+  committed, paid, remaining, final cost and variance, poste by poste - with the cash journal it is
+  measured against read as the same document in date order rather than as a ledger of its own. A
+  poste opens on its quote lines, and a line on the commitment it became and the entries that
+  settled it. Recording what arrives is one line at the top of the page: a direction, an amount, a
+  name, a date, after which the app ranks what the movement could be settling and one click writes
+  it - so a sum that already exists is never typed a second time. The financing plan says what
+  covers the film and keeps the paperwork apart from the money, because a subsidy on paper is not a
+  subsidy in the account; a contribution in kind is valued without ever pretending cash will move
+  for it. The catering each shooting day costs is read off the schedule rather than typed again,
+  the travel defrayals are typed row by row and provisioned into the quote, and the revenue sharing
+  takes the reimbursable contributions off the top before dividing what is left. Exports the quote,
+  the financing plan, the cash journal as a workbook and the financial report.
 - Project versions: named, permanent checkpoints of the whole project, previewed read-only before
   you commit to anything and restored as an edit rather than a reset - the state a restore replaces
   is itself kept as a version, so going back is never a one-way door.
@@ -193,7 +226,6 @@ What the app does today:
 Planned production tools, in priority order:
 
 - Call sheets beyond the ones the schedule mode already prints
-- Budget
 - Script supervisor reports
 - Storyboard
 - Casting tracker
