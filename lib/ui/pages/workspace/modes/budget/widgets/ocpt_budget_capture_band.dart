@@ -76,6 +76,16 @@ const double _ocptBudgetCaptureBandFieldsMinWidth = 760;
 /// the date back to today, the direction back to [initialIsDebit] — win or lose, exactly as a save
 /// gesture with no queue behind it should: nothing queues, so nothing has to remember that it was
 /// queued.
+///
+/// **[onOtherRequested] is offered beside `Save`, not on a suggestion row.** It used to be drawn
+/// only on the first suggestion, which meant the band's own full door — the poste, the VAT, the
+/// receipt, what the movement settles — existed only on the occasions the app happened to guess
+/// right, and for the common case of a project with no commitment recorded yet to match against,
+/// did not exist at all: `Save` alone wrote an entry naming nothing, silently. An escape hatch that
+/// only appears when the guess succeeds is not one, so it is now offered whenever
+/// [_OcptBudgetCaptureBandState._isDraftSaveable] reads true — the very same gate that decides
+/// whether a suggestion is even worth ranking — whether or not [ocptBudgetMatchSuggestionsOf] found
+/// anything at all.
 class OcptBudgetCaptureBand extends StatefulWidget {
   /// The direction the band starts on, and returns to once it clears — `false` (a credit) on
   /// `OcptBudgetDocument.resources`, `true` (a debit) everywhere else the band is offered. The
@@ -265,10 +275,11 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
     );
   }
 
-  /// The fields row: amount, wording, date, `Save` — nothing else, per the class doc comment. Wide
-  /// enough centre panes draw the four side by side; narrower ones (the right dock open on an
-  /// ordinary window, mirroring `OcptBudgetHeader`'s own narrow case) fall back to two lines rather
-  /// than clipping.
+  /// The fields row: amount, wording, date, `Autre chose…` (only while
+  /// [_isDraftSaveable]), `Save`. Wide enough centre panes draw them side by side; narrower ones
+  /// (the right dock open on an ordinary window, mirroring `OcptBudgetHeader`'s own narrow case)
+  /// fall back to two lines rather than clipping, `Autre chose…` sharing the second one with the
+  /// date and `Save`.
   Widget _buildFieldsRow(Tr tr, String currencySymbol, bool isWide) {
     final amountField = _buildAmountField(tr, currencySymbol);
     final wordingField = _buildWordingField(tr);
@@ -277,6 +288,15 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
       value: _date,
       onChanged: (value) => setState(() => _date = value ?? _date),
     );
+    // Withheld, never disabled, the standing rule for an affordance without a subject — see the
+    // class doc comment for why this is the very same gate `_suggestionsOf` reads.
+    final otherButton = _isDraftSaveable
+        ? TextButton(
+            key: const Key("ocptBudgetCaptureBandOtherButton"),
+            onPressed: _handleOther,
+            child: Text(tr.budgetCaptureBandOtherAction),
+          )
+        : null;
     final saveButton = FilledButton(
       key: const Key("ocptBudgetCaptureBandSaveButton"),
       onPressed: _handleSave,
@@ -293,6 +313,10 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
           const SizedBox(width: 12),
           SizedBox(width: _ocptBudgetCaptureBandDateFieldWidth, child: dateField),
           const SizedBox(width: 12),
+          if (otherButton != null) ...[
+            Padding(padding: const EdgeInsets.only(top: 4), child: otherButton),
+            const SizedBox(width: 8),
+          ],
           Padding(padding: const EdgeInsets.only(top: 4), child: saveButton),
         ],
       );
@@ -315,6 +339,7 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
           children: [
             Expanded(child: dateField),
             const SizedBox(width: 12),
+            if (otherButton != null) ...[otherButton, const SizedBox(width: 8)],
             saveButton,
           ],
         ),
@@ -379,7 +404,6 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
           headline: _headlineOf(context, tr, first),
           why: _whyOf(tr, first),
           onAccept: () => _handleAccept(first),
-          onOther: _handleOther,
           acceptKey: Key("ocptBudgetCaptureBandAcceptButton-${first.candidateId}"),
         ),
         if (rest.isNotEmpty) ...[
@@ -397,7 +421,6 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
                   headline: _headlineOf(context, tr, suggestion),
                   why: _whyOf(tr, suggestion),
                   onAccept: () => _handleAccept(suggestion),
-                  onOther: null,
                   acceptKey: Key("ocptBudgetCaptureBandAcceptButton-${suggestion.candidateId}"),
                 ),
               ),
@@ -545,15 +568,24 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
     );
   }
 
-  /// [ocptBudgetMatchSuggestionsOf]'s own answer to the draft currently typed, or the empty list
-  /// while the amount does not read as a positive figure or the wording is blank — the class doc
-  /// comment's own gate.
-  List<OcptBudgetMatchSuggestion> _suggestionsOf() {
+  /// Whether the draft currently reads as saveable — a positive amount and a non-blank wording.
+  /// **The one gate [_suggestionsOf] and `_buildFieldsRow`'s own `Autre chose…` button both read**,
+  /// factored out here rather than written twice, so a ranking rule the app already applies and an
+  /// affordance's own visibility can never quietly drift apart on what "saveable" means.
+  bool get _isDraftSaveable {
     final amountCents = ocptCostCentsOf(_amountController.text);
     final wording = _wordingController.text.trim();
-    if (amountCents == null || amountCents <= 0 || wording.isEmpty) {
+    return amountCents != null && amountCents > 0 && wording.isNotEmpty;
+  }
+
+  /// [ocptBudgetMatchSuggestionsOf]'s own answer to the draft currently typed, or the empty list
+  /// while [_isDraftSaveable] is false.
+  List<OcptBudgetMatchSuggestion> _suggestionsOf() {
+    if (!_isDraftSaveable) {
       return const [];
     }
+    final amountCents = ocptCostCentsOf(_amountController.text)!;
+    final wording = _wordingController.text.trim();
 
     return ocptBudgetMatchSuggestionsOf(
       isDebit: _isDebit,
@@ -624,9 +656,10 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
 }
 
 /// One suggestion row of [OcptBudgetCaptureBand]'s own under-band: the headline naming what would
-/// be settled, the muted *why* line under it, `C'est ça` always offered and `Autre chose…` offered
-/// only on the first (through [onOther] being null on every row the discreet expander adds) — see
-/// `_OcptBudgetCaptureBandState._buildUnderBand`'s own doc comment.
+/// be settled, the muted *why* line under it, `C'est ça` always offered. `Autre chose…` no longer
+/// lives on a suggestion row at all — it moved beside `Save` in `_buildFieldsRow`, offered whether
+/// or not a suggestion was found, so every row this widget draws is now the same shape whether it
+/// is the first or one of the discreet expander's own.
 class _OcptBudgetCaptureBandSuggestionRow extends StatelessWidget {
   /// The suggestion's own headline, already resolved — see
   /// `_OcptBudgetCaptureBandState._headlineOf`.
@@ -639,10 +672,6 @@ class _OcptBudgetCaptureBandSuggestionRow extends StatelessWidget {
   /// Called when `C'est ça` is clicked.
   final VoidCallback onAccept;
 
-  /// Called when `Autre chose…` is clicked, or null to withhold the control on this row — see the
-  /// class doc comment.
-  final VoidCallback? onOther;
-
   /// The key `C'est ça` is drawn with — suffixed by the suggestion's own candidate id, so more than
   /// one row on screen at once (the first, and the discreet expander's own) never share one.
   final Key acceptKey;
@@ -652,7 +681,6 @@ class _OcptBudgetCaptureBandSuggestionRow extends StatelessWidget {
     required this.headline,
     required this.why,
     required this.onAccept,
-    required this.onOther,
     required this.acceptKey,
   });
 
@@ -687,14 +715,6 @@ class _OcptBudgetCaptureBandSuggestionRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          if (onOther case final onOther?) ...[
-            TextButton(
-              key: const Key("ocptBudgetCaptureBandOtherButton"),
-              onPressed: onOther,
-              child: Text(tr.budgetCaptureBandOtherAction),
-            ),
-            const SizedBox(width: 4),
-          ],
           FilledButton(
             key: acceptKey,
             onPressed: onAccept,

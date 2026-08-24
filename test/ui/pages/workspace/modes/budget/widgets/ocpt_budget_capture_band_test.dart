@@ -245,6 +245,92 @@ void main() {
     expect(otherFields!.amountCents, 25000);
   });
 
+  testWidgets(
+    "Autre chose… is offered and reports the typed fields even when nothing matches at all",
+    (tester) async {
+      useWideWindow(tester);
+      OcptBudgetEntryFormFields? otherFields;
+      final tr = await pumpBand(tester, onOtherRequested: (fields) => otherFields = fields);
+
+      await typeDraft(tester, amount: "42.00", wording: "Taxi");
+
+      // No commitment was ever passed in, so the under-band reads the plain "no suggestion" hint
+      // — and the full door is offered right beside it all the same.
+      expect(find.text(tr.budgetCaptureBandNoSuggestionHint), findsOneWidget);
+      expect(find.text(tr.budgetCaptureBandOtherAction), findsOneWidget);
+
+      await tester.tap(find.text(tr.budgetCaptureBandOtherAction));
+      await tester.pumpAndSettle();
+
+      expect(otherFields?.label, "Taxi");
+      expect(otherFields?.amountCents, 4200);
+    },
+  );
+
+  testWidgets("Autre chose… is withheld while the draft does not yet read as saveable", (tester) async {
+    useWideWindow(tester);
+    final tr = await pumpBand(tester, onOtherRequested: (_) {});
+
+    // Nothing typed at all.
+    expect(find.text(tr.budgetCaptureBandOtherAction), findsNothing);
+
+    // Wording alone.
+    await tester.enterText(find.byKey(const Key("ocptBudgetCaptureBandWordingField")), "Taxi");
+    await tester.pumpAndSettle();
+    expect(find.text(tr.budgetCaptureBandOtherAction), findsNothing);
+
+    // Amount alone, wording cleared.
+    await tester.enterText(find.byKey(const Key("ocptBudgetCaptureBandWordingField")), "");
+    await tester.enterText(find.byKey(const Key("ocptBudgetCaptureBandAmountField")), "42.00");
+    await tester.pumpAndSettle();
+    expect(find.text(tr.budgetCaptureBandOtherAction), findsNothing);
+
+    // A zero amount does not read as saveable either, even with wording filled.
+    await tester.enterText(find.byKey(const Key("ocptBudgetCaptureBandWordingField")), "Taxi");
+    await tester.enterText(find.byKey(const Key("ocptBudgetCaptureBandAmountField")), "0");
+    await tester.pumpAndSettle();
+    expect(find.text(tr.budgetCaptureBandOtherAction), findsNothing);
+  });
+
+  testWidgets(
+    "stays drawn exactly once beside Save while suggestions show, never duplicated on a "
+    "suggestion row of its own",
+    (tester) async {
+      useWideWindow(tester);
+      final commitmentA = _commitment(
+        id: "c1",
+        label: "Couronne rental",
+        posteId: "p1",
+        amountCents: 25000,
+        dueDate: DateTime(2026, 1, 15),
+      );
+      final commitmentB = _commitment(
+        id: "c2",
+        label: "Couronne rental bis",
+        posteId: "p1",
+        amountCents: 25000,
+        dueDate: DateTime(2026, 1, 16),
+      );
+      final tr = await pumpBand(
+        tester,
+        commitments: [commitmentA, commitmentB],
+        onOtherRequested: (_) {},
+      );
+
+      await typeDraft(tester, amount: "250.00", wording: "Couronne");
+
+      // Both candidates match on amount and wording, so the discreet expander offers the second.
+      expect(find.text(tr.budgetCaptureBandMoreSuggestionsToggle(1)), findsOneWidget);
+      await tester.tap(find.text(tr.budgetCaptureBandMoreSuggestionsToggle(1)));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key("ocptBudgetCaptureBandAcceptButton-c1")), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetCaptureBandAcceptButton-c2")), findsOneWidget);
+      // One `Something else…`, not one per suggestion row.
+      expect(find.text(tr.budgetCaptureBandOtherAction), findsOneWidget);
+    },
+  );
+
   testWidgets("plain Save calls onEntryCaptured with the typed fields, ignoring any suggestion", (
     tester,
   ) async {

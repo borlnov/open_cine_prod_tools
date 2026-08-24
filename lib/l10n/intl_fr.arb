@@ -1891,7 +1891,7 @@
   "budgetCaptureBandTitle": "Qu'est-ce qui a bougé ?",
   "budgetCaptureBandOutOption": "Sorti du compte",
   "budgetCaptureBandInOption": "Rentré sur le compte",
-  "budgetCaptureBandNoSuggestionHint": "Le reste — poste, TVA, ce que ça solde — est proposé ici dès que quelque chose correspond. Il n'y a rien d'autre à remplir.",
+  "budgetCaptureBandNoSuggestionHint": "Le reste — poste, TVA, justificatif, ce que ça solde — est proposé ici dès que quelque chose correspond. En attendant, le formulaire complet est à un clic.",
   "budgetCaptureBandWhyAmountClause": "même montant",
   "budgetCaptureBandWhyDateClause": "même jour",
   "budgetCaptureBandWhyWordingClause": "même libellé",

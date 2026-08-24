@@ -14202,9 +14202,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCaptureBandNoSuggestionHint": "The rest — poste, VAT, what it settles — is proposed here as soon as something matches. There is nothing else to fill in.",
+  "budgetCaptureBandNoSuggestionHint": "The rest — poste, VAT, receipt, what it settles — is proposed here as soon as something matches. Until then, the full form is one click away.",
   "@budgetCaptureBandNoSuggestionHint": {
-    "description": "Under-band hint shown while no suggestion has been found for the typed draft",
+    "description": "Under-band hint shown while no suggestion has been found for the typed draft, pointing at the full-form escape hatch beside Save",
     "context": "Displayed under OcptBudgetCaptureBand's own fields row",
     "type": "text",
     "placeholders": {}
@@ -14330,8 +14330,8 @@
   },
   "budgetCaptureBandOtherAction": "Something else…",
   "@budgetCaptureBandOtherAction": {
-    "description": "Secondary action of the capture band's own first suggestion row, opening the full entry dialog prefilled",
-    "context": "Displayed by OcptBudgetCaptureBand, the first suggestion row only",
+    "description": "Secondary action beside the capture band's own Save button, opening the full entry dialog prefilled",
+    "context": "Displayed by OcptBudgetCaptureBand's own fields row, whenever the typed draft reads as saveable — whether or not a suggestion was found",
     "type": "text",
     "placeholders": {}
   },
