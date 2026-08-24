@@ -10,11 +10,11 @@
 /// two faces of one chip — each is its own value, its own chip, exactly the shape the shell
 /// design draws.
 ///
-/// **A value may be inserted at any position, the dashboard included.** Nothing stored ever
-/// points at one of these: none of `OcptBudgetState`'s route fields is persisted, so there is no
-/// stored preference for an inserted value to leave stranded, unlike the retired enum's own
-/// "always at the end" rule, written for the milestone where `document`/`reading`/`subPage`
-/// still had to survive being read back from a stored preference that no longer applies here.
+/// **A value may be inserted at any position, the dashboard included.** `OcptBudgetState.view` is
+/// held in memory for the life of the mode and written to no preference at all, so an inserted
+/// value strands nothing. The retired `OcptBudgetCentreView` carried the opposite rule — every
+/// value joined it at the end — against a stored preference that was in the end never written, and
+/// there is nothing left here for that rule to protect.
 enum OcptBudgetView {
   /// The quote itself, poste by poste: the working surface for creating, renaming and reordering
   /// postes and lines, and reading what each poste has consumed.
