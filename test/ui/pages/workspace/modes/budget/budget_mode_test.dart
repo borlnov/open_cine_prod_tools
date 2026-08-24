@@ -1089,7 +1089,24 @@ void main() {
     // The header's own chip now names the poste rather than reading "every poste" — the mode
     // is narrowed, and every view that can honour the filter now agrees on it.
     expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing);
-    expect(find.text(tr.budgetCncPosteArtisticRights), findsWidgets);
+
+    // And the narrowing is real where it is read, not merely announced by the chip: the
+    // cost-tracking table has dropped every other poste. Asserted on the table rather than on
+    // the whole tree, because the dock itself deliberately keeps listing all of them — it is a
+    // standing reading of the quote, not a narrowed view.
+    Finder inCostTracking(Finder matching) =>
+        find.descendant(of: find.byType(OcptBudgetCostTracking), matching: matching);
+    expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsOneWidget);
+    expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsNothing);
+
+    // The dock, meanwhile, still lists the poste the filter left out.
+    expect(
+      find.descendant(
+        of: find.byType(OcptBudgetPosteDock),
+        matching: find.text(tr.budgetCncPosteOverheads),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
