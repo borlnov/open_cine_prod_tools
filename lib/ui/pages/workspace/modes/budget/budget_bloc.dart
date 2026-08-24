@@ -431,7 +431,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// sittings from.
   ///
   /// `elements` is carried raw, beside `roles`/`people`, rather than folded into
-  /// [OcptBudgetSnapshot]: `OcptBudgetPosteInspector`'s own `+ From breakdown` picker needs the
+  /// [OcptBudgetSnapshot]: `OcptBudgetFiche`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   Future<
     ({

@@ -103,7 +103,7 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// **A third, narrower case is a different thing entirely**: the whole journal holds a debit, but
 /// [filterPosteId] narrows this table to a poste none of them name. That is the poste filter
 /// finding nothing, not the journal holding nothing, so it prints the plain, un-iconed sentence
-/// `OcptBudgetPosteInspector`'s own related-entries panel already uses for the very same fact,
+/// `OcptBudgetFiche`'s own empty state already uses for the very same fact,
 /// never [OcptWorkspaceEmptyMode].
 ///
 /// The dashboard can return the empty state as its whole body because it writes nothing at all;

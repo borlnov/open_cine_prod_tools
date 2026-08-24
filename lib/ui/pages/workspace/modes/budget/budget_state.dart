@@ -203,7 +203,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// Every live element of the breakdown's own catalogue, as last loaded — [elementLinkCounts] is
   /// the dashboard's own aggregate reading of it, and [unpricedElements] is what
-  /// `OcptBudgetPosteInspector`'s own `+ From breakdown` picker offers. Not part of [snapshot]: the
+  /// `OcptBudgetFiche`'s own `+ From breakdown` picker offers. Not part of [snapshot]: the
   /// picker needs the whole catalogue, not a figure derived from it, exactly the reason [roles] and
   /// [people] already sit beside it rather than inside it.
   final List<OcptElement> elements;
@@ -398,7 +398,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       ocptBudgetElementLinkCountsOf(postes: postes, elements: elements);
 
   /// Every one of [elements] no live quote line prices yet — what
-  /// `OcptBudgetPosteInspector`'s own `+ From breakdown` picker offers.
+  /// `OcptBudgetFiche`'s own `+ From breakdown` picker offers.
   List<OcptElement> get unpricedElements =>
       ocptBudgetUnpricedElementsOf(postes: postes, elements: elements);
 

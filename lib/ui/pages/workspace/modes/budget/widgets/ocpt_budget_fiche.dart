@@ -5,6 +5,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
@@ -1294,7 +1295,7 @@ class _OcptBudgetFicheBadge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
     ),
     child: Text(
       text,
@@ -1421,7 +1422,7 @@ class _OcptBudgetFicheOutstanding extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ocptRadiusMedium),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

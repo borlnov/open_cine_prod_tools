@@ -4,19 +4,15 @@
 
 import 'package:equatable/equatable.dart';
 
-/// What is currently selected for the right dock's own fiche, once it exists — the polymorphic
-/// panel a later milestone builds (`docs/plans/budget-mode-ux.md` M5) to show one object's own
-/// breadcrumb, stepper, figures and outstanding amount, whichever of the mode's several kinds of
-/// row it is standing on.
+/// What is currently selected for the right dock's own fiche — `OcptBudgetFiche`, the one panel
+/// that shows an object's breadcrumb, stepper, figures and outstanding amount, whichever of the
+/// mode's several kinds of row it is standing on.
 ///
-/// **Replaces `OcptBudgetState.selectedPosteId` and `.selectedResourceId`**, previously two
-/// independent id fields — the poste tree's own selection and the financing view's own highlight —
-/// with one fact: a fiche able to show any object can only ever be looking at one of them at a
-/// time. `OcptBudgetState.selectedRevenueId`/`.selectedShareId` are untouched by this milestone,
-/// the revenue sharing view's own two columns staying exactly as independent as they are today;
-/// growing them into variants of this same sealed class, and folding every one of the dock panels
-/// that reads a narrow id today onto the fiche itself, is that later milestone's job, not this
-/// one's.
+/// **One fact, not several id fields.** The poste tree's own selection and the financing view's
+/// own highlight used to be two independent ids; a fiche able to show any object can only ever be
+/// looking at one of them at a time. The revenue sharing view is the one holdout, its
+/// `OcptBudgetState.selectedRevenueId`/`.selectedShareId` still two columns' own independent
+/// highlights — [OcptBudgetRevenueSelection] is what they fold onto once that view is rebuilt.
 ///
 /// Every variant carries only the id it names — mirroring the `state` holding the actual objects,
 /// exactly as `OcptBudgetState.selectedPosteId` never carried an `OcptBudgetPoste` of its own.
@@ -39,8 +35,8 @@ final class OcptBudgetPosteSelection extends OcptBudgetSelection {
   List<Object?> get props => [posteId];
 }
 
-/// A selected quote line — the poste inspector's own expanded card, once the fiche reads it
-/// directly rather than through `OcptBudgetState.expandedLineId`.
+/// A selected quote line — the row the fiche reads its own editable fields off, in the expenses
+/// tree or under the poste it belongs to.
 final class OcptBudgetLineSelection extends OcptBudgetSelection {
   /// The id of the selected quote line.
   final String lineId;
@@ -108,7 +104,8 @@ final class OcptBudgetRevenueSelection extends OcptBudgetSelection {
 }
 
 /// A selected receipt — a journal entry read as the sub-row it settles, nested under the resource
-/// or the commitment that names it in the resources tree (`docs/plans/budget-mode-ux.md` M6).
+/// or the commitment that names it. Answered by the fiche already; nothing dispatches it until the
+/// resources tree draws its own receipt sub-rows.
 final class OcptBudgetReceiptSelection extends OcptBudgetSelection {
   /// The id of the selected receipt.
   final String receiptId;
