@@ -243,6 +243,15 @@ plan invalidates — "The mode's own shape" first, including the false sentence 
 across both files, the README screenshots retaken with `tool/screenshot-app.sh`, and this plan
 deleted, as `CLAUDE.md` requires once a step ships.
 
+Three keys are named here so the sweep cannot miss them:
+`budgetHeaderDocumentExpensesSegmentLabel`, `…ResourcesSegmentLabel` and `…SharingSegmentLabel`
+outlived the chips they were written for. M2 kept them, the chips gone, because `OcptBudgetFiche`'s
+own breadcrumb and four of the help panel's own sentences still read them — and both now name a
+place the header no longer draws: `Expenses` for what is now `Suivi de coût`, `Resources` for
+`Financement`. The revenue fiche's `Sharing` breadcrumb is the third, and the only one of the three
+that needs a decision rather than a rename: it was already stale before this plan started, a taking
+having moved into the financing tree (§7, decision 2).
+
 ## 7. Decisions taken
 
 Answered by Benoit before M1 started. All four are folded into the sections above, which stand as
