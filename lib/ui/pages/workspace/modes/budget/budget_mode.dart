@@ -442,6 +442,13 @@ class _BudgetViewState extends State<_BudgetView> {
   Widget _buildCentre(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
 
+    // Read once, here: null is both "this view shows no capture band" and "a previewed version
+    // takes it away", and the direction it carries otherwise is the band's own key as well as its
+    // initial value. Asking twice would mean force-unwrapping the second answer.
+    final captureBandDirection = state.isPreviewingVersion
+        ? null
+        : _captureBandDirectionOf(state.view);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -474,10 +481,10 @@ class _BudgetViewState extends State<_BudgetView> {
               bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.committed)),
         ),
         const SizedBox(height: 12),
-        if (_showsCaptureBand(state)) ...[
+        if (captureBandDirection != null) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _buildCaptureBand(context, state, bloc),
+            child: _buildCaptureBand(context, state, bloc, isDebit: captureBandDirection),
           ),
           const SizedBox(height: 12),
         ],
@@ -492,17 +499,11 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Whether [OcptBudgetCaptureBand] is mounted at all: [OcptBudgetState.view] is
-  /// [OcptBudgetView.costTracking], [OcptBudgetView.cashJournal] or [OcptBudgetView.financing] —
-  /// never [OcptBudgetView.committed], [OcptBudgetView.regie] or [OcptBudgetView.sharing] — and
-  /// the project is not a previewed version, which withholds the band **whole** rather than
-  /// drawing it disabled, the standing rule for an affordance a preview takes away
-  /// (`docs/architecture/budget.md`).
-  bool _showsCaptureBand(OcptBudgetState state) =>
-      !state.isPreviewingVersion && _capturesBandDirectionOf(state.view) != null;
-
-  /// The band's own initial direction while [view] shows it at all, or null while [view] shows no
-  /// band — [_showsCaptureBand]'s own other half, and [_buildCaptureBand]'s own key.
+  /// The direction [OcptBudgetCaptureBand] opens on under [view], or null where [view] draws no
+  /// band at all — [OcptBudgetView.committed], [OcptBudgetView.regie] and [OcptBudgetView.sharing].
+  /// A previewed version withholds the band **whole** rather than drawing it disabled, the standing
+  /// rule for an affordance a preview takes away (`docs/architecture/budget.md`); that is
+  /// [_buildCentre]'s own reading, not this method's, which answers about the view alone.
   ///
   /// **`true` (a debit) for [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal],
   /// `false` (a credit) for [OcptBudgetView.financing].** Both of the first two are the very same
@@ -510,43 +511,48 @@ class _BudgetViewState extends State<_BudgetView> {
   /// moving between them is not switching what the band is capturing — only how the rest of the
   /// screen reads it — so the band must not remount and lose a half-typed draft merely because the
   /// reader clicked from one to the other.
-  bool? _capturesBandDirectionOf(OcptBudgetView view) => switch (view) {
+  bool? _captureBandDirectionOf(OcptBudgetView view) => switch (view) {
     OcptBudgetView.costTracking || OcptBudgetView.cashJournal => true,
     OcptBudgetView.financing => false,
     OcptBudgetView.committed || OcptBudgetView.regie || OcptBudgetView.sharing => null,
   };
 
-  /// Builds the capture band — keyed by [_capturesBandDirectionOf] so it remounts fresh, its own
-  /// draft cleared, exactly when the band's own default direction changes (moving into or out of
-  /// [OcptBudgetView.financing]), and stays mounted with its draft intact while the reader moves
-  /// between [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal] — two readings of the
-  /// very same document, sharing the very same debit default.
+  /// Builds the capture band — keyed by [isDebit], the answer [_captureBandDirectionOf] gave for
+  /// the view on screen, so it remounts fresh, its own draft cleared, exactly when the band's own
+  /// default direction changes (moving into or out of [OcptBudgetView.financing]), and stays
+  /// mounted with its draft intact while the reader moves between [OcptBudgetView.costTracking] and
+  /// [OcptBudgetView.cashJournal] — two readings of the very same document, sharing the very same
+  /// debit default.
   ///
   /// **The three callbacks are where a suggestion's own kind is turned into a domain write** — the
   /// band itself only ever reports what was typed (see `OcptBudgetCaptureBand`'s own class doc
   /// comment): [_handleCaptureBandSuggestionAccepted] is this method's own mirror of
   /// [_handleCommitmentSettleRequested] and [_handleResourceReceiptRequested], reusing the very same
   /// events, this time built from the band's own draft instead of a dialog's.
-  Widget _buildCaptureBand(BuildContext context, OcptBudgetState state, OcptBudgetBloc bloc) =>
-      OcptBudgetCaptureBand(
-        key: ValueKey(_capturesBandDirectionOf(state.view)),
-        initialIsDebit: _capturesBandDirectionOf(state.view)!,
-        commitments: state.commitments,
-        allowances: state.allowances,
-        resources: state.resources,
-        revenues: state.revenues,
-        receivedByResourceId: state.receivedByResourceId,
-        receivedByRevenueId: state.receivedByRevenueId,
-        projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
-        postes: state.postes,
-        currencyCode: state.currencyCode,
-        onEntryCaptured: (fields) =>
-            bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields)),
-        onOtherRequested: (fields) =>
-            unawaited(_handleCaptureBandOtherRequested(context, state, fields)),
-        onSuggestionAccepted: (suggestion, fields) =>
-            _handleCaptureBandSuggestionAccepted(bloc, state, suggestion, fields),
-      );
+  Widget _buildCaptureBand(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetBloc bloc, {
+    required bool isDebit,
+  }) => OcptBudgetCaptureBand(
+    key: ValueKey(isDebit),
+    initialIsDebit: isDebit,
+    commitments: state.commitments,
+    allowances: state.allowances,
+    resources: state.resources,
+    revenues: state.revenues,
+    receivedByResourceId: state.receivedByResourceId,
+    receivedByRevenueId: state.receivedByRevenueId,
+    projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+    postes: state.postes,
+    currencyCode: state.currencyCode,
+    onEntryCaptured: (fields) =>
+        bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields)),
+    onOtherRequested: (fields) =>
+        unawaited(_handleCaptureBandOtherRequested(context, state, fields)),
+    onSuggestionAccepted: (suggestion, fields) =>
+        _handleCaptureBandSuggestionAccepted(bloc, state, suggestion, fields),
+  );
 
   /// `Autre chose…`: opens `OcptBudgetEntryDialog` prefilled with the capture band's own draft,
   /// then dispatches the creation if the user confirmed it — mirrors `_handleEntryCreationRequested`
