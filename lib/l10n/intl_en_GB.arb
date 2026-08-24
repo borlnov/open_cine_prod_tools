@@ -10836,7 +10836,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteDockTitle": "Postes",
+  "budgetPosteDockTitle": "Quote postes",
   "@budgetPosteDockTitle": {
     "description": "Title of the budget mode's left dock, the poste list",
     "context": "Displayed at the top of the budget mode's left dock",

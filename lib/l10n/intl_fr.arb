@@ -1451,7 +1451,7 @@
   "budgetCostTrackingColumnVariance": "Écart",
   "budgetCostTrackingColumnConsumed": "Consommé",
   "budgetPosteUnnamed": "Poste sans nom",
-  "budgetPosteDockTitle": "Postes",
+  "budgetPosteDockTitle": "Postes du devis",
   "budgetPosteDockClearFilterLabel": "Tout",
   "budgetPosteDockEmptyHint": "Aucun poste pour l'instant.",
   "budgetPosteDockFilterOnlyAction": "Ne montrer que ce poste",
