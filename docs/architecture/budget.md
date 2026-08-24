@@ -12,8 +12,8 @@ actually seen, and every commitment still owed but not yet paid — the financin
 pays for all of it, the catering a shooting day actually costs — read off the schedule rather than
 typed a second time — beside the defrayals a production types row by row and provisions into the
 quote, and the revenue sharing that says, once the film has earned something, who gets what of it.
-The mode is complete: its seven views and its four documents
-are all here, and this file is the whole record of them.
+The mode is complete: its three documents and its four exports are all here, and this file is the
+whole record of them.
 
 ## Who it serves, and what the mode now shows
 
@@ -21,17 +21,42 @@ are all here, and this file is the whole record of them.
   from the same figures: the **commission**, which expects the CNC nomenclature, a financing plan
   with its in-kind contributions valued separately and a final report against the quote; and the
   **production that shot the film with five people**, whose real account book is a debit/credit
-  journal with free categories, a meals sheet and a sharing sheet. Nothing about the mode so far
-  favours one reader over the other — it builds the one document both eventually need, the quote,
-  and then the ledger both eventually keep, the cash journal that measures what has actually moved
-  against it and what is still owed, and now the financing plan that measures against the quote in
-  turn, and finally the revenue sharing that splits what the finished film earns.
-  `OcptBudgetCentreView` holds all seven the mockup validates — `dashboard`, `costTracking`,
-  `cashJournal`, `committed`, `financing`, `regie` and `sharing` — and is **complete**: every value
-  joined it at its own end, as the milestone that gave it real content landed, so a stored
-  preference never pointed at a view that had moved. That reading was proved out three times
-  (`cashJournal`/`committed`, then `financing`/`regie`, then `sharing`) and is the one an eighth
-  view, should the roadmap ever want one, has to repeat.
+  journal with free categories, a meals sheet and a sharing sheet. Nothing about the mode favours
+  one reader over the other — it builds the one document both eventually need, the quote, and then
+  the ledger both eventually keep, the cash journal that measures what has actually moved against
+  it and what is still owed, and the financing plan that measures against the quote in turn, and
+  finally the revenue sharing that splits what the finished film earns.
+- **Three documents, not seven views.** `OcptBudgetDocument` (`lib/types/`) carries exactly three
+  values — `expenses`, `resources`, `sharing` — replacing `OcptBudgetCentreView`'s own seven, which
+  used to sit side by side as equals when three of them, the quote, the committed spending and the
+  cash journal, were the *stages* of one chain. `expenses` is that whole chain read as one
+  document, in one of two `OcptBudgetDocumentReading`s at its own top level (`byTree`, poste by
+  poste, or `byDate`, in the order money actually moved), with its remaining stage — the committed
+  spending — and the catering-and-travel pass reached as an `OcptBudgetSubPage`
+  (`committedSpending`, `regie`) through the header's own breadcrumb rather than through a chip of
+  their own. `resources` and `sharing` each keep one reading, `byTree`, for now: a resource's own
+  chronological reading is a later milestone's, so the header's own reading switch is offered on
+  `expenses` alone and withheld, never disabled, wherever the document it would switch has nothing
+  to switch to — the standing rule for an affordance without a subject.
+- **The chronological journal is not a place.** It is `OcptBudgetDocument.expenses` read in
+  `OcptBudgetDocumentReading.byDate` instead of `.byTree` — the very same document, the very same
+  postes and lines behind it, ordered by date rather than nested by poste. `OcptBudgetCashJournal`,
+  the widget that draws it, is unchanged in shape and is simply the view `expenses`/`byDate` opens
+  on, exactly as `OcptBudgetCostTracking` is the view `expenses`/`byTree` opens on.
+- **Selection grew a type.** `OcptBudgetSelection` (`lib/types/`), a sealed class with one `final`
+  variant per kind of row the fiche can show — poste, quote line, commitment, entry, resource,
+  revenue, receipt — replaces what used to be several independent id fields
+  (`selectedPosteId`/`selectedResourceId`/…): a fiche able to show any one object can only ever be
+  looking at one of them at a time, and one field now says which. `OcptBudgetState.selectedPosteId`
+  and `.selectedResourceId` survive as plain getters folding onto `selection`, so nothing that read
+  them before had to change; `.selectedShareId` stays its own field, a share opening no fiche in any
+  document this reaches yet.
+- **`document`, `reading`, `subPage`, `isSimplified` and `taxBasis` are not persisted.** The
+  schedule mode's own agenda mode is the precedent: only `budgetRightDockFraction` and
+  `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a relaunch, exactly as before this
+  rework. A reader who left the mode on the resources tree, mid-way through a filter, opens back on
+  the mode's own default — `expenses`, `byTree`, no sub-page — every time, the same way the schedule
+  mode's own agenda already forgets its own last state.
 
 ## The money rule
 
@@ -123,12 +148,15 @@ are all here, and this file is the whole record of them.
 - `OcptBudgetCashTotals.balanceCents` is always read over **every** live entry, never the subset a
   poste filter happens to be showing: a bank balance does not change because the screen is scrolled
   to one category, and a filtered view that quietly totalled only what it displayed would print a
-  number that looks like the account's balance while actually being something else. The cash journal
-  view's own poste filter is not a piece of state of its own for exactly this reason — it is
-  `OcptBudgetState.selectedPosteId`, the very same field the cost-tracking table already writes when
-  a row is clicked, read again here rather than duplicated. Selecting a poste there and switching to
-  `cashJournal` lands already filtered to it, and the two views agree on what "filtered by this
-  poste" means because they are reading one flag rather than two that could drift apart.
+  number that looks like the account's balance while actually being something else. `OcptBudgetCashJournal`
+  narrows which **rows** draw by `OcptBudgetState.filterPosteId` — the mode's own single filter, set
+  by the header's poste chip and honoured across every document that can (see "Selecting a poste
+  and filtering by one are two different facts" below) — while its running balance and its own
+  `Debit`/`Credit`/`Balance` band read `entries` whole, before that filter is applied: an account
+  does not change because somebody narrowed a view. Filtering to a poste from the header and
+  switching the reading to `byDate` lands already narrowed to it, and every document that honours
+  the filter agrees on what "filtered by this poste" means because they all read one flag rather
+  than several that could drift apart.
 
 ## Off-quote spending is named, never hidden
 
@@ -148,27 +176,25 @@ are all here, and this file is the whole record of them.
   `OcptBudgetCoveredTotal` so a debit missing the rate it would need to be grossed up leaves the
   figure covered-but-incomplete rather than wrong. **A credit naming no poste is deliberately not
   counted here** — it is money coming *in*, a subsidy instalment or a contribution, already read by
-  the financing and revenue-sharing views (`ocptBudgetReceivedByResourceId`,
+  the resources and revenue-sharing documents (`ocptBudgetReceivedByResourceId`,
   `ocptBudgetReceivedByRevenueId`); folding it into a reading about spending would count the same
   euro twice, once as a resource received and once as a cost.
 - `OcptBudgetCostTracking` draws this total as **one extra row, `Off quote`**, between the last
   poste and the `Total` row, and **only while there is something to show**
   (`OcptBudgetCoveredTotal.lineCount` above zero) — a row with nothing in it would claim a category
-  the project does not have, exactly the argument `OcptBudgetFinancing` already makes for declining
-  to draw a group card holding no resource. Only its own `Paid` cell carries a figure; `Quote`,
-  `Committed`, `Remaining`, `Variance` and `Consumed` all print `ocptBudgetEmptyValue`, since there
-  is no quote behind this row to measure any of them against — the same silence `Consumed` already
-  keeps for a poste with no quote at all. It carries **no `N°`, no `⋮` menu and no selection**: it
-  is not a poste and nothing about it may look like one, since it is a reading over the journal's
-  own poste-less debits, not a record anybody can rename, reorder or delete — clicking it does not
-  set `OcptBudgetState.selectedPosteId`.
+  the project does not have, exactly the argument the resources tree already makes for declining
+  to draw a family holding no resource. Only its own `Payé` cell carries a figure; every other cell
+  prints `ocptBudgetEmptyValue`, since there is no quote behind this row to measure any of them
+  against. It carries **no `N°`, no `⋮` menu and no selection**: it is not a poste and nothing about
+  it may look like one, since it is a reading over the journal's own poste-less debits, not a record
+  anybody can rename, reorder or delete — clicking it opens no fiche.
 - The table's own `Total` row folds `paidByPosteId` and the off-quote total together
-  (`ocptBudgetCoveredTotalsFoldOf`, `lib/utils/ocpt_budget_totals.dart`, the same fold the
-  dashboard's own KPIs use) into its own `Paid` cell, so that column adds up to what actually left
-  the account — the only reading a reader adding the column up themselves would accept — printing
-  the fold's own coverage read-out (`tr.budgetCostTrackingPaidCoverageReadOut`) whenever either side
-  is incomplete. The dashboard's own `Paid` KPI folds the very same two totals for the very same
-  reason, so it agrees with the cash journal instead of quietly disagreeing with it.
+  (`ocptBudgetCoveredTotalsFoldOf`, `lib/utils/ocpt_budget_totals.dart`) into its own `Paid` cell,
+  so that column adds up to what actually left the account — the only reading a reader adding the
+  column up themselves would accept — printing the fold's own coverage read-out
+  (`tr.budgetCostTrackingPaidCoverageReadOut`) whenever either side is incomplete. The financial
+  report's own totals row folds the very same two totals for the very same reason, so the paper
+  agrees with the screen instead of quietly disagreeing with it.
 - **`ocptBudgetPosteStrainOf` and `ocptComputeBudgetAlerts` never read the off-quote total.** Both
   are readings about a poste exceeding its own quote; off-quote spending prices no poste at all, so
   it cannot make one strained, and folding it into either would answer a question neither was asked.
@@ -186,6 +212,38 @@ are all here, and this file is the whole record of them.
   freezes every poste and every line exactly as they stood, so a separate frozen-total column would
   freeze nothing a version doesn't already.
 
+## The estimate to complete, and two variances that answer different questions
+
+- A real cost report has a fifth column beside `Devis` (quote), `Engagé` (committed) and `Payé`
+  (paid): the **estimate to complete** — what a human still expects to spend, which need not equal
+  what the quote said and need not equal zero once a poste has gone over. `budget_postes` therefore
+  gained one nullable column, `estimateToCompleteCents`. **Null means "derive it"**:
+  `ocptBudgetEstimateToCompleteCents` (`lib/utils/ocpt_budget_totals.dart`) answers
+  `max(0, quote − paid − committed)` while the column is null, and the poste's own typed figure the
+  moment it is not. The cost-tracking table paints the derived figure in grey and a typed one in
+  ordinary ink — the same pairing `ocptEffectiveVatRateOf` already draws for a VAT rate — and the
+  fiche's own poste panel offers a `Derive again` gesture back to null.
+  **It is held per poste, not per quote line, on purpose**: a line-level estimate would be a second
+  plan running beside the quote, more machinery than a film of this size needs, and the derived
+  reading already makes the column a restatement of the quote until a poste actually goes over — a
+  real cost report has a human adjust *that* figure, once, where it is read.
+  `ocptBudgetFinalCostCents` reads `paid + committed + estimateToComplete`, drawn as `Coût final`.
+  **Read the second variance's name carefully — it is not `ocptBudgetVarianceCents`.** That one
+  already existed before this milestone, reads `paid + committed − quote`, and is what the header's
+  alerts band, the cost-tracking table's own `Écart` column and the financial report PDF print; it
+  stays exactly as it is and keeps every one of its callers, because a variance read against what
+  has actually moved is not the same fact as a variance read against what a human now expects the
+  final bill to be. `ocptBudgetFinalCostVarianceCents` reads `finalCost − quote` instead, and is
+  drawn nowhere but the fiche's own poste panel, beside `Coût final`, under the very same `Écart`
+  label the cost-tracking table already uses for the other one — two readings sharing one word in
+  two different places, each honest about what it answers where it is printed.
+  With `Estimate to complete` and `Consumed` retired as columns of their own (their reading survives
+  inside `Coût final`), `Payé`, `Engagé`, `Reste`, `Coût final` and `Écart` all print a real amount
+  at poste level, `0` where nothing has moved — the honest reading the journal's own existence
+  already earns, argued once for the whole mode above. Nothing in expenses is silent any more for
+  want of a figure that cannot exist; the em dashes still standing are the off-quote row's own (it
+  prices no poste) and the resources document's own for an unentered in-kind contribution (below).
+
 ## A commitment settles by naming the entry that paid it
 
 - `OcptBudgetCommitmentStatus` carries four steps — quote accepted, contract signed, invoice
@@ -201,9 +259,9 @@ are all here, and this file is the whole record of them.
   `ocptBudgetCommittedCentsByPosteId`'s own map and from `ocptBudgetProjectionOf`'s own steps — not
   counted at zero, simply not there — because the money it stood for has already left the account
   and is already counted once, as *paid*, by the very entry it now names: counting it a second time,
-  as still owed, would double the very same movement. It keeps its row in the committed-spending
-  view regardless, marked settled rather than removed, since a production still wants to see what it
-  once owed and to whom.
+  as still owed, would double the very same movement. It keeps its own row in the committed-spending
+  sub-page regardless, marked settled rather than removed, since a production still wants to see what
+  it once owed and to whom.
   The `Settle` gesture on a commitment is not a status flip: it opens `OcptBudgetEntryDialog`
   pre-filled with today's date, the commitment's own label, poste, amount, tax basis and rate, as a
   debit — the very same dialog an ordinary entry uses, seeded rather than editing one already
@@ -357,6 +415,19 @@ are all here, and this file is the whole record of them.
   strictly: a payload still saying `applied` would be refused outright, not defaulted. **Nothing is
   invented** on either side — `valued`, the one word that was already a group's rather than a step's,
   lands on `agreed`, which is exactly what it said: a figure is on this resource, nothing is signed.
+  Four steps follow, each documented where the reader meets its reason rather than here: schema
+  **v31**, `budget_allowances` — see "A defrayal is typed, never deduced" below; schema **v32**,
+  `budget_lines.provisionKey`/`.provisionDigest` — see "The régie provisions into the quote" below;
+  schema **v33**, `budget_commitments.lineId` — see "A quote line can be promoted into a commitment"
+  below. One nullable column closes the mode's own schema for now: `budget_postes` gains
+  `estimateToCompleteCents`, null meaning "derive it" — see "The estimate to complete, and two
+  variances that answer different questions" above. This is schema **v34**.
+  `OcptProjectVersionCodec` gains the column in all three of its required places under **payload
+  format 30**, whose upgrade from format 29 (`_upgradeFormat29To30`) **materialises** every
+  `budget_postes` row's `estimateToCompleteCents` as **null** — a version sealed before the column
+  existed was captured at a moment when nobody could have judged a poste's estimate to complete, so
+  null states exactly what was true then, not an empty list, which would claim the poste itself was
+  new, and not zero, which would be a judgement nobody made.
 
 ## The mode's own shape
 
@@ -365,184 +436,137 @@ are all here, and this file is the whole record of them.
   `onEpisodeSelected` null, exactly as the schedule mode already does and for the schedule's own
   reason — a selector would filter a read that was never split by episode to begin with, not a
   standing-in for a bloc this mode does not have; it has one. There is **no left dock**, the mockup
-  showing none for this milestone's views, and the right dock offers exactly three tabs
-  (`OcptBudgetRightDockTab`): `Inspector`, the selected poste's own figures, its quote lines — each
-  a card collapsed to a summary row and expanding **in place**, never into a dialog, into its own
-  editable fields (quantity, unit, unit price, whether it includes tax, and the rate it reads
-  under) — and, since the journal exists, its own **related entries**: the cash journal's live
-  entries naming this poste, newest first, a debit and a credit told apart by
-  `ColorScheme.error`/`.primary`, printing the em dash for an entry it cannot read and a coverage
-  read-out the moment some of them are; the shared `Versions` tab every mode carries; and `Help`.
+  showing none, and the right dock offers exactly three tabs (`OcptBudgetRightDockTab`):
+  `Inspector`, now the polymorphic fiche described below rather than a poste-only panel; the shared
+  `Versions` tab every mode carries; and `Help`.
 
-## The mode explains itself
+## The expenses tree nests what used to sit apart
 
-- The product owner used the mode and still could not say what told `financing`, `cashJournal` and
-  `committed` apart — a real defect the screens alone never fixed, however each one's own figures
-  were made honest. `OcptWorkspaceToolbar` therefore gains a nullable `helpAction` slot, the same
-  shape and idiom as `exportAction`/`dockToggles`/`saveAction`/`projectSettingsAction`
-  (`foundations.md`): a mode with nothing to explain renders no button at all, and every mode but
-  this one leaves it null. Clicking it dispatches the very same `OcptBudgetRightDockTabSelectedEvent`
-  the dock's own tab row already sends, naming `OcptBudgetRightDockTab.help`, so the toolbar button
-  and the dock tab are one gesture rather than two: opening the dock on `Help`, and closing it again
-  on a second click while `Help` is already showing — the toggle every other dock control already
-  has. `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly
-  the argument the dashboard already makes for itself, so it carries no `isReadOnly` flag and is
-  offered identically under a previewed version — unlike `OcptBudgetRegie`, which gained one the day
-  it started writing defrayals.
-  Its content follows `OcptBudgetState.centreView`: switching the header's own chips changes what the
-  panel says, with no extra click, since the dock stays open on `Help` across a chip change exactly
-  as it stays open on `Inspector` across a poste selection.
-  Every page opens with the same small map before its own substance — the map *is* the answer to the
-  product owner's own question, crossing what is only **promised** against what has **actually
-  moved**, and money **coming in** against money **going out**: `financing` is the promised-coming-in
-  cell, `committed` the promised-going-out cell, and `cashJournal` the whole has-moved column at
-  once, since the journal is where both a credit and a debit are read. The quote is stated as sitting
-  outside the map entirely — it prices what the film is *planned* to cost, and nothing in the map
-  feeds it or is fed by it. The current view's own cell, when it has one, is highlighted; `dashboard`,
-  `costTracking`, `regie` and `sharing` occupy none of the four, each reading across the whole map or
-  a different figure entirely rather than standing in one cell of it. Under the map, one short page
-  per view states its own substance in the plain language this file already argues for it in, every
-  cross-reference to a figure or another view worded exactly as its own on-screen label or chip
-  already reads, resolved as an ICU argument (`intl_utils`'s own convention, "The four documents"
-  below) rather than restated by hand — so the help text can never drift from the very word it is
-  pointing at.
-  The header's six view chips (`Dashboard`, `Quote`, `Planned`, which stands for two views at once
-  (see "What is promised is one place, read in two directions"), `Flux de trésorerie` in French —
-  `Cash flow` in English, deliberately renamed off "Journal de caisse" once that first choice
-  turned out to name a petty-cash book rather than the bank account the view actually reads, and
-  off `Cash journal`/`Trésorerie` once the pair `Quote`, `Planned`, `Cash flow` turned out to read
-  as one sentence — `Régie` in French — `Catering & travel` in English, the same asymmetry and for
-  the same reason: the trade word has no one-word English equivalent — and `Revenue sharing`) and
-  its two further toggles, simplified/detailed and excluding/including-tax, are
-  **always offered, whatever the project holds**: neither is ever withheld or disabled according to
-  the state of the data, there is no conditional branch in
-  `OcptBudgetHeader` at all, only a value that may turn out empty once the centre reads it.
-  **No chip is worded by the simplified reading, and none should be.** Two were: `Cash journal`
-  and `Committed` are trade words, and the switch handed a five-person crew `Spending` and `To pay`
-  instead. Both re-wordings lost their reason at once — the journal's chip now says `Cash flow`,
-  which needs no plainer synonym and is what the band and the help panel say too, and the committed
-  spending is no longer a chip at all but one half of `Planned`, reached through a sub-switch that
-  words itself in either reading. What the simplified toggle still governs is the ten CNC poste
-  labels (`budget_postes.simpleLabel`) and the two empty-state sentences that name the ledgers in
-  prose: real translations of opaque trade language, unlike a second name for a view that already
-  said the plain thing it was.
-  **The chips are deliberately not in `OcptBudgetCentreView`'s own order.** That enum grows strictly
-  by the end, so a value never moves under a reader who stored one; the header, by contrast, lists
-  its segments explicitly and orders them so that reading the bar left to right *is* the
-  explanation: `Quote`, `Planned`, `Cash flow` — what the film should cost, what is promised in
-  either direction, what has actually moved — then what the shoot eats and drives, then, long
-  after all of it, what the finished film earns.
-  `Cash flow` used to sit ahead of `Planned`, on the ground that a production keeping a cash flow
-  and doing no planning at all should not have to walk past two forecasting views to reach the one
-  it opens daily. That reasoning undervalued what the three chips say in a row: a reader who has
-  that order once needs no explanation of any single view again, whereas reaching a daily view one
-  chip further along is a cost paid once per session.
-  `_OcptBudgetCentreViewSwitch` says so where the segments are listed, since a divergence nobody
-  argued for would look like a mistake the next time somebody adds a view. Each chip also widens
-  that one switch, so `_ocptBudgetHeaderTitleMinWidth` — the width under which the header sheds its
-  title rather than crowd its controls — moves out by a segment's own width every time one lands,
-  and by a control's own width every time the header grows one (the poste filter took it from
-  `1680` to `1860`).
-  **Shedding the title is not enough on its own**, and the header does not stop there: under that
-  same threshold the four controls **wrap onto a second line**, and the six chips wrap inside
-  their own border too, as `OcptScheduleHeader`'s controls already do. The centre narrows for a
-  reason the header cannot see — the right dock opening takes roughly 580 px of it — and a plain
-  `Row` then clips silently in release, which had been taking the tax-basis switch off the screen
-  altogether. A control scrolled out of a clipped row is worse than a disabled one: nothing on
-  screen says it exists. `OcptBudgetFinancing`'s own KPI row wraps for the same reason, its three
-  captioned figures having outgrown any centre under roughly 1,120 px.
-  Every
-  other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder, a
-  delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
-  code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
-  on a selection change, a dock tab change, **a change of centre view or of either header toggle**,
-  entering a version preview and the mode's own `deactivate()`. Those three last paths were added
-  after the fact and are the reason the mode once looked like it ignored what it was told: an
-  amount typed in the cost-tracking table and followed straight by a click on `Dashboard` was still
-  sitting in the debounce, so the dashboard drew the snapshot from before it and corrected itself
-  two seconds later. The write was never lost; it simply was not shown. Every path that stops the
-  typing and starts the reading has to flush.
-  A line's VAT override is the one field with no direct mirror: an empty or
-  unparseable submission reads as "leave the override exactly as it is," never "clear it," since a
-  stray backspace must not silently drop an override typed on purpose — going back to inheriting the
-  project's rate is its own dedicated, immediate gesture
-  (`OcptBudgetLineVatRateInheritedRequestedEvent`), mirroring the project settings page's own
-  `No rate` button for `defaultVatRateBasisPoints`.
-  **The `Export` control opens onto four documents**, `OcptWorkspaceExportDialog
-  <OcptBudgetExportDocument>` drawing one card each for the quote, the financing plan, the cash
-  journal and the financial report, above the dialog's own standing project-package card — see "The
-  four documents" below. `OcptBudgetBloc` also mixes in `MixinOcptProjectPackageBloc` exactly as
-  every other mode's bloc does, which is what let a colleague receive this project as a portable
-  `.ocptz` a milestone before the mode printed a single PDF of its own.
+- `OcptBudgetCostTracking` (`ocpt_budget_cost_tracking.dart`) draws `OcptBudgetDocument.expenses` in
+  its `byTree` reading as one nesting table: a poste opens on its own quote lines, a quote line opens
+  on its own commitment and the entry that settled it — or, while it is still owed, a muted
+  `tr.budgetCostTrackingNoEntryHint` row saying so in words rather than drawing nothing — and a
+  poste's own **off-line** commitments and entries, the ones naming no `lineId`, draw at the poste's
+  own indentation once it is open, since they have no line to nest under. A commitment or an entry
+  sub-row carries its own small badge: a commitment's own coloured by
+  `ocptBudgetCommitmentStatusAccentColor`, worded with its settlement status; an entry's own in the
+  accent colour, worded with its `voucherNumber`.
+  **Expansion state is `OcptBudgetState.expandedNodeIds`**, a `Set<String>` keyed by **poste and
+  line ids alone** — a commitment or an entry sub-row draws no twisty of its own, so its own child
+  shows or hides wholesale with whichever line or poste it sits directly under — and it survives a
+  rebuild, since it lives in the state rather than in the widget. A quote line with nothing under it
+  draws no twisty at all: an empty expansion is worse than none.
+  **A row's own `Rename` menu entry selects it and opens the fiche rather than editing its name in
+  place.** This app has no precedent for renaming a record inline inside a plain list — the two
+  inline-answer exceptions the confirm-dialog rule already carries (the `Versions` dock panel, the
+  project dictionary dialog) exist because a list of rows there has no other way of saying *which*
+  row is being talked about, which is not this table's problem: every row already opens its own
+  fiche on selection.
 
-## The sharing view says what each person put in, not only what comes back
+## The resources tree folds the takings in
 
-- The card used to be titled `Repaying the contributions` and `ocptBudgetRepaymentLinesOf` skipped
-  every resource not marked reimbursable. On a project where nothing was marked — the ordinary
-  state the day it is created — that read as an empty card, and the view showed nothing but
-  percentages. The product owner reported exactly that: *"je ne vois pas la valeur additionnée que
-  la personne a versée"*.
-- It is now `What each person put in`, and **every** resource is grouped, in cash or in kind,
-  reimbursable or not. `OcptBudgetRepaymentLine` carries the two figures apart:
-  `contributedCents` is what the person gave the film, `reimbursableCents` is how much of it the
-  film has to give back. `outstandingCents` reads the second, never the first — nothing is owed
-  against a gift, however much it was worth — and a line with nothing owed prints
-  `ocptBudgetEmptyValue` rather than `0.00`, since nothing owed is not a debt that came to zero.
-- **The two halves of a contract finally meet.** `budget_resources` and `budget_shares` both name a
-  person, and nothing put the two together: a reader held "Marie put in 300 €" from one card and
-  "Marie has 15 %" from another and joined them in their head. A contributor who also holds a share
-  now says so under their own name. Matched on `personId` alone — two rows sharing a typed label
-  are not evidence of one person.
-- **The card that says what is owed now offers to pay it**: `Record a repayment` opens the entry
-  dialog on a debit already naming the resource, for whatever is still owed. It is the same
-  facilitator `Record a receipt` and `Record a payout` already are, pointing the other way, and it
-  writes through the one gesture that writes a movement. Withheld under a previewed version, and
-  withheld on a contributor with nothing left owed.
-- A contributor whose contributions are spread over several resources is repaid against the
-  **first one still owed**. The card groups them into one debt on purpose, and asking which of
-  three 100 € loans a 100 € repayment settles is a question nobody has an answer to.
+- `OcptBudgetFinancing` (`ocpt_budget_financing.dart`) now draws `OcptBudgetDocument.resources` as a
+  nesting tree too: three family rows — subsidies, contributions, takings
+  (`OcptBudgetResourceFamily`) — each opening onto its own resources or takings, each of those
+  opening onto the receipts (journal credits) that name it. `OcptBudgetResourceGroupKind` still
+  answers *how* a `budget_resources` row was created — a subsidy, a cash contribution, an in-kind
+  one, exactly as it always has — while `OcptBudgetResourceFamily` answers *which card a row draws
+  in*, merging cash and in-kind contributions together under one `Contributions` family, the way the
+  validated mockup's own `Apports` card does. **Creating a resource is still three explicit
+  gestures, one per `OcptBudgetResourceGroupKind`, not one**: a `MenuAnchor`-anchored button naming
+  the three kinds opens `OcptBudgetResourceDialog` with the kind already set and named in the
+  dialog's own title, its `Group` picker withheld while creating for exactly the reason it always
+  was, offered again on an edit since a production is free to reclassify a resource it already
+  created.
+  The takings (`budget_revenues`) left the sharing document's own left column for this tree's own
+  `Takings` family — every gesture on a taking (create, edit, receipt, reorder, delete, select) now
+  lives here, where a resource's own already does, rather than being duplicated in two places.
+  **The `Dossier` column is held apart from the money**, a small status badge naming the row's own
+  paperwork progress (*conventionnée*, *annoncée*, *facturée* and their siblings — "The word a
+  status is called is the group's" below), because "conventionnée" has never meant "versée": the
+  three money columns are `Promis`, `Rentré` and `Reste à venir`, and `Dossier` carries no figure at
+  all.
+  **An in-kind contribution counts as promised and never as received, until an entry says
+  otherwise.** `Rentré` and `Reste à venir` both print `ocptBudgetEmptyValue` for an `inKind`
+  resource **while no journal entry has ever named it** — no cash will ever move for a valuation, so
+  "how much of it has arrived" is not a question with an answer — and the real figures the moment an
+  entry does name it: the app never hides a movement that actually happened. A resource row, like a
+  taking's, is selected and opens the fiche; expansion follows the same `expandedNodeIds` idiom as
+  the expenses tree, keyed by a family's own `name` (a family mints no id of its own), a resource id
+  or a revenue id.
 
-## A quote line can be promoted into a commitment, and the line stays
+## The resources document says what covers the film, twice
 
-- A quote line and a commitment hold the same shape of fact — a poste, a wording, an amount, a tax
-  reading — and differ in the two things that make a debt a debt: **who is owed, and when**. So the
-  expanded line card offers `Commit this line…`, which opens `OcptBudgetCommitmentDialog`
-  pre-filled from the line (a new `prefill` parameter, mirroring `OcptBudgetEntryDialog.prefill`)
-  with only those two left to say.
-- **A promotion, never a move.** The line stays in the quote: comparing the 1,200 € estimated with
-  the 1,450 € actually owed is the whole use of having both, and losing the estimate at the moment
-  it becomes useful would be the wrong trade. Nothing is double-counted either — a poste's `Quote`
-  column reads its lines and its `Committed` column reads commitments; the two were never summed.
-- `budget_commitments.lineId` records the provenance (schema 33, payload format 29). **Nothing is
-  ever read back off the line through it**: the commitment's amount, wording and due date are its
-  own from creation, and correcting the estimate afterwards leaves the debt alone. The column buys
-  exactly two behaviours — a line already promoted says so instead of silently making a second debt
-  every time the gesture is used, and the promotion can be undone from the line it came from.
-- The card therefore draws **one of two mutually exclusive states**: `Commit this line…`, or
-  `Show the commitment` beside `Cancel the commitment`. Cancelling goes through `OcptConfirmDialog`
-  like every irreversible action, and deletes the commitment while leaving the quote line alone.
-- **`Cancel the commitment` is withheld once a journal entry has settled the commitment**, with the
-  reason written where the button was: undoing the promotion would then delete a debt somebody has
-  already been paid against.
-- `lineId` is **not part of `OcptBudgetCommitmentFormFields`**. The form collects what a user
-  typed; the provenance is where the gesture came from, which the dialog neither knows nor asks
-  about — and keeping it out leaves the dialog usable, unchanged, for a commitment that has no line
-  behind it.
+- Two different questions share the word "coverage", and this mode now answers each in its own
+  place rather than letting one stand in for the other.
+  **`OcptBudgetResourcesCoverage`/`ocptBudgetResourcesCoverageOf`** (`lib/utils/ocpt_budget_financing.dart`)
+  is the one drawn live, at the foot of the resources tree, as a two-tone bar: a lighter tone for
+  everything **promised** (received plus what is only expected), a solid tone on top for what has
+  **really** arrived. It reads the needs side tax-inclusive **always**, whatever the header's own
+  basis toggle shows elsewhere — money coming in is always read tax-inclusive, and comparing an
+  excluding-tax quote against a tax-inclusive resource would compare two different figures while
+  looking like it compared one. The band is **withheld whole** rather than drawn empty while the
+  quote holds no line at all: a plain `resources ≥ needs` reading would otherwise declare the
+  financing plan sufficient against a quote nobody has begun, exactly the claim `Consumed` used to
+  refuse for a poste with no quote.
+  **`OcptBudgetNeedsResourcesBalance`/`ocptBudgetNeedsResourcesBalanceOf`** is the older reading, and
+  it stays exactly as it is — read today only by the financing-plan and financial-report PDF export
+  services, which is where its own **three-way** verdict belongs: no quote yet, covered, or short by
+  an amount, worded for a document rather than a live screen. It is not drawn anywhere in the mode's
+  own UI any more; the two-tone bar above answers the live question, this one the printed one, and
+  neither is a second way of computing the other's figure.
+
+## The fiche is one panel for seven kinds of row
+
+- `OcptBudgetFiche` (`ocpt_budget_fiche.dart`) is the right dock's own `Inspector` tab, once and for
+  all: a single panel, polymorphic on `OcptBudgetState.selection`, switching over every
+  `OcptBudgetSelection` variant — poste, quote line, commitment, entry, resource, revenue, receipt.
+  Every variant draws the same grammar, top to bottom: a breadcrumb up to the document, the object's
+  own name and amount, a small stepper of its states, the figures that make it up, the outstanding
+  amount in large type, one primary action and at most two secondary ones. The table says where
+  things stand; the fiche says where they come from and what to do next.
+  - A **poste**'s stepper reads `Estimated · Committed · Paid`, all three always reached — an
+    aggregate reading, not a lifecycle a single poste passes through — and its primary action is
+    `Add`, opening a fresh quote line; a secondary offers `From breakdown`.
+  - A **quote line**'s stepper is the same three words, its reached count following whether the
+    line has been promoted and settled; its primary action is `Commit this line…` while it has not,
+    `Pay {amount}` once it has been promoted and is still owed, and none once settled — mirroring
+    "A quote line can be promoted into a commitment" below.
+  - A **commitment**'s primary action is `Pay {amount}` (`onCommitmentSettleRequested`), opening
+    `OcptBudgetEntryDialog` pre-filled from it exactly as the `Settle` gesture always has, and null
+    once settled.
+  - An **entry**'s stepper is always fully reached; its primary action is `Edit`, its secondary
+    `Delete`.
+  - A **resource**'s stepper reads `Promised · Received`, its badge the `Dossier` fact held apart
+    from the money; its primary action is `Receive {outstanding}` (`onResourceReceiptRequested`),
+    withheld for an in-kind resource or once it is fully received.
+  - A **revenue** (a taking) mirrors a resource, with no `Dossier` grouping and no in-kind reading:
+    `Receive {outstanding}` (`onRevenueReceiptRequested`).
+  - A **receipt** — a journal entry read as the sub-row it settles — shares the entry's own fiche,
+    with its stepper and breadcrumb overridden to read through the resource or the revenue it
+    settles.
+  **Every primary action that writes opens the very dialog that already exists, pre-filled with the
+  amount** — this, with the capture band below, is what ends the double typing the mode used to ask
+  for: an amount typed once, into a quote line or a resource, is offered back rather than retyped
+  the moment it becomes a commitment, a receipt or a payout.
 
 ## The right dock belongs to the view, not to the mode
 
 - `OcptBudgetRightDock` used to draw every value of `OcptBudgetRightDockTab` whatever was on
   screen, so a poste chosen in the quote went on filling the `Inspector` over the régie and the
   revenue sharing — pages that have nothing to do with a poste and never put one there.
-- The tab is now offered only where there is something to inspect
-  (`ocptBudgetCentreViewHasInspector`, which today means the quote alone: it is the one view that
-  selects a poste). The dashboard lost its claim to it in the same pass its rows stopped selecting
-  a poste and started opening the quote on it.
+- The tab is now offered only where there is something for the fiche to show:
+  `ocptBudgetHasInspector({document, subPage})` (`lib/types/ocpt_budget_document.dart`) answers true
+  for `OcptBudgetDocument.expenses` and `.resources`, read at their own top level, in either
+  reading — the two documents whose trees select a row — and false for `sharing`, whose own rows
+  open no fiche, and for either sub-page of expenses, `committedSpending` and `regie`, neither of
+  which selects an object the fiche knows how to draw.
 - **Withheld, not disabled**, the standing rule for an affordance without a subject. `Versions` and
   `Help` are offered everywhere, so the dock never has an empty tab bar.
 - A stored `Inspector` preference **is not overwritten** where it cannot be honoured: the dock
-  draws `Help` instead and leaves `OcptBudgetState.rightDockTab` alone, so a reader who left the
-  quote on the inspector comes back to the inspector rather than to whatever the régie showed them.
+  draws `Help` instead and leaves `OcptBudgetState.rightDockTab` alone, so a reader who left a
+  document on the inspector comes back to the inspector rather than to whatever the sub-page showed
+  them.
 
 ## Selecting a poste and filtering by one are two different facts
 
@@ -551,46 +575,82 @@ are all here, and this file is the whole record of them.
   view the reader was not looking at** — they found out on arriving at the journal, where the only
   notice was a caption inside its own top band and the only way out an unlabelled `Remove filter`
   button sitting in a row of figures.
-- `selectedPosteId` is now a selection and nothing else: it drives the inspector and the row's
-  highlight, and narrows no view. `filterPosteId` is the mode's own filter, set by exactly one
-  control — the header's poste chip — and honoured by every view that can
-  (`ocptBudgetCentreViewHonoursPosteFilter`).
+- **`selectedPosteId` is now a plain getter, folding onto `OcptBudgetSelection`** — it answers a
+  poste id only while `state.selection` is an `OcptBudgetPosteSelection`, and drives the fiche and
+  the row's own highlight, and narrows no view. `OcptBudgetState.filterPosteId` is the mode's own
+  filter, set by exactly one control — the header's poste chip — and honoured by every document that
+  can (`ocptBudgetHonoursPosteFilter({document, subPage})`, `lib/types/ocpt_budget_document.dart`):
+  `expenses`, at its own top level in either reading, or its own `committedSpending` sub-page —
+  the three places a poste-keyed row is drawn at all.
 - **The chip is both the control and the indicator.** It reads `Every poste` or the poste's own
   name, tinted `primary` while filtering, with a clear button beside the name. Sitting in the
-  header, it is on screen whatever view is, which is the whole point: one place to see a filter,
-  one place to remove it.
-- **Three views cannot honour it and say so.** The financing plan, the régie and the revenue
-  sharing read tables that carry no poste at all, and the dashboard is a whole-project summary
-  whose figures would stop adding up if narrowed. On those four the chip keeps the poste's name —
-  the filter is still set, and leaving brings it back — and adds `Not applied here` underneath.
-  Hiding it there would have been calmer and dishonest: an unfiltered view would pass for a
-  filtered one.
+  header, it is on screen whatever document is, which is the whole point: one place to see a filter,
+  one place to remove it. The same predicate also governs the simplified/detailed switch, which
+  reads a poste-keyed row's own name exactly as the filter narrows poste-keyed rows, and is withheld
+  alongside it, never separately.
+- **Two documents cannot honour it and say so.** `resources` and `sharing` read tables that carry no
+  poste at all, and the régie sub-page prices no poste of its own either. On those the chip keeps
+  the poste's name — the filter is still set, and leaving brings it back — and adds
+  `Not applied here` underneath. Hiding it there would have been calmer and dishonest: an unfiltered
+  view would pass for a filtered one.
 - **The narrowing happens in the mode, not in the views.** `OcptBudgetMode` hands each widget the
   already-filtered list, so a filtered table's own `Total` is the total of what is on screen —
-  the only honest thing it can say. The cash journal is the exception the other way: its running
-  balance and its `Debit`/`Credit`/`Balance` band are computed over the **whole** journal before
-  the rows are narrowed, because an account does not change because somebody narrowed a view.
+  the only honest thing it can say. The cash journal is the exception the other way — see "The
+  journal's balance is the whole journal's" above.
 - The filter is reconciled against every fresh snapshot exactly as the selection is: deleting the
   filtered poste clears it, rather than leaving the mode showing nothing under a chip naming a
   poste the project no longer has.
 
+## The capture band is the daily gesture
+
+- `OcptBudgetCaptureBand` (`ocpt_budget_capture_band.dart`) sits at the top of `expenses` and of
+  `resources`, never on `sharing`: a direction toggle (`Out of the account` / `Into the account`),
+  an amount, a wording, a date and a `Save`. Nothing else is asked for.
+- **The moment amount and wording are both typed, the app proposes what the movement settles.**
+  `ocptBudgetMatchSuggestionsOf` (`lib/utils/ocpt_budget_match.dart`, pure) ranks what a draft
+  movement — direction, amount, date, wording — could settle among the commitments still owed and
+  every live defrayal on a debit, or the resources and the revenues still short on a credit, in that
+  order: **exact amount first**, then **date proximity** (within a 7-day window; a candidate with no
+  date of its own sorts after every dated one, never as infinitely close), then **wording overlap**
+  (a folded, diacritic-insensitive word-set intersection). A candidate agreeing with the draft on
+  none of the three is dropped outright — proposing something that agrees on nothing is worse than
+  proposing nothing — and every surviving candidate carries **why** it matched
+  (`matchesAmount`/`matchesDate`/`matchesWording`), which the band, never the pure util, turns into
+  words: "solde l'engagement « Couronne », 250,00 €, poste 5, échéance aujourd'hui: même montant,
+  même fournisseur."
+- **`That's it` accepts the first suggestion in one click.** `Something else…` opens
+  `OcptBudgetEntryDialog` pre-filled with the band's own draft instead. Once answered or ignored,
+  the band clears and the movement is an ordinary entry — nothing queues, so nothing has to remember
+  that it was queued, and a movement waiting to be attached invents no table of its own: it is a
+  `budget_entries` row naming no poste, resource, revenue or share, which was always a legal state.
+- **The band is withheld whole, never disabled, under a previewed version.** `OcptBudgetMode`
+  simply does not build it while `state.isPreviewingVersion` is true, or while `state.subPage` names
+  a sub-page — the daily gesture belongs to a document's own top level, not to the committed-spending
+  list or the régie.
+
 ## Money is added in one way, reached through several doors
 
-- **There is exactly one gesture that writes a movement**: `OcptBudgetEntryDialog`, which already
-  carries all four of an entry's links (`posteId`, `resourceId`, `revenueId`, `shareId`). What the
-  financing plan and the sharing view offer as `Record a receipt` / `Record a payout` are
-  **facilitators onto that same dialog**, pre-filled — never a second way of writing money.
-- The one thing that door could not do was **mint** a taking, so recording a festival prize meant
-  leaving the journal for the sharing view, creating the taking there and coming back. The
-  `Taking` picker now carries a `New taking…` entry that opens `OcptBudgetRevenueDialog` — the very
-  dialog the sharing view opens — and the taking travels back on
-  `OcptBudgetEntryFormFields.newRevenue`, which the bloc creates through the same two service calls
-  `OcptBudgetRevenueCreationConfirmedEvent` uses. A taking born in the journal is byte for byte one
-  born in the sharing view: the door differs, the row never does.
+- **Exactly two events ever write a `budget_entries` row**: `OcptBudgetEntryCreationConfirmedEvent`
+  and `OcptBudgetCommitmentSettlementConfirmedEvent`, the second naming the commitment it settles
+  alongside the very same fields the first collects. Every door the mode offers converges on one of
+  these two, never inventing a third: `OcptBudgetEntryDialog`'s own `Save`, wherever it is opened
+  from; a facilitator that opens it pre-filled — a resource's `Record a receipt`, a revenue's
+  `Receive`, a commitment's `Settle`, a share's `Record a payout` — reached from a row's own `⋮`
+  menu or from the fiche's own primary action; and the capture band's own `That's it`, which
+  dispatches straight to whichever of the two events the matched candidate needs, without opening
+  the dialog at all. A reader never sees three different write paths — they see one shape of
+  movement, reached however is fastest for the gesture at hand.
+- The one thing no door could do was **mint** a taking, so recording a festival prize meant leaving
+  the journal for the resources tree, creating the taking there and coming back. The `Taking`
+  picker inside `OcptBudgetEntryDialog` carries a `New taking…` entry that opens
+  `OcptBudgetRevenueDialog` — the very dialog the resources tree opens — and the taking travels back
+  on `OcptBudgetEntryFormFields.newRevenue`, which the bloc creates through the same two service
+  calls `OcptBudgetRevenueCreationConfirmedEvent` uses. A taking born from the entry dialog is byte
+  for byte one born in the resources tree: the door differs, the row never does.
 - The picker holds it as a **sentinel value**, not an id, since no row exists until the movement is
   saved; the sentinel never leaves the dialog. Cancelling the taking dialog leaves the picker where
   it was, an accidental open costing nothing.
-- The rule the help panel states in one line, and the reason there is no fourth way: **a taking or
+- The rule the help panel states in one line, and the reason there is no further way: **a taking or
   a financing resource is an expectation; a journal entry is a movement.** The first says what is
   owed to the film, the second says what the account has actually seen.
 
@@ -613,7 +673,7 @@ are all here, and this file is the whole record of them.
   `FormFieldState.didUpdateWidget` does not re-read `initialValue`, so a value changed in code
   would otherwise leave the field showing the old scale over a new amount.
 
-## The dashboard's two alerts compute themselves, and ask for no threshold
+## The alerts compute themselves, and ask for no threshold
 
 - `ocptComputeBudgetAlerts` (`lib/utils/ocpt_budget_alerts.dart`, pure) raises exactly two kinds of
   alert, and both are read straight off arithmetic the mode already has rather than a figure typed
@@ -624,10 +684,18 @@ are all here, and this file is the whole record of them.
   negative step already says. The mockup's own 1,500 € cash floor is deliberately not a third alert:
   it was calibrated by nobody, and it is not the app's place to advance a figure nobody here
   validated — the same argument `minimumRestMinutes` already settled for a single column, applied
-  here to a whole mode. Each alert card offers exactly one action back into the data it is about:
-  a poste over its quote selects that poste and switches to `costTracking`, the projection going
-  negative switches to `committed` — never a dismiss, since the alert is not a notification to clear,
-  it is a standing fact about the project that stays true until the underlying figures change.
+  here to a whole mode.
+- **Both alerts, and the cash projection they read, now draw as a band under `OcptBudgetHeader`**
+  (`_OcptBudgetHeaderAlertBand`) rather than on a dashboard, which is dissolved (see below). The
+  header's own alerts band also carries `OcptBudgetCashProjection`, re-homed from the
+  committed-spending sub-page it used to sit beside, and draws it ahead of every alert, on
+  `expenses`'s own top level only.
+- Each alert card offers exactly one action back into the data it is about, never a dismiss, since
+  the alert is not a notification to clear, it is a standing fact about the project that stays true
+  until the underlying figures change: a poste over its quote selects that poste
+  (`OcptBudgetPosteSelectedEvent`) and switches the reading to `byTree`
+  (`OcptBudgetDocumentReadingSelectedEvent`); the cash projection going negative opens the
+  committed-spending sub-page (`OcptBudgetSubPageSelectedEvent(subPage: committedSpending)`).
 
 ## The voucher
 
@@ -666,26 +734,6 @@ are all here, and this file is the whole record of them.
   already lands. Routing the pick itself through an event first would buy nothing but an extra
   round trip before the dialog even knows whether the user will keep the entry at all.
 
-## What the mode still does not show
-
-- The cash journal changed what this section can honestly say, not just what it has to say: for as
-  long as `budget_entries` and `budget_commitments` did not exist, "nothing paid" and "nothing known
-  about what was paid" were the same unavoidable fact, and the app printed the em dash for both
-  rather than claim the second when it only ever knew the first. Now that the journal is real,
-  `OcptBudgetSnapshot.paidCentsOf` and `.committedCentsOf` answer **zero**, in cents, the moment
-  their own map carries no entry for a poste — its own doc comment states plainly why that `?? 0` is
-  the honest reading now and would not have been before: the app has gone from *not being able to
-  know* whether anything had moved against a poste to *knowing that nothing has*, and a fact
-  established is not a fact withheld. `Paid`, `Committed`, `Remaining` and `Variance` therefore
-  always print a real amount today. `Consumed` alone still prints `ocptBudgetEmptyValue`, and for a
-  reason that has nothing to do with the journal: it is a ratio, paid-plus-committed over the quote,
-  and a poste with no quote at all makes that a division by zero — a figure that cannot exist rather
-  than one that happens to be absent, which is a different silence from the one this section used to
-  describe and survives regardless of what the journal ever learns.
-  Nothing else is missing: `budget_revenues` and `budget_shares` landed with the sharing view, and
-  the silences this mode still keeps are all of that same kind — a figure that cannot exist rather
-  than one nobody has entered yet.
-
 ## A resource is received by being named, and a rate is nobody's to seed
 
 - `budget_resources` carries **no `receivedCents` column**, and that is the third time this mode has
@@ -696,19 +744,21 @@ are all here, and this file is the whole record of them.
   (`ocptBudgetReceivedByResourceId`, `lib/utils/ocpt_budget_financing.dart`), read through
   `ocptBudgetEntryCreditCentsOf` like every other movement rather than off `creditCents` raw, so a
   resource whose entries are missing the rate they would need is *covered-but-incomplete* rather
-  than wrong. That link is also what makes `resourceId` earn its place: `OcptBudgetFinancing`'s own
-  **`Record a receipt`** gesture mirrors the commitment's `Settle` exactly — it opens
-  `OcptBudgetEntryDialog` pre-filled as a **credit**, dated today, for whatever is still outstanding,
-  with the resource already named, so a receipt can never exist as a figure with no movement behind
-  it.
+  than wrong. That link is also what makes `resourceId` earn its place: the resources tree's own row
+  menu offers **`Record a receipt`** (`tr.budgetFinancingRecordReceiptAction`), and the fiche's own
+  primary action on a resource, `Receive {outstanding}` (`onResourceReceiptRequested`), do the same
+  thing two ways — mirroring the commitment's `Settle` exactly, opening `OcptBudgetEntryDialog`
+  pre-filled as a **credit**, dated today, for whatever is still outstanding, with the resource
+  already named, so a receipt can never exist as a figure with no movement behind it.
   **`Record a receipt` is withheld — never disabled — once a resource is fully received (received
   `>=` amount) and on any in-kind resource at all, entered or not.** A contribution in kind is
-  valued rather than collected (see "An in-kind contribution is valued, not collected" below), so no
-  cash will ever move for it and the gesture has nothing to offer; a resource whose received total
+  valued rather than collected (see "The resources tree folds the takings in" above), so no cash
+  will ever move for it and the gesture has nothing to offer; a resource whose received total
   already meets its own amount likewise has nothing left to receive, though a **partially** received
   one keeps offering it — several instalments landing against the one resource is the ordinary case,
-  not an edge one. **`Undo the last receipt`** is the way back: offered once a resource has received
-  anything at all, it resolves the most recently recorded live credit naming that resource
+  not an edge one. **`Undo the last receipt`** is the way back: a row's own `⋮` menu entry, offered
+  once a resource has received anything at all, it resolves the most recently recorded live credit
+  naming that resource
   (`ocptBudgetLatestReceiptEntryIdOf`, `lib/utils/ocpt_budget_financing.dart`, reading [entries] in
   the very same chronological order the journal itself is loaded in) and, once `OcptConfirmDialog`
   confirms it, dispatches the very same `OcptBudgetEntryDeletionConfirmedEvent` the cash journal's
@@ -717,7 +767,7 @@ are all here, and this file is the whole record of them.
   `budget_resources` stores none.
   **A debit naming a resource is deliberately not subtracted.** Repaying a reimbursable contribution
   does not un-receive it — the money did come in — and what a production has paid back is the
-  revenue-sharing view's own subject, not a correction to this figure. This is also why `Undo the
+  revenue-sharing document's own subject, not a correction to this figure. This is also why `Undo the
   last receipt` only ever considers a **credit**: undoing a repayment debit is not what the gesture
   is for.
   `budget_resources` carries **no money triple** either: a financing resource is money coming in,
@@ -733,48 +783,6 @@ are all here, and this file is the whole record of them.
   (`lib/utils/ocpt_mileage_rate_amount.dart`) rather than by `ocptCostCentsOf`: a real scale is
   quoted to three decimals, and whole cents cannot state the figure the user has in front of them —
   which is the money rule at the top of this file, applied to a rate.
-
-## An in-kind contribution is valued, not collected
-
-- `OcptBudgetFinancing` groups the plan by `OcptBudgetResourceGroupKind` — subsidies, cash
-  contributions, contributions in kind — one bordered card each, a group holding no resource simply
-  not drawn, since an empty card with a zero subtotal states nothing. `OcptBudgetResourceStatus` is
-  **flat and three-valued** (`pending`, `agreed`, `confirmed`) — three *steps*, deliberately
-  anonymous, because the word a step is called belongs to the group and not to the enum: see "The
-  word a status is called is the group's" below.
-  The one silence this view keeps is a different thing from a withheld affordance: an `inKind`
-  resource prints `ocptBudgetEmptyValue` for both *received* and *outstanding* **while no journal
-  entry names it**, because a contribution in kind is valued rather than collected — no cash will
-  ever move for it, so "how much of it has arrived" is not a question with an answer, exactly the
-  silence `Consumed` already keeps for a poste with no quote (see "What the mode still does not
-  show"). The moment an entry does name such a resource the real figures are printed instead: the
-  app never hides a movement that actually happened.
-  **Creating a resource is three explicit gestures, one per `OcptBudgetResourceGroupKind`, not
-  one.** Adding a camera that is valued is not the same gesture as adding real money that is going
-  to buy the crew lunch, even though both end up as a `budget_resources` row — the product owner
-  could not tell a valuation from real money through the single `Resource` button this view used
-  to offer, which opened one form for all three kinds with no word said about which one was being
-  created. `_OcptAddResourceButton` replaces it: a `MenuAnchor` anchored on one button, naming the
-  three kinds (`Subvention`/`Apport en numéraire`/`Apport en nature` in French), chosen over three
-  separate buttons the KPI row has no width to spare for beside its own three figures, and over a
-  `Wrap` of `MenuItemButton`s, which throws the moment a `MenuAnchor` hands one an unbounded width
-  (`AGENTS.md`'s own known pitfall). Picking one opens `OcptBudgetResourceDialog` with that kind
-  already set and named in the dialog's own title (`New subsidy`/`New cash contribution`/`New
-  in-kind contribution`) — its own `Group` picker is not drawn while creating, since the kind is
-  already decided by the very gesture that opened the dialog, and offering it again one field later
-  would let that gesture be second-guessed for no reason a reader could name. **The kind stays
-  editable on an existing resource**: the picker returns the moment the dialog opens on one, exactly
-  as it always has, since a production is free to reclassify a resource it already created.
-  Once the kind is known, the `Amount` field's own label and helper text are worded for it — an
-  in-kind contribution's figure is `Valued at`, what it is *valued at*, never an amount that will be
-  received, while a subsidy or a cash contribution keeps the plain `Amount` label — and the `Status`
-  field's own chips are worded for it too, alongside a helper saying what progress means for that
-  kind ("The word a status is called is the group's", below).
-  A resource row is **selected and highlighted, and opens no inspector**. The right dock's
-  `Inspector` tab is built entirely around a poste's own quote lines, and a resource has none;
-  growing a conditional branch onto that dock, or inventing a second inspector concept beside it,
-  would both cost more than the reading is worth. `OcptBudgetState.selectedResourceId` is therefore
-  a plain highlight, reconciled against a freshly loaded snapshot exactly as `selectedPosteId` is.
 
 ## A defrayal is typed, never deduced
 
@@ -808,28 +816,6 @@ are all here, and this file is the whole record of them.
   provisioning reads to write a quote line, and it is that line which carries the tax basis and the
   VAT rate. Asking for the VAT twice would be asking the same question in two places.
 
-## What is promised is one place, read in two directions
-
-- The financing plan and the committed spending share **one header chip, `Planned`**
-  (« Prévisionnel »), and a sub-switch drawn inside the view — `OcptBudgetPlannedSubSwitch` —
-  moves between `Coming in` and `Going out`. Seven chips asked a reader to hold as two separate
-  places what is one reading in two directions: money that is promised and has not moved, owed to
-  the production or by it. The cash journal, which answers the other half of that question, needs
-  no such split because a debit and a credit already sit in one table.
-- **The two words are the help panel's own.** Its map already reads `Coming in`/`Going out`
-  against a `Promised`/`Has moved` split, and this view is that map's promised column: naming the
-  sub-switch in the map's words is what lets the help explain the mode once. The ARB keys stay
-  separate, being two different surfaces.
-- **`OcptBudgetCentreView` keeps both values.** They are one place in the mode but two things to
-  remember, and `OcptPropertiesManager.budgetLastCentreView` has to be able to point at the half a
-  reader left the mode on. The chip therefore reads active for either — `_OcptBudgetSwitchSegment`
-  gained an `alsoActiveFor` set for it — and, being active, takes no click, so a reader on `Going
-  out` is never thrown back onto `Coming in` by the chip they are already under. Reached from
-  anywhere else, the chip lands on the financing plan.
-- The help panel is untouched by the merge: each half keeps its own page, its own title and its own
-  cell in the map, because the help speaks about the view actually on screen, never about the chip
-  above it.
-
 ## The journal scrolls rather than losing a column
 
 - The cash journal's table gives every column but `Label` a fixed width, and `Label` takes what is
@@ -846,15 +832,14 @@ are all here, and this file is the whole record of them.
 
 ## A stacked pane states its height, it does not take a share of one
 
-- The régie and the planned-outgoings view each draw **two panes**, side by side while the centre is
-  wide and stacked once it is not. Stacked, each pane used to take an `Expanded` share of the
-  height — three fifths and two in the régie, two thirds and one in the outgoings. That works while
-  the view is tall and fails silently once it is not: a share smaller than the pane's own heading
-  band plus its card's chrome (padding, header row, dividers, total row) leaves the `ListView`
-  **nothing at all**, so the table prints its header and its total with no row between them, and
-  past that the pane spills over whatever sits under it. A release build paints no overflow banner,
-  so what a user sees is a table that has quietly lost its content and a heading printed over
-  another one.
+- The régie draws **two panes**, side by side while the centre is wide and stacked once it is not.
+  Stacked, each pane used to take an `Expanded` share of the height — three fifths and two. That
+  works while the view is tall and fails silently once it is not: a share smaller than the pane's
+  own heading band plus its card's chrome (padding, header row, dividers, total row) leaves the
+  `ListView` **nothing at all**, so the table prints its header and its total with no row between
+  them, and past that the pane spills over whatever sits under it. A release build paints no
+  overflow banner, so what a user sees is a table that has quietly lost its content and a heading
+  printed over another one.
 - Stacked, a pane therefore **states its own height**: its heading band takes the height it needs,
   and its card is sized by its rows — between two and eight of them, so a two-line table is not
   given a page and a thirty-day shoot does not make one — and **the view scrolls** when the two
@@ -863,6 +848,10 @@ are all here, and this file is the whole record of them.
 - Side by side, both panes still take the whole height, floored at 320 px: under that the pair
   scrolls rather than being crushed, which is the same rule stated for a window nobody normally
   opens that short.
+- The committed-spending sub-page, which used to stack the same way beside its own cash projection,
+  now draws that projection nowhere: the projection moved to the header's own alerts band (see "The
+  alerts compute themselves" above), so the sub-page is a single table today, sized and scrolled the
+  ordinary way any one table in this mode is.
 
 ## An add button shows one plus, not two
 
@@ -871,9 +860,9 @@ are all here, and this file is the whole record of them.
   says what the gesture is, and a label repeating it drew the sign twice side by side.
 - **The `+ ` prefix is not wrong everywhere** — it is the house convention for a *text-only*
   affordance, which is why the resources mode's own `+ Add a person` keeps it, and why the sharing
-  view's own `+ Taking`/`+ Participant` footers do too: they are plain `InkWell`s with no icon, so
-  the sign in the text is the only thing marking them as adding anything. The rule is one plus per
-  button, wherever it lives.
+  view's own `+ Participant` footer does too: a plain `InkWell` with no icon, so the sign in the
+  text is the only thing marking it as adding anything. The rule is one plus per button, wherever it
+  lives.
 
 ## The word a status is called is the group's
 
@@ -886,11 +875,13 @@ are all here, and this file is the whole record of them.
   a filed dossier in one card and something vaguer in the next. `OcptBudgetResourceStatus` stores a
   **step** — `pending`, `agreed`, `confirmed`, deliberately anonymous — and
   `ocptBudgetResourceStatusLabel(tr, kind, status)` resolves the word from the row's own
-  `OcptBudgetResourceGroupKind` **and** its step. Nine words, three steps, one stored column: a
-  subsidy is `Applied`, `Notified`, `Secured`; a cash contribution `Requested`, `Agreed`,
-  `Contracted`; a contribution in kind `Promised`, `Valued`, `Signed`. In French, where the gender
-  follows the group's own noun: `Déposée`/`Notifiée`/`Acquise`, `Sollicité`/`Accordé`/
-  `Contractualisé`, `Convenu`/`Valorisé`/`Signé`.
+  `OcptBudgetResourceGroupKind` **and** its step, exactly as before this milestone's tree replaced
+  the group's own card with a family's: `OcptBudgetResourceFamily` decides which card a row draws
+  in, `OcptBudgetResourceGroupKind` still decides which nine words it can be called. Nine words,
+  three steps, one stored column: a subsidy is `Applied`, `Notified`, `Secured`; a cash contribution
+  `Requested`, `Agreed`, `Contracted`; a contribution in kind `Promised`, `Valued`, `Signed`. In
+  French, where the gender follows the group's own noun: `Déposée`/`Notifiée`/`Acquise`,
+  `Sollicité`/`Accordé`/`Contractualisé`, `Convenu`/`Valorisé`/`Signé`.
 - **What the three steps have in common is what makes them one enum**: a resource is first merely in
   play, then answered — a figure is on it — then held on paper. That progression is the same
   whichever group a row sits in, and it is what lets a production reclassify a resource without its
@@ -917,6 +908,11 @@ are all here, and this file is the whole record of them.
   [_ocptRegieWrapWidth] the two stack rather than crush each other, each table has a floor below
   which it scrolls sideways exactly as the journal's own does, and stacked each states its own
   height rather than taking a share of one — see "A stacked pane states its height" above.
+  `OcptBudgetFeedCard`, the "what feeds this budget" card described below, sits at the very top of
+  the page, above both columns, in either reading: each of its three rows — the breakdown, the
+  schedule, the catering itself — is a title, a one-line reading and a click that only ever reports
+  upward, and the régie withholds its own catering row, since that row would only send the reader
+  back to the page they are already on.
 - **The view writes, and therefore carries `isReadOnly`** — it did not before, being read-only start
   to finish. Under a previewed version the `Defrayal` button, the row menus, the poste picker and
   the provisioning button are **withheld, never disabled**, expressed as null callbacks by the mode
@@ -984,95 +980,153 @@ are all here, and this file is the whole record of them.
   upgrade nulls both columns on every existing line: no line of any project was ever written by a
   provisioning that did not exist.
 
-## The dashboard reads the financing plan once it exists
+## A quote line can be promoted into a commitment, and the line stays
 
-- The dashboard's own KPI row gains a `Total resources` tile the moment `budget_resources` does —
-  `ocptBudgetResourcesTotalCents`, with how much of it is in kind
-  (`ocptBudgetResourcesTotalByGroupKind`) as a smaller second line — mirroring every other tile
-  already there. Under it, a **needs/resources balance bar**
-  (`ocptBudgetNeedsResourcesBalanceOf`, `lib/utils/ocpt_budget_financing.dart`) states the quote's
-  own total against the financing plan's own total and, underneath, either that the two balance or
-  by how much the plan still falls short.
-  **The needs side is read tax-inclusive, always, whatever the header's own basis toggle currently
-  shows.** A resource is money coming in, and "Money that has moved is read tax-inclusive, always"
-  (above) already settles that there is only one honest basis for that; comparing an
-  excluding-tax quote against a tax-inclusive resource would compare two different figures while
-  looking like it compared one, so the bar's own needs total is `ocptBudgetTotalOf`'s own
-  including-tax reading, resolved once here and never through `OcptBudgetState.taxBasis`. Whenever
-  that total is not `OcptBudgetCoveredTotal.isComplete`, the bar prints the very same coverage
-  read-out the cost-tracking table's own total row already does
-  (`tr.budgetCostTrackingCoverageReadOut`) rather than a second wording for the same fact.
-  **And a quote with no line at all gets no verdict.** A plain `resources >= needs` reading answers
-  "balanced" for a project that has recorded nothing, declaring the financing plan sufficient
-  against a quote nobody has begun — the sort of claim the data cannot support that this mode
-  refuses everywhere else. The message is three-way rather than two: no quote yet, covered, or short
-  by an amount. The bar itself is drawn either way, nothing disappearing from the screen; it simply
-  stops asserting a verdict it has no grounds for, exactly as `Consumed` prints the em dash for a
-  poste with no quote rather than a ratio it cannot compute.
-  A third card, **"what feeds this budget"**, reads three other sources the quote itself never
-  types: how many breakdown elements a quote line already prices and how many still are not (see "A
-  quote line can price a breakdown element" below), how many shooting days the schedule holds — the
-  base every per-day poste is quoted against — and the meals and buffet servings the schedule's own
-  timetable already produces. Each row reports a click upward, through the workspace bloc rather
-  than navigating on its own: the breakdown row opens the resources mode's elements tab with nothing
-  selected (`OcptResourcesRevealRequest(tab: OcptResourcesTab.elements, recordId: null)`, the same
-  request the breakdown mode's own `Open in Resources` already uses, its `recordId` deliberately
-  null since the card names a count, not one element), the schedule row switches to the schedule
-  mode, and the catering row switches this very mode to its own `regie` view.
-  **The unpriced-elements count is deliberately not a third alert.** `ocptComputeBudgetAlerts`'s own
-  two rules are each a standing fact that something is wrong; a dozen elements still waiting to be
-  priced during preparation is the normal state of a production still building its breakdown, true
-  for months on end, which is exactly the register this card states things in rather than the
-  alerts row's.
+- A quote line and a commitment hold the same shape of fact — a poste, a wording, an amount, a tax
+  reading — and differ in the two things that make a debt a debt: **who is owed, and when**. So the
+  quote line's own fiche offers `Commit this line…`, which opens `OcptBudgetCommitmentDialog`
+  pre-filled from the line (a `prefill` parameter, mirroring `OcptBudgetEntryDialog.prefill`) with
+  only those two left to say.
+- **A promotion, never a move.** The line stays in the quote: comparing the 1,200 € estimated with
+  the 1,450 € actually owed is the whole use of having both, and losing the estimate at the moment
+  it becomes useful would be the wrong trade. Nothing is double-counted either — a poste's `Quote`
+  column reads its lines and its `Committed` column reads commitments; the two were never summed.
+- `budget_commitments.lineId` records the provenance (schema 33, payload format 29). **Nothing is
+  ever read back off the line through it**: the commitment's amount, wording and due date are its
+  own from creation, and correcting the estimate afterwards leaves the debt alone. The column buys
+  exactly two behaviours — a line already promoted says so instead of silently making a second debt
+  every time the gesture is used, and the promotion can be undone from the line it came from.
+- The line's own fiche therefore draws **one of two mutually exclusive states**: `Commit this
+  line…`, or `Pay {amount}` as its primary once promoted and unsettled, with `Show the commitment`
+  and `Uncommit` as its two secondaries; once settled, no primary action at all, with `Show the
+  commitment` and `Delete` as its secondaries. Uncommitting goes through `OcptConfirmDialog` like
+  every irreversible action, and deletes the commitment while leaving the quote line alone.
+- **Uncommitting is withheld once a journal entry has settled the commitment**, with the reason
+  written where the button was: undoing the promotion would then delete a debt somebody has already
+  been paid against.
+- `lineId` is **not part of `OcptBudgetCommitmentFormFields`**. The form collects what a user
+  typed; the provenance is where the gesture came from, which the dialog neither knows nor asks
+  about — and keeping it out leaves the dialog usable, unchanged, for a commitment that has no line
+  behind it.
 
-## A quote line can price a breakdown element
+## The mode explains itself
 
-- `budget_lines.elementId` is what crosses a quote line with the *dépouillement*'s own elements
-  catalogue: `OcptBudgetPosteInspector`'s own `From breakdown` gesture opens a picker over every
-  live element no live line names yet, and creating one from it writes a line whose label is the
-  element's own name, whose `elementId` names it, and whose `unitAmountCents` is `OcptElement.cost`
-  — `OcptBudgetQuoteService.createLine`'s own widened signature, called the same way the ordinary
-  `Add` footer already calls it, minus the two arguments that footer leaves at their default.
-  **A null `elements.cost` is not a zero unit price.** `elements.cost` is nobody's business to have
-  filled in yet during preparation, and a line minted from it is passed [Value.absent] rather than
-  `Value(0)` for exactly that reason: the fresh line is left at `budget_lines.unitAmountCents`'s own
-  ordinary default, reading exactly as a plain `Add` line already does, rather than claiming a
-  price of zero that nobody has typed — the same "null, never zero" honesty `ocpt_budget_vat.dart`
-  already keeps for a rate nobody has recorded.
-  A line minted this way says so wherever it is drawn, in a second, quiet line under its own label —
-  the element's own name — so a reader can tell a line typed from nothing apart from one that
-  answers a real need the breakdown found, the same distinction the dashboard's own feed card counts
-  by.
+- The product owner used the mode and still could not say what told three of the seven old views
+  apart — a real defect the screens alone never fixed, however each one's own figures were made
+  honest. `OcptWorkspaceToolbar` therefore carries a nullable `helpAction` slot, the same shape and
+  idiom as `exportAction`/`dockToggles`/`saveAction`/`projectSettingsAction` (`foundations.md`): a
+  mode with nothing to explain renders no button at all, and every mode but this one leaves it null.
+  Clicking it dispatches the very same `OcptBudgetRightDockTabSelectedEvent` the dock's own tab row
+  already sends, naming `OcptBudgetRightDockTab.help`, so the toolbar button and the dock tab are
+  one gesture rather than two: opening the dock on `Help`, and closing it again on a second click
+  while `Help` is already showing — the toggle every other dock control already has.
+  `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly the
+  argument `OcptBudgetRegie` used to make for itself before it started writing defrayals, so it
+  carries no `isReadOnly` flag and is offered identically under a previewed version. Its content
+  follows `OcptBudgetState.document`/`.reading`/`.subPage`: switching the header's own chips or
+  breadcrumb changes what the panel says, with no extra click, since the dock stays open on `Help`
+  across a route change exactly as it stays open on `Inspector` across a selection.
+- **The two-by-two matrix is gone, replaced by the chain of states each document's rows pass
+  through.** The matrix used to cross what is only promised against what has actually moved,
+  promised money coming in against money going out — a navigation of six sibling pages that no
+  longer exists, and two of the six were never in the matrix to begin with. What a document's own
+  rows actually do is pass through a small chain: an estimate becomes a commitment becomes a
+  payment, a promise becomes a receipt. Every page but the régie now opens on its own chain, one
+  cell per state, left to right, each carrying the state's own word and, under it, a short caption
+  naming where that figure comes from:
+  - `expenses`: **Estimated** (the quote) · **Committed** (a commitment) · **Paid** (an entry).
+  - `resources`: **Promised** (a resource or a taking) · **Received** (an entry naming it) — no
+    hand-typed step in between, unlike the expenses chain's own commitment.
+  - `sharing`: **Received** (the takings) · **Already repaid** (the reimbursable contributions) ·
+    **Left to share** (the agreed shares).
+  Under the chain, one short sentence says how a step becomes the next; the page below it is the
+  detail, worded in the plain language this file already argues for it in, every cross-reference to
+  a figure or a label resolved as an ICU argument (`intl_utils`'s own convention, "The four
+  documents" below) rather than restated by hand, so the help text can never drift from the very
+  word it is pointing at.
+- **The régie draws no chain** — it is not a stage of anything, it types nothing, and its own first
+  paragraph says so.
+- **The current step wears no extra word of its own, only a wash and a weight, and is announced
+  through `Semantics` rather than drawn.** A cell's label carries a second sentence — `"{label},
+  You are here"` — only while it is the reader's current one; colour alone would say nothing in
+  high contrast, nothing to a colour-blind reader and nothing at all to a screen reader, so the
+  meaning rides the accessibility tree instead of the paint.
+- **The header's three chips — `Expenses`, `Resources`, `Sharing` — read left to right as the
+  sentence they explain**: what the film costs, what pays for it, what it earns, long after both.
+  **Controls are contextual now, a departure from the seven-chip header's own "always offered,
+  whatever the project holds" rule.** The reading switch and the tax-basis switch are offered on
+  `expenses` alone: money coming in is always read tax-inclusive, so there is nothing for the
+  toggle to do anywhere else, and `resources`/`sharing` have no `byDate` reading yet to switch to.
+  The simplified/detailed switch and the poste filter are offered exactly where a poste-keyed row is
+  drawn — `expenses`, either reading, and its own `committedSpending` sub-page — and withheld,
+  never disabled or captioned, everywhere else: the standing rule for an affordance without a
+  subject. Every one of these is a **list-literal conditional**, not a disabled or greyed control:
+  the widget the header would have drawn simply is not built.
+- **No chip is worded by the simplified reading, and none should be**, exactly the argument that
+  held for the old seven — real trade words retitled for a five-person crew lost their reason the
+  moment the navigation itself stopped naming a stage by its trade name. What the simplified toggle
+  still governs is the ten CNC poste labels (`budget_postes.simpleLabel`) and the empty-state
+  sentences that name the ledgers in prose: real translations of opaque trade language, unlike a
+  second name for a document that already said the plain thing it was.
+- **Shedding the title is not enough on its own**, and the header does not stop there: under
+  `_ocptBudgetHeaderTitleMinWidth` the controls **wrap onto a second line**, and the chips wrap
+  inside their own border too, as `OcptScheduleHeader`'s controls already do. The centre narrows for
+  a reason the header cannot see — the right dock opening takes roughly 580 px of it — and a plain
+  `Row` then clips silently in release, which had been taking the tax-basis switch off the screen
+  altogether. A control scrolled out of a clipped row is worse than a disabled one: nothing on
+  screen says it exists.
+  Every other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder,
+  a delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
+  code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
+  on a selection change, a dock tab change, a change of document, reading or sub-page, either header
+  toggle, entering a version preview and the mode's own `deactivate()`. Those last paths were added
+  after the fact and are the reason the mode once looked like it ignored what it was told: an
+  amount typed in the cost-tracking table and followed straight by a click on another document was
+  still sitting in the debounce, so that document drew the snapshot from before it and corrected
+  itself two seconds later. The write was never lost; it simply was not shown. Every path that stops
+  the typing and starts the reading has to flush.
+  A line's VAT override is the one field with no direct mirror: an empty or
+  unparseable submission reads as "leave the override exactly as it is," never "clear it," since a
+  stray backspace must not silently drop an override typed on purpose — going back to inheriting the
+  project's rate is its own dedicated, immediate gesture
+  (`OcptBudgetLineVatRateInheritedRequestedEvent`), mirroring the project settings page's own
+  `No rate` button for `defaultVatRateBasisPoints`.
+  **The `Export` control opens onto four documents**, `OcptWorkspaceExportDialog
+  <OcptBudgetExportDocument>` drawing one card each for the quote, the financing plan, the cash
+  journal and the financial report, above the dialog's own standing project-package card — see "The
+  four documents" below. `OcptBudgetBloc` also mixes in `MixinOcptProjectPackageBloc` exactly as
+  every other mode's bloc does, which is what let a colleague receive this project as a portable
+  `.ocptz` a milestone before the mode printed a single PDF of its own.
 
-## A taking is received by being named, a participant is paid the same way
+## The sharing view says what each person put in, not only what comes back
 
-- `budget_revenues` carries **no received amount** and `budget_shares` **no `paidCents`**, and that
-  is the fourth and fifth time this mode has refused the same shape for the same reason: a poste
-  keeps no `quotedAmount`, a commitment no `settled` flag, a resource no `receivedCents`, because a
-  stored second copy of one truth has to be kept in step by a write nobody can guarantee never to
-  forget. A taking's own row states what was **expected** — its date, its label, the amount and how
-  far its paperwork has got — and the journal states what **arrived**: the sum of the
-  `budget_entries` credits naming it through `budget_entries.revenueId`
-  (`ocptBudgetReceivedByRevenueId`, `lib/utils/ocpt_budget_shares.dart`). What a participant has
-  actually been paid is the mirror image, read off the other column: the debits naming them through
-  `budget_entries.shareId` (`ocptBudgetPaidByShareId`). Both go through
-  `ocptBudgetEntryCreditCentsOf`/`ocptBudgetEntryDebitCentsOf` rather than the raw columns, so a row
-  missing the rate it would need is *covered-but-incomplete* rather than wrong, and both answer an
-  `OcptBudgetCoveredTotal` for that reason.
-  `OcptBudgetRevenueStatus` is therefore **flat and three-valued** (`expected`, `confirmed`,
-  `invoiced`) and deliberately carries **no `cashed`**, which is exactly the argument
-  `OcptBudgetCommitmentStatus` already makes for its own missing `settled`: a status living beside a
-  figure the journal already answers would be that second copy again. A prize announced in February
-  and paid in June is one row and one entry, and the view tells the two apart by printing the
-  expected amount as a quiet second line whenever it differs from what came in.
-  The two gestures follow from the shape: **`Record a receipt`** on a taking and **`Record a
-  payout`** on a participant both open `OcptBudgetEntryDialog` pre-filled and dated today — a credit
-  for whatever the taking still has outstanding, a debit for whatever the participant is still owed
-  — exactly as the financing plan's own `Record a receipt` and a commitment's `Settle` already do,
-  so neither a receipt nor a payout can ever exist as a figure with no movement behind it.
-  **A debit naming a taking is not subtracted, and a credit naming a participant is not either.** A
-  refunded taking and a participant handing money back are each movements of their own, and neither
-  is a claim that what already happened did not.
+- The card used to be titled `Repaying the contributions` and `ocptBudgetRepaymentLinesOf` skipped
+  every resource not marked reimbursable. On a project where nothing was marked — the ordinary
+  state the day it is created — that read as an empty card, and the view showed nothing but
+  percentages. The product owner reported exactly that: *"je ne vois pas la valeur additionnée que
+  la personne a versée"*.
+- It is now `What each person put in`, and **every** resource is grouped, in cash or in kind,
+  reimbursable or not. `OcptBudgetRepaymentLine` carries the two figures apart:
+  `contributedCents` is what the person gave the film, `reimbursableCents` is how much of it the
+  film has to give back. `outstandingCents` reads the second, never the first — nothing is owed
+  against a gift, however much it was worth — and a line with nothing owed prints
+  `ocptBudgetEmptyValue` rather than `0.00`, since nothing owed is not a debt that came to zero.
+- **The two halves of a contract finally meet.** `budget_resources` and `budget_shares` both name a
+  person, and nothing put the two together: a reader held "Marie put in 300 €" from one card and
+  "Marie has 15 %" from another and joined them in their head. A contributor who also holds a share
+  now says so under their own name. Matched on `personId` alone — two rows sharing a typed label
+  are not evidence of one person.
+- **The card that says what is owed now offers to pay it**: `Record a repayment` opens the entry
+  dialog on a debit already naming the resource, for whatever is still owed. It is the same
+  facilitator the resources tree's own `Record a receipt` already is, pointing the other way, and
+  it writes through the same one shape of movement — see "Money is added in one way" above.
+  Withheld under a previewed version, and withheld on a contributor with nothing left owed.
+- A contributor whose contributions are spread over several resources is repaid against the
+  **first one still owed**. The card groups them into one debt on purpose, and asking which of
+  three 100 € loans a 100 € repayment settles is a question nobody has an answer to.
+- **The takings left this view for the resources tree's own `Takings` family**, where every gesture
+  on one already lives; this view's own left column now holds only `Repaying the contributions`,
+  which is what the view is for, and its right column holds the split of what is left — see below.
 
 ## The contributions come off the top, and no remainder is redistributed
 
@@ -1080,8 +1134,7 @@ are all here, and this file is the whole record of them.
   `lib/utils/ocpt_budget_shares.dart` is where that order is arithmetic rather than layout: the
   takings come in, the reimbursable contributions are taken off the top, and only what is left is
   anybody's to split. `ocptBudgetReimbursableTotalCents` reads `budget_resources.isReimbursable` —
-  the column the financing plan stored and no view read until the sharing landed — and nothing
-  there branches on
+  the column the resources plan stores and the sharing view reads — and nothing there branches on
   `OcptBudgetResourceGroupKind`: an in-kind contribution counts if the user marked it reimbursable,
   which is the mode's standing rule that the code carries no conditional branch on the state of the
   data. `ocptBudgetRepaidContributionsTotalOf` is the other half of the sentence
@@ -1124,9 +1177,67 @@ are all here, and this file is the whole record of them.
   reject the write for the reason its own doc comment gives.
   `OcptBudgetShareSplit` is named `…Split` rather than `…Row` because `OcptBudgetShareRow` is
   already drift's own data class for `budget_shares`, and a computed reading and a stored row must
-  not wear one name. Like a resource row, a taking and a participant are **selected and highlighted
-  and open no inspector**: the right dock's `Inspector` is built entirely around a poste's own quote
-  lines, and neither of these has any.
+  not wear one name.
+
+## A taking is received by being named, a participant is paid the same way
+
+- `budget_revenues` carries **no received amount** and `budget_shares` **no `paidCents`**, and that
+  is the fourth and fifth time this mode has refused the same shape for the same reason: a poste
+  keeps no `quotedAmount`, a commitment no `settled` flag, a resource no `receivedCents`, because a
+  stored second copy of one truth has to be kept in step by a write nobody can guarantee never to
+  forget. A taking's own row states what was **expected** — its date, its label, the amount and how
+  far its paperwork has got — and the journal states what **arrived**: the sum of the
+  `budget_entries` credits naming it through `budget_entries.revenueId`
+  (`ocptBudgetReceivedByRevenueId`, `lib/utils/ocpt_budget_shares.dart`). What a participant has
+  actually been paid is the mirror image, read off the other column: the debits naming them through
+  `budget_entries.shareId` (`ocptBudgetPaidByShareId`). Both go through
+  `ocptBudgetEntryCreditCentsOf`/`ocptBudgetEntryDebitCentsOf` rather than the raw columns, so a row
+  missing the rate it would need is *covered-but-incomplete* rather than wrong, and both answer an
+  `OcptBudgetCoveredTotal` for that reason.
+  `OcptBudgetRevenueStatus` is therefore **flat and three-valued** (`expected`, `confirmed`,
+  `invoiced`) and deliberately carries **no `cashed`**, which is exactly the argument
+  `OcptBudgetCommitmentStatus` already makes for its own missing `settled`: a status living beside a
+  figure the journal already answers would be that second copy again. A prize announced in February
+  and paid in June is one row and one entry, and the resources tree tells the two apart by printing
+  the expected amount as a quiet second line whenever it differs from what came in.
+  The two gestures follow from the shape: **`Receive`** on a taking, reached from the resources
+  tree's own row menu or from the fiche once it is selected, and **`Record a payout`** on a
+  participant, reached from the sharing document, both open `OcptBudgetEntryDialog` pre-filled and
+  dated today — a credit for whatever the taking still has outstanding, a debit for whatever the
+  participant is still owed — exactly as a resource's own `Record a receipt` and a commitment's
+  `Settle` already do, so neither a receipt nor a payout can ever exist as a figure with no movement
+  behind it.
+  **A debit naming a taking is not subtracted, and a credit naming a participant is not either.** A
+  refunded taking and a participant handing money back are each movements of their own, and neither
+  is a claim that what already happened did not.
+
+## An in-kind contribution is valued, not collected
+
+- **Creating a resource is three explicit gestures, one per `OcptBudgetResourceGroupKind`, not
+  one.** Adding a camera that is valued is not the same gesture as adding real money that is going
+  to buy the crew lunch, even though both end up as a `budget_resources` row — the product owner
+  could not tell a valuation from real money through a single `Resource` button, which opened one
+  form for all three kinds with no word said about which one was being created.
+  `_OcptAddResourceButton` replaces it: a `MenuAnchor` anchored on one button, naming the three
+  kinds (`Subvention`/`Apport en numéraire`/`Apport en nature` in French), chosen over three
+  separate buttons the tree's own header row has no width to spare for, and over a `Wrap` of
+  `MenuItemButton`s, which throws the moment a `MenuAnchor` hands one an unbounded width
+  (`AGENTS.md`'s own known pitfall). Picking one opens `OcptBudgetResourceDialog` with that kind
+  already set and named in the dialog's own title (`New subsidy`/`New cash contribution`/`New
+  in-kind contribution`) — its own `Group` picker is not drawn while creating, since the kind is
+  already decided by the very gesture that opened the dialog, and offering it again one field later
+  would let that gesture be second-guessed for no reason a reader could name. **The kind stays
+  editable on an existing resource**: the picker returns the moment the dialog opens on one, exactly
+  as it always has, since a production is free to reclassify a resource it already created.
+  Once the kind is known, the `Amount` field's own label and helper text are worded for it — an
+  in-kind contribution's figure is `Valued at`, what it is *valued at*, never an amount that will be
+  received, while a subsidy or a cash contribution keeps the plain `Amount` label — and the `Status`
+  field's own chips are worded for it too, alongside a helper saying what progress means for that
+  kind ("The word a status is called is the group's", above).
+- A resource row is **selected and opens the fiche**, whose own primary action is described in "The
+  fiche is one panel for seven kinds of row" above. `OcptBudgetState.selectedResourceId` is a plain
+  getter folding onto `selection`, reconciled against a freshly loaded snapshot exactly as
+  `selectedPosteId` is — see "Selecting a poste and filtering by one are two different facts".
 
 ## The four documents
 
@@ -1145,7 +1256,9 @@ are all here, and this file is the whole record of them.
   writes an **empty cell**, never the balance before it; an `inKind` resource no entry names prints
   the empty-value mark for received and outstanding; and the needs/resources balance gives the same
   three-way verdict — no quote yet, covered, or short by an amount — rather than declaring a
-  financing plan sufficient against a quote nobody has begun.
+  financing plan sufficient against a quote nobody has begun (`OcptBudgetNeedsResourcesBalance`,
+  read by these documents alone now that the live screen draws its own two-tone reading instead —
+  see "The resources document says what covers the film, twice" above).
   **The financial report reads the cost-tracking table's own off-quote reading too.** It draws an
   `Off quote` row, reusing the cost-tracking table's own label
   (`tr.budgetCostTrackingOffQuoteLabel`), between the last poste and the totals row, only while
@@ -1153,9 +1266,9 @@ are all here, and this file is the whole record of them.
   its `Quoted`, `Committed`, `Remaining` and `Variance` cells print the empty-value mark, since there
   is no quote behind it to measure any of them against, and only its `Paid` cell carries a figure.
   The totals row's own `Paid` cell folds every poste's own paid total with the off-quote total
-  (`ocptBudgetCoveredTotalsFoldOf`, the very fold the dashboard's own `Paid` KPI and the
-  cost-tracking table's own total row already use), so that column adds up to what actually left
-  the account, printing the coverage read-out the moment either side is incomplete.
+  (`ocptBudgetCoveredTotalsFoldOf`, the very fold the cost-tracking table's own total row already
+  uses), so that column adds up to what actually left the account, printing the coverage read-out
+  the moment either side is incomplete.
   **Only the quote offers a tax basis**, and its dialog opens on whichever one the header was
   already showing, so the document somebody exports is the one they were just reading. The other
   three are money that has moved or money coming in, which "Money that has moved is read
