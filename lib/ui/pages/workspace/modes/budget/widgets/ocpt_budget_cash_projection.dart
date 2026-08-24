@@ -10,8 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
-/// The height of one projection step's own bar, in logical pixels — mirrors
-/// `OcptBudgetDashboard`'s own `_ocptDashboardBarHeight`, the very constant
+/// The height of one projection step's own bar, in logical pixels — the very constant
 /// `OcptBudgetCommittedSpending`'s own copy of this widget used to carry.
 const double _ocptCashProjectionBarHeight = 6;
 

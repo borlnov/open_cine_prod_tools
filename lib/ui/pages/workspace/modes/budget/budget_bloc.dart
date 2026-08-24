@@ -157,8 +157,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   final OcptLocationsService _locationsService;
 
   /// The service [_loadBudgetSnapshot] reads the breakdown's own elements catalogue off — what the
-  /// dashboard's own breakdown reading counts against, and what `+ From breakdown` picks a fresh
-  /// quote line from. Mirrors `OcptScheduleBloc._elementsService`.
+  /// feed card's own breakdown row counts against, and what `+ From breakdown` picks a fresh quote
+  /// line from. Mirrors `OcptScheduleBloc._elementsService`.
   final OcptElementsService _elementsService;
 
   /// The ten CNC postes, already localized — see the class doc comment for why this is a

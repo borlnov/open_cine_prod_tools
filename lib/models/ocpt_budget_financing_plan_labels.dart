@@ -13,9 +13,9 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 /// exist for every export before it.
 ///
 /// [balanceNoQuoteMessage], [balanceBalancedMessage] and [balanceShortfallMessageTemplate] mirror
-/// `OcptBudgetDashboard`'s own three-way verdict over `ocptBudgetNeedsResourcesBalanceOf`
-/// (`docs/architecture/budget.md`), and [coverageReadOutTemplate] mirrors
-/// `tr.budgetCostTrackingCoverageReadOut` — both read through
+/// the three-way verdict `ocptBudgetExportBalanceVerdict` prints over
+/// `ocptBudgetNeedsResourcesBalanceOf` (`docs/architecture/budget.md`), and
+/// [coverageReadOutTemplate] mirrors `tr.budgetCostTrackingCoverageReadOut` — both read through
 /// `lib/managers/export/services/ocpt_budget_pdf_shared.dart`'s own helpers, which fill in the
 /// `{amount}`/`{coveredCount}`/`{totalCount}` placeholders a manager-layer service cannot ask `Tr`
 /// to interpolate itself.

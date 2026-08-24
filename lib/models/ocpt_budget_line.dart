@@ -28,7 +28,7 @@ class OcptBudgetLine extends Equatable {
   final OcptMoney unitPrice;
 
   /// The breakdown element this line prices, or null — `OcptBudgetFiche`'s own `+ From
-  /// breakdown` gesture is what sets it, and it is what tells the dashboard's own breakdown reading
+  /// breakdown` gesture is what sets it, and it is what tells the feed card's own breakdown row
   /// this line answers a real need rather than being typed from nothing.
   final String? elementId;
 

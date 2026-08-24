@@ -16,8 +16,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 /// **No tax basis here**, unlike `OcptBudgetQuoteExportOptions`: this report reads the quote
 /// against what has actually moved — paid, committed, and the financing plan's own resources — and
 /// every one of those is read tax-inclusive always (`docs/architecture/budget.md`), the very
-/// reading `OcptBudgetDashboard`'s own needs/resources balance already gives the quote for the same
-/// comparison. Offering a basis toggle here would let the quoted column disagree with the actual
+/// reading `OcptBudgetNeedsResourcesBalance` already gives the quote for the same comparison.
+/// Offering a basis toggle here would let the quoted column disagree with the actual
 /// figures it is measured against while looking like it measured the same thing.
 ///
 /// Deliberately its own class rather than one of its siblings with fields added, for the reason

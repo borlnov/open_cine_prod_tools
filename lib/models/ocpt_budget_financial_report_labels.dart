@@ -14,8 +14,8 @@ import 'package:equatable/equatable.dart';
 /// for the cost-tracking table (`Quoted`/`Paid`/`Committed`/`Remaining`/`Variance`), then the
 /// financing plan's own total and `ocptBudgetNeedsResourcesBalanceOf`'s own verdict — so
 /// [balanceNoQuoteMessage], [balanceBalancedMessage] and [balanceShortfallMessageTemplate] mirror
-/// `OcptBudgetDashboard`'s own three-way reading of it, and [coverageReadOutTemplate] mirrors
-/// `tr.budgetCostTrackingCoverageReadOut`, both read through
+/// the very three-way verdict `ocptBudgetExportBalanceVerdict` prints, and [coverageReadOutTemplate]
+/// mirrors `tr.budgetCostTrackingCoverageReadOut`, both read through
 /// `lib/managers/export/services/ocpt_budget_pdf_shared.dart`'s own helpers, which fill in the
 /// `{amount}`/`{coveredCount}`/`{totalCount}` placeholders a manager-layer service cannot ask `Tr`
 /// to interpolate itself.

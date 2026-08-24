@@ -69,7 +69,7 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// (`docs/architecture/budget.md`). The needs side of the closing balance is always read
 /// tax-inclusive, whatever tax basis the quote itself is stored in — "Money that has moved is read
 /// tax-inclusive, always" — and the verdict is the same three-way reading
-/// `OcptBudgetDashboard` gives it: no quote yet, covered, or short by an amount.
+/// `ocptBudgetExportBalanceVerdict` gives it: no quote yet, covered, or short by an amount.
 class OcptBudgetFinancingPlanPdfService {
   /// Creates an [OcptBudgetFinancingPlanPdfService].
   ///

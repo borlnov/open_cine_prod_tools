@@ -42,7 +42,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_committed_spending.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_element_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
@@ -79,8 +78,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
-/// The budget production mode: the quote, poste by poste — the dashboard and the cost-tracking
-/// table this milestone builds, `Inspector`, `Versions` and `Help` in the right dock.
+/// The budget production mode: the quote, poste by poste — the cost-tracking table this milestone
+/// builds, `Inspector`, `Versions` and `Help` in the right dock.
 ///
 /// **There is no left dock** (the mockup shows none for this mode, `docs/architecture/budget.md`,
 /// M1) and **no episode selector**: one budget serves the whole production (ADR 0019), its
@@ -696,7 +695,6 @@ class _BudgetViewState extends State<_BudgetView> {
       return switch (subPage) {
         OcptBudgetSubPage.committedSpending => _buildCommittedSpending(context, state),
         OcptBudgetSubPage.regie => _buildRegie(context, state),
-        OcptBudgetSubPage.dashboard => _buildDashboard(context, state),
       };
     }
 
@@ -707,45 +705,6 @@ class _BudgetViewState extends State<_BudgetView> {
       OcptBudgetDocument.resources => _buildFinancing(context, state),
       OcptBudgetDocument.sharing => _buildSharing(context, state),
     };
-  }
-
-  /// Builds the dashboard.
-  Widget _buildDashboard(BuildContext context, OcptBudgetState state) {
-    final bloc = context.read<OcptBudgetBloc>();
-    final elementLinkCounts = state.elementLinkCounts;
-
-    return OcptBudgetDashboard(
-      postes: state.postes,
-      taxBasis: state.taxBasis,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      currencyCode: state.currencyCode,
-      cashTotals: state.cashTotals,
-      paidByPosteId: state.paidByPosteId,
-      offQuotePaidTotal: state.offQuotePaidTotal,
-      committedByPosteId: state.committedByPosteId,
-      alerts: state.alerts,
-      resources: state.resources,
-      breakdownPricedElementCount: elementLinkCounts.pricedCount,
-      breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
-      shootingDayCount: state.regieDays.length,
-      mealCount: state.regieTotals.mealCount,
-      buffetCount: state.regieTotals.buffetCount,
-      onPosteOpened: (posteId) {
-        bloc
-          ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
-          ..add(
-            const OcptBudgetDocumentReadingSelectedEvent(
-              reading: OcptBudgetDocumentReading.byTree,
-            ),
-          );
-      },
-      onCashAlertActionRequested: () => bloc.add(
-        const OcptBudgetSubPageSelectedEvent(subPage: OcptBudgetSubPage.committedSpending),
-      ),
-      onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
-      onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
-      onCateringFeedRequested: () => _handleCateringFeedRequested(bloc),
-    );
   }
 
   /// Opens the resources mode's own elements tab — `OcptBudgetFeedCard`'s own breakdown row,

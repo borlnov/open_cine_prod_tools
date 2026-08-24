@@ -97,10 +97,10 @@ class OcptBudgetSnapshot extends Equatable {
 
   /// The total of every debit that names no poste at all — spending that happened but sits outside
   /// the quote — `ocptBudgetOffQuotePaidTotalOf`. Zero and complete while [entries] carries no such
-  /// debit. The dashboard's own `Paid` KPI and the cost-tracking table's own total row both fold
-  /// this in alongside [paidByPosteId], since together they are what actually left the account;
-  /// `ocptComputeBudgetAlerts` never reads it — a poste's own strain against its own quote is a
-  /// different question from money that prices no poste at all.
+  /// debit. The cost-tracking table's own total row folds this in alongside [paidByPosteId], since
+  /// together they are what actually left the account; `ocptComputeBudgetAlerts` never reads it —
+  /// a poste's own strain against its own quote is a different question from money that prices no
+  /// poste at all.
   final OcptBudgetCoveredTotal offQuotePaidTotal;
 
   /// What is committed against each poste, keyed by `OcptBudgetPoste.id`, settled commitments
@@ -120,7 +120,7 @@ class OcptBudgetSnapshot extends Equatable {
   /// comment.
   final Map<String, OcptBudgetCoveredTotal> receivedByResourceId;
 
-  /// The dashboard's own two alerts — a poste over its quote, the cash projection going negative —
+  /// The header's own two alerts — a poste over its quote, the cash projection going negative —
   /// computed once, here, by [ocptComputeBudgetAlerts] over this snapshot's own already-loaded
   /// data: **both computed, neither configured** (ADR 0027).
   final List<OcptBudgetAlert> alerts;

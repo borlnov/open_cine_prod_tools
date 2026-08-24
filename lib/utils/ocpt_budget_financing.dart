@@ -180,8 +180,8 @@ Map<OcptBudgetResourceStatus, int> ocptBudgetResourcesTotalByStatus(
 int ocptBudgetResourceOutstandingCents({required int amountCents, required int receivedCents}) =>
     amountCents - receivedCents;
 
-/// The dashboard's own balance bar: the quote's own [needs] against the financing plan's own
-/// [resourcesCents].
+/// The needs/resources balance the financing-plan and financial-report PDFs print: the quote's own
+/// [needs] against the financing plan's own [resourcesCents].
 ///
 /// [needs] is carried as a whole [OcptBudgetCoveredTotal] rather than a plain `int` **on purpose**,
 /// so the bar can expose whether the needs side is complete — `docs/architecture/budget.md`'s own
@@ -241,9 +241,10 @@ OcptBudgetNeedsResourcesBalance ocptBudgetNeedsResourcesBalanceOf({
 /// has really arrived rather than merely been promised.
 ///
 /// **A different question from [OcptBudgetNeedsResourcesBalance], which stays exactly as it is**:
-/// the dashboard still reads that one, comparing the quote against the financing plan's own
-/// resources alone, as a single total. This one adds the takings the resources document now holds
-/// too, and splits what has really come in from what is only promised — a split
+/// the financing-plan and financial-report PDFs still read that one, comparing the quote against
+/// the financing plan's own resources alone, as a single total. This one adds the takings the
+/// resources document now holds too, and splits what has really come in from what is only
+/// promised — a split
 /// [OcptBudgetNeedsResourcesBalance]'s own single [OcptBudgetNeedsResourcesBalance.resourcesCents]
 /// cannot state.
 class OcptBudgetResourcesCoverage extends Equatable {
@@ -256,7 +257,7 @@ class OcptBudgetResourcesCoverage extends Equatable {
   /// — the tax-basis switch lives on the expenses document alone
   /// (`docs/architecture/budget.md`'s "Money that has moved is read tax-inclusive, always") — so
   /// [ocptBudgetResourcesCoverageOf] never sees a basis and never applies one: [needs] is resolved
-  /// by the caller, the same tax-inclusive reading the dashboard's own balance bar already uses.
+  /// by the caller, the same tax-inclusive reading [OcptBudgetNeedsResourcesBalance] already uses.
   final OcptBudgetCoveredTotal needs;
 
   /// What has really come in, folded row by row out of every resource's and every revenue's own

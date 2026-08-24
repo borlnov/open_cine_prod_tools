@@ -208,7 +208,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   final List<OcptPerson> people;
 
   /// Every live element of the breakdown's own catalogue, as last loaded — [elementLinkCounts] is
-  /// the dashboard's own aggregate reading of it, and [unpricedElements] is what
+  /// the feed card's own aggregate reading of it, and [unpricedElements] is what
   /// `OcptBudgetFiche`'s own `+ From breakdown` picker offers. Not part of [snapshot]: the
   /// picker needs the whole catalogue, not a figure derived from it, exactly the reason [roles] and
   /// [people] already sit beside it rather than inside it.
@@ -378,28 +378,29 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   int paidShareCentsOf(String shareId) => snapshot?.paidShareCentsOf(shareId) ?? 0;
 
   /// What has actually been paid against each poste of [snapshot], empty while nothing is loaded —
-  /// the dashboard's own `Paid` KPI reads this rather than recomputing it.
+  /// the cost-tracking table reads this, per poste and folded into its own total row's `Payé`
+  /// cell, rather than recomputing it.
   Map<String, OcptBudgetCoveredTotal> get paidByPosteId => snapshot?.paidByPosteId ?? const {};
 
   /// The total of every debit that names no poste at all — spending outside the quote,
   /// `OcptBudgetSnapshot.offQuotePaidTotal`'s own doc comment. Zero and complete while nothing is
-  /// loaded, mirroring [cashTotals]' own empty default. The dashboard's own `Paid` KPI and the
-  /// cost-tracking table's own total row both fold this in alongside [paidByPosteId].
+  /// loaded, mirroring [cashTotals]' own empty default. The cost-tracking table's own total row
+  /// folds this in alongside [paidByPosteId].
   OcptBudgetCoveredTotal get offQuotePaidTotal =>
       snapshot?.offQuotePaidTotal ??
       const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
 
   /// What is committed against each poste of [snapshot], empty while nothing is loaded — the
-  /// dashboard's own `Committed` KPI reads this rather than recomputing it.
+  /// cost-tracking table reads this per poste (`committedCentsOf`) rather than recomputing it.
   Map<String, OcptBudgetCoveredTotal> get committedByPosteId =>
       snapshot?.committedByPosteId ?? const {};
 
-  /// The dashboard's own two alerts, empty while nothing is loaded or the project raises neither.
+  /// The header's own two alerts, empty while nothing is loaded or the project raises neither.
   List<OcptBudgetAlert> get alerts => snapshot?.alerts ?? const [];
 
-  /// How many of [elements] a live quote line already prices, and how many are not — the
-  /// dashboard's own "what feeds this budget" card's own breakdown row, derived here rather than in
-  /// that widget, exactly as [paidByPosteId] is derived here rather than in the cost-tracking table.
+  /// How many of [elements] a live quote line already prices, and how many are not — the feed
+  /// card's own breakdown row, derived here rather than in that widget, exactly as [paidByPosteId]
+  /// is derived here rather than in the cost-tracking table.
   OcptBudgetElementLinkCounts get elementLinkCounts =>
       ocptBudgetElementLinkCountsOf(postes: postes, elements: elements);
 
@@ -560,11 +561,11 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       title = "",
       snapshot = null,
       currencyCode = ocptDefaultCurrencyCode,
-      // The mode opens on the same default it always has — the read-only overview — carried today
-      // as expenses's own dashboard sub-page rather than a standalone fourth document.
+      // The mode opens on the expenses document's own top level: the cost report, poste by
+      // poste — the one table a producer reads daily.
       document = OcptBudgetDocument.expenses,
       reading = OcptBudgetDocumentReading.byTree,
-      subPage = OcptBudgetSubPage.dashboard,
+      subPage = null,
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selection = null,

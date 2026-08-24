@@ -8,15 +8,15 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 
-/// Which of the seven pre-M2 pages the current route corresponds to, for [OcptBudgetHelp] alone.
+/// Which of the pre-M2 pages the current route corresponds to, for [OcptBudgetHelp] alone.
 ///
-/// The help panel's own two-by-two matrix still describes the seven pages `OcptBudgetCentreView`
-/// used to name one by one — `docs/plans/budget-mode-ux.md` M8 owns rewriting it, once the mode's
-/// shape has actually settled around three documents rather than mid-migration. Until then this
-/// private mirror of that retired type is the smallest change that keeps every one of its seven
-/// pages compiling against the new (document, reading, sub-page) route: [OcptBudgetHelp] resolves
-/// it once, from its own three parameters, and every method below reads exactly as it always has.
-enum _OcptBudgetHelpPage { dashboard, costTracking, cashJournal, committed, financing, regie, sharing }
+/// The help panel's own two-by-two matrix still describes the pages `OcptBudgetCentreView` used to
+/// name one by one — `docs/plans/budget-mode-ux.md` M8 owns rewriting it, once the mode's shape has
+/// actually settled around three documents rather than mid-migration. Until then this private
+/// mirror of that retired type is the smallest change that keeps every one of its pages compiling
+/// against the new (document, reading, sub-page) route: [OcptBudgetHelp] resolves it once, from its
+/// own three parameters, and every method below reads exactly as it always has.
+enum _OcptBudgetHelpPage { costTracking, cashJournal, committed, financing, regie, sharing }
 
 /// The right dock's own `Help` tab: the mode's explanation of itself, contextual to whichever
 /// route is currently on screen.
@@ -54,7 +54,6 @@ class OcptBudgetHelp extends StatelessWidget {
 
   /// The pre-M2 page this route corresponds to — see [_OcptBudgetHelpPage]'s own doc comment.
   _OcptBudgetHelpPage get _page => switch (subPage) {
-    OcptBudgetSubPage.dashboard => _OcptBudgetHelpPage.dashboard,
     OcptBudgetSubPage.committedSpending => _OcptBudgetHelpPage.committed,
     OcptBudgetSubPage.regie => _OcptBudgetHelpPage.regie,
     null => switch (document) {
@@ -111,7 +110,6 @@ class OcptBudgetHelp extends StatelessWidget {
   /// reader finds the same name here as on screen (`OcptBudgetHeader._titleOf`'s own reasoning,
   /// reimplemented here rather than shared, since that method is private to that widget).
   String _titleOf(Tr tr, _OcptBudgetHelpPage page) => switch (page) {
-    _OcptBudgetHelpPage.dashboard => tr.budgetHeaderDashboardTitle,
     _OcptBudgetHelpPage.costTracking => tr.budgetHeaderTitle,
     _OcptBudgetHelpPage.cashJournal => tr.budgetHeaderCashJournalTitle,
     _OcptBudgetHelpPage.committed => tr.budgetCommittedSectionTitle,
@@ -122,7 +120,6 @@ class OcptBudgetHelp extends StatelessWidget {
 
   /// The current page's own one-line subtitle, exactly as the header band prints it.
   String _subtitleOf(Tr tr, _OcptBudgetHelpPage page) => switch (page) {
-    _OcptBudgetHelpPage.dashboard => tr.budgetHeaderDashboardSubtitle,
     _OcptBudgetHelpPage.costTracking => tr.budgetHeaderSubtitle,
     _OcptBudgetHelpPage.cashJournal => tr.budgetHeaderCashJournalSubtitle,
     _OcptBudgetHelpPage.committed => tr.budgetHeaderCommittedSubtitle,
@@ -135,12 +132,6 @@ class OcptBudgetHelp extends StatelessWidget {
   /// `docs/architecture/budget.md` states, in plain language, with every cross-reference to a
   /// figure or another view worded exactly as its own label or chip already reads.
   List<String> _bodyOf(Tr tr, _OcptBudgetHelpPage page, bool isSimplified) => switch (page) {
-    _OcptBudgetHelpPage.dashboard => [
-      tr.budgetHelpDashboardBody1(tr.budgetDashboardPaidLabel, tr.budgetDashboardCommittedLabel),
-      tr.budgetHelpDashboardBody2,
-      tr.budgetHelpDashboardBody3,
-      tr.budgetHelpDashboardBody4(tr.budgetDashboardFeedSectionTitle),
-    ],
     _OcptBudgetHelpPage.costTracking => [
       tr.budgetHelpCostTrackingBody1(tr.budgetCostTrackingColumnQuote),
       tr.budgetHelpCostTrackingBody2(
@@ -196,9 +187,9 @@ class OcptBudgetHelp extends StatelessWidget {
   /// reader currently stands.
   ///
   /// `cashJournal` occupies both cells of the "has moved" column at once — the journal is where
-  /// both a credit and a debit are read. `dashboard`, `costTracking` (the quote, stated as sitting
-  /// outside the map), `regie` and `sharing` occupy none of the four: each reads across the whole
-  /// map, or a different figure entirely, rather than standing in one cell of it.
+  /// both a credit and a debit are read. `costTracking` (the quote, stated as sitting outside the
+  /// map), `regie` and `sharing` occupy none of the four: each reads across the whole map, or a
+  /// different figure entirely, rather than standing in one cell of it.
   Set<_OcptBudgetHelpMapCell> _highlightedCellsOf(_OcptBudgetHelpPage page) => switch (page) {
     _OcptBudgetHelpPage.financing => const {_OcptBudgetHelpMapCell.financing},
     _OcptBudgetHelpPage.committed => const {_OcptBudgetHelpMapCell.committed},
@@ -206,7 +197,6 @@ class OcptBudgetHelp extends StatelessWidget {
       _OcptBudgetHelpMapCell.cashCredits,
       _OcptBudgetHelpMapCell.cashDebits,
     },
-    _OcptBudgetHelpPage.dashboard ||
     _OcptBudgetHelpPage.costTracking ||
     _OcptBudgetHelpPage.regie ||
     _OcptBudgetHelpPage.sharing => const {},

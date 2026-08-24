@@ -58,12 +58,12 @@ String ocptBudgetExportCoveredAmountText({
       .replaceAll("{totalCount}", "${total.lineCount}");
 }
 
-/// The dashboard's own three-way verdict over [balance] — "no quote yet" for a quote with no line
-/// at all, "balanced" once the financing plan covers it, or [shortfallMessageTemplate] with its own
-/// `{amount}` placeholder filled in with how far short it falls — mirroring
-/// `OcptBudgetDashboard`'s own reading of `ocptBudgetNeedsResourcesBalanceOf`: a plain
-/// `resources >= needs` reading would answer "balanced" for a project that has recorded nothing,
-/// which this mode refuses everywhere else.
+/// The financing-plan and financial-report PDFs' own three-way verdict over [balance] — "no quote
+/// yet" for a quote with no line at all, "balanced" once the financing plan covers it, or
+/// [shortfallMessageTemplate] with its own `{amount}` placeholder filled in with how far short it
+/// falls — reading `ocptBudgetNeedsResourcesBalanceOf` honestly: a plain `resources >= needs`
+/// reading would answer "balanced" for a project that has recorded nothing, which this mode refuses
+/// everywhere else.
 String ocptBudgetExportBalanceVerdict({
   required OcptBudgetNeedsResourcesBalance balance,
   required String noQuoteMessage,

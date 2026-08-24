@@ -287,13 +287,6 @@ void main() {
       expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
     });
 
-    testWidgets("withheld on the dashboard sub-page — no poste-keyed row there", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.dashboard);
-
-      expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing);
-    });
-
     testWidgets("withheld on the régie sub-page", (tester) async {
       useWideWindow(tester);
       final tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.regie);
@@ -500,10 +493,6 @@ void main() {
       tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.regie);
       expect(find.text(tr.budgetHeaderRegieTitle), findsWidgets);
       expect(find.text(tr.budgetHeaderRegieSubtitle), findsOneWidget);
-
-      tr = await pumpHeader(tester, subPage: OcptBudgetSubPage.dashboard);
-      expect(find.text(tr.budgetHeaderDashboardTitle), findsOneWidget);
-      expect(find.text(tr.budgetHeaderDashboardSubtitle), findsOneWidget);
     });
   });
 

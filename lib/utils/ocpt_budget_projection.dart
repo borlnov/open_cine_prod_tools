@@ -156,10 +156,11 @@ class OcptBudgetProjection extends Equatable {
   /// projection never goes under.
   ///
   /// Reading its own [OcptBudgetProjectionStep.dueDate] as null is a different fact from
-  /// [firstNegativeStep] itself being null: the dashboard's own "the date the cash goes negative"
-  /// alert has to tell "it goes negative, but on no date anybody has recorded" (a step here, its own
-  /// [OcptBudgetProjectionStep.dueDate] null) apart from "it never goes negative at all" (no step
-  /// here) — folding the two into one null would silently turn an undated risk into no risk at all.
+  /// [firstNegativeStep] itself being null: the header's alerts band's own "the date the cash goes
+  /// negative" alert has to tell "it goes negative, but on no date anybody has recorded" (a step
+  /// here, its own [OcptBudgetProjectionStep.dueDate] null) apart from "it never goes negative at
+  /// all" (no step here) — folding the two into one null would silently turn an undated risk into
+  /// no risk at all.
   OcptBudgetProjectionStep? get firstNegativeStep {
     for (final step in steps) {
       if (step.balanceAfterCents < 0) {

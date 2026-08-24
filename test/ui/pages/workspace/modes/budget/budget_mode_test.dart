@@ -145,8 +145,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Switches the centre from the default read-only overview to the cost-tracking table, whose
-  /// own table this test suite exercises most — the header's own reading switch, always offered on
+  /// Switches the centre to the cost-tracking table, the mode's own default view and whose own
+  /// table this test suite exercises most — the header's own reading switch, always offered on
   /// expenses whatever sub-page (if any) is on screen, and the way back to the top level from one.
   Future<void> openCostTracking(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -262,9 +262,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    // The cash journal's own empty state offers no `+ Entry` action at all (mirrors the
-    // dashboard's own reading for a project with no poste), so an entry is seeded first to reach
-    // the working table this test actually exercises.
+    // The cash journal's own empty state offers no `+ Entry` action at all, so an entry is seeded
+    // first to reach the working table this test actually exercises.
     final project = projectsManager.currentProject!;
     await projectsManager.budgetJournalService.createEntry(
       database: project.database,
@@ -831,16 +830,16 @@ void main() {
     await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
     await tester.pumpAndSettle();
 
-    // The dashboard is the mode's default view, so its own page opens first.
-    expect(find.text(tr.budgetHelpDashboardBody3), findsOneWidget);
-    expect(find.text(tr.budgetHelpCostTrackingBody4), findsNothing);
-
-    // Switching the header's own chip changes the help panel's page without touching the dock
-    // at all.
-    await openCostTracking(tester);
-
-    expect(find.text(tr.budgetHelpDashboardBody3), findsNothing);
+    // The cost-tracking table is the mode's default view, so its own page opens first.
     expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
+    expect(find.text(tr.budgetHelpCashJournalBody4), findsNothing);
+
+    // Switching the header's own reading changes the help panel's page without touching the dock
+    // at all.
+    await openCashJournal(tester);
+
+    expect(find.text(tr.budgetHelpCostTrackingBody4), findsNothing);
+    expect(find.text(tr.budgetHelpCashJournalBody4), findsOneWidget);
   });
 
   testWidgets("the map highlights the cell the current view occupies", (tester) async {
@@ -864,7 +863,8 @@ void main() {
       RegExp(RegExp.escape(tr.budgetHelpMapCurrentViewBadge)),
     );
 
-    // The read-only overview reads across the whole map rather than standing in one cell of it.
+    // The cost-tracking table (the mode's own default view) reads across the whole map rather
+    // than standing in one cell of it — the quote sits outside the map entirely.
     expect(currentCells(), findsNothing);
 
     // The financing plan — the resources document's own top level — stands in one cell of its own.
@@ -904,7 +904,7 @@ void main() {
 
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
     expect(find.text(tr.budgetHelpMapIntro), findsOneWidget);
-    expect(find.text(tr.budgetHelpDashboardBody3), findsOneWidget);
+    expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
 
     // Leave the preview so the working copy is what the next test opens onto.
     await projectsManager.exitPreview();
@@ -922,8 +922,8 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
-      // The mode opens on the read-only overview, itself a sub-page of expenses — the capture
-      // band is withheld there (covered by its own test below); its own top level shows it.
+      // The mode opens on expenses's own top level, where the capture band already shows —
+      // `openCostTracking` is a no-op here, kept for clarity.
       await openCostTracking(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
 
@@ -955,10 +955,6 @@ void main() {
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
     await openRegie(tester);
-    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openSubPage(tester, tr.budgetHeaderDashboardSegmentLabel);
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
     // Back at the document's own top level, it returns.

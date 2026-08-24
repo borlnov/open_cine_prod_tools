@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 const int _ocptQuantityMilliPerUnit = 1000;
 
 /// The ratio, above which a poste is flagged **near** its quote rather than merely **within** it —
-/// 90 %, the figure the dashboard's own strain reading is drawn at.
+/// 90 %, the figure [ocptBudgetPosteStrainOf]'s own strain reading is drawn at.
 const double _ocptBudgetNearStrainRatio = 0.9;
 
 /// [line]'s own total, in cents, in whatever tax basis it was typed in — never converted:
@@ -114,10 +114,9 @@ class OcptBudgetCoveredTotal extends Equatable {
 /// already-computed pure structures, not a rule of its own.
 ///
 /// Shared by every reading that folds more than one [OcptBudgetCoveredTotal] into one grand
-/// total — the dashboard's own `Paid`/`Committed` KPIs, folding the per-poste totals (and, for
-/// `Paid`, the off-quote total, `lib/utils/ocpt_budget_journal.dart`'s own
-/// `ocptBudgetOffQuotePaidTotalOf`), and the cost-tracking table's own total row, folding the very
-/// same two into its own `Paid` cell.
+/// total — the cost-tracking table's own total row, folding the per-poste `Paid` totals and the
+/// off-quote total (`lib/utils/ocpt_budget_journal.dart`'s own `ocptBudgetOffQuotePaidTotalOf`)
+/// into its own `Paid` cell, among the other readings that fold more than one of these together.
 OcptBudgetCoveredTotal ocptBudgetCoveredTotalsFoldOf(Iterable<OcptBudgetCoveredTotal> totals) {
   var amountCents = 0;
   var coveredLineCount = 0;
@@ -202,7 +201,7 @@ int ocptBudgetRemainingCents({
 /// [paidCents] plus [committedCents], minus the quote. Positive once the poste has gone over,
 /// negative while it still has room: [ocptBudgetRemainingCents]'s own figure with the sign read the
 /// other way round, for the financial report's "quoted vs. actual" reading rather than the
-/// dashboard's "what is left" one.
+/// cost-tracking table's own `Reste` "what is left" one.
 int ocptBudgetVarianceCents({
   required int quotedAmountCents,
   required int paidCents,
@@ -271,11 +270,11 @@ int ocptBudgetFinalCostCents({
 /// expected to end over its quote, negative while it is expected to come in under.
 ///
 /// **Read the name carefully — this is not [ocptBudgetVarianceCents].** That one already exists,
-/// reads `paid + committed − quote`, and is what the dashboard's alerts and the financial report PDF
-/// print today; it stays exactly as it is and keeps every one of its callers. This one reads against
-/// the final cost instead, which includes the estimate to complete — a **different fact**, not a
-/// second way of stating the same one. The two happen to agree whenever the poste is over its quote
-/// and the estimate is left to derive itself, since a derived estimate is then zero and
+/// reads `paid + committed − quote`, and is what the header's alerts band and the financial report
+/// PDF print today; it stays exactly as it is and keeps every one of its callers. This one reads
+/// against the final cost instead, which includes the estimate to complete — a **different fact**,
+/// not a second way of stating the same one. The two happen to agree whenever the poste is over its
+/// quote and the estimate is left to derive itself, since a derived estimate is then zero and
 /// [finalCostCents] collapses to `paid + committed`; and this one reads zero whenever the poste is
 /// not over its quote and the estimate is derived, since a derived estimate then makes
 /// [finalCostCents] equal the quote exactly. That collapse is exactly why a human has to be able to
@@ -307,8 +306,8 @@ double? ocptBudgetConsumedRatioOf({
 ///
 /// A poste with no quote at all ([quotedAmountCents] zero) reads [OcptBudgetPosteStrain.within]
 /// whatever has been paid or committed against it — spending zero more against nothing is not a
-/// state this dashboard alerts on — unless something genuinely has moved, in which case there is no
-/// quote left to be within, and it reads [OcptBudgetPosteStrain.over].
+/// state the header's alerts band alerts on — unless something genuinely has moved, in which case
+/// there is no quote left to be within, and it reads [OcptBudgetPosteStrain.over].
 OcptBudgetPosteStrain ocptBudgetPosteStrainOf({
   required int quotedAmountCents,
   required int paidCents,

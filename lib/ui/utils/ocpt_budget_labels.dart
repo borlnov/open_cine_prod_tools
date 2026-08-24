@@ -261,7 +261,7 @@ Color ocptBudgetRevenueStatusAccentColor(ColorScheme colorScheme, OcptBudgetReve
 /// reaching into `intl` rather than an ARB key.
 ///
 /// The app's one formatting of an amount somebody is only ever **reading** — the `Quote`/`Paid`/
-/// `Committed`/`Remaining`/`Variance`/`Consumed` columns, the dashboard's KPIs. This is not
+/// `Committed`/`Remaining`/`Variance`/`Consumed` columns, the fiche's own figures. This is not
 /// `ocptCostTextOf`, which writes the bare, ungrouped text of an editable *field* and carries
 /// neither symbol nor grouping: a value read back into a text field must be exactly what the field
 /// accepts again, which a grouped, symbol-carrying string is not.
@@ -355,8 +355,8 @@ OcptBudgetQuoteLabels ocptBudgetQuoteLabelsOf(BuildContext context) {
 /// [ocptBudgetResourceStatusLabel] rather than resolving their own words, so the exported document
 /// never disagrees with the screen about what a group or a status is called.
 /// `balanceNeedsLabel`/`balanceResourcesLabel`/`balanceNoQuoteMessage`/`balanceBalancedMessage`
-/// reuse the dashboard's own balance bar strings for the same reason — see
-/// `OcptBudgetFinancingPlanLabels`'s own doc comment.
+/// reuse the very same balance-verdict strings [ocptBudgetFinancialReportLabelsOf] also reads, for
+/// the same reason — see `OcptBudgetFinancingPlanLabels`'s own doc comment.
 OcptBudgetFinancingPlanLabels ocptBudgetFinancingPlanLabelsOf(BuildContext context) {
   final tr = Tr.of(context);
 
@@ -412,7 +412,7 @@ OcptBudgetCashJournalXlsxLabels ocptBudgetCashJournalXlsxLabelsOf(BuildContext c
 }
 
 /// Every localized string the exported financial report carries — mirrors
-/// [ocptBudgetFinancingPlanLabelsOf], reusing the very same dashboard balance strings for the very
+/// [ocptBudgetFinancingPlanLabelsOf], reusing the very same balance-verdict strings for the very
 /// same reason, and reusing `tr.budgetCostTrackingOffQuoteLabel` — the cost-tracking table's own
 /// off-quote row label — so the report never invents a second word for the very row the screen
 /// already draws.

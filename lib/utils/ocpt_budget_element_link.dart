@@ -17,7 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 
 /// Every live quote line's own `elementId`, across every poste of [postes] — the set a fresh
 /// `+ From breakdown` picker excludes (an element already priced by a line is not offered a second
-/// time) and what the two dashboard counts below are read against.
+/// time) and what the two counts of [OcptBudgetElementLinkCounts] below are read against.
 Set<String> ocptBudgetPricedElementIdsOf(List<OcptBudgetPoste> postes) => {
   for (final poste in postes)
     for (final line in poste.lines)
@@ -25,8 +25,8 @@ Set<String> ocptBudgetPricedElementIdsOf(List<OcptBudgetPoste> postes) => {
 };
 
 /// How many of a project's own live elements are named by a live quote line's own `elementId`, and
-/// how many are not — the dashboard's own "what feeds this budget" card reads this pair rather than
-/// either count being recomputed in the widget.
+/// how many are not — `OcptBudgetFeedCard`'s own breakdown row reads this pair rather than either
+/// count being recomputed in the widget.
 class OcptBudgetElementLinkCounts extends Equatable {
   /// How many live elements a live quote line already prices.
   final int pricedCount;

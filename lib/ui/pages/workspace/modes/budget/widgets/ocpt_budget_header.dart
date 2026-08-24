@@ -116,9 +116,8 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Called with the poste just picked, or null to go back to the whole project.
   final ValueChanged<String?> onPosteFilterSelected;
 
-  /// The project's own standing alerts, drawn as a band under the controls — the very reading
-  /// `OcptBudgetDashboard` still carries its own copy of, `docs/plans/budget-mode-ux.md` M7 owning
-  /// the day it dissolves that copy in favour of this one. Empty draws nothing.
+  /// The project's own standing alerts, drawn as a band under the controls — this header is the
+  /// one place they are drawn. Empty draws nothing.
   final List<OcptBudgetAlert> alerts;
 
   /// Every live commitment of the project, whole — never narrowed by [filterPosteId] — read by the
@@ -318,7 +317,6 @@ class OcptBudgetHeader extends StatelessWidget {
   /// route instead: a sub-page's own title wins outright, and at a document's own top level the
   /// reading picks between [OcptBudgetDocument.expenses]'s own two.
   String _titleOf(Tr tr) => switch (subPage) {
-    OcptBudgetSubPage.dashboard => tr.budgetHeaderDashboardTitle,
     OcptBudgetSubPage.committedSpending => tr.budgetCommittedSectionTitle,
     OcptBudgetSubPage.regie => tr.budgetHeaderRegieTitle,
     null => switch (document) {
@@ -332,7 +330,6 @@ class OcptBudgetHeader extends StatelessWidget {
 
   /// The band's own subtitle, following [_titleOf]'s own route.
   String _subtitleOf(Tr tr) => switch (subPage) {
-    OcptBudgetSubPage.dashboard => tr.budgetHeaderDashboardSubtitle,
     OcptBudgetSubPage.committedSpending => tr.budgetHeaderCommittedSubtitle,
     OcptBudgetSubPage.regie => tr.budgetHeaderRegieSubtitle,
     null => switch (document) {
@@ -344,12 +341,10 @@ class OcptBudgetHeader extends StatelessWidget {
     },
   };
 
-  /// One alert card of the band — **a duplicate of `OcptBudgetDashboard`'s own `_buildAlertCard`,
-  /// deliberately**: the dashboard keeps drawing its own copy until `docs/plans/budget-mode-ux.md`
-  /// M7 dissolves it, so the app stays fully usable through this milestone, and touching that
-  /// widget's own body for any reason other than callback plumbing is exactly what this milestone
-  /// was told not to do. The price of that is one alert card rendered from two places for a few
-  /// milestones — not an oversight.
+  /// One alert card of the band, switching over [alert]'s own subclass exhaustively: a poste over
+  /// its quote names it and reads by how much it is over, the cash projection going negative words
+  /// its own undated reading differently from a recorded date. Each carries exactly one action back
+  /// into the data it is about.
   Widget _buildAlertCard(BuildContext context, Tr tr, OcptBudgetAlert alert) => switch (alert) {
     OcptBudgetPosteOverQuoteAlert() => _OcptBudgetHeaderAlertBand(
       color: Theme.of(context).colorScheme.error,
@@ -384,17 +379,15 @@ class OcptBudgetHeader extends StatelessWidget {
   };
 
   /// [posteId]'s own label out of [postes], or `tr.budgetPosteUnnamed` while it is empty or the
-  /// poste has since disappeared — mirrors `OcptBudgetDashboard._posteLabelOf`.
+  /// poste has since disappeared.
   String _posteLabelOf(Tr tr, String posteId) {
     final label = postes.where((poste) => poste.id == posteId).firstOrNull?.label;
     return (label == null || label.isEmpty) ? tr.budgetPosteUnnamed : label;
   }
 }
 
-/// One card of [OcptBudgetHeader]'s own alert band — a compact duplicate of
-/// `OcptBudgetDashboard`'s own `_OcptBudgetDashboardAlertCard`, kept as its own private widget here
-/// rather than shared, for the very reason [OcptBudgetHeader._buildAlertCard]'s own doc comment
-/// gives.
+/// One card of [OcptBudgetHeader]'s own alert band: a tinted, bordered block, [color] naming
+/// both — a title, a message and a single action.
 class _OcptBudgetHeaderAlertBand extends StatelessWidget {
   /// The colour this alert reads in, both its icon/title and its tint/border.
   final Color color;
@@ -479,7 +472,7 @@ class _OcptBudgetHeaderAlertBand extends StatelessWidget {
 /// doc comment) — the way *out*. The way *in*, for `OcptBudgetDocument.expenses`, is the small menu
 /// beside it ([_OcptBudgetSubPageMenu]): every sub-page but the one already on screen, so a reader
 /// standing on the committed spending can jump straight to the catering-and-travel pass without
-/// walking back through the dashboard first — the very reachability this control exists to give
+/// walking back through the top level first — the very reachability this control exists to give
 /// every sub-page, not only the one a business gesture happened to open first.
 class _OcptBudgetBreadcrumb extends StatelessWidget {
   /// The document currently on screen.
@@ -561,10 +554,9 @@ class _OcptBudgetBreadcrumb extends StatelessWidget {
 String _ocptBudgetSubPageLabel(Tr tr, OcptBudgetSubPage subPage) => switch (subPage) {
   OcptBudgetSubPage.committedSpending => tr.budgetCommittedSectionTitle,
   OcptBudgetSubPage.regie => tr.budgetHeaderRegieSegmentLabel,
-  OcptBudgetSubPage.dashboard => tr.budgetHeaderDashboardSegmentLabel,
 };
 
-/// The small menu that opens any of `OcptBudgetDocument.expenses`'s own three sub-pages —
+/// The small menu that opens either of `OcptBudgetDocument.expenses`'s own two sub-pages —
 /// [_OcptBudgetBreadcrumb]'s own "way in", offered whatever sub-page (if any) is already on
 /// screen, so a reader never has to walk back through one to reach another.
 class _OcptBudgetSubPageMenu extends StatelessWidget {

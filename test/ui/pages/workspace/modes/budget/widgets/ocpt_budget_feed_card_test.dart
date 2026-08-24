@@ -21,8 +21,7 @@ Widget _wrap(Widget child) => MaterialApp(
 );
 
 /// Pumps [OcptBudgetFeedCard] with the neutral defaults every test but the one it varies wants —
-/// every callback offered (non-null) unless a test overrides it, mirroring the previous
-/// `ocpt_budget_dashboard_test.dart`'s own `_pumpDashboard`.
+/// every callback offered (non-null) unless a test overrides it.
 Future<Tr> _pumpFeedCard(
   WidgetTester tester, {
   int breakdownPricedElementCount = 3,

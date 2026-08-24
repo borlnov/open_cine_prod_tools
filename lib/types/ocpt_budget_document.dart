@@ -11,16 +11,15 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_sub_page.dart';
 /// side by side as if they were equals, when three of them — the quote, the committed spending and
 /// the cash journal — are stages of one chain: an estimate, what it becomes once somebody is owed,
 /// and what has actually moved. [expenses] is that whole chain read as one document, in one of two
-/// [OcptBudgetDocumentReading]s at its own top level, with its remaining stages (and the catering
-/// pass, and the read-only overview) reached as an `OcptBudgetSubPage` through the header's own
-/// breadcrumb rather than through a chip of their own. [resources] and [sharing] each keep one
-/// reading for now — see [OcptBudgetDocumentReading]'s own doc comment for why neither offers the
-/// switch yet.
+/// [OcptBudgetDocumentReading]s at its own top level, with its remaining stage (and the catering
+/// pass) reached as an `OcptBudgetSubPage` through the header's own breadcrumb rather than through
+/// a chip of their own. [resources] and [sharing] each keep one reading for now — see
+/// [OcptBudgetDocumentReading]'s own doc comment for why neither offers the switch yet.
 enum OcptBudgetDocument {
   /// What the film costs: the quote against the CNC nomenclature, read either poste by poste
   /// ([OcptBudgetDocumentReading.byTree]) or in the order money actually moved
   /// ([OcptBudgetDocumentReading.byDate]) — plus, reached through the breadcrumb, the committed
-  /// spending, the catering-and-travel pass and the read-only overview.
+  /// spending and the catering-and-travel pass.
   expenses,
 
   /// What pays for the film: the financing plan's own subsidies, cash and in-kind contributions,
@@ -55,11 +54,10 @@ enum OcptBudgetDocumentReading {
 ///
 /// Mirrors the retired `ocptBudgetCentreViewHonoursPosteFilter`'s own argument, carried onto the
 /// new three-document shape: the committed spending, the cost-tracking table and the cash journal
-/// each read a poste-keyed table and honour the filter; the read-only overview, the
-/// catering-and-travel pass, the financing plan and the revenue sharing each read a table (or, for
-/// the overview, a whole-project summary) that carries no poste at all, so there is nothing here to
-/// narrow. The reading never changes the answer within [OcptBudgetDocument.expenses] at its own
-/// top level: both the poste tree and the chronological journal read the very same poste-keyed
+/// each read a poste-keyed table and honour the filter; the catering-and-travel pass, the financing
+/// plan and the revenue sharing each read a table that carries no poste at all, so there is nothing
+/// here to narrow. The reading never changes the answer within [OcptBudgetDocument.expenses] at its
+/// own top level: both the poste tree and the chronological journal read the very same poste-keyed
 /// rows, merely in a different order.
 bool ocptBudgetHonoursPosteFilter({
   required OcptBudgetDocument document,
@@ -68,7 +66,7 @@ bool ocptBudgetHonoursPosteFilter({
   OcptBudgetDocument.expenses => switch (subPage) {
     null => true,
     OcptBudgetSubPage.committedSpending => true,
-    OcptBudgetSubPage.regie || OcptBudgetSubPage.dashboard => false,
+    OcptBudgetSubPage.regie => false,
   },
   OcptBudgetDocument.resources || OcptBudgetDocument.sharing => false,
 };
@@ -80,10 +78,10 @@ bool ocptBudgetHonoursPosteFilter({
 /// `OcptBudgetState.selection` directly, and both readings of [OcptBudgetDocument.expenses] select
 /// something of their own — the poste tree a poste, a line, a commitment or an entry, the
 /// chronological journal an entry — as does [OcptBudgetDocument.resources]' own row. Neither a
-/// sub-page (the read-only overview, the committed spending on its own, the catering-and-travel
-/// pass) nor [OcptBudgetDocument.sharing] selects anything the fiche can show yet — a taking and a
-/// share are still a plain highlight, `docs/architecture/budget.md`'s own "A taking is received by
-/// being named, a participant is paid the same way" reading unchanged by this milestone.
+/// sub-page (the committed spending on its own, the catering-and-travel pass) nor
+/// [OcptBudgetDocument.sharing] selects anything the fiche can show yet — a taking and a share are
+/// still a plain highlight, `docs/architecture/budget.md`'s own "A taking is received by being
+/// named, a participant is paid the same way" reading unchanged by this milestone.
 bool ocptBudgetHasInspector({required OcptBudgetDocument document, required OcptBudgetSubPage? subPage}) =>
     switch (document) {
       OcptBudgetDocument.expenses || OcptBudgetDocument.resources => subPage == null,

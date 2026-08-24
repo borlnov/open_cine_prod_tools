@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
-/// Which of the dashboard's two rules raised an [OcptBudgetAlert].
+/// Which of the header's alerts band's two rules raised an [OcptBudgetAlert].
 ///
 /// **Two rules are here, and no more.** The mock-up's own 1,500 € cash floor is deliberately not a
 /// third: it was calibrated by nobody, and this mode states no regulatory figure and asks for no
@@ -26,11 +26,11 @@ enum OcptBudgetAlertKind {
 
 /// One thing [ocptComputeBudgetAlerts] found worth a look, mirroring
 /// `lib/utils/ocpt_schedule_alerts.dart`'s own `OcptScheduleAlert`: a sealed hierarchy rather than
-/// one class with a handful of nullable fields, so the dashboard switches over it exhaustively and
-/// never has to guess which fields a given [kind] actually fills in.
+/// one class with a handful of nullable fields, so the header's alerts band switches over it
+/// exhaustively and never has to guess which fields a given [kind] actually fills in.
 ///
-/// **No `Tr` and no formatted string here** — `lib/utils/` is pure; the dashboard resolves every
-/// word and every colour.
+/// **No `Tr` and no formatted string here** — `lib/utils/` is pure; the header's alerts band
+/// resolves every word and every colour.
 sealed class OcptBudgetAlert extends Equatable {
   /// Class constructor
   const OcptBudgetAlert();
@@ -130,7 +130,7 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
   List<Object?> get props => [balanceCents, dueDate, fallingDueCents, balanceAfterCents];
 }
 
-/// Computes the budget dashboard's own two alerts over [postes] and [commitments] — **both
+/// Computes the header's alerts band's own two alerts over [postes] and [commitments] — **both
 /// computed, neither configured** (ADR 0027): nothing here advances a
 /// figure nobody in the project actually entered.
 ///

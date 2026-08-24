@@ -106,8 +106,8 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// `OcptBudgetFiche`'s own empty state already uses for the very same fact,
 /// never [OcptWorkspaceEmptyMode].
 ///
-/// The dashboard can return the empty state as its whole body because it writes nothing at all;
-/// this view cannot.
+/// A read-only view can return the empty state as its whole body because it writes nothing at
+/// all; this view cannot.
 class OcptBudgetCashJournal extends StatelessWidget {
   /// Every live entry of the whole journal, in the chronological order
   /// `OcptBudgetJournalService.loadEntries` already gives them — never reordered or pre-filtered by

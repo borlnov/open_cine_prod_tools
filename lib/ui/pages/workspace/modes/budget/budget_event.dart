@@ -126,8 +126,8 @@ class OcptBudgetDocumentReadingSelectedEvent extends OcptBudgetEvent {
 }
 
 /// Opens sub-page [subPage] of `OcptBudgetDocument.expenses`, dispatched by whichever gesture
-/// already led to it before this milestone: the dashboard's own cash-projection alert action (the
-/// committed spending), its catering feed link (the catering-and-travel pass), and the poste
+/// leads to it: the header's own cash-projection alert action (the committed spending), the feed
+/// card's own catering row wherever it is drawn (the catering-and-travel pass), and the poste
 /// inspector's own `Show the commitment` link (the committed spending again).
 class OcptBudgetSubPageSelectedEvent extends OcptBudgetEvent {
   /// The sub-page to open.
@@ -169,9 +169,9 @@ class OcptBudgetTaxBasisChangedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, basis];
 }
 
-/// Selects poste [posteId] — a cost-tracking row, or a dashboard bar — opening the right dock on
-/// the `Inspector` tab, mirroring `OcptScheduleShotSelectedEvent`'s own gesture. A [posteId] naming
-/// no live poste is ignored.
+/// Selects poste [posteId] — a cost-tracking row — opening the right dock on the `Inspector` tab,
+/// mirroring `OcptScheduleShotSelectedEvent`'s own gesture. A [posteId] naming no live poste is
+/// ignored.
 class OcptBudgetPosteSelectedEvent extends OcptBudgetEvent {
   /// The id of the poste to select.
   final String posteId;

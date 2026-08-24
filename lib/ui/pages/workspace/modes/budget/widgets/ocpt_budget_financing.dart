@@ -336,7 +336,8 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// The quote's own total, read **tax-inclusive always** — money coming in is always read
   /// tax-inclusive (`docs/architecture/budget.md`'s "Money that has moved is read tax-inclusive,
   /// always"), and this document carries no tax-basis switch of its own to read a different basis
-  /// from, mirroring `OcptBudgetDashboard`'s own balance bar.
+  /// from, mirroring `OcptBudgetNeedsResourcesBalance`'s own reading — the financing-plan and
+  /// financial-report PDFs' own balance figure.
   OcptBudgetCoveredTotal _needsOf() {
     final allLines = [for (final poste in postes) ...poste.lines];
     return ocptBudgetTotalOf(

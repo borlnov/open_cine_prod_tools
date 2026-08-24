@@ -148,7 +148,7 @@ double _ocptRegieStackedCardHeight(int rowCount, double rowHeight) =>
 /// at the schedule ([onScheduleOpenRequested]) and the two unit prices at the project settings
 /// ([onProjectSettingsRequested]). A defrayal's own person points at their sheet in the resources
 /// mode ([onPersonOpenRequested]). `OcptBudgetMode` is what turns each of those into a real
-/// dispatch, exactly as it already does for the dashboard's own alert actions.
+/// dispatch, exactly as it already does for the header's own alert actions.
 ///
 /// Empty state: a project holding no shooting day **and** no defrayal shows [OcptWorkspaceEmptyMode]
 /// in place of the two columns. A project with defrayals but no schedule keeps the full layout,
