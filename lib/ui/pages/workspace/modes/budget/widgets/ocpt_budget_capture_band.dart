@@ -82,10 +82,9 @@ const double _ocptBudgetCaptureBandFieldsMinWidth = 760;
 /// receipt, what the movement settles — existed only on the occasions the app happened to guess
 /// right, and for the common case of a project with no commitment recorded yet to match against,
 /// did not exist at all: `Save` alone wrote an entry naming nothing, silently. An escape hatch that
-/// only appears when the guess succeeds is not one, so it is now offered whenever
-/// [_OcptBudgetCaptureBandState._isDraftSaveable] reads true — the very same gate that decides
-/// whether a suggestion is even worth ranking — whether or not [ocptBudgetMatchSuggestionsOf] found
-/// anything at all.
+/// only appears when the guess succeeds is not one, so it is now offered whenever what is typed
+/// reads as saveable — the very same gate that decides whether a suggestion is even worth ranking
+/// — whether or not [ocptBudgetMatchSuggestionsOf] found anything at all.
 class OcptBudgetCaptureBand extends StatefulWidget {
   /// The direction the band starts on, and returns to once it clears — `false` (a credit) on
   /// `OcptBudgetDocument.resources`, `true` (a debit) everywhere else the band is offered. The
@@ -275,11 +274,10 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
     );
   }
 
-  /// The fields row: amount, wording, date, `Autre chose…` (only while
-  /// [_isDraftSaveable]), `Save`. Wide enough centre panes draw them side by side; narrower ones
-  /// (the right dock open on an ordinary window, mirroring `OcptBudgetHeader`'s own narrow case)
-  /// fall back to two lines rather than clipping, `Autre chose…` sharing the second one with the
-  /// date and `Save`.
+  /// The fields row: amount, wording, date, `Autre chose…` (only while [_saveableDraft] answers
+  /// one), `Save`. Wide enough centre panes draw them side by side; narrower ones (the right dock
+  /// open on an ordinary window, mirroring `OcptBudgetHeader`'s own narrow case) fall back to two
+  /// lines rather than clipping, `Autre chose…` sharing the second one with the date and `Save`.
   Widget _buildFieldsRow(Tr tr, String currencySymbol, bool isWide) {
     final amountField = _buildAmountField(tr, currencySymbol);
     final wordingField = _buildWordingField(tr);
@@ -290,13 +288,13 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
     );
     // Withheld, never disabled, the standing rule for an affordance without a subject — see the
     // class doc comment for why this is the very same gate `_suggestionsOf` reads.
-    final otherButton = _isDraftSaveable
-        ? TextButton(
+    final otherButton = _saveableDraft == null
+        ? null
+        : TextButton(
             key: const Key("ocptBudgetCaptureBandOtherButton"),
             onPressed: _handleOther,
             child: Text(tr.budgetCaptureBandOtherAction),
-          )
-        : null;
+          );
     final saveButton = FilledButton(
       key: const Key("ocptBudgetCaptureBandSaveButton"),
       onPressed: _handleSave,
@@ -568,24 +566,35 @@ class _OcptBudgetCaptureBandState extends State<OcptBudgetCaptureBand> {
     );
   }
 
-  /// Whether the draft currently reads as saveable — a positive amount and a non-blank wording.
+  /// What is currently typed, once it reads as saveable — a positive amount and a non-blank
+  /// wording — or null while it does not.
+  ///
   /// **The one gate [_suggestionsOf] and `_buildFieldsRow`'s own `Autre chose…` button both read**,
-  /// factored out here rather than written twice, so a ranking rule the app already applies and an
-  /// affordance's own visibility can never quietly drift apart on what "saveable" means.
-  bool get _isDraftSaveable {
+  /// answered here rather than asked twice, so a ranking rule the app already applies and an
+  /// affordance's own visibility can never quietly drift apart on what "saveable" means. It answers
+  /// the parsed draft rather than a plain flag so the caller that needs the figures reads them off
+  /// the very same answer that told it they were there, instead of parsing the field a second time
+  /// behind a `!`.
+  ({int amountCents, String wording})? get _saveableDraft {
     final amountCents = ocptCostCentsOf(_amountController.text);
     final wording = _wordingController.text.trim();
-    return amountCents != null && amountCents > 0 && wording.isNotEmpty;
+    if (amountCents == null || amountCents <= 0 || wording.isEmpty) {
+      return null;
+    }
+
+    return (amountCents: amountCents, wording: wording);
   }
 
   /// [ocptBudgetMatchSuggestionsOf]'s own answer to the draft currently typed, or the empty list
-  /// while [_isDraftSaveable] is false.
+  /// while [_saveableDraft] answers null.
   List<OcptBudgetMatchSuggestion> _suggestionsOf() {
-    if (!_isDraftSaveable) {
+    final draft = _saveableDraft;
+    if (draft == null) {
       return const [];
     }
-    final amountCents = ocptCostCentsOf(_amountController.text)!;
-    final wording = _wordingController.text.trim();
+
+    final amountCents = draft.amountCents;
+    final wording = draft.wording;
 
     return ocptBudgetMatchSuggestionsOf(
       isDebit: _isDebit,
