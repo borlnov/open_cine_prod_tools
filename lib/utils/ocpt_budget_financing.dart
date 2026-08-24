@@ -329,9 +329,9 @@ OcptBudgetResourcesCoverage ocptBudgetResourcesCoverageOf({
 }) {
   final received = ocptBudgetCoveredTotalsFoldOf([
     for (final resource in resources)
-      if (receivedByResourceId[resource.id] != null) receivedByResourceId[resource.id]!,
+      if (receivedByResourceId[resource.id] case final total?) total,
     for (final revenue in revenues)
-      if (receivedByRevenueId[revenue.id] != null) receivedByRevenueId[revenue.id]!,
+      if (receivedByRevenueId[revenue.id] case final total?) total,
   ]);
 
   var promisedCents = 0;
