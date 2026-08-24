@@ -719,6 +719,58 @@ void main() {
       expect(find.text("Line one"), findsNothing);
     });
 
+    testWidgets(
+      "a row's own name sits level with its own figures, below an expanded poste",
+      (tester) async {
+        // The two panes are laid out independently and share only a vertical scroll, so a row
+        // whose halves disagree on their height silently slides every row under it out of step:
+        // a poste ends up named beside the poste above's money. Each amount below is unique to
+        // one row, so the match cannot be an accident of two rows reading alike.
+        final postes = [
+          OcptBudgetPoste(
+            id: "poste-1",
+            code: "1",
+            label: "Poste one",
+            simpleLabel: null,
+            estimateToCompleteCents: null,
+            sortKey: "a0",
+            lines: [
+              _line(id: "line-1", posteId: "poste-1", amountCents: 2000, label: "Line one"),
+              _line(id: "line-2", posteId: "poste-1", amountCents: 500, label: "Line two"),
+            ],
+          ),
+          OcptBudgetPoste(
+            id: "poste-2",
+            code: "2",
+            label: "Poste two",
+            simpleLabel: null,
+            estimateToCompleteCents: null,
+            sortKey: "a1",
+            lines: [_line(id: "line-3", posteId: "poste-2", amountCents: 7300, label: "Line three")],
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _wrap(
+            buildTable(postes: postes, expandedNodeIds: const {"poste-1"}),
+            height: 800,
+          ),
+        );
+
+        // The expanded poste's own first line: its name on the left, its quote on the right.
+        expect(
+          tester.getCenter(find.text("Line one")).dy,
+          tester.getCenter(find.text("€20.00").first).dy,
+        );
+
+        // And the poste below the expansion, which is where any drift has accumulated.
+        expect(
+          tester.getCenter(find.text("Poste two")).dy,
+          tester.getCenter(find.text("€73.00").first).dy,
+        );
+      },
+    );
+
     testWidgets("a poste with nothing at all to expand onto draws no twisty", (tester) async {
       const poste = OcptBudgetPoste(
         id: "poste-1",
