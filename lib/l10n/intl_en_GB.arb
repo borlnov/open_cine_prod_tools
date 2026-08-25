@@ -10590,13 +10590,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCommittedSubtitle": "What is still owed, and where the cash stands once it has all fallen due.",
-  "@budgetHeaderCommittedSubtitle": {
-    "description": "Subtitle of the budget mode's header band while the committed spending view is shown",
-    "context": "Shown at the left of OcptBudgetHeader, under its own title",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetHeaderTitle": "Quote",
   "@budgetHeaderTitle": {
     "description": "Title of the budget mode's own header band",
@@ -10618,30 +10611,23 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCostTrackingSegmentLabel": "Cost tracking",
-  "@budgetHeaderCostTrackingSegmentLabel": {
-    "description": "Label of the header's own cost-tracking view chip",
+  "budgetHeaderExpensesSegmentLabel": "Expenses",
+  "@budgetHeaderExpensesSegmentLabel": {
+    "description": "Label of the header's own expenses view chip",
     "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCashJournalSegmentLabel": "Cash journal",
-  "@budgetHeaderCashJournalSegmentLabel": {
-    "description": "Label of the header's own cash-journal view chip",
-    "context": "Displayed on the budget mode's own view switch",
+  "budgetHeaderCashFlowSegmentLabel": "Cash flow",
+  "@budgetHeaderCashFlowSegmentLabel": {
+    "description": "Label of the tools drawer's own cash-flow page segment",
+    "context": "Displayed on the tools drawer's own second segmented switch, while it is open",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderCommittedSegmentLabel": "Committed",
-  "@budgetHeaderCommittedSegmentLabel": {
-    "description": "Label of the header's own committed-spending view chip",
-    "context": "Displayed on the budget mode's own view switch",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderFinancingSegmentLabel": "Financing",
-  "@budgetHeaderFinancingSegmentLabel": {
-    "description": "Label of the header's own financing view chip",
+  "budgetHeaderResourcesSegmentLabel": "Resources",
+  "@budgetHeaderResourcesSegmentLabel": {
+    "description": "Label of the header's own resources view chip",
     "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
@@ -10649,6 +10635,13 @@
   "budgetHeaderSharingSegmentLabel": "Revenue sharing",
   "@budgetHeaderSharingSegmentLabel": {
     "description": "Label of the header's own revenue-sharing view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderToolsSegmentLabel": "Tools",
+  "@budgetHeaderToolsSegmentLabel": {
+    "description": "Label of the header's own tools drawer view chip",
     "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
@@ -10698,14 +10691,6 @@
     "context": "Displayed on the budget mode's own tax-basis switch",
     "type": "text",
     "placeholders": {}
-  },
-  "budgetHeaderPosteFilterAllLabel": "Every poste",
-  "@budgetHeaderPosteFilterAllLabel": {
-    "description": "The header's poste filter while nothing is filtered: the whole project is shown."
-  },
-  "budgetHeaderPosteFilterTooltip": "Narrow every view to one poste",
-  "@budgetHeaderPosteFilterTooltip": {
-    "description": "Tooltip of the header's poste filter."
   },
   "budgetHeaderPosteFilterClearTooltip": "Show every poste again",
   "@budgetHeaderPosteFilterClearTooltip": {
@@ -10850,31 +10835,10 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteDockTitle": "Quote postes",
-  "@budgetPosteDockTitle": {
-    "description": "Title of the budget mode's left dock, the poste list",
-    "context": "Displayed at the top of the budget mode's left dock",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetPosteDockClearFilterLabel": "All",
-  "@budgetPosteDockClearFilterLabel": {
-    "description": "Link clearing the poste filter, shown only while one is set",
-    "context": "Displayed at the top of the budget mode's left dock, beside its title",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetPosteDockEmptyHint": "No poste yet.",
-  "@budgetPosteDockEmptyHint": {
-    "description": "Hint shown in place of the poste list while the project holds no live poste",
-    "context": "Displayed in the budget mode's left dock",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetPosteDockFilterOnlyAction": "Show this poste only",
-  "@budgetPosteDockFilterOnlyAction": {
-    "description": "Entry of a poste card's own ⋮ menu narrowing every view to that poste",
-    "context": "Displayed in the budget mode's left dock, on a poste card's own ⋮ menu",
+  "budgetCostTrackingFilterOnlyAction": "Show this poste only",
+  "@budgetCostTrackingFilterOnlyAction": {
+    "description": "Entry of a poste row's own ⋮ menu narrowing every view to that poste",
+    "context": "Displayed in the expenses table, on a poste row's own ⋮ menu",
     "type": "text",
     "placeholders": {}
   },
@@ -11377,13 +11341,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorRelatedEntriesEmptyHint": "No cash entry is attached to this poste yet.",
-  "@budgetInspectorRelatedEntriesEmptyHint": {
-    "description": "Hint shown under the Related entries title for a poste with no entry at all",
-    "context": "Displayed under the Related entries title in the budget mode's Inspector tab, and in its cash journal view once a poste filter leaves no entry to show",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetLineCreationAction": "Add",
   "@budgetLineCreationAction": {
     "description": "Label of the poste inspector's own quote line creation action",
@@ -11706,13 +11663,6 @@
       }
     }
   },
-  "budgetCashJournalEntryCreationAction": "Entry",
-  "@budgetCashJournalEntryCreationAction": {
-    "description": "Label of the cash journal view's own entry creation action",
-    "context": "Displayed at the top of the budget mode's cash journal view",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCashJournalColumnDate": "Date",
   "@budgetCashJournalColumnDate": {
     "description": "Header of the cash journal table's date column",
@@ -11958,13 +11908,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCommittedSectionTitle": "Commitments",
-  "@budgetCommittedSectionTitle": {
-    "description": "Title of the committed-spending view's own commitments column",
-    "context": "Displayed at the top of the budget mode's committed-spending view",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCommittedExplanationHint": "Money promised but not yet gone from the account: a quote accepted, a contract signed, an invoice received, or a spend declared.",
   "@budgetCommittedExplanationHint": {
     "description": "Muted sentence explaining what a commitment is",
@@ -11992,13 +11935,6 @@
         "type": "int"
       }
     }
-  },
-  "budgetCommittedCreationAction": "Commitment",
-  "@budgetCommittedCreationAction": {
-    "description": "Label of the committed-spending view's own commitment creation action",
-    "context": "Displayed at the top of the budget mode's committed-spending view",
-    "type": "text",
-    "placeholders": {}
   },
   "budgetCommittedColumnDueDate": "Due date",
   "@budgetCommittedColumnDueDate": {
@@ -14217,38 +14153,6 @@
     "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
     "type": "text",
     "placeholders": {}
-  },
-  "budgetHelpCommittedBody1": "This page tracks money owed and not yet paid: a quote accepted, a contract signed, an invoice received. A commitment always names a poste.",
-  "@budgetHelpCommittedBody1": {
-    "description": "First paragraph of the budget mode's help panel for the committed-spending view",
-    "context": "Displayed on the budget mode's own Help tab while committed spending is the centre view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHelpCommittedBody2": "There is no {settled} status to pick. A commitment settles the moment {settle} names the journal entry that paid it — once settled, it stops being counted as owed, so it is never counted twice.",
-  "@budgetHelpCommittedBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the committed-spending view",
-    "context": "Displayed on the budget mode's own Help tab while committed spending is the centre view",
-    "type": "text",
-    "placeholders": {
-      "settled": {
-        "type": "String"
-      },
-      "settle": {
-        "type": "String"
-      }
-    }
-  },
-  "budgetHelpCommittedBody3": "{projection} carries the journal's own balance forward over every commitment still owed, in due-date order, and says the date it would first go negative.",
-  "@budgetHelpCommittedBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the committed-spending view",
-    "context": "Displayed on the budget mode's own Help tab while committed spending is the centre view",
-    "type": "text",
-    "placeholders": {
-      "projection": {
-        "type": "String"
-      }
-    }
   },
   "budgetHelpFinancingBody1": "This page states what pays for the film — a subsidy, a cash contribution, a contribution in kind — and what the film itself earns, a taking. Adding a valuation is not the same gesture as adding real money, which is why the page's own Add menu names each of the four rather than offering one blank row.",
   "@budgetHelpFinancingBody1": {

@@ -83,9 +83,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// of a bloc, but because a selector would filter a read that was never split by episode to begin
 /// with.
 ///
-/// The left dock fraction, the right dock fraction and the last right dock tab are persisted
-/// through [_propertiesManager]'s `budgetLeftDockFraction`/`budgetRightDockFraction`/
-/// `budgetLastRightDockTab`, mirroring `OcptScheduleBloc`'s own trio.
+/// The right dock fraction and the last right dock tab are persisted through
+/// [_propertiesManager]'s `budgetRightDockFraction`/`budgetLastRightDockTab`, mirroring
+/// `OcptScheduleBloc`'s own pair — the mode carries no left dock any more, so there is no fraction
+/// of its own to persist.
 ///
 /// Every write but the free-text fields (which ride [_fieldEditDebounce], flushed by
 /// [_flushPendingFieldEdits] on a selection change, a dock tab change, a version preview and the
@@ -241,9 +242,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetRightDockTabSelectedEvent>(_onRightDockTabSelected);
     on<OcptBudgetRightDockToggledEvent>(_onRightDockToggled);
     on<OcptBudgetRightDockClosedEvent>(_onRightDockClosed);
-    on<OcptBudgetLeftDockFractionChangedEvent>(_onLeftDockFractionChanged);
     on<OcptBudgetRightDockFractionChangedEvent>(_onRightDockFractionChanged);
     on<OcptBudgetViewSelectedEvent>(_onViewSelected);
+    on<OcptBudgetToolsViewSelectedEvent>(_onToolsViewSelected);
     on<OcptBudgetSimplifiedToggledEvent>(_onSimplifiedToggled);
     on<OcptBudgetTaxBasisChangedEvent>(_onTaxBasisChanged);
     on<OcptBudgetPosteSelectedEvent>(_onPosteSelected);
@@ -345,9 +346,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetLoadRequestedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    final leftDockFraction =
-        await _propertiesManager.budgetLeftDockFraction.load() ??
-        OcptWorkspaceDock.leftDefaultFraction;
     final rightDockFraction =
         await _propertiesManager.budgetRightDockFraction.load() ??
         OcptWorkspaceDock.rightDefaultFraction;
@@ -359,7 +357,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       emitter(
         state.copyWith(
           isLoading: false,
-          leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
           clearPreviewedVersionId: true,
@@ -396,7 +393,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         mileageRates: loaded.mileageRates,
         provisionPosteId: _defaultProvisionPosteIdOf(loaded.snapshot.postes),
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
-        leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
         pageSetup: pageSetup,
@@ -614,15 +610,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWith(clearRightDockTab: true));
   }
 
-  /// Applies and persists the left dock's new width fraction.
-  Future<void> _onLeftDockFractionChanged(
-    OcptBudgetLeftDockFractionChangedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    await _propertiesManager.budgetLeftDockFraction.store(event.fraction);
-    emitter(state.copyWith(leftDockFraction: event.fraction));
-  }
-
   /// Applies and persists the right dock's new width fraction.
   Future<void> _onRightDockFractionChanged(
     OcptBudgetRightDockFractionChangedEvent event,
@@ -656,6 +643,19 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _flushPendingFieldEdits(emitter);
 
     emitter(state.copyWith(view: event.view));
+  }
+
+  /// Switches which of the tools drawer's own three pages is shown — dispatched by the header's
+  /// own second segmented switch. Mirrors [_onViewSelected] exactly, flush included: leaving
+  /// `Régie`'s own provisioning band for `Flux de trésorerie` reads the very figures a pending
+  /// edit has not reached yet.
+  Future<void> _onToolsViewSelected(
+    OcptBudgetToolsViewSelectedEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    emitter(state.copyWith(toolsView: event.toolsView));
   }
 
   /// Toggles the header's simplified/detailed switch.

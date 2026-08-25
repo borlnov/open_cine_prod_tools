@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 
@@ -70,20 +71,6 @@ class OcptBudgetRightDockClosedEvent extends OcptBudgetEvent {
   const OcptBudgetRightDockClosedEvent();
 }
 
-/// Applies and persists the left dock's new width fraction once a divider drag ends — mirrors
-/// [OcptBudgetRightDockFractionChangedEvent], the same store-then-emit shape.
-class OcptBudgetLeftDockFractionChangedEvent extends OcptBudgetEvent {
-  /// The left dock's new fraction of the mode's content row width.
-  final double fraction;
-
-  /// Class constructor
-  const OcptBudgetLeftDockFractionChangedEvent({required this.fraction});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, fraction];
-}
-
 /// Applies and persists the right dock's new width fraction once a divider drag ends.
 class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetEvent {
   /// The right dock's new fraction of the mode's content row width.
@@ -110,6 +97,21 @@ class OcptBudgetViewSelectedEvent extends OcptBudgetEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, view];
+}
+
+/// Selects which of the tools drawer's own three pages is shown, dispatched by the header's own
+/// second segmented switch — mirrors [OcptBudgetViewSelectedEvent], the two events staying
+/// independent so picking one never clears the other.
+class OcptBudgetToolsViewSelectedEvent extends OcptBudgetEvent {
+  /// The tools page to select.
+  final OcptBudgetToolsView toolsView;
+
+  /// Class constructor
+  const OcptBudgetToolsViewSelectedEvent({required this.toolsView});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, toolsView];
 }
 
 /// Toggles the header's simplified/detailed switch. Session-only, never persisted, mirroring the

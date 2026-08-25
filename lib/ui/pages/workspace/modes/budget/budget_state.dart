@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
@@ -79,9 +80,9 @@ class OcptBudgetIoNotice extends Equatable {
 ///
 /// [pendingFieldEdits] is this mode's own single pending-edit map, over every free-text field of
 /// every poste and every line — see `OcptBudgetField`'s own doc comment for why one flat map rather
-/// than one per entity kind. [view], [isSimplified] and [taxBasis] are **not persisted**: the
-/// schedule mode's own agenda mode is the precedent, only [leftDockFraction], [rightDockFraction]
-/// and [lastRightDockTab] surviving a relaunch.
+/// than one per entity kind. [view], [toolsView], [isSimplified] and [taxBasis] are **not
+/// persisted**: the schedule mode's own agenda mode is the precedent, only [rightDockFraction] and
+/// [lastRightDockTab] surviving a relaunch.
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     with MixinOcptProjectVersionsState<OcptBudgetState>, MixinOcptProjectPackageState<OcptBudgetState> {
   /// Whether the quote read is still being loaded from the project database.
@@ -100,6 +101,14 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// Which of the mode's views is currently shown.
   final OcptBudgetView view;
+
+  /// Which of the tools drawer's own three pages is currently shown, while [view] is
+  /// [OcptBudgetView.tools] — read even while it is not, so switching away from the drawer and
+  /// back leaves it on the page it was last on. Defaults to
+  /// [OcptBudgetToolsView.cashFlow] and is held in memory alone, mirroring [view] itself.
+  /// Selecting [view] never clears this field, and selecting this field never clears [view]: the
+  /// two are independent facts about what is on screen.
+  final OcptBudgetToolsView toolsView;
 
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
@@ -174,10 +183,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// The tab the toolbar's right-dock toggle reopens a closed dock on: the last one explicitly
   /// selected, mirroring `OcptScheduleState.lastRightDockTab`.
   final OcptBudgetRightDockTab lastRightDockTab;
-
-  /// The left dock's width, as a fraction of the mode's content row width. Persisted through
-  /// `OcptPropertiesManager.budgetLeftDockFraction`.
-  final double leftDockFraction;
 
   /// The right dock's width, as a fraction of the mode's content row width. Persisted through
   /// `OcptPropertiesManager.budgetRightDockFraction`.
@@ -519,6 +524,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.snapshot,
     required this.currencyCode,
     required this.view,
+    required this.toolsView,
     required this.isSimplified,
     required this.taxBasis,
     required this.selection,
@@ -527,7 +533,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.expandedNodeIds,
     required this.rightDockTab,
     required this.lastRightDockTab,
-    required this.leftDockFraction,
     required this.rightDockFraction,
     required this.pendingFieldEdits,
     required this.roles,
@@ -557,6 +562,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       currencyCode = ocptDefaultCurrencyCode,
       // The mode opens on the dashboard, the whole project's standing reading.
       view = OcptBudgetView.dashboard,
+      toolsView = OcptBudgetToolsView.cashFlow,
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selection = null,
@@ -565,7 +571,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       expandedNodeIds = const {},
       rightDockTab = null,
       lastRightDockTab = OcptBudgetRightDockTab.inspector,
-      leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       pendingFieldEdits = const {},
       roles = const [],
@@ -599,6 +604,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     OcptBudgetSnapshot? snapshot,
     String? currencyCode,
     OcptBudgetView? view,
+    OcptBudgetToolsView? toolsView,
     bool? isSimplified,
     OcptBudgetTaxBasis? taxBasis,
     OcptBudgetSelection? selection,
@@ -611,7 +617,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     OcptBudgetRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
     OcptBudgetRightDockTab? lastRightDockTab,
-    double? leftDockFraction,
     double? rightDockFraction,
     Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits,
     List<OcptRole>? roles,
@@ -646,6 +651,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     snapshot: snapshot ?? this.snapshot,
     currencyCode: currencyCode ?? this.currencyCode,
     view: view ?? this.view,
+    toolsView: toolsView ?? this.toolsView,
     isSimplified: isSimplified ?? this.isSimplified,
     taxBasis: taxBasis ?? this.taxBasis,
     selection: clearSelection ? null : (selection ?? this.selection),
@@ -654,7 +660,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     expandedNodeIds: expandedNodeIds ?? this.expandedNodeIds,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
-    leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     roles: roles ?? this.roles,
@@ -743,6 +748,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     snapshot,
     currencyCode,
     view,
+    toolsView,
     isSimplified,
     taxBasis,
     selection,
@@ -751,7 +757,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     expandedNodeIds,
     rightDockTab,
     lastRightDockTab,
-    leftDockFraction,
     rightDockFraction,
     pendingFieldEdits,
     roles,

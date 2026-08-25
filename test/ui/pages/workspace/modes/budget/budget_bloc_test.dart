@@ -525,14 +525,14 @@ void main() {
       );
 
       // Switching view, well inside the debounce window, must write it rather than wait it out.
-      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.financing));
+      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.resources));
 
       // The flush emits the cleared edits first and reloads the snapshot after, so the state worth
       // waiting for is the one that carries the written figure, not merely an empty pending map.
       final switched = await waitForState(
         bloc,
         (state) =>
-            state.view == OcptBudgetView.financing &&
+            state.view == OcptBudgetView.resources &&
             state.postes
                     .firstWhere((poste) => poste.id == posteId)
                     .lines
@@ -601,8 +601,8 @@ void main() {
             state.taxBasis == OcptBudgetTaxBasis.excludingTax,
       );
 
-      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.financing));
-      final switched = await waitForState(bloc, (state) => state.view == OcptBudgetView.financing);
+      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.resources));
+      final switched = await waitForState(bloc, (state) => state.view == OcptBudgetView.resources);
 
       expect(switched.selectedPosteId, posteId);
       expect(switched.filterPosteId, posteId);

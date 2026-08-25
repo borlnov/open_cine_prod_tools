@@ -2,92 +2,69 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// Which of the budget mode's views is currently shown, toggled by the header's own view chips.
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
+
+/// Which of the budget mode's four chips is currently shown, toggled by the header's own chip
+/// row.
 ///
-/// **Seven values.** [dashboard] is the mode's own default view, the whole project's standing
-/// reading; the other six each work one document. Nothing here is a `Planned` pair the way the
-/// retired `OcptBudgetCentreView` once carried `financing` and `committed` as two faces of one
-/// chip — each is its own value, its own chip, exactly the shape the shell design draws.
+/// [dashboard] is the mode's own default view, the whole project's standing reading; [expenses]
+/// and [resources] are its two working surfaces; [tools] is a drawer over three helpers of its
+/// own, distinguished by `OcptBudgetToolsView` — see that type's own doc comment for the rule
+/// deciding what may ever join it.
 ///
 /// **A value may be inserted at any position.** `OcptBudgetState.view` is held in memory for the
 /// life of the mode and written to no preference at all, so an inserted value strands nothing —
 /// [dashboard] itself landed first rather than last, which is exactly the freedom this rule
-/// argues for. The retired `OcptBudgetCentreView` carried the opposite rule — every value joined
-/// it at the end — against a stored preference that was in the end never written, and there is
-/// nothing left here for that rule to protect.
+/// argues for.
 enum OcptBudgetView {
-  /// The whole project's standing reading: the KPI tiles, the balance band, the standing alerts
-  /// and the feed cards. Opens on nothing of its own — a poste row here selects the poste and
-  /// switches to [costTracking], which is where the fiche then opens.
+  /// The whole project's standing reading: the KPI tiles, the balance band, the standing alerts.
+  /// Opens on nothing of its own — a poste row here selects the poste and switches to [expenses],
+  /// which is where the fiche then opens.
   dashboard,
 
   /// The quote itself, poste by poste: the working surface for creating, renaming and reordering
-  /// postes and lines, and reading what each poste has consumed.
-  costTracking,
+  /// postes and lines, reading what each poste has consumed and picking the poste every other
+  /// view is narrowed to.
+  expenses,
 
   /// The financing plan: every live `budget_resources` row, grouped by
   /// `OcptBudgetResourceGroupKind`, with its own status and what has actually come in against it —
-  /// read off the very same journal [cashJournal] and [committed] already read, through
+  /// read off the very same journal the tools drawer's cash-flow page reads, through
   /// `budget_entries.resourceId`, rather than a stored figure of its own.
-  financing,
+  resources,
 
-  /// The cash journal: every live `budget_entries` movement, in chronological order, with the
-  /// journal's own running balance and its whole-journal debit/credit/balance totals —
-  /// optionally filtered onto one poste, the filter being `OcptBudgetState.filterPosteId`.
-  cashJournal,
-
-  /// The committed spending: every live `budget_commitments` row, due-date ordered, with its own
-  /// status and its own outstanding total, next to the cash projection those very commitments
-  /// build — `lib/utils/ocpt_budget_projection.dart`, opened at the cash journal's own balance.
-  committed,
-
-  /// The catering-and-travel pass: what each shooting day costs in meals and at the buffet, and
-  /// what each traveller's own commute costs in mileage — read off the schedule, the project's own
-  /// meal and buffet prices, and each person's own distance and rate, never typed here at all
-  /// (`lib/utils/ocpt_budget_regie.dart`).
-  regie,
-
-  /// The revenue sharing: what the takings have actually brought in, what the reimbursable
-  /// contributions take back out of that before anything is split, and what each participant is
-  /// then due, has been paid and reinvests (`lib/utils/ocpt_budget_shares.dart`).
-  sharing,
+  /// The tools drawer: `OcptBudgetToolsView` picks which of its three helpers is on screen.
+  tools,
 }
 
 /// Whether [view] can honour the mode's own poste filter (`OcptBudgetState.filterPosteId`).
 ///
-/// **[OcptBudgetView.dashboard] cannot either, alongside the three that never could.** It is the
-/// whole project's standing reading; narrowing it to one poste would leave nothing on it but that
-/// poste's own row, and its KPI tiles would silently disagree with the ones the reader saw a
-/// second ago. The financing plan reads `budget_resources`, the régie reads the schedule and the
-/// defrayals, and the revenue sharing reads `budget_revenues`/`budget_shares`: not one of those
-/// tables carries a poste, so there is nothing to narrow. A filter silently ignored on half the
-/// mode would be worse than one that is visibly out of scope, since a reader would take an
-/// unfiltered view for a filtered one.
+/// **True for [OcptBudgetView.expenses] alone.** It is the only surface left that draws a
+/// poste-keyed row — the tools drawer's cash-flow page no longer honours the filter (a statement
+/// reads across the whole account, not one category of it) and the resources plan and the tools
+/// drawer's other two pages read no poste at all. A filter silently ignored elsewhere would be
+/// worse than one that is visibly out of scope, since a reader would take an unfiltered view for
+/// a filtered one.
 bool ocptBudgetViewHonoursPosteFilter(OcptBudgetView view) => switch (view) {
-  OcptBudgetView.costTracking || OcptBudgetView.cashJournal || OcptBudgetView.committed => true,
-  OcptBudgetView.dashboard ||
-  OcptBudgetView.financing ||
-  OcptBudgetView.regie ||
-  OcptBudgetView.sharing => false,
+  OcptBudgetView.expenses => true,
+  OcptBudgetView.dashboard || OcptBudgetView.resources || OcptBudgetView.tools => false,
 };
 
-/// Whether [view] has anything for the right dock's `Inspector` tab — the polymorphic fiche — to
-/// show.
+/// Whether [view] (and, while it is [OcptBudgetView.tools], [toolsView]) has anything for the
+/// right dock's `Inspector` tab — the polymorphic fiche — to show.
 ///
-/// **The cost report, the cash journal and the financing plan do; [OcptBudgetView.dashboard] does
-/// not.** The fiche reads `OcptBudgetState.selection` directly, and each of the first three
-/// selects something of its own — the cost report a poste, a line, a commitment or an entry, the
-/// cash journal an entry, the financing plan a resource or a taking. A dashboard poste row is a
-/// *link to where the poste is worked on*, not a selection of its own: it selects the poste **and**
-/// switches to [OcptBudgetView.costTracking] in the same gesture, which is where the fiche then
-/// opens. The committed spending, the régie and the revenue sharing select nothing the fiche can
-/// show yet — a commitment there is a plain highlight answered by its own row menu, a taking and a
-/// share are still a plain highlight, `docs/architecture/budget.md`'s own "A taking is received by
-/// being named, a participant is paid the same way" reading unchanged here.
-bool ocptBudgetViewHasInspector(OcptBudgetView view) => switch (view) {
-  OcptBudgetView.costTracking || OcptBudgetView.cashJournal || OcptBudgetView.financing => true,
-  OcptBudgetView.dashboard ||
-  OcptBudgetView.committed ||
-  OcptBudgetView.regie ||
-  OcptBudgetView.sharing => false,
-};
+/// **False for [OcptBudgetView.dashboard] and `tools › regie` alone.** The fiche reads
+/// `OcptBudgetState.selection` directly, and [OcptBudgetView.expenses],
+/// [OcptBudgetView.resources] and the tools drawer's own `cashFlow`/`sharing` pages each select
+/// something of their own: the quote a poste, a line, a commitment or an entry, the resources plan
+/// a resource or a taking, cash flow an entry, sharing a revenue or a share. A dashboard poste row
+/// is a *link to where the poste is worked on*, not a selection of its own: it selects the poste
+/// **and** switches to [OcptBudgetView.expenses] in the same gesture, which is where the fiche
+/// then opens. Régie selects nothing at all — it is not a stage of anything, and reads no row that
+/// the fiche could ever open on.
+bool ocptBudgetViewHasInspector(OcptBudgetView view, OcptBudgetToolsView toolsView) =>
+    switch (view) {
+      OcptBudgetView.expenses || OcptBudgetView.resources => true,
+      OcptBudgetView.tools => toolsView != OcptBudgetToolsView.regie,
+      OcptBudgetView.dashboard => false,
+    };
