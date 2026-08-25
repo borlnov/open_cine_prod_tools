@@ -102,24 +102,32 @@ somebody convoked on a day their own availability says they are away.
 
 ![The presence grid, eleven people against three shooting days, one cell flagged in red](docs/screenshots/schedule-presence.png)
 
-The budget mode, on what the film costs: one row per poste of the CNC nomenclature, opening on its
+The budget mode opens on the whole production at a glance: what has been quoted, what has come in,
+what has left the account, what the bank still holds, then the film's needs against what pays for
+them and the postes the quote is made of. Anything the figures raise as a warning lands here too,
+and the chip carries the count of them from every other page. The dock on the left is the quote
+itself, poste by poste, and it stays there whichever page is on screen.
+
+![The budget dashboard, its tiles over the needs-against-resources band and the poste bars](docs/screenshots/budget-dashboard.png)
+
+What the film costs, poste by poste: one row per poste of the CNC nomenclature, opening on its
 own quote lines, and a line opening in turn on the commitment it became and on the entry that
 settled it. The band on top is the whole daily gesture - a direction, an amount, a name, a date -
 after which the app proposes what the movement settles, so the same figure is never typed twice.
 
-![The expenses document, a poste opened down to its commitment and its settling entry](docs/screenshots/budget-expenses.png)
+![The cost tracking view, a poste opened down to its commitment and its settling entry](docs/screenshots/budget-cost-tracking.png)
 
 What pays for it, read the same way: subsidies, contributions and takings, each with the paperwork
 it is held on - which never means the money has arrived - and, at the foot, whether all of it
 covers the film. A contribution in kind is valued and never collected, so both of its cash columns
 read an em dash rather than a zero.
 
-![The resources document, three families with their paperwork and the coverage band](docs/screenshots/budget-resources.png)
+![The financing view, three families with their paperwork and the coverage band](docs/screenshots/budget-financing.png)
 
 And what the film earns, once it earns something: the reimbursable contributions come off the top
 in full, and only what is left is divided by the agreed shares.
 
-![The sharing document, what each person put in beside the distribution](docs/screenshots/budget-sharing.png)
+![The revenue sharing view, what each person put in beside the distribution](docs/screenshots/budget-sharing.png)
 
 ## Features
 
