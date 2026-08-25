@@ -600,10 +600,20 @@ record of them.
 - `OcptBudgetFiche` (`ocpt_budget_fiche.dart`) is the right dock's own `Inspector` tab, once and for
   all: a single panel, polymorphic on `OcptBudgetState.selection`, switching over every
   `OcptBudgetSelection` variant — poste, quote line, commitment, entry, resource, revenue, receipt.
-  Every variant draws the same grammar, top to bottom: a breadcrumb up to the document, the object's
-  own name and amount, a small stepper of its states, the figures that make it up, the outstanding
-  amount in large type, one primary action and at most two secondary ones. The table says where
-  things stand; the fiche says where they come from and what to do next.
+  Every variant draws the same grammar, top to bottom: a breadcrumb up to the chip the row lives
+  under, the object's own name and amount, a small stepper of its states, the figures that make it
+  up, the outstanding amount in large type, one primary action and at most two secondary ones. The
+  table says where things stand; the fiche says where they come from and what to do next.
+  **A breadcrumb resolves through the header's own segment labels, never a name of its own.** A
+  poste's own breadcrumb is the `Cost tracking` chip's own segment label; a resource's and a
+  taking's both open on `Financing`'s, a resource's own second segment naming its group, a taking's
+  the `Takings` family. A quote line's, a commitment's and an entry's climb through their own poste
+  instead, exactly as before. **A taking's own breadcrumb was corrected to `Financing`** — it used
+  to read `Sharing`, from when a taking's own row still lived in that view's left column — the
+  moment every gesture on a taking (create, edit, receipt, reorder, delete, select) moved into the
+  financing tree's own `Takings` family (see "The resources tree folds the takings in" above): a
+  breadcrumb naming where a gesture used to live, once every gesture has moved, would send a reader
+  looking for `Record a receipt` to a page that no longer offers it.
   - A **poste**'s stepper reads `Estimated · Committed · Paid`, all three always reached — an
     aggregate reading, not a lifecycle a single poste passes through — and its primary action is
     `Add`, opening a fresh quote line; a secondary offers `From breakdown`.
