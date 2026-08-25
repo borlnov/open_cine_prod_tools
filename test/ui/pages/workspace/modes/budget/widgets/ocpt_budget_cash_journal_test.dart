@@ -90,13 +90,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          filterPosteId: null,
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onEntryCreationRequested: () {},
           onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -127,13 +125,11 @@ void main() {
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
-          filterPosteId: null,
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onEntryCreationRequested: () {},
           onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -151,13 +147,11 @@ void main() {
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
-          filterPosteId: null,
           selection: null,
           isSimplified: true,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onEntryCreationRequested: () {},
           onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -170,41 +164,13 @@ void main() {
     expect(find.text(tr.budgetCashJournalEmptyHint), findsNothing);
   });
 
-  testWidgets("an empty journal still offers the action that fills it", (tester) async {
-    var created = 0;
-
-    await tester.pumpWidget(
-      _wrap(
-        OcptBudgetCashJournal(
-          entries: const [],
-          postes: const [],
-          receiptsByEntryId: const {},
-          filterPosteId: null,
-          selection: null,
-          isSimplified: false,
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-          isReadOnly: false,
-          onEntryCreationRequested: () => created++,
-          onEntrySelected: (_) {},
-          onEntryEditRequested: (_) {},
-          onEntryDeletionRequested: (_) {},
-        ),
-      ),
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
-    await tester.tap(find.text(tr.budgetCashJournalEntryCreationAction));
-
-    expect(created, 1);
-  });
-
   testWidgets(
-    "the running balance printed for a filtered row is the whole journal's, not the filtered "
-    "subset's",
+    "the running balance is the whole journal's, never reset at a poste's own boundary",
     (tester) async {
       // A poste-2 credit lands first, so poste-1's own two debits fall from +10000 rather than
-      // from zero — the figure a wrongly-recomputed, filtered-only balance would show instead.
+      // from zero — the figure a balance wrongly reset at every poste's own boundary would show
+      // instead. This page honours no poste filter of its own any more, but the two postes still
+      // prove the balance is one column read top to bottom, not one per poste.
       final entries = [
         _entry(id: "e1", date: DateTime(2026), posteId: "poste-2", creditCents: 10000),
         _entry(id: "e2", date: DateTime(2026, 1, 2), posteId: "poste-1", debitCents: 4000),
@@ -217,13 +183,11 @@ void main() {
             entries: entries,
             postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Grant")],
             receiptsByEntryId: const {},
-            filterPosteId: "poste-1",
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -233,8 +197,8 @@ void main() {
 
       expect(find.text(ocptBudgetAmountLabel(6000, "EUR")), findsWidgets);
       expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-      // Neither row is poisoned into starting the filtered subset over from zero: a wrongly
-      // recomputed balance would go negative from the very first filtered row.
+      // Neither poste-1 row is poisoned into starting over from zero: a balance reset at the
+      // poste boundary would go negative from the very first one.
       expect(find.text(ocptBudgetAmountLabel(-4000, "EUR")), findsNothing);
       expect(find.text(ocptBudgetAmountLabel(-5000, "EUR")), findsNothing);
     },
@@ -261,13 +225,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            filterPosteId: null,
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -292,13 +254,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          filterPosteId: null,
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onEntryCreationRequested: () {},
           onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -339,13 +299,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            filterPosteId: null,
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (entryId) => selectedId = entryId,
             onEntryEditRequested: (entry) => edited = entry,
             onEntryDeletionRequested: (entryId) => deletedId = entryId,
@@ -400,13 +358,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          filterPosteId: null,
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onEntryCreationRequested: () {},
           onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -436,13 +392,11 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
-          filterPosteId: null,
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onEntryCreationRequested: () {},
           onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -469,13 +423,11 @@ void main() {
           ],
           postes: const [],
           receiptsByEntryId: const {},
-          filterPosteId: null,
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
           isReadOnly: false,
-          onEntryCreationRequested: () {},
           onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
           onEntryDeletionRequested: (_) {},
@@ -502,13 +454,11 @@ void main() {
             entries: entries,
             postes: postes,
             receiptsByEntryId: const {},
-            filterPosteId: "poste-1",
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: true,
-            onEntryCreationRequested: () => written = true,
             onEntrySelected: (_) => selected = true,
             onEntryEditRequested: (_) => written = true,
             onEntryDeletionRequested: (_) => written = true,
@@ -516,13 +466,8 @@ void main() {
         ),
       );
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
-      expect(
-        find.widgetWithText(FilledButton, tr.budgetCashJournalEntryCreationAction),
-        findsNothing,
-      );
-      // No writing affordance survives the row's own `⋮` menu either, so the menu itself is
-      // withheld whole rather than offered with nothing left in it.
+      // The row's own `⋮` menu (Edit/Delete) is withheld whole rather than offered with nothing
+      // left in it — this page carries no capture affordance of its own to withhold either way.
       expect(find.byType(PopupMenuButton<String>), findsNothing);
 
       // A row's own click never writes — it only selects, opening the right dock's fiche on it —
@@ -545,13 +490,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            filterPosteId: null,
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (entryId) => selectedId = entryId,
             onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -586,13 +529,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            filterPosteId: null,
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (_) {},
             onEntryEditRequested: (entry) => edited = entry,
             onEntryDeletionRequested: (entryId) => deletedId = entryId,
@@ -626,13 +567,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            filterPosteId: null,
             selection: const OcptBudgetEntrySelection("e1"),
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (_) {},
             onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -657,13 +596,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
-            filterPosteId: null,
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -689,13 +626,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: tempFile.path)},
-            filterPosteId: null,
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
@@ -721,13 +656,11 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: "/nowhere/facture.pdf")},
-            filterPosteId: null,
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
-            onEntryCreationRequested: () {},
             onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
