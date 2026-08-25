@@ -177,7 +177,7 @@ record of them.
   `OcptBudgetCoveredTotal` so a debit missing the rate it would need to be grossed up leaves the
   figure covered-but-incomplete rather than wrong. **A credit naming no poste is deliberately not
   counted here** — it is money coming *in*, a subsidy instalment or a contribution, already read by
-  the resources and revenue-sharing documents (`ocptBudgetReceivedByResourceId`,
+  the financing and revenue-sharing views (`ocptBudgetReceivedByResourceId`,
   `ocptBudgetReceivedByRevenueId`); folding it into a reading about spending would count the same
   euro twice, once as a resource received and once as a cost.
 - `OcptBudgetCostTracking` draws this total as **one extra row, `Off quote`**, between the last
@@ -497,9 +497,11 @@ record of them.
   quote read poste by poste, then the "what feeds this budget" card, in that order.
 - **It types nothing of its own — every figure on it is read from the other six views' own
   tables**, exactly as `OcptBreakdownRecapTable` is a computed reading over the breakdown rather
-  than a table with rows of its own. Its KPI tiles — `Paid`, `Committed`, `Cash balance`, `Total
-  resources` — and its needs/resources balance bar (`ocptBudgetNeedsResourcesBalanceOf`) read the
-  whole project and **never the header's own poste filter**: a whole-project standing reading that
+  than a table with rows of its own. Its eight KPI tiles — the quoted total and its
+  excluding-tax reading, the cash balance, `Paid`, `Committed`, the poste and quote-line counts,
+  and the resources total with its in-kind share — and its needs/resources balance bar
+  (`ocptBudgetNeedsResourcesBalanceOf`) read the whole project and **never the header's own poste
+  filter**: a whole-project standing reading that
   quietly narrowed to one poste would leave its own tiles silently disagreeing with the ones the
   reader saw a second ago on another view, which is exactly why `ocptBudgetViewHonoursPosteFilter`
   answers false for `dashboard` alongside the three views that carry no poste dimension at all.
@@ -509,15 +511,14 @@ record of them.
   badge (see "The alerts compute themselves" below). The strained postes read poste by poste
   follow, each row in its own strain colour.
 - **A poste row here selects the poste and switches to `costTracking` in the same gesture**, which
-  is where the fiche then opens (`OcptBudgetMode._handleDashboardPosteOpened`). The two used to
-  differ — a row's click merely selected the poste, opening the right dock's inspector over a page
-  that is itself a read-only summary, a second read-only reading of a figure already on screen in a
-  narrower column — and that was the fault. This is the same argument "Selecting a poste and
-  filtering by one are two different facts" makes for the cost-tracking table's own row, carried one
-  turn further: a click that only selects must not silently narrow *or* strand the reader on a page
-  with nothing left to do about what it just selected. `ocptBudgetViewHasInspector` answers false
-  for `dashboard` for the very same reason — a dashboard poste row is a link to where the poste is
-  worked on, not a selection of its own.
+  is where the fiche then opens (`OcptBudgetMode._handleDashboardPosteOpened`). It is not the
+  exception to "Selecting a poste and filtering by one are two different facts" below, it is that
+  argument carried one turn further: a click that only selected would leave the reader on a
+  read-only summary with the fiche open behind it and nothing on this page to do about what they
+  had just selected, so the gesture goes where the poste is actually worked on. Narrowing is still
+  nobody's side effect — the filter is untouched by it. `ocptBudgetViewHasInspector` answers false
+  for `dashboard` for the same reason: a dashboard poste row is a link to where the poste is worked
+  on, not a selection this page itself displays.
 
 ## The expenses tree nests what used to sit apart
 
@@ -743,7 +744,8 @@ record of them.
   null for** — `dashboard`, `committed`, `regie`, `sharing` — **and under a previewed version.**
   `OcptBudgetMode` simply does not build it there: the daily gesture belongs to a view that reads
   money moving in one direction at its own top level, not to a whole-project standing reading, a
-  view that already reads a projection of its own, or a page that types nothing at all.
+  view that already reads a projection of its own, or a page whose own rows are not bank
+  movements at all.
 
 ## Money is added in one way, reached through several doors
 
@@ -1185,8 +1187,9 @@ record of them.
   to a figure or a label resolved as an ICU argument (`intl_utils`'s own convention, "The four
   documents" below) rather than restated by hand, so the help text can never drift from the very
   word it is pointing at.
-- **The régie draws no chain** — it is not a stage of anything, it types nothing, and its own first
-  paragraph says so.
+- **The régie draws no chain** — it is not a stage of anything a row passes through, and its own
+  first paragraph says what it is instead: one column computed off the schedule, one typed row by
+  row.
 - **The current step wears no extra word of its own, only a wash and a weight, and is announced
   through `Semantics` rather than drawn.** A cell's label carries a second sentence — `"{label},
   You are here"` — only while it is the reader's current one; colour alone would say nothing in
