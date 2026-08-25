@@ -521,8 +521,8 @@ record of them.
 
 ## The expenses tree nests what used to sit apart
 
-- `OcptBudgetCostTracking` (`ocpt_budget_cost_tracking.dart`) draws `OcptBudgetDocument.expenses` in
-  its `byTree` reading as one nesting table: a poste opens on its own quote lines, a quote line opens
+- `OcptBudgetCostTracking` (`ocpt_budget_cost_tracking.dart`) draws `OcptBudgetView.costTracking`
+  as one nesting table: a poste opens on its own quote lines, a quote line opens
   on its own commitment and the entry that settled it — or, while it is still owed, a muted
   `tr.budgetCostTrackingNoEntryHint` row saying so in words rather than drawing nothing — and a
   poste's own **off-line** commitments and entries, the ones naming no `lineId`, draw at the poste's
@@ -544,7 +544,7 @@ record of them.
 
 ## The resources tree folds the takings in
 
-- `OcptBudgetFinancing` (`ocpt_budget_financing.dart`) now draws `OcptBudgetDocument.resources` as a
+- `OcptBudgetFinancing` (`ocpt_budget_financing.dart`) draws `OcptBudgetView.financing` as a
   nesting tree too: three family rows — subsidies, contributions, takings
   (`OcptBudgetResourceFamily`) — each opening onto its own resources or takings, each of those
   opening onto the receipts (journal credits) that name it. `OcptBudgetResourceGroupKind` still
@@ -574,7 +574,7 @@ record of them.
   the expenses tree, keyed by a family's own `name` (a family mints no id of its own), a resource id
   or a revenue id.
 
-## The resources document says what covers the film, twice
+## The financing view says what covers the film, twice
 
 - Two different questions share the word "coverage", and this mode now answers each in its own
   place rather than letting one stand in for the other.
@@ -1338,7 +1338,7 @@ record of them.
   three-way verdict — no quote yet, covered, or short by an amount — rather than declaring a
   financing plan sufficient against a quote nobody has begun (`OcptBudgetNeedsResourcesBalance`,
   read by these documents alone now that the live screen draws its own two-tone reading instead —
-  see "The resources document says what covers the film, twice" above).
+  see "The financing view says what covers the film, twice" above).
   **The financial report reads the cost-tracking table's own off-quote reading too.** It draws an
   `Off quote` row, reusing the cost-tracking table's own label
   (`tr.budgetCostTrackingOffQuoteLabel`), between the last poste and the totals row, only while
