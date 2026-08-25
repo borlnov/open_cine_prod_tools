@@ -2084,11 +2084,10 @@ class _BudgetViewState extends State<_BudgetView> {
   /// own selection variant might need — every one of them already exists, reused rather than
   /// duplicated.
   ///
-  /// **`onLineShowCommitmentRequested` is withheld outright, the parameter itself kept on the
-  /// widget rather than deleted.** It used to jump to the retired committed-spending page; that
-  /// page is gone, and the commitment it pointed at is already drawn as a sub-row under its own
-  /// quote line in the expenses tree, so a reader who wants it already has it under their cursor —
-  /// there is nowhere left for this gesture to lead.
+  /// **`onLineShowCommitmentRequested` opens the tools drawer's own `Flux de trésorerie` page and
+  /// selects the line's own commitment there**, under its own `À venir` section — the very reading
+  /// [_handleCateringFeedRequested]'s own two-event idiom already gives the régie's feed row,
+  /// plus the selection event `OcptBudgetCostTracking.onCommitmentSelected` already dispatches.
   Widget _buildFiche(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
@@ -2142,7 +2141,7 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineSettleRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineSettleRequested(context, state, lineId)),
-      onLineShowCommitmentRequested: null,
+      onLineShowCommitmentRequested: (lineId) => _handleLineShowCommitmentRequested(bloc, state, lineId),
       onLineUncommitRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineUncommitRequested(context, state, lineId)),
@@ -2202,6 +2201,24 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     await _handleCommitmentSettleRequested(context, state, commitment);
+  }
+
+  /// Opens the tools drawer's own `Flux de trésorerie` page and selects [lineId]'s own commitment
+  /// there, under its own `À venir` section — never withheld under a preview, since it only moves
+  /// the reader. Resolving the commitment is [_handleLineSettleRequested]'s own reading: the line's
+  /// own unsettled commitment, `À venir` holding no other kind.
+  void _handleLineShowCommitmentRequested(OcptBudgetBloc bloc, OcptBudgetState state, String lineId) {
+    final commitment = state.commitments
+        .where((commitment) => commitment.lineId == lineId && !commitment.isSettled)
+        .firstOrNull;
+    if (commitment == null) {
+      return;
+    }
+
+    bloc
+      ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.tools))
+      ..add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.cashFlow))
+      ..add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitment.id));
   }
 
   /// Opens `OcptBudgetElementPickerDialog` over `OcptBudgetState.unpricedElements`, then dispatches

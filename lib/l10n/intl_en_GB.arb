@@ -11449,7 +11449,7 @@
   },
   "budgetLineShowCommitmentAction": "Show the commitment",
   "@budgetLineShowCommitmentAction": {
-    "description": "Action on an already-promoted quote line card that opens the committed spending on the commitment it produced."
+    "description": "Action on an already-promoted quote line card that opens the tools drawer's cash-flow page and selects the commitment it produced."
   },
   "budgetLineUncommitAction": "Cancel the commitment",
   "@budgetLineUncommitAction": {

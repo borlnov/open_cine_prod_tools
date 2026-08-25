@@ -155,7 +155,9 @@ class OcptBudgetFiche extends StatelessWidget {
   final ValueChanged<String>? onLineSettleRequested;
 
   /// Called with a line's id when `Show the commitment` is clicked — never withheld under
-  /// [isReadOnly], since it only moves the reader to a view they may open by hand.
+  /// [isReadOnly], since it only moves the reader to a view they may open by hand. Offered from the
+  /// promoted-and-unsettled branch alone: a settled commitment has nowhere left to be shown, `À
+  /// venir` holding unsettled commitments only.
   final ValueChanged<String>? onLineShowCommitmentRequested;
 
   /// Called with a line's id when `Cancel the commitment` is clicked, or null while [isReadOnly] or
@@ -553,14 +555,9 @@ class OcptBudgetFiche extends StatelessWidget {
       }
     } else {
       primary = null;
-      if (onLineShowCommitmentRequested != null) {
-        secondaries.add(
-          _OcptBudgetFicheAction(
-            label: tr.budgetLineShowCommitmentAction,
-            onTap: () => onLineShowCommitmentRequested?.call(lineId),
-          ),
-        );
-      }
+      // No `Show the commitment` here, unlike the unsettled branch above: it would open the
+      // cash-flow page's own `À venir` section, which holds unsettled commitments only — a
+      // settled one has nowhere left on that page to be shown.
       if (onLineDeletionRequested != null) {
         secondaries.add(
           _OcptBudgetFicheAction(

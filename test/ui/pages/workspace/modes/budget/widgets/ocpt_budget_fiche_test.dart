@@ -389,7 +389,7 @@ void main() {
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsNothing);
     });
 
-    testWidgets("promoted, settled: no primary, Show and Delete are the two secondaries", (
+    testWidgets("promoted, settled: no primary, Delete is the only secondary", (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -408,7 +408,10 @@ void main() {
 
       expect(find.byIcon(Icons.circle), findsNWidgets(3));
       expect(find.byType(FilledButton), findsNothing);
-      expect(find.widgetWithText(OutlinedButton, tr.budgetLineShowCommitmentAction), findsOneWidget);
+      // `Show the commitment` is offered from the unsettled branch alone — `À venir` holds
+      // unsettled commitments only, so a settled one has nowhere left to be shown, even though
+      // the callback itself is still handed in.
+      expect(find.widgetWithText(OutlinedButton, tr.budgetLineShowCommitmentAction), findsNothing);
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineUncommitAction), findsNothing);
     });
