@@ -447,10 +447,77 @@ record of them.
   `budget_lines` name no episode at all, so `OcptBudgetMode` keeps the shell's own
   `onEpisodeSelected` null, exactly as the schedule mode already does and for the schedule's own
   reason — a selector would filter a read that was never split by episode to begin with, not a
-  standing-in for a bloc this mode does not have; it has one. There is **no left dock**, the mockup
-  showing none, and the right dock offers exactly three tabs (`OcptBudgetRightDockTab`):
-  `Inspector`, now the polymorphic fiche described below rather than a poste-only panel; the shared
-  `Versions` tab every mode carries; and `Help`.
+  standing-in for a bloc this mode does not have; it has one.
+- **Seven chips in the header, in the design's own order** — `dashboard`, `costTracking`,
+  `financing`, `cashJournal`, `committed`, `regie`, `sharing` — each switching
+  `OcptBudgetState.view` and nothing else, no breadcrumb or reading switch behind any of them.
+  **A left dock, headed `Postes du devis`**, exactly as the validated shell design draws one for
+  this mode as for every other — see "The left dock" below for the whole of its own argument. The
+  right dock offers exactly three tabs (`OcptBudgetRightDockTab`): `Inspector`, the polymorphic
+  fiche described below; the shared `Versions` tab every mode carries; and `Help`.
+
+## The left dock
+
+- `OcptBudgetPosteDock` (`ocpt_budget_poste_dock.dart`) is the mode's own left dock, headed
+  `Postes du devis`: one card per live poste, in the mode's own poste order, over a four-line
+  footer totalling the whole project (`Devis`, `Payé`, `Engagé`, `Reste`). A card draws its own
+  code (detailed reading only) and name, a two-tone bar reading paid then committed against its own
+  quoted total, the `total / devis` read-out, and the consumed percentage in
+  `ocptBudgetPosteStrainOf`'s own strain colour — the very reading the cost-tracking table's own
+  `Écart` column and the dashboard's own alert already use, so a poste reading strained here reads
+  strained everywhere. A title-row `Tout` link clears the mode's own poste filter when one is set.
+- **Purely presentational.** No bloc, no `globalGetIt()`, no service: every figure it draws arrives
+  already computed by `OcptBudgetState` and `lib/utils/ocpt_budget_totals.dart`, and every gesture
+  is only ever reported upward through a callback, so the mode stays the one place deciding what
+  each one writes — exactly the composite-panel idiom the fiche and every tree of this mode already
+  follow.
+- **Drawn on every view, `financing`, `regie` and `sharing` included**, the three with no poste
+  dimension of their own. It is the mode's own standing reading of where the quote stands, not a
+  control belonging to one page: the cost-tracking table can be scrolled away or off screen
+  entirely, and the dock still answers "how is the quote doing" without asking the reader to switch
+  views to find out — the same reason the KPI tiles read the whole project rather than the view on
+  screen (see "The dashboard" below).
+- **Two gestures on a card, and they mean two different things.** A click on the card itself
+  *selects* the poste — it opens the fiche and highlights the card, and narrows nothing, exactly the
+  distinction "Selecting a poste and filtering by one are two different facts" below already argues
+  for the cost-tracking table's own row. The card's own `⋮` menu carries the one gesture that *does*
+  narrow, reached deliberately through a menu rather than the card's own click target, so filtering
+  stays a decision a reader makes on purpose rather than a side effect of a closer look. Both
+  gestures, and the `Tout` link beside them, are **withheld together** on the three poste-less
+  views — no filter entry in the menu, no `Tout` link in the title row — even while the header's own
+  chip still names a poste: the filter is still set, and leaving brings it back, exactly as the
+  header's own chip already reads it there.
+- The dock's own fraction is persisted as `budgetLeftDockFraction` (`OcptPropertiesManager`),
+  beside `budgetRightDockFraction` and `budgetLastRightDockTab`.
+
+## The dashboard
+
+- `OcptBudgetDashboard` (`ocpt_budget_dashboard.dart`) is the mode's own default view, opened the
+  moment the mode is: the KPI tiles, the needs/resources balance band, the standing alerts, the
+  quote read poste by poste, then the "what feeds this budget" card, in that order.
+- **It types nothing of its own — every figure on it is read from the other six views' own
+  tables**, exactly as `OcptBreakdownRecapTable` is a computed reading over the breakdown rather
+  than a table with rows of its own. Its KPI tiles — `Paid`, `Committed`, `Cash balance`, `Total
+  resources` — and its needs/resources balance bar (`ocptBudgetNeedsResourcesBalanceOf`) read the
+  whole project and **never the header's own poste filter**: a whole-project standing reading that
+  quietly narrowed to one poste would leave its own tiles silently disagreeing with the ones the
+  reader saw a second ago on another view, which is exactly why `ocptBudgetViewHonoursPosteFilter`
+  answers false for `dashboard` alongside the three views that carry no poste dimension at all.
+- **The standing alerts live here, and are reachable from everywhere.** `ocptComputeBudgetAlerts`
+  is computed once, carried by the state, and the dashboard is the only view that draws the alert
+  cards themselves; every other view reaches them through the `Tableau de bord` chip's own count
+  badge (see "The alerts compute themselves" below). The strained postes read poste by poste
+  follow, each row in its own strain colour.
+- **A poste row here selects the poste and switches to `costTracking` in the same gesture**, which
+  is where the fiche then opens (`OcptBudgetMode._handleDashboardPosteOpened`). The two used to
+  differ — a row's click merely selected the poste, opening the right dock's inspector over a page
+  that is itself a read-only summary, a second read-only reading of a figure already on screen in a
+  narrower column — and that was the fault. This is the same argument "Selecting a poste and
+  filtering by one are two different facts" makes for the cost-tracking table's own row, carried one
+  turn further: a click that only selects must not silently narrow *or* strand the reader on a page
+  with nothing left to do about what it just selected. `ocptBudgetViewHasInspector` answers false
+  for `dashboard` for the very same reason — a dashboard poste row is a link to where the poste is
+  worked on, not a selection of its own.
 
 ## The expenses tree nests what used to sit apart
 
