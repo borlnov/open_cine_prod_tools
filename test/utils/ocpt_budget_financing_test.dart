@@ -161,19 +161,6 @@ void main() {
       expect(byKind[OcptBudgetResourceGroupKind.cash], 5000);
       expect(byKind.containsKey(OcptBudgetResourceGroupKind.inKind), isFalse);
     });
-
-    test("groups by status, a status with no resource getting no key", () {
-      final resources = [
-        buildResource(id: "r1", amountCents: 10000),
-        buildResource(id: "r2", status: OcptBudgetResourceStatus.confirmed, amountCents: 4000),
-      ];
-
-      final byStatus = ocptBudgetResourcesTotalByStatus(resources);
-
-      expect(byStatus[OcptBudgetResourceStatus.pending], 10000);
-      expect(byStatus[OcptBudgetResourceStatus.confirmed], 4000);
-      expect(byStatus.containsKey(OcptBudgetResourceStatus.agreed), isFalse);
-    });
   });
 
   group("ocptBudgetResourceOutstandingCents", () {

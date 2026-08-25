@@ -9,34 +9,27 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
-/// Which of the header's alerts band's two rules raised an [OcptBudgetAlert].
+/// One thing [ocptComputeBudgetAlerts] found worth a look, mirroring
+/// `lib/utils/ocpt_schedule_alerts.dart`'s own `OcptScheduleAlert`: a sealed hierarchy rather than
+/// one class with a handful of nullable fields, so the page that draws the alerts switches over it
+/// exhaustively and never has to guess which fields a given subclass actually fills in.
+///
+/// **The switch is the discriminant, and there is no other.** A `kind` enum lived here once,
+/// copied from the schedule's own alerts where a badge and a panel genuinely group by it; nothing
+/// on this side ever read it, so it is gone. A caller that needs to tell two alerts apart switches
+/// over this hierarchy, which the compiler checks.
 ///
 /// **Two rules are here, and no more.** The mock-up's own 1,500 € cash floor is deliberately not a
 /// third: it was calibrated by nobody, and this mode states no regulatory figure and asks for no
 /// threshold (`docs/adr/`) — an alert here has to compute itself from the project's own data and
 /// state something anybody can check, exactly as `lib/utils/ocpt_schedule_alerts.dart`'s own rules
 /// do.
-enum OcptBudgetAlertKind {
-  /// [OcptBudgetPosteOverQuoteAlert].
-  posteOverQuote,
-
-  /// [OcptBudgetCashProjectionNegativeAlert].
-  cashProjectionNegative,
-}
-
-/// One thing [ocptComputeBudgetAlerts] found worth a look, mirroring
-/// `lib/utils/ocpt_schedule_alerts.dart`'s own `OcptScheduleAlert`: a sealed hierarchy rather than
-/// one class with a handful of nullable fields, so the header's alerts band switches over it
-/// exhaustively and never has to guess which fields a given [kind] actually fills in.
 ///
-/// **No `Tr` and no formatted string here** — `lib/utils/` is pure; the header's alerts band
+/// **No `Tr` and no formatted string here** — `lib/utils/` is pure; the page that draws them
 /// resolves every word and every colour.
 sealed class OcptBudgetAlert extends Equatable {
   /// Class constructor
   const OcptBudgetAlert();
-
-  /// Which of the two rules raised this alert.
-  OcptBudgetAlertKind get kind;
 }
 
 /// A poste whose paid plus committed already exceeds its own quote
@@ -67,10 +60,6 @@ final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
   /// By how much [paidCents] plus [committedCents] exceeds [quotedAmountCents] — always positive
   /// here, `ocptBudgetVarianceCents`'s own figure verbatim.
   final int varianceCents;
-
-  /// This alert's own kind.
-  @override
-  OcptBudgetAlertKind get kind => OcptBudgetAlertKind.posteOverQuote;
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -114,10 +103,6 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
   /// The balance once that instalment has fallen — negative, `OcptBudgetProjectionStep
   /// .balanceAfterCents` verbatim.
   final int balanceAfterCents;
-
-  /// This alert's own kind.
-  @override
-  OcptBudgetAlertKind get kind => OcptBudgetAlertKind.cashProjectionNegative;
 
   /// Object string representation, useful for debugging and logging.
   @override

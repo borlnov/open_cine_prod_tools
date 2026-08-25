@@ -114,31 +114,4 @@ void main() {
       expect(byKind.containsKey(OcptBudgetAllowanceKind.other), isFalse);
     });
   });
-
-  group("ocptBudgetAllowancesByPersonId", () {
-    test("groups by person, keeping each person's own rows in order", () {
-      final allowances = [
-        _allowance(id: "a1", personId: "p1"),
-        _allowance(id: "a2", personId: "p2"),
-        _allowance(id: "a3", personId: "p1"),
-      ];
-
-      final byPerson = ocptBudgetAllowancesByPersonId(allowances);
-
-      expect(byPerson["p1"]?.map((row) => row.id), ["a1", "a3"]);
-      expect(byPerson["p2"]?.map((row) => row.id), ["a2"]);
-    });
-
-    test("a defrayal naming nobody lands under its own group, not among a person's", () {
-      final allowances = [
-        _allowance(id: "a1", personId: "p1"),
-        _allowance(id: "a2", kind: OcptBudgetAllowanceKind.other),
-      ];
-
-      final byPerson = ocptBudgetAllowancesByPersonId(allowances);
-
-      expect(byPerson[null]?.map((row) => row.id), ["a2"]);
-      expect(byPerson["p1"]?.map((row) => row.id), ["a1"]);
-    });
-  });
 }

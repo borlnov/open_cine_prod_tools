@@ -9,7 +9,6 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
@@ -146,22 +145,6 @@ Map<OcptBudgetResourceGroupKind, int> ocptBudgetResourcesTotalByGroupKind(
   final totals = <OcptBudgetResourceGroupKind, int>{};
   for (final resource in resources) {
     totals[resource.groupKind] = (totals[resource.groupKind] ?? 0) + resource.amountCents;
-  }
-
-  return totals;
-}
-
-/// [resources]' own [OcptBudgetResource.amountCents], grouped by [OcptBudgetResource.status] — how
-/// much of the plan sits at each step towards actually financing the production.
-///
-/// A status with no resource of its own has no key at all, for the same reason
-/// [ocptBudgetResourcesTotalByGroupKind] leaves one out.
-Map<OcptBudgetResourceStatus, int> ocptBudgetResourcesTotalByStatus(
-  List<OcptBudgetResource> resources,
-) {
-  final totals = <OcptBudgetResourceStatus, int>{};
-  for (final resource in resources) {
-    totals[resource.status] = (totals[resource.status] ?? 0) + resource.amountCents;
   }
 
   return totals;

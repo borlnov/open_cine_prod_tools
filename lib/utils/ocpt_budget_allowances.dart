@@ -58,20 +58,3 @@ Map<OcptBudgetAllowanceKind, int> ocptBudgetAllowancesTotalByKind(
 
   return totals;
 }
-
-/// [allowances] grouped by the person they are owed to, the rows of each person kept in the order
-/// they were given — what the régie view's own table reads to draw one block per traveller.
-///
-/// A defrayal naming nobody lands under the `null` key, which is a real group rather than a
-/// leftover: "Taxis, semaine 2" is a line of a régie budget that belongs to the production rather
-/// than to one person (`OcptBudgetAllowancesTable`).
-Map<String?, List<OcptBudgetAllowance>> ocptBudgetAllowancesByPersonId(
-  List<OcptBudgetAllowance> allowances,
-) {
-  final grouped = <String?, List<OcptBudgetAllowance>>{};
-  for (final allowance in allowances) {
-    grouped.putIfAbsent(allowance.personId, () => []).add(allowance);
-  }
-
-  return grouped;
-}
