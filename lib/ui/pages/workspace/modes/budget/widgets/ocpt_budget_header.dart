@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 
@@ -14,57 +15,53 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 /// `OcptBreakdownHeader`'s own `_ocptBreakdownSegmentPadding`.
 const double _ocptBudgetSegmentPadding = 12;
 
-/// The narrowest the header is drawn with its title and subtitle at all, in logical pixels. Under
-/// this, the controls are left alone — they are the only way to change what the centre shows. The
-/// title and subtitle go first, exactly the reasoning `OcptBreakdownHeader`'s own doc comment gives
-/// for shedding its own hint and progress bar first: they name a page the view switch's own active
-/// segment has already named.
-///
-/// **Recomputed from scratch for this milestone's single-switch header**, rather than continuing
-/// the incremental history the three-chip-plus-reading one carried: the control *set* changed
-/// shape, not merely its count, so the old running total (`1600`, for a three-segment document
-/// switch, a two-segment reading switch and three other controls) is no longer a base worth growing
-/// from. The document switch and the reading switch together cost `420` (three segments at roughly
-/// `140` px each, the seven-chip switch's own per-segment cost) plus `320` (two segments, `280`,
-/// plus the reading switch's own shell chrome, `~40`) — `740` in all. The single six-segment view
-/// switch that then replaced both cost `880` (six segments at the same `140` px each, plus one
-/// shell chrome rather than two). Net of the two: `1600 − 740 + 880 = 1740` — the widest a route
-/// drew its controls at (`OcptBudgetView.costTracking` or `.cashJournal`: the view switch, the
-/// simplified/detailed switch, the tax-basis switch and the poste filter, all four at once). The
-/// dashboard segment landed after that, at the same `140` px per-segment cost: `1740 + 140 = 1880`.
-const double _ocptBudgetHeaderTitleMinWidth = 1880;
-
-/// The budget mode's own header band: the current view's own title and subtitle, and whichever of
-/// the mode's controls the view honours.
+/// The budget mode's own header band: the four-chip view switch, the tools drawer's own second
+/// switch while it is open, the poste filter tag, and whichever of the simplified/detailed and
+/// tax-basis switches the current route honours.
 ///
 /// Purely presentational: it renders and reports every click upward, reading nothing off a
-/// manager. **Nothing here writes to the project** — the view, the simplified/detailed reading and
-/// the tax basis are all display preferences the mode itself holds in memory, never a project
-/// column — so, like `OcptBreakdownHeader`, this widget needs no `isReadOnly` flag: a previewed
-/// version withholds nothing this header offers.
+/// manager. **Nothing here writes to the project** — the view, the tools page, the
+/// simplified/detailed reading and the tax basis are all display preferences the mode itself
+/// holds in memory, never a project column — so, like `OcptBreakdownHeader`, this widget needs no
+/// `isReadOnly` flag: a previewed version withholds nothing this header offers.
 ///
-/// **Controls are contextual, not global.** The tax-basis switch is offered on
-/// [OcptBudgetView.dashboard], [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal]: the
-/// dashboard's own KPI tiles read [taxBasis] exactly as the cost-tracking table does, so the switch
-/// has to be reachable there too, or the reading it changes could never be changed from that view —
-/// every other view either has no second tax basis to offer or reads no amount at all. The
-/// simplified/detailed switch and the poste filter are offered exactly where they are honoured
-/// today — the cost-tracking table, the cash journal and the committed spending, the only three
-/// views that read a poste-keyed row at all — and **withheld**, never disabled or captioned,
-/// everywhere else: the standing rule for an affordance without a subject
-/// (`docs/architecture/budget.md`), which is also why the dashboard, a whole-project reading with
-/// no poste dimension of its own, never gets either.
+/// **No title, no subtitle, no breadcrumb.** The band used to open on the current view's own name
+/// and one-line description — "the fil d'Ariane du bandeau, qui ne sélectionnait rien" the
+/// mockup's own `t4` retires — repeating what the view switch's own active chip already says. The
+/// band is now nothing but the controls, laid out in a [Wrap] so they flow onto a second line
+/// rather than clipping once the centre narrows (the right dock opening takes roughly 580 px of
+/// it, a plain [Row] then clipping silently in release).
 ///
-/// **The mode's own standing alerts are drawn on the dashboard alone now**, not here: this header
-/// carries only [alertCount], a count badge on the view switch's own `Tableau de bord` segment, so
-/// the news stays reachable from every other view without repeating the alert cards themselves in
-/// two places.
+/// **Controls are contextual, not global.** The tools drawer's own segmented switch draws only
+/// while [view] is [OcptBudgetView.tools], immediately after the four-chip switch, in the very
+/// same shell and segment widgets — never a chevron, never a menu, mockup `4c`'s own label saying
+/// so. The poste filter tag draws nothing at all while [filterPosteId] is null, becoming a small
+/// removable tag the moment one is set (mockup `4d`) — a control announcing "every poste" all day
+/// is the very thing the retired breadcrumb was faulted for. The simplified/detailed switch is
+/// offered where [ocptBudgetViewHonoursPosteFilter] is true — [OcptBudgetView.expenses] alone —
+/// and the tax-basis switch on [OcptBudgetView.dashboard], [OcptBudgetView.expenses] and
+/// [OcptBudgetView.tools] while [toolsView] reads [OcptBudgetToolsView.cashFlow], and nowhere
+/// else: every other route either has no second tax basis to offer or reads no amount at all.
+///
+/// **The mode's own standing alerts are drawn on the dashboard alone.** This header carries only
+/// [alertCount], a count badge on the view switch's own `Tableau de bord` segment, so the news
+/// stays reachable from every other view without repeating the alert cards themselves in two
+/// places.
 class OcptBudgetHeader extends StatelessWidget {
-  /// Which of the mode's views is currently shown.
+  /// Which of the mode's four chips is currently shown.
   final OcptBudgetView view;
 
   /// Called with the view just picked, when a chip is clicked.
   final ValueChanged<OcptBudgetView> onViewSelected;
+
+  /// Which of the tools drawer's own three pages is currently shown — read even while [view] is
+  /// not [OcptBudgetView.tools], so the drawer's own switch draws whichever one was last picked
+  /// the moment the drawer opens again.
+  final OcptBudgetToolsView toolsView;
+
+  /// Called with the tools page just picked, when a segment of the drawer's own switch is
+  /// clicked.
+  final ValueChanged<OcptBudgetToolsView> onToolsViewSelected;
 
   /// Whether the simplified/detailed switch currently reads simplified.
   final bool isSimplified;
@@ -78,14 +75,14 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Called with the basis just picked, when a segment is clicked.
   final ValueChanged<OcptBudgetTaxBasis> onTaxBasisChanged;
 
-  /// Every live poste of the project, offered by the poste filter.
+  /// Every live poste of the project, offered by the poste filter tag to resolve its own label.
   final List<OcptBudgetPoste> postes;
 
   /// The poste every view is currently narrowed to, or null for the whole project.
   final String? filterPosteId;
 
-  /// Called with the poste just picked, or null to go back to the whole project.
-  final ValueChanged<String?> onPosteFilterSelected;
+  /// Called when the poste filter tag's own `✕` is clicked.
+  final VoidCallback onPosteFilterCleared;
 
   /// How many standing alerts the project currently raises (`ocptComputeBudgetAlerts`) — drawn as a
   /// count badge on the view switch's own `Tableau de bord` segment, and withheld outright, never
@@ -97,135 +94,60 @@ class OcptBudgetHeader extends StatelessWidget {
     super.key,
     required this.view,
     required this.onViewSelected,
+    required this.toolsView,
+    required this.onToolsViewSelected,
     required this.isSimplified,
     required this.onSimplifiedChanged,
     required this.taxBasis,
     required this.onTaxBasisChanged,
     required this.postes,
     required this.filterPosteId,
-    required this.onPosteFilterSelected,
+    required this.onPosteFilterCleared,
     required this.alertCount,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
+    final filtered = postes.where((poste) => poste.id == filterPosteId).firstOrNull;
+
+    final controls = <Widget>[
+      _OcptBudgetViewSwitch(value: view, onChanged: onViewSelected, alertCount: alertCount),
+      if (view == OcptBudgetView.tools)
+        _OcptBudgetToolsViewSwitch(value: toolsView, onChanged: onToolsViewSelected),
+      if (filtered != null)
+        _OcptBudgetPosteFilterTag(
+          poste: filtered,
+          isSimplified: isSimplified,
+          onCleared: onPosteFilterCleared,
+        ),
+      if (_honoursPosteKeyedControls)
+        _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
+      if (_showsTaxBasisSwitch)
+        _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
+    ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isTitleShown = constraints.maxWidth >= _ocptBudgetHeaderTitleMinWidth;
-
-              final controls = <Widget>[
-                _OcptBudgetViewSwitch(value: view, onChanged: onViewSelected, alertCount: alertCount),
-                if (_honoursPosteKeyedControls)
-                  _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
-                if (_showsTaxBasisSwitch)
-                  _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
-                if (_honoursPosteKeyedControls)
-                  _OcptBudgetPosteFilter(
-                    postes: postes,
-                    filterPosteId: filterPosteId,
-                    isSimplified: isSimplified,
-                    onChanged: onPosteFilterSelected,
-                  ),
-              ];
-
-              // Under the title's own threshold the controls **wrap onto a second line** rather
-              // than sitting in a `Row` that runs off the edge, exactly as `OcptScheduleHeader`
-              // already lays its own out. Dropping the title is not enough on its own: the centre
-              // pane narrows for a reason the header cannot see — the right dock opening takes
-              // roughly 580 px of it — and a plain `Row` then clips silently, taking a control off
-              // the screen altogether. A control that has scrolled out of a clipped row is worse
-              // than a disabled one, since nothing on screen says it exists at all.
-              if (!isTitleShown) {
-                return Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: controls,
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _titleOf(tr),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        Text(
-                          _subtitleOf(tr),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  for (final control in controls) ...[
-                    if (control != controls.first) const SizedBox(width: 12),
-                    control,
-                  ],
-                ],
-              );
-            },
-          ),
-        ],
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
+        children: controls,
       ),
     );
   }
 
-  /// Whether the tax-basis switch draws at all: the dashboard's own KPI tiles and the cost-tracking
-  /// table and cash journal are the three views whose amounts follow it — every other view either
-  /// reads no second basis or no amount at all.
+  /// Whether the tax-basis switch draws at all: the dashboard's own KPI tiles, the expenses table
+  /// and the tools drawer's own cash-flow page are the three routes whose amounts follow it —
+  /// every other route either reads no second basis or no amount at all.
   bool get _showsTaxBasisSwitch =>
       view == OcptBudgetView.dashboard ||
-      view == OcptBudgetView.costTracking ||
-      view == OcptBudgetView.cashJournal;
+      view == OcptBudgetView.expenses ||
+      (view == OcptBudgetView.tools && toolsView == OcptBudgetToolsView.cashFlow);
 
-  /// Whether the current view honours the simplified/detailed switch and the poste filter —
-  /// `ocptBudgetViewHonoursPosteFilter`'s own reading applied to the switch too, since a project
-  /// with no poste to filter by has none to read simplified either.
+  /// Whether the current view honours the simplified/detailed switch — `ocptBudgetViewHonoursPosteFilter`'s
+  /// own reading, true for [OcptBudgetView.expenses] alone.
   bool get _honoursPosteKeyedControls => ocptBudgetViewHonoursPosteFilter(view);
-
-  /// The band's own title, naming **the view currently on screen** rather than the mode — mirrors
-  /// the retired `OcptBudgetCentreView`'s own seven-way `_titleOf`.
-  String _titleOf(Tr tr) => switch (view) {
-    OcptBudgetView.dashboard => tr.budgetHeaderDashboardTitle,
-    OcptBudgetView.costTracking => tr.budgetHeaderTitle,
-    OcptBudgetView.cashJournal => tr.budgetHeaderCashJournalTitle,
-    OcptBudgetView.committed => tr.budgetCommittedSectionTitle,
-    OcptBudgetView.financing => tr.budgetHeaderResourcesTitle,
-    OcptBudgetView.regie => tr.budgetHeaderRegieTitle,
-    OcptBudgetView.sharing => tr.budgetHeaderSharingTitle,
-  };
-
-  /// The band's own subtitle, following [_titleOf]'s own view.
-  String _subtitleOf(Tr tr) => switch (view) {
-    OcptBudgetView.dashboard => tr.budgetHeaderDashboardSubtitle,
-    OcptBudgetView.costTracking => tr.budgetHeaderSubtitle,
-    OcptBudgetView.cashJournal => tr.budgetHeaderCashJournalSubtitle,
-    OcptBudgetView.committed => tr.budgetHeaderCommittedSubtitle,
-    OcptBudgetView.financing => tr.budgetHeaderFinancingSubtitle,
-    OcptBudgetView.regie => tr.budgetHeaderRegieSubtitle,
-    OcptBudgetView.sharing => tr.budgetHeaderSharingSubtitle,
-  };
 }
 
 /// One segment of any of this header's switches — a small bordered rounded container, the active
@@ -320,111 +242,70 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
   }
 }
 
-/// The header's own poste filter: one chip reading either `Every poste` or the poste every view is
-/// currently narrowed to, with a small clear button beside the name.
+/// The header's own poste filter tag — mockup `4d`. Draws **nothing at all** while [poste] is
+/// null (the header simply does not build it, see [OcptBudgetHeader.build]); once one is set it
+/// reads that poste's own display label with a small `✕` clearing the filter.
 ///
-/// **The mode's only filter control, and its only filter indicator.** Sitting in the header, it is
-/// on screen wherever it is offered at all. **Withheld outright — never captioned "not applied
-/// here" — the moment the current view has no poste dimension to honour it with**
-/// (`OcptBudgetHeader._honoursPosteKeyedControls`): the standing "withheld, not disabled" rule
-/// every other subject-less affordance in this app already follows.
-///
-/// Writes nothing to the project, so it needs no read-only handling: a previewed version filters
-/// as freely as a live one.
-class _OcptBudgetPosteFilter extends StatelessWidget {
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+/// **This is the tag, not a picker.** Picking a poste to filter by moved to the `⋮` menu of its
+/// own row in the expenses table — the very gesture the retired left dock's own card carried —
+/// so this widget only ever reports the one thing it can: clearing the filter.
+class _OcptBudgetPosteFilterTag extends StatelessWidget {
+  /// The poste currently filtered.
+  final OcptBudgetPoste poste;
 
-  /// The poste currently filtered, or null for the whole project.
-  final String? filterPosteId;
-
-  /// Whether the header's simplified/detailed switch currently reads simplified — a poste's own
-  /// displayed name follows it, exactly as it does everywhere else in the mode.
+  /// Whether the header's simplified/detailed switch currently reads simplified — the tag's own
+  /// label follows it, exactly as every other poste name in this mode does.
   final bool isSimplified;
 
-  /// Called with the poste just picked, or null to go back to the whole project.
-  final ValueChanged<String?> onChanged;
+  /// Called when the tag's own `✕` is clicked.
+  final VoidCallback onCleared;
 
   /// Class constructor
-  const _OcptBudgetPosteFilter({
-    required this.postes,
-    required this.filterPosteId,
+  const _OcptBudgetPosteFilterTag({
+    required this.poste,
     required this.isSimplified,
-    required this.onChanged,
+    required this.onCleared,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final filtered = postes.where((poste) => poste.id == filterPosteId).firstOrNull;
-    final isFiltering = filtered != null;
-    final color = isFiltering ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
+    final label = ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified);
 
-    return _OcptBudgetSwitchShell(
-      children: [
-        MenuAnchor(
-          menuChildren: [
-            MenuItemButton(
-              onPressed: () => onChanged(null),
-              child: Text(tr.budgetHeaderPosteFilterAllLabel),
-            ),
-            for (final poste in postes)
-              MenuItemButton(
-                onPressed: () => onChanged(poste.id),
-                child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)),
-              ),
-          ],
-          builder: (context, controller, child) => Tooltip(
-            message: tr.budgetHeaderPosteFilterTooltip,
-            child: InkWell(
-              onTap: () => controller.isOpen ? controller.close() : controller.open(),
-              mouseCursor: ocptClickableCursor,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: _ocptBudgetSegmentPadding,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.filter_alt_outlined, size: 14, color: color),
-                    const SizedBox(width: 6),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 160),
-                      child: Text(
-                        isFiltering
-                            ? ocptBudgetPosteDisplayLabel(filtered, isSimplified: isSimplified)
-                            : tr.budgetHeaderPosteFilterAllLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: color,
-                          fontWeight: isFiltering ? FontWeight.w700 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(width: 6),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 160),
+            child: Text(
+              label.isEmpty ? tr.budgetPosteUnnamed : label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurface),
             ),
           ),
-        ),
-        if (isFiltering)
           Tooltip(
             message: tr.budgetHeaderPosteFilterClearTooltip,
             child: InkWell(
-              onTap: () => onChanged(null),
+              onTap: onCleared,
               mouseCursor: ocptClickableCursor,
               borderRadius: BorderRadius.circular(ocptRadiusSmall),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                child: Icon(Icons.close, size: 14, color: color),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                child: Icon(Icons.close, size: 14),
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -446,17 +327,15 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
       borderRadius: BorderRadius.circular(ocptRadiusMedium),
     ),
     // A `Wrap` rather than a `Row`, so a switch's own segments flow onto a second line inside its
-    // own border when the centre is too narrow to hold them side by side. Handed an unbounded
-    // width, as the wide branch's own `Row` hands it, a `Wrap` lays everything out on one line, so
-    // the comfortable case is untouched. These segments are `InkWell`s, not `MenuItemButton`s, so
-    // `AGENTS.md`'s standing pitfall about a menu item inside a `Wrap` does not apply here.
+    // own border when the centre is too narrow to hold them side by side. These segments are
+    // `InkWell`s, not `MenuItemButton`s, so `AGENTS.md`'s standing pitfall about a menu item
+    // inside a `Wrap` does not apply here.
     child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: children),
   );
 }
 
-/// The seven view chips, in the shell design's own order: the dashboard, the cost report, the
-/// financing plan, the cash journal, the committed spending, the catering-and-travel pass, the
-/// revenue sharing.
+/// The four view chips, left to right: the dashboard, the expenses table, the resources tree, the
+/// tools drawer — mockup `4a`–`4d`'s own band.
 class _OcptBudgetViewSwitch extends StatelessWidget {
   /// The switch's own current value.
   final OcptBudgetView value;
@@ -485,37 +364,62 @@ class _OcptBudgetViewSwitch extends StatelessWidget {
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
-          value: OcptBudgetView.costTracking,
+          value: OcptBudgetView.expenses,
           current: value,
-          label: tr.budgetHeaderCostTrackingSegmentLabel,
+          label: tr.budgetHeaderExpensesSegmentLabel,
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
-          value: OcptBudgetView.financing,
+          value: OcptBudgetView.resources,
           current: value,
-          label: tr.budgetHeaderFinancingSegmentLabel,
+          label: tr.budgetHeaderResourcesSegmentLabel,
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
-          value: OcptBudgetView.cashJournal,
+          value: OcptBudgetView.tools,
           current: value,
-          label: tr.budgetHeaderCashJournalSegmentLabel,
+          label: tr.budgetHeaderToolsSegmentLabel,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// The tools drawer's own second switch, drawn immediately after the four-chip switch while
+/// [OcptBudgetHeader.view] is [OcptBudgetView.tools] — the very same shell and segment widgets as
+/// every other switch of this header, **never a chevron, never a menu**: mockup `4c`'s own label
+/// says the reader has to see at a glance what the drawer contains and which of it is on screen.
+class _OcptBudgetToolsViewSwitch extends StatelessWidget {
+  /// The switch's own current value.
+  final OcptBudgetToolsView value;
+
+  /// Called with the tools page just clicked.
+  final ValueChanged<OcptBudgetToolsView> onChanged;
+
+  /// Class constructor
+  const _OcptBudgetToolsViewSwitch({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return _OcptBudgetSwitchShell(
+      children: [
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetToolsView.cashFlow,
+          current: value,
+          label: tr.budgetHeaderCashFlowSegmentLabel,
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
-          value: OcptBudgetView.committed,
-          current: value,
-          label: tr.budgetHeaderCommittedSegmentLabel,
-          onChanged: onChanged,
-        ),
-        _OcptBudgetSwitchSegment(
-          value: OcptBudgetView.regie,
+          value: OcptBudgetToolsView.regie,
           current: value,
           label: tr.budgetHeaderRegieSegmentLabel,
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
-          value: OcptBudgetView.sharing,
+          value: OcptBudgetToolsView.sharing,
           current: value,
           label: tr.budgetHeaderSharingSegmentLabel,
           onChanged: onChanged,

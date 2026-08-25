@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 
@@ -24,8 +25,9 @@ Widget _wrap(Widget child) => MaterialApp(
 );
 
 void main() {
-  /// Widens the test surface so the header's own title and subtitle are shown — see
-  /// `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth`.
+  /// Widens the test surface — `flutter_test`'s own substituted test font renders these short
+  /// labels far wider than any real one does, which would make the narrow-window wrapping case
+  /// below read as flaky at the default 800×600 test surface.
   void useWideWindow(WidgetTester tester) {
     tester.view.physicalSize = const Size(2200, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -34,19 +36,21 @@ void main() {
   }
 
   /// Pumps [OcptBudgetHeader] with every prop at a sensible default, overridable one at a time —
-  /// [view] at [OcptBudgetView.costTracking], with every control's own callback recording nothing
+  /// [view] at [OcptBudgetView.expenses], with every control's own callback recording nothing
   /// unless the test itself cares.
   Future<Tr> pumpHeader(
     WidgetTester tester, {
-    OcptBudgetView view = OcptBudgetView.costTracking,
+    OcptBudgetView view = OcptBudgetView.expenses,
     ValueChanged<OcptBudgetView>? onViewSelected,
+    OcptBudgetToolsView toolsView = OcptBudgetToolsView.cashFlow,
+    ValueChanged<OcptBudgetToolsView>? onToolsViewSelected,
     bool isSimplified = false,
     ValueChanged<bool>? onSimplifiedChanged,
     OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
     ValueChanged<OcptBudgetTaxBasis>? onTaxBasisChanged,
     List<OcptBudgetPoste> postes = const [],
     String? filterPosteId,
-    ValueChanged<String?>? onPosteFilterSelected,
+    VoidCallback? onPosteFilterCleared,
     int alertCount = 0,
   }) async {
     await tester.pumpWidget(
@@ -54,13 +58,15 @@ void main() {
         OcptBudgetHeader(
           view: view,
           onViewSelected: onViewSelected ?? (_) {},
+          toolsView: toolsView,
+          onToolsViewSelected: onToolsViewSelected ?? (_) {},
           isSimplified: isSimplified,
           onSimplifiedChanged: onSimplifiedChanged ?? (_) {},
           taxBasis: taxBasis,
           onTaxBasisChanged: onTaxBasisChanged ?? (_) {},
           postes: postes,
           filterPosteId: filterPosteId,
-          onPosteFilterSelected: onPosteFilterSelected ?? (_) {},
+          onPosteFilterCleared: onPosteFilterCleared ?? () {},
           alertCount: alertCount,
         ),
       ),
@@ -83,13 +89,11 @@ void main() {
     final tr = await pumpHeader(tester);
 
     // Every control is still on screen, the last one included — the view switch, the simplified
-    // switch, the tax-basis switch and the poste filter all honoured at
-    // [OcptBudgetView.costTracking].
-    expect(find.text(tr.budgetHeaderCostTrackingSegmentLabel), findsOneWidget);
-    expect(find.text(tr.budgetHeaderSharingSegmentLabel), findsOneWidget);
+    // switch and the tax-basis switch all honoured at [OcptBudgetView.expenses].
+    expect(find.text(tr.budgetHeaderExpensesSegmentLabel), findsOneWidget);
+    expect(find.text(tr.budgetHeaderToolsSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
     expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
-    expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
 
     // And it is still tappable, which a clipped one would not be.
     await tester.tap(find.text(tr.budgetHeaderExcludingTaxSegmentLabel));
@@ -97,18 +101,15 @@ void main() {
   });
 
   group("the view switch", () {
-    testWidgets("draws seven segments, in chip order", (tester) async {
+    testWidgets("draws four segments, in chip order", (tester) async {
       useWideWindow(tester);
       final tr = await pumpHeader(tester);
 
       final labels = [
         tr.budgetHeaderDashboardSegmentLabel,
-        tr.budgetHeaderCostTrackingSegmentLabel,
-        tr.budgetHeaderFinancingSegmentLabel,
-        tr.budgetHeaderCashJournalSegmentLabel,
-        tr.budgetHeaderCommittedSegmentLabel,
-        tr.budgetHeaderRegieSegmentLabel,
-        tr.budgetHeaderSharingSegmentLabel,
+        tr.budgetHeaderExpensesSegmentLabel,
+        tr.budgetHeaderResourcesSegmentLabel,
+        tr.budgetHeaderToolsSegmentLabel,
       ];
       for (final label in labels) {
         expect(find.text(label), findsOneWidget);
@@ -122,11 +123,11 @@ void main() {
 
     testWidgets("the active view's own chip is marked", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(tester, view: OcptBudgetView.committed);
+      final tr = await pumpHeader(tester, view: OcptBudgetView.resources);
 
       final segment = tester.widget<InkWell>(
         find.ancestor(
-          of: find.text(tr.budgetHeaderCommittedSegmentLabel),
+          of: find.text(tr.budgetHeaderResourcesSegmentLabel),
           matching: find.byType(InkWell),
         ),
       );
@@ -140,9 +141,9 @@ void main() {
       final reported = <OcptBudgetView>[];
       final tr = await pumpHeader(tester, onViewSelected: reported.add);
 
-      await tester.tap(find.text(tr.budgetHeaderFinancingSegmentLabel));
+      await tester.tap(find.text(tr.budgetHeaderResourcesSegmentLabel));
 
-      expect(reported, [OcptBudgetView.financing]);
+      expect(reported, [OcptBudgetView.resources]);
     });
 
     testWidgets("tapping the active chip reports nothing", (tester) async {
@@ -150,9 +151,53 @@ void main() {
       var callCount = 0;
       final tr = await pumpHeader(tester, onViewSelected: (_) => callCount++);
 
-      await tester.tap(find.text(tr.budgetHeaderCostTrackingSegmentLabel));
+      await tester.tap(find.text(tr.budgetHeaderExpensesSegmentLabel));
 
       expect(callCount, 0);
+    });
+  });
+
+  group("the tools drawer switch", () {
+    testWidgets("draws only while the tools chip is active", (tester) async {
+      useWideWindow(tester);
+      var tr = await pumpHeader(tester);
+      expect(find.text(tr.budgetHeaderCashFlowSegmentLabel), findsNothing);
+
+      tr = await pumpHeader(tester, view: OcptBudgetView.tools);
+      expect(find.text(tr.budgetHeaderCashFlowSegmentLabel), findsOneWidget);
+      expect(find.text(tr.budgetHeaderRegieSegmentLabel), findsOneWidget);
+      expect(find.text(tr.budgetHeaderSharingSegmentLabel), findsOneWidget);
+    });
+
+    testWidgets("the active page's own segment is marked", (tester) async {
+      useWideWindow(tester);
+      final tr = await pumpHeader(
+        tester,
+        view: OcptBudgetView.tools,
+        toolsView: OcptBudgetToolsView.regie,
+      );
+
+      final segment = tester.widget<InkWell>(
+        find.ancestor(
+          of: find.text(tr.budgetHeaderRegieSegmentLabel),
+          matching: find.byType(InkWell),
+        ),
+      );
+      expect(segment.onTap, isNull);
+    });
+
+    testWidgets("clicking a segment reports that page, and only that page", (tester) async {
+      useWideWindow(tester);
+      final reported = <OcptBudgetToolsView>[];
+      final tr = await pumpHeader(
+        tester,
+        view: OcptBudgetView.tools,
+        onToolsViewSelected: reported.add,
+      );
+
+      await tester.tap(find.text(tr.budgetHeaderSharingSegmentLabel));
+
+      expect(reported, [OcptBudgetToolsView.sharing]);
     });
   });
 
@@ -167,9 +212,9 @@ void main() {
       expect(reported, OcptBudgetTaxBasis.excludingTax);
     });
 
-    testWidgets("offered on the cash journal too", (tester) async {
+    testWidgets("offered on the tools drawer's own cash flow page too", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(tester, view: OcptBudgetView.cashJournal);
+      final tr = await pumpHeader(tester, view: OcptBudgetView.tools);
 
       expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
     });
@@ -181,20 +226,23 @@ void main() {
       expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
     });
 
-    testWidgets("withheld outside the dashboard, the cost report and the cash journal", (
-      tester,
-    ) async {
-      useWideWindow(tester);
-      for (final view in [
-        OcptBudgetView.financing,
-        OcptBudgetView.committed,
-        OcptBudgetView.regie,
-        OcptBudgetView.sharing,
-      ]) {
-        final tr = await pumpHeader(tester, view: view);
-        expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsNothing, reason: "$view");
-      }
-    });
+    testWidgets(
+      "withheld outside the dashboard, expenses and the tools drawer's own cash flow page",
+      (tester) async {
+        useWideWindow(tester);
+        final tr = await pumpHeader(tester, view: OcptBudgetView.resources);
+        expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsNothing);
+
+        for (final toolsView in [OcptBudgetToolsView.regie, OcptBudgetToolsView.sharing]) {
+          final tr = await pumpHeader(tester, view: OcptBudgetView.tools, toolsView: toolsView);
+          expect(
+            find.text(tr.budgetHeaderExcludingTaxSegmentLabel),
+            findsNothing,
+            reason: "$toolsView",
+          );
+        }
+      },
+    );
   });
 
   group("the simplified/detailed switch", () {
@@ -212,37 +260,36 @@ void main() {
       expect(reported, isFalse);
     });
 
-    testWidgets("offered on the cost report, the cash journal and the committed spending", (
-      tester,
-    ) async {
+    testWidgets("offered on expenses alone", (tester) async {
       useWideWindow(tester);
-      for (final view in [
-        OcptBudgetView.costTracking,
-        OcptBudgetView.cashJournal,
-        OcptBudgetView.committed,
-      ]) {
-        final tr = await pumpHeader(tester, view: view);
-        expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget, reason: "$view");
-      }
+      final tr = await pumpHeader(tester);
+      expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsOneWidget);
     });
 
-    testWidgets("withheld — never disabled — on the dashboard, financing, régie and sharing", (
-      tester,
-    ) async {
-      useWideWindow(tester);
-      for (final view in [
-        OcptBudgetView.dashboard,
-        OcptBudgetView.financing,
-        OcptBudgetView.regie,
-        OcptBudgetView.sharing,
-      ]) {
-        final tr = await pumpHeader(tester, view: view);
-        expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing, reason: "$view");
-      }
-    });
+    testWidgets(
+      "withheld — never disabled — on the dashboard, resources and every page of the tools "
+      "drawer",
+      (tester) async {
+        useWideWindow(tester);
+        var tr = await pumpHeader(tester, view: OcptBudgetView.dashboard);
+        expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing);
+
+        tr = await pumpHeader(tester, view: OcptBudgetView.resources);
+        expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing);
+
+        for (final toolsView in OcptBudgetToolsView.values) {
+          final tr = await pumpHeader(tester, view: OcptBudgetView.tools, toolsView: toolsView);
+          expect(
+            find.text(tr.budgetHeaderSimplifiedSegmentLabel),
+            findsNothing,
+            reason: "$toolsView",
+          );
+        }
+      },
+    );
   });
 
-  group("the poste filter", () {
+  group("the poste filter tag", () {
     final poste = const OcptBudgetPoste(
       id: "poste-1",
       code: "1",
@@ -253,27 +300,22 @@ void main() {
       lines: [],
     );
 
-    testWidgets("offered at the cost report, reading Every poste while unfiltered", (
-      tester,
-    ) async {
+    testWidgets("draws nothing at all while unfiltered", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(tester, postes: [poste]);
+      await pumpHeader(tester, postes: [poste]);
 
-      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
+      expect(find.text("Interpretation"), findsNothing);
+      expect(find.byIcon(Icons.close), findsNothing);
     });
 
     testWidgets("names the filtered poste, and offers to clear it", (tester) async {
       useWideWindow(tester);
-      String? reported;
       var wasCalled = false;
       await pumpHeader(
         tester,
         postes: [poste],
         filterPosteId: "poste-1",
-        onPosteFilterSelected: (posteId) {
-          reported = posteId;
-          wasCalled = true;
-        },
+        onPosteFilterCleared: () => wasCalled = true,
       );
 
       expect(find.text("Interpretation"), findsOneWidget);
@@ -282,77 +324,25 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(wasCalled, isTrue);
-      expect(reported, isNull);
-    });
-
-    testWidgets("offered on the committed spending too", (tester) async {
-      useWideWindow(tester);
-      final tr = await pumpHeader(tester, postes: [poste], view: OcptBudgetView.committed);
-
-      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
     });
 
     testWidgets(
-      "withheld outright — never captioned — on the dashboard, financing, régie and sharing",
+      "stands on every route, whether or not it is honoured there",
       (tester) async {
         useWideWindow(tester);
-        for (final view in [
-          OcptBudgetView.dashboard,
-          OcptBudgetView.financing,
-          OcptBudgetView.regie,
-          OcptBudgetView.sharing,
-        ]) {
-          final tr = await pumpHeader(tester, postes: [poste], view: view);
-          expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing, reason: "$view");
-          expect(find.text("Interpretation"), findsNothing, reason: "$view");
+        for (final view in OcptBudgetView.values) {
+          await pumpHeader(tester, postes: [poste], filterPosteId: "poste-1", view: view);
+          expect(find.text("Interpretation"), findsOneWidget, reason: "$view");
         }
       },
     );
-  });
 
-  testWidgets("no breadcrumb and no sub-page menu is drawn anywhere", (tester) async {
-    useWideWindow(tester);
-    for (final view in OcptBudgetView.values) {
-      await pumpHeader(tester, view: view);
-
-      expect(find.byKey(const Key("ocptBudgetBreadcrumbAncestor")), findsNothing, reason: "$view");
-      expect(find.byKey(const Key("ocptBudgetSubPageMenuButton")), findsNothing, reason: "$view");
-      expect(find.text("›"), findsNothing, reason: "$view");
-    }
-  });
-
-  group("the title and subtitle", () {
-    testWidgets("name the view on screen, not the mode", (tester) async {
+    testWidgets("draws nothing while filterPosteId names no live poste", (tester) async {
       useWideWindow(tester);
+      await pumpHeader(tester, postes: [poste], filterPosteId: "gone");
 
-      var tr = await pumpHeader(tester, view: OcptBudgetView.dashboard);
-      expect(find.text(tr.budgetHeaderDashboardTitle), findsOneWidget);
-      expect(find.text(tr.budgetHeaderDashboardSubtitle), findsOneWidget);
-
-      tr = await pumpHeader(tester);
-      expect(find.text(tr.budgetHeaderTitle), findsOneWidget);
-      expect(find.text(tr.budgetHeaderSubtitle), findsOneWidget);
-
-      tr = await pumpHeader(tester, view: OcptBudgetView.cashJournal);
-      expect(find.text(tr.budgetHeaderCashJournalTitle), findsOneWidget);
-      expect(find.text(tr.budgetHeaderCashJournalSubtitle), findsOneWidget);
-
-      tr = await pumpHeader(tester, view: OcptBudgetView.committed);
-      expect(find.text(tr.budgetCommittedSectionTitle), findsWidgets);
-      expect(find.text(tr.budgetHeaderCommittedSubtitle), findsOneWidget);
-
-      tr = await pumpHeader(tester, view: OcptBudgetView.financing);
-      expect(find.text(tr.budgetHeaderResourcesTitle), findsOneWidget);
-      expect(find.text(tr.budgetHeaderFinancingSubtitle), findsOneWidget);
-
-      tr = await pumpHeader(tester, view: OcptBudgetView.regie);
-      expect(find.text(tr.budgetHeaderRegieTitle), findsWidgets);
-      expect(find.text(tr.budgetHeaderRegieSubtitle), findsOneWidget);
-
-      // The chip and the title happen to read the same word here, exactly as they do for régie.
-      tr = await pumpHeader(tester, view: OcptBudgetView.sharing);
-      expect(find.text(tr.budgetHeaderSharingTitle), findsWidgets);
-      expect(find.text(tr.budgetHeaderSharingSubtitle), findsOneWidget);
+      expect(find.text("Interpretation"), findsNothing);
+      expect(find.byIcon(Icons.close), findsNothing);
     });
   });
 
@@ -374,17 +364,15 @@ void main() {
 
     testWidgets("drawn whatever view is on screen — a whole-project fact", (tester) async {
       useWideWindow(tester);
-      await pumpHeader(tester, view: OcptBudgetView.sharing, alertCount: 1);
+      await pumpHeader(
+        tester,
+        view: OcptBudgetView.tools,
+        toolsView: OcptBudgetToolsView.sharing,
+        alertCount: 1,
+      );
 
       expect(find.byKey(const Key("ocptBudgetAlertCountBadge")), findsOneWidget);
       expect(find.text("1"), findsOneWidget);
     });
   });
-
-  // The narrow-window case (title and subtitle shed, the controls kept) is
-  // `OcptBudgetHeader`'s own `_ocptBudgetHeaderTitleMinWidth` threshold, argued in its class doc
-  // comment; the wide-window tests above assert what survives it rather than the threshold itself,
-  // since `flutter_test`'s own substituted test font renders these short labels far wider than any
-  // real one does, which would make the threshold's own safety margin — comfortable against a real
-  // font — read as flaky here.
 }
