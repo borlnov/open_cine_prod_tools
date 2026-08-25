@@ -207,11 +207,11 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpRegieBody2,
       tr.budgetHelpRegieBody3,
       tr.budgetHelpRegieBody4,
-      tr.budgetHelpRegieBody5(tr.budgetHeaderDocumentExpensesSegmentLabel, tr.budgetHeaderRegieTitle),
+      tr.budgetHelpRegieBody5(tr.budgetHeaderCostTrackingSegmentLabel, tr.budgetHeaderRegieTitle),
     ],
     OcptBudgetView.cashJournal => [
       _captureBandBody(tr),
-      tr.budgetHelpCashJournalIntro(tr.budgetHeaderDocumentExpensesSegmentLabel),
+      tr.budgetHelpCashJournalIntro(tr.budgetHeaderCostTrackingSegmentLabel),
       tr.budgetHelpCashJournalBody1(tr.budgetCashJournalDebitLabel, tr.budgetCashJournalCreditLabel),
       tr.budgetHelpCashJournalBody2(tr.budgetCostTrackingOffQuoteLabel),
       tr.budgetHelpCashJournalBody3(tr.budgetCashJournalBalanceLabel),
@@ -246,7 +246,7 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpFinancingBody3,
       tr.budgetHelpFinancingBody4(
         tr.budgetResourceDialogReimbursableFieldLabel,
-        tr.budgetHeaderDocumentSharingSegmentLabel,
+        tr.budgetHeaderSharingSegmentLabel,
       ),
       tr.budgetHelpFinancingBody5(
         tr.budgetFinancingColumnReceived,
@@ -254,7 +254,7 @@ class OcptBudgetHelp extends StatelessWidget {
       ),
     ],
     OcptBudgetView.sharing => [
-      tr.budgetHelpSharingBody1(tr.budgetHeaderDocumentResourcesSegmentLabel),
+      tr.budgetHelpSharingBody1(tr.budgetHeaderFinancingSegmentLabel),
       tr.budgetHelpSharingBody2,
       tr.budgetHelpSharingBody3,
     ],

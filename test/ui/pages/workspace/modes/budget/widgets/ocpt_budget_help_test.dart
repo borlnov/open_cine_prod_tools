@@ -88,7 +88,7 @@ void main() {
     expect(
       find.text(
         tr.budgetHelpRegieBody5(
-          tr.budgetHeaderDocumentExpensesSegmentLabel,
+          tr.budgetHeaderCostTrackingSegmentLabel,
           tr.budgetHeaderRegieTitle,
         ),
       ),

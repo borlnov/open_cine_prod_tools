@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
@@ -338,7 +339,7 @@ class OcptBudgetFiche extends StatelessWidget {
     );
 
     return _OcptBudgetFicheScaffold(
-      breadcrumb: [tr.budgetHeaderDocumentExpensesSegmentLabel],
+      breadcrumb: [tr.budgetHeaderCostTrackingSegmentLabel],
       title: ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
       amountText: _amount(quoted.amountCents),
       stepLabels: [
@@ -908,7 +909,7 @@ class OcptBudgetFiche extends StatelessWidget {
 
     return _OcptBudgetFicheScaffold(
       breadcrumb: [
-        tr.budgetHeaderDocumentResourcesSegmentLabel,
+        tr.budgetHeaderFinancingSegmentLabel,
         ocptBudgetResourceGroupKindLabel(tr, resource.groupKind),
       ],
       title: resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
@@ -967,7 +968,10 @@ class OcptBudgetFiche extends StatelessWidget {
     final canReceive = !isReadOnly && outstandingCents > 0 && onRevenueReceiptRequested != null;
 
     return _OcptBudgetFicheScaffold(
-      breadcrumb: [tr.budgetHeaderDocumentSharingSegmentLabel],
+      breadcrumb: [
+        tr.budgetHeaderFinancingSegmentLabel,
+        ocptBudgetResourceFamilyLabel(tr, OcptBudgetResourceFamily.takings),
+      ],
       title: revenue.label.isEmpty ? tr.budgetPosteUnnamed : revenue.label,
       amountText: _amount(revenue.amountCents),
       hint: revenue.notes.isEmpty ? null : revenue.notes,

@@ -252,7 +252,7 @@ void main() {
         );
         final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
-        expect(find.text(tr.budgetHeaderDocumentExpensesSegmentLabel), findsOneWidget);
+        expect(find.text(tr.budgetHeaderCostTrackingSegmentLabel), findsOneWidget);
         expect(find.text("Sets and costumes"), findsWidgets);
         // Quote is the line's own 10.00 €, nothing paid or committed against it yet.
         expect(find.text(ocptBudgetAmountLabel(1000, "EUR")), findsWidgets);

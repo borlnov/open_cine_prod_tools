@@ -10611,24 +10611,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderDocumentExpensesSegmentLabel": "Expenses",
-  "@budgetHeaderDocumentExpensesSegmentLabel": {
-    "description": "Name of the expenses document, as a cross-reference in the fiche's own breadcrumb and in the help panel's own body text",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderDocumentResourcesSegmentLabel": "Resources",
-  "@budgetHeaderDocumentResourcesSegmentLabel": {
-    "description": "Name of the resources document, as a cross-reference in the fiche's own breadcrumb and in the help panel's own body text",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderDocumentSharingSegmentLabel": "Sharing",
-  "@budgetHeaderDocumentSharingSegmentLabel": {
-    "description": "Name of the sharing document, as a cross-reference in the fiche's own breadcrumb and in the help panel's own body text",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetHeaderDashboardSegmentLabel": "Dashboard",
   "@budgetHeaderDashboardSegmentLabel": {
     "description": "Label of the header's Dashboard view chip",
