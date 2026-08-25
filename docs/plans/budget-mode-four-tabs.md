@@ -58,15 +58,16 @@ codec step. What changes is where the user meets a figure, and how they type one
 
 ## 3. The one thing the mockups do not settle
 
-**Where the cash projection goes.** `lib/utils/ocpt_budget_projection.dart` is drawn today in the
-committed view's right column, and the committed view is being deleted. The mockup draws it
-nowhere.
+**Where the account's future goes.** Deleting the committed view takes two things with it, and they
+are the same thing twice: `lib/utils/ocpt_budget_projection.dart`, drawn in that view's right
+column, and the view's own commitments table, **due-date ordered across every poste** — which is
+what answers "what do I owe this week". The expenses tree groups by poste, so the same question
+would cost ten unfoldings. The mockup draws neither.
 
-**Recommendation to confirm at the M2 checkpoint: the tools drawer's cash-flow page**, under the
-statement — the account's future directly under the account's past, read from the same commitments
-the expenses table already shows. The alternative is the dashboard, which is defensible but makes a
-read-only summary carry a forecast nobody asked it for. **Do not build either until Benoit has
-answered.**
+**Recommendation, to confirm at the M2 checkpoint: both go to the tools drawer's cash-flow page**,
+as an `À venir` section under the statement — the account's past above, its future below, in one
+place. The alternative is the dashboard, which is defensible but makes a page this plan reduces to
+a summary carry a forecast and a worklist. **Do not build either until Benoit has answered.**
 
 ## 4. The shape to build
 
@@ -114,8 +115,14 @@ Each milestone ends green on all nine gates and stops for Benoit.
 segmented control drawn as a second `.seg`, never a chevron or a menu. **The left dock
 (`OcptBudgetPosteDock`) is deleted**, and `budgetLeftDockFraction` with it — the mockup draws no
 left dock, and the sentence in `docs/architecture/budget.md` claiming the mockup drew one is wrong
-and goes with it. **The band's breadcrumb is deleted**; an active poste filter is announced instead
-by a removable tag in the band (mockup `4d`), drawn only while a filter is set.
+and goes with it. **The band's breadcrumb is deleted.**
+
+The poste filter is not orphaned by the dock's deletion — the header already owns
+`_OcptBudgetPosteFilter`. Two changes to it: it draws **nothing at all** while no filter is set,
+becoming the removable tag the mockup shows at `4d` only once one is, since a control announcing
+"all postes" all day is the very thing the breadcrumb was faulted for; and picking a poste moves to
+the `⋮` menu of its own row in the expenses table, which is the dock card's gesture ported rather
+than a new one.
 
 The cash journal moves into the drawer as `Flux de trésorerie`, **read-only**: no capture affordance
 of any kind, but its rows stay selectable so the right-dock fiche keeps `Modifier` / `Supprimer`.
@@ -132,8 +139,9 @@ cash projection per §3, **after Benoit has answered**.
 ### M3 — the dashboard, reduced
 
 Four tiles (`Devis total`, `Financement acquis`, `Dépensé`, `Solde en banque`), the balance band,
-the standing alerts. **The feed cards are deleted** — they navigate, they do not summarise. No
-capture, no form. A poste row still opens that poste in Expenses: selecting is not writing.
+the standing alerts. **The feed card is removed from this page** — it navigates, it does not
+summarise. `OcptBudgetFeedCard` itself stays: the régie draws it too, at its own top, and keeps it.
+No capture, no form. A poste row still opens that poste in Expenses: selecting is not writing.
 `Dépensé` includes off-quote spending, and says so, so that it agrees with the expenses table's own
 total, which already folds `Hors devis` in. Mockup `4a`.
 
