@@ -10562,6 +10562,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderDashboardTitle": "Overview",
+  "@budgetHeaderDashboardTitle": {
+    "description": "Title of the budget mode's header band while the dashboard is shown",
+    "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderDashboardSubtitle": "What the production has quoted, paid and committed so far.",
+  "@budgetHeaderDashboardSubtitle": {
+    "description": "Subtitle of the budget mode's header band while the dashboard is shown",
+    "context": "Shown at the left of OcptBudgetHeader, under its own title",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetHeaderCashJournalTitle": "Cash flow",
   "@budgetHeaderCashJournalTitle": {
     "description": "Title of the budget mode's header band while the cash journal is shown",
@@ -10615,6 +10629,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetHeaderDashboardSegmentLabel": "Dashboard",
+  "@budgetHeaderDashboardSegmentLabel": {
+    "description": "Label of the header's Dashboard view chip",
+    "context": "Displayed on the budget mode's own view switch",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetHeaderCostTrackingSegmentLabel": "Cost tracking",
   "@budgetHeaderCostTrackingSegmentLabel": {
     "description": "Label of the header's own cost-tracking view chip",
@@ -10649,6 +10670,17 @@
     "context": "Displayed on the budget mode's own view switch",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetHeaderAlertCountSemanticsLabel": "{count, plural, =1{1 standing alert} other{{count} standing alerts}}",
+  "@budgetHeaderAlertCountSemanticsLabel": {
+    "description": "Screen-reader label of the count badge on the header's Dashboard view chip",
+    "context": "Read instead of the bare digit the badge otherwise shows",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "budgetHeaderResourcesTitle": "Financing plan",
   "@budgetHeaderResourcesTitle": {
@@ -10961,6 +10993,95 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetDashboardQuotedTotalLabel": "Quoted total",
+  "@budgetDashboardQuotedTotalLabel": {
+    "description": "Label of the dashboard's own quoted-total KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardExcludingTaxTotalLabel": "Excluding tax",
+  "@budgetDashboardExcludingTaxTotalLabel": {
+    "description": "Label of the dashboard's own excluding-tax-total KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardCoverageCaption": "over {coveredCount} of {lineCount} lines",
+  "@budgetDashboardCoverageCaption": {
+    "description": "Caption under the dashboard's excluding-tax-total KPI, while some lines carry no known rate",
+    "context": "Displayed under the excluding-tax-total figure; disappears once every line declares a rate",
+    "type": "text",
+    "placeholders": {
+      "coveredCount": {
+        "type": "int"
+      },
+      "lineCount": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetDashboardPosteCountLabel": "Postes",
+  "@budgetDashboardPosteCountLabel": {
+    "description": "Label of the dashboard's own poste-count KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardLineCountLabel": "Quote lines",
+  "@budgetDashboardLineCountLabel": {
+    "description": "Label of the dashboard's own line-count KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardPostesSectionTitle": "Postes",
+  "@budgetDashboardPostesSectionTitle": {
+    "description": "Title of the dashboard's own poste-by-poste section",
+    "context": "Displayed above the budget mode's dashboard poste rows",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardCashBalanceLabel": "Cash balance",
+  "@budgetDashboardCashBalanceLabel": {
+    "description": "Label of the dashboard's own cash-balance KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardPaidLabel": "Paid",
+  "@budgetDashboardPaidLabel": {
+    "description": "Label of the dashboard's own paid KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardCommittedLabel": "Committed",
+  "@budgetDashboardCommittedLabel": {
+    "description": "Label of the dashboard's own committed KPI",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardResourcesTotalLabel": "Total resources",
+  "@budgetDashboardResourcesTotalLabel": {
+    "description": "Label of the dashboard's own financing KPI: the financing plan's own total",
+    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardResourcesInKindCaption": "{amount} in kind",
+  "@budgetDashboardResourcesInKindCaption": {
+    "description": "Caption under the Total resources KPI, naming how much of it is in-kind",
+    "context": "Displayed in the budget mode's dashboard KPI row",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "The in-kind amount, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
   "budgetDashboardBalanceNeedsLabel": "Needs",
   "@budgetDashboardBalanceNeedsLabel": {
     "description": "Label of the needs/resources balance bar's own left-hand figure: the quote's own total",
@@ -11002,6 +11123,18 @@
     "context": "Displayed under the budget mode's dashboard balance bar",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetDashboardBalanceShortfallMessage": "Short by {amount}.",
+  "@budgetDashboardBalanceShortfallMessage": {
+    "description": "Message under the balance bar while the financing plan still falls short of the quote",
+    "context": "Displayed under the budget mode's dashboard balance bar",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "How much the financing plan still falls short by, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
   },
   "budgetDashboardFeedSectionTitle": "What feeds this budget",
   "@budgetDashboardFeedSectionTitle": {
