@@ -10666,8 +10666,8 @@
   },
   "budgetHeaderResourcesTitle": "Financing plan",
   "@budgetHeaderResourcesTitle": {
-    "description": "Title of the budget mode's own header band while showing the resources document",
-    "context": "Displayed at the top of the budget mode's centre, above the document chips",
+    "description": "Title of the budget mode's own header band while showing the financing view",
+    "context": "Displayed at the top of the budget mode's centre, above the view chips",
     "type": "text",
     "placeholders": {}
   },
@@ -12203,7 +12203,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderFinancingSubtitle": "Subsidies, cash and in-kind contributions, and what has actually come in against each.",
+  "budgetHeaderFinancingSubtitle": "Subsidies, cash and in-kind contributions, what the film itself earns, and what has actually come in against each.",
   "@budgetHeaderFinancingSubtitle": {
     "description": "Subtitle of the header band while the financing view is on screen",
     "context": "Displayed above the budget mode's own financing view",
@@ -12416,9 +12416,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingCoverageExpensesAction": "View expenses",
+  "budgetFinancingCoverageExpensesAction": "View cost tracking",
   "@budgetFinancingCoverageExpensesAction": {
-    "description": "The coverage band's own action, returning to the expenses document",
+    "description": "The coverage band's own action, switching to the cost-tracking view",
     "context": "Displayed under the budget mode's own resources tree",
     "type": "text",
     "placeholders": {}
@@ -13940,85 +13940,85 @@
   },
   "budgetHelpChainExpensesEstimatedCaption": "(the quote)",
   "@budgetHelpChainExpensesEstimatedCaption": {
-    "description": "Caption under the Estimated step of the expenses document's own help chain",
-    "context": "Displayed under the Estimated step of the budget mode's own help chain, on the expenses document",
+    "description": "Caption under the Estimated step of the expenses chain",
+    "context": "Displayed under the Estimated step of the budget mode's own help chain, on the expenses chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainExpensesCommittedCaption": "(a commitment)",
   "@budgetHelpChainExpensesCommittedCaption": {
-    "description": "Caption under the Committed step of the expenses document's own help chain",
-    "context": "Displayed under the Committed step of the budget mode's own help chain, on the expenses document",
+    "description": "Caption under the Committed step of the expenses chain",
+    "context": "Displayed under the Committed step of the budget mode's own help chain, on the expenses chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainExpensesPaidCaption": "(an entry)",
   "@budgetHelpChainExpensesPaidCaption": {
-    "description": "Caption under the Paid step of the expenses document's own help chain",
-    "context": "Displayed under the Paid step of the budget mode's own help chain, on the expenses document",
+    "description": "Caption under the Paid step of the expenses chain",
+    "context": "Displayed under the Paid step of the budget mode's own help chain, on the expenses chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainExpensesSentence": "A quote line becomes a commitment, and the commitment is settled by an entry that names it.",
   "@budgetHelpChainExpensesSentence": {
-    "description": "Sentence under the expenses document's own help chain, saying how one step becomes the next",
-    "context": "Displayed under the budget mode's own help chain, on the expenses document",
+    "description": "Sentence under the expenses chain, saying how one step becomes the next",
+    "context": "Displayed under the budget mode's own help chain, on the expenses chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainResourcesPromisedCaption": "(a resource or a taking)",
   "@budgetHelpChainResourcesPromisedCaption": {
-    "description": "Caption under the Promised step of the resources document's own help chain",
-    "context": "Displayed under the Promised step of the budget mode's own help chain, on the resources document",
+    "description": "Caption under the Promised step of the resources chain",
+    "context": "Displayed under the Promised step of the budget mode's own help chain, on the resources chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainResourcesReceivedCaption": "(an entry naming it)",
   "@budgetHelpChainResourcesReceivedCaption": {
-    "description": "Caption under the Received step of the resources document's own help chain",
-    "context": "Displayed under the Received step of the budget mode's own help chain, on the resources document",
+    "description": "Caption under the Received step of the resources chain",
+    "context": "Displayed under the Received step of the budget mode's own help chain, on the resources chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainResourcesSentence": "Nothing here is settled by hand — what has arrived is summed from the journal's credits that name the row.",
   "@budgetHelpChainResourcesSentence": {
-    "description": "Sentence under the resources document's own help chain, saying how one step becomes the next",
-    "context": "Displayed under the budget mode's own help chain, on the resources document",
+    "description": "Sentence under the resources chain, saying how one step becomes the next",
+    "context": "Displayed under the budget mode's own help chain, on the resources chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainSharingReceivedCaption": "(the takings)",
   "@budgetHelpChainSharingReceivedCaption": {
-    "description": "Caption under the Received step of the sharing document's own help chain",
-    "context": "Displayed under the Received step of the budget mode's own help chain, on the sharing document",
+    "description": "Caption under the Received step of the sharing chain",
+    "context": "Displayed under the Received step of the budget mode's own help chain, on the sharing chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainSharingRepaidCaption": "(the reimbursable contributions)",
   "@budgetHelpChainSharingRepaidCaption": {
-    "description": "Caption under the Already repaid step of the sharing document's own help chain",
-    "context": "Displayed under the Already repaid step of the budget mode's own help chain, on the sharing document",
+    "description": "Caption under the Already repaid step of the sharing chain",
+    "context": "Displayed under the Already repaid step of the budget mode's own help chain, on the sharing chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainSharingLeftToShareCaption": "(the agreed shares)",
   "@budgetHelpChainSharingLeftToShareCaption": {
-    "description": "Caption under the Left to share step of the sharing document's own help chain",
-    "context": "Displayed under the Left to share step of the budget mode's own help chain, on the sharing document",
+    "description": "Caption under the Left to share step of the sharing chain",
+    "context": "Displayed under the Left to share step of the budget mode's own help chain, on the sharing chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpChainSharingSentence": "The takings come in, the reimbursable contributions come off the top, and only what is left is divided by the agreed shares.",
   "@budgetHelpChainSharingSentence": {
-    "description": "Sentence under the sharing document's own help chain, saying how one step becomes the next",
-    "context": "Displayed under the budget mode's own help chain, on the sharing document",
+    "description": "Sentence under the sharing chain, saying how one step becomes the next",
+    "context": "Displayed under the budget mode's own help chain, on the sharing chain",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpCaptureBandBody": "{title} asks for four things: a direction, an amount, a name, a date. The moment they are typed, the app proposes what the movement settles — {accept} answers in one click, {other} opens the full form instead.",
   "@budgetHelpCaptureBandBody": {
-    "description": "Paragraph of the budget mode's help panel explaining the capture band, opening the expenses and the resources documents",
-    "context": "Displayed on the budget mode's own Help tab, on the expenses and the resources documents",
+    "description": "Paragraph of the budget mode's help panel explaining the capture band, opening the cost-tracking, the cash-journal and the financing views",
+    "context": "Displayed on the budget mode's own Help tab, on the cost-tracking, the cash-journal and the financing views",
     "type": "text",
     "placeholders": {
       "title": {
