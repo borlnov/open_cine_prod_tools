@@ -521,9 +521,9 @@ record of them.
 
 ## The expenses tree nests what used to sit apart
 
-- `OcptBudgetCostTracking` (`ocpt_budget_cost_tracking.dart`) draws `OcptBudgetView.costTracking`
-  as one nesting table: a poste opens on its own quote lines, a quote line opens
-  on its own commitment and the entry that settled it — or, while it is still owed, a muted
+- `OcptBudgetCostTracking` (`ocpt_budget_cost_tracking.dart`) draws `OcptBudgetView.costTracking` as
+  one nesting table: a poste opens on its own quote lines, a quote line opens on its own commitment
+  and the entry that settled it — or, while it is still owed, a muted
   `tr.budgetCostTrackingNoEntryHint` row saying so in words rather than drawing nothing — and a
   poste's own **off-line** commitments and entries, the ones naming no `lineId`, draw at the poste's
   own indentation once it is open, since they have no line to nest under. A commitment or an entry
@@ -711,12 +711,11 @@ record of them.
 - **It keeps its own half-typed draft across `costTracking` and `cashJournal`, and remounts fresh
   only moving into or out of `financing`.** The first two read the very same underlying data, poste
   by poste or by date, so a reader clicking from one to the other is not switching what the band is
-  capturing, only how the rest of the screen reads it — losing a half-typed draft over a click that
-  changed nothing about the movement itself would read as the app forgetting what it was just told.
-  `financing` is a different direction outright, a credit rather than a debit, and earns a fresh
-  draft the way any other change of subject would; the band is keyed on `_captureBandDirectionOf`'s
-  own answer, so it remounts exactly when that answer changes and stays mounted exactly when it does
-  not.
+  capturing, only how the rest of the screen reads it, and losing a half-typed draft over that click
+  would read as the app forgetting what it was just told. `financing` is a different direction
+  outright, a credit rather than a debit, and earns a fresh draft the way any other change of
+  subject would: the band is keyed on `_captureBandDirectionOf`'s own answer, so it remounts exactly
+  when that answer changes.
 - **The moment amount and wording are both typed, the app proposes what the movement settles.**
   `ocptBudgetMatchSuggestionsOf` (`lib/utils/ocpt_budget_match.dart`, pure) ranks what a draft
   movement — direction, amount, date, wording — could settle among the commitments still owed and
