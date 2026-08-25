@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_projection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
@@ -43,6 +44,15 @@ const double _ocptCommittedMenuColumnWidth = 36;
 /// silently, since a release build paints no overflow band.
 const double _ocptCommittedMinTableWidth = 792;
 
+/// The narrowest the pane is drawn with the cash projection beside the table rather than under it,
+/// in logical pixels — the table's own floor ([_ocptCommittedMinTableWidth], 792) plus a
+/// comfortable column for the projection ([_ocptCommittedProjectionColumnWidth], 280) plus the gap
+/// between them (16): `792 + 16 + 280 = 1088`.
+const double _ocptCommittedProjectionSideBySideWidth = 1088;
+
+/// The cash-projection column's own fixed width, in logical pixels, once it draws beside the table.
+const double _ocptCommittedProjectionColumnWidth = 280;
+
 const double _ocptCommittedRowHeight = 44;
 
 /// The header row's own fixed height, in logical pixels.
@@ -53,10 +63,10 @@ const double _ocptCommittedHeaderRowHeight = 36;
 /// solid.
 const List<double> _ocptCommittedStatusFillAlphas = [0, 0.12, 0.2, 1];
 
-/// The budget mode's committed-spending view: a heading band, then the outstanding commitments —
-/// **a single column**, the layout `OcptBudgetHeader`'s own alerts band left this view once the
-/// cash projection that used to sit beside it moved there instead
-/// (`docs/architecture/budget.md`'s own "What is promised is one place, read in two directions").
+/// The budget mode's committed-spending view: a heading band, then the outstanding commitments
+/// beside their own cash projection ([OcptBudgetCashProjection]) in a right-hand column — the
+/// layout the mockup draws, and the one this view had before a since-reverted rework re-homed the
+/// projection into the header's own alerts band.
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and withholds — never disables — every one of its own
@@ -71,14 +81,40 @@ const List<double> _ocptCommittedStatusFillAlphas = [0, 0.12, 0.2, 1];
 /// `ocptBudgetCommittedCentsByPosteId` already excludes it (its own doc comment), which is why this
 /// view never re-derives that exclusion itself.
 ///
+/// **The projection reads [allCommitments], whole — settled ones included, the poste filter never
+/// applied.** `ocptBudgetProjectionOf` excludes a settled commitment itself, and the projection is a
+/// standing fact about the whole account, exactly the argument
+/// "The journal's balance is the whole journal's" already makes for the top band's own figures — a
+/// filtered projection would answer a question about one poste while wearing the label of the whole
+/// project's own cash. [commitments], by contrast, is the poste filter's own narrowed list: what the
+/// table beside the projection actually draws.
+///
+/// **The projection draws only while [allCommitments] holds at least one unsettled commitment** — a
+/// card with nothing to project draws nothing, the very rule the header's own alerts band used to
+/// state before this view took the projection back.
+///
+/// **Beside the table above a width threshold, under it below one.** A `LayoutBuilder` chooses a
+/// `Row` (the table `Expanded`, the projection in its own narrower column) once there is room for
+/// both without crushing either, and a `Column` otherwise. The stacking machinery this view carried
+/// before the projection was ever extracted into its own widget — sizing a column by counting the
+/// projection's own step rows — is **not** rebuilt: the projection is a card that starts collapsed
+/// on one summary line now, so that arithmetic no longer describes anything it draws.
+///
 /// Empty state: a project carrying no commitment at all shows [OcptWorkspaceEmptyMode] **where the
 /// table would be, under a heading band that stays drawn** — `OcptBudgetCashJournal`'s own reading,
 /// and for its reason: `+ Commitment` lives in that band, and a list nobody has written in yet is
-/// exactly when somebody reaches for it.
+/// exactly when somebody reaches for it. The projection still draws beside it while [allCommitments]
+/// says it should: an empty filtered table does not mean the project's own cash has nothing to
+/// project.
 class OcptBudgetCommittedSpending extends StatelessWidget {
-  /// Every live commitment, in the due-date order `OcptBudgetJournalService.loadCommitments` gives
-  /// them — never reordered here.
+  /// The poste filter's own narrowed list, in the due-date order
+  /// `OcptBudgetJournalService.loadCommitments` gives them — never reordered here. What the table
+  /// draws.
   final List<OcptBudgetCommitment> commitments;
+
+  /// Every live commitment of the project, whole — never narrowed by the poste filter. What
+  /// [OcptBudgetCashProjection] projects, and whether it draws at all — see the class doc comment.
+  final List<OcptBudgetCommitment> allCommitments;
 
   /// Every live poste of the project, used to resolve a commitment's own poste name.
   final List<OcptBudgetPoste> postes;
@@ -91,6 +127,10 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
+
+  /// The cash journal's own balance — the figure [OcptBudgetCashProjection] opens at, whole, for
+  /// the very same reason [allCommitments] is.
+  final int openingBalanceCents;
 
   /// Whether the mode shows a project version being previewed read-only — see the class doc
   /// comment.
@@ -121,10 +161,12 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
   const OcptBudgetCommittedSpending({
     super.key,
     required this.commitments,
+    required this.allCommitments,
     required this.postes,
     required this.isSimplified,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
+    required this.openingBalanceCents,
     required this.isReadOnly,
     required this.onCommitmentCreationRequested,
     required this.onCommitmentTapped,
@@ -136,6 +178,9 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outstanding = _outstandingTotalOf();
+    // See the class doc comment: a card with nothing to project draws nothing, [allCommitments]
+    // read whole rather than the poste filter's own narrowed [commitments].
+    final showsCashProjection = allCommitments.any((commitment) => !commitment.isSettled);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -147,62 +192,98 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: commitments.isEmpty
-              ? OcptWorkspaceEmptyMode(
-                  icon: Icons.request_quote_outlined,
-                  // See `OcptBudgetCashJournal`'s own empty state for why the simplified reading
-                  // gets a sentence of its own rather than the trade word.
-                  message: isSimplified
-                      ? Tr.of(context).budgetCommittedSimpleEmptyHint
-                      : Tr.of(context).budgetCommittedEmptyHint,
-                )
+          child: !showsCashProjection
+              ? _buildTable(context)
               : LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    // The header and the rows scroll **together**, for the reason
-                    // `OcptBudgetCashJournal` gives: they share one set of fixed column widths.
-                    child: SizedBox(
-                      width: math.max(constraints.maxWidth, _ocptCommittedMinTableWidth),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const _OcptCommittedHeaderRow(),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: commitments.length,
-                                itemBuilder: (context, index) => _OcptCommittedRow(
-                                  commitment: commitments[index],
-                                  poste: _posteById(commitments[index].posteId),
-                                  isSimplified: isSimplified,
-                                  defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-                                  currencyCode: currencyCode,
-                                  onTap: isReadOnly || onCommitmentTapped == null
-                                      ? null
-                                      : () => onCommitmentTapped?.call(commitments[index]),
-                                  onSettleRequested: isReadOnly || onCommitmentSettleRequested == null
-                                      ? null
-                                      : () => onCommitmentSettleRequested?.call(commitments[index]),
-                                  onUnsettleRequested: isReadOnly || onCommitmentUnsettleRequested == null
-                                      ? null
-                                      : () => onCommitmentUnsettleRequested?.call(commitments[index].id),
-                                  onDeletionRequested: isReadOnly || onCommitmentDeletionRequested == null
-                                      ? null
-                                      : () => onCommitmentDeletionRequested?.call(commitments[index].id),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  builder: (context, constraints) {
+                    final projection = OcptBudgetCashProjection(
+                      openingBalanceCents: openingBalanceCents,
+                      commitments: allCommitments,
+                      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                      currencyCode: currencyCode,
+                    );
+
+                    if (constraints.maxWidth >= _ocptCommittedProjectionSideBySideWidth) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildTable(context)),
+                          const SizedBox(width: 16),
+                          SizedBox(width: _ocptCommittedProjectionColumnWidth, child: projection),
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _buildTable(context)),
+                        const SizedBox(height: 12),
+                        projection,
+                      ],
+                    );
+                  },
                 ),
         ),
       ],
     );
   }
+
+  /// The commitments table itself, or [OcptWorkspaceEmptyMode] while [commitments] holds nothing —
+  /// pulled out of [build] so the cash projection can sit beside it or under it without either
+  /// branch duplicating this whole subtree.
+  Widget _buildTable(BuildContext context) => commitments.isEmpty
+      ? OcptWorkspaceEmptyMode(
+          icon: Icons.request_quote_outlined,
+          // See `OcptBudgetCashJournal`'s own empty state for why the simplified reading gets a
+          // sentence of its own rather than the trade word.
+          message: isSimplified
+              ? Tr.of(context).budgetCommittedSimpleEmptyHint
+              : Tr.of(context).budgetCommittedEmptyHint,
+        )
+      : LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            // The header and the rows scroll **together**, for the reason `OcptBudgetCashJournal`
+            // gives: they share one set of fixed column widths.
+            child: SizedBox(
+              width: math.max(constraints.maxWidth, _ocptCommittedMinTableWidth),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _OcptCommittedHeaderRow(),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: commitments.length,
+                        itemBuilder: (context, index) => _OcptCommittedRow(
+                          commitment: commitments[index],
+                          poste: _posteById(commitments[index].posteId),
+                          isSimplified: isSimplified,
+                          defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                          currencyCode: currencyCode,
+                          onTap: isReadOnly || onCommitmentTapped == null
+                              ? null
+                              : () => onCommitmentTapped?.call(commitments[index]),
+                          onSettleRequested: isReadOnly || onCommitmentSettleRequested == null
+                              ? null
+                              : () => onCommitmentSettleRequested?.call(commitments[index]),
+                          onUnsettleRequested: isReadOnly || onCommitmentUnsettleRequested == null
+                              ? null
+                              : () => onCommitmentUnsettleRequested?.call(commitments[index].id),
+                          onDeletionRequested: isReadOnly || onCommitmentDeletionRequested == null
+                              ? null
+                              : () => onCommitmentDeletionRequested?.call(commitments[index].id),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
 
   /// The outstanding total, tax-inclusive, over every **unsettled** commitment — the sum of
   /// `ocptBudgetCommittedCentsByPosteId`'s own per-poste reading, which already excludes a settled

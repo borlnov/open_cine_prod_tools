@@ -61,11 +61,17 @@ OcptBudgetCommitment _commitment({
 
 void main() {
   /// Pumps [OcptBudgetCommittedSpending] with every callback a no-op unless overridden.
+  ///
+  /// [allCommitments] defaults to empty — never the same list as [commitments] — so a test that
+  /// says nothing about the projection gets none, exactly as it read before this widget took the
+  /// projection back: only a test that means to exercise it passes one.
   Future<void> pumpView(
     WidgetTester tester, {
     required List<OcptBudgetCommitment> commitments,
+    List<OcptBudgetCommitment> allCommitments = const [],
     List<OcptBudgetPoste> postes = const [],
     int? defaultVatRateBasisPoints,
+    int openingBalanceCents = 0,
     bool isReadOnly = false,
     VoidCallback? onCommitmentCreationRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentTapped,
@@ -79,10 +85,12 @@ void main() {
         size: size,
         OcptBudgetCommittedSpending(
           commitments: commitments,
+          allCommitments: allCommitments,
           postes: postes,
           isSimplified: false,
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           currencyCode: "EUR",
+          openingBalanceCents: openingBalanceCents,
           isReadOnly: isReadOnly,
           onCommitmentCreationRequested: onCommitmentCreationRequested ?? () {},
           onCommitmentTapped: onCommitmentTapped ?? (_) {},
@@ -202,6 +210,56 @@ void main() {
     await tester.tap(find.text("Camera rental"));
     await tester.pumpAndSettle();
     expect(tapped, isFalse);
+  });
+
+  group("the cash projection", () {
+    testWidgets("drawn beside the table while at least one commitment is unsettled", (
+      tester,
+    ) async {
+      await pumpView(
+        tester,
+        commitments: [_commitment(id: "c1", dueDate: DateTime(2026))],
+        allCommitments: [_commitment(id: "c1", dueDate: DateTime(2026))],
+        openingBalanceCents: 5000,
+      );
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsOneWidget);
+    });
+
+    testWidgets("withheld while every commitment is settled", (tester) async {
+      await pumpView(
+        tester,
+        commitments: [_commitment(id: "c1", dueDate: DateTime(2026))],
+        allCommitments: [_commitment(id: "c1", dueDate: DateTime(2026), settledEntryId: "entry-1")],
+        openingBalanceCents: 5000,
+      );
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
+    });
+
+    testWidgets("withheld while the project carries no commitment at all", (tester) async {
+      await pumpView(tester, commitments: const [], openingBalanceCents: 5000);
+
+      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
+    });
+
+    testWidgets(
+      "reads every commitment, even one the poste filter left out of the table",
+      (tester) async {
+        // The table itself is filtered down to nothing — its own empty state draws — while the
+        // project still holds an unsettled commitment elsewhere, which the projection reads
+        // regardless: `allCommitments` is never narrowed by the poste filter.
+        await pumpView(
+          tester,
+          commitments: const [],
+          allCommitments: [_commitment(id: "c1", dueDate: DateTime(2026))],
+          openingBalanceCents: 5000,
+        );
+
+        expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
+        expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsOneWidget);
+      },
+    );
   });
 
   testWidgets("the table scrolls sideways rather than overflowing a narrow centre", (tester) async {

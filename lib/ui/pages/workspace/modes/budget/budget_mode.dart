@@ -1030,10 +1030,15 @@ class _BudgetViewState extends State<_BudgetView> {
 
     return OcptBudgetCommittedSpending(
       commitments: _filteredCommitmentsOf(state),
+      // Whole, never narrowed by `state.filterPosteId` — see `OcptBudgetCommittedSpending`'s own
+      // class doc comment for why the cash-projection card reads exactly what the top band's own
+      // whole-journal figures do.
+      allCommitments: state.commitments,
       postes: state.postes,
       isSimplified: state.isSimplified,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
+      openingBalanceCents: state.cashTotals.balanceCents,
       isReadOnly: isReadOnly,
       onCommitmentCreationRequested: isReadOnly
           ? null

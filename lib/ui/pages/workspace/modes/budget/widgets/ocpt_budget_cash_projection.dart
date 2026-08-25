@@ -21,11 +21,10 @@ const double _ocptCashProjectionDueDateColumnWidth = 92;
 /// The balance column's own fixed width, in logical pixels.
 const double _ocptCashProjectionAmountColumnWidth = 108;
 
-/// The budget mode's cash projection: a collapsible card, re-homed here from the committed-spending
-/// view (`docs/architecture/budget.md`'s own "What is promised is one place, read in two
-/// directions") into `OcptBudgetHeader`'s own alerts band, on `OcptBudgetView.costTracking` and
-/// `OcptBudgetView.cashJournal` alone and only while the project carries at least one unsettled
-/// commitment — the header decides both, this widget only ever draws what it is handed.
+/// The budget mode's cash projection: a collapsible card, drawn in its own right-hand column beside
+/// `OcptBudgetCommittedSpending`'s own table, and only while the project carries at least one
+/// unsettled commitment — `OcptBudgetCommittedSpending` decides both, this widget only ever draws
+/// what it is handed.
 ///
 /// **Reads `ocptBudgetProjectionOf` and every rule it already states**, unchanged: [commitments] is
 /// handed in whole, not pre-filtered to the unsettled ones, since a settled commitment is excluded
@@ -39,8 +38,8 @@ const double _ocptCashProjectionAmountColumnWidth = 108;
 /// than from every `build`.
 ///
 /// **Writes nothing at all**, so it carries no `isReadOnly` flag and draws identically under a
-/// previewed version — the very reading `OcptBudgetHelp` and the alert cards beside it already
-/// give: a card that only reads is never withheld.
+/// previewed version — the very reading `OcptBudgetHelp` already gives: a card that only reads is
+/// never withheld.
 class OcptBudgetCashProjection extends StatefulWidget {
   /// The cash journal's own balance — `OcptBudgetCashTotals.balanceCents` — the figure the
   /// projection opens at.
