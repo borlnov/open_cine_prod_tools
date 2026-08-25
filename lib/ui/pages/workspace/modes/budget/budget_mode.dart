@@ -763,8 +763,8 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// A dashboard poste row is a link to where the poste is worked on, not a selection of its own —
   /// see `OcptBudgetDashboard.onPosteOpened`'s own doc comment. Selects [posteId] and switches to
-  /// [OcptBudgetView.costTracking] in the same gesture, mirroring the header's own alert action at
-  /// [_buildCentre].
+  /// [OcptBudgetView.costTracking] in the same gesture — the very reading the header's own
+  /// poste-over-quote alert action gave before the alerts moved to the dashboard with it.
   void _handleDashboardPosteOpened(OcptBudgetBloc bloc, String posteId) {
     bloc
       ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
