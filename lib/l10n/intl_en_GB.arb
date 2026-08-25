@@ -11614,13 +11614,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCommittedSimpleEmptyHint": "Record something you have promised to pay but have not paid yet.",
-  "@budgetCommittedSimpleEmptyHint": {
-    "description": "Empty-state hint of the committed spending view while the header's simplified switch reads simplified",
-    "context": "Shown in place of the detailed wording, which names the ledger by its trade word",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCashJournalEmptyHint": "Record a payment or a receipt to start the cash journal.",
   "@budgetCashJournalEmptyHint": {
     "description": "Hint of the cash journal view's own empty state",
@@ -11901,52 +11894,10 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCommittedEmptyHint": "Record a quote, a contract or an invoice to start tracking commitments.",
-  "@budgetCommittedEmptyHint": {
-    "description": "Hint of the committed-spending view's own empty state",
-    "context": "Shown in place of the committed-spending view for a project with no commitment at all",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCommittedExplanationHint": "Money promised but not yet gone from the account: a quote accepted, a contract signed, an invoice received, or a spend declared.",
-  "@budgetCommittedExplanationHint": {
-    "description": "Muted sentence explaining what a commitment is",
-    "context": "Displayed under the committed-spending view's own section title",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCommittedOutstandingLabel": "Still owed",
   "@budgetCommittedOutstandingLabel": {
     "description": "Label of the committed-spending view's own outstanding total, which excludes every settled commitment",
     "context": "Displayed at the top of the budget mode's committed-spending view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCommittedCoverageReadOut": "over {coveredCount} of the {commitmentCount} outstanding commitments",
-  "@budgetCommittedCoverageReadOut": {
-    "description": "The committed-spending view's own coverage read-out, while some outstanding commitments carry no known rate",
-    "context": "Displayed under the outstanding total once every outstanding commitment carries a known rate, this disappears",
-    "type": "text",
-    "placeholders": {
-      "coveredCount": {
-        "type": "int"
-      },
-      "commitmentCount": {
-        "type": "int"
-      }
-    }
-  },
-  "budgetCommittedColumnDueDate": "Due date",
-  "@budgetCommittedColumnDueDate": {
-    "description": "Header of the commitments table's due-date column",
-    "context": "Displayed at the top of the budget mode's commitments table",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCommittedColumnStatus": "Status",
-  "@budgetCommittedColumnStatus": {
-    "description": "Header of the commitments table's status column",
-    "context": "Displayed at the top of the budget mode's commitments table",
     "type": "text",
     "placeholders": {}
   },

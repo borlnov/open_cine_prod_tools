@@ -258,9 +258,9 @@ Color ocptBudgetRevenueStatusAccentColor(ColorScheme colorScheme, OcptBudgetReve
       OcptBudgetRevenueStatus.invoiced => colorScheme.primary,
     };
 
-/// [strain]'s own colour, read off [context]'s theme — the left dock's own poste cards and, once a
-/// second reader arrives, whatever draws next: `ocptBudgetPosteStrainOf` had no UI reader before the
-/// poste dock, and this is the one place the colour is decided so the two never disagree.
+/// [strain]'s own colour, read off [context]'s theme — the one place the colour is decided, so
+/// that two readers of `ocptBudgetPosteStrainOf` can never disagree about what "near the quote"
+/// looks like.
 ///
 /// **Takes a [BuildContext], unlike the three `…AccentColor` helpers above**:
 /// [OcptBudgetPosteStrain.near] reads [ocptWarningColor], which resolves through the theme's own

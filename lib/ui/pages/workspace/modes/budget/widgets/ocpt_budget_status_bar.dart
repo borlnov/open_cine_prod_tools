@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 /// `OcptResourcesStatusBar`.
 ///
 /// **The trailing figure is always the quote total, whatever centre view is on screen, and always
-/// says so.** This band draws over every one of the mode's seven views, so a bare figure with no
+/// says so.** This band draws over every one of the mode's routes, so a bare figure with no
 /// label at all would silently make a claim about the quote while a reader is looking at, say, the
 /// financing plan or the cash journal — and, on a project whose quote is still empty, would read as
 /// the app ignoring whatever the reader just typed. `tr.budgetStatsQuoteTotal` names it explicitly

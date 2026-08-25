@@ -725,12 +725,11 @@ class OcptBudgetResourceDeletionConfirmedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, resourceId];
 }
 
-/// Selects revenue sharing taking [revenueId] — a row of the sharing view's own left column, or of
-/// the financing view's own `Takings` family — dispatched by its row's own click. In the sharing
-/// view this draws as a plain highlight, never an inspector — `ocptBudgetViewHasInspector` is
-/// false for `OcptBudgetView.sharing`; in the financing view it opens the right dock's fiche
-/// exactly as `OcptBudgetResourceSelectedEvent` does, the one difference between the two rows
-/// being which view is on screen. A [revenueId] naming no live revenue is ignored.
+/// Selects revenue sharing taking [revenueId] — a row of the tools drawer's own `Partage` page,
+/// or of the resources plan's own `Takings` family — dispatched by its row's own click. Either way
+/// it opens the right dock's fiche exactly as `OcptBudgetResourceSelectedEvent` does: both routes
+/// carry an inspector (`ocptBudgetViewHasInspector`), and a taking reads the same wherever it is
+/// clicked from. A [revenueId] naming no live revenue is ignored.
 class OcptBudgetRevenueSelectedEvent extends OcptBudgetEvent {
   /// The id of the revenue to select.
   final String revenueId;

@@ -111,8 +111,8 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// gestures now say so.
   final ValueChanged<String> onPosteOpened;
 
-  /// Called when the [OcptBudgetCashProjectionNegativeAlert]'s own action is clicked, switching to
-  /// the committed view.
+  /// Called when the [OcptBudgetCashProjectionNegativeAlert]'s own action is clicked, opening the
+  /// tools drawer's own `Flux de trésorerie` page — the statement is what answers a cash question.
   final VoidCallback onCashAlertActionRequested;
 
   /// Called when the feed card's own breakdown row is clicked — see the class doc comment.

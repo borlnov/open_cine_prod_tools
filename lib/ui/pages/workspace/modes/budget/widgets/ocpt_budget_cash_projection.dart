@@ -10,21 +10,20 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
-/// The height of one projection step's own bar, in logical pixels — the very constant
-/// `OcptBudgetCommittedSpending`'s own copy of this widget used to carry.
+/// The height of one projection step's own bar, in logical pixels.
 const double _ocptCashProjectionBarHeight = 6;
 
-/// The `Due date` column's own fixed width, in logical pixels — matches
-/// `OcptBudgetCommittedSpending`'s own `Due date` column, the same figure read the same width.
+/// The `Due date` column's own fixed width, in logical pixels — a due date is read at this width
+/// wherever the mode prints one, so two lists of the same dates never line up differently.
 const double _ocptCashProjectionDueDateColumnWidth = 92;
 
 /// The balance column's own fixed width, in logical pixels.
 const double _ocptCashProjectionAmountColumnWidth = 108;
 
-/// The budget mode's cash projection: a collapsible card, drawn in its own right-hand column beside
-/// `OcptBudgetCommittedSpending`'s own table, and only while the project carries at least one
-/// unsettled commitment — `OcptBudgetCommittedSpending` decides both, this widget only ever draws
-/// what it is handed.
+/// The budget mode's cash projection: a collapsible card reading where the account lands once every
+/// commitment has fallen due, drawn only while the project carries at least one unsettled
+/// commitment. **Whether and where it is drawn is its caller's decision, never its own** — this
+/// widget only ever draws what it is handed.
 ///
 /// **Reads `ocptBudgetProjectionOf` and every rule it already states**, unchanged: [commitments] is
 /// handed in whole, not pre-filtered to the unsettled ones, since a settled commitment is excluded
@@ -168,15 +167,14 @@ class _OcptBudgetCashProjectionState extends State<OcptBudgetCashProjection> {
   }
 }
 
-/// The card's own list of steps, once expanded — `OcptBudgetCommittedSpending`'s own former
-/// `_OcptCommittedProjectionSteps`, moved here with it: a plain [Column] rather than a [ListView],
-/// so the card asks for exactly the height its steps come to and never pretends to a scrollable
-/// extent of its own.
+/// The card's own list of steps, once expanded: a plain [Column] rather than a [ListView], so the
+/// card asks for exactly the height its steps come to and never pretends to a scrollable extent of
+/// its own.
 ///
 /// **Which makes this card taller than its column the moment enough commitments are owed**, and it
-/// is `OcptBudgetCommittedSpending` that answers for that, scrolling the whole card inside whichever
-/// column it hands it (its own class doc comment). A [ListView] here would answer it instead, but
-/// only by demanding a bounded height this widget is never in a position to know.
+/// is the caller that answers for that, scrolling the whole card inside whichever column it hands
+/// it. A [ListView] here would answer it instead, but only by demanding a bounded height this
+/// widget is never in a position to know.
 class _OcptCashProjectionSteps extends StatelessWidget {
   /// The steps to draw, in [OcptBudgetProjection.steps]' own order.
   final List<OcptBudgetProjectionStep> steps;
@@ -209,8 +207,7 @@ class _OcptCashProjectionSteps extends StatelessWidget {
 
 /// One projection step: its own due date, a bar scaled against [maxAbsBalanceCents], and the
 /// balance left once it has fallen due — reading visibly differently, from the theme, the moment
-/// that balance goes negative. `OcptBudgetCommittedSpending`'s own former
-/// `_OcptCommittedProjectionStepRow`, moved here with it.
+/// that balance goes negative.
 class _OcptCashProjectionStepRow extends StatelessWidget {
   /// The step this row draws.
   final OcptBudgetProjectionStep step;
