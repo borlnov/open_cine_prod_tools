@@ -53,6 +53,16 @@ const double _ocptCommittedProjectionSideBySideWidth = 1088;
 /// The cash-projection column's own fixed width, in logical pixels, once it draws beside the table.
 const double _ocptCommittedProjectionColumnWidth = 280;
 
+/// The most of the pane's own height the cash projection is ever given once the two stack, as a
+/// fraction — the table keeps the rest, and never less than it.
+///
+/// **Stacked, the projection is not a flex child**, so a `Column` would lay it out at whatever
+/// height its content asks for and leave the table's own `Expanded` the remainder, negative
+/// included: expanded over a dozen commitments, the card is taller than the whole pane and the
+/// column overflows outright. Capped at a share and scrolled inside that cap, the table always
+/// keeps at least the rest, and the card scrolls rather than pushing anything off the bottom.
+const double _ocptCommittedStackedProjectionMaxShare = 0.5;
+
 const double _ocptCommittedRowHeight = 44;
 
 /// The header row's own fixed height, in logical pixels.
@@ -99,6 +109,13 @@ const List<double> _ocptCommittedStatusFillAlphas = [0, 0.12, 0.2, 1];
 /// before the projection was ever extracted into its own widget — sizing a column by counting the
 /// projection's own step rows — is **not** rebuilt: the projection is a card that starts collapsed
 /// on one summary line now, so that arithmetic no longer describes anything it draws.
+///
+/// **The projection scrolls inside whichever column it is given**, in both branches. Expanded, it
+/// draws one row per commitment still owed and asks for whatever height that comes to, which is a
+/// question it was never asked while it lived in a header band with no height of its own; this
+/// pane has one, and a card taller than it would overflow rather than scroll. Beside the table it
+/// is capped by the pane's own height; stacked, by
+/// [_ocptCommittedStackedProjectionMaxShare] of it.
 ///
 /// Empty state: a project carrying no commitment at all shows [OcptWorkspaceEmptyMode] **where the
 /// table would be, under a heading band that stays drawn** — `OcptBudgetCashJournal`'s own reading,
@@ -209,7 +226,10 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
                         children: [
                           Expanded(child: _buildTable(context)),
                           const SizedBox(width: 16),
-                          SizedBox(width: _ocptCommittedProjectionColumnWidth, child: projection),
+                          SizedBox(
+                            width: _ocptCommittedProjectionColumnWidth,
+                            child: SingleChildScrollView(child: projection),
+                          ),
                         ],
                       );
                     }
@@ -219,7 +239,12 @@ class OcptBudgetCommittedSpending extends StatelessWidget {
                       children: [
                         Expanded(child: _buildTable(context)),
                         const SizedBox(height: 12),
-                        projection,
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: constraints.maxHeight * _ocptCommittedStackedProjectionMaxShare,
+                          ),
+                          child: SingleChildScrollView(child: projection),
+                        ),
                       ],
                     );
                   },

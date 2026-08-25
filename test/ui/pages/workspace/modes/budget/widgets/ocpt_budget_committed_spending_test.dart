@@ -280,4 +280,41 @@ void main() {
       findsOneWidget,
     );
   });
+
+  group("the expanded projection never overflows its column", () {
+    // Enough commitments that the card, expanded, is taller than the pane it is drawn in — the
+    // geometry `_ocptCommittedStackedProjectionMaxShare` and the two scroll views guard against.
+    // A `Column` of steps in a pane with a height of its own overflows rather than scrolling, and
+    // a release build paints no overflow band to say so.
+    final crowded = [
+      for (var index = 0; index < 14; index++)
+        _commitment(
+          id: "c$index",
+          dueDate: DateTime(2026).add(Duration(days: index * 7)),
+          amountCents: 100000,
+        ),
+    ];
+
+    for (final (name, size) in [
+      ("side by side, tall", const Size(1400, 700)),
+      ("side by side, short", const Size(1400, 420)),
+      ("stacked, tall", const Size(900, 700)),
+      ("stacked, short", const Size(900, 420)),
+    ]) {
+      testWidgets(name, (tester) async {
+        await pumpView(
+          tester,
+          commitments: crowded,
+          allCommitments: crowded,
+          openingBalanceCents: 500000,
+          size: size,
+        );
+
+        await tester.tap(find.byKey(const Key("ocptBudgetCashProjectionToggle")));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
 }

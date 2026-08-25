@@ -170,8 +170,13 @@ class _OcptBudgetCashProjectionState extends State<OcptBudgetCashProjection> {
 
 /// The card's own list of steps, once expanded — `OcptBudgetCommittedSpending`'s own former
 /// `_OcptCommittedProjectionSteps`, moved here with it: a plain [Column] rather than a [ListView],
-/// since this card sits in an unconstrained alerts band rather than a pane with a height of its own
-/// to scroll inside.
+/// so the card asks for exactly the height its steps come to and never pretends to a scrollable
+/// extent of its own.
+///
+/// **Which makes this card taller than its column the moment enough commitments are owed**, and it
+/// is `OcptBudgetCommittedSpending` that answers for that, scrolling the whole card inside whichever
+/// column it hands it (its own class doc comment). A [ListView] here would answer it instead, but
+/// only by demanding a bounded height this widget is never in a position to know.
 class _OcptCashProjectionSteps extends StatelessWidget {
   /// The steps to draw, in [OcptBudgetProjection.steps]' own order.
   final List<OcptBudgetProjectionStep> steps;
