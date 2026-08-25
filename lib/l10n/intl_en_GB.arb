@@ -14250,7 +14250,7 @@
       }
     }
   },
-  "budgetHelpFinancingBody1": "This document states what pays for the film — a subsidy, a cash contribution, a contribution in kind — and what the film itself earns, a taking. Adding a valuation is not the same gesture as adding real money, which is why the document's own Add menu names each of the four rather than offering one blank row.",
+  "budgetHelpFinancingBody1": "This page states what pays for the film — a subsidy, a cash contribution, a contribution in kind — and what the film itself earns, a taking. Adding a valuation is not the same gesture as adding real money, which is why the page's own Add menu names each of the four rather than offering one blank row.",
   "@budgetHelpFinancingBody1": {
     "description": "First paragraph of the budget mode's help panel for the financing view",
     "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
@@ -14292,7 +14292,7 @@
       }
     }
   },
-  "budgetHelpFinancingBody5": "The band at the foot of the document answers whether this covers the film: one tone for what is {received}, another for what is only {promised}, and, in words, how much would still be missing if nothing more arrived.",
+  "budgetHelpFinancingBody5": "The band at the foot of the page answers whether this covers the film: one tone for what is {received}, another for what is only {promised}, and, in words, how much would still be missing if nothing more arrived.",
   "@budgetHelpFinancingBody5": {
     "description": "Fifth paragraph of the budget mode's help panel for the financing view, stating the coverage band",
     "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
@@ -14306,7 +14306,7 @@
       }
     }
   },
-  "budgetHelpRegieBody1": "This page is not all typing or all reading: the left column is computed off the schedule, the right one is typed row by row.",
+  "budgetHelpRegieBody1": "This page reads in two directions at once: the left column is computed off the schedule, the right one is typed row by row.",
   "@budgetHelpRegieBody1": {
     "description": "First paragraph of the budget mode's help panel for the catering-and-travel view, stating the catering column is computed and the defrayal column is typed",
     "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
@@ -14345,13 +14345,13 @@
       }
     }
   },
-  "budgetHelpSharingBody1": "The takings themselves are recorded in {resources}. This document reads what they add up to once the reimbursable contributions come off the top.",
+  "budgetHelpSharingBody1": "The takings themselves are recorded in {financing}. This page reads what they add up to once the reimbursable contributions come off the top.",
   "@budgetHelpSharingBody1": {
     "description": "First paragraph of the budget mode's help panel for the revenue-sharing view",
     "context": "Displayed on the budget mode's own Help tab while revenue sharing is the centre view",
     "type": "text",
     "placeholders": {
-      "resources": {
+      "financing": {
         "type": "String"
       }
     }
