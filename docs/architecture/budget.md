@@ -12,8 +12,8 @@ actually seen, and every commitment still owed but not yet paid — the financin
 pays for all of it, the catering a shooting day actually costs — read off the schedule rather than
 typed a second time — beside the defrayals a production types row by row and provisions into the
 quote, and the revenue sharing that says, once the film has earned something, who gets what of it.
-The mode is complete: its three documents and its four exports are all here, and this file is the
-whole record of them.
+The mode is complete: its seven views and its four exports are all here, and this file is the whole
+record of them.
 
 ## Who it serves, and what the mode now shows
 
@@ -26,23 +26,23 @@ whole record of them.
   the ledger both eventually keep, the cash journal that measures what has actually moved against
   it and what is still owed, and the financing plan that measures against the quote in turn, and
   finally the revenue sharing that splits what the finished film earns.
-- **Three documents, not seven views.** `OcptBudgetDocument` (`lib/types/`) carries exactly three
-  values — `expenses`, `resources`, `sharing` — replacing `OcptBudgetCentreView`'s own seven, which
-  used to sit side by side as equals when three of them, the quote, the committed spending and the
-  cash journal, were the *stages* of one chain. `expenses` is that whole chain read as one
-  document, in one of two `OcptBudgetDocumentReading`s at its own top level (`byTree`, poste by
-  poste, or `byDate`, in the order money actually moved), with its remaining stage — the committed
-  spending — and the catering-and-travel pass reached as an `OcptBudgetSubPage`
-  (`committedSpending`, `regie`) through the header's own breadcrumb rather than through a chip of
-  their own. `resources` and `sharing` each keep one reading, `byTree`, for now: a resource's own
-  chronological reading is a later milestone's, so the header's own reading switch is offered on
-  `expenses` alone and withheld, never disabled, wherever the document it would switch has nothing
-  to switch to — the standing rule for an affordance without a subject.
-- **The chronological journal is not a place.** It is `OcptBudgetDocument.expenses` read in
-  `OcptBudgetDocumentReading.byDate` instead of `.byTree` — the very same document, the very same
-  postes and lines behind it, ordered by date rather than nested by poste. `OcptBudgetCashJournal`,
-  the widget that draws it, is unchanged in shape and is simply the view `expenses`/`byDate` opens
-  on, exactly as `OcptBudgetCostTracking` is the view `expenses`/`byTree` opens on.
+- **Seven views, not three documents.** `OcptBudgetView` (`lib/types/`) carries seven values, in
+  the header's own chip order — `dashboard`, `costTracking`, `financing`, `cashJournal`,
+  `committed`, `regie`, `sharing` — each its own chip, replacing `OcptBudgetDocument`'s three
+  (`expenses`, `resources`, `sharing`) and the `OcptBudgetDocumentReading`/`OcptBudgetSubPage`
+  machinery a since-reverted rework built to fit the quote, the committed spending and the cash
+  journal under one `expenses` document, reached through a reading switch and the header's own
+  breadcrumb. That three-document shape was built, reviewed on screen and reversed by its own
+  author, who did not recognise the mode the validated shell design had itself proposed; it is
+  retired, and a reader who meets `OcptBudgetDocument` or `OcptBudgetCentreView` in `git log` should
+  read this paragraph as the reason. `dashboard` is the mode's own default view, and it landed
+  first rather than last — a freedom the retired shape's own stored-preference rule never had, since
+  a value held only in memory strands nothing by being inserted anywhere (`OcptBudgetView`'s own
+  doc comment).
+- **The chronological journal is a place.** It is `OcptBudgetView.cashJournal` — `Trésorerie` in
+  French, `Cash journal` in English — its own chip in the header, and it is the only view listing
+  every entry the project holds, credits included, in one chronological table.
+  `OcptBudgetCashJournal`, the widget that draws it, is unchanged in shape.
 - **Selection grew a type.** `OcptBudgetSelection` (`lib/types/`), a sealed class with one `final`
   variant per kind of row the fiche can show — poste, quote line, commitment, entry, resource,
   revenue, receipt — replaces what used to be several independent id fields
@@ -51,12 +51,13 @@ whole record of them.
   and `.selectedResourceId` survive as plain getters folding onto `selection`, so nothing that read
   them before had to change; `.selectedShareId` stays its own field, a share opening no fiche in any
   document this reaches yet.
-- **`document`, `reading`, `subPage`, `isSimplified` and `taxBasis` are not persisted.** The
-  schedule mode's own agenda mode is the precedent: only `budgetRightDockFraction` and
-  `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a relaunch, exactly as before this
-  rework. A reader who left the mode on the resources tree, mid-way through a filter, opens back on
-  the mode's own default — `expenses`, `byTree`, no sub-page — every time, the same way the schedule
-  mode's own agenda already forgets its own last state.
+- **`view`, `isSimplified`, `taxBasis`, `selection`, `filterPosteId` and `expandedNodeIds` are not
+  persisted.** The schedule mode's own agenda mode is the precedent: only `budgetLeftDockFraction`,
+  `budgetRightDockFraction` and `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a
+  relaunch, exactly as before this rework. A reader who left the mode on the financing tree,
+  mid-way through a filter, opens back on the mode's own default — `dashboard`, nothing selected,
+  nothing filtered — every time, the same way the schedule mode's own agenda already forgets its own
+  last state.
 
 ## The money rule
 
