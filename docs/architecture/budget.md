@@ -154,10 +154,10 @@ record of them.
   by the header's poste chip and honoured across every document that can (see "Selecting a poste
   and filtering by one are two different facts" below) — while its running balance and its own
   `Debit`/`Credit`/`Balance` band read `entries` whole, before that filter is applied: an account
-  does not change because somebody narrowed a view. Filtering to a poste from the header and
-  switching the reading to `byDate` lands already narrowed to it, and every document that honours
-  the filter agrees on what "filtered by this poste" means because they all read one flag rather
-  than several that could drift apart.
+  does not change because somebody narrowed a view. Filtering to a poste from the header lands every
+  view that honours the filter already narrowed to it, and every one of them agrees on what
+  "filtered by this poste" means because they all read one flag rather than several that could
+  drift apart.
 
 ## Off-quote spending is named, never hidden
 
@@ -188,7 +188,15 @@ record of them.
   prints `ocptBudgetEmptyValue`, since there is no quote behind this row to measure any of them
   against. It carries **no `N°`, no `⋮` menu and no selection**: it is not a poste and nothing about
   it may look like one, since it is a reading over the journal's own poste-less debits, not a record
-  anybody can rename, reorder or delete — clicking it opens no fiche.
+  anybody can rename, reorder or delete.
+  **It does carry a twisty, and opens** — `_OcptCostTrackingOffQuoteIdentityRow`, keyed by the
+  reserved `_ocptCostTrackingOffQuoteNodeId` rather than by a poste or a line id, since the row sums
+  a reading over the journal and names no record of its own to key one by. A reader landing on the
+  total could not otherwise reach what made it up, and that is the whole of the distinction this row
+  turns on: it is still a *reading*, which is why it mints no id anybody can rename, reorder or
+  delete, but a reading is allowed to open. Every child it reveals is an ordinary entry sub-row,
+  with the menu and the selection every other entry sub-row has — the debit itself is a real
+  `budget_entries` row, only the total above it is not a record of anything.
 - The table's own `Total` row folds `paidByPosteId` and the off-quote total together
   (`ocptBudgetCoveredTotalsFoldOf`, `lib/utils/ocpt_budget_totals.dart`) into its own `Paid` cell,
   so that column adds up to what actually left the account — the only reading a reader adding the
