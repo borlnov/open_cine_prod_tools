@@ -149,6 +149,7 @@ void main() {
     VoidCallback? onPosteCreationRequested,
     void Function(String posteId, {required bool moveUp})? onPosteReorderRequested,
     ValueChanged<String>? onPosteDeletionRequested,
+    ValueChanged<String>? onPosteFilterRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentEditRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentSettleRequested,
     ValueChanged<String>? onCommitmentUnsettleRequested,
@@ -185,6 +186,7 @@ void main() {
     onPosteCreationRequested: onPosteCreationRequested,
     onPosteReorderRequested: onPosteReorderRequested,
     onPosteDeletionRequested: onPosteDeletionRequested,
+    onPosteFilterRequested: onPosteFilterRequested,
     onCommitmentEditRequested: onCommitmentEditRequested,
     onCommitmentSettleRequested: onCommitmentSettleRequested,
     onCommitmentUnsettleRequested: onCommitmentUnsettleRequested,
@@ -502,6 +504,59 @@ void main() {
       expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsNWidgets(3));
       // Only the total row's own `Engagé`, `Reste` and `Écart` cells print the em dash here.
       expect(find.text(ocptBudgetEmptyValue), findsNWidgets(3));
+    },
+  );
+
+  testWidgets(
+    "a poste row's own ⋮ menu offers Show this poste only, reporting the poste's own id",
+    (tester) async {
+      String? filteredPosteId;
+
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            postes: [quotedPoste()],
+            onPosteFilterRequested: (posteId) => filteredPosteId = posteId,
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      final menuFinder = find.byType(PopupMenuButton<String>);
+      await tester.ensureVisible(menuFinder);
+      await tester.tap(menuFinder);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(tr.budgetCostTrackingFilterOnlyAction));
+      await tester.pumpAndSettle();
+
+      expect(filteredPosteId, "poste-1");
+    },
+  );
+
+  testWidgets(
+    "withholds the poste row's Show this poste only entry under isReadOnly, unlike every other "
+    "entry of that same menu — it only ever reads the project",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            postes: [quotedPoste()],
+            isReadOnly: true,
+            onPosteFilterRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      final menuFinder = find.byType(PopupMenuButton<String>);
+      await tester.ensureVisible(menuFinder);
+      await tester.tap(menuFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetCostTrackingFilterOnlyAction), findsOneWidget);
+      expect(find.text(tr.budgetPosteRenameAction), findsNothing);
+      expect(find.text(tr.budgetPosteDeleteAction), findsNothing);
     },
   );
 

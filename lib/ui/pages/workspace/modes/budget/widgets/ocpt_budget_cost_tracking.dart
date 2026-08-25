@@ -188,6 +188,11 @@ const String _ocptCostTrackingOffQuoteNodeId = "off-quote";
 /// `Code` fields living in its inspector, exactly where a person's or an element's own name field
 /// lives in the resources mode's sheets, is the reading this table follows instead. A quote line's
 /// own fields live there too, so a line sub-row carries no `⋮` menu at all.
+///
+/// **A poste row's own menu also carries `Show this poste only`**, the gesture that narrows the
+/// whole mode to it — the retired left dock card's own `⋮` entry, ported here now that picking a
+/// poste to filter by has nowhere else to live. It only ever reads the project, so it draws (and
+/// works) even under a read-only preview, the one entry of this menu that is never withheld.
 class OcptBudgetCostTracking extends StatelessWidget {
   /// Every live poste, in display order.
   final List<OcptBudgetPoste> postes;
@@ -281,6 +286,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onPosteDeletionRequested;
 
+  /// Called with a poste's id when a row's own `⋮` menu asks to narrow the mode to it — the left
+  /// dock card's own gesture, ported rather than reinvented now that picking a poste to filter by
+  /// lives here. It only ever reads the project, so it is **not** withheld under a read-only
+  /// preview, unlike every other entry of this same menu.
+  final ValueChanged<String>? onPosteFilterRequested;
+
   /// Called with a commitment when its sub-row's own `⋮` menu asks to edit it, or null while
   /// [isReadOnly]. Opens `OcptBudgetCommitmentDialog`.
   final ValueChanged<OcptBudgetCommitment>? onCommitmentEditRequested;
@@ -345,6 +356,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.onPosteCreationRequested,
     required this.onPosteReorderRequested,
     required this.onPosteDeletionRequested,
+    required this.onPosteFilterRequested,
     required this.onCommitmentEditRequested,
     required this.onCommitmentSettleRequested,
     required this.onCommitmentUnsettleRequested,
@@ -721,6 +733,9 @@ class OcptBudgetCostTracking extends StatelessWidget {
           ? null
           : () => onPosteReorderRequested?.call(row.poste.id, moveUp: false),
       onDeletionRequested: isReadOnly ? null : () => onPosteDeletionRequested?.call(row.poste.id),
+      onFilterRequested: onPosteFilterRequested == null
+          ? null
+          : () => onPosteFilterRequested?.call(row.poste.id),
     ),
     _OcptLineTreeRow() => _OcptCostTrackingLineAmountsRow(
       line: row.line,
@@ -1280,6 +1295,11 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
   /// Called when the row's own `⋮` menu asks to delete this poste, or null while withheld.
   final VoidCallback? onDeletionRequested;
 
+  /// Called when the row's own `⋮` menu asks to narrow the mode to this poste, or null while
+  /// withheld — never gated on a read-only preview, unlike every other callback here (see
+  /// `OcptBudgetCostTracking.onPosteFilterRequested`'s own doc comment).
+  final VoidCallback? onFilterRequested;
+
   /// Class constructor
   const _OcptCostTrackingPosteAmountsRow({
     required this.poste,
@@ -1294,6 +1314,7 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
     required this.onMoveUpRequested,
     required this.onMoveDownRequested,
     required this.onDeletionRequested,
+    required this.onFilterRequested,
   });
 
   @override
@@ -1381,7 +1402,8 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
                 child: (onRenameRequested == null &&
                         onMoveUpRequested == null &&
                         onMoveDownRequested == null &&
-                        onDeletionRequested == null)
+                        onDeletionRequested == null &&
+                        onFilterRequested == null)
                     ? null
                     : PopupMenuButton<String>(
                         tooltip: "",
@@ -1391,22 +1413,32 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
                           "up" => onMoveUpRequested?.call(),
                           "down" => onMoveDownRequested?.call(),
                           "delete" => onDeletionRequested?.call(),
+                          "filter" => onFilterRequested?.call(),
                           _ => null,
                         },
                         itemBuilder: (context) => [
-                          PopupMenuItem<String>(
-                            value: "rename",
-                            child: Text(tr.budgetPosteRenameAction),
-                          ),
-                          PopupMenuItem<String>(value: "up", child: Text(tr.budgetPosteMoveUpAction)),
-                          PopupMenuItem<String>(
-                            value: "down",
-                            child: Text(tr.budgetPosteMoveDownAction),
-                          ),
-                          PopupMenuItem<String>(
-                            value: "delete",
-                            child: Text(tr.budgetPosteDeleteAction),
-                          ),
+                          if (onRenameRequested != null)
+                            PopupMenuItem<String>(
+                              value: "rename",
+                              child: Text(tr.budgetPosteRenameAction),
+                            ),
+                          if (onMoveUpRequested != null)
+                            PopupMenuItem<String>(value: "up", child: Text(tr.budgetPosteMoveUpAction)),
+                          if (onMoveDownRequested != null)
+                            PopupMenuItem<String>(
+                              value: "down",
+                              child: Text(tr.budgetPosteMoveDownAction),
+                            ),
+                          if (onFilterRequested != null)
+                            PopupMenuItem<String>(
+                              value: "filter",
+                              child: Text(tr.budgetCostTrackingFilterOnlyAction),
+                            ),
+                          if (onDeletionRequested != null)
+                            PopupMenuItem<String>(
+                              value: "delete",
+                              child: Text(tr.budgetPosteDeleteAction),
+                            ),
                         ],
                       ),
               ),
