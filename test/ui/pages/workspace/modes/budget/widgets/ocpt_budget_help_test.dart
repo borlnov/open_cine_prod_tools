@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
 
@@ -23,17 +24,23 @@ Widget _wrap(Widget child) => MaterialApp(
 );
 
 void main() {
-  /// Pumps [OcptBudgetHelp] for the given view and returns its own [Tr], resolved from its own
-  /// element — mirrors `ocpt_budget_fiche_test.dart`'s own `pumpFiche`.
-  Future<Tr> pumpHelp(WidgetTester tester, {required OcptBudgetView view}) async {
-    await tester.pumpWidget(_wrap(OcptBudgetHelp(view: view)));
+  /// Pumps [OcptBudgetHelp] for the given route and returns its own [Tr], resolved from its own
+  /// element — mirrors `ocpt_budget_fiche_test.dart`'s own `pumpFiche`. [toolsView] is read only
+  /// while [view] is [OcptBudgetView.tools], defaulting to `cashFlow` since most tests below name
+  /// a route outside the drawer.
+  Future<Tr> pumpHelp(
+    WidgetTester tester, {
+    required OcptBudgetView view,
+    OcptBudgetToolsView toolsView = OcptBudgetToolsView.cashFlow,
+  }) async {
+    await tester.pumpWidget(_wrap(OcptBudgetHelp(view: view, toolsView: toolsView)));
     await tester.pumpAndSettle();
 
     return Tr.of(tester.element(find.byType(OcptBudgetHelp)));
   }
 
   testWidgets("draws the expenses chain: Estimated, Committed, Paid", (tester) async {
-    final tr = await pumpHelp(tester, view: OcptBudgetView.costTracking);
+    final tr = await pumpHelp(tester, view: OcptBudgetView.expenses);
 
     expect(find.text(tr.budgetFicheStepEstimatedLabel), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigureCommitted), findsOneWidget);
@@ -45,7 +52,7 @@ void main() {
   });
 
   testWidgets("draws the resources chain: Promised, Received", (tester) async {
-    final tr = await pumpHelp(tester, view: OcptBudgetView.financing);
+    final tr = await pumpHelp(tester, view: OcptBudgetView.resources);
 
     expect(find.text(tr.budgetFicheStepPromisedLabel), findsOneWidget);
     expect(find.text(tr.budgetFinancingColumnReceived), findsOneWidget);
@@ -55,7 +62,11 @@ void main() {
   });
 
   testWidgets("draws the sharing chain: Received, Already repaid, Left to share", (tester) async {
-    final tr = await pumpHelp(tester, view: OcptBudgetView.sharing);
+    final tr = await pumpHelp(
+      tester,
+      view: OcptBudgetView.tools,
+      toolsView: OcptBudgetToolsView.sharing,
+    );
 
     expect(find.text(tr.budgetFinancingColumnReceived), findsOneWidget);
     expect(find.text(tr.budgetSharingRepaidLabel), findsOneWidget);
@@ -66,8 +77,10 @@ void main() {
     expect(find.text(tr.budgetHelpChainSharingSentence), findsOneWidget);
   });
 
-  testWidgets("draws the committed spending on the expenses chain", (tester) async {
-    final tr = await pumpHelp(tester, view: OcptBudgetView.committed);
+  testWidgets("draws the very same expenses chain on the tools drawer's own cash flow page", (
+    tester,
+  ) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.tools);
 
     expect(find.text(tr.budgetFicheStepEstimatedLabel), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigureCommitted), findsOneWidget);
@@ -79,7 +92,7 @@ void main() {
 
     expect(find.text(tr.budgetHelpDashboardBody1), findsOneWidget);
     expect(
-      find.text(tr.budgetHelpDashboardBody2(tr.budgetHeaderCostTrackingSegmentLabel)),
+      find.text(tr.budgetHelpDashboardBody2(tr.budgetHeaderExpensesSegmentLabel)),
       findsOneWidget,
     );
     expect(find.text(tr.budgetHelpDashboardBody3), findsOneWidget);
@@ -90,8 +103,12 @@ void main() {
     expect(find.text(tr.budgetHelpDashboardBody5), findsOneWidget);
   });
 
-  testWidgets("the régie draws no chain at all", (tester) async {
-    final tr = await pumpHelp(tester, view: OcptBudgetView.regie);
+  testWidgets("régie draws no chain at all", (tester) async {
+    final tr = await pumpHelp(
+      tester,
+      view: OcptBudgetView.tools,
+      toolsView: OcptBudgetToolsView.regie,
+    );
 
     // No chain of any of the three documents' own steps is drawn.
     expect(find.text(tr.budgetFicheStepEstimatedLabel), findsNothing);
@@ -103,15 +120,16 @@ void main() {
     // and the other typed row by row.
     expect(find.text(tr.budgetHelpRegieBody1), findsOneWidget);
     expect(
-      find.text(tr.budgetHelpRegieBody5(tr.budgetHeaderCostTrackingSegmentLabel)),
+      find.text(tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel)),
       findsOneWidget,
     );
   });
 
   testWidgets(
-    "highlights the Paid step on the cash journal, announced rather than drawn",
+    "highlights the Paid step on the tools drawer's own cash flow page, announced rather than "
+    "drawn",
     (tester) async {
-      final tr = await pumpHelp(tester, view: OcptBudgetView.cashJournal);
+      final tr = await pumpHelp(tester, view: OcptBudgetView.tools);
 
       // The badge rides the cell's own Semantics label — it is never drawn as a widget of its own.
       expect(find.text(tr.budgetHelpChainCurrentStepBadge), findsNothing);
@@ -129,26 +147,8 @@ void main() {
     },
   );
 
-  testWidgets(
-    "highlights the Committed step on the committed spending, announced rather than drawn",
-    (tester) async {
-      final tr = await pumpHelp(tester, view: OcptBudgetView.committed);
-
-      expect(find.text(tr.budgetHelpChainCurrentStepBadge), findsNothing);
-      expect(
-        find.bySemanticsLabel(
-          RegExp(
-            "^${RegExp.escape(tr.budgetInspectorFigureCommitted)}, "
-            "${RegExp.escape(tr.budgetHelpChainCurrentStepBadge)}",
-          ),
-        ),
-        findsOneWidget,
-      );
-    },
-  );
-
   testWidgets("highlights nothing on the cost report", (tester) async {
-    final tr = await pumpHelp(tester, view: OcptBudgetView.costTracking);
+    final tr = await pumpHelp(tester, view: OcptBudgetView.expenses);
 
     expect(
       find.bySemanticsLabel(RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge))),
@@ -156,8 +156,30 @@ void main() {
     );
   });
 
-  testWidgets("highlights nothing on the financing plan", (tester) async {
-    final tr = await pumpHelp(tester, view: OcptBudgetView.financing);
+  testWidgets("highlights nothing on the resources plan", (tester) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.resources);
+
+    expect(
+      find.bySemanticsLabel(RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge))),
+      findsNothing,
+    );
+  });
+
+  testWidgets("highlights nothing on the tools drawer's own sharing page", (tester) async {
+    final tr = await pumpHelp(
+      tester,
+      view: OcptBudgetView.tools,
+      toolsView: OcptBudgetToolsView.sharing,
+    );
+
+    expect(
+      find.bySemanticsLabel(RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge))),
+      findsNothing,
+    );
+  });
+
+  testWidgets("highlights nothing on the dashboard", (tester) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.dashboard);
 
     expect(
       find.bySemanticsLabel(RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge))),
