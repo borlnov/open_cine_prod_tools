@@ -803,17 +803,23 @@ record of them.
   it was calibrated by nobody, and it is not the app's place to advance a figure nobody here
   validated — the same argument `minimumRestMinutes` already settled for a single column, applied
   here to a whole mode.
-- **Both alerts, and the cash projection they read, now draw as a band under `OcptBudgetHeader`**
-  (`_OcptBudgetHeaderAlertBand`) rather than on a dashboard, which is dissolved (see below). The
-  header's own alerts band also carries `OcptBudgetCashProjection`, re-homed from the
-  committed-spending sub-page it used to sit beside, and draws it ahead of every alert, on
-  `expenses`'s own top level only.
+- **Both alerts now draw as cards on the dashboard, and nowhere else** — the header's own alerts
+  band (`_OcptBudgetHeaderAlertBand`) is deleted outright, not merely moved. The `Tableau de bord`
+  chip carries a **count badge**, a number rather than a dot: two overspent postes and one strained
+  cash balance are not the same news as one, and a dot would only ever say that *something* was
+  wrong, never how much of it there is. The badge is **withheld outright**, never drawn as an empty
+  pill, while `alerts` is empty, and is announced through `Semantics` with a plural-aware label
+  (`tr.budgetHeaderAlertCountSemanticsLabel`) rather than left to a screen reader to guess at a bare
+  number sitting beside a chip's own label.
 - Each alert card offers exactly one action back into the data it is about, never a dismiss, since
   the alert is not a notification to clear, it is a standing fact about the project that stays true
-  until the underlying figures change: a poste over its quote selects that poste
-  (`OcptBudgetPosteSelectedEvent`) and switches the reading to `byTree`
-  (`OcptBudgetDocumentReadingSelectedEvent`); the cash projection going negative opens the
-  committed-spending sub-page (`OcptBudgetSubPageSelectedEvent(subPage: committedSpending)`).
+  until the underlying figures change. A poste over its quote reuses the very gesture a dashboard
+  poste row already makes (`OcptBudgetMode._handleDashboardPosteOpened`): it selects that poste and
+  switches to `costTracking` in the same gesture, exactly as "The dashboard" above already argues for
+  a poste row in general — the alert itself sits on a read-only summary, never where a poste is
+  actually worked on. The cash projection going negative switches straight to `committed`
+  (`OcptBudgetView.committed`), the view its own projection now lives beside — see "A stacked pane
+  states its height" below for where that projection draws today.
 
 ## The voucher
 
