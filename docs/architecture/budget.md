@@ -645,17 +645,19 @@ record of them.
   screen, so a poste chosen in the quote went on filling the `Inspector` over the régie and the
   revenue sharing — pages that have nothing to do with a poste and never put one there.
 - The tab is now offered only where there is something for the fiche to show:
-  `ocptBudgetHasInspector({document, subPage})` (`lib/types/ocpt_budget_document.dart`) answers true
-  for `OcptBudgetDocument.expenses` and `.resources`, read at their own top level, in either
-  reading — the two documents whose trees select a row — and false for `sharing`, whose own rows
-  open no fiche, and for either sub-page of expenses, `committedSpending` and `regie`, neither of
-  which selects an object the fiche knows how to draw.
+  `ocptBudgetViewHasInspector(view)` (`lib/types/ocpt_budget_view.dart`) answers true for
+  `costTracking`, `cashJournal` and `financing` — the three views whose own rows select something
+  of their own, a poste, a line, a commitment or an entry on the first, an entry on the second, a
+  resource or a taking on the third — and false for `committed`, `regie` and `sharing`, whose own
+  rows select nothing the fiche can show yet, a plain highlight answered by the row's own menu
+  instead. **`dashboard` answers false too, and it is the one genuinely new case this predicate has
+  to account for**: a dashboard poste row is a link to where the poste is worked on, not a
+  selection of its own — see "The dashboard" above for the whole of that argument.
 - **Withheld, not disabled**, the standing rule for an affordance without a subject. `Versions` and
   `Help` are offered everywhere, so the dock never has an empty tab bar.
 - A stored `Inspector` preference **is not overwritten** where it cannot be honoured: the dock
-  draws `Help` instead and leaves `OcptBudgetState.rightDockTab` alone, so a reader who left a
-  document on the inspector comes back to the inspector rather than to whatever the sub-page showed
-  them.
+  draws `Help` instead and leaves `OcptBudgetState.rightDockTab` alone, so a reader who left a view
+  on the inspector comes back to the inspector rather than to whatever the other view showed them.
 
 ## Selecting a poste and filtering by one are two different facts
 
@@ -667,21 +669,30 @@ record of them.
 - **`selectedPosteId` is now a plain getter, folding onto `OcptBudgetSelection`** — it answers a
   poste id only while `state.selection` is an `OcptBudgetPosteSelection`, and drives the fiche and
   the row's own highlight, and narrows no view. `OcptBudgetState.filterPosteId` is the mode's own
-  filter, set by exactly one control — the header's poste chip — and honoured by every document that
-  can (`ocptBudgetHonoursPosteFilter({document, subPage})`, `lib/types/ocpt_budget_document.dart`):
-  `expenses`, at its own top level in either reading, or its own `committedSpending` sub-page —
-  the three places a poste-keyed row is drawn at all.
+  filter, written by **two controls** rather than one — the header's poste chip and the left dock's
+  own card `⋮` menu entry — and honoured by every view that can
+  (`ocptBudgetViewHonoursPosteFilter`, `lib/types/ocpt_budget_view.dart`): `costTracking`,
+  `cashJournal` and `committed`, the three places a poste-keyed row is drawn at all. The dock card's
+  own click, like the tree row's own, only ever selects; only its `⋮` entry writes the filter — see
+  "The left dock" above for the same distinction stated from that widget's own side.
 - **The chip is both the control and the indicator.** It reads `Every poste` or the poste's own
   name, tinted `primary` while filtering, with a clear button beside the name. Sitting in the
-  header, it is on screen whatever document is, which is the whole point: one place to see a filter,
+  header, it is on screen whatever view is, which is the whole point: one place to see a filter,
   one place to remove it. The same predicate also governs the simplified/detailed switch, which
   reads a poste-keyed row's own name exactly as the filter narrows poste-keyed rows, and is withheld
   alongside it, never separately.
-- **Two documents cannot honour it and say so.** `resources` and `sharing` read tables that carry no
-  poste at all, and the régie sub-page prices no poste of its own either. On those the chip keeps
-  the poste's name — the filter is still set, and leaving brings it back — and adds
-  `Not applied here` underneath. Hiding it there would have been calmer and dishonest: an unfiltered
-  view would pass for a filtered one.
+- **Four views cannot honour it and say so.** `financing`, `regie` and `sharing` read tables that
+  carry no poste at all — the financing plan `budget_resources`, the régie the schedule and the
+  defrayals, the revenue sharing `budget_revenues`/`budget_shares` — so there is nothing on any of
+  them to narrow. `dashboard` cannot either, for a reason of its own rather than theirs: it is the
+  whole project's standing reading, and narrowing it to one poste would leave nothing on it but that
+  poste's own row, its KPI tiles silently disagreeing with the ones the reader saw a second ago on
+  another view (`ocptBudgetViewHonoursPosteFilter`'s own doc comment). On all four the header's chip
+  keeps the poste's name — the filter is still set, and leaving brings it back — and adds `Not
+  applied here` underneath; hiding it there would have been calmer and dishonest, an unfiltered view
+  passing for a filtered one. The left dock reads the same predicate: a card's own `⋮` menu carries
+  no filter entry on these four, and the title row's own `Tout` link goes with it — a link to clear
+  a filter that cannot be set from here has nothing of its own to clear.
 - **The narrowing happens in the mode, not in the views.** `OcptBudgetMode` hands each widget the
   already-filtered list, so a filtered table's own `Total` is the total of what is on screen —
   the only honest thing it can say. The cash journal is the exception the other way — see "The
