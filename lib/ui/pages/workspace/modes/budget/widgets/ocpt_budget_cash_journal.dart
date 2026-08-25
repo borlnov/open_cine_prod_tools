@@ -86,7 +86,11 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// on it, mirroring `OcptBudgetCostTracking`'s own row selection.
 ///
 /// Empty state: [OcptWorkspaceEmptyMode] draws **in the table's place, under a top band that stays
-/// drawn**, whenever the whole journal holds no live entry at all.
+/// drawn**, whenever the page has nothing at all to read — no live entry *and* no unsettled
+/// commitment. A project that has committed spending before paying anything is the ordinary state
+/// of an early production, and it is precisely the one that needs `À venir`: hiding the whole page
+/// behind "no movement yet" would put its own commitments out of reach on the very page built to
+/// list them.
 ///
 /// A read-only view can return the empty state as its whole body because it writes nothing at
 /// all; this view cannot.
@@ -112,9 +116,9 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// and drawn whole, this page honouring no filter of its own (see the class doc comment).
   final List<OcptBudgetEntry> entries;
 
-  /// Every live commitment of the project, settled ones included — handed in whole, exactly as
-  /// `OcptBudgetCashProjection.commitments` (now retired) used to require, since a settled one is
-  /// excluded by `ocptBudgetProjectionOf` itself rather than by its caller (see the class doc
+  /// Every live commitment of the project, settled ones included — **never pre-filtered to the
+  /// unsettled ones**: `ocptBudgetProjectionOf` excludes a settled commitment itself, and its own
+  /// doc comment argues why that exclusion belongs there rather than in a caller (see the class doc
   /// comment's own `À venir` paragraph).
   final List<OcptBudgetCommitment> commitments;
 
@@ -199,7 +203,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
         _OcptCashJournalTopBand(totals: totals, currencyCode: currencyCode),
         const SizedBox(height: 12),
         Expanded(
-          child: entries.isEmpty
+          child: entries.isEmpty && !showsUpcoming
               ? OcptWorkspaceEmptyMode(
                   icon: Icons.account_balance_wallet_outlined,
                   // The detailed wording names this ledger by its trade word, which is exactly
@@ -843,11 +847,11 @@ class _OcptCashUpcomingRow extends StatelessWidget {
   }
 }
 
-/// The `À venir` section's own footer, in the mockup's own tinted style — mirrors
-/// `OcptBudgetCashProjection`'s own retired footer reading, now printed as a row rather than a
-/// card: [totalDueCents] spans the leading columns' own label, and [projectedBalanceCents]
-/// (`OcptBudgetProjection.finalBalanceCents`) prints in [ColorScheme.error] once it goes negative —
-/// exactly as the deleted projection card's own final balance did.
+/// The `À venir` section's own footer, in the mockup's own tinted style: [totalDueCents] under the
+/// `Debit` column, past a label spanning the leading ones, and [projectedBalanceCents]
+/// ([OcptBudgetProjection.finalBalanceCents]) under `Balance`, printing in [ColorScheme.error] once
+/// it goes negative — the one figure of this page that reads the account's future rather than its
+/// past, which is exactly why it is worth a tint of its own.
 class _OcptCashUpcomingFooterRow extends StatelessWidget {
   /// The sum of every step's own [OcptBudgetProjectionStep.amountCents] — what falls due once
   /// every `À venir` row has.

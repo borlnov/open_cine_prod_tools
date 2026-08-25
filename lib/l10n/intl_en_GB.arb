@@ -11455,7 +11455,7 @@
   "@budgetLineUncommitAction": {
     "description": "Action on an already-promoted quote line card that deletes the commitment it produced, undoing the promotion."
   },
-  "budgetLineUncommitConfirmMessage": "The commitment “{label}” was made from this line. Cancelling it deletes it from the committed spending. The quote line itself is left alone.",
+  "budgetLineUncommitConfirmMessage": "The commitment “{label}” was made from this line. Cancelling it deletes the commitment itself. The quote line is left alone.",
   "@budgetLineUncommitConfirmMessage": {
     "description": "Body of the confirmation dialog opened by Cancel the commitment.",
     "placeholders": {

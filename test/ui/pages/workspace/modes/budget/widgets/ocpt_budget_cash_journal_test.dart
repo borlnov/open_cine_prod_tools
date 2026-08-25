@@ -176,6 +176,35 @@ void main() {
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
   });
 
+  testWidgets("a project owing money before paying any shows what it owes, not the empty state", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetCashJournal(
+          entries: const [],
+          postes: const [],
+          receiptsByEntryId: const {},
+          commitments: [_commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000)],
+          onCommitmentSelected: (_) {},
+          selection: null,
+          isSimplified: false,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          isReadOnly: false,
+          onEntrySelected: (_) {},
+          onEntryEditRequested: (_) {},
+          onEntryDeletionRequested: (_) {},
+        ),
+      ),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+    expect(find.byType(OcptWorkspaceEmptyMode), findsNothing);
+    expect(find.text(tr.budgetCashUpcomingSectionTitle), findsOneWidget);
+    expect(find.text("Camera rental — balance"), findsOneWidget);
+  });
+
   testWidgets("the empty journal drops the trade word under the simplified switch", (tester) async {
     await tester.pumpWidget(
       _wrap(

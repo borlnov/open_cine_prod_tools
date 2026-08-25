@@ -1524,7 +1524,7 @@
   "budgetLineCommitAction": "Engager cette ligne…",
   "budgetLineShowCommitmentAction": "Voir l'engagement",
   "budgetLineUncommitAction": "Annuler l'engagement",
-  "budgetLineUncommitConfirmMessage": "L'engagement « {label} » a été fait depuis cette ligne. L'annuler le supprime des dépenses engagées. La ligne de devis, elle, n'est pas touchée.",
+  "budgetLineUncommitConfirmMessage": "L'engagement « {label} » a été fait depuis cette ligne. L'annuler supprime l'engagement lui-même. La ligne de devis, elle, n'est pas touchée.",
   "budgetFicheEmptyHint": "Sélectionnez une ligne pour voir ses chiffres.",
   "budgetFicheStepEstimatedLabel": "Estimé",
   "budgetFicheStepPromisedLabel": "Promis",

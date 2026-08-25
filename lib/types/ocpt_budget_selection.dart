@@ -50,7 +50,8 @@ final class OcptBudgetLineSelection extends OcptBudgetSelection {
   List<Object?> get props => [lineId];
 }
 
-/// A selected commitment — a row of the committed spending.
+/// A selected commitment — a sub-row under its own quote line in the expenses tree, or a due row
+/// of the cash-flow page's own `À venir` section.
 final class OcptBudgetCommitmentSelection extends OcptBudgetSelection {
   /// The id of the selected commitment.
   final String commitmentId;
