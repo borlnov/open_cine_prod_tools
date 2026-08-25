@@ -56,18 +56,20 @@ Verified against the code on 2026-08-25, before this plan was written:
 **Nothing in the data model changes.** No table, no column, no migration, no schema number, no
 codec step. What changes is where the user meets a figure, and how they type one.
 
-## 3. The one thing the mockups do not settle
+## 3. Where the account's future goes
 
-**Where the account's future goes.** Deleting the committed view takes two things with it, and they
-are the same thing twice: `lib/utils/ocpt_budget_projection.dart`, drawn in that view's right
-column, and the view's own commitments table, **due-date ordered across every poste** — which is
-what answers "what do I owe this week". The expenses tree groups by poste, so the same question
-would cost ten unfoldings. The mockup draws neither.
+Deleting the committed view takes two things with it, and they are the same thing twice:
+`lib/utils/ocpt_budget_projection.dart`, drawn in that view's right column, and the view's own
+commitments table, **due-date ordered across every poste** — which is what answers "what do I owe
+this week". The expenses tree groups by poste, so the same question would cost ten unfoldings.
 
-**Recommendation, to confirm at the M2 checkpoint: both go to the tools drawer's cash-flow page**,
-as an `À venir` section under the statement — the account's past above, its future below, in one
-place. The alternative is the dashboard, which is defensible but makes a page this plan reduces to
-a summary carry a forecast and a worklist. **Do not build either until Benoit has answered.**
+**Decided on 2026-08-25: both go to the tools drawer's cash-flow page, as an `À venir` section
+under the statement** — the account's past above, its future below, in one place. It is drawn in
+the mockup at `4b`. Neither goes to the dashboard, which this plan reduces to a summary and which
+must not end up carrying a forecast and a worklist.
+
+The section stays read-only like the page around it: a due row selects its commitment into the
+right-dock fiche, which is where it is edited or settled. No capture affordance is added here.
 
 ## 4. The shape to build
 
@@ -131,10 +133,11 @@ names nothing, which neither Expenses nor Resources can show. Mockup `4b`.
 
 ### M2 — `Engagé` disappears
 
-Delete `OcptBudgetCommittedSpending` and its view. Nothing of its content is lost: the commitments
-are already nested under their lines in the expenses tree. Rehome `onLineShowCommitmentRequested`
-(`budget_mode.dart`, `ocpt_budget_fiche.dart`), which today jumps to the committed view. Rehome the
-cash projection per §3, **after Benoit has answered**.
+Delete `OcptBudgetCommittedSpending` and its view. The commitments themselves are already nested
+under their lines in the expenses tree, so nothing of that is lost. Rehome
+`onLineShowCommitmentRequested` (`budget_mode.dart`, `ocpt_budget_fiche.dart`), which today jumps
+to the committed view. Build the cash-flow page's `À venir` section per §3 and mockup `4b`, and
+move the projection into it.
 
 ### M3 — the dashboard, reduced
 
