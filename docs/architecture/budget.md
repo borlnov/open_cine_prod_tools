@@ -703,9 +703,20 @@ record of them.
 
 ## The capture band is the daily gesture
 
-- `OcptBudgetCaptureBand` (`ocpt_budget_capture_band.dart`) sits at the top of `expenses` and of
-  `resources`, never on `sharing`: a direction toggle (`Out of the account` / `Into the account`),
-  an amount, a wording, a date and a `Save`. Nothing else is asked for.
+- `OcptBudgetCaptureBand` (`ocpt_budget_capture_band.dart`) sits at the top of three views now
+  (`OcptBudgetMode._captureBandDirectionOf`): `costTracking` and `cashJournal` open it as a debit,
+  `financing` as a credit, never `dashboard`, `committed`, `regie` or `sharing`. A direction toggle
+  (`Out of the account` / `Into the account`), an amount, a wording, a date and a `Save`. Nothing
+  else is asked for.
+- **It keeps its own half-typed draft across `costTracking` and `cashJournal`, and remounts fresh
+  only moving into or out of `financing`.** The first two read the very same underlying data, poste
+  by poste or by date, so a reader clicking from one to the other is not switching what the band is
+  capturing, only how the rest of the screen reads it — losing a half-typed draft over a click that
+  changed nothing about the movement itself would read as the app forgetting what it was just told.
+  `financing` is a different direction outright, a credit rather than a debit, and earns a fresh
+  draft the way any other change of subject would; the band is keyed on `_captureBandDirectionOf`'s
+  own answer, so it remounts exactly when that answer changes and stays mounted exactly when it does
+  not.
 - **The moment amount and wording are both typed, the app proposes what the movement settles.**
   `ocptBudgetMatchSuggestionsOf` (`lib/utils/ocpt_budget_match.dart`, pure) ranks what a draft
   movement — direction, amount, date, wording — could settle among the commitments still owed and
@@ -723,10 +734,17 @@ record of them.
   the band clears and the movement is an ordinary entry — nothing queues, so nothing has to remember
   that it was queued, and a movement waiting to be attached invents no table of its own: it is a
   `budget_entries` row naming no poste, resource, revenue or share, which was always a legal state.
-- **The band is withheld whole, never disabled, under a previewed version.** `OcptBudgetMode`
-  simply does not build it while `state.isPreviewingVersion` is true, or while `state.subPage` names
-  a sub-page — the daily gesture belongs to a document's own top level, not to the committed-spending
-  list or the régie.
+- **`Something else…` is a full door, not a fallback for when nothing matched.** It is offered
+  whenever the draft reads as saveable, a suggestion or no suggestion — never withheld merely
+  because `_suggestionsOf` found nothing to propose. The alternative was tried and reversed: a band
+  offering `Something else…` only alongside a suggestion let a reader record an off-quote movement
+  without ever meaning to, under a hint that claimed, wrongly, that there was nothing else here to
+  fill in.
+- **The band is withheld whole, never disabled, on the four views `_captureBandDirectionOf` answers
+  null for** — `dashboard`, `committed`, `regie`, `sharing` — **and under a previewed version.**
+  `OcptBudgetMode` simply does not build it there: the daily gesture belongs to a view that reads
+  money moving in one direction at its own top level, not to a whole-project standing reading, a
+  view that already reads a projection of its own, or a page that types nothing at all.
 
 ## Money is added in one way, reached through several doors
 
