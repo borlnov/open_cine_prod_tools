@@ -14121,13 +14121,13 @@
       }
     }
   },
-  "budgetHelpCashJournalIntro": "This is {expenses} again, not a ledger of its own — the same rows, read in date order rather than poste order.",
+  "budgetHelpCashJournalIntro": "Every movement the account has seen is listed here, and only here: debits and credits alike, in the order they happened. {costTracking} reads the same journal poste by poste, but keeps the debits naming a poste alone.",
   "@budgetHelpCashJournalIntro": {
-    "description": "Lead paragraph of the budget mode's help panel for the cash journal view, stating it is the expenses document read in date order",
+    "description": "Lead paragraph of the budget mode's help panel for the cash journal view, stating it is the only view listing every movement the account has seen, credits included",
     "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
     "type": "text",
     "placeholders": {
-      "expenses": {
+      "costTracking": {
         "type": "String"
       }
     }
@@ -14263,9 +14263,9 @@
       }
     }
   },
-  "budgetHelpRegieBody1": "This page types nothing at all: every figure on it is read from somewhere else.",
+  "budgetHelpRegieBody1": "This page is not all typing or all reading: the left column is computed off the schedule, the right one is typed row by row.",
   "@budgetHelpRegieBody1": {
-    "description": "First paragraph of the budget mode's help panel for the catering-and-travel view",
+    "description": "First paragraph of the budget mode's help panel for the catering-and-travel view, stating the catering column is computed and the defrayal column is typed",
     "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
     "type": "text",
     "placeholders": {}
@@ -14291,16 +14291,13 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpRegieBody5": "Reached from {expenses}, as {regie} in its breadcrumb — not a document of its own.",
+  "budgetHelpRegieBody5": "Nothing here reaches the quote by itself: the provisioning button writes what this page computes into {costTracking}, one line per nature within the poste it targets, and leaves any figure typed by hand exactly as it stands.",
   "@budgetHelpRegieBody5": {
-    "description": "Fifth paragraph of the budget mode's help panel for the catering-and-travel view, stating that it is reached through the expenses breadcrumb",
+    "description": "Fifth paragraph of the budget mode's help panel for the catering-and-travel view, stating what the provisioning button writes and what it never overwrites",
     "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
     "type": "text",
     "placeholders": {
-      "expenses": {
-        "type": "String"
-      },
-      "regie": {
+      "costTracking": {
         "type": "String"
       }
     }

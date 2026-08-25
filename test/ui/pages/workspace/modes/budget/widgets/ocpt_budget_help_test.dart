@@ -83,15 +83,11 @@ void main() {
     expect(find.text(tr.budgetSharingLeftToShareLabel), findsNothing);
     expect(find.byType(Table), findsNothing);
 
-    // Its own first paragraph says why: it types nothing, every figure read from somewhere else.
+    // Its own first paragraph says why: it is not all typing or all reading, one column computed
+    // and the other typed row by row.
     expect(find.text(tr.budgetHelpRegieBody1), findsOneWidget);
     expect(
-      find.text(
-        tr.budgetHelpRegieBody5(
-          tr.budgetHeaderCostTrackingSegmentLabel,
-          tr.budgetHeaderRegieTitle,
-        ),
-      ),
+      find.text(tr.budgetHelpRegieBody5(tr.budgetHeaderCostTrackingSegmentLabel)),
       findsOneWidget,
     );
   });

@@ -18,8 +18,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 /// becomes a commitment becomes a payment, a promise becomes a receipt — so every view but
 /// [OcptBudgetView.regie] now opens on that chain ([_OcptBudgetHelpChain]) instead: one cell per
 /// state, left to right, each carrying the state's own word and, under it, a short caption naming
-/// where that figure comes from. The régie draws no chain — it is not a stage of anything, it types
-/// nothing, and its own first paragraph says so. Under the chain, one sentence says how a step
+/// where that figure comes from. The régie draws no chain — it is not a stage of anything, and its
+/// own first paragraph says so. Under the chain, one sentence says how a step
 /// becomes the next; the page below it is the detail. **This widget writes nothing** — like
 /// `OcptBudgetRegie` (`docs/architecture/budget.md`), it carries no `isReadOnly` flag at all, and
 /// is offered identically under a previewed version.
@@ -207,7 +207,7 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpRegieBody2,
       tr.budgetHelpRegieBody3,
       tr.budgetHelpRegieBody4,
-      tr.budgetHelpRegieBody5(tr.budgetHeaderCostTrackingSegmentLabel, tr.budgetHeaderRegieTitle),
+      tr.budgetHelpRegieBody5(tr.budgetHeaderCostTrackingSegmentLabel),
     ],
     OcptBudgetView.cashJournal => [
       _captureBandBody(tr),
