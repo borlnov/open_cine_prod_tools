@@ -74,6 +74,22 @@ void main() {
     expect(find.text(tr.budgetInspectorFigurePaid), findsOneWidget);
   });
 
+  testWidgets("draws a body of its own on the dashboard", (tester) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.dashboard);
+
+    expect(find.text(tr.budgetHelpDashboardBody1), findsOneWidget);
+    expect(
+      find.text(tr.budgetHelpDashboardBody2(tr.budgetHeaderCostTrackingSegmentLabel)),
+      findsOneWidget,
+    );
+    expect(find.text(tr.budgetHelpDashboardBody3), findsOneWidget);
+    expect(
+      find.text(tr.budgetHelpDashboardBody4(tr.budgetHeaderDashboardSegmentLabel)),
+      findsOneWidget,
+    );
+    expect(find.text(tr.budgetHelpDashboardBody5), findsOneWidget);
+  });
+
   testWidgets("the régie draws no chain at all", (tester) async {
     final tr = await pumpHelp(tester, view: OcptBudgetView.regie);
 

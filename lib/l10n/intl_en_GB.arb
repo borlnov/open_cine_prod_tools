@@ -14032,6 +14032,49 @@
       }
     }
   },
+  "budgetHelpDashboardBody1": "This page types nothing: every figure on it is read from the other views. It is where the mode opens, and the one screen that answers \"where does the whole thing stand\" without opening anything.",
+  "@budgetHelpDashboardBody1": {
+    "description": "First paragraph of the budget mode's help panel for the dashboard view",
+    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHelpDashboardBody2": "The tiles read the whole project and never the poste filter — the quote, what has come in, what has left the account, what the bank holds. {costTracking} is where a single poste is read.",
+  "@budgetHelpDashboardBody2": {
+    "description": "Second paragraph of the budget mode's help panel for the dashboard view",
+    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "type": "text",
+    "placeholders": {
+      "costTracking": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpDashboardBody3": "The band under them puts what the film needs against what pays for it, with a share bar between the two, and says in words whether they balance or by how much the plan still falls short.",
+  "@budgetHelpDashboardBody3": {
+    "description": "Third paragraph of the budget mode's help panel for the dashboard view, stating the needs/resources balance band",
+    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHelpDashboardBody4": "An alert is not a notification to clear: it is a fact that stays true until the figures behind it change, so each one offers a way into the data it is about rather than a dismiss. The count on the {dashboard} chip carries them wherever you are in the mode.",
+  "@budgetHelpDashboardBody4": {
+    "description": "Fourth paragraph of the budget mode's help panel for the dashboard view, stating the standing alerts",
+    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "type": "text",
+    "placeholders": {
+      "dashboard": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpDashboardBody5": "The last card says what the other modes feed into this budget — the breakdown, the schedule, the catering pass — and each row is its own way back to where that reading comes from.",
+  "@budgetHelpDashboardBody5": {
+    "description": "Fifth paragraph of the budget mode's help panel for the dashboard view, stating the feed card",
+    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetHelpCostTrackingBody1": "This is the quote itself, poste by poste — the only page where {quote} is typed. The ten CNC postes are seeded once and become ordinary rows from then on: rename, reorder or delete them freely.",
   "@budgetHelpCostTrackingBody1": {
     "description": "First paragraph of the budget mode's help panel for the cost-tracking view",

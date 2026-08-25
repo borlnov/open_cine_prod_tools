@@ -191,12 +191,20 @@ class OcptBudgetHelp extends StatelessWidget {
   /// their own top level, and is the daily gesture the mode exists for
   /// (`OcptBudgetCaptureBand`'s own class doc comment).
   ///
-  /// **[OcptBudgetView.dashboard] prints none.** It carries no capture band of its own
-  /// (`OcptBudgetMode._captureBandDirectionOf`), so the paragraph every other body opens with would
-  /// be describing a control this page does not draw; the chain above and its own sentence already
-  /// say what its KPI tiles read and where each one comes from.
+  /// **[OcptBudgetView.dashboard] does not open on the capture band's own paragraph, unlike those
+  /// three.** It carries no capture band of its own (`OcptBudgetMode._captureBandDirectionOf`), so
+  /// the paragraph every other body opens with would be describing a control this page does not
+  /// draw; its own five paragraphs instead work through what the chain above already introduces —
+  /// the KPI tiles, the needs/resources balance band, the standing alerts and the feed card, each
+  /// in the order they draw.
   List<String> _bodyOf(Tr tr) => switch (view) {
-    OcptBudgetView.dashboard => const [],
+    OcptBudgetView.dashboard => [
+      tr.budgetHelpDashboardBody1,
+      tr.budgetHelpDashboardBody2(tr.budgetHeaderCostTrackingSegmentLabel),
+      tr.budgetHelpDashboardBody3,
+      tr.budgetHelpDashboardBody4(tr.budgetHeaderDashboardSegmentLabel),
+      tr.budgetHelpDashboardBody5,
+    ],
     OcptBudgetView.committed => [
       tr.budgetHelpCommittedBody1,
       tr.budgetHelpCommittedBody2(tr.budgetCommittedStatusSettledLabel, tr.budgetCommittedSettleAction),
