@@ -22,8 +22,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_allowances.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
 
 /// The width, in logical pixels, under which the two columns stack instead of sitting side by
-/// side — mirrors `OcptBudgetCommittedSpending`'s own reading, raised a little for the catering
-/// table's own eight columns.
+/// side — see "A stacked pane states its height" in `docs/architecture/budget.md`, raised a
+/// little for the catering table's own eight columns.
 const double _ocptRegieWrapWidth = 1000;
 
 /// The catering table's own `Day` column width, in logical pixels.
@@ -34,7 +34,7 @@ const double _ocptRegieDayColumnWidth = 56;
 const double _ocptRegieCountColumnWidth = 64;
 
 /// The catering table's own `Total` column width, in logical pixels — mirrors
-/// `OcptBudgetCommittedSpending`'s own amount column.
+/// `OcptBudgetCostTracking`'s own amount columns.
 const double _ocptRegieCateringTotalColumnWidth = 108;
 
 /// The catering table's own `Meals`/`Craft services` column width, in logical pixels — wider than
@@ -49,7 +49,7 @@ const double _ocptRegieAllowanceTextColumnWidth = 96;
 const double _ocptRegieAllowanceQuantityColumnWidth = 80;
 
 /// The defrayal table's own `Amount` column width, in logical pixels — mirrors
-/// `OcptBudgetCommittedSpending`'s own amount column.
+/// `OcptBudgetCostTracking`'s own amount columns.
 const double _ocptRegieAllowanceAmountColumnWidth = 108;
 
 /// The defrayal table's own trailing `⋮` menu column width, in logical pixels.

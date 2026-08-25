@@ -23,7 +23,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -114,46 +113,68 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Switches the centre to the cost-tracking table, the mode's own default view.
-  Future<void> openCostTracking(WidgetTester tester) async {
+  /// Switches the centre to the expenses table, the mode's own default view once the dashboard
+  /// itself is left.
+  Future<void> openExpenses(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderCostTrackingSegmentLabel);
+    await tapHeaderChip(tester, tr.budgetHeaderExpensesSegmentLabel);
   }
 
-  /// Switches the centre to the régie view.
+  /// Switches the centre to the resources document.
+  Future<void> openResources(WidgetTester tester) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tapHeaderChip(tester, tr.budgetHeaderResourcesSegmentLabel);
+  }
+
+  /// Opens the tools drawer, then, once [page] is given, its own segmented switch's [page]
+  /// segment — a plain call lands on whichever of the drawer's own three pages
+  /// [OcptBudgetState.toolsView] already read (`Flux de trésorerie` the very first time).
+  Future<void> openTools(WidgetTester tester, {String? page}) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await tapHeaderChip(tester, tr.budgetHeaderToolsSegmentLabel);
+    if (page != null) {
+      await tapHeaderChip(tester, page);
+    }
+  }
+
+  /// Switches the centre to the tools drawer's own `Flux de trésorerie` page.
+  Future<void> openCashFlow(WidgetTester tester) async {
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+    await openTools(tester, page: tr.budgetHeaderCashFlowSegmentLabel);
+  }
+
+  /// Switches the centre to the tools drawer's own `Régie` page.
   Future<void> openRegie(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderRegieSegmentLabel);
+    await openTools(tester, page: tr.budgetHeaderRegieSegmentLabel);
   }
 
-  /// Switches the centre to the cash journal view.
-  Future<void> openCashJournal(WidgetTester tester) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderCashJournalSegmentLabel);
-  }
-
-  /// Switches the centre to the committed-spending view.
-  Future<void> openCommitted(WidgetTester tester) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderCommittedSegmentLabel);
-  }
-
-  /// Switches the centre to the financing view.
-  Future<void> openFinancing(WidgetTester tester) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderFinancingSegmentLabel);
-  }
-
-  /// Switches the centre to the revenue-sharing view.
+  /// Switches the centre to the tools drawer's own revenue-sharing page.
   Future<void> openSharing(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tapHeaderChip(tester, tr.budgetHeaderSharingSegmentLabel);
+    await openTools(tester, page: tr.budgetHeaderSharingSegmentLabel);
   }
 
   /// A finder scoped to the export panel's own `AlertDialog`, so its card titles can't collide
   /// with anything else on screen — mirrors `schedule_mode_test.dart`'s own `inPanel`.
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
+
+  /// The `⋮` menu of the poste row named [label], in the expenses table — needed because
+  /// `OcptBudgetCostTracking` draws its identity pane (a row's own name) and its amounts pane
+  /// (where a row's own `⋮` menu lives) as sibling subtrees sharing one vertical scroll, not one
+  /// ancestor of the other, so [find.ancestor]/[find.descendant] cannot connect the two.
+  Finder menuInRowOf(WidgetTester tester, String label) {
+    final rowY = tester.getCenter(find.text(label)).dy;
+    final menus = find.byType(PopupMenuButton<String>);
+    for (var index = 0; index < tester.widgetList(menus).length; index++) {
+      final candidate = menus.at(index);
+      if ((tester.getCenter(candidate).dy - rowY).abs() < 4) {
+        return candidate;
+      }
+    }
+    throw StateError("No ⋮ menu found level with the row naming '$label'");
+  }
 
   testWidgets("the ten CNC postes are seeded and shown on first entry", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
@@ -167,9 +188,9 @@ void main() {
     final statusBar = tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
     expect(statusBar.posteCount, 10);
 
-    await openCostTracking(tester);
+    await openExpenses(tester);
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    // Scoped to the cost-tracking table: the left dock now prints every poste's own name too.
+    // Scoped to the expenses table itself.
     expect(
       find.descendant(
         of: find.byType(OcptBudgetCostTracking),
@@ -224,9 +245,8 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      // Scoped to the dashboard itself: the left dock draws every poste's own name too, on every
-      // view including this one, so a bare `find.text` would prove nothing about which row was
-      // actually tapped.
+      // Scoped to the dashboard itself, so a bare `find.text` proves the tap actually landed on
+      // this row rather than a same-named one elsewhere on screen.
       await tester.tap(
         find.descendant(
           of: find.byType(OcptBudgetDashboard),
@@ -255,7 +275,7 @@ void main() {
 
     await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
-    await openCostTracking(tester);
+    await openExpenses(tester);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
     // Scoped to the cost-tracking table: the left dock now prints every poste's own name too.
@@ -279,7 +299,7 @@ void main() {
 
     await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
-    await openCostTracking(tester);
+    await openExpenses(tester);
 
     await tester.tap(find.byType(PopupMenuButton<String>).first);
     await tester.pumpAndSettle();
@@ -299,48 +319,36 @@ void main() {
     expect(statusBar.posteCount, 10);
   });
 
-  testWidgets("creating a cash-journal entry through its own dialog shows it in the table", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    "creating an entry through the capture band shows it in the tools drawer's own cash flow "
+    "page",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    // The cash journal's own empty state offers no `+ Entry` action at all, so an entry is seeded
-    // first to reach the working table this test actually exercises.
-    final project = projectsManager.currentProject!;
-    await projectsManager.budgetJournalService.createEntry(
-      database: project.database,
-      date: DateTime(2026),
-      label: "Seed entry",
-      debitCents: 100,
-    );
+      // The tools drawer's own cash flow page is now a read-only statement, carrying no capture
+      // affordance of its own — the daily gesture is the capture band mounted on `expenses`.
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openExpenses(tester);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-    await openCashJournal(tester);
+      await tester.enterText(
+        find.byKey(const Key("ocptBudgetCaptureBandWordingField")),
+        "Camera rental",
+      );
+      await tester.enterText(
+        find.byKey(const Key("ocptBudgetCaptureBandAmountField")),
+        "50.00",
+      );
+      await tester.tap(find.byKey(const Key("ocptBudgetCaptureBandSaveButton")));
+      await tester.pumpAndSettle();
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetCashJournalEntryCreationAction));
-    await tester.pumpAndSettle();
-
-    // Scoped to the dialog itself: the capture band sits on the very same document and reuses
-    // these very same field labels for its own fields, so an unscoped finder is ambiguous the
-    // moment both are on screen at once.
-    await tester.enterText(
-      inPanel(find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel)),
-      "Camera rental",
-    );
-    await tester.enterText(
-      inPanel(find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel)),
-      "50.00",
-    );
-    await tester.tap(inPanel(find.text(tr.budgetEntryDialogConfirmAction)));
-    await tester.pumpAndSettle();
-
-    expect(find.text("Camera rental"), findsOneWidget);
-  });
+      await openCashFlow(tester);
+      expect(find.text("Camera rental"), findsOneWidget);
+    },
+  );
 
   testWidgets("deleting a cash-journal entry asks through OcptConfirmDialog", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
@@ -358,7 +366,7 @@ void main() {
 
     await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
-    await openCashJournal(tester);
+    await openCashFlow(tester);
 
     await tester.tap(find.byType(PopupMenuButton<String>).first);
     await tester.pumpAndSettle();
@@ -416,7 +424,7 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openFinancing(tester);
+      await openResources(tester);
 
       // The resource sits under its own `Contributions` family row, which opens on the family's
       // own twisty — the only family drawn here, this cash resource being the only live one.
@@ -480,11 +488,11 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openCashJournal(tester);
+      await openCashFlow(tester);
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
       expect(find.text("Frozen entry"), findsOneWidget);
-      expect(find.text(tr.budgetCashJournalEntryCreationAction), findsNothing);
+      // The read-only statement withholds its rows' own ⋮ menu, the one writing affordance it
+      // still offers while live.
       expect(find.byType(PopupMenuButton<String>), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
@@ -508,7 +516,7 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openCostTracking(tester);
+      await openExpenses(tester);
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
       expect(find.text(tr.budgetPosteCreationAction), findsNothing);
@@ -519,53 +527,54 @@ void main() {
     },
   );
 
-  testWidgets("creating a commitment through its own dialog shows it in the table", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    "committing a quote line through Commit this line… shows it as committed in the tree",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    // The committed-spending view's own empty state offers no `+ Commitment` action at all
-    // (mirrors the cash journal's own reading), so a commitment is seeded first to reach the
-    // working table this test actually exercises.
-    final project = projectsManager.currentProject!;
-    final posteId = await projectsManager.budgetQuoteService.createPoste(
-      database: project.database,
-      label: "Camera",
-    );
-    expect(posteId, isNotNull);
-    await projectsManager.budgetJournalService.createCommitment(
-      database: project.database,
-      posteId: posteId!,
-      label: "Seed commitment",
-      amountCents: 100,
-    );
+      // A commitment is no longer created from a dedicated view of its own: a quote line's own
+      // fiche is the one place `Commit this line…` is offered — seeding a poste with a line first
+      // reaches it.
+      final project = projectsManager.currentProject!;
+      final posteId = await projectsManager.budgetQuoteService.createPoste(
+        database: project.database,
+        label: "Camera",
+      );
+      expect(posteId, isNotNull);
+      final lineId = await projectsManager.budgetQuoteService.createLine(
+        database: project.database,
+        posteId: posteId!,
+        label: "Camera deposit",
+        unitAmountCents: const Value(5000),
+      );
+      expect(lineId, isNotNull);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-    await openCommitted(tester);
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openExpenses(tester);
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetCommittedCreationAction));
-    await tester.pumpAndSettle();
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-    await tester.enterText(
-      find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-      "Camera deposit",
-    );
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text("Camera").last);
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
-      "50.00",
-    );
-    await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
-    await tester.pumpAndSettle();
+      // The poste's own twisty is the only one on screen — this is the only poste seeded.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Camera deposit"));
+      await tester.pumpAndSettle();
 
-    expect(find.text("Camera deposit"), findsOneWidget);
-  });
+      await tester.tap(find.text(tr.budgetLineCommitAction));
+      await tester.pumpAndSettle();
+
+      // The dialog opened pre-filled from the line itself — nothing left to type.
+      await tester.tap(inPanel(find.text(tr.budgetEntryDialogConfirmAction)));
+      await tester.pumpAndSettle();
+
+      // The line is promoted: its own `Commit this line…` primary action is gone.
+      expect(find.text(tr.budgetLineCommitAction), findsNothing);
+    },
+  );
 
   testWidgets("deleting a commitment asks through OcptConfirmDialog", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
@@ -588,9 +597,15 @@ void main() {
 
     await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
-    await openCommitted(tester);
+    await openExpenses(tester);
 
-    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    // The commitment names no line, so it draws as one of the poste's own off-line sub-rows —
+    // reached by expanding the poste's own twisty, the only one seeded here. Its own menu is the
+    // second `⋮` on screen, the first being the poste row's.
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>).at(1));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -605,8 +620,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("To be deleted"), findsOneWidget);
 
-    // Confirming removes it, and the view falls back to the shared empty state.
-    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    // Confirming removes it — the poste's own row is left with nothing to expand onto.
+    await tester.tap(find.byType(PopupMenuButton<String>).at(1));
     await tester.pumpAndSettle();
     await tester.tap(find.text(tr.budgetCommittedDeleteAction));
     await tester.pumpAndSettle();
@@ -614,7 +629,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text("To be deleted"), findsNothing);
-    expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
+    expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
   });
 
   testWidgets(
@@ -640,10 +655,15 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openCommitted(tester);
+      await openExpenses(tester);
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-      await tester.tap(find.byType(PopupMenuButton<String>).first);
+
+      // The commitment names no line, so it draws as the poste's own off-line sub-row, reached
+      // by expanding the poste's own twisty — the only one seeded here.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(PopupMenuButton<String>).at(1));
       await tester.pumpAndSettle();
       await tester.tap(find.text(tr.budgetCommittedSettleAction));
       await tester.pumpAndSettle();
@@ -652,32 +672,36 @@ void main() {
       expect(find.widgetWithText(TextFormField, "Camera deposit"), findsOneWidget);
       expect(find.widgetWithText(TextFormField, "50.00"), findsOneWidget);
 
-      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      // Scoped to the dialog itself: the capture band sits on this very same document and reuses
+      // this very same `Save` label for its own button, so an unscoped finder is ambiguous the
+      // moment both are on screen at once.
+      await tester.tap(inPanel(find.text(tr.budgetEntryDialogConfirmAction)));
       await tester.pumpAndSettle();
 
       // The commitment now reads Settled, and Settle is no longer offered.
       expect(find.text(tr.budgetCommittedStatusSettledLabel), findsOneWidget);
 
       // The journal now carries the debit this settlement created.
-      await openCashJournal(tester);
+      await openCashFlow(tester);
       expect(find.text("Camera deposit"), findsOneWidget);
 
-      // Undoing the settlement leaves the entry in place.
-      await openCommitted(tester);
-      await tester.tap(find.byType(PopupMenuButton<String>).first);
+      // Undoing the settlement leaves the entry in place. The poste's own twisty is still
+      // expanded — that state outlives switching to another route and back.
+      await openExpenses(tester);
+      await tester.tap(find.byType(PopupMenuButton<String>).at(1));
       await tester.pumpAndSettle();
       await tester.tap(find.text(tr.budgetCommittedUnsettleAction));
       await tester.pumpAndSettle();
 
       expect(find.text(tr.budgetCommittedStatusSettledLabel), findsNothing);
 
-      await openCashJournal(tester);
+      await openCashFlow(tester);
       expect(find.text("Camera deposit"), findsOneWidget);
     },
   );
 
   testWidgets(
-    "withholds every committed-spending writing affordance under a previewed version",
+    "withholds a committed line's own sub-row menu under a previewed version",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -705,12 +729,24 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openCommitted(tester);
+      await openExpenses(tester);
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      // Expanding the poste's own twisty only reads — never withheld under a preview.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
+      await tester.pumpAndSettle();
+
       expect(find.text("Frozen commitment"), findsOneWidget);
-      expect(find.text(tr.budgetCommittedCreationAction), findsNothing);
-      expect(find.byType(PopupMenuButton<String>), findsNothing);
+
+      // Exactly one `⋮` menu remains: the poste row's own, carrying nothing but the never-withheld
+      // `Show this poste only` — the commitment sub-row's own menu (Settle, Edit, Delete) is gone
+      // whole.
+      expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      expect(find.text(tr.budgetCostTrackingFilterOnlyAction), findsOneWidget);
+      expect(find.text(tr.budgetCommittedSettleAction), findsNothing);
+      expect(find.text(tr.budgetCommittedDeleteAction), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
       await projectsManager.exitPreview();
@@ -798,9 +834,8 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-    // Selecting a poste in the quote opens the dock on its inspector. Scoped to the
-    // cost-tracking table: the left dock now prints every poste's own name too.
-    await openCostTracking(tester);
+    // Selecting a poste in the quote opens the right dock on its inspector.
+    await openExpenses(tester);
     await tester.tap(
       find.descendant(
         of: find.byType(OcptBudgetCostTracking),
@@ -818,7 +853,7 @@ void main() {
     expect(find.byType(OcptBudgetHelp), findsOneWidget);
 
     // Coming back brings the inspector back: the stored preference was never overwritten.
-    await openCostTracking(tester);
+    await openExpenses(tester);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
     expect(find.byType(OcptBudgetHelp), findsNothing);
   });
@@ -847,7 +882,7 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-      await openFinancing(tester);
+      await openResources(tester);
 
       // The subsidy sits under its own family's twisty, the taking under the `Takings` one.
       await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
@@ -886,13 +921,13 @@ void main() {
 
     // Switching to the cost-tracking table changes the help panel's page without touching the
     // dock at all.
-    await openCostTracking(tester);
+    await openExpenses(tester);
     expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
     expect(find.text(tr.budgetHelpCashJournalBody4), findsNothing);
 
     // Switching the header's own reading changes the help panel's page without touching the dock
     // at all.
-    await openCashJournal(tester);
+    await openCashFlow(tester);
 
     expect(find.text(tr.budgetHelpCostTrackingBody4), findsNothing);
     expect(find.text(tr.budgetHelpCashJournalBody4), findsOneWidget);
@@ -922,19 +957,16 @@ void main() {
 
     // The cost report reads every column at once, so no single step of the chain stands for it
     // in particular — driven explicitly, the dashboard no longer being the same route.
-    await openCostTracking(tester);
+    await openExpenses(tester);
     expect(currentSteps(), findsNothing);
 
     // Neither does the resources document's own top level — its tree reads both columns at once.
-    await openFinancing(tester);
+    await openResources(tester);
     expect(currentSteps(), findsNothing);
 
-    // The committed spending is the expenses chain's own `Committed` step.
-    await openCommitted(tester);
-    expect(currentSteps(), findsOneWidget);
-
-    // Expenses read by date is the expenses chain's own `Paid` step.
-    await openCashJournal(tester);
+    // Expenses read by date, the tools drawer's own cash flow page, is the expenses chain's own
+    // `Paid` step.
+    await openCashFlow(tester);
     expect(currentSteps(), findsOneWidget);
   });
 
@@ -963,7 +995,7 @@ void main() {
     expect(find.byType(OcptBudgetHelp), findsOneWidget);
 
     // Driven onto the cost report explicitly — the mode no longer opens on it by default.
-    await openCostTracking(tester);
+    await openExpenses(tester);
     expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
 
     // Leave the preview so the working copy is what the next test opens onto.
@@ -971,8 +1003,8 @@ void main() {
   });
 
   testWidgets(
-    "the capture band is offered on the cost report, the cash journal and the financing plan, "
-    "absent on sharing",
+    "the capture band is offered on expenses and resources, absent everywhere in the tools "
+    "drawer",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -983,27 +1015,31 @@ void main() {
       await tester.pumpAndSettle();
 
       // The mode opens on the dashboard, which carries no capture band of its own — driven onto
-      // the cost report explicitly, where the band shows.
-      await openCostTracking(tester);
+      // expenses explicitly, where the band shows.
+      await openExpenses(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
 
-      // The cash journal is the very same document, read in a different order.
-      await openCashJournal(tester);
+      // Resources.
+      await openResources(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
 
-      // Financing.
-      await openFinancing(tester);
-      expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
+      // The tools drawer's own three pages all carry no capture band: cash flow is now a
+      // read-only statement, régie is not a stage of anything, and sharing reads figures already
+      // captured elsewhere.
+      await openCashFlow(tester);
+      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
-      // Sharing carries no capture band at all.
+      await openRegie(tester);
+      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+
       await openSharing(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsNothing);
     },
   );
 
   testWidgets(
-    "the capture band keeps a half-typed draft between the cost report and the cash journal, and "
-    "starts fresh on the financing plan",
+    "the capture band's draft starts fresh when the direction changes between expenses and "
+    "resources",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -1013,9 +1049,9 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
-      // The mode opens on the dashboard now, which carries no capture band — driven onto the
-      // cost report explicitly, where the band this test types into shows.
-      await openCostTracking(tester);
+      // The mode opens on the dashboard now, which carries no capture band — driven onto
+      // expenses explicitly, where the band this test types into shows.
+      await openExpenses(tester);
 
       /// The draft as the band's own controllers hold it, read straight off them rather than
       /// through `find.text`: a wording echoed by a suggestion row would match that just as well,
@@ -1039,21 +1075,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(draftOf(), ("Half-typed wording", "250.00"));
 
-      // The cash journal reads the very movements the cost report reads, in another order, and the
-      // band captures the same debit on both: moving between them must not throw a draft away.
-      await openCashJournal(tester);
-      expect(draftOf(), ("Half-typed wording", "250.00"));
-
-      // The financing plan captures a credit instead, so the band does remount there — its draft
-      // cleared rather than carried into a direction it was never typed for.
-      await openFinancing(tester);
+      // Resources captures a credit instead, so the band remounts there — its draft cleared
+      // rather than carried into a direction it was never typed for.
+      await openResources(tester);
       expect(draftOf(), ("", ""));
     },
   );
 
-  testWidgets("the capture band is withheld on the committed spending and the régie", (
-    tester,
-  ) async {
+  testWidgets("the capture band is withheld everywhere in the tools drawer", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1062,14 +1091,17 @@ void main() {
     await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
 
-    await openCommitted(tester);
+    await openCashFlow(tester);
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
     await openRegie(tester);
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
-    // Back on the cost report, it returns.
-    await openCostTracking(tester);
+    await openSharing(tester);
+    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+
+    // Back on expenses, it returns.
+    await openExpenses(tester);
     expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
   });
 
@@ -1090,13 +1122,13 @@ void main() {
 
     // Driven onto the cost report explicitly: a route that offers the band while live, so its
     // absence here is the preview's own doing, not merely the dashboard's.
-    await openCostTracking(tester);
+    await openExpenses(tester);
 
     // Not built at all — withheld, not disabled.
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
     // Still absent on resources, the other document that offers it while live.
-    await openFinancing(tester);
+    await openResources(tester);
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);
 
     // Leave the preview so the working copy is what the next test opens onto.
@@ -1104,7 +1136,7 @@ void main() {
   });
 
   testWidgets(
-    "clicking a dock card selects the poste and does not narrow every other view",
+    "selecting a poste row opens the fiche without narrowing any view",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -1113,7 +1145,7 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openCostTracking(tester);
+      await openExpenses(tester);
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
@@ -1122,7 +1154,7 @@ void main() {
 
       await tester.tap(
         find.descendant(
-          of: find.byType(OcptBudgetPosteDock),
+          of: find.byType(OcptBudgetCostTracking),
           matching: find.text(tr.budgetCncPosteArtisticRights),
         ),
       );
@@ -1131,63 +1163,22 @@ void main() {
       // Selected: the click opened the fiche on this very poste.
       expect(find.byType(OcptBudgetFiche), findsOneWidget);
 
-      // Not filtered: the header's own chip still reads "every poste" — the one place every
-      // view of the mode agrees on whether it is narrowed.
-      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
+      // Not filtered: the header draws no poste filter tag at all — the one place every view of
+      // the mode agrees on whether it is narrowed.
+      Finder filterTagIcon() =>
+          find.descendant(of: find.byType(OcptBudgetHeader), matching: find.byIcon(Icons.close));
+      expect(filterTagIcon(), findsNothing);
 
-      // The cash journal, a document the filter would narrow if it were set, still lists the
-      // whole quote's own filter caption as unfiltered too.
-      await openCashJournal(tester);
-      expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
+      // The cash flow page, a document the filter would narrow if it were set, still lists every
+      // poste's own movement rather than one.
+      await openCashFlow(tester);
+      expect(filterTagIcon(), findsNothing);
     },
   );
 
-  testWidgets("a dock card's own ⋮ menu narrows every view to that poste", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-    await openCostTracking(tester);
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-    await tester.tap(
-      find
-          .descendant(of: find.byType(OcptBudgetPosteDock), matching: find.byType(PopupMenuButton<void>))
-          .first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.budgetPosteDockFilterOnlyAction));
-    await tester.pumpAndSettle();
-
-    // The header's own chip now names the poste rather than reading "every poste" — the mode
-    // is narrowed, and every view that can honour the filter now agrees on it.
-    expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing);
-
-    // And the narrowing is real where it is read, not merely announced by the chip: the
-    // cost-tracking table has dropped every other poste. Asserted on the table rather than on
-    // the whole tree, because the dock itself deliberately keeps listing all of them — it is a
-    // standing reading of the quote, not a narrowed view.
-    Finder inCostTracking(Finder matching) =>
-        find.descendant(of: find.byType(OcptBudgetCostTracking), matching: matching);
-    expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsOneWidget);
-    expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsNothing);
-
-    // The dock, meanwhile, still lists the poste the filter left out.
-    expect(
-      find.descendant(
-        of: find.byType(OcptBudgetPosteDock),
-        matching: find.text(tr.budgetCncPosteOverheads),
-      ),
-      findsOneWidget,
-    );
-  });
-
   testWidgets(
-    "the poste dock is drawn on financing, régie and sharing, its filter entry withheld",
+    "a poste row's own ⋮ menu narrows the expenses table; the header's own filter tag stands on "
+    "every route and clears it everywhere at once",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -1196,26 +1187,46 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
+      await openExpenses(tester);
 
-      Future<void> expectDockWithNoFilterEntry() async {
-        expect(find.byType(OcptBudgetPosteDock), findsOneWidget);
-        expect(
-          find.descendant(
-            of: find.byType(OcptBudgetPosteDock),
-            matching: find.byType(PopupMenuButton<void>),
-          ),
-          findsNothing,
-        );
-      }
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      await openFinancing(tester);
-      await expectDockWithNoFilterEntry();
+      // No tag drawn while nothing is filtered.
+      Finder filterTag() => find.descendant(
+        of: find.byType(OcptBudgetHeader),
+        matching: find.text(tr.budgetCncPosteArtisticRights),
+      );
+      expect(filterTag(), findsNothing);
 
-      await openRegie(tester);
-      await expectDockWithNoFilterEntry();
+      await tester.tap(menuInRowOf(tester, tr.budgetCncPosteArtisticRights));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetCostTrackingFilterOnlyAction));
+      await tester.pumpAndSettle();
 
-      await openSharing(tester);
-      await expectDockWithNoFilterEntry();
+      // The header now draws the filter tag naming the poste — the mode is narrowed.
+      expect(filterTag(), findsOneWidget);
+
+      // And the narrowing is real, not merely announced by the tag: the expenses table has
+      // dropped every other poste.
+      Finder inCostTracking(Finder matching) =>
+          find.descendant(of: find.byType(OcptBudgetCostTracking), matching: matching);
+      expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsOneWidget);
+      expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsNothing);
+
+      // The tag still stands while a route that does not honour the filter is on screen — the
+      // tools drawer's own cash flow page still lists every poste's own movement rather than one.
+      await openCashFlow(tester);
+      expect(filterTag(), findsOneWidget);
+
+      // Clearing it, through the tag's own ✕, is read everywhere at once.
+      await openExpenses(tester);
+      await tester.tap(
+        find.descendant(of: find.byType(OcptBudgetHeader), matching: find.byIcon(Icons.close)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(filterTag(), findsNothing);
+      expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsOneWidget);
     },
   );
 }

@@ -339,7 +339,7 @@ class OcptBudgetFiche extends StatelessWidget {
     );
 
     return _OcptBudgetFicheScaffold(
-      breadcrumb: [tr.budgetHeaderCostTrackingSegmentLabel],
+      breadcrumb: [tr.budgetHeaderExpensesSegmentLabel],
       title: ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
       amountText: _amount(quoted.amountCents),
       stepLabels: [
@@ -909,7 +909,7 @@ class OcptBudgetFiche extends StatelessWidget {
 
     return _OcptBudgetFicheScaffold(
       breadcrumb: [
-        tr.budgetHeaderFinancingSegmentLabel,
+        tr.budgetHeaderResourcesSegmentLabel,
         ocptBudgetResourceGroupKindLabel(tr, resource.groupKind),
       ],
       title: resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
@@ -969,7 +969,7 @@ class OcptBudgetFiche extends StatelessWidget {
 
     return _OcptBudgetFicheScaffold(
       breadcrumb: [
-        tr.budgetHeaderFinancingSegmentLabel,
+        tr.budgetHeaderResourcesSegmentLabel,
         ocptBudgetResourceFamilyLabel(tr, OcptBudgetResourceFamily.takings),
       ],
       title: revenue.label.isEmpty ? tr.budgetPosteUnnamed : revenue.label,

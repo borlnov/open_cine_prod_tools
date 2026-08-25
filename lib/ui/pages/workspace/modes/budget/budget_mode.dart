@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -39,7 +40,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_capture_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_committed_spending.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_element_picker_dialog.dart';
@@ -50,7 +50,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_poste_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_quote_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
@@ -79,9 +78,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
-/// The budget production mode: the quote, poste by poste — the cost-tracking table this milestone
-/// builds, `Inspector`, `Versions` and `Help` in the right dock, and the left dock's own poste list
-/// (`OcptBudgetPosteDock`), drawn on every view of the mode.
+/// The budget production mode: four chips — `Tableau de bord`, `Dépenses`, `Ressources`, `Outils`
+/// — and `Inspector`, `Versions` and `Help` in the right dock. **No left dock**: the mockup draws
+/// none, and the poste list that used to live there is retired with it (its filtering gesture
+/// moved to the expenses table's own row menu).
 ///
 /// **No episode selector**: one budget serves the whole production (ADR 0019), its catalogue
 /// naming no episode at all, exactly the schedule mode's own reason — not for want of a bloc.
@@ -129,12 +129,13 @@ class _BudgetView extends StatefulWidget {
   State<_BudgetView> createState() => _BudgetViewState();
 }
 
-/// The state of [_BudgetView]: owns the dock layout controller and keeps it in sync with the
-/// fractions the bloc holds — both docks are always shown, the left one drawing the poste list on
-/// every view of the mode, so [OcptWorkspaceDockLayoutController.leftFraction] is synced exactly as
-/// its own right one already is.
+/// The state of [_BudgetView]: owns the dock layout controller and keeps its right fraction in
+/// sync with the one the bloc holds. **This mode carries no left dock at all**, so
+/// [OcptWorkspaceDockLayoutController.leftFraction] is constructed once, at its own default, and
+/// never synced afterwards — there is no divider to drag it from.
 class _BudgetViewState extends State<_BudgetView> {
-  /// The live source of truth for both dock fractions while a divider is being dragged.
+  /// The live source of truth for both dock fractions while a divider is being dragged. The left
+  /// one is fixed at its own default for the mode's whole lifetime — see the class doc comment.
   final OcptWorkspaceDockLayoutController _dockLayoutController = OcptWorkspaceDockLayoutController(
     leftFraction: OcptWorkspaceDock.leftDefaultFraction,
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
@@ -183,7 +184,6 @@ class _BudgetViewState extends State<_BudgetView> {
           const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help),
         ),
         banner: _buildReadOnlyBanner(context, state),
-        leftPanel: _buildLeftDock(context, state),
         rightPanel: _buildRightDock(context, state),
         centre: _buildCentre(context, state),
         statusBar: OcptBudgetStatusBar(
@@ -193,11 +193,9 @@ class _BudgetViewState extends State<_BudgetView> {
           currencyCode: state.currencyCode,
         ),
         dockLayoutController: _dockLayoutController,
+        // Only the right divider can ever report a drag here — the mode carries no left dock, so
+        // `fractions.left` is always null (see the class doc comment).
         onDockFractionsChanged: (fractions) {
-          final left = fractions.left;
-          if (left != null) {
-            context.read<OcptBudgetBloc>().add(OcptBudgetLeftDockFractionChangedEvent(fraction: left));
-          }
           final right = fractions.right;
           if (right != null) {
             context.read<OcptBudgetBloc>().add(OcptBudgetRightDockFractionChangedEvent(fraction: right));
@@ -462,6 +460,9 @@ class _BudgetViewState extends State<_BudgetView> {
         OcptBudgetHeader(
           view: state.view,
           onViewSelected: (view) => bloc.add(OcptBudgetViewSelectedEvent(view: view)),
+          toolsView: state.toolsView,
+          onToolsViewSelected: (toolsView) =>
+              bloc.add(OcptBudgetToolsViewSelectedEvent(toolsView: toolsView)),
           isSimplified: state.isSimplified,
           onSimplifiedChanged: (value) =>
               bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
@@ -469,8 +470,7 @@ class _BudgetViewState extends State<_BudgetView> {
           onTaxBasisChanged: (basis) => bloc.add(OcptBudgetTaxBasisChangedEvent(basis: basis)),
           postes: state.postes,
           filterPosteId: state.filterPosteId,
-          onPosteFilterSelected: (posteId) =>
-              bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
+          onPosteFilterCleared: () => bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
           alertCount: state.alerts.length,
         ),
         const SizedBox(height: 12),
@@ -493,33 +493,28 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// The direction [OcptBudgetCaptureBand] opens on under [view], or null where [view] draws no
-  /// band at all — [OcptBudgetView.dashboard], [OcptBudgetView.committed], [OcptBudgetView.regie]
-  /// and [OcptBudgetView.sharing]. A previewed version withholds the band **whole** rather than
-  /// drawing it disabled, the standing rule for an affordance a preview takes away
-  /// (`docs/architecture/budget.md`); that is [_buildCentre]'s own reading, not this method's,
-  /// which answers about the view alone.
+  /// band at all — [OcptBudgetView.dashboard] and [OcptBudgetView.tools]. A previewed version
+  /// withholds the band **whole** rather than drawing it disabled, the standing rule for an
+  /// affordance a preview takes away (`docs/architecture/budget.md`); that is [_buildCentre]'s own
+  /// reading, not this method's, which answers about the view alone.
   ///
-  /// **`true` (a debit) for [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal],
-  /// `false` (a credit) for [OcptBudgetView.financing].** Both of the first two are the very same
-  /// document the pre-rework mode read in two orders, poste by poste or by date, and a reader
-  /// moving between them is not switching what the band is capturing — only how the rest of the
-  /// screen reads it — so the band must not remount and lose a half-typed draft merely because the
-  /// reader clicked from one to the other.
+  /// **`true` (a debit) for [OcptBudgetView.expenses], `false` (a credit) for
+  /// [OcptBudgetView.resources].** The tools drawer's own `Flux de trésorerie` page used to share
+  /// the expenses table's own debit default, back when the two were readings of the very same
+  /// document, poste by poste or by date — it moved into the drawer **read-only**, with no capture
+  /// affordance of any kind, so this method no longer has anything to answer for it at all.
   bool? _captureBandDirectionOf(OcptBudgetView view) => switch (view) {
-    OcptBudgetView.costTracking || OcptBudgetView.cashJournal => true,
-    OcptBudgetView.financing => false,
-    OcptBudgetView.dashboard ||
-    OcptBudgetView.committed ||
-    OcptBudgetView.regie ||
-    OcptBudgetView.sharing => null,
+    OcptBudgetView.expenses => true,
+    OcptBudgetView.resources => false,
+    OcptBudgetView.dashboard || OcptBudgetView.tools => null,
   };
 
   /// Builds the capture band — keyed by [isDebit], the answer [_captureBandDirectionOf] gave for
-  /// the view on screen, so it remounts fresh, its own draft cleared, exactly when the band's own
-  /// default direction changes (moving into or out of [OcptBudgetView.financing]), and stays
-  /// mounted with its draft intact while the reader moves between [OcptBudgetView.costTracking] and
-  /// [OcptBudgetView.cashJournal] — two readings of the very same document, sharing the very same
-  /// debit default.
+  /// the view on screen. **Every route that draws a band now draws its own**: [OcptBudgetView.expenses]
+  /// is always a debit, [OcptBudgetView.resources] always a credit, so the two never share a key
+  /// and the band remounts fresh, its own draft cleared, on every switch between them — unlike
+  /// before this milestone, when the tools drawer's own `Flux de trésorerie` page still shared the
+  /// expenses table's own debit default and a draft could survive the click between the two.
   ///
   /// **The three callbacks are where a suggestion's own kind is turned into a domain write** — the
   /// band itself only ever reports what was typed (see `OcptBudgetCaptureBand`'s own class doc
@@ -552,8 +547,8 @@ class _BudgetViewState extends State<_BudgetView> {
   );
 
   /// `Autre chose…`: opens `OcptBudgetEntryDialog` prefilled with the capture band's own draft,
-  /// then dispatches the creation if the user confirmed it — mirrors `_handleEntryCreationRequested`
-  /// with [fields] standing in for an empty dialog.
+  /// then dispatches the creation if the user confirmed it — [fields] standing in for an empty
+  /// dialog, mirroring every other facilitator of this mode that opens the entry dialog pre-filled.
   Future<void> _handleCaptureBandOtherRequested(
     BuildContext context,
     OcptBudgetState state,
@@ -690,17 +685,20 @@ class _BudgetViewState extends State<_BudgetView> {
     }
   }
 
-  /// Builds whichever widget [OcptBudgetState.view] names. Every one of them is the very widget the
-  /// seven values of the retired `OcptBudgetCentreView` used to switch over: only the switch's own
-  /// shape moved.
+  /// Builds whichever widget [OcptBudgetState.view] names — [OcptBudgetState.toolsView] deciding
+  /// which of the tools drawer's own three pages draws while [OcptBudgetView.tools] is on screen.
+  /// Every one of these is the very widget the retired seven-chip header used to switch over:
+  /// only the switch's own shape moved, save the cash journal, which is now read-only in its new
+  /// home (see [_buildCashJournal]'s own doc comment).
   Widget _buildRoute(BuildContext context, OcptBudgetState state) => switch (state.view) {
     OcptBudgetView.dashboard => _buildDashboard(context, state),
-    OcptBudgetView.costTracking => _buildCostTracking(context, state),
-    OcptBudgetView.cashJournal => _buildCashJournal(context, state),
-    OcptBudgetView.financing => _buildFinancing(context, state),
-    OcptBudgetView.committed => _buildCommittedSpending(context, state),
-    OcptBudgetView.regie => _buildRegie(context, state),
-    OcptBudgetView.sharing => _buildSharing(context, state),
+    OcptBudgetView.expenses => _buildCostTracking(context, state),
+    OcptBudgetView.resources => _buildFinancing(context, state),
+    OcptBudgetView.tools => switch (state.toolsView) {
+      OcptBudgetToolsView.cashFlow => _buildCashJournal(context, state),
+      OcptBudgetToolsView.regie => _buildRegie(context, state),
+      OcptBudgetToolsView.sharing => _buildSharing(context, state),
+    },
   };
 
   /// Opens the resources mode's own elements tab — `OcptBudgetFeedCard`'s own breakdown row,
@@ -718,18 +716,24 @@ class _BudgetViewState extends State<_BudgetView> {
   );
 
   /// Opens the catering-and-travel pass — `OcptBudgetFeedCard`'s own catering row, drawn only where
-  /// that pass is not itself already on screen.
-  void _handleCateringFeedRequested(OcptBudgetBloc bloc) =>
-      bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.regie));
+  /// that pass is not itself already on screen. Sets **both** [OcptBudgetView.tools] and
+  /// [OcptBudgetToolsView.regie]: the first opens the drawer, the second picks which of its own
+  /// pages is on screen the moment it does, and neither event clears the other's own field.
+  void _handleCateringFeedRequested(OcptBudgetBloc bloc) {
+    bloc
+      ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.tools))
+      ..add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.regie));
+  }
 
   /// Builds the dashboard: the whole project's standing reading, opened by default.
   ///
   /// **Every callback it needs is one this file already has a handler for** — a dashboard poste row
   /// and the poste-over-quote alert's own action both reuse [_handleDashboardPosteOpened], which
-  /// selects the poste and switches to [OcptBudgetView.costTracking] in one gesture (see
+  /// selects the poste and switches to [OcptBudgetView.expenses] in one gesture (see
   /// `OcptBudgetDashboard.onPosteOpened`'s own doc comment for why the two used to differ and no
-  /// longer do); the cash-negative alert's own action reuses the header's own
-  /// [OcptBudgetView.committed] switch; the three feed rows reuse
+  /// longer do); the cash-negative alert's own action reuses [_handleCashAlertActionRequested],
+  /// opening the tools drawer's own `Flux de trésorerie` page — the very reading it answers; the
+  /// three feed rows reuse
   /// [_handleBreakdownFeedRequested]/[_handleScheduleFeedRequested]/[_handleCateringFeedRequested]
   /// exactly as the cost-tracking table's own feed card already does.
   Widget _buildDashboard(BuildContext context, OcptBudgetState state) {
@@ -753,8 +757,7 @@ class _BudgetViewState extends State<_BudgetView> {
       mealCount: state.regieTotals.mealCount,
       buffetCount: state.regieTotals.buffetCount,
       onPosteOpened: (posteId) => _handleDashboardPosteOpened(bloc, posteId),
-      onCashAlertActionRequested: () =>
-          bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.committed)),
+      onCashAlertActionRequested: () => _handleCashAlertActionRequested(bloc),
       onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
       onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
       onCateringFeedRequested: () => _handleCateringFeedRequested(bloc),
@@ -763,12 +766,21 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// A dashboard poste row is a link to where the poste is worked on, not a selection of its own —
   /// see `OcptBudgetDashboard.onPosteOpened`'s own doc comment. Selects [posteId] and switches to
-  /// [OcptBudgetView.costTracking] in the same gesture — the very reading the header's own
+  /// [OcptBudgetView.expenses] in the same gesture — the very reading the header's own
   /// poste-over-quote alert action gave before the alerts moved to the dashboard with it.
   void _handleDashboardPosteOpened(OcptBudgetBloc bloc, String posteId) {
     bloc
       ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
-      ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.costTracking));
+      ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses));
+  }
+
+  /// The cash-projection alert's own action: the cash question it raises is exactly what the tools
+  /// drawer's own `Flux de trésorerie` page answers, so it opens straight onto it, the view and the
+  /// tools view both set in one gesture, mirroring [_handleDashboardPosteOpened]'s own shape.
+  void _handleCashAlertActionRequested(OcptBudgetBloc bloc) {
+    bloc
+      ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.tools))
+      ..add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.cashFlow));
   }
 
   /// Builds the cost-tracking table.
@@ -823,6 +835,9 @@ class _BudgetViewState extends State<_BudgetView> {
       onPosteDeletionRequested: isReadOnly
           ? null
           : (posteId) => unawaited(_handlePosteDeletionRequested(context, posteId)),
+      // Never withheld under a preview: it only ever reads the project — see
+      // `OcptBudgetCostTracking.onPosteFilterRequested`'s own doc comment.
+      onPosteFilterRequested: (posteId) => bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
       onCommitmentEditRequested: isReadOnly
           ? null
           : (commitment) => unawaited(_handleCommitmentEditRequested(context, state, commitment)),
@@ -899,42 +914,21 @@ class _BudgetViewState extends State<_BudgetView> {
           ];
   }
 
-  /// [state]'s own commitments, narrowed to the poste the header's filter names — the mirror of
-  /// [_filteredPostesOf], reading the other side of the same filter.
-  ///
-  /// The poste **list** handed to that view stays whole: it is what a commitment's own `Poste` cell
-  /// looks its name up in, not a list of rows, and narrowing it would only make a filtered row
-  /// unable to name the very poste it was filtered by.
-  List<OcptBudgetCommitment> _filteredCommitmentsOf(OcptBudgetState state) {
-    final filterPosteId = state.filterPosteId;
-
-    return filterPosteId == null
-        ? state.commitments
-        : [
-            for (final commitment in state.commitments)
-              if (commitment.posteId == filterPosteId) commitment,
-          ];
-  }
-
-  /// Builds the cash journal view.
+  /// Builds the tools drawer's own `Flux de trésorerie` page — read-only, and honouring no poste
+  /// filter at all, `OcptBudgetCashJournal`'s own class doc comment arguing why.
   Widget _buildCashJournal(BuildContext context, OcptBudgetState state) {
     final isReadOnly = state.isPreviewingVersion;
-
     final bloc = context.read<OcptBudgetBloc>();
 
     return OcptBudgetCashJournal(
       entries: state.entries,
       postes: state.postes,
       receiptsByEntryId: state.receiptsByEntryId,
-      filterPosteId: state.filterPosteId,
       selection: state.selection,
       isSimplified: state.isSimplified,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
       isReadOnly: isReadOnly,
-      onEntryCreationRequested: isReadOnly
-          ? null
-          : () => unawaited(_handleEntryCreationRequested(context, state)),
       onEntrySelected: (entryId) => bloc.add(OcptBudgetEntrySelectedEvent(entryId: entryId)),
       onEntryEditRequested: isReadOnly
           ? null
@@ -943,31 +937,6 @@ class _BudgetViewState extends State<_BudgetView> {
           ? null
           : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
     );
-  }
-
-  /// Opens the entry dialog with nothing pre-filled, then dispatches the creation if the user
-  /// confirmed it.
-  Future<void> _handleEntryCreationRequested(BuildContext context, OcptBudgetState state) async {
-    final bloc = context.read<OcptBudgetBloc>();
-    final fields = await OcptBudgetEntryDialog.show(
-      context,
-      existing: null,
-      postes: state.postes,
-      resources: state.resources,
-      revenues: state.revenues,
-      shares: state.shares,
-      currencyCode: state.currencyCode,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      isSimplified: state.isSimplified,
-    );
-    if (fields == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
   }
 
   /// Opens the entry dialog pre-filled with [entry], then dispatches the update if the user
@@ -1021,64 +990,6 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
-  }
-
-  /// Builds the committed-spending view.
-  Widget _buildCommittedSpending(BuildContext context, OcptBudgetState state) {
-    final bloc = context.read<OcptBudgetBloc>();
-    final isReadOnly = state.isPreviewingVersion;
-
-    return OcptBudgetCommittedSpending(
-      commitments: _filteredCommitmentsOf(state),
-      // Whole, never narrowed by `state.filterPosteId` — see `OcptBudgetCommittedSpending`'s own
-      // class doc comment for why the cash-projection card reads exactly what the top band's own
-      // whole-journal figures do.
-      allCommitments: state.commitments,
-      postes: state.postes,
-      isSimplified: state.isSimplified,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      currencyCode: state.currencyCode,
-      openingBalanceCents: state.cashTotals.balanceCents,
-      isReadOnly: isReadOnly,
-      onCommitmentCreationRequested: isReadOnly
-          ? null
-          : () => unawaited(_handleCommitmentCreationRequested(context, state)),
-      onCommitmentTapped: isReadOnly
-          ? null
-          : (commitment) => unawaited(_handleCommitmentEditRequested(context, state, commitment)),
-      onCommitmentSettleRequested: isReadOnly
-          ? null
-          : (commitment) => unawaited(_handleCommitmentSettleRequested(context, state, commitment)),
-      onCommitmentUnsettleRequested: isReadOnly
-          ? null
-          : (commitmentId) =>
-                bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId)),
-      onCommitmentDeletionRequested: isReadOnly
-          ? null
-          : (commitmentId) => unawaited(_handleCommitmentDeletionRequested(context, commitmentId)),
-    );
-  }
-
-  /// Opens the commitment dialog with nothing pre-filled, then dispatches the creation if the user
-  /// confirmed it.
-  Future<void> _handleCommitmentCreationRequested(BuildContext context, OcptBudgetState state) async {
-    final bloc = context.read<OcptBudgetBloc>();
-    final fields = await OcptBudgetCommitmentDialog.show(
-      context,
-      existing: null,
-      postes: state.postes,
-      currencyCode: state.currencyCode,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      isSimplified: state.isSimplified,
-    );
-    if (fields == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields));
   }
 
   /// Opens the commitment dialog pre-filled with [commitment], then dispatches the update if the
@@ -1245,7 +1156,7 @@ class _BudgetViewState extends State<_BudgetView> {
           : (revenueId) => unawaited(_handleRevenueDeletionRequested(context, revenueId)),
       onReceiptSelected: (receiptId) => bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: receiptId)),
       onExpensesRequested: () =>
-          bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.costTracking)),
+          bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses)),
     );
   }
 
@@ -2125,38 +2036,6 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
   }
 
-  /// Builds the left dock: the poste list, drawn on every view of the mode — see
-  /// `OcptBudgetPosteDock`'s own class doc comment for why, and for the argument behind its two
-  /// gestures.
-  ///
-  /// `onPosteFilterRequested` and `onFilterClearRequested` are withheld together, on the very same
-  /// views the header's own poste filter chip already says it cannot honour
-  /// (`ocptBudgetViewHonoursPosteFilter`) — a card's own `⋮` menu carries no filter entry there,
-  /// and neither does the title row's own `Tout` link.
-  Widget _buildLeftDock(BuildContext context, OcptBudgetState state) {
-    final bloc = context.read<OcptBudgetBloc>();
-    final honoursPosteFilter = ocptBudgetViewHonoursPosteFilter(state.view);
-
-    return OcptBudgetPosteDock(
-      postes: state.postes,
-      selection: state.selection,
-      isSimplified: state.isSimplified,
-      currencyCode: state.currencyCode,
-      paidCentsOf: state.paidCentsOf,
-      committedCentsOf: state.committedCentsOf,
-      filterPosteId: state.filterPosteId,
-      // Never withheld: a selection only ever reads — see `OcptBudgetPosteDock`'s own class doc
-      // comment.
-      onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
-      onPosteFilterRequested: honoursPosteFilter
-          ? (posteId) => bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId))
-          : null,
-      onFilterClearRequested: honoursPosteFilter
-          ? () => bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null))
-          : null,
-    );
-  }
-
   /// Builds the right dock, or null while it's closed.
   ///
   /// **The `Inspector` tab is offered only where there is something to inspect**
@@ -2171,7 +2050,8 @@ class _BudgetViewState extends State<_BudgetView> {
 
     final availableTabs = [
       for (final tab in OcptBudgetRightDockTab.values)
-        if (tab != OcptBudgetRightDockTab.inspector || ocptBudgetViewHasInspector(state.view))
+        if (tab != OcptBudgetRightDockTab.inspector ||
+            ocptBudgetViewHasInspector(state.view, state.toolsView))
           tab,
     ];
     final rightDockTab = availableTabs.contains(storedTab)
@@ -2192,11 +2072,18 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Builds the `Help` tab's own content — never withheld under a preview, since it writes
   /// nothing (`OcptBudgetHelp`'s own doc comment).
-  Widget _buildHelp(BuildContext context, OcptBudgetState state) => OcptBudgetHelp(view: state.view);
+  Widget _buildHelp(BuildContext context, OcptBudgetState state) =>
+      OcptBudgetHelp(view: state.view, toolsView: state.toolsView);
 
   /// Builds the `Inspector` tab's own content: the polymorphic fiche, wired to every handler its
   /// own selection variant might need — every one of them already exists, reused rather than
   /// duplicated.
+  ///
+  /// **`onLineShowCommitmentRequested` is withheld outright, the parameter itself kept on the
+  /// widget rather than deleted.** It used to jump to the retired committed-spending page; that
+  /// page is gone, and the commitment it pointed at is already drawn as a sub-row under its own
+  /// quote line in the expenses tree, so a reader who wants it already has it under their cursor —
+  /// there is nowhere left for this gesture to lead.
   Widget _buildFiche(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
@@ -2250,9 +2137,7 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineSettleRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineSettleRequested(context, state, lineId)),
-      onLineShowCommitmentRequested: (_) => context.read<OcptBudgetBloc>().add(
-        const OcptBudgetViewSelectedEvent(view: OcptBudgetView.committed),
-      ),
+      onLineShowCommitmentRequested: null,
       onLineUncommitRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineUncommitRequested(context, state, lineId)),
@@ -2315,7 +2200,7 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Opens `OcptBudgetElementPickerDialog` over `OcptBudgetState.unpricedElements`, then dispatches
-  /// the creation if the user picked one — mirrors `_handleEntryCreationRequested`'s own shape.
+  /// the creation if the user picked one.
   Future<void> _handleLineFromElementRequested(
     BuildContext context,
     OcptBudgetState state,
@@ -2414,12 +2299,14 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient version
+  /// Applies bloc-driven effects onto the page: the live right dock fraction, the transient version
   /// notice SnackBar, the missing-files question and the transient package notice SnackBar —
   /// mirrors `OcptScheduleMode._onStateChanged`.
   void _onStateChanged(BuildContext context, OcptBudgetState state) {
+    // The left fraction is fixed at its own default for the mode's whole lifetime — see
+    // `_BudgetViewState`'s own class doc comment for why there is nothing to sync it from.
     _dockLayoutController.syncFromPersisted(
-      leftFraction: state.leftDockFraction,
+      leftFraction: OcptWorkspaceDock.leftDefaultFraction,
       rightFraction: state.rightDockFraction,
     );
 
