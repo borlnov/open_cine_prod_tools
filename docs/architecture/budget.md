@@ -52,9 +52,9 @@ record of them.
   them before had to change; `.selectedShareId` stays its own field, a share opening no fiche in any
   document this reaches yet.
 - **`view`, `isSimplified`, `taxBasis`, `selection`, `filterPosteId` and `expandedNodeIds` are not
-  persisted.** The schedule mode's own agenda mode is the precedent: only `budgetLeftDockFraction`,
-  `budgetRightDockFraction` and `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a
-  relaunch, exactly as before this rework. A reader who left the mode on the financing tree,
+  persisted.** The schedule mode's own agenda mode is the precedent: only `budgetRightDockFraction`
+  and `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a relaunch, exactly as before this
+  rework. A reader who left the mode on the financing tree,
   mid-way through a filter, opens back on the mode's own default — `dashboard`, nothing selected,
   nothing filtered — every time, the same way the schedule mode's own agenda already forgets its own
   last state.
@@ -451,44 +451,8 @@ record of them.
 - **Seven chips in the header, in the design's own order** — `dashboard`, `costTracking`,
   `financing`, `cashJournal`, `committed`, `regie`, `sharing` — each switching
   `OcptBudgetState.view` and nothing else, no breadcrumb or reading switch behind any of them.
-  **A left dock, headed `Postes du devis`**, exactly as the validated shell design draws one for
-  this mode as for every other — see "The left dock" below for the whole of its own argument. The
-  right dock offers exactly three tabs (`OcptBudgetRightDockTab`): `Inspector`, the polymorphic
+  The right dock offers exactly three tabs (`OcptBudgetRightDockTab`): `Inspector`, the polymorphic
   fiche described below; the shared `Versions` tab every mode carries; and `Help`.
-
-## The left dock
-
-- `OcptBudgetPosteDock` (`ocpt_budget_poste_dock.dart`) is the mode's own left dock, headed
-  `Postes du devis`: one card per live poste, in the mode's own poste order, over a four-line
-  footer totalling the whole project (`Devis`, `Payé`, `Engagé`, `Reste`). A card draws its own
-  code (detailed reading only) and name, a two-tone bar reading paid then committed against its own
-  quoted total, the `total / devis` read-out, and the consumed percentage in
-  `ocptBudgetPosteStrainOf`'s own strain colour — the very reading the cost-tracking table's own
-  `Écart` column and the dashboard's own alert already use, so a poste reading strained here reads
-  strained everywhere. A title-row `Tout` link clears the mode's own poste filter when one is set.
-- **Purely presentational.** No bloc, no `globalGetIt()`, no service: every figure it draws arrives
-  already computed by `OcptBudgetState` and `lib/utils/ocpt_budget_totals.dart`, and every gesture
-  is only ever reported upward through a callback, so the mode stays the one place deciding what
-  each one writes — exactly the composite-panel idiom the fiche and every tree of this mode already
-  follow.
-- **Drawn on every view, `financing`, `regie` and `sharing` included**, the three with no poste
-  dimension of their own. It is the mode's own standing reading of where the quote stands, not a
-  control belonging to one page: the cost-tracking table can be scrolled away or off screen
-  entirely, and the dock still answers "how is the quote doing" without asking the reader to switch
-  views to find out — the same reason the KPI tiles read the whole project rather than the view on
-  screen (see "The dashboard" below).
-- **Two gestures on a card, and they mean two different things.** A click on the card itself
-  *selects* the poste — it opens the fiche and highlights the card, and narrows nothing, exactly the
-  distinction "Selecting a poste and filtering by one are two different facts" below already argues
-  for the cost-tracking table's own row. The card's own `⋮` menu carries the one gesture that *does*
-  narrow, reached deliberately through a menu rather than the card's own click target, so filtering
-  stays a decision a reader makes on purpose rather than a side effect of a closer look. Both
-  gestures, and the `Tout` link beside them, are **withheld together** on the three poste-less
-  views — no filter entry in the menu, no `Tout` link in the title row — even while the header's own
-  chip still names a poste: the filter is still set, and leaving brings it back, exactly as the
-  header's own chip already reads it there.
-- The dock's own fraction is persisted as `budgetLeftDockFraction` (`OcptPropertiesManager`),
-  beside `budgetRightDockFraction` and `budgetLastRightDockTab`.
 
 ## The dashboard
 
@@ -673,9 +637,7 @@ record of them.
   filter, written by **two controls** rather than one — the header's poste chip and the left dock's
   own card `⋮` menu entry — and honoured by every view that can
   (`ocptBudgetViewHonoursPosteFilter`, `lib/types/ocpt_budget_view.dart`): `costTracking`,
-  `cashJournal` and `committed`, the three places a poste-keyed row is drawn at all. The dock card's
-  own click, like the tree row's own, only ever selects; only its `⋮` entry writes the filter — see
-  "The left dock" above for the same distinction stated from that widget's own side.
+  `cashJournal` and `committed`, the three places a poste-keyed row is drawn at all.
 - **The chip is both the control and the indicator.** It reads `Every poste` or the poste's own
   name, tinted `primary` while filtering, with a clear button beside the name. Sitting in the
   header, it is on screen whatever view is, which is the whole point: one place to see a filter,
@@ -691,9 +653,7 @@ record of them.
   another view (`ocptBudgetViewHonoursPosteFilter`'s own doc comment). On all four the header's chip
   keeps the poste's name — the filter is still set, and leaving brings it back — and adds `Not
   applied here` underneath; hiding it there would have been calmer and dishonest, an unfiltered view
-  passing for a filtered one. The left dock reads the same predicate: a card's own `⋮` menu carries
-  no filter entry on these four, and the title row's own `Tout` link goes with it — a link to clear
-  a filter that cannot be set from here has nothing of its own to clear.
+  passing for a filtered one.
 - **The narrowing happens in the mode, not in the views.** `OcptBudgetMode` hands each widget the
   already-filtered list, so a filtered table's own `Total` is the total of what is on screen —
   the only honest thing it can say. The cash journal is the exception the other way — see "The
