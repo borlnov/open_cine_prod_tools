@@ -1156,25 +1156,34 @@ record of them.
   `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly the
   argument `OcptBudgetRegie` used to make for itself before it started writing defrayals, so it
   carries no `isReadOnly` flag and is offered identically under a previewed version. Its content
-  follows `OcptBudgetState.document`/`.reading`/`.subPage`: switching the header's own chips or
-  breadcrumb changes what the panel says, with no extra click, since the dock stays open on `Help`
-  across a route change exactly as it stays open on `Inspector` across a selection.
-- **The two-by-two matrix is gone, replaced by the chain of states each document's rows pass
-  through.** The matrix used to cross what is only promised against what has actually moved,
-  promised money coming in against money going out — a navigation of six sibling pages that no
-  longer exists, and two of the six were never in the matrix to begin with. What a document's own
-  rows actually do is pass through a small chain: an estimate becomes a commitment becomes a
-  payment, a promise becomes a receipt. Every page but the régie now opens on its own chain, one
-  cell per state, left to right, each carrying the state's own word and, under it, a short caption
-  naming where that figure comes from:
-  - `expenses`: **Estimated** (the quote) · **Committed** (a commitment) · **Paid** (an entry).
-  - `resources`: **Promised** (a resource or a taking) · **Received** (an entry naming it) — no
-    hand-typed step in between, unlike the expenses chain's own commitment.
-  - `sharing`: **Received** (the takings) · **Already repaid** (the reimbursable contributions) ·
-    **Left to share** (the agreed shares).
-  Under the chain, one short sentence says how a step becomes the next; the page below it is the
-  detail, worded in the plain language this file already argues for it in, every cross-reference to
-  a figure or a label resolved as an ICU argument (`intl_utils`'s own convention, "The four
+  follows `OcptBudgetState.view`, one field: switching the header's own chip changes what the panel
+  says, with no extra click, since the dock stays open on `Help` across a route change exactly as it
+  stays open on `Inspector` across a selection. **The panel now prints a body on `dashboard` too**,
+  the one view that carries no capture band of its own to open on — `OcptBudgetHelp._bodyOf` works
+  through what its own chain above already introduces instead: the KPI tiles, the needs/resources
+  balance band, the standing alerts and the feed card, each in the order the dashboard itself draws
+  them, since a body opening on a control this page does not show would describe nothing the reader
+  can see.
+- **The two-by-two matrix is gone, replaced by the chain of states a row passes through — the
+  reading survives even though the pages it once described do not.** The matrix used to cross what
+  is only promised against what has actually moved, promised money coming in against money going
+  out — a navigation of six sibling pages, long retired, and two of the six were never in the matrix
+  to begin with. What actually happens to a row, whichever of today's seven chips it is read from,
+  is a small chain: an estimate becomes a commitment becomes a payment, a promise becomes a receipt.
+  Every view but the régie opens on one of three chains (`OcptBudgetHelp._chainStepsOf`), one cell
+  per state, left to right, each carrying the state's own word and, under it, a short caption naming
+  where that figure comes from:
+  - **The expenses chain** — `dashboard`, `costTracking`, `cashJournal` and `committed` all read
+    it, since all four are that same money read at a different grain: **Estimated** (the quote) ·
+    **Committed** (a commitment) · **Paid** (an entry).
+  - **The resources chain** — `financing` alone: **Promised** (a resource or a taking) ·
+    **Received** (an entry naming it) — no hand-typed step in between, unlike the expenses chain's
+    own commitment.
+  - **The sharing chain** — `sharing` alone: **Received** (the takings) · **Already repaid** (the
+    reimbursable contributions) · **Left to share** (the agreed shares).
+  Under the chain, one short sentence says how a step becomes the next; the panel's own body below
+  it is the detail, worded in the plain language this file already argues for, every cross-reference
+  to a figure or a label resolved as an ICU argument (`intl_utils`'s own convention, "The four
   documents" below) rather than restated by hand, so the help text can never drift from the very
   word it is pointing at.
 - **The régie draws no chain** — it is not a stage of anything, it types nothing, and its own first
@@ -1184,15 +1193,19 @@ record of them.
   You are here"` — only while it is the reader's current one; colour alone would say nothing in
   high contrast, nothing to a colour-blind reader and nothing at all to a screen reader, so the
   meaning rides the accessibility tree instead of the paint.
-- **The header's three chips — `Expenses`, `Resources`, `Sharing` — read left to right as the
-  sentence they explain**: what the film costs, what pays for it, what it earns, long after both.
-  **Controls are contextual now, a departure from the seven-chip header's own "always offered,
-  whatever the project holds" rule.** The reading switch and the tax-basis switch are offered on
-  `expenses` alone: money coming in is always read tax-inclusive, so there is nothing for the
-  toggle to do anywhere else, and `resources`/`sharing` have no `byDate` reading yet to switch to.
-  The simplified/detailed switch and the poste filter are offered exactly where a poste-keyed row is
-  drawn — `expenses`, either reading, and its own `committedSpending` sub-page — and withheld,
-  never disabled or captioned, everywhere else: the standing rule for an affordance without a
+- **Seven chips, in the design's own order** — `dashboard`, `costTracking`, `financing`,
+  `cashJournal`, `committed`, `regie`, `sharing` — each its own value of `OcptBudgetView`, not the
+  three retired document names read left to right as a sentence.
+  **Controls are contextual, not global** — the retired seven-sibling-page header once offered every
+  control on every page, and there is **no reading switch at all** to withhold or offer any more,
+  `OcptBudgetDocumentReading` having gone with the documents it read. The tax-basis switch is offered
+  on the three views whose own amounts actually follow it
+  (`OcptBudgetHeader._showsTaxBasisSwitch`) — `dashboard`, `costTracking` and `cashJournal` — every
+  other view reading money that has moved, always tax-inclusive, with nothing for the toggle to
+  change. The simplified/detailed switch and the poste filter both follow
+  `ocptBudgetViewHonoursPosteFilter` (`OcptBudgetHeader._honoursPosteKeyedControls`): `costTracking`,
+  `cashJournal` and `committed`, the three places a poste-keyed row is drawn at all, and withheld,
+  never disabled or captioned, everywhere else — the standing rule for an affordance without a
   subject. Every one of these is a **list-literal conditional**, not a disabled or greyed control:
   the widget the header would have drawn simply is not built.
 - **No chip is worded by the simplified reading, and none should be**, exactly the argument that
@@ -1202,22 +1215,25 @@ record of them.
   sentences that name the ledgers in prose: real translations of opaque trade language, unlike a
   second name for a document that already said the plain thing it was.
 - **Shedding the title is not enough on its own**, and the header does not stop there: under
-  `_ocptBudgetHeaderTitleMinWidth` the controls **wrap onto a second line**, and the chips wrap
-  inside their own border too, as `OcptScheduleHeader`'s controls already do. The centre narrows for
-  a reason the header cannot see — the right dock opening takes roughly 580 px of it — and a plain
-  `Row` then clips silently in release, which had been taking the tax-basis switch off the screen
-  altogether. A control scrolled out of a clipped row is worse than a disabled one: nothing on
-  screen says it exists.
+  `_ocptBudgetHeaderTitleMinWidth` (1880 px, recomputed whole for this milestone's own single
+  seven-segment view switch rather than grown from the three-document header's own running total,
+  since the control *set* changed shape and not merely its count — its own doc comment carries the
+  arithmetic) the controls **wrap onto a second line**, and the chips wrap inside their own border
+  too, as `OcptScheduleHeader`'s controls already do. The centre narrows for a reason the header
+  cannot see — the right dock opening takes roughly 580 px of it — and a plain `Row` then clips
+  silently in release, which had been taking the tax-basis switch off the screen altogether. A
+  control scrolled out of a clipped row is worse than a disabled one: nothing on screen says it
+  exists.
   Every other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder,
   a delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
   code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
-  on a selection change, a dock tab change, a change of document, reading or sub-page, either header
-  toggle, entering a version preview and the mode's own `deactivate()`. Those last paths were added
-  after the fact and are the reason the mode once looked like it ignored what it was told: an
-  amount typed in the cost-tracking table and followed straight by a click on another document was
-  still sitting in the debounce, so that document drew the snapshot from before it and corrected
-  itself two seconds later. The write was never lost; it simply was not shown. Every path that stops
-  the typing and starts the reading has to flush.
+  on a selection change, a dock tab change, a change of view, either header toggle, entering a
+  version preview and the mode's own `deactivate()`. Those last paths were added after the fact and
+  are the reason the mode once looked like it ignored what it was told: an amount typed in the
+  cost-tracking table and followed straight by a click on another view was still sitting in the
+  debounce, so that view drew the snapshot from before it and corrected itself two seconds later.
+  The write was never lost; it simply was not shown. Every path that stops the typing and starts the
+  reading has to flush.
   A line's VAT override is the one field with no direct mirror: an empty or
   unparseable submission reads as "leave the override exactly as it is," never "clear it," since a
   stray backspace must not silently drop an override typed on purpose — going back to inheriting the
