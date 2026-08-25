@@ -973,10 +973,18 @@ record of them.
 - Side by side, both panes still take the whole height, floored at 320 px: under that the pair
   scrolls rather than being crushed, which is the same rule stated for a window nobody normally
   opens that short.
-- The committed-spending sub-page, which used to stack the same way beside its own cash projection,
-  now draws that projection nowhere: the projection moved to the header's own alerts band (see "The
-  alerts compute themselves" above), so the sub-page is a single table today, sized and scrolled the
-  ordinary way any one table in this mode is.
+- **The committed view's own cash projection is back beside the commitments**, in its own
+  right-hand column above `_ocptCommittedProjectionSideBySideWidth` (1088 px — the table's own
+  792 px floor, plus a 16 px gap, plus a 280 px column for the projection) and stacked under it,
+  capped at `_ocptCommittedStackedProjectionMaxShare` (half the pane) once it is. It is not the
+  `Expanded` share that failed silently above: **the projection scrolls inside whichever column it
+  is given, in both branches**, so a dozen still-owed commitments cap out rather than pushing the
+  table off the bottom or overflowing the pane outright — laid out unscrolled it overflowed its
+  column in every geometry tested, invisibly, since a release build paints no overflow band. Side by
+  side it is capped by the pane's own height; stacked, by half of it, the very rule this section
+  states for the panes themselves, one card over. It draws only while there is at least one
+  unsettled commitment to project, the rule the header's own alerts band used to state before this
+  view took the projection back.
 
 ## An add button shows one plus, not two
 
@@ -1033,8 +1041,8 @@ record of them.
   [_ocptRegieWrapWidth] the two stack rather than crush each other, each table has a floor below
   which it scrolls sideways exactly as the journal's own does, and stacked each states its own
   height rather than taking a share of one — see "A stacked pane states its height" above.
-  `OcptBudgetFeedCard`, the "what feeds this budget" card described below, sits at the very top of
-  the page, above both columns, in either reading: each of its three rows — the breakdown, the
+  `OcptBudgetFeedCard`, the "what feeds this budget" card, sits at the very top of the page, above
+  both columns: each of its three rows — the breakdown, the
   schedule, the catering itself — is a title, a one-line reading and a click that only ever reports
   upward, and the régie withholds its own catering row, since that row would only send the reader
   back to the page they are already on.
