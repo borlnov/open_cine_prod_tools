@@ -12013,62 +12013,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCommittedProjectionTitle": "Cash projection",
-  "@budgetCommittedProjectionTitle": {
-    "description": "Title of the budget mode's own cash-projection card",
-    "context": "Displayed at the top of the expenses header's own cash-projection card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCommittedProjectionCollapsedSummary": "{openingBalance} → {finalBalance}",
-  "@budgetCommittedProjectionCollapsedSummary": {
-    "description": "The cash-projection card's own one-line summary while collapsed: the balance it opens at and the one it ends on",
-    "context": "Displayed under the cash-projection card's own title whenever it is collapsed",
-    "type": "text",
-    "placeholders": {
-      "openingBalance": {
-        "type": "String"
-      },
-      "finalBalance": {
-        "type": "String"
-      }
-    }
-  },
-  "budgetCommittedProjectionHint": "Starts from the cash journal's own balance, then takes out every outstanding commitment in due-date order.",
-  "@budgetCommittedProjectionHint": {
-    "description": "Muted sentence explaining what the cash projection reads",
-    "context": "Displayed under the cash-projection card's own title once it is expanded",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCommittedProjectionNoStepsHint": "None of the outstanding commitments can be read tax-inclusive yet.",
-  "@budgetCommittedProjectionNoStepsHint": {
-    "description": "Hint shown in place of the cash projection's own steps while every outstanding commitment is unreadable",
-    "context": "Displayed in the budget mode's own cash-projection card, once expanded",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCommittedProjectionCoverageReadOut": "over {coveredCount} of the {commitmentCount} commitments",
-  "@budgetCommittedProjectionCoverageReadOut": {
-    "description": "The cash projection's own coverage read-out, while some outstanding commitments carry no known rate",
-    "context": "Displayed under the cash-projection card's own steps once every outstanding commitment carries a known rate, this disappears",
-    "type": "text",
-    "placeholders": {
-      "coveredCount": {
-        "type": "int"
-      },
-      "commitmentCount": {
-        "type": "int"
-      }
-    }
-  },
-  "budgetCommittedProjectionFooterHint": "This is what the account would hold once every outstanding commitment has fallen due.",
-  "@budgetCommittedProjectionFooterHint": {
-    "description": "Sentence under the cash projection's own final balance once every outstanding commitment carries a known rate",
-    "context": "Displayed under the budget mode's own cash-projection card's own steps",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCommitmentDialogCreateTitle": "New commitment",
   "@budgetCommitmentDialogCreateTitle": {
     "description": "Title of the commitment dialog while creating a new commitment",
