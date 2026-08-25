@@ -3,17 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_projection.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 
 /// The horizontal padding of every segmented switch's own segments, in logical pixels — mirrors
 /// `OcptBreakdownHeader`'s own `_ocptBreakdownSegmentPadding`.
@@ -32,16 +27,15 @@ const double _ocptBudgetSegmentPadding = 12;
 /// from. The document switch and the reading switch together cost `420` (three segments at roughly
 /// `140` px each, the seven-chip switch's own per-segment cost) plus `320` (two segments, `280`,
 /// plus the reading switch's own shell chrome, `~40`) — `740` in all. The single six-segment view
-/// switch that now replaces both costs `880` (six segments at the same `140` px each, plus one
+/// switch that then replaced both cost `880` (six segments at the same `140` px each, plus one
 /// shell chrome rather than two). Net of the two: `1600 − 740 + 880 = 1740` — the widest a route
-/// ever draws its controls today (`OcptBudgetView.costTracking` or `.cashJournal`: the view switch,
-/// the simplified/detailed switch, the tax-basis switch and the poste filter, all four at once). A
-/// seventh segment (the dashboard) lands in a later milestone and will have to grow this again.
-const double _ocptBudgetHeaderTitleMinWidth = 1740;
+/// drew its controls at (`OcptBudgetView.costTracking` or `.cashJournal`: the view switch, the
+/// simplified/detailed switch, the tax-basis switch and the poste filter, all four at once). The
+/// dashboard segment landed after that, at the same `140` px per-segment cost: `1740 + 140 = 1880`.
+const double _ocptBudgetHeaderTitleMinWidth = 1880;
 
-/// The budget mode's own header band: the current view's own title and subtitle, whichever of the
-/// mode's controls the view honours, and, below all of it, a band for the project's own standing
-/// alerts.
+/// The budget mode's own header band: the current view's own title and subtitle, and whichever of
+/// the mode's controls the view honours.
 ///
 /// Purely presentational: it renders and reports every click upward, reading nothing off a
 /// manager. **Nothing here writes to the project** — the view, the simplified/detailed reading and
@@ -50,24 +44,21 @@ const double _ocptBudgetHeaderTitleMinWidth = 1740;
 /// version withholds nothing this header offers.
 ///
 /// **Controls are contextual, not global.** The tax-basis switch is offered on
-/// [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal] alone: money coming in is always
-/// read tax-inclusive, and every other view either has no second tax basis to offer or reads no
-/// amount at all. The simplified/detailed switch and the poste filter are offered exactly where
-/// they are honoured today — the cost-tracking table, the cash journal and the committed spending,
-/// the only three views that read a poste-keyed row at all — and **withheld**, never disabled or
-/// captioned, everywhere else: the standing rule for an affordance without a subject
-/// (`docs/architecture/budget.md`).
+/// [OcptBudgetView.dashboard], [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal]: the
+/// dashboard's own KPI tiles read [taxBasis] exactly as the cost-tracking table does, so the switch
+/// has to be reachable there too, or the reading it changes could never be changed from that view —
+/// every other view either has no second tax basis to offer or reads no amount at all. The
+/// simplified/detailed switch and the poste filter are offered exactly where they are honoured
+/// today — the cost-tracking table, the cash journal and the committed spending, the only three
+/// views that read a poste-keyed row at all — and **withheld**, never disabled or captioned,
+/// everywhere else: the standing rule for an affordance without a subject
+/// (`docs/architecture/budget.md`), which is also why the dashboard, a whole-project reading with
+/// no poste dimension of its own, never gets either.
 ///
-/// **The alerts band also carries the cash projection**, [OcptBudgetCashProjection]: it draws ahead
-/// of every alert, on [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal] alone — never
-/// on any other view — and only while [commitments] carries at least one unsettled one, mirroring
-/// an alert card's own standing rule that a card with nothing to say draws nothing at all. Unlike
-/// the poste-over-quote and cash-negative alert cards beside it, it is never itself computed from
-/// `OcptBudgetState.alerts`: it is a reading, not a standing warning, so it draws whether the
-/// balance it projects ever goes negative or not. It reads [commitments] and [cashBalanceCents]
-/// **whole, never narrowed by [filterPosteId]** — the very argument "The journal's balance is the
-/// whole journal's" already makes for the top band's own figures, applied here to the projection
-/// that opens at that very balance.
+/// **The mode's own standing alerts are drawn on the dashboard alone now**, not here: this header
+/// carries only [alertCount], a count badge on the view switch's own `Tableau de bord` segment, so
+/// the news stays reachable from every other view without repeating the alert cards themselves in
+/// two places.
 class OcptBudgetHeader extends StatelessWidget {
   /// Which of the mode's views is currently shown.
   final OcptBudgetView view;
@@ -96,31 +87,10 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Called with the poste just picked, or null to go back to the whole project.
   final ValueChanged<String?> onPosteFilterSelected;
 
-  /// The project's own standing alerts, drawn as a band under the controls — this header is the
-  /// one place they are drawn. Empty draws nothing.
-  final List<OcptBudgetAlert> alerts;
-
-  /// Every live commitment of the project, whole — never narrowed by [filterPosteId] — read by the
-  /// alerts band's own [OcptBudgetCashProjection] card: both whether it draws at all (at least one
-  /// unsettled commitment) and what it projects.
-  final List<OcptBudgetCommitment> commitments;
-
-  /// The cash journal's own balance — the figure [OcptBudgetCashProjection] opens at, whole, for
-  /// the very same reason [commitments] is.
-  final int cashBalanceCents;
-
-  /// The project's default VAT rate, in basis points, or null — read by
-  /// [OcptBudgetCashProjection] exactly as every other reading of money that has moved is.
-  final int? defaultVatRateBasisPoints;
-
-  /// The project's currency, an ISO 4217 code — the alert band's own amounts.
-  final String currencyCode;
-
-  /// Called with a poste id when the corresponding alert's own action is clicked.
-  final ValueChanged<String> onAlertPosteActionRequested;
-
-  /// Called when the cash-projection alert's own action is clicked.
-  final VoidCallback onCashProjectionAlertActionRequested;
+  /// How many standing alerts the project currently raises (`ocptComputeBudgetAlerts`) — drawn as a
+  /// count badge on the view switch's own `Tableau de bord` segment, and withheld outright, never
+  /// drawn as an empty pill, while it is zero.
+  final int alertCount;
 
   /// Class constructor
   const OcptBudgetHeader({
@@ -134,13 +104,7 @@ class OcptBudgetHeader extends StatelessWidget {
     required this.postes,
     required this.filterPosteId,
     required this.onPosteFilterSelected,
-    required this.alerts,
-    required this.commitments,
-    required this.cashBalanceCents,
-    required this.defaultVatRateBasisPoints,
-    required this.currencyCode,
-    required this.onAlertPosteActionRequested,
-    required this.onCashProjectionAlertActionRequested,
+    required this.alertCount,
   });
 
   @override
@@ -158,10 +122,10 @@ class OcptBudgetHeader extends StatelessWidget {
               final isTitleShown = constraints.maxWidth >= _ocptBudgetHeaderTitleMinWidth;
 
               final controls = <Widget>[
-                _OcptBudgetViewSwitch(value: view, onChanged: onViewSelected),
+                _OcptBudgetViewSwitch(value: view, onChanged: onViewSelected, alertCount: alertCount),
                 if (_honoursPosteKeyedControls)
                   _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
-                if (view == OcptBudgetView.costTracking || view == OcptBudgetView.cashJournal)
+                if (_showsTaxBasisSwitch)
                   _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
                 if (_honoursPosteKeyedControls)
                   _OcptBudgetPosteFilter(
@@ -222,33 +186,18 @@ class OcptBudgetHeader extends StatelessWidget {
               );
             },
           ),
-          if (_showsCashProjection || alerts.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            if (_showsCashProjection) ...[
-              OcptBudgetCashProjection(
-                openingBalanceCents: cashBalanceCents,
-                commitments: commitments,
-                defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-                currencyCode: currencyCode,
-              ),
-              const SizedBox(height: 8),
-            ],
-            for (final alert in alerts) ...[
-              _buildAlertCard(context, tr, alert),
-              const SizedBox(height: 8),
-            ],
-          ],
         ],
       ),
     );
   }
 
-  /// Whether [OcptBudgetCashProjection] draws at all — see the class doc comment:
-  /// [OcptBudgetView.costTracking] or [OcptBudgetView.cashJournal], and at least one unsettled
-  /// commitment to project.
-  bool get _showsCashProjection =>
-      (view == OcptBudgetView.costTracking || view == OcptBudgetView.cashJournal) &&
-      commitments.any((commitment) => !commitment.isSettled);
+  /// Whether the tax-basis switch draws at all: the dashboard's own KPI tiles and the cost-tracking
+  /// table and cash journal are the three views whose amounts follow it — every other view either
+  /// reads no second basis or no amount at all.
+  bool get _showsTaxBasisSwitch =>
+      view == OcptBudgetView.dashboard ||
+      view == OcptBudgetView.costTracking ||
+      view == OcptBudgetView.cashJournal;
 
   /// Whether the current view honours the simplified/detailed switch and the poste filter —
   /// `ocptBudgetViewHonoursPosteFilter`'s own reading applied to the switch too, since a project
@@ -258,6 +207,7 @@ class OcptBudgetHeader extends StatelessWidget {
   /// The band's own title, naming **the view currently on screen** rather than the mode — mirrors
   /// the retired `OcptBudgetCentreView`'s own seven-way `_titleOf`.
   String _titleOf(Tr tr) => switch (view) {
+    OcptBudgetView.dashboard => tr.budgetHeaderDashboardTitle,
     OcptBudgetView.costTracking => tr.budgetHeaderTitle,
     OcptBudgetView.cashJournal => tr.budgetHeaderCashJournalTitle,
     OcptBudgetView.committed => tr.budgetCommittedSectionTitle,
@@ -268,6 +218,7 @@ class OcptBudgetHeader extends StatelessWidget {
 
   /// The band's own subtitle, following [_titleOf]'s own view.
   String _subtitleOf(Tr tr) => switch (view) {
+    OcptBudgetView.dashboard => tr.budgetHeaderDashboardSubtitle,
     OcptBudgetView.costTracking => tr.budgetHeaderSubtitle,
     OcptBudgetView.cashJournal => tr.budgetHeaderCashJournalSubtitle,
     OcptBudgetView.committed => tr.budgetHeaderCommittedSubtitle,
@@ -275,132 +226,16 @@ class OcptBudgetHeader extends StatelessWidget {
     OcptBudgetView.regie => tr.budgetHeaderRegieSubtitle,
     OcptBudgetView.sharing => tr.budgetHeaderSharingSubtitle,
   };
-
-  /// One alert card of the band, switching over [alert]'s own subclass exhaustively: a poste over
-  /// its quote names it and reads by how much it is over, the cash projection going negative words
-  /// its own undated reading differently from a recorded date. Each carries exactly one action back
-  /// into the data it is about.
-  Widget _buildAlertCard(BuildContext context, Tr tr, OcptBudgetAlert alert) => switch (alert) {
-    OcptBudgetPosteOverQuoteAlert() => _OcptBudgetHeaderAlertBand(
-      color: Theme.of(context).colorScheme.error,
-      icon: Icons.trending_up,
-      title: tr.budgetDashboardPosteOverQuoteAlertTitle,
-      message: tr.budgetDashboardPosteOverQuoteAlertMessage(
-        _posteLabelOf(tr, alert.posteId),
-        ocptBudgetAmountLabel(alert.paidCents + alert.committedCents, currencyCode),
-        ocptBudgetAmountLabel(alert.quotedAmountCents, currencyCode),
-        ocptBudgetAmountLabel(alert.varianceCents, currencyCode),
-      ),
-      actionLabel: tr.budgetDashboardPosteOverQuoteAlertAction,
-      onActionPressed: () => onAlertPosteActionRequested(alert.posteId),
-    ),
-    OcptBudgetCashProjectionNegativeAlert() => _OcptBudgetHeaderAlertBand(
-      color: ocptWarningColor(context),
-      icon: Icons.trending_down,
-      title: tr.budgetDashboardCashNegativeAlertTitle,
-      message: alert.dueDate == null
-          ? tr.budgetDashboardCashNegativeAlertMessageUndated(
-              ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
-              ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
-            )
-          : tr.budgetDashboardCashNegativeAlertMessageDated(
-              ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
-              DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(alert.dueDate!),
-              ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
-            ),
-      actionLabel: tr.budgetDashboardCashNegativeAlertAction,
-      onActionPressed: onCashProjectionAlertActionRequested,
-    ),
-  };
-
-  /// [posteId]'s own label out of [postes], or `tr.budgetPosteUnnamed` while it is empty or the
-  /// poste has since disappeared.
-  String _posteLabelOf(Tr tr, String posteId) {
-    final label = postes.where((poste) => poste.id == posteId).firstOrNull?.label;
-    return (label == null || label.isEmpty) ? tr.budgetPosteUnnamed : label;
-  }
-}
-
-/// One card of [OcptBudgetHeader]'s own alert band: a tinted, bordered block, [color] naming
-/// both — a title, a message and a single action.
-class _OcptBudgetHeaderAlertBand extends StatelessWidget {
-  /// The colour this alert reads in, both its icon/title and its tint/border.
-  final Color color;
-
-  /// The icon shown beside the title.
-  final IconData icon;
-
-  /// The card's own title.
-  final String title;
-
-  /// The card's own message — already resolved, plain text, no further formatting done here.
-  final String message;
-
-  /// The label of the card's own single action.
-  final String actionLabel;
-
-  /// Called when the action is clicked.
-  final VoidCallback onActionPressed;
-
-  /// Class constructor
-  const _OcptBudgetHeaderAlertBand({
-    required this.color,
-    required this.icon,
-    required this.title,
-    required this.message,
-    required this.actionLabel,
-    required this.onActionPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(message, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          TextButton(
-            onPressed: onActionPressed,
-            style: TextButton.styleFrom(foregroundColor: color),
-            child: Text(actionLabel),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// One segment of any of this header's switches — a small bordered rounded container, the active
 /// segment filled `primary` and bolder, mirroring `OcptBreakdownHeader`'s own
 /// `_OcptBreakdownViewSwitch._buildSegment`.
+///
+/// **[badgeCount], nullable and null on every switch but the view switch's own `Tableau de bord`
+/// segment**, draws a small pill after the label rather than forking this class in two: the
+/// standing alerts are a fact about one segment, not about switches in general, and every other
+/// caller simply never passes it.
 class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
   /// This segment's own value.
   final T value;
@@ -411,6 +246,10 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
   /// This segment's label.
   final String label;
 
+  /// How many standing alerts to badge this segment with, or null to draw no badge at all — never
+  /// drawn empty, the moment there is nothing to count.
+  final int? badgeCount;
+
   /// Called with [value] when this segment is clicked and isn't already the active one.
   final ValueChanged<T> onChanged;
 
@@ -419,6 +258,7 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
     required this.value,
     required this.current,
     required this.label,
+    this.badgeCount,
     required this.onChanged,
   });
 
@@ -426,6 +266,7 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isActive = value == current;
+    final badgeCount = this.badgeCount;
 
     return InkWell(
       onTap: isActive ? null : () => onChanged(value),
@@ -439,12 +280,40 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
         ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
+              ),
+            ),
+            if (badgeCount != null && badgeCount > 0) ...[
+              const SizedBox(width: 6),
+              Semantics(
+                label: Tr.of(context).budgetHeaderAlertCountSemanticsLabel(badgeCount),
+                child: ExcludeSemantics(
+                  child: Container(
+                    key: const Key("ocptBudgetAlertCountBadge"),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.error,
+                      borderRadius: BorderRadius.circular(ocptRadiusLarge),
+                    ),
+                    child: Text(
+                      "$badgeCount",
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onError,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -585,8 +454,9 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
   );
 }
 
-/// The six view chips, in the shell design's own order: the cost report, the financing plan, the
-/// cash journal, the committed spending, the catering-and-travel pass, the revenue sharing.
+/// The seven view chips, in the shell design's own order: the dashboard, the cost report, the
+/// financing plan, the cash journal, the committed spending, the catering-and-travel pass, the
+/// revenue sharing.
 class _OcptBudgetViewSwitch extends StatelessWidget {
   /// The switch's own current value.
   final OcptBudgetView value;
@@ -594,8 +464,12 @@ class _OcptBudgetViewSwitch extends StatelessWidget {
   /// Called with the view just clicked.
   final ValueChanged<OcptBudgetView> onChanged;
 
+  /// How many standing alerts to badge the `Tableau de bord` segment with — see
+  /// `_OcptBudgetSwitchSegment.badgeCount`'s own doc comment.
+  final int alertCount;
+
   /// Class constructor
-  const _OcptBudgetViewSwitch({required this.value, required this.onChanged});
+  const _OcptBudgetViewSwitch({required this.value, required this.onChanged, required this.alertCount});
 
   @override
   Widget build(BuildContext context) {
@@ -603,6 +477,13 @@ class _OcptBudgetViewSwitch extends StatelessWidget {
 
     return _OcptBudgetSwitchShell(
       children: [
+        _OcptBudgetSwitchSegment(
+          value: OcptBudgetView.dashboard,
+          current: value,
+          label: tr.budgetHeaderDashboardSegmentLabel,
+          badgeCount: alertCount,
+          onChanged: onChanged,
+        ),
         _OcptBudgetSwitchSegment(
           value: OcptBudgetView.costTracking,
           current: value,

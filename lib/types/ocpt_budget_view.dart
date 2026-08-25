@@ -4,18 +4,23 @@
 
 /// Which of the budget mode's views is currently shown, toggled by the header's own view chips.
 ///
-/// **Six values today.** The dashboard, the mode's own default view once it exists again, is a
-/// later milestone's; until then the mode opens on [costTracking]. Nothing here is a `Planned`
-/// pair the way the retired `OcptBudgetCentreView` once carried `financing` and `committed` as
-/// two faces of one chip — each is its own value, its own chip, exactly the shape the shell
-/// design draws.
+/// **Seven values.** [dashboard] is the mode's own default view, the whole project's standing
+/// reading; the other six each work one document. Nothing here is a `Planned` pair the way the
+/// retired `OcptBudgetCentreView` once carried `financing` and `committed` as two faces of one
+/// chip — each is its own value, its own chip, exactly the shape the shell design draws.
 ///
-/// **A value may be inserted at any position, the dashboard included.** `OcptBudgetState.view` is
-/// held in memory for the life of the mode and written to no preference at all, so an inserted
-/// value strands nothing. The retired `OcptBudgetCentreView` carried the opposite rule — every
-/// value joined it at the end — against a stored preference that was in the end never written, and
-/// there is nothing left here for that rule to protect.
+/// **A value may be inserted at any position.** `OcptBudgetState.view` is held in memory for the
+/// life of the mode and written to no preference at all, so an inserted value strands nothing —
+/// [dashboard] itself landed first rather than last, which is exactly the freedom this rule
+/// argues for. The retired `OcptBudgetCentreView` carried the opposite rule — every value joined
+/// it at the end — against a stored preference that was in the end never written, and there is
+/// nothing left here for that rule to protect.
 enum OcptBudgetView {
+  /// The whole project's standing reading: the KPI tiles, the balance band, the standing alerts
+  /// and the feed cards. Opens on nothing of its own — a poste row here selects the poste and
+  /// switches to [costTracking], which is where the fiche then opens.
+  dashboard,
+
   /// The quote itself, poste by poste: the working surface for creating, renaming and reordering
   /// postes and lines, and reading what each poste has consumed.
   costTracking,
@@ -50,28 +55,39 @@ enum OcptBudgetView {
 
 /// Whether [view] can honour the mode's own poste filter (`OcptBudgetState.filterPosteId`).
 ///
-/// **Three of the six cannot, and say so rather than pretending to.** The financing plan reads
-/// `budget_resources`, the régie reads the schedule and the defrayals, and the revenue sharing
-/// reads `budget_revenues`/`budget_shares`: not one of those tables carries a poste, so there is
-/// nothing to narrow. A filter silently ignored on half the mode would be worse than one that is
-/// visibly out of scope, since a reader would take an unfiltered view for a filtered one.
+/// **[OcptBudgetView.dashboard] cannot either, alongside the three that never could.** It is the
+/// whole project's standing reading; narrowing it to one poste would leave nothing on it but that
+/// poste's own row, and its KPI tiles would silently disagree with the ones the reader saw a
+/// second ago. The financing plan reads `budget_resources`, the régie reads the schedule and the
+/// defrayals, and the revenue sharing reads `budget_revenues`/`budget_shares`: not one of those
+/// tables carries a poste, so there is nothing to narrow. A filter silently ignored on half the
+/// mode would be worse than one that is visibly out of scope, since a reader would take an
+/// unfiltered view for a filtered one.
 bool ocptBudgetViewHonoursPosteFilter(OcptBudgetView view) => switch (view) {
   OcptBudgetView.costTracking || OcptBudgetView.cashJournal || OcptBudgetView.committed => true,
-  OcptBudgetView.financing || OcptBudgetView.regie || OcptBudgetView.sharing => false,
+  OcptBudgetView.dashboard ||
+  OcptBudgetView.financing ||
+  OcptBudgetView.regie ||
+  OcptBudgetView.sharing => false,
 };
 
 /// Whether [view] has anything for the right dock's `Inspector` tab — the polymorphic fiche — to
 /// show.
 ///
-/// **The cost report, the cash journal and the financing plan do.** The fiche reads
-/// `OcptBudgetState.selection` directly, and each of these three selects something of its own —
-/// the cost report a poste, a line, a commitment or an entry, the cash journal an entry, the
-/// financing plan a resource or a taking. The committed spending, the régie and the revenue
-/// sharing select nothing the fiche can show yet — a commitment there is a plain highlight
-/// answered by its own row menu, a taking and a share are still a plain highlight,
-/// `docs/architecture/budget.md`'s own "A taking is received by being named, a participant is
-/// paid the same way" reading unchanged here.
+/// **The cost report, the cash journal and the financing plan do; [OcptBudgetView.dashboard] does
+/// not.** The fiche reads `OcptBudgetState.selection` directly, and each of the first three
+/// selects something of its own — the cost report a poste, a line, a commitment or an entry, the
+/// cash journal an entry, the financing plan a resource or a taking. A dashboard poste row is a
+/// *link to where the poste is worked on*, not a selection of its own: it selects the poste **and**
+/// switches to [OcptBudgetView.costTracking] in the same gesture, which is where the fiche then
+/// opens. The committed spending, the régie and the revenue sharing select nothing the fiche can
+/// show yet — a commitment there is a plain highlight answered by its own row menu, a taking and a
+/// share are still a plain highlight, `docs/architecture/budget.md`'s own "A taking is received by
+/// being named, a participant is paid the same way" reading unchanged here.
 bool ocptBudgetViewHasInspector(OcptBudgetView view) => switch (view) {
   OcptBudgetView.costTracking || OcptBudgetView.cashJournal || OcptBudgetView.financing => true,
-  OcptBudgetView.committed || OcptBudgetView.regie || OcptBudgetView.sharing => false,
+  OcptBudgetView.dashboard ||
+  OcptBudgetView.committed ||
+  OcptBudgetView.regie ||
+  OcptBudgetView.sharing => false,
 };

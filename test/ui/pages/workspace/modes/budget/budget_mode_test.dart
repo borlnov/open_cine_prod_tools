@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_capture_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
@@ -183,6 +184,65 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  group("the dashboard", () {
+    testWidgets("is the mode's own default view", (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      // Opened without touching a single chip.
+      expect(find.byType(OcptBudgetDashboard), findsOneWidget);
+      expect(find.byType(OcptBudgetCostTracking), findsNothing);
+    });
+
+    testWidgets("carries no capture band of its own", (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+    });
+
+    testWidgets("a poste row selects the poste and lands on the cost report", (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      // Scoped to the dashboard itself: the left dock draws every poste's own name too, on every
+      // view including this one, so a bare `find.text` would prove nothing about which row was
+      // actually tapped.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(OcptBudgetDashboard),
+          matching: find.text(tr.budgetCncPosteArtisticRights),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Landed on the cost report — a dashboard row is a link to where the poste is worked on,
+      // not a selection that opens the fiche over the dashboard itself.
+      expect(find.byType(OcptBudgetDashboard), findsNothing);
+      expect(find.byType(OcptBudgetCostTracking), findsOneWidget);
+
+      // And the poste it names is the very one selected — the fiche opened on it.
+      expect(find.byType(OcptBudgetFiche), findsOneWidget);
+    });
   });
 
   testWidgets("the simplified switch swaps every poste's label and hides the N° column", (
@@ -821,7 +881,12 @@ void main() {
     await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
     await tester.pumpAndSettle();
 
-    // The cost-tracking table is the mode's default view, so its own page opens first.
+    // The dashboard is the mode's default view now, so its own page opens first.
+    expect(find.text(tr.budgetHeaderDashboardTitle), findsWidgets);
+
+    // Switching to the cost-tracking table changes the help panel's page without touching the
+    // dock at all.
+    await openCostTracking(tester);
     expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
     expect(find.text(tr.budgetHelpCashJournalBody4), findsNothing);
 
@@ -855,8 +920,9 @@ void main() {
       RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge)),
     );
 
-    // The cost report (the mode's own default view) reads every column at once, so no single step
-    // of the chain stands for it in particular.
+    // The cost report reads every column at once, so no single step of the chain stands for it
+    // in particular — driven explicitly, the dashboard no longer being the same route.
+    await openCostTracking(tester);
     expect(currentSteps(), findsNothing);
 
     // Neither does the resources document's own top level — its tree reads both columns at once.
@@ -895,6 +961,9 @@ void main() {
 
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
     expect(find.byType(OcptBudgetHelp), findsOneWidget);
+
+    // Driven onto the cost report explicitly — the mode no longer opens on it by default.
+    await openCostTracking(tester);
     expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
 
     // Leave the preview so the working copy is what the next test opens onto.
@@ -913,8 +982,8 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
-      // The mode opens on the cost report, where the capture band already shows —
-      // `openCostTracking` is a no-op here, kept for clarity.
+      // The mode opens on the dashboard, which carries no capture band of its own — driven onto
+      // the cost report explicitly, where the band shows.
       await openCostTracking(tester);
       expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
 
@@ -943,6 +1012,10 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
+
+      // The mode opens on the dashboard now, which carries no capture band — driven onto the
+      // cost report explicitly, where the band this test types into shows.
+      await openCostTracking(tester);
 
       /// The draft as the band's own controllers hold it, read straight off them rather than
       /// through `find.text`: a wording echoed by a suggestion row would match that just as well,
@@ -1014,6 +1087,10 @@ void main() {
 
     await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
+
+    // Driven onto the cost report explicitly: a route that offers the band while live, so its
+    // absence here is the preview's own doing, not merely the dashboard's.
+    await openCostTracking(tester);
 
     // Not built at all — withheld, not disabled.
     expect(find.byType(OcptBudgetCaptureBand), findsNothing);

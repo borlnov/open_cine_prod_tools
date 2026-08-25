@@ -41,6 +41,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_committed_spending.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_element_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
@@ -470,21 +471,7 @@ class _BudgetViewState extends State<_BudgetView> {
           filterPosteId: state.filterPosteId,
           onPosteFilterSelected: (posteId) =>
               bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
-          alerts: state.alerts,
-          // Whole, never narrowed by `state.filterPosteId` — see `OcptBudgetHeader`'s own class
-          // doc comment for why the cash-projection card reads exactly what the top band's own
-          // whole-journal figures do.
-          commitments: state.commitments,
-          cashBalanceCents: state.cashTotals.balanceCents,
-          defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-          currencyCode: state.currencyCode,
-          onAlertPosteActionRequested: (posteId) {
-            bloc
-              ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
-              ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.costTracking));
-          },
-          onCashProjectionAlertActionRequested: () =>
-              bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.committed)),
+          alertCount: state.alerts.length,
         ),
         const SizedBox(height: 12),
         if (captureBandDirection != null) ...[
@@ -506,10 +493,11 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// The direction [OcptBudgetCaptureBand] opens on under [view], or null where [view] draws no
-  /// band at all — [OcptBudgetView.committed], [OcptBudgetView.regie] and [OcptBudgetView.sharing].
-  /// A previewed version withholds the band **whole** rather than drawing it disabled, the standing
-  /// rule for an affordance a preview takes away (`docs/architecture/budget.md`); that is
-  /// [_buildCentre]'s own reading, not this method's, which answers about the view alone.
+  /// band at all — [OcptBudgetView.dashboard], [OcptBudgetView.committed], [OcptBudgetView.regie]
+  /// and [OcptBudgetView.sharing]. A previewed version withholds the band **whole** rather than
+  /// drawing it disabled, the standing rule for an affordance a preview takes away
+  /// (`docs/architecture/budget.md`); that is [_buildCentre]'s own reading, not this method's,
+  /// which answers about the view alone.
   ///
   /// **`true` (a debit) for [OcptBudgetView.costTracking] and [OcptBudgetView.cashJournal],
   /// `false` (a credit) for [OcptBudgetView.financing].** Both of the first two are the very same
@@ -520,7 +508,10 @@ class _BudgetViewState extends State<_BudgetView> {
   bool? _captureBandDirectionOf(OcptBudgetView view) => switch (view) {
     OcptBudgetView.costTracking || OcptBudgetView.cashJournal => true,
     OcptBudgetView.financing => false,
-    OcptBudgetView.committed || OcptBudgetView.regie || OcptBudgetView.sharing => null,
+    OcptBudgetView.dashboard ||
+    OcptBudgetView.committed ||
+    OcptBudgetView.regie ||
+    OcptBudgetView.sharing => null,
   };
 
   /// Builds the capture band — keyed by [isDebit], the answer [_captureBandDirectionOf] gave for
@@ -703,6 +694,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// seven values of the retired `OcptBudgetCentreView` used to switch over: only the switch's own
   /// shape moved.
   Widget _buildRoute(BuildContext context, OcptBudgetState state) => switch (state.view) {
+    OcptBudgetView.dashboard => _buildDashboard(context, state),
     OcptBudgetView.costTracking => _buildCostTracking(context, state),
     OcptBudgetView.cashJournal => _buildCashJournal(context, state),
     OcptBudgetView.financing => _buildFinancing(context, state),
@@ -729,6 +721,55 @@ class _BudgetViewState extends State<_BudgetView> {
   /// that pass is not itself already on screen.
   void _handleCateringFeedRequested(OcptBudgetBloc bloc) =>
       bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.regie));
+
+  /// Builds the dashboard: the whole project's standing reading, opened by default.
+  ///
+  /// **Every callback it needs is one this file already has a handler for** — a dashboard poste row
+  /// and the poste-over-quote alert's own action both reuse [_handleDashboardPosteOpened], which
+  /// selects the poste and switches to [OcptBudgetView.costTracking] in one gesture (see
+  /// `OcptBudgetDashboard.onPosteOpened`'s own doc comment for why the two used to differ and no
+  /// longer do); the cash-negative alert's own action reuses the header's own
+  /// [OcptBudgetView.committed] switch; the three feed rows reuse
+  /// [_handleBreakdownFeedRequested]/[_handleScheduleFeedRequested]/[_handleCateringFeedRequested]
+  /// exactly as the cost-tracking table's own feed card already does.
+  Widget _buildDashboard(BuildContext context, OcptBudgetState state) {
+    final bloc = context.read<OcptBudgetBloc>();
+    final elementLinkCounts = state.elementLinkCounts;
+
+    return OcptBudgetDashboard(
+      postes: state.postes,
+      taxBasis: state.taxBasis,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      currencyCode: state.currencyCode,
+      cashTotals: state.cashTotals,
+      paidByPosteId: state.paidByPosteId,
+      offQuotePaidTotal: state.offQuotePaidTotal,
+      committedByPosteId: state.committedByPosteId,
+      alerts: state.alerts,
+      resources: state.resources,
+      breakdownPricedElementCount: elementLinkCounts.pricedCount,
+      breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
+      shootingDayCount: state.regieDays.length,
+      mealCount: state.regieTotals.mealCount,
+      buffetCount: state.regieTotals.buffetCount,
+      onPosteOpened: (posteId) => _handleDashboardPosteOpened(bloc, posteId),
+      onCashAlertActionRequested: () =>
+          bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.committed)),
+      onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
+      onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
+      onCateringFeedRequested: () => _handleCateringFeedRequested(bloc),
+    );
+  }
+
+  /// A dashboard poste row is a link to where the poste is worked on, not a selection of its own —
+  /// see `OcptBudgetDashboard.onPosteOpened`'s own doc comment. Selects [posteId] and switches to
+  /// [OcptBudgetView.costTracking] in the same gesture, mirroring the header's own alert action at
+  /// [_buildCentre].
+  void _handleDashboardPosteOpened(OcptBudgetBloc bloc, String posteId) {
+    bloc
+      ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
+      ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.costTracking));
+  }
 
   /// Builds the cost-tracking table.
   Widget _buildCostTracking(BuildContext context, OcptBudgetState state) {

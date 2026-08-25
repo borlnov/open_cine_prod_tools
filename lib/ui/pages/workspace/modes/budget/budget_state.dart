@@ -555,9 +555,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       title = "",
       snapshot = null,
       currencyCode = ocptDefaultCurrencyCode,
-      // The mode opens on the cost report, poste by poste — the one table a producer reads
-      // daily.
-      view = OcptBudgetView.costTracking,
+      // The mode opens on the dashboard, the whole project's standing reading.
+      view = OcptBudgetView.dashboard,
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selection = null,

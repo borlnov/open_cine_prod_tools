@@ -80,11 +80,16 @@ class OcptBudgetHelp extends StatelessWidget {
   ///
   /// [OcptBudgetView.committed] reads the very same chain as [OcptBudgetView.costTracking] and
   /// [OcptBudgetView.cashJournal]: it is that document's own middle state, seen on its own page,
-  /// never a chain of its own.
+  /// never a chain of its own. **[OcptBudgetView.dashboard] reads it too, for the same reason**:
+  /// its KPI tiles are that very chain's own figures, read at the whole-project level rather than
+  /// poste by poste, so the chain that explains them is the very one that already explains the
+  /// other three.
   List<(String label, String caption)> _chainStepsOf(Tr tr) => switch (view) {
     OcptBudgetView.regie => const [],
-    OcptBudgetView.costTracking || OcptBudgetView.cashJournal || OcptBudgetView.committed =>
-      _expensesChainSteps(tr),
+    OcptBudgetView.dashboard ||
+    OcptBudgetView.costTracking ||
+    OcptBudgetView.cashJournal ||
+    OcptBudgetView.committed => _expensesChainSteps(tr),
     OcptBudgetView.financing => _resourcesChainSteps(tr),
     OcptBudgetView.sharing => _sharingChainSteps(tr),
   };
@@ -120,8 +125,10 @@ class OcptBudgetHelp extends StatelessWidget {
   /// is already empty and nothing is printed at all.
   String? _chainSentenceOf(Tr tr) => switch (view) {
     OcptBudgetView.regie => null,
-    OcptBudgetView.costTracking || OcptBudgetView.cashJournal || OcptBudgetView.committed =>
-      tr.budgetHelpChainExpensesSentence,
+    OcptBudgetView.dashboard ||
+    OcptBudgetView.costTracking ||
+    OcptBudgetView.cashJournal ||
+    OcptBudgetView.committed => tr.budgetHelpChainExpensesSentence,
     OcptBudgetView.financing => tr.budgetHelpChainResourcesSentence,
     OcptBudgetView.sharing => tr.budgetHelpChainSharingSentence,
   };
@@ -138,10 +145,13 @@ class OcptBudgetHelp extends StatelessWidget {
   /// highlighted" already says; the sentence there is left to state how a step becomes the next
   /// instead, exactly as every other view's does. [OcptBudgetView.sharing] highlights nothing for
   /// the same reason: it reads its three states together, in one card and one table, rather than
-  /// opening on one of them.
+  /// opening on one of them. [OcptBudgetView.dashboard] highlights nothing for the very same
+  /// reason as [OcptBudgetView.costTracking]: its KPI tiles read the quoted, paid and committed
+  /// figures side by side, not one step of the chain in particular.
   int? _highlightedStepIndexOf() => switch (view) {
     OcptBudgetView.cashJournal => 2,
     OcptBudgetView.committed => 1,
+    OcptBudgetView.dashboard ||
     OcptBudgetView.costTracking ||
     OcptBudgetView.financing ||
     OcptBudgetView.regie ||
@@ -152,6 +162,7 @@ class OcptBudgetHelp extends StatelessWidget {
   /// reader finds the same name here as on screen (`OcptBudgetHeader._titleOf`'s own reasoning,
   /// reimplemented here rather than shared, since that method is private to that widget).
   String _titleOf(Tr tr) => switch (view) {
+    OcptBudgetView.dashboard => tr.budgetHeaderDashboardTitle,
     OcptBudgetView.costTracking => tr.budgetHeaderTitle,
     OcptBudgetView.cashJournal => tr.budgetHeaderCashJournalTitle,
     OcptBudgetView.committed => tr.budgetCommittedSectionTitle,
@@ -162,6 +173,7 @@ class OcptBudgetHelp extends StatelessWidget {
 
   /// The current view's own one-line subtitle, exactly as the header band prints it.
   String _subtitleOf(Tr tr) => switch (view) {
+    OcptBudgetView.dashboard => tr.budgetHeaderDashboardSubtitle,
     OcptBudgetView.costTracking => tr.budgetHeaderSubtitle,
     OcptBudgetView.cashJournal => tr.budgetHeaderCashJournalSubtitle,
     OcptBudgetView.committed => tr.budgetHeaderCommittedSubtitle,
@@ -178,7 +190,13 @@ class OcptBudgetHelp extends StatelessWidget {
   /// all open on the capture band's own paragraph: the band is mounted above every one of them, at
   /// their own top level, and is the daily gesture the mode exists for
   /// (`OcptBudgetCaptureBand`'s own class doc comment).
+  ///
+  /// **[OcptBudgetView.dashboard] prints none.** It carries no capture band of its own
+  /// (`OcptBudgetMode._captureBandDirectionOf`), so the paragraph every other body opens with would
+  /// be describing a control this page does not draw; the chain above and its own sentence already
+  /// say what its KPI tiles read and where each one comes from.
   List<String> _bodyOf(Tr tr) => switch (view) {
+    OcptBudgetView.dashboard => const [],
     OcptBudgetView.committed => [
       tr.budgetHelpCommittedBody1,
       tr.budgetHelpCommittedBody2(tr.budgetCommittedStatusSettledLabel, tr.budgetCommittedSettleAction),

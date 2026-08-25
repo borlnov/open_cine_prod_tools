@@ -6,30 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
-import 'package:open_cine_prod_tools/models/ocpt_money.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
-
-/// A minimal commitment, everything but what each test actually varies neutral.
-OcptBudgetCommitment _commitment({
-  required String id,
-  String? settledEntryId,
-}) => OcptBudgetCommitment(
-  id: id,
-  dueDate: DateTime(2026),
-  label: "Camera rental",
-  posteId: "poste-1",
-  amount: const OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: null),
-  status: OcptBudgetCommitmentStatus.quoteAccepted,
-  settledEntryId: settledEntryId,
-  lineId: null,
-  sortKey: "a0",
-);
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrap(Widget child) => MaterialApp(
@@ -67,12 +47,7 @@ void main() {
     List<OcptBudgetPoste> postes = const [],
     String? filterPosteId,
     ValueChanged<String?>? onPosteFilterSelected,
-    List<OcptBudgetAlert> alerts = const [],
-    List<OcptBudgetCommitment> commitments = const [],
-    int cashBalanceCents = 0,
-    int? defaultVatRateBasisPoints,
-    ValueChanged<String>? onAlertPosteActionRequested,
-    VoidCallback? onCashProjectionAlertActionRequested,
+    int alertCount = 0,
   }) async {
     await tester.pumpWidget(
       _wrap(
@@ -86,13 +61,7 @@ void main() {
           postes: postes,
           filterPosteId: filterPosteId,
           onPosteFilterSelected: onPosteFilterSelected ?? (_) {},
-          alerts: alerts,
-          commitments: commitments,
-          cashBalanceCents: cashBalanceCents,
-          defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-          currencyCode: "EUR",
-          onAlertPosteActionRequested: onAlertPosteActionRequested ?? (_) {},
-          onCashProjectionAlertActionRequested: onCashProjectionAlertActionRequested ?? () {},
+          alertCount: alertCount,
         ),
       ),
     );
@@ -128,11 +97,12 @@ void main() {
   });
 
   group("the view switch", () {
-    testWidgets("draws six segments, in chip order", (tester) async {
+    testWidgets("draws seven segments, in chip order", (tester) async {
       useWideWindow(tester);
       final tr = await pumpHeader(tester);
 
       final labels = [
+        tr.budgetHeaderDashboardSegmentLabel,
         tr.budgetHeaderCostTrackingSegmentLabel,
         tr.budgetHeaderFinancingSegmentLabel,
         tr.budgetHeaderCashJournalSegmentLabel,
@@ -204,7 +174,16 @@ void main() {
       expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
     });
 
-    testWidgets("withheld outside the cost report and the cash journal", (tester) async {
+    testWidgets("offered on the dashboard too, since its own KPI tiles read it", (tester) async {
+      useWideWindow(tester);
+      final tr = await pumpHeader(tester, view: OcptBudgetView.dashboard);
+
+      expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsOneWidget);
+    });
+
+    testWidgets("withheld outside the dashboard, the cost report and the cash journal", (
+      tester,
+    ) async {
       useWideWindow(tester);
       for (final view in [
         OcptBudgetView.financing,
@@ -247,9 +226,16 @@ void main() {
       }
     });
 
-    testWidgets("withheld — never disabled — on financing, régie and sharing", (tester) async {
+    testWidgets("withheld — never disabled — on the dashboard, financing, régie and sharing", (
+      tester,
+    ) async {
       useWideWindow(tester);
-      for (final view in [OcptBudgetView.financing, OcptBudgetView.regie, OcptBudgetView.sharing]) {
+      for (final view in [
+        OcptBudgetView.dashboard,
+        OcptBudgetView.financing,
+        OcptBudgetView.regie,
+        OcptBudgetView.sharing,
+      ]) {
         final tr = await pumpHeader(tester, view: view);
         expect(find.text(tr.budgetHeaderSimplifiedSegmentLabel), findsNothing, reason: "$view");
       }
@@ -306,16 +292,22 @@ void main() {
       expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsOneWidget);
     });
 
-    testWidgets("withheld outright — never captioned — on financing, régie and sharing", (
-      tester,
-    ) async {
-      useWideWindow(tester);
-      for (final view in [OcptBudgetView.financing, OcptBudgetView.regie, OcptBudgetView.sharing]) {
-        final tr = await pumpHeader(tester, postes: [poste], view: view);
-        expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing, reason: "$view");
-        expect(find.text("Interpretation"), findsNothing, reason: "$view");
-      }
-    });
+    testWidgets(
+      "withheld outright — never captioned — on the dashboard, financing, régie and sharing",
+      (tester) async {
+        useWideWindow(tester);
+        for (final view in [
+          OcptBudgetView.dashboard,
+          OcptBudgetView.financing,
+          OcptBudgetView.regie,
+          OcptBudgetView.sharing,
+        ]) {
+          final tr = await pumpHeader(tester, postes: [poste], view: view);
+          expect(find.text(tr.budgetHeaderPosteFilterAllLabel), findsNothing, reason: "$view");
+          expect(find.text("Interpretation"), findsNothing, reason: "$view");
+        }
+      },
+    );
   });
 
   testWidgets("no breadcrumb and no sub-page menu is drawn anywhere", (tester) async {
@@ -333,7 +325,11 @@ void main() {
     testWidgets("name the view on screen, not the mode", (tester) async {
       useWideWindow(tester);
 
-      var tr = await pumpHeader(tester);
+      var tr = await pumpHeader(tester, view: OcptBudgetView.dashboard);
+      expect(find.text(tr.budgetHeaderDashboardTitle), findsOneWidget);
+      expect(find.text(tr.budgetHeaderDashboardSubtitle), findsOneWidget);
+
+      tr = await pumpHeader(tester);
       expect(find.text(tr.budgetHeaderTitle), findsOneWidget);
       expect(find.text(tr.budgetHeaderSubtitle), findsOneWidget);
 
@@ -360,152 +356,28 @@ void main() {
     });
   });
 
-  group("the alert band", () {
-    testWidgets("draws nothing while there is no alert", (tester) async {
+  group("the alert count badge", () {
+    testWidgets("nothing is drawn at all while the count is zero", (tester) async {
       useWideWindow(tester);
       await pumpHeader(tester);
 
-      expect(find.byIcon(Icons.trending_up), findsNothing);
-      expect(find.byIcon(Icons.trending_down), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetAlertCountBadge")), findsNothing);
     });
 
-    testWidgets("a poste-over-quote alert's own action reports its poste id", (tester) async {
+    testWidgets("a count of two is drawn as 2, on the dashboard segment", (tester) async {
       useWideWindow(tester);
-      String? reported;
-      final tr = await pumpHeader(
-        tester,
-        postes: [
-          const OcptBudgetPoste(
-            id: "poste-1",
-            code: "1",
-            label: "Camera",
-            simpleLabel: null,
-            estimateToCompleteCents: null,
-            sortKey: "a0",
-            lines: [],
-          ),
-        ],
-        alerts: const [
-          OcptBudgetPosteOverQuoteAlert(
-            posteId: "poste-1",
-            quotedAmountCents: 1000,
-            paidCents: 1200,
-            committedCents: 0,
-            varianceCents: 200,
-          ),
-        ],
-        onAlertPosteActionRequested: (posteId) => reported = posteId,
-      );
+      await pumpHeader(tester, alertCount: 2);
 
-      expect(find.text(tr.budgetDashboardPosteOverQuoteAlertTitle), findsOneWidget);
-
-      await tester.tap(find.text(tr.budgetDashboardPosteOverQuoteAlertAction));
-
-      expect(reported, "poste-1");
-    });
-
-    testWidgets("the cash-projection alert's own action is reported", (tester) async {
-      useWideWindow(tester);
-      var wasCalled = false;
-      final tr = await pumpHeader(
-        tester,
-        alerts: const [
-          OcptBudgetCashProjectionNegativeAlert(
-            balanceCents: 500,
-            dueDate: null,
-            fallingDueCents: 800,
-            balanceAfterCents: -300,
-          ),
-        ],
-        onCashProjectionAlertActionRequested: () => wasCalled = true,
-      );
-
-      expect(find.text(tr.budgetDashboardCashNegativeAlertTitle), findsOneWidget);
-
-      await tester.tap(find.text(tr.budgetDashboardCashNegativeAlertAction));
-
-      expect(wasCalled, isTrue);
+      expect(find.byKey(const Key("ocptBudgetAlertCountBadge")), findsOneWidget);
+      expect(find.text("2"), findsOneWidget);
     });
 
     testWidgets("drawn whatever view is on screen — a whole-project fact", (tester) async {
       useWideWindow(tester);
-      final tr = await pumpHeader(
-        tester,
-        view: OcptBudgetView.sharing,
-        alerts: const [
-          OcptBudgetCashProjectionNegativeAlert(
-            balanceCents: 500,
-            dueDate: null,
-            fallingDueCents: 800,
-            balanceAfterCents: -300,
-          ),
-        ],
-      );
+      await pumpHeader(tester, view: OcptBudgetView.sharing, alertCount: 1);
 
-      expect(find.text(tr.budgetDashboardCashNegativeAlertTitle), findsOneWidget);
-    });
-  });
-
-  group("the cash-projection card", () {
-    testWidgets("drawn on the cost report while at least one commitment is unsettled", (
-      tester,
-    ) async {
-      useWideWindow(tester);
-      await pumpHeader(
-        tester,
-        commitments: [_commitment(id: "c1")],
-        cashBalanceCents: 5000,
-      );
-
-      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsOneWidget);
-    });
-
-    testWidgets("drawn on the cash journal too", (tester) async {
-      useWideWindow(tester);
-      await pumpHeader(
-        tester,
-        view: OcptBudgetView.cashJournal,
-        commitments: [_commitment(id: "c1")],
-        cashBalanceCents: 5000,
-      );
-
-      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsOneWidget);
-    });
-
-    testWidgets("withheld while every commitment is settled", (tester) async {
-      useWideWindow(tester);
-      await pumpHeader(
-        tester,
-        commitments: [_commitment(id: "c1", settledEntryId: "entry-1")],
-        cashBalanceCents: 5000,
-      );
-
-      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
-    });
-
-    testWidgets("withheld while the project carries no commitment at all", (tester) async {
-      useWideWindow(tester);
-      await pumpHeader(tester, cashBalanceCents: 5000);
-
-      expect(find.byKey(const Key("ocptBudgetCashProjectionToggle")), findsNothing);
-    });
-
-    testWidgets("withheld on financing, committed, régie and sharing, even with an unsettled "
-        "commitment", (tester) async {
-      useWideWindow(tester);
-      for (final view in [
-        OcptBudgetView.financing,
-        OcptBudgetView.committed,
-        OcptBudgetView.regie,
-        OcptBudgetView.sharing,
-      ]) {
-        await pumpHeader(tester, view: view, commitments: [_commitment(id: "c1")]);
-        expect(
-          find.byKey(const Key("ocptBudgetCashProjectionToggle")),
-          findsNothing,
-          reason: "$view",
-        );
-      }
+      expect(find.byKey(const Key("ocptBudgetAlertCountBadge")), findsOneWidget);
+      expect(find.text("1"), findsOneWidget);
     });
   });
 
