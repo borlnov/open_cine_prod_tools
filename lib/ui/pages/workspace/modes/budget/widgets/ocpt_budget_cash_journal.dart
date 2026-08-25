@@ -10,12 +10,14 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
 /// The `Date` column's own fixed width, in logical pixels.
 const double _ocptCashJournalDateColumnWidth = 92;
@@ -88,13 +90,35 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 ///
 /// A read-only view can return the empty state as its whole body because it writes nothing at
 /// all; this view cannot.
+///
+/// **Under the statement, `À venir` reads the account's future rather than its past** — one row
+/// per unsettled commitment, in [OcptBudgetProjection.steps]' own due-date-first order, then a
+/// footer naming the total falling due and the balance the account would hold once it has. It is
+/// built from [commitments] and the statement's own closing balance, through `ocptBudgetProjectionOf`
+/// (`lib/utils/ocpt_budget_projection.dart`) — never re-sorted here, exactly as that function's own
+/// doc comment argues. **Drawn only while at least one unsettled commitment exists**, and it carries
+/// no empty state of its own: a project owing nothing simply has no second card. Both sections scroll
+/// **together**, as slivers of the very same [CustomScrollView], under the one fixed header row above
+/// them — two independent scroll areas would let a reader scroll the statement while `À venir` stayed
+/// put, which is not a statement any more.
+///
+/// **A due row is selectable, never a write** — it dispatches [onCommitmentSelected], opening the
+/// right dock's fiche on the commitment, which is where it is edited or settled — so, unlike the
+/// entry table's own `⋮` menu, it is never withheld under [isReadOnly]. `À venir` draws no `⋮` menu
+/// of its own at all: `Modifier`/`Supprimer`/`Payer` on a commitment live in the fiche and only there.
 class OcptBudgetCashJournal extends StatelessWidget {
   /// Every live entry of the whole journal, in the chronological order
   /// `OcptBudgetJournalService.loadEntries` already gives them — never reordered by the caller,
   /// and drawn whole, this page honouring no filter of its own (see the class doc comment).
   final List<OcptBudgetEntry> entries;
 
-  /// Every live poste of the project, used to resolve an entry's own poste name.
+  /// Every live commitment of the project, settled ones included — handed in whole, exactly as
+  /// `OcptBudgetCashProjection.commitments` (now retired) used to require, since a settled one is
+  /// excluded by `ocptBudgetProjectionOf` itself rather than by its caller (see the class doc
+  /// comment's own `À venir` paragraph).
+  final List<OcptBudgetCommitment> commitments;
+
+  /// Every live poste of the project, used to resolve an entry's or a commitment's own poste name.
   final List<OcptBudgetPoste> postes;
 
   /// Every live voucher, keyed by the entry it evidences — an entry with no key here carries no
@@ -132,10 +156,16 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onEntryDeletionRequested;
 
+  /// Called with a commitment's id when an `À venir` row is clicked — never withheld under
+  /// [isReadOnly], for the very reason [onEntrySelected] never is: selecting only opens the right
+  /// dock's own fiche on it, it writes nothing.
+  final ValueChanged<String>? onCommitmentSelected;
+
   /// Class constructor
   const OcptBudgetCashJournal({
     super.key,
     required this.entries,
+    required this.commitments,
     required this.postes,
     required this.receiptsByEntryId,
     required this.selection,
@@ -146,6 +176,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
     required this.onEntrySelected,
     required this.onEntryEditRequested,
     required this.onEntryDeletionRequested,
+    required this.onCommitmentSelected,
   });
 
   @override
@@ -154,6 +185,13 @@ class OcptBudgetCashJournal extends StatelessWidget {
 
     final rows = ocptBudgetJournalRowsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
     final totals = ocptBudgetCashTotalsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+    final projection = ocptBudgetProjectionOf(
+      openingBalanceCents: totals.balanceCents,
+      commitments: commitments,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final showsUpcoming = projection.commitmentCount > 0;
+    final commitmentsById = {for (final commitment in commitments) commitment.id: commitment};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -184,25 +222,76 @@ class OcptBudgetCashJournal extends StatelessWidget {
                           children: [
                             const _OcptCashJournalHeaderRow(),
                             Expanded(
-                              child: ListView.builder(
-                                itemCount: rows.length,
-                                itemBuilder: (context, index) => _OcptCashJournalRow(
-                                  row: rows[index],
-                                  poste: _posteById(rows[index].entry.posteId),
-                                  receipt: receiptsByEntryId[rows[index].entry.id],
-                                  isSelected: _isEntrySelected(rows[index].entry.id),
-                                  isSimplified: isSimplified,
-                                  currencyCode: currencyCode,
-                                  onTap: onEntrySelected == null
-                                      ? null
-                                      : () => onEntrySelected?.call(rows[index].entry.id),
-                                  onEditRequested: isReadOnly || onEntryEditRequested == null
-                                      ? null
-                                      : () => onEntryEditRequested?.call(rows[index].entry),
-                                  onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
-                                      ? null
-                                      : () => onEntryDeletionRequested?.call(rows[index].entry.id),
-                                ),
+                              // A single scroll region for both sections, the statement's own
+                              // entries first, `À venir` under them as slivers of its own — see the
+                              // class doc comment for why the two must never scroll apart.
+                              child: CustomScrollView(
+                                slivers: [
+                                  SliverList.builder(
+                                    itemCount: rows.length,
+                                    itemBuilder: (context, index) => _OcptCashJournalRow(
+                                      row: rows[index],
+                                      poste: _posteById(rows[index].entry.posteId),
+                                      receipt: receiptsByEntryId[rows[index].entry.id],
+                                      isSelected: _isEntrySelected(rows[index].entry.id),
+                                      isSimplified: isSimplified,
+                                      currencyCode: currencyCode,
+                                      onTap: onEntrySelected == null
+                                          ? null
+                                          : () => onEntrySelected?.call(rows[index].entry.id),
+                                      onEditRequested: isReadOnly || onEntryEditRequested == null
+                                          ? null
+                                          : () => onEntryEditRequested?.call(rows[index].entry),
+                                      onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
+                                          ? null
+                                          : () => onEntryDeletionRequested?.call(rows[index].entry.id),
+                                    ),
+                                  ),
+                                  if (showsUpcoming) ...[
+                                    const SliverToBoxAdapter(child: _OcptCashUpcomingHeaderRow()),
+                                    SliverList.builder(
+                                      itemCount: projection.steps.length,
+                                      itemBuilder: (context, index) {
+                                        final step = projection.steps[index];
+                                        final commitment = commitmentsById[step.commitmentId]!;
+
+                                        return _OcptCashUpcomingRow(
+                                          step: step,
+                                          commitment: commitment,
+                                          poste: _posteById(commitment.posteId),
+                                          isSelected: _isCommitmentSelected(commitment.id),
+                                          isSimplified: isSimplified,
+                                          currencyCode: currencyCode,
+                                          onTap: onCommitmentSelected == null
+                                              ? null
+                                              : () => onCommitmentSelected?.call(commitment.id),
+                                        );
+                                      },
+                                    ),
+                                    SliverToBoxAdapter(
+                                      child: _OcptCashUpcomingFooterRow(
+                                        totalDueCents: projection.openingBalanceCents - projection.finalBalanceCents,
+                                        projectedBalanceCents: projection.finalBalanceCents,
+                                        currencyCode: currencyCode,
+                                      ),
+                                    ),
+                                    if (projection.coveredCommitmentCount != projection.commitmentCount)
+                                      SliverToBoxAdapter(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                          child: Text(
+                                            tr.budgetCashUpcomingCoverageReadOut(
+                                              projection.coveredCommitmentCount,
+                                              projection.commitmentCount,
+                                            ),
+                                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],
@@ -228,6 +317,13 @@ class OcptBudgetCashJournal extends StatelessWidget {
   bool _isEntrySelected(String entryId) {
     final selection = this.selection;
     return selection is OcptBudgetEntrySelection && selection.entryId == entryId;
+  }
+
+  /// Whether commitment [commitmentId] is the currently selected one — mirrors [_isEntrySelected]
+  /// for the `À venir` section's own rows.
+  bool _isCommitmentSelected(String commitmentId) {
+    final selection = this.selection;
+    return selection is OcptBudgetCommitmentSelection && selection.commitmentId == commitmentId;
   }
 
   /// [postes]' own entry naming [posteId], or null while [posteId] is null or names no live poste —
@@ -581,6 +677,249 @@ class _OcptCashJournalRow extends StatelessWidget {
       ).textTheme.bodySmall?.copyWith(color: color, fontWeight: bold ? FontWeight.w600 : null),
     ),
   );
+}
+
+/// The `À venir` section's own title row — one cell, unlike [_OcptCashJournalHeaderRow]'s own
+/// per-column headers, since every row under it borrows the statement's fixed widths rather than
+/// declaring column headings of its own (mockup `4b`'s own single-cell header).
+class _OcptCashUpcomingHeaderRow extends StatelessWidget {
+  /// Class constructor
+  const _OcptCashUpcomingHeaderRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 6),
+      child: Text(
+        tr.budgetCashUpcomingSectionTitle,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// One `À venir` row: a commitment falling due, still unsettled — [step]'s own cash figure, read
+/// against [commitment] so the row can print its own label and poste, [step] itself carrying
+/// neither. Clicking the row only selects it, opening the right dock's fiche on the commitment —
+/// never a write, so never withheld under a previewed version, exactly as [_OcptCashJournalRow]'s
+/// own click is never withheld.
+///
+/// Drawn in the very same fixed column widths [_OcptCashJournalRow] uses, so the two tables' amount
+/// columns line up — the `Voucher` and `⋮` menu columns print nothing, an unsettled commitment
+/// carrying neither a voucher of its own nor the entry table's `Modifier`/`Supprimer` menu (see the
+/// class doc comment for why this section carries no `⋮` menu at all). `Credit` and `Balance` print
+/// [ocptBudgetEmptyValue]: a commitment is a cost still owed, never a credit, and its own row
+/// contributes no running balance of its own — that reading is the footer's.
+class _OcptCashUpcomingRow extends StatelessWidget {
+  /// The projection step this row draws.
+  final OcptBudgetProjectionStep step;
+
+  /// The commitment [step] stands for.
+  final OcptBudgetCommitment commitment;
+
+  /// [commitment]'s own poste, or null while it names none still live.
+  final OcptBudgetPoste? poste;
+
+  /// Whether this row's own commitment is the one currently selected.
+  final bool isSelected;
+
+  /// Whether the header's simplified/detailed switch currently reads simplified.
+  final bool isSimplified;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Called when this row is clicked, or null while withheld.
+  final VoidCallback? onTap;
+
+  /// Class constructor
+  const _OcptCashUpcomingRow({
+    required this.step,
+    required this.commitment,
+    required this.poste,
+    required this.isSelected,
+    required this.isSimplified,
+    required this.currencyCode,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final dueDate = step.dueDate;
+    final poste = this.poste;
+
+    return InkWell(
+      onTap: onTap,
+      mouseCursor: onTap == null ? null : ocptClickableCursor,
+      child: ColoredBox(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
+        child: SizedBox(
+          height: _ocptCashJournalRowHeight,
+          child: Row(
+            children: [
+              SizedBox(
+                width: _ocptCashJournalDateColumnWidth,
+                child: Text(
+                  dueDate == null
+                      ? tr.budgetCommittedNoDueDateLabel
+                      : DateFormat.yMMMd(locale).format(dueDate),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: dueDate == null ? theme.colorScheme.onSurfaceVariant : null,
+                    fontStyle: dueDate == null ? FontStyle.italic : FontStyle.normal,
+                  ),
+                ),
+              ),
+              const SizedBox(width: _ocptCashJournalVoucherColumnWidth),
+              SizedBox(
+                width: _ocptCashJournalPosteColumnWidth,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    poste == null
+                        ? tr.budgetCashJournalNoPosteLabel
+                        : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    commitment.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: _ocptCashJournalAmountColumnWidth,
+                child: Text(
+                  ocptBudgetAmountLabel(step.amountCents, currencyCode),
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              SizedBox(
+                width: _ocptCashJournalAmountColumnWidth,
+                child: Text(
+                  ocptBudgetEmptyValue,
+                  textAlign: TextAlign.right,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              SizedBox(
+                width: _ocptCashJournalAmountColumnWidth,
+                child: Text(
+                  ocptBudgetEmptyValue,
+                  textAlign: TextAlign.right,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(width: _ocptCashJournalMenuColumnWidth),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The `À venir` section's own footer, in the mockup's own tinted style — mirrors
+/// `OcptBudgetCashProjection`'s own retired footer reading, now printed as a row rather than a
+/// card: [totalDueCents] spans the leading columns' own label, and [projectedBalanceCents]
+/// (`OcptBudgetProjection.finalBalanceCents`) prints in [ColorScheme.error] once it goes negative —
+/// exactly as the deleted projection card's own final balance did.
+class _OcptCashUpcomingFooterRow extends StatelessWidget {
+  /// The sum of every step's own [OcptBudgetProjectionStep.amountCents] — what falls due once
+  /// every `À venir` row has.
+  final int totalDueCents;
+
+  /// The balance the account would hold once every `À venir` row has fallen due —
+  /// [OcptBudgetProjection.finalBalanceCents].
+  final int projectedBalanceCents;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Class constructor
+  const _OcptCashUpcomingFooterRow({
+    required this.totalDueCents,
+    required this.projectedBalanceCents,
+    required this.currencyCode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final isNegative = projectedBalanceCents < 0;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: SizedBox(
+        height: _ocptCashJournalRowHeight,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                tr.budgetCashUpcomingProjectedBalanceLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            SizedBox(
+              width: _ocptCashJournalAmountColumnWidth,
+              child: Text(
+                ocptBudgetAmountLabel(totalDueCents, currencyCode),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(width: _ocptCashJournalAmountColumnWidth),
+            SizedBox(
+              width: _ocptCashJournalAmountColumnWidth,
+              child: Text(
+                ocptBudgetAmountLabel(projectedBalanceCents, currencyCode),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isNegative ? theme.colorScheme.error : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: _ocptCashJournalMenuColumnWidth),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// The small marker a row carries next to its own label when its entry carries a voucher — never a

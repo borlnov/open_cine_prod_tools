@@ -922,6 +922,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
     return OcptBudgetCashJournal(
       entries: state.entries,
+      commitments: state.commitments,
       postes: state.postes,
       receiptsByEntryId: state.receiptsByEntryId,
       selection: state.selection,
@@ -936,6 +937,10 @@ class _BudgetViewState extends State<_BudgetView> {
       onEntryDeletionRequested: isReadOnly
           ? null
           : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
+      // Never withheld under a preview: selecting only opens the right dock's own fiche, it writes
+      // nothing.
+      onCommitmentSelected: (commitmentId) =>
+          bloc.add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitmentId)),
     );
   }
 

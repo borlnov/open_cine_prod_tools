@@ -695,8 +695,11 @@ void main() {
 
       expect(find.text(tr.budgetCommittedStatusSettledLabel), findsNothing);
 
+      // The commitment is unsettled again, so it reappears under `À venir` — a second
+      // "Camera deposit", the settlement's own entry above it in the statement left exactly as it
+      // was.
       await openCashFlow(tester);
-      expect(find.text("Camera deposit"), findsOneWidget);
+      expect(find.text("Camera deposit"), findsNWidgets(2));
     },
   );
 

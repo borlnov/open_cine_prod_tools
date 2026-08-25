@@ -9,9 +9,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
@@ -62,6 +65,35 @@ OcptBudgetEntry _entry({
   shareId: null,
 );
 
+/// A minimal commitment, everything but what each test actually varies neutral.
+OcptBudgetCommitment _commitment({
+  required String id,
+  DateTime? dueDate,
+  String label = "Camera rental — balance",
+  String posteId = "poste-1",
+  int amountCents = 1000,
+  bool isTaxInclusive = true,
+  int? vatRateBasisPoints,
+  OcptBudgetCommitmentStatus status = OcptBudgetCommitmentStatus.quoteAccepted,
+  String? settledEntryId,
+  String? lineId,
+  String sortKey = "a0",
+}) => OcptBudgetCommitment(
+  id: id,
+  dueDate: dueDate,
+  label: label,
+  posteId: posteId,
+  amount: OcptMoney(
+    amountCents: amountCents,
+    isTaxInclusive: isTaxInclusive,
+    vatRateBasisPoints: vatRateBasisPoints,
+  ),
+  status: status,
+  settledEntryId: settledEntryId,
+  lineId: lineId,
+  sortKey: sortKey,
+);
+
 /// A minimal voucher naming [path], everything else neutral.
 OcptAssetRef _receipt({String id = "asset-1", required String path}) => OcptAssetRef(
   id: id,
@@ -90,6 +122,8 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -125,6 +159,8 @@ void main() {
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -147,6 +183,8 @@ void main() {
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
           isSimplified: true,
           defaultVatRateBasisPoints: null,
@@ -183,6 +221,8 @@ void main() {
             entries: entries,
             postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Grant")],
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -225,6 +265,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -254,6 +296,8 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -299,6 +343,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -358,6 +404,8 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -392,6 +440,8 @@ void main() {
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -423,6 +473,8 @@ void main() {
           ],
           postes: const [],
           receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
           isSimplified: false,
           defaultVatRateBasisPoints: null,
@@ -454,6 +506,8 @@ void main() {
             entries: entries,
             postes: postes,
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -490,6 +544,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -529,6 +585,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
             selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -567,6 +625,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
             selection: const OcptBudgetEntrySelection("e1"),
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -596,6 +656,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -626,6 +688,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: tempFile.path)},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -656,6 +720,8 @@ void main() {
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: "/nowhere/facture.pdf")},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
           selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
@@ -675,6 +741,342 @@ void main() {
       await tester.longPress(find.byIcon(Icons.error_outline));
       await tester.pumpAndSettle();
       expect(find.text(tr.budgetCashJournalVoucherFileMissingTooltip), findsOneWidget);
+    });
+  });
+
+  group("the À venir section", () {
+    testWidgets("absent while no unsettled commitment exists", (tester) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.text(tr.budgetCashUpcomingSectionTitle), findsNothing);
+    });
+
+    testWidgets("present once at least one unsettled commitment exists", (tester) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+      final commitments = [_commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: commitments,
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.text(tr.budgetCashUpcomingSectionTitle), findsOneWidget);
+    });
+
+    testWidgets("a due row draws its date, label, poste and amount in the Debit column", (
+      tester,
+    ) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+      final postes = [_poste(id: "poste-1", label: "Camera")];
+      final commitments = [
+        _commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000),
+        // A second, differently-amounted commitment so the footer's own total falling due —
+        // which would otherwise coincide with a single row's amount — cannot be mistaken for it.
+        _commitment(
+          id: "c2",
+          dueDate: DateTime(2026, 9, 10),
+          posteId: "poste-2",
+          label: "Sound gear rental",
+          amountCents: 7000,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: postes,
+            receiptsByEntryId: const {},
+            commitments: commitments,
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text("Camera rental — balance"), findsOneWidget);
+      expect(find.text("Camera"), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsOneWidget);
+    });
+
+    testWidgets("a due commitment with no due date reads the shared no-due-date label", (
+      tester,
+    ) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+      final commitments = [_commitment(id: "c1", amountCents: 5000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: commitments,
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.text(tr.budgetCommittedNoDueDateLabel), findsOneWidget);
+    });
+
+    testWidgets("the footer row draws the total falling due and the projected balance", (
+      tester,
+    ) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), creditCents: 20000)];
+      final commitments = [
+        _commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000),
+        _commitment(id: "c2", dueDate: DateTime(2026, 9, 10), amountCents: 3000),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: commitments,
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.text(tr.budgetCashUpcomingProjectedBalanceLabel), findsOneWidget);
+      // The journal opens at 20000, and 5000 + 3000 falls due: 12000 left.
+      expect(find.text(ocptBudgetAmountLabel(8000, "EUR")), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(12000, "EUR")), findsOneWidget);
+    });
+
+    testWidgets("the projected balance reads in the error colour once it goes negative", (
+      tester,
+    ) async {
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+      final commitments = [_commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: commitments,
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final theme = Theme.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      // The journal opens at -1000, and 5000 falls due: -6000, negative.
+      final balanceText = tester.widget<Text>(find.text(ocptBudgetAmountLabel(-6000, "EUR")));
+      expect(balanceText.style?.color, theme.colorScheme.error);
+    });
+
+    testWidgets(
+      "the coverage read-out appears only while a commitment cannot be read tax-inclusive",
+      (tester) async {
+        final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+        final commitments = [
+          _commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000),
+          _commitment(
+            id: "c2",
+            dueDate: DateTime(2026, 9, 10),
+            amountCents: 3000,
+            isTaxInclusive: false,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptBudgetCashJournal(
+              entries: entries,
+              postes: const [],
+              receiptsByEntryId: const {},
+              commitments: commitments,
+              onCommitmentSelected: (_) {},
+              selection: null,
+              isSimplified: false,
+              defaultVatRateBasisPoints: null,
+              currencyCode: "EUR",
+              isReadOnly: false,
+              onEntrySelected: (_) {},
+              onEntryEditRequested: (_) {},
+              onEntryDeletionRequested: (_) {},
+            ),
+          ),
+        );
+
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+        expect(find.text(tr.budgetCashUpcomingCoverageReadOut(1, 2)), findsOneWidget);
+
+        // Give the second commitment a known rate: every commitment now covers, and the read-out
+        // goes away.
+        await tester.pumpWidget(
+          _wrap(
+            OcptBudgetCashJournal(
+              entries: entries,
+              postes: const [],
+              receiptsByEntryId: const {},
+              commitments: [
+                commitments[0],
+                _commitment(
+                  id: "c2",
+                  dueDate: DateTime(2026, 9, 10),
+                  amountCents: 3000,
+                  isTaxInclusive: false,
+                  vatRateBasisPoints: 2000,
+                ),
+              ],
+              onCommitmentSelected: (_) {},
+              selection: null,
+              isSimplified: false,
+              defaultVatRateBasisPoints: null,
+              currencyCode: "EUR",
+              isReadOnly: false,
+              onEntrySelected: (_) {},
+              onEntryEditRequested: (_) {},
+              onEntryDeletionRequested: (_) {},
+            ),
+          ),
+        );
+
+        expect(find.text(tr.budgetCashUpcomingCoverageReadOut(1, 2)), findsNothing);
+      },
+    );
+
+    testWidgets("a row tap reports the commitment's own id", (tester) async {
+      String? selectedId;
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+      final commitments = [_commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: commitments,
+            onCommitmentSelected: (commitmentId) => selectedId = commitmentId,
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      await tester.tap(find.text("Camera rental — balance"));
+      await tester.pumpAndSettle();
+
+      expect(selectedId, "c1");
+    });
+
+    testWidgets("draws identically under isReadOnly, its rows still selectable", (tester) async {
+      String? selectedId;
+      final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
+      final commitments = [_commitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000)];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: commitments,
+            onCommitmentSelected: (commitmentId) => selectedId = commitmentId,
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: true,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(find.text(tr.budgetCashUpcomingSectionTitle), findsOneWidget);
+      expect(find.text("Camera rental — balance"), findsOneWidget);
+
+      await tester.tap(find.text("Camera rental — balance"));
+      await tester.pumpAndSettle();
+
+      expect(selectedId, "c1");
     });
   });
 }

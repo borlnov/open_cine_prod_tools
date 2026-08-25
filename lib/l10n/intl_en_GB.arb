@@ -11719,12 +11719,40 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCashJournalWholeJournalNote": "Debit, credit and balance always cover the whole journal, whatever the poste filter above shows.",
+  "budgetCashJournalWholeJournalNote": "Debit, credit and balance always cover the whole account — the mode's poste filter never reaches this page.",
   "@budgetCashJournalWholeJournalNote": {
     "description": "Note under the cash journal table explaining that its own top figures are never the filtered subset's",
     "context": "Displayed under the budget mode's cash journal table",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetCashUpcomingSectionTitle": "Upcoming — committed and not yet paid",
+  "@budgetCashUpcomingSectionTitle": {
+    "description": "Title of the cash-flow page's own section reading unsettled commitments",
+    "context": "Displayed above the budget mode's cash-flow page's own upcoming-commitments section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashUpcomingProjectedBalanceLabel": "Projected balance once everything has fallen due",
+  "@budgetCashUpcomingProjectedBalanceLabel": {
+    "description": "Label of the upcoming-commitments section's own footer row, naming the balance once every unsettled commitment has fallen due",
+    "context": "Displayed in the budget mode's cash-flow page's own upcoming-commitments section, in its footer row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCashUpcomingCoverageReadOut": "over {coveredCount} of the {commitmentCount} commitments",
+  "@budgetCashUpcomingCoverageReadOut": {
+    "description": "The upcoming-commitments section's own coverage read-out, while some unsettled commitments carry no known rate",
+    "context": "Displayed under the budget mode's cash-flow page's own upcoming-commitments section, disappears once every unsettled commitment carries a known rate",
+    "type": "text",
+    "placeholders": {
+      "coveredCount": {
+        "type": "int"
+      },
+      "commitmentCount": {
+        "type": "int"
+      }
+    }
   },
   "budgetEntryDeleteAction": "Delete",
   "@budgetEntryDeleteAction": {
@@ -14087,7 +14115,7 @@
       }
     }
   },
-  "budgetHelpCashJournalBody3": "{balance} is always the whole journal's own balance, never the filtered subset — filtering by poste narrows what is shown, never what is added up.",
+  "budgetHelpCashJournalBody3": "{balance} is always the whole journal's own balance — the mode's poste filter does not reach this page at all.",
   "@budgetHelpCashJournalBody3": {
     "description": "Third paragraph of the budget mode's help panel for the cash journal view",
     "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
