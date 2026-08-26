@@ -94,6 +94,25 @@ void main() {
       expect(total.lineCount, 1);
     });
 
+    test("a part-paid commitment contributes only what it still owes, never its own full amount", () {
+      // The line-level mirror of the poste-level regression: summing a part-paid commitment's
+      // full cash figure here would double-count it against `ocptBudgetLinePaidTotalOf`'s own
+      // reading of the same entry the moment the two are read side by side, exactly as it did
+      // against `ocptBudgetPaidCentsByPosteId` at the poste level.
+      final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
+      final entries = [buildEntry(commitmentId: "c1", debitCents: 120000)];
+
+      final total = ocptBudgetLineCommittedTotalOf(
+        commitments,
+        entries: entries,
+        projectVatRateBasisPoints: null,
+      );
+
+      expect(total.amountCents, 280000);
+      expect(total.coveredLineCount, 1);
+      expect(total.lineCount, 1);
+    });
+
     test("a line with no commitment at all answers a zero, fully covered total", () {
       final total = ocptBudgetLineCommittedTotalOf(
         const [],

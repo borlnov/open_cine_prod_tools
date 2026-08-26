@@ -18,19 +18,23 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// this file adds nothing beside [ocptBudgetLineCommittedTotalOf] and its own sibling
 /// [ocptBudgetLinePaidTotalOf].
 ///
-/// The tax-inclusive cash total of every **unsettled** commitment in [lineCommitments], honouring
-/// the "null, never zero" coverage rule [ocptBudgetCommittedCentsByPosteId] already keeps for a
-/// poste — a settled commitment is excluded outright rather than merely counted as zero, for the
-/// very same reason: the money it stood for has already left the account and is
-/// [ocptBudgetLinePaidTotalOf]'s own figure now, not this one's. Settlement is read off [entries]
-/// through [ocptBudgetCommitmentIsSettledOf].
+/// The tax-inclusive total of every **unsettled** commitment in [lineCommitments]' own
+/// **outstanding** amount, honouring the "null, never zero" coverage rule
+/// [ocptBudgetCommittedCentsByPosteId] already keeps for a poste — a settled commitment is excluded
+/// outright rather than merely counted as zero, and a part-paid one contributes only what it still
+/// owes, never its own full amount: the money already paid against it has left the account and is
+/// [ocptBudgetLinePaidTotalOf]'s own figure now, so summing any of it here too, as still committed,
+/// would show that same money twice. Settlement, and the outstanding figure itself, are both read
+/// off [entries], through [ocptBudgetCommitmentIsSettledOf] and
+/// [ocptBudgetCommitmentOutstandingCentsOf] — the very same readings
+/// `ocptBudgetCommittedCentsByPosteId` sums for a poste, so a line's own `Engagé` and its poste's
+/// own can never disagree about what one shared commitment still owes.
 ///
 /// [lineCommitments] is **every** commitment naming the line, settled or not — this function does
 /// its own split, exactly the way `ocptBudgetCommittedCentsByPosteId` takes every commitment
 /// naming a poste and does its own: a caller narrows `OcptBudgetSnapshot.commitments` down to one
 /// line's own (`commitment.lineId == line.id`) and hands the whole list in, rather than filtering
-/// twice over. Reuses [ocptBudgetCommitmentCashCentsOf] rather than re-deriving the tax-inclusive
-/// reading, row by row, then summed.
+/// twice over.
 OcptBudgetCoveredTotal ocptBudgetLineCommittedTotalOf(
   List<OcptBudgetCommitment> lineCommitments, {
   required List<OcptBudgetEntry> entries,
@@ -49,15 +53,16 @@ OcptBudgetCoveredTotal ocptBudgetLineCommittedTotalOf(
   var amountCents = 0;
   var coveredLineCount = 0;
   for (final commitment in unsettled) {
-    final cash = ocptBudgetCommitmentCashCentsOf(
+    final outstandingCents = ocptBudgetCommitmentOutstandingCentsOf(
       commitment,
+      entries,
       projectVatRateBasisPoints: projectVatRateBasisPoints,
     );
-    if (cash == null) {
+    if (outstandingCents == null) {
       continue;
     }
 
-    amountCents += cash;
+    amountCents += outstandingCents;
     coveredLineCount++;
   }
 

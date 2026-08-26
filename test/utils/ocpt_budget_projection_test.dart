@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
 void main() {
@@ -38,13 +39,14 @@ void main() {
   /// Builds a debit entry naming [commitmentId], everything else neutral.
   OcptBudgetEntry buildEntry({
     required String id,
+    String? posteId,
     String? commitmentId,
     int debitCents = 0,
   }) => OcptBudgetEntry(
     id: id,
     date: DateTime(2026),
     label: "An entry",
-    posteId: null,
+    posteId: posteId,
     debitCents: debitCents,
     creditCents: 0,
     isTaxInclusive: true,
@@ -239,6 +241,28 @@ void main() {
       expect(byPoste["poste-1"]!.coveredLineCount, 1);
       expect(byPoste["poste-1"]!.lineCount, 2);
       expect(byPoste["poste-1"]!.isComplete, isFalse);
+    });
+
+    test("a part-paid commitment contributes only what it still owes, never its own full amount", () {
+      // The exact reproduction: a 4 000,00 € commitment, 1 200,00 € of it already paid by one
+      // entry naming both the poste and the commitment. Committed must read the outstanding
+      // 2 800,00 €, and committed + paid must equal the ordered 4 000,00 € exactly — never more,
+      // which is what summing the full cash figure used to get wrong.
+      final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
+      final entries = [
+        buildEntry(id: "e1", posteId: "poste-1", commitmentId: "c1", debitCents: 120000),
+      ];
+
+      final committedByPoste = ocptBudgetCommittedCentsByPosteId(
+        commitments,
+        entries: entries,
+        projectVatRateBasisPoints: null,
+      );
+      final paidByPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
+
+      expect(committedByPoste["poste-1"]!.amountCents, 280000);
+      final paidCents = paidByPoste["poste-1"]?.amountCents ?? 0;
+      expect(committedByPoste["poste-1"]!.amountCents + paidCents, 400000);
     });
   });
 

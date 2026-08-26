@@ -108,18 +108,21 @@ OcptBudgetCoveredTotal ocptBudgetCommitmentPaidCentsOf(
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
-/// What [commitment] still owes, read off [entries]: its own tax-inclusive cash figure
-/// ([ocptBudgetCommitmentCashCentsOf]) minus what has actually been paid against it
-/// ([ocptBudgetCommitmentPaidCentsOf]) — or null when the cash figure itself cannot be read (the
-/// rate [commitment] would need is unknown).
+/// [commitment]'s own outstanding amount, read off the already-grouped [paidByCommitmentId] —
+/// [ocptBudgetPaidByCommitmentId]'s own map — rather than a raw entries list: the one place this
+/// arithmetic is written, so [ocptBudgetCommitmentOutstandingCentsOf], [ocptBudgetCommittedCentsByPosteId]
+/// and [ocptBudgetProjectionOf] read the very same figure for "what a commitment still owes" and can
+/// never drift apart on it — see [ocptBudgetCommittedCentsByPosteId]'s own doc comment for what
+/// drifting apart used to cost.
 ///
+/// Null when [commitment]'s own cash figure cannot be read (the rate it would need is unknown).
 /// **Not clamped at zero**, for the reason `ocptBudgetResourceOutstandingCents`
 /// (`lib/utils/ocpt_budget_financing.dart`) is not: an instalment can overshoot what was actually
 /// committed, and clamping that away would erase exactly the fact a reader most wants from this
 /// figure — that this commitment has been overpaid, not merely settled.
-int? ocptBudgetCommitmentOutstandingCentsOf(
+int? _ocptBudgetOutstandingCentsOf(
   OcptBudgetCommitment commitment,
-  List<OcptBudgetEntry> entries, {
+  Map<String, OcptBudgetCoveredTotal> paidByCommitmentId, {
   required int? projectVatRateBasisPoints,
 }) {
   final cashCents = ocptBudgetCommitmentCashCentsOf(
@@ -130,14 +133,28 @@ int? ocptBudgetCommitmentOutstandingCentsOf(
     return null;
   }
 
-  final paidCents = ocptBudgetCommitmentPaidCentsOf(
-    commitment,
-    entries,
-    projectVatRateBasisPoints: projectVatRateBasisPoints,
-  ).amountCents;
-
-  return cashCents - paidCents;
+  return cashCents - (paidByCommitmentId[commitment.id]?.amountCents ?? 0);
 }
+
+/// What [commitment] still owes, read off [entries] — [_ocptBudgetOutstandingCentsOf] over a map
+/// holding this one commitment's own paid total ([ocptBudgetCommitmentPaidCentsOf]), so a fiche or a
+/// tree row reading a single commitment answers the very same figure the poste-wide and
+/// project-wide aggregates below do, never a second calculation that could disagree with them.
+int? ocptBudgetCommitmentOutstandingCentsOf(
+  OcptBudgetCommitment commitment,
+  List<OcptBudgetEntry> entries, {
+  required int? projectVatRateBasisPoints,
+}) => _ocptBudgetOutstandingCentsOf(
+  commitment,
+  {
+    commitment.id: ocptBudgetCommitmentPaidCentsOf(
+      commitment,
+      entries,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    ),
+  },
+  projectVatRateBasisPoints: projectVatRateBasisPoints,
+);
 
 /// Whether [commitment] has been paid in full: its own [ocptBudgetCommitmentOutstandingCentsOf]
 /// reading zero or under, read off [entries].
@@ -165,23 +182,28 @@ bool ocptBudgetCommitmentIsSettledOf(
 }
 
 /// What is committed against each poste, given the project's own [projectVatRateBasisPoints]: per
-/// poste, the tax-inclusive sum of every **unsettled** commitment naming it, settlement read off
-/// [entries] through [ocptBudgetCommitmentIsSettledOf].
+/// poste, the tax-inclusive sum of every **unsettled** commitment's own **outstanding** amount —
+/// [_ocptBudgetOutstandingCentsOf] — settlement itself read off [entries] through
+/// [ocptBudgetCommitmentIsSettledOf].
 ///
-/// **A settled commitment is excluded outright — from the map and from its coverage counts alike.**
-/// The money it stood for has left the account and is already counted as *paid* by
-/// `ocptBudgetPaidCentsByPosteId` (`lib/utils/ocpt_budget_journal.dart`), so counting it here too, as
-/// still committed, would show the very same money twice — once owed, once actually spent. Excluding
-/// it "outright" rather than merely leaving its amount out means a poste whose only commitment has
-/// since settled has **no key** in the map at all, exactly as `ocptBudgetPaidCentsByPosteId` reads a
-/// poste with no entry: a settled commitment is, from this map's point of view, as if it had never
-/// been made.
+/// **A settled commitment is excluded outright — from the map and from its coverage counts alike —
+/// and a part-paid one contributes only what it still owes, never its own full amount.** Both read
+/// as the same fact at different points on one line: the money already paid against a commitment
+/// has left the account and is already counted as *paid* by `ocptBudgetPaidCentsByPosteId`
+/// (`lib/utils/ocpt_budget_journal.dart`), so counting any of it here too, as still committed, would
+/// show that same money twice — once owed, once actually spent. A settled commitment is simply the
+/// case where nothing of it is left to double-count; summing its own outstanding cents, rather than
+/// its cash figure, is what makes the exclusion the limit of this rule rather than a rule of its
+/// own. Excluding a settled commitment "outright" rather than merely summing a zero means a poste
+/// whose only commitment has since settled has **no key** in the map at all, exactly as
+/// `ocptBudgetPaidCentsByPosteId` reads a poste with no entry: a settled commitment is, from this
+/// map's point of view, as if it had never been made.
 Map<String, OcptBudgetCoveredTotal> ocptBudgetCommittedCentsByPosteId(
   List<OcptBudgetCommitment> commitments, {
   required List<OcptBudgetEntry> entries,
   required int? projectVatRateBasisPoints,
 }) {
-  // Grouped once, rather than [ocptBudgetCommitmentIsSettledOf] re-scanning the whole of [entries]
+  // Grouped once, rather than [_ocptBudgetOutstandingCentsOf] re-scanning the whole of [entries]
   // for every commitment in [commitments]: this loop runs once per poste's worth of commitments,
   // exactly the shape [ocptBudgetPaidCentsByPosteId] (`lib/utils/ocpt_budget_journal.dart`) already
   // keeps for its own poste-scoped grouping.
@@ -192,13 +214,11 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetCommittedCentsByPosteId(
 
   final commitmentsByPosteId = <String, List<OcptBudgetCommitment>>{};
   for (final commitment in commitments) {
-    final cashCents = ocptBudgetCommitmentCashCentsOf(
+    final outstandingCents = _ocptBudgetOutstandingCentsOf(
       commitment,
+      paidByCommitmentId,
       projectVatRateBasisPoints: projectVatRateBasisPoints,
     );
-    final outstandingCents = cashCents == null
-        ? null
-        : cashCents - (paidByCommitmentId[commitment.id]?.amountCents ?? 0);
     if (outstandingCents != null && outstandingCents <= 0) {
       continue;
     }
@@ -210,32 +230,37 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetCommittedCentsByPosteId(
     for (final posteCommitments in commitmentsByPosteId.entries)
       posteCommitments.key: _ocptBudgetCommittedTotalOf(
         posteCommitments.value,
+        paidByCommitmentId: paidByCommitmentId,
         projectVatRateBasisPoints: projectVatRateBasisPoints,
       ),
   };
 }
 
-/// [commitments]' own committed total — the tax-inclusive sum, row by row, then summed — paired
-/// with how many of them actually carried a known rate. [commitments] is assumed already filtered to
-/// the unsettled ones; the poste-scoped loop [ocptBudgetCommittedCentsByPosteId] runs once per
-/// poste, kept separate so that function stays a plain grouping followed by one reading per group.
+/// [commitments]' own committed total — the tax-inclusive sum of every one's own **outstanding**
+/// amount ([_ocptBudgetOutstandingCentsOf], read off [paidByCommitmentId]), row by row, then summed
+/// — paired with how many of them actually carried a known rate. [commitments] is assumed already
+/// filtered to the unsettled ones; the poste-scoped loop [ocptBudgetCommittedCentsByPosteId] runs
+/// once per poste, kept separate so that function stays a plain grouping followed by one reading per
+/// group.
 OcptBudgetCoveredTotal _ocptBudgetCommittedTotalOf(
   List<OcptBudgetCommitment> commitments, {
+  required Map<String, OcptBudgetCoveredTotal> paidByCommitmentId,
   required int? projectVatRateBasisPoints,
 }) {
   var amountCents = 0;
   var coveredCommitmentCount = 0;
 
   for (final commitment in commitments) {
-    final cash = ocptBudgetCommitmentCashCentsOf(
+    final outstandingCents = _ocptBudgetOutstandingCentsOf(
       commitment,
+      paidByCommitmentId,
       projectVatRateBasisPoints: projectVatRateBasisPoints,
     );
-    if (cash == null) {
+    if (outstandingCents == null) {
       continue;
     }
 
-    amountCents += cash;
+    amountCents += outstandingCents;
     coveredCommitmentCount++;
   }
 
@@ -246,8 +271,8 @@ OcptBudgetCoveredTotal _ocptBudgetCommittedTotalOf(
   );
 }
 
-/// One instalment of a cash projection: a commitment's own cash figure falling due on its own date,
-/// and the balance left once it has.
+/// One instalment of a cash projection: a commitment's own outstanding figure falling due on its
+/// own date, and the balance left once it has.
 class OcptBudgetProjectionStep extends Equatable {
   /// The commitment this instalment stands for.
   final String commitmentId;
@@ -368,12 +393,13 @@ class OcptBudgetProjection extends Equatable {
 /// skips it and for the same reason: the money it stood for has already left the account and is
 /// already reflected in [openingBalanceCents] itself (the journal's own balance), so taking it out a
 /// second time here would double-count it. **A commitment already partly paid, and still owed the
-/// rest, only takes the rest out** — [ocptBudgetCommitmentOutstandingCentsOf], never
-/// [ocptBudgetCommitmentCashCentsOf]'s own full figure — for the very same reason: the part already
-/// paid is already reflected in [openingBalanceCents]. **An unreadable commitment** — its own
-/// outstanding figure answering null — produces **no step** (there is no figure to take out of the
-/// balance), but still counts towards [OcptBudgetProjection.commitmentCount], so a caller can still
-/// say honestly how much of the projection is complete, exactly as `OcptBudgetCashTotals.isComplete`
+/// rest, only takes the rest out** — [_ocptBudgetOutstandingCentsOf], the very same reading
+/// `ocptBudgetCommittedCentsByPosteId` sums, never [ocptBudgetCommitmentCashCentsOf]'s own full
+/// figure — for the very same reason: the part already paid is already reflected in
+/// [openingBalanceCents]. **An unreadable commitment** — its own outstanding figure answering null —
+/// produces **no step** (there is no figure to take out of the balance), but still counts towards
+/// [OcptBudgetProjection.commitmentCount], so a caller can still say honestly how much of the
+/// projection is complete, exactly as `OcptBudgetCashTotals.isComplete`
 /// (`lib/utils/ocpt_budget_journal.dart`) does for the journal itself.
 OcptBudgetProjection ocptBudgetProjectionOf({
   required int openingBalanceCents,
@@ -392,13 +418,11 @@ OcptBudgetProjection ocptBudgetProjectionOf({
   final steps = <OcptBudgetProjectionStep>[];
 
   for (final commitment in commitments) {
-    final cashCents = ocptBudgetCommitmentCashCentsOf(
+    final outstandingCents = _ocptBudgetOutstandingCentsOf(
       commitment,
+      paidByCommitmentId,
       projectVatRateBasisPoints: projectVatRateBasisPoints,
     );
-    final outstandingCents = cashCents == null
-        ? null
-        : cashCents - (paidByCommitmentId[commitment.id]?.amountCents ?? 0);
     if (outstandingCents != null && outstandingCents <= 0) {
       continue;
     }
