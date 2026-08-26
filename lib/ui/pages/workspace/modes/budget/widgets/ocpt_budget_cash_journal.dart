@@ -80,7 +80,7 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// for good; an entry spotted on the statement is corrected through the right dock's own fiche,
 /// which is exactly why every row **stays selectable** and its own `⋮` menu keeps
 /// `Modifier`/`Supprimer` — mockup `4b`'s own dock hint is explicit that the fiche is where an
-/// entry gets corrected, never a capture band of this page's own. A composite panel
+/// entry gets corrected, never a capture affordance of this page's own. A composite panel
 /// (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather than a null callback
 /// per affordance, and withholds — never disables — its own `⋮` menu's `Edit`/`Delete` entries. A
 /// row's own click never writes either way — it selects the entry, opening the right dock's fiche

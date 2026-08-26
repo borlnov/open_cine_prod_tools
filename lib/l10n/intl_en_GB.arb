@@ -14335,8 +14335,8 @@
     "placeholders": {}
   },
 
-  "budgetCaptureBandCommitmentHeadlineDated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}, due {date}.",
-  "@budgetCaptureBandCommitmentHeadlineDated": {
+  "budgetEntryMatchCommitmentHeadlineDated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}, due {date}.",
+  "@budgetEntryMatchCommitmentHeadlineDated": {
     "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a commitment that carries a due date",
     "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
@@ -14355,8 +14355,8 @@
       }
     }
   },
-  "budgetCaptureBandCommitmentHeadlineUndated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}.",
-  "@budgetCaptureBandCommitmentHeadlineUndated": {
+  "budgetEntryMatchCommitmentHeadlineUndated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}.",
+  "@budgetEntryMatchCommitmentHeadlineUndated": {
     "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a commitment that carries no due date",
     "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
@@ -14372,8 +14372,8 @@
       }
     }
   },
-  "budgetCaptureBandResourceHeadline": "Records a receipt against « {label} » — {promised} promised, {received} received, {outstanding} still to come.",
-  "@budgetCaptureBandResourceHeadline": {
+  "budgetEntryMatchResourceHeadline": "Records a receipt against « {label} » — {promised} promised, {received} received, {outstanding} still to come.",
+  "@budgetEntryMatchResourceHeadline": {
     "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a financing resource",
     "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
@@ -14392,8 +14392,8 @@
       }
     }
   },
-  "budgetCaptureBandRevenueHeadline": "Records the taking « {label} » — {promised} expected, {received} received, {outstanding} still to come.",
-  "@budgetCaptureBandRevenueHeadline": {
+  "budgetEntryMatchRevenueHeadline": "Records the taking « {label} » — {promised} expected, {received} received, {outstanding} still to come.",
+  "@budgetEntryMatchRevenueHeadline": {
     "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a taking",
     "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
@@ -14412,8 +14412,8 @@
       }
     }
   },
-  "budgetCaptureBandDefrayalHeadline": "Records this as the defrayal « {label} » — {amount}. There is nothing to mark as paid here — only the movement itself is written.",
-  "@budgetCaptureBandDefrayalHeadline": {
+  "budgetEntryMatchDefrayalHeadline": "Records this as the defrayal « {label} » — {amount}. There is nothing to mark as paid here — only the movement itself is written.",
+  "@budgetEntryMatchDefrayalHeadline": {
     "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a defrayal — worded to say plainly that nothing is being marked settled, since a defrayal carries no such state",
     "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
@@ -14426,8 +14426,8 @@
       }
     }
   },
-  "budgetCaptureBandAcceptAction": "That's it",
-  "@budgetCaptureBandAcceptAction": {
+  "budgetEntryMatchAcceptAction": "That's it",
+  "@budgetEntryMatchAcceptAction": {
     "description": "Primary action of the entry wizard's own reconciliation strip, step 2, accepting it",
     "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",

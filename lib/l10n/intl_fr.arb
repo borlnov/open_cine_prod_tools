@@ -1906,10 +1906,10 @@
   "budgetHelpSharingBody1": "Les recettes elles-mêmes sont enregistrées dans {financing}. Cette page lit ce qu'elles totalisent une fois les apports remboursables prélevés en premier.",
   "budgetHelpSharingBody2": "Ce que chacun a mis est listé, que cela revienne ou non : la deuxième colonne dit ce qui est dû, et le menu de la ligne enregistre un remboursement. Les apports remboursables sont pris en totalité en haut de la cascade, avant tout partage, qu'ils soient déjà revenus ou non.",
   "budgetHelpSharingBody3": "Ce qui reste se répartit selon les parts convenues. Les parts sont déclarées, jamais contrôlées, et aucun reliquat n'est redistribué si elles ne totalisent pas l'ensemble.",
-  "budgetCaptureBandCommitmentHeadlineDated": "Solde l'engagement « {label} » — {amount}, poste {posteLabel}, échéance {date}.",
-  "budgetCaptureBandCommitmentHeadlineUndated": "Solde l'engagement « {label} » — {amount}, poste {posteLabel}.",
-  "budgetCaptureBandResourceHeadline": "Enregistre un encaissement pour « {label} » — {promised} promis, {received} reçu, {outstanding} restant.",
-  "budgetCaptureBandRevenueHeadline": "Enregistre la recette « {label} » — {promised} attendu, {received} reçu, {outstanding} restant.",
-  "budgetCaptureBandDefrayalHeadline": "Enregistre ceci comme le défraiement « {label} » — {amount}. Il n'y a rien à marquer comme payé ici — seul le mouvement lui-même est écrit.",
-  "budgetCaptureBandAcceptAction": "C'est ça"
+  "budgetEntryMatchCommitmentHeadlineDated": "Solde l'engagement « {label} » — {amount}, poste {posteLabel}, échéance {date}.",
+  "budgetEntryMatchCommitmentHeadlineUndated": "Solde l'engagement « {label} » — {amount}, poste {posteLabel}.",
+  "budgetEntryMatchResourceHeadline": "Enregistre un encaissement pour « {label} » — {promised} promis, {received} reçu, {outstanding} restant.",
+  "budgetEntryMatchRevenueHeadline": "Enregistre la recette « {label} » — {promised} attendu, {received} reçu, {outstanding} restant.",
+  "budgetEntryMatchDefrayalHeadline": "Enregistre ceci comme le défraiement « {label} » — {amount}. Il n'y a rien à marquer comme payé ici — seul le mouvement lui-même est écrit.",
+  "budgetEntryMatchAcceptAction": "C'est ça"
 }

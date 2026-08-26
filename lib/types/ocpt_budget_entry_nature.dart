@@ -11,10 +11,14 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_link_kind.dart';
 /// Every value but [other] fixes the movement's own direction and names exactly one of the mode's
 /// four ledgers to attach to — [ocptBudgetEntryNatureDirectionOf] and
 /// [ocptBudgetEntryNatureLinkKindOf] answer both, so three separate widgets never each switch over
-/// this enum their own way. [other] is the one nature that still asks the direction, in step 2:
-/// Benoit ruled against the plan's own sentence that the debit/credit choice disappears entirely,
-/// since agios go out and a bank correction can come in, and a credit naming neither a resource nor
-/// a taking would otherwise have no nature at all to be typed under.
+/// this enum their own way.
+///
+/// **[other] is the one nature that still asks the direction**, in step 2, and Benoit ruled it so
+/// deliberately: agios go out, a regularisation or a bank correction can come in, and the mockup
+/// states a direction for each of the four other answers and states none for this one. A credit
+/// naming neither a financing resource nor a taking would otherwise have no nature at all to be
+/// typed under — and that is precisely the movement the cash-flow page exists to hold, the one that
+/// is drawn in no other view of the mode.
 enum OcptBudgetEntryNature {
   /// `J'ai payé quelque chose` — a debit, attached to a quote poste (left unanswered, `Hors
   /// devis`), and the one nature the wizard is also opened onto pre-filled from a commitment's own

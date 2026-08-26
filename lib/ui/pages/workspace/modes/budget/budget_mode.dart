@@ -487,7 +487,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// The header band's own trailing button under [OcptBudgetState.view] (and, while it is
   /// [OcptBudgetView.tools], [OcptBudgetState.toolsView]), or null where the view offers no
-  /// capture at all — mockups `4c`/`4d`, and the table in this milestone's own brief:
+  /// capture at all — the trailing control mockups `4c` and `4d` both draw, pushed right:
   ///
   /// | View | Button | Opens |
   /// | --- | --- | --- |
@@ -593,8 +593,8 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// `C'est ça`: turns the wizard's own accepted [suggestion] and its plain [fields] into the write
-  /// its own kind calls for. **This mapping is carried over unchanged from the capture band's own
-  /// `_handleCaptureBandSuggestionAccepted`**, the milestone that first argued it: read before
+  /// its own kind calls for. **This mapping is carried over unchanged from the quick-capture card
+  /// this wizard replaces**, whose own version of it first argued every line below: read it before
   /// touching it.
   ///
   /// **The commitment case is the only one adding fields the draft never carried**

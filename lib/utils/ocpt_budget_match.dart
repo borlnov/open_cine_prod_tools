@@ -13,18 +13,18 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// What kind of object an [OcptBudgetMatchSuggestion] points at — which of the four ledgers the
-/// matched row lives in, so the band knows which dialog to prefill and which id to hand it.
+/// matched row lives in, so the caller knows which id to write and which wording to offer.
 ///
-/// **What this file is for.** The capture band offers a direction, an amount, a date and free-typed
-/// wording, and [ocptBudgetMatchSuggestionsOf] says what that draft could be for — the commitments
-/// still owed, the defrayals still unpaid, the resources still to come or the revenues still
-/// expected, whichever the direction makes eligible — and *why* each one was offered, so the band
-/// can word the offer ("même montant, même fournisseur") without this file ever knowing a word of
-/// it. Pure: no database, no `Tr`, no formatted string.
+/// **What this file is for.** The entry wizard's own form carries a direction, an amount, a date
+/// and free-typed wording, and [ocptBudgetMatchSuggestionsOf] says what that draft could be for —
+/// the commitments still owed, the defrayals still unpaid, the resources still to come or the
+/// revenues still expected, whichever the direction makes eligible — and *why* each one was
+/// offered, so the reconciliation strip can word the offer ("même montant, même fournisseur")
+/// without this file ever knowing a word of it. Pure: no database, no `Tr`, no formatted string.
 ///
 /// **The defrayals are the one kind this file has to be careful with.** Nothing in the schema
 /// records that a defrayal has been paid — there is no `settledEntryId` on `budget_allowances` and
-/// no link from a `budget_entries` row to one, and this milestone adds no column for it. So every
+/// no link from a `budget_entries` row to one, and none has ever been added. So every
 /// live defrayal is a candidate, unlike a commitment or a resource, which are pre-filtered to the
 /// ones still owed or still short. What keeps that honest is the very ranking
 /// [ocptBudgetMatchSuggestionsOf] applies: a defrayal only ever survives its own filter, and is only
@@ -246,7 +246,7 @@ class _OcptBudgetMatchCandidate {
       suggestion.matchesAmount || suggestion.matchesDate || suggestion.matchesWording;
 }
 
-/// Ranks what the capture band's own draft movement — [isDebit], [draftAmountCents], [draftDate] and
+/// Ranks what a draft movement — [isDebit], [draftAmountCents], [draftDate] and
 /// [draftWording] — could settle among [commitments], [allowances], [resources] and [revenues],
 /// given the project's own [projectVatRateBasisPoints].
 ///

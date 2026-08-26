@@ -951,7 +951,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     return _OcptBudgetEntryWizardMatchStrip(
       badge: _badgeOf(tr, first.kind),
       sentence: _headlineOf(context, tr, first),
-      acceptLabel: tr.budgetCaptureBandAcceptAction,
+      acceptLabel: tr.budgetEntryMatchAcceptAction,
       onAccept: () => _handleAcceptSuggestion(first),
     );
   }
@@ -979,9 +979,9 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         final posteLabel = _commitmentPosteLabelOf(tr, suggestion);
         final date = suggestion.date;
         if (date == null) {
-          return tr.budgetCaptureBandCommitmentHeadlineUndated(suggestion.label, amountLabel, posteLabel);
+          return tr.budgetEntryMatchCommitmentHeadlineUndated(suggestion.label, amountLabel, posteLabel);
         }
-        return tr.budgetCaptureBandCommitmentHeadlineDated(
+        return tr.budgetEntryMatchCommitmentHeadlineDated(
           suggestion.label,
           amountLabel,
           posteLabel,
@@ -989,7 +989,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         );
 
       case OcptBudgetMatchCandidateKind.resource:
-        return tr.budgetCaptureBandResourceHeadline(
+        return tr.budgetEntryMatchResourceHeadline(
           suggestion.label,
           ocptBudgetAmountLabel(suggestion.amountCents ?? 0, currencyCode),
           ocptBudgetAmountLabel(_receivedCentsOf(suggestion), currencyCode),
@@ -997,7 +997,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         );
 
       case OcptBudgetMatchCandidateKind.revenue:
-        return tr.budgetCaptureBandRevenueHeadline(
+        return tr.budgetEntryMatchRevenueHeadline(
           suggestion.label,
           ocptBudgetAmountLabel(suggestion.amountCents ?? 0, currencyCode),
           ocptBudgetAmountLabel(_receivedCentsOf(suggestion), currencyCode),
@@ -1005,7 +1005,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         );
 
       case OcptBudgetMatchCandidateKind.defrayal:
-        return tr.budgetCaptureBandDefrayalHeadline(
+        return tr.budgetEntryMatchDefrayalHeadline(
           suggestion.label,
           ocptBudgetAmountLabel(suggestion.amountCents ?? 0, currencyCode),
         );
