@@ -10698,8 +10698,8 @@
   },
   "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
   "@budgetStatsPostes": {
-    "description": "Poste count of the budget mode's status band",
-    "context": "Displayed in the status bar under the budget mode's centre",
+    "description": "Poste count of the budget mode, read by both its status band and its dashboard's own quoted-total tile",
+    "context": "Displayed in the status bar under the budget mode's centre, and as the hint under the dashboard's own quoted total",
     "type": "text",
     "placeholders": {
       "count": {
@@ -10974,8 +10974,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetDashboardPaidShareCaption": "{percent} % of the quote, off-quote spending included",
-  "@budgetDashboardPaidShareCaption": {
+  "budgetDashboardSpentShareCaption": "{percent} % of the quote, off-quote spending included",
+  "@budgetDashboardSpentShareCaption": {
     "description": "Hint under the dashboard's own spent tile, once its own figure carries a known rate and the quote's own total is not zero",
     "context": "Displayed under the spent figure; withheld rather than divided by zero while the quote holds no total to measure against",
     "type": "text",

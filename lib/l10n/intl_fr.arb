@@ -1465,7 +1465,7 @@
   "budgetDashboardCoverageCaption": "sur {coveredCount} des {lineCount} lignes",
   "budgetDashboardCashBalanceLabel": "Solde en banque",
   "budgetDashboardSpentLabel": "Dépensé",
-  "budgetDashboardPaidShareCaption": "{percent} % du devis, hors devis compris",
+  "budgetDashboardSpentShareCaption": "{percent} % du devis, hors devis compris",
   "budgetDashboardCommittedCaption": "{amount} engagés",
   "budgetDashboardFinancingLabel": "Financement",
   "budgetDashboardResourcesInKindCaption": "dont {amount} en nature",

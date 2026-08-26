@@ -156,7 +156,7 @@ class OcptBudgetDashboard extends StatelessWidget {
       spentHint = null;
     } else {
       final percent = ((paidTotal.amountCents / quotedTotal.amountCents) * 100).round();
-      spentHint = tr.budgetDashboardPaidShareCaption(percent);
+      spentHint = tr.budgetDashboardSpentShareCaption(percent);
     }
 
     return ListView(
@@ -503,7 +503,8 @@ class _OcptDashboardAlertsCard extends StatelessWidget {
 
 /// One row of [_OcptDashboardAlertsCard]: a coloured badge, the message and an amount right-aligned
 /// — the whole row is the click target, [ocptClickableCursor] hinting it exactly as a table row
-/// already does everywhere else in this mode.
+/// already does everywhere else in this mode. The message wraps rather than clipping; see the
+/// comment on the row's own `Row` for why this one cell breaks the mode's own habit.
 class _OcptDashboardAlertRow extends StatelessWidget {
   /// The row's own badge text.
   final String badge;
@@ -543,17 +544,17 @@ class _OcptDashboardAlertRow extends StatelessWidget {
           horizontal: ocptTableRowHorizontalPadding,
         ),
         child: Row(
+          // **The message wraps rather than truncating**, and the badge and the amount align to its
+          // first line. Every other row in this mode clips a cell to one line because the reader can
+          // widen the column or open the fiche to see the rest; an alert has neither, and its
+          // sentence *is* the whole of what it says — an ellipsis in the middle of "6 840,00 paid or
+          // committed against a 6 200,00 quote" would leave exactly the figure that raised the alert
+          // off screen, on a page built to be read at a glance.
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _OcptDashboardAlertBadge(text: badge, color: color),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
+            Expanded(child: Text(message, style: theme.textTheme.bodySmall)),
             const SizedBox(width: 12),
             Text(
               amount,

@@ -246,7 +246,7 @@ void main() {
         },
       );
 
-      expect(find.text(tr.budgetDashboardPaidShareCaption(30)), findsOneWidget);
+      expect(find.text(tr.budgetDashboardSpentShareCaption(30)), findsOneWidget);
     });
 
     testWidgets("the coverage read-out wins over the percentage while a row cannot be read", (

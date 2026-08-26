@@ -57,10 +57,10 @@ bool ocptBudgetViewHonoursPosteFilter(OcptBudgetView view) => switch (view) {
 /// `OcptBudgetState.selection` directly, and [OcptBudgetView.expenses],
 /// [OcptBudgetView.resources] and the tools drawer's own `cashFlow`/`sharing` pages each select
 /// something of their own: the quote a poste, a line, a commitment or an entry, the resources plan
-/// a resource or a taking, cash flow an entry, sharing a revenue or a share. A dashboard poste row
-/// is a *link to where the poste is worked on*, not a selection of its own: it selects the poste
-/// **and** switches to [OcptBudgetView.expenses] in the same gesture, which is where the fiche
-/// then opens. Régie selects nothing at all — it is not a stage of anything, and reads no row that
+/// a resource or a taking, cash flow an entry, sharing a revenue or a share. The dashboard's own
+/// over-quote alert row is a *link to where the poste is worked on*, not a selection of its own: it
+/// selects the poste **and** switches to [OcptBudgetView.expenses] in the same gesture, which is
+/// where the fiche then opens. Régie selects nothing at all — it is not a stage of anything, and reads no row that
 /// the fiche could ever open on.
 bool ocptBudgetViewHasInspector(OcptBudgetView view, OcptBudgetToolsView toolsView) =>
     switch (view) {
