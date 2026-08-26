@@ -39,6 +39,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
@@ -1012,7 +1013,7 @@ void main() {
 
     String posteIdOf(String code) => postes.firstWhere((poste) => poste.code == code).id;
 
-    Future<void> quoteLine(
+    Future<String> quoteLine(
       String code,
       String label,
       int quantityMilli,
@@ -1033,15 +1034,32 @@ void main() {
         unit: Value(unit),
         vatRateBasisPoints: Value(vatRateBasisPoints),
       );
+
+      return lineId;
     }
 
+    await quoteLine("1", "Screenplay rights", 1000, "package", 120000, vatRateBasisPoints: 0);
     await quoteLine("2", "Director of photography", 12000, "day", 25000, vatRateBasisPoints: 0);
     await quoteLine("2", "Sound engineer", 12000, "day", 22000, vatRateBasisPoints: 0);
     await quoteLine("3", "Nora", 12000, "day", 30000, vatRateBasisPoints: 0);
     await quoteLine("3", "Martin", 8000, "day", 30000, vatRateBasisPoints: 0);
+    await quoteLine("4", "Employer contributions", 1000, "package", 240000, vatRateBasisPoints: 0);
+    final costumesLineId = await quoteLine(
+      "5",
+      "Period costumes",
+      1000,
+      "package",
+      180000,
+      vatRateBasisPoints: 2000,
+    );
+    await quoteLine("5", "Set dressing — the lighthouse", 1000, "package", 95000,
+        vatRateBasisPoints: 2000);
     await quoteLine("6", "Boat charter", 3000, "day", 48000, vatRateBasisPoints: 2000);
     await quoteLine("7", "Camera package", 12000, "day", 39000, vatRateBasisPoints: 2000);
     await quoteLine("8", "Colour grading", 4000, "day", 55000, vatRateBasisPoints: 2000);
+    await quoteLine("8", "Sound mix", 3000, "day", 40000, vatRateBasisPoints: 2000);
+    await quoteLine("9", "Production insurance", 1000, "package", 85000, vatRateBasisPoints: 2000);
+    await quoteLine("10", "Office and telephone", 1000, "package", 60000, vatRateBasisPoints: 2000);
 
     // The financing plan. One contribution is reimbursable out of the takings, which is what the
     // sharing view puts before any split at all.
@@ -1085,6 +1103,37 @@ void main() {
       OcptBudgetResourceStatus.agreed,
     );
 
+    // What is ordered but not yet paid. One is settled by the entry below it, so the expenses tree
+    // reads a whole line → commitment → payment chain; the other two are still owed, which is what
+    // the cash-flow page's own upcoming section and its projection read.
+    final costumesCommitmentId = (await budgetJournalService.createCommitment(
+      database: database,
+      posteId: posteIdOf("5"),
+      lineId: costumesLineId,
+      label: "Maison Couronne — period costumes",
+      dueDate: DateTime.utc(2026, 9, 20),
+      amountCents: 180000,
+      vatRateBasisPoints: 2000,
+      status: OcptBudgetCommitmentStatus.invoiceReceived,
+    ))!;
+    await budgetJournalService.createCommitment(
+      database: database,
+      posteId: posteIdOf("7"),
+      label: "Camera package, second week",
+      dueDate: DateTime.utc(2026, 9, 30),
+      amountCents: 117000,
+      vatRateBasisPoints: 2000,
+    );
+    await budgetJournalService.createCommitment(
+      database: database,
+      posteId: posteIdOf("8"),
+      label: "Studio Lumière — colour grading",
+      dueDate: DateTime.utc(2026, 11, 16),
+      amountCents: 220000,
+      vatRateBasisPoints: 2000,
+      status: OcptBudgetCommitmentStatus.contractSigned,
+    );
+
     // The cash journal, including the credit that makes the reimbursable contribution received.
     await budgetJournalService.createEntry(
       database: database,
@@ -1107,6 +1156,31 @@ void main() {
       label: "Boat charter",
       posteId: posteIdOf("6"),
       debitCents: 144000,
+      vatRateBasisPoints: 2000,
+    );
+    final costumesEntryId = (await budgetJournalService.createEntry(
+      database: database,
+      date: DateTime.utc(2026, 9, 20),
+      label: "Maison Couronne — period costumes",
+      posteId: posteIdOf("5"),
+      debitCents: 180000,
+      vatRateBasisPoints: 2000,
+    ))!;
+    await budgetJournalService.updateCommitment(
+      database: database,
+      commitmentId: costumesCommitmentId,
+      settledEntryId: Value(costumesEntryId),
+    );
+
+    // The premium came in above the line quoted for it, so poste 9 reads over its own quote — the
+    // one standing alert the demonstration project raises, and the reason the dashboard has an
+    // alerts card to draw at all.
+    await budgetJournalService.createEntry(
+      database: database,
+      date: DateTime.utc(2026, 8, 28),
+      label: "Production insurance — annual premium",
+      posteId: posteIdOf("9"),
+      debitCents: 102000,
       vatRateBasisPoints: 2000,
     );
 
