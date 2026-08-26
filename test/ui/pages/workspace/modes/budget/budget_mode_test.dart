@@ -1042,15 +1042,15 @@ void main() {
     // Switching to the cost-tracking table changes the help panel's page without touching the
     // dock at all.
     await openExpenses(tester);
-    expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
-    expect(find.text(tr.budgetHelpCashJournalBody4), findsNothing);
+    expect(find.text(tr.budgetHelpExpensesBody5), findsOneWidget);
+    expect(find.text(tr.budgetHelpCashFlowBody5), findsNothing);
 
     // Switching the header's own reading changes the help panel's page without touching the dock
     // at all.
     await openCashFlow(tester);
 
-    expect(find.text(tr.budgetHelpCostTrackingBody4), findsNothing);
-    expect(find.text(tr.budgetHelpCashJournalBody4), findsOneWidget);
+    expect(find.text(tr.budgetHelpExpensesBody5), findsNothing);
+    expect(find.text(tr.budgetHelpCashFlowBody5), findsOneWidget);
   });
 
   testWidgets("the chain highlights the step the current route stands on", (tester) async {
@@ -1116,7 +1116,7 @@ void main() {
 
     // Driven onto the cost report explicitly — the mode no longer opens on it by default.
     await openExpenses(tester);
-    expect(find.text(tr.budgetHelpCostTrackingBody4), findsOneWidget);
+    expect(find.text(tr.budgetHelpExpensesBody5), findsOneWidget);
 
     // Leave the preview so the working copy is what the next test opens onto.
     await projectsManager.exitPreview();

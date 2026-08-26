@@ -185,4 +185,46 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets("every working surface says how a movement is typed on it, in its own words", (
+    tester,
+  ) async {
+    // Each of the three names the very button its own header band draws, so a reader looking for
+    // the control the paragraph talks about finds the same words above the panel.
+    var tr = await pumpHelp(tester, view: OcptBudgetView.expenses);
+    expect(
+      find.text(tr.budgetHelpExpensesBody3(tr.budgetHeaderCaptureExpenseAction)),
+      findsOneWidget,
+    );
+
+    tr = await pumpHelp(tester, view: OcptBudgetView.resources);
+    expect(
+      find.text(tr.budgetHelpResourcesBody3(tr.budgetHeaderCaptureFinancingAction)),
+      findsOneWidget,
+    );
+
+    tr = await pumpHelp(
+      tester,
+      view: OcptBudgetView.tools,
+      toolsView: OcptBudgetToolsView.sharing,
+    );
+    expect(
+      find.text(tr.budgetHelpSharingBody3(tr.budgetHeaderCapturePayoutAction)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets("the cash flow page says the opposite: nothing is typed there, and why", (
+    tester,
+  ) async {
+    final tr = await pumpHelp(tester, view: OcptBudgetView.tools);
+
+    // The one page of the three that carries no capture button at all, and the only one whose own
+    // paragraph names the upcoming section under the statement.
+    expect(
+      find.text(tr.budgetHelpCashFlowBody4(tr.budgetCashUpcomingSectionTitle)),
+      findsOneWidget,
+    );
+    expect(find.text(tr.budgetHeaderCaptureExpenseAction), findsNothing);
+  });
 }

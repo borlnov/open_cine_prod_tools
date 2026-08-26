@@ -10620,8 +10620,8 @@
   },
   "budgetHeaderCashFlowSegmentLabel": "Cash flow",
   "@budgetHeaderCashFlowSegmentLabel": {
-    "description": "Label of the tools drawer's own cash-flow page segment",
-    "context": "Displayed on the tools drawer's own second segmented switch, while it is open",
+    "description": "Label of the tools drawer's own cash-flow page",
+    "context": "Displayed on the budget mode's own tools drawer switch",
     "type": "text",
     "placeholders": {}
   },
@@ -10634,8 +10634,8 @@
   },
   "budgetHeaderSharingSegmentLabel": "Revenue sharing",
   "@budgetHeaderSharingSegmentLabel": {
-    "description": "Label of the header's own revenue-sharing view chip",
-    "context": "Displayed on the budget mode's own view switch",
+    "description": "Label of the tools drawer's own revenue-sharing page",
+    "context": "Displayed on the budget mode's own tools drawer switch",
     "type": "text",
     "placeholders": {}
   },
@@ -11632,8 +11632,8 @@
   },
   "budgetCashJournalEmptyHint": "Record a payment or a receipt to start the cash journal.",
   "@budgetCashJournalEmptyHint": {
-    "description": "Hint of the cash journal view's own empty state",
-    "context": "Shown in place of the cash journal view for a project with no entry at all",
+    "description": "Hint of the cash statement's own empty state",
+    "context": "Shown in place of the tools drawer's own Cash flow page for a project with no entry at all",
     "type": "text",
     "placeholders": {}
   },
@@ -11651,7 +11651,7 @@
   },
   "budgetCashJournalCoverageReadOut": "over {coveredCount} of the {entryCount} entries",
   "@budgetCashJournalCoverageReadOut": {
-    "description": "The cash journal view's own coverage read-out, while some entries carry no known rate",
+    "description": "The cash statement's own coverage read-out, while some entries carry no known rate",
     "context": "Displayed under the whole-journal balance figure once every entry carries a known rate, this disappears",
     "type": "text",
     "placeholders": {
@@ -12099,8 +12099,8 @@
   },
   "budgetCommittedOutstandingLabel": "Still owed",
   "@budgetCommittedOutstandingLabel": {
-    "description": "Label of the committed-spending view's own outstanding total, which excludes every settled commitment",
-    "context": "Displayed at the top of the budget mode's committed-spending view",
+    "description": "Label of a quote line's own fiche figure for what its commitment still owes, which excludes every settled commitment",
+    "context": "Displayed on the budget mode's own Inspector tab, on a promoted quote line",
     "type": "text",
     "placeholders": {}
   },
@@ -12246,8 +12246,8 @@
   },
   "budgetHeaderRegieSegmentLabel": "Catering & travel",
   "@budgetHeaderRegieSegmentLabel": {
-    "description": "Label of the header's catering-and-travel view chip",
-    "context": "Displayed on the budget mode's own view switch",
+    "description": "Label of the tools drawer's own catering-and-travel page",
+    "context": "Displayed on the budget mode's own tools drawer switch",
     "type": "text",
     "placeholders": {}
   },
@@ -12452,7 +12452,7 @@
   },
   "budgetFinancingCoverageExpensesAction": "View cost tracking",
   "@budgetFinancingCoverageExpensesAction": {
-    "description": "The coverage band's own action, switching to the cost-tracking view",
+    "description": "The coverage band's own action, switching to the Expenses chip",
     "context": "Displayed under the budget mode's own resources tree",
     "type": "text",
     "placeholders": {}
@@ -14051,33 +14051,33 @@
   },
   "budgetHelpDashboardBody1": "This page types nothing: every figure on it is read from the other views. It is where the mode opens, and the one screen that answers \"where does the whole thing stand\" without opening anything.",
   "@budgetHelpDashboardBody1": {
-    "description": "First paragraph of the budget mode's help panel for the dashboard view",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "description": "First paragraph of the budget mode's help panel for the Dashboard chip",
+    "context": "Displayed on the budget mode's own Help tab while the Dashboard chip is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpDashboardBody2": "The tiles read the whole project and never the poste filter — the quote, what has come in, what has left the account, what the bank holds. {costTracking} is where a single poste is read.",
+  "budgetHelpDashboardBody2": "The tiles read the whole project and never the poste filter — the quote, what has come in, what has left the account, what the bank holds. {expenses} is where a single poste is read.",
   "@budgetHelpDashboardBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the dashboard view",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "description": "Second paragraph of the budget mode's help panel for the Dashboard chip",
+    "context": "Displayed on the budget mode's own Help tab while the Dashboard chip is on screen",
     "type": "text",
     "placeholders": {
-      "costTracking": {
+      "expenses": {
         "type": "String"
       }
     }
   },
   "budgetHelpDashboardBody3": "The band under them puts what the film needs against what pays for it, with a share bar between the two, and says in words whether they balance or by how much the plan still falls short.",
   "@budgetHelpDashboardBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the dashboard view, stating the needs/resources balance band",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "description": "Third paragraph of the budget mode's help panel for the Dashboard chip, stating the needs/resources balance band",
+    "context": "Displayed on the budget mode's own Help tab while the Dashboard chip is on screen",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpDashboardBody4": "An alert is not a notification to clear: it is a fact that stays true until the figures behind it change, so each one offers a way into the data it is about rather than a dismiss. The count on the {dashboard} chip carries them wherever you are in the mode.",
   "@budgetHelpDashboardBody4": {
-    "description": "Fourth paragraph of the budget mode's help panel for the dashboard view, stating the standing alerts",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
+    "description": "Fourth paragraph of the budget mode's help panel for the Dashboard chip, stating the standing alerts",
+    "context": "Displayed on the budget mode's own Help tab while the Dashboard chip is on screen",
     "type": "text",
     "placeholders": {
       "dashboard": {
@@ -14085,10 +14085,10 @@
       }
     }
   },
-  "budgetHelpCostTrackingBody1": "This is the quote itself, poste by poste — the only page where {quote} is typed. The ten CNC postes are seeded once and become ordinary rows from then on: rename, reorder or delete them freely.",
-  "@budgetHelpCostTrackingBody1": {
-    "description": "First paragraph of the budget mode's help panel for the cost-tracking view",
-    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+  "budgetHelpExpensesBody1": "This is the quote itself, poste by poste — the only page where {quote} is typed. The ten CNC postes are seeded once and become ordinary rows from then on: rename, reorder or delete them freely.",
+  "@budgetHelpExpensesBody1": {
+    "description": "First paragraph of the budget mode's help panel for the Expenses chip",
+    "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
     "type": "text",
     "placeholders": {
       "quote": {
@@ -14096,10 +14096,10 @@
       }
     }
   },
-  "budgetHelpCostTrackingBody2": "{paid} reads the journal's debits that name this poste; {committed} reads the commitments that do. Neither is typed here.",
-  "@budgetHelpCostTrackingBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the cost-tracking view",
-    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+  "budgetHelpExpensesBody2": "{paid} reads the journal's debits that name this poste; {committed} reads the commitments that do. Neither is typed here.",
+  "@budgetHelpExpensesBody2": {
+    "description": "Second paragraph of the budget mode's help panel for the Expenses chip",
+    "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
     "type": "text",
     "placeholders": {
       "paid": {
@@ -14110,10 +14110,21 @@
       }
     }
   },
-  "budgetHelpCostTrackingBody3": "The {offQuote} row is spending that names no poste at all — it has no quote to measure against, so only its {paid} figure ever prints.",
-  "@budgetHelpCostTrackingBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the cost-tracking view",
-    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+  "budgetHelpExpensesBody3": "A movement is typed from the band above, under {capture}, and in two steps: first what you are doing, then the form that fits that answer. The answer fixes the direction and the one thing the movement attaches to, so a debit is never picked against a credit. Once the amount and the date are typed, the app proposes what the movement settles and one click accepts it — a sum that already exists is never typed twice.",
+  "@budgetHelpExpensesBody3": {
+    "description": "Third paragraph of the budget mode's help panel for the Expenses chip, stating how a movement is typed",
+    "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
+    "type": "text",
+    "placeholders": {
+      "capture": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpExpensesBody4": "The {offQuote} row is spending that names no poste at all — it has no quote to measure against, so only its {paid} figure ever prints.",
+  "@budgetHelpExpensesBody4": {
+    "description": "Fourth paragraph of the budget mode's help panel for the Expenses chip",
+    "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
     "type": "text",
     "placeholders": {
       "offQuote": {
@@ -14124,17 +14135,17 @@
       }
     }
   },
-  "budgetHelpCostTrackingBody4": "The excluding/including-tax switch only changes how a figure is displayed. An amount is stored exactly as it was typed, and is never converted on the way in.",
-  "@budgetHelpCostTrackingBody4": {
-    "description": "Fourth paragraph of the budget mode's help panel for the cost-tracking view",
-    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+  "budgetHelpExpensesBody5": "The excluding/including-tax switch only changes how a figure is displayed. An amount is stored exactly as it was typed, and is never converted on the way in.",
+  "@budgetHelpExpensesBody5": {
+    "description": "Fifth paragraph of the budget mode's help panel for the Expenses chip",
+    "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpCostTrackingBody5": "{finalCost} is a column of its own: {paid} plus {committed} plus what is still expected to be spent. That last figure is typed on the poste's own fiche, as {estimateToComplete}, and never in the table — left empty it derives itself, the quote less what is already paid and committed, and {derive} hands a typed one back to that derived reading.",
-  "@budgetHelpCostTrackingBody5": {
-    "description": "Fifth paragraph of the budget mode's help panel for the cost-tracking view, stating the final-cost column and where the estimate to complete behind it is typed",
-    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+  "budgetHelpExpensesBody6": "{finalCost} is a column of its own: {paid} plus {committed} plus what is still expected to be spent. That last figure is typed on the poste's own fiche, as {estimateToComplete}, and never in the table — left empty it derives itself, the quote less what is already paid and committed, and {derive} hands a typed one back to that derived reading.",
+  "@budgetHelpExpensesBody6": {
+    "description": "Sixth paragraph of the budget mode's help panel for the Expenses chip, stating the final-cost column and where the estimate to complete behind it is typed",
+    "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
     "type": "text",
     "placeholders": {
       "finalCost": {
@@ -14154,10 +14165,10 @@
       }
     }
   },
-  "budgetHelpCostTrackingBody6": "{variance} is read twice, under one word. The column here answers {paid} plus {committed} against the quote — what has actually moved. The fiche's own, beside {finalCost}, answers {finalCost} against the quote instead — what the poste is now expected to end up costing.",
-  "@budgetHelpCostTrackingBody6": {
-    "description": "Sixth paragraph of the budget mode's help panel for the cost-tracking view, telling the table's own variance from the fiche's",
-    "context": "Displayed on the budget mode's own Help tab while cost tracking is the centre view",
+  "budgetHelpExpensesBody7": "{variance} is read twice, under one word. The column here answers {paid} plus {committed} against the quote — what has actually moved. The fiche's own, beside {finalCost}, answers {finalCost} against the quote instead — what the poste is now expected to end up costing.",
+  "@budgetHelpExpensesBody7": {
+    "description": "Seventh paragraph of the budget mode's help panel for the Expenses chip, telling the table's own variance from the fiche's",
+    "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
     "type": "text",
     "placeholders": {
       "variance": {
@@ -14174,21 +14185,21 @@
       }
     }
   },
-  "budgetHelpCashJournalIntro": "Every movement the account has seen is listed here, and only here: debits and credits alike, in the order they happened. {costTracking} reads the same journal poste by poste, but keeps the debits naming a poste alone.",
-  "@budgetHelpCashJournalIntro": {
-    "description": "Lead paragraph of the budget mode's help panel for the cash journal view, stating it is the only view listing every movement the account has seen, credits included",
-    "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
+  "budgetHelpCashFlowIntro": "Every movement the account has seen is listed here, and only here: debits and credits alike, in the order they happened. {expenses} reads the same journal poste by poste, but keeps the debits naming a poste alone.",
+  "@budgetHelpCashFlowIntro": {
+    "description": "Lead paragraph of the budget mode's help panel for the tools drawer's Cash flow page, stating it is the only page listing every movement the account has seen, credits included",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
     "type": "text",
     "placeholders": {
-      "costTracking": {
+      "expenses": {
         "type": "String"
       }
     }
   },
-  "budgetHelpCashJournalBody1": "Every row is a movement that actually happened, in the order it happened. A {debit} is money out, a {credit} is money in.",
-  "@budgetHelpCashJournalBody1": {
-    "description": "First paragraph of the budget mode's help panel for the cash journal view",
-    "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
+  "budgetHelpCashFlowBody1": "Every row is a movement that actually happened, in the order it happened. A {debit} is money out, a {credit} is money in.",
+  "@budgetHelpCashFlowBody1": {
+    "description": "Second paragraph of the budget mode's help panel for the tools drawer's Cash flow page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
     "type": "text",
     "placeholders": {
       "debit": {
@@ -14199,10 +14210,10 @@
       }
     }
   },
-  "budgetHelpCashJournalBody2": "Naming a poste is what makes a debit count against the quote — leave it blank and it lands in {offQuote} instead.",
-  "@budgetHelpCashJournalBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the cash journal view",
-    "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
+  "budgetHelpCashFlowBody2": "Naming a poste is what makes a debit count against the quote — leave it blank and it lands in {offQuote} instead.",
+  "@budgetHelpCashFlowBody2": {
+    "description": "Third paragraph of the budget mode's help panel for the tools drawer's Cash flow page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
     "type": "text",
     "placeholders": {
       "offQuote": {
@@ -14210,10 +14221,10 @@
       }
     }
   },
-  "budgetHelpCashJournalBody3": "{balance} is always the whole journal's own balance — the mode's poste filter does not reach this page at all.",
-  "@budgetHelpCashJournalBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the cash journal view",
-    "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
+  "budgetHelpCashFlowBody3": "{balance} is always the whole journal's own balance — the mode's poste filter does not reach this page at all.",
+  "@budgetHelpCashFlowBody3": {
+    "description": "Fourth paragraph of the budget mode's help panel for the tools drawer's Cash flow page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
     "type": "text",
     "placeholders": {
       "balance": {
@@ -14221,24 +14232,35 @@
       }
     }
   },
-  "budgetHelpCashJournalBody4": "The voucher number is minted by the app the moment an entry is created. The voucher file itself — a receipt, an invoice, a bank slip — is a separate thing, referenced by its own path rather than kept inside the project.",
-  "@budgetHelpCashJournalBody4": {
-    "description": "Fourth paragraph of the budget mode's help panel for the cash journal view",
-    "context": "Displayed on the budget mode's own Help tab while the cash journal is the centre view",
+  "budgetHelpCashFlowBody4": "{upcoming} follows the statement and is the other half of the same page: what is committed and still owed, in due-date order across every poste, and, at its foot, what the balance becomes once all of it has fallen due. Nothing is typed on this page — a row here selects its commitment into the fiche, which is where it is settled.",
+  "@budgetHelpCashFlowBody4": {
+    "description": "Fifth paragraph of the budget mode's help panel for the tools drawer's Cash flow page, stating the upcoming section under the statement",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
+    "type": "text",
+    "placeholders": {
+      "upcoming": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpCashFlowBody5": "The voucher number is minted by the app the moment an entry is created. The voucher file itself — a receipt, an invoice, a bank slip — is a separate thing, referenced by its own path rather than kept inside the project.",
+  "@budgetHelpCashFlowBody5": {
+    "description": "Sixth paragraph of the budget mode's help panel for the tools drawer's Cash flow page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpFinancingBody1": "This page states what pays for the film — a subsidy, a cash contribution, a contribution in kind — and what the film itself earns, a taking. Adding a valuation is not the same gesture as adding real money, which is why the page's own Add menu names each of the four rather than offering one blank row.",
-  "@budgetHelpFinancingBody1": {
-    "description": "First paragraph of the budget mode's help panel for the financing view",
-    "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
+  "budgetHelpResourcesBody1": "This page states what pays for the film — a subsidy, a cash contribution, a contribution in kind — and what the film itself earns, a taking. Adding a valuation is not the same gesture as adding real money, which is why the page's own Add menu names each of the four rather than offering one blank row.",
+  "@budgetHelpResourcesBody1": {
+    "description": "First paragraph of the budget mode's help panel for the Resources chip",
+    "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpFinancingBody2": "{status} is paperwork only — it never means the money has arrived. What has actually arrived is summed from the journal's credits naming this resource, which is exactly what {recordReceipt} writes.",
-  "@budgetHelpFinancingBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the financing view",
-    "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
+  "budgetHelpResourcesBody2": "{status} is paperwork only — it never means the money has arrived. What has actually arrived is summed from the journal's credits naming this resource, which is exactly what {recordReceipt} writes.",
+  "@budgetHelpResourcesBody2": {
+    "description": "Second paragraph of the budget mode's help panel for the Resources chip",
+    "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
     "type": "text",
     "placeholders": {
       "status": {
@@ -14249,17 +14271,28 @@
       }
     }
   },
-  "budgetHelpFinancingBody3": "A contribution in kind is valued, never collected: no cash will ever move for it, so it prints no received figure and offers no receipt to record.",
-  "@budgetHelpFinancingBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the financing view",
-    "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
+  "budgetHelpResourcesBody3": "Money coming in is typed exactly as money going out, from the band above, under {capture}: the same two steps, the same proposal of what the receipt settles. Only the answer to the first step differs, and this page's own button gives it for you.",
+  "@budgetHelpResourcesBody3": {
+    "description": "Third paragraph of the budget mode's help panel for the Resources chip, stating that a receipt is typed exactly as a payment is",
+    "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
+    "type": "text",
+    "placeholders": {
+      "capture": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpResourcesBody4": "A contribution in kind is valued, never collected: no cash will ever move for it, so it prints no received figure and offers no receipt to record.",
+  "@budgetHelpResourcesBody4": {
+    "description": "Fourth paragraph of the budget mode's help panel for the Resources chip",
+    "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpFinancingBody4": "{reimbursable} means the money must come back out of the takings before anything is shared — see {sharing}.",
-  "@budgetHelpFinancingBody4": {
-    "description": "Fourth paragraph of the budget mode's help panel for the financing view",
-    "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
+  "budgetHelpResourcesBody5": "{reimbursable} means the money must come back out of the takings before anything is shared — see {sharing}.",
+  "@budgetHelpResourcesBody5": {
+    "description": "Fifth paragraph of the budget mode's help panel for the Resources chip",
+    "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
     "type": "text",
     "placeholders": {
       "reimbursable": {
@@ -14270,10 +14303,10 @@
       }
     }
   },
-  "budgetHelpFinancingBody5": "The band at the foot of the page answers whether this covers the film: one tone for what is {received}, another for what is only {promised}, and, in words, how much would still be missing if nothing more arrived.",
-  "@budgetHelpFinancingBody5": {
-    "description": "Fifth paragraph of the budget mode's help panel for the financing view, stating the coverage band",
-    "context": "Displayed on the budget mode's own Help tab while financing is the centre view",
+  "budgetHelpResourcesBody6": "The band at the foot of the page answers whether this covers the film: one tone for what is {received}, another for what is only {promised}, and, in words, how much would still be missing if nothing more arrived.",
+  "@budgetHelpResourcesBody6": {
+    "description": "Sixth paragraph of the budget mode's help panel for the Resources chip, stating the coverage band",
+    "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
     "type": "text",
     "placeholders": {
       "received": {
@@ -14286,65 +14319,76 @@
   },
   "budgetHelpRegieBody1": "This page reads in two directions at once: the left column is computed off the schedule, the right one is typed row by row.",
   "@budgetHelpRegieBody1": {
-    "description": "First paragraph of the budget mode's help panel for the catering-and-travel view, stating the catering column is computed and the defrayal column is typed",
-    "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
+    "description": "First paragraph of the budget mode's help panel for the tools drawer's Catering & travel page, stating the catering column is computed and the defrayal column is typed",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpRegieBody2": "A meal is counted once per meal block, over the people convoked to that block's own slot — never once per shooting day. The buffet, by contrast, is counted once per head, per shooting day.",
   "@budgetHelpRegieBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the catering-and-travel view",
-    "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
+    "description": "Second paragraph of the budget mode's help panel for the tools drawer's Catering & travel page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpRegieBody3": "Mileage comes from each traveller's own one-way commute and rate, typed on their sheet in Resources.",
   "@budgetHelpRegieBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the catering-and-travel view",
-    "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
+    "description": "Third paragraph of the budget mode's help panel for the tools drawer's Catering & travel page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
   "budgetHelpRegieBody4": "A role not yet cast cannot be told apart from the crew, so it counts on its own until it actually is cast.",
   "@budgetHelpRegieBody4": {
-    "description": "Fourth paragraph of the budget mode's help panel for the catering-and-travel view",
-    "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
+    "description": "Fourth paragraph of the budget mode's help panel for the tools drawer's Catering & travel page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpRegieBody5": "Nothing here reaches the quote by itself: the provisioning button writes what this page computes into {costTracking}, one line per nature within the poste it targets, and leaves any figure typed by hand exactly as it stands.",
+  "budgetHelpRegieBody5": "Nothing here reaches the quote by itself: the provisioning button writes what this page computes into {expenses}, one line per nature within the poste it targets, and leaves any figure typed by hand exactly as it stands.",
   "@budgetHelpRegieBody5": {
-    "description": "Fifth paragraph of the budget mode's help panel for the catering-and-travel view, stating what the provisioning button writes and what it never overwrites",
-    "context": "Displayed on the budget mode's own Help tab while catering and travel is the centre view",
+    "description": "Fifth paragraph of the budget mode's help panel for the tools drawer's Catering & travel page, stating what the provisioning button writes and what it never overwrites",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {
-      "costTracking": {
+      "expenses": {
         "type": "String"
       }
     }
   },
-  "budgetHelpSharingBody1": "The takings themselves are recorded in {financing}. This page reads what they add up to once the reimbursable contributions come off the top.",
+  "budgetHelpSharingBody1": "The takings themselves are recorded in {resources}. This page reads what they add up to once the reimbursable contributions come off the top.",
   "@budgetHelpSharingBody1": {
-    "description": "First paragraph of the budget mode's help panel for the revenue-sharing view",
-    "context": "Displayed on the budget mode's own Help tab while revenue sharing is the centre view",
+    "description": "First paragraph of the budget mode's help panel for the tools drawer's Revenue sharing page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Revenue sharing page is on screen",
     "type": "text",
     "placeholders": {
-      "financing": {
+      "resources": {
         "type": "String"
       }
     }
   },
   "budgetHelpSharingBody2": "What each person put in is listed whether or not it comes back: the second column says how much of it is owed, and the row's own menu records a repayment. The reimbursable contributions are taken off the top in full before anything else is split — whether or not they have actually gone back yet.",
   "@budgetHelpSharingBody2": {
-    "description": "Second paragraph of the budget mode's help panel for the revenue-sharing view",
-    "context": "Displayed on the budget mode's own Help tab while revenue sharing is the centre view",
+    "description": "Second paragraph of the budget mode's help panel for the tools drawer's Revenue sharing page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Revenue sharing page is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpSharingBody3": "What is left is divided by the agreed shares. The shares are stated, never policed, and no remainder is redistributed if they don't add up to the whole.",
+  "budgetHelpSharingBody3": "{payout}, in the band above, records what has actually gone out to somebody. It opens the very same two-step form the other pages open, already answered on paying a share; a row's own menu opens it too, naming the participant for you.",
   "@budgetHelpSharingBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the revenue-sharing view",
-    "context": "Displayed on the budget mode's own Help tab while revenue sharing is the centre view",
+    "description": "Third paragraph of the budget mode's help panel for the tools drawer's Revenue sharing page, stating the page's own payout button",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Revenue sharing page is on screen",
+    "type": "text",
+    "placeholders": {
+      "payout": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetHelpSharingBody4": "What is left is divided by the agreed shares. The shares are stated, never policed, and no remainder is redistributed if they don't add up to the whole.",
+  "@budgetHelpSharingBody4": {
+    "description": "Fourth paragraph of the budget mode's help panel for the tools drawer's Revenue sharing page",
+    "context": "Displayed on the budget mode's own Help tab while the tools drawer's Revenue sharing page is on screen",
     "type": "text",
     "placeholders": {}
   },
