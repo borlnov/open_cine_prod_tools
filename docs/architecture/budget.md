@@ -12,8 +12,8 @@ actually seen, and every commitment still owed but not yet paid — the financin
 pays for all of it, the catering a shooting day actually costs — read off the schedule rather than
 typed a second time — beside the defrayals a production types row by row and provisions into the
 quote, and the revenue sharing that says, once the film has earned something, who gets what of it.
-The mode is complete: its seven views and its four exports are all here, and this file is the whole
-record of them.
+The mode is complete: its four chips — one of them a drawer over three tools — and its four exports
+are all here, and this file is the whole record of them.
 
 ## Who it serves, and what the mode now shows
 
@@ -26,23 +26,26 @@ record of them.
   the ledger both eventually keep, the cash journal that measures what has actually moved against
   it and what is still owed, and the financing plan that measures against the quote in turn, and
   finally the revenue sharing that splits what the finished film earns.
-- **Seven views, not three documents.** `OcptBudgetView` (`lib/types/`) carries seven values, in
-  the header's own chip order — `dashboard`, `costTracking`, `financing`, `cashJournal`,
-  `committed`, `regie`, `sharing` — each its own chip, replacing `OcptBudgetDocument`'s three
-  (`expenses`, `resources`, `sharing`) and the `OcptBudgetDocumentReading`/`OcptBudgetSubPage`
-  machinery a since-reverted rework built to fit the quote, the committed spending and the cash
-  journal under one `expenses` document, reached through a reading switch and the header's own
-  breadcrumb. That three-document shape was built, reviewed on screen and reversed by its own
-  author, who did not recognise the mode the validated shell design had itself proposed; it is
-  retired, and a reader who meets `OcptBudgetDocument` or `OcptBudgetCentreView` in `git log` should
-  read this paragraph as the reason. `dashboard` is the mode's own default view, and it landed
-  first rather than last — a freedom the retired shape's own stored-preference rule never had, since
-  a value held only in memory strands nothing by being inserted anywhere (`OcptBudgetView`'s own
-  doc comment).
-- **The chronological journal is a place.** It is `OcptBudgetView.cashJournal` — `Trésorerie` in
-  French, `Cash journal` in English — its own chip in the header, and it is the only view listing
-  every entry the project holds, credits included, in one chronological table.
-  `OcptBudgetCashJournal`, the widget that draws it, is unchanged in shape.
+- **Four chips, one a drawer over three tools.** `OcptBudgetView` (`lib/types/`) carries four
+  values, in the header's own chip order — `dashboard`, `expenses`, `resources`, `tools` —
+  replacing the seven sibling chips (`dashboard`, `costTracking`, `financing`, `cashJournal`,
+  `committed`, `regie`, `sharing`) an earlier rework built to give each sub-page of a
+  since-reverted three-document shape a chip of its own. `tools` is not a page but a drawer:
+  `OcptBudgetToolsView` (`lib/types/`) names which of its own three helpers — `cashFlow`, `regie`,
+  `sharing` — is on screen, picked by the header's own second segmented switch, drawn only while
+  `tools` is the active chip. The drawer's own entry rule keeps it from growing a fourth quietly: a
+  tool never stores money of its own — it either computes something that lands elsewhere or re-reads
+  what is already written (`OcptBudgetToolsView`'s own doc comment) — and a candidate that fails
+  that test is a document, which earns a chip of its own instead. `dashboard` is the mode's own
+  default view, and it landed first rather than last — a freedom a value held only in memory always
+  has, since inserting it anywhere strands nothing (`OcptBudgetView`'s own doc comment, and
+  `OcptBudgetToolsView`'s own for `toolsView`).
+- **The chronological journal lives in the drawer, not at the header's own top level.** It is
+  `OcptBudgetToolsView.cashFlow` — `Flux de trésorerie` in French, `Cash flow` in English — the
+  drawer's own default page, and it is still the only view listing every entry the project holds,
+  credits included, in one chronological table. `OcptBudgetCashJournal`, the widget that draws it,
+  moved home but kept its shape — only what used to open above the table changed (see "The journal
+  scrolls rather than losing a column" below).
 - **Selection grew a type.** `OcptBudgetSelection` (`lib/types/`), a sealed class with one `final`
   variant per kind of row the fiche can show — poste, quote line, commitment, entry, resource,
   revenue, receipt — replaces what used to be several independent id fields
@@ -51,13 +54,13 @@ record of them.
   and `.selectedResourceId` survive as plain getters folding onto `selection`, so nothing that read
   them before had to change; `.selectedShareId` stays its own field, a share opening no fiche in any
   document this reaches yet.
-- **`view`, `isSimplified`, `taxBasis`, `selection`, `filterPosteId` and `expandedNodeIds` are not
-  persisted.** The schedule mode's own agenda mode is the precedent: only `budgetRightDockFraction`
-  and `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a relaunch, exactly as before this
-  rework. A reader who left the mode on the financing tree,
-  mid-way through a filter, opens back on the mode's own default — `dashboard`, nothing selected,
-  nothing filtered — every time, the same way the schedule mode's own agenda already forgets its own
-  last state.
+- **`view`, `toolsView`, `isSimplified`, `taxBasis`, `selection`, `filterPosteId` and
+  `expandedNodeIds` are not persisted.** The schedule mode's own agenda mode is the precedent: only
+  `budgetRightDockFraction` and `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a
+  relaunch, exactly as before this rework. A reader who left the mode on the resources tree,
+  mid-way through a filter, or with the drawer open on `Régie`, opens back on the mode's own
+  default — `dashboard`, nothing selected, nothing filtered, the drawer closed — every time, the
+  same way the schedule mode's own agenda already forgets its own last state.
 
 ## The money rule
 
@@ -149,15 +152,13 @@ record of them.
 - `OcptBudgetCashTotals.balanceCents` is always read over **every** live entry, never the subset a
   poste filter happens to be showing: a bank balance does not change because the screen is scrolled
   to one category, and a filtered view that quietly totalled only what it displayed would print a
-  number that looks like the account's balance while actually being something else. `OcptBudgetCashJournal`
-  narrows which **rows** draw by `OcptBudgetState.filterPosteId` — the mode's own single filter, set
-  by the header's poste chip and honoured across every document that can (see "Selecting a poste
-  and filtering by one are two different facts" below) — while its running balance and its own
-  `Debit`/`Credit`/`Balance` band read `entries` whole, before that filter is applied: an account
-  does not change because somebody narrowed a view. Filtering to a poste from the header lands every
-  view that honours the filter already narrowed to it, and every one of them agrees on what
-  "filtered by this poste" means because they all read one flag rather than several that could
-  drift apart.
+  number that looks like the account's balance while actually being something else. **`tools ›
+  cashFlow` draws every row the same way, unconditionally** — it is the one view left that honours
+  no poste filter at all (`ocptBudgetViewHonoursPosteFilter` answers true for `expenses` alone), a
+  bank statement reading across the whole account rather than one category narrowed out of it
+  (`OcptBudgetCashJournal`'s own doc comment). `expenses` is the only view a poste filter still
+  narrows — see "Selecting a poste and filtering by one are two different facts" below — and it
+  narrows only its own table's rows, never the journal's.
 
 ## Off-quote spending is named, never hidden
 
@@ -271,9 +272,9 @@ record of them.
   `ocptBudgetCommittedCentsByPosteId`'s own map and from `ocptBudgetProjectionOf`'s own steps — not
   counted at zero, simply not there — because the money it stood for has already left the account
   and is already counted once, as *paid*, by the very entry it now names: counting it a second time,
-  as still owed, would double the very same movement. It keeps its own row in the committed-spending
-  sub-page regardless, marked settled rather than removed, since a production still wants to see what
-  it once owed and to whom.
+  as still owed, would double the very same movement. It keeps its own sub-row under its line in the
+  expenses tree regardless, marked settled rather than removed, since a production still wants to
+  see what it once owed and to whom.
   The `Settle` gesture on a commitment is not a status flip: it opens `OcptBudgetEntryDialog`
   pre-filled with today's date, the commitment's own label, poste, amount, tax basis and rate, as a
   debit — the very same dialog an ordinary entry uses, seeded rather than editing one already
@@ -448,51 +449,72 @@ record of them.
   `onEpisodeSelected` null, exactly as the schedule mode already does and for the schedule's own
   reason — a selector would filter a read that was never split by episode to begin with, not a
   standing-in for a bloc this mode does not have; it has one.
-- **Seven chips in the header, in the design's own order** — `dashboard`, `costTracking`,
-  `financing`, `cashJournal`, `committed`, `regie`, `sharing` — each switching
-  `OcptBudgetState.view` and nothing else, no breadcrumb or reading switch behind any of them.
-  The right dock offers exactly three tabs (`OcptBudgetRightDockTab`): `Inspector`, the polymorphic
-  fiche described below; the shared `Versions` tab every mode carries; and `Help`.
+- **Four chips in the header, in the design's own order** — `dashboard`, `expenses`, `resources`,
+  `tools` — each switching `OcptBudgetState.view`, and, only while `tools` is picked, a second
+  segmented switch beside them switching `OcptBudgetState.toolsView` between the drawer's own three
+  pages, `cashFlow`, `regie`, `sharing`. **No title, no subtitle, no breadcrumb** — the band used to
+  open on the current view's own name and one-line description, repeating what the active chip
+  already says, and carries nothing today but the controls themselves (`OcptBudgetHeader`'s own
+  class doc comment). The right dock offers exactly three tabs (`OcptBudgetRightDockTab`):
+  `Inspector`, the polymorphic fiche described below; the shared `Versions` tab every mode carries;
+  and `Help`.
 
 ## The dashboard
 
 - `OcptBudgetDashboard` (`ocpt_budget_dashboard.dart`) is the mode's own default view, opened the
-  moment the mode is: the KPI tiles, the needs/resources balance band, the standing alerts, the
-  quote read poste by poste, then the "what feeds this budget" card, in that order.
-- **It types nothing of its own — every figure on it is read from the other six views' own
-  tables**, exactly as `OcptBreakdownRecapTable` is a computed reading over the breakdown rather
-  than a table with rows of its own. Its eight KPI tiles — the quoted total and its
-  excluding-tax reading, the cash balance, `Paid`, `Committed`, the poste and quote-line counts,
-  and the resources total with its in-kind share — and its needs/resources balance bar
+  moment the mode is: **four tiles**, the needs/resources balance band, the standing alerts, and
+  nothing else — the mockup's own words.
+- **It types nothing of its own — every figure on it is read from the other views' own tables**,
+  exactly as `OcptBreakdownRecapTable` is a computed reading over the breakdown rather than a table
+  with rows of its own. Its four tiles — the quoted total, the financing total (its in-kind share as
+  a caption), what has been spent and the cash balance — and its needs/resources balance bar
   (`ocptBudgetNeedsResourcesBalanceOf`) read the whole project and **never the header's own poste
-  filter**: a whole-project standing reading that
-  quietly narrowed to one poste would leave its own tiles silently disagreeing with the ones the
-  reader saw a second ago on another view, which is exactly why `ocptBudgetViewHonoursPosteFilter`
-  answers false for `dashboard` alongside the three views that carry no poste dimension at all.
+  filter**: a whole-project standing reading that quietly narrowed to one poste would leave its own
+  tiles silently disagreeing with the ones the reader saw a second ago on `expenses`, which is
+  exactly why `ocptBudgetViewHonoursPosteFilter` answers false for `dashboard` alongside `resources`
+  and `tools`.
+- **`Dépensé` folds off-quote spending in, so it agrees with the expenses table's own total.** The
+  tile reads `paidByPosteId` and `offQuotePaidTotal` folded together (`ocptBudgetCoveredTotalsFoldOf`)
+  — the very fold `OcptBudgetCostTracking`'s own `Total` row already uses — rather than only what
+  priced a poste: "Off-quote spending is named, never hidden" (above) already argues that reading
+  less than the account had actually seen leave would be exactly the silence this mode refuses
+  everywhere else.
+- **What used to live here and no longer does.** The poste-by-poste list is gone, and the "what
+  feeds this budget" card with it: neither summarises, the mockup draws neither, and the four tiles
+  plus the balance band already carry the whole-project reading the poste list used to add up to one
+  row at a time. `OcptBudgetFeedCard` itself is unaffected — `OcptBudgetCostTracking` and
+  `OcptBudgetRegie` still draw it at their own top.
 - **The standing alerts live here, and are reachable from everywhere.** `ocptComputeBudgetAlerts`
   is computed once, carried by the state, and the dashboard is the only view that draws the alert
   cards themselves; every other view reaches them through the `Tableau de bord` chip's own count
-  badge (see "The alerts compute themselves" below). The strained postes read poste by poste
-  follow, each row in its own strain colour.
-- **A poste row here selects the poste and switches to `costTracking` in the same gesture**, which
-  is where the fiche then opens (`OcptBudgetMode._handleDashboardPosteOpened`). It is not the
-  exception to "Selecting a poste and filtering by one are two different facts" below, it is that
-  argument carried one turn further: a click that only selected would leave the reader on a
-  read-only summary with the fiche open behind it and nothing on this page to do about what they
-  had just selected, so the gesture goes where the poste is actually worked on. Narrowing is still
-  nobody's side effect — the filter is untouched by it. `ocptBudgetViewHasInspector` answers false
-  for `dashboard` for the same reason: a dashboard poste row is a link to where the poste is worked
-  on, not a selection this page itself displays.
+  badge (see "The alerts compute themselves" below).
+- **The alert row is the page's own only link out — nothing else on this page goes anywhere.** A
+  poste over its quote selects that poste and switches to `expenses` in the same gesture
+  (`OcptBudgetMode._handleDashboardPosteOpened`), which is where the fiche then opens: a click that
+  only selected would leave the reader on a read-only summary with nothing on it to do about what
+  they had just picked, so the gesture goes where the poste is actually worked on. Narrowing is
+  still nobody's side effect — the filter is untouched by it. The cash projection going negative
+  switches to `tools › cashFlow` (`OcptBudgetMode._handleCashAlertActionRequested`), the very
+  statement that answers it. `ocptBudgetViewHasInspector` answers false for `dashboard` for the same
+  reason: a dashboard row is a link to where the thing is worked on, not a selection this page
+  itself displays.
+- **The empty state answers "this project holds nothing at all", never "it holds no poste".** A
+  production records its financing before it writes a quote as often as the other way round, so the
+  page gives way to `OcptWorkspaceEmptyMode` only once it holds no poste, no financing resource
+  *and* no journal entry — gating it on the quote alone would hide every figure already typed
+  behind an invitation to start a different document, and would leave the balance band's own "no
+  quote to measure the financing plan against yet" branch almost unreachable.
 
 ## The expenses tree nests what used to sit apart
 
-- `OcptBudgetCostTracking` (`ocpt_budget_cost_tracking.dart`) draws `OcptBudgetView.costTracking` as
-  one nesting table: a poste opens on its own quote lines, a quote line opens on its own commitment
-  and the entry that settled it — or, while it is still owed, a muted
-  `tr.budgetCostTrackingNoEntryHint` row saying so in words rather than drawing nothing — and a
-  poste's own **off-line** commitments and entries, the ones naming no `lineId`, draw at the poste's
-  own indentation once it is open, since they have no line to nest under. A commitment or an entry
-  sub-row carries its own small badge: a commitment's own coloured by
+- `OcptBudgetCostTracking` (`ocpt_budget_cost_tracking.dart`) draws `OcptBudgetView.expenses` as
+  one nesting table — **the retired `committed` chip's own commitments are read here now, nested
+  under their lines, rather than on a sub-page of their own**: a poste opens on its own quote lines,
+  a quote line opens on its own commitment and the entry that settled it — or, while it is still
+  owed, a muted `tr.budgetCostTrackingNoEntryHint` row saying so in words rather than drawing
+  nothing — and a poste's own **off-line** commitments and entries, the ones naming no `lineId`,
+  draw at the poste's own indentation once it is open, since they have no line to nest under. A
+  commitment or an entry sub-row carries its own small badge: a commitment's own coloured by
   `ocptBudgetCommitmentStatusAccentColor`, worded with its settlement status; an entry's own in the
   accent colour, worded with its `voucherNumber`.
   **Expansion state is `OcptBudgetState.expandedNodeIds`**, a `Set<String>` keyed by **poste and
@@ -509,7 +531,7 @@ record of them.
 
 ## The resources tree folds the takings in
 
-- `OcptBudgetFinancing` (`ocpt_budget_financing.dart`) draws `OcptBudgetView.financing` as a
+- `OcptBudgetFinancing` (`ocpt_budget_financing.dart`) draws `OcptBudgetView.resources` as a
   nesting tree too: three family rows — subsidies, contributions, takings
   (`OcptBudgetResourceFamily`) — each opening onto its own resources or takings, each of those
   opening onto the receipts (journal credits) that name it. `OcptBudgetResourceGroupKind` still
@@ -539,26 +561,27 @@ record of them.
   the expenses tree, keyed by a family's own `name` (a family mints no id of its own), a resource id
   or a revenue id.
 
-## The financing view says what covers the film, twice
+## The resources view says what covers the film, twice
 
-- Two different questions share the word "coverage", and this mode now answers each in its own
-  place rather than letting one stand in for the other.
+- Two different questions share the word "coverage", and this mode answers each in its own place
+  rather than letting one stand in for the other.
   **`OcptBudgetResourcesCoverage`/`ocptBudgetResourcesCoverageOf`** (`lib/utils/ocpt_budget_financing.dart`)
-  is the one drawn live, at the foot of the resources tree, as a two-tone bar: a lighter tone for
-  everything **promised** (received plus what is only expected), a solid tone on top for what has
-  **really** arrived. It reads the needs side tax-inclusive **always**, whatever the header's own
-  basis toggle shows elsewhere — money coming in is always read tax-inclusive, and comparing an
-  excluding-tax quote against a tax-inclusive resource would compare two different figures while
-  looking like it compared one. The band is **withheld whole** rather than drawn empty while the
-  quote holds no line at all: a plain `resources ≥ needs` reading would otherwise declare the
-  financing plan sufficient against a quote nobody has begun, exactly the claim `Consumed` used to
-  refuse for a poste with no quote.
+  is drawn live at the foot of the resources tree, as a two-tone bar: a lighter tone for everything
+  **promised** (received plus what is only expected), a solid tone on top for what has **really**
+  arrived. It reads the needs side tax-inclusive **always**, whatever the header's own basis toggle
+  shows elsewhere — money coming in is always read tax-inclusive, and comparing an excluding-tax
+  quote against a tax-inclusive resource would compare two different figures while looking like it
+  compared one. The band is **withheld whole** rather than drawn empty while the quote holds no line
+  at all: a plain `resources ≥ needs` reading would otherwise declare the financing plan sufficient
+  against a quote nobody has begun, exactly the claim `Consumed` used to refuse for a poste with no
+  quote.
   **`OcptBudgetNeedsResourcesBalance`/`ocptBudgetNeedsResourcesBalanceOf`** is the older reading, and
-  it stays exactly as it is — read today only by the financing-plan and financial-report PDF export
-  services, which is where its own **three-way** verdict belongs: no quote yet, covered, or short by
-  an amount, worded for a document rather than a live screen. It is not drawn anywhere in the mode's
-  own UI any more; the two-tone bar above answers the live question, this one the printed one, and
-  neither is a second way of computing the other's figure.
+  it stays exactly as it is: a **three-way** verdict — no quote yet, covered, or short by an amount
+  — rather than the two-tone bar's own lighter/solid split. It is drawn live again, this milestone,
+  on the dashboard's own balance band (see "The dashboard" above), and it is also what the
+  financing-plan and financial-report PDF exports read for the very same comparison, worded there for
+  a document rather than a screen. The two bars answer different questions off the very same two
+  figures, needs and resources, and neither is a second way of computing the other's.
 
 ## The fiche is one panel for seven kinds of row
 
@@ -570,15 +593,12 @@ record of them.
   up, the outstanding amount in large type, one primary action and at most two secondary ones. The
   table says where things stand; the fiche says where they come from and what to do next.
   **A breadcrumb resolves through the header's own segment labels, never a name of its own.** A
-  poste's own breadcrumb is the `Cost tracking` chip's own segment label; a resource's and a
-  taking's both open on `Financing`'s, a resource's own second segment naming its group, a taking's
-  the `Takings` family. A quote line's, a commitment's and an entry's climb through their own poste
-  instead, exactly as before. **A taking's own breadcrumb was corrected to `Financing`** — it used
-  to read `Sharing`, from when a taking's own row still lived in that view's left column — the
-  moment every gesture on a taking (create, edit, receipt, reorder, delete, select) moved into the
-  financing tree's own `Takings` family (see "The resources tree folds the takings in" above): a
-  breadcrumb naming where a gesture used to live, once every gesture has moved, would send a reader
-  looking for `Record a receipt` to a page that no longer offers it.
+  poste's own breadcrumb is the `Expenses` chip's own segment label; a resource's and a taking's
+  both open on `Resources`'s, a resource's own second segment naming its group, a taking's the
+  `Takings` family — every gesture on a taking (create, edit, receipt, reorder, delete, select)
+  lives in the resources tree's own `Takings` family (see "The resources tree folds the takings in"
+  above), so a taking's breadcrumb follows the gestures rather than a name of its own. A quote
+  line's, a commitment's and an entry's climb through their own poste instead, exactly as before.
   - A **poste**'s stepper reads `Estimated · Committed · Paid`, all three always reached — an
     aggregate reading, not a lifecycle a single poste passes through — and its primary action is
     `Add`, opening a fresh quote line; a secondary offers `From breakdown`.
@@ -600,7 +620,7 @@ record of them.
     with its stepper and breadcrumb overridden to read through the resource or the revenue it
     settles.
   **Every primary action that writes opens the very dialog that already exists, pre-filled with the
-  amount** — this, with the capture band below, is what ends the double typing the mode used to ask
+  amount** — this, with the entry wizard below, is what ends the double typing the mode used to ask
   for: an amount typed once, into a quote line or a resource, is offered back rather than retyped
   the moment it becomes a commitment, a receipt or a payout.
 
@@ -610,14 +630,14 @@ record of them.
   screen, so a poste chosen in the quote went on filling the `Inspector` over the régie and the
   revenue sharing — pages that have nothing to do with a poste and never put one there.
 - The tab is now offered only where there is something for the fiche to show:
-  `ocptBudgetViewHasInspector(view)` (`lib/types/ocpt_budget_view.dart`) answers true for
-  `costTracking`, `cashJournal` and `financing` — the three views whose own rows select something
-  of their own, a poste, a line, a commitment or an entry on the first, an entry on the second, a
-  resource or a taking on the third — and false for `committed`, `regie` and `sharing`, whose own
-  rows select nothing the fiche can show yet, a plain highlight answered by the row's own menu
-  instead. **`dashboard` answers false too, and it is the one genuinely new case this predicate has
-  to account for**: a dashboard poste row is a link to where the poste is worked on, not a
-  selection of its own — see "The dashboard" above for the whole of that argument.
+  `ocptBudgetViewHasInspector(view, toolsView)` (`lib/types/ocpt_budget_view.dart`) answers **false
+  for `dashboard` and `tools › regie` alone**. `expenses` and `resources` each select something of
+  their own — a poste, a line, a commitment or an entry on the first, a resource or a taking on the
+  second — and so does the tools drawer's own `cashFlow` (an entry) and `sharing` (a revenue or a
+  share), so the predicate reads true for every one of them. **`dashboard` answers false because a
+  dashboard row is a link to where the thing is worked on, not a selection of its own** — see "The
+  dashboard" above for the whole of that argument. **`tools › regie` answers false because it selects
+  nothing at all**: it is not a stage of anything, and reads no row the fiche could ever open on.
 - **Withheld, not disabled**, the standing rule for an affordance without a subject. `Versions` and
   `Help` are offered everywhere, so the dock never has an empty tab bar.
 - A stored `Inspector` preference **is not overwritten** where it cannot be honoured: the dock
@@ -634,91 +654,128 @@ record of them.
 - **`selectedPosteId` is now a plain getter, folding onto `OcptBudgetSelection`** — it answers a
   poste id only while `state.selection` is an `OcptBudgetPosteSelection`, and drives the fiche and
   the row's own highlight, and narrows no view. `OcptBudgetState.filterPosteId` is the mode's own
-  filter, written by **two controls** rather than one — the header's poste chip and the left dock's
-  own card `⋮` menu entry — and honoured by every view that can
-  (`ocptBudgetViewHonoursPosteFilter`, `lib/types/ocpt_budget_view.dart`): `costTracking`,
-  `cashJournal` and `committed`, the three places a poste-keyed row is drawn at all.
-- **The chip is both the control and the indicator.** It reads `Every poste` or the poste's own
-  name, tinted `primary` while filtering, with a clear button beside the name. Sitting in the
-  header, it is on screen whatever view is, which is the whole point: one place to see a filter,
-  one place to remove it. The same predicate also governs the simplified/detailed switch, which
-  reads a poste-keyed row's own name exactly as the filter narrows poste-keyed rows, and is withheld
-  alongside it, never separately.
-- **Four views cannot honour it and say so.** `financing`, `regie` and `sharing` read tables that
-  carry no poste at all — the financing plan `budget_resources`, the régie the schedule and the
-  defrayals, the revenue sharing `budget_revenues`/`budget_shares` — so there is nothing on any of
-  them to narrow. `dashboard` cannot either, for a reason of its own rather than theirs: it is the
-  whole project's standing reading, and narrowing it to one poste would leave nothing on it but that
-  poste's own row, its KPI tiles silently disagreeing with the ones the reader saw a second ago on
-  another view (`ocptBudgetViewHonoursPosteFilter`'s own doc comment). On all four the header's chip
-  keeps the poste's name — the filter is still set, and leaving brings it back — and adds `Not
-  applied here` underneath; hiding it there would have been calmer and dishonest, an unfiltered view
-  passing for a filtered one.
-- **The narrowing happens in the mode, not in the views.** `OcptBudgetMode` hands each widget the
-  already-filtered list, so a filtered table's own `Total` is the total of what is on screen —
-  the only honest thing it can say. The cash journal is the exception the other way — see "The
-  journal's balance is the whole journal's" above.
+  filter, written by **two controls**, each doing one half of the job — the `⋮` menu of a row in
+  the `expenses` table sets it (`OcptBudgetCostTracking.onPosteFilterRequested`), the header's own
+  tag clears it — and honoured by **`expenses` alone** (`ocptBudgetViewHonoursPosteFilter`,
+  `lib/types/ocpt_budget_view.dart`), the one view left that still draws a poste-keyed row. The left
+  dock this used to also live in (`OcptBudgetPosteDock`, `budgetLeftDockFraction` with it) is gone —
+  see "The mode's own shape" above and `OcptBudgetMode`'s own class doc comment: this mode carries no
+  left dock at all.
+- **The header's own tag is the filter's indicator, not its picker.** It draws **nothing at all**
+  while `filterPosteId` is null — a control announcing `Every poste` all day is exactly what the
+  retired breadcrumb was faulted for — and becomes a small removable tag naming the poste the moment
+  one is set, its own `✕` its only gesture (`_OcptBudgetPosteFilterTag`). Sitting in the header, it
+  is on screen whatever chip is active, which is the whole point: one place to see a filter, one
+  place to remove it, even from a chip the filter does nothing on. The same predicate
+  (`ocptBudgetViewHonoursPosteFilter`) also governs the simplified/detailed switch, which reads a
+  poste-keyed row's own name exactly as the filter narrows poste-keyed rows, and is offered
+  alongside it, on `expenses` alone.
+- **The other three chips cannot honour it, and the tag says so by staying put rather than
+  disappearing.** `resources` and `tools` read tables that carry no poste at all — the financing
+  plan `budget_resources`, the régie the schedule and the defrayals, the sharing
+  `budget_revenues`/`budget_shares` — and even the drawer's own `cashFlow` page, which reads a
+  poste same as `expenses` does, refuses the filter on principle: a bank statement reads across the
+  whole account, not one category of it (`OcptBudgetCashJournal`'s own doc comment). `dashboard`
+  cannot either, for a reason of its own rather than theirs: it is the whole project's standing
+  reading, and narrowing it to one poste would leave nothing on it but that poste's own row, its
+  tiles silently disagreeing with the ones the reader saw a second ago on `expenses`
+  (`ocptBudgetViewHonoursPosteFilter`'s own doc comment). The header's own tag keeps naming the
+  poste on every one of them regardless — the filter is still set, and returning to `expenses`
+  brings it straight back.
+- **The narrowing happens in the mode, not in the view.** `OcptBudgetMode` hands
+  `OcptBudgetCostTracking` the already-filtered list, so `expenses`'s own `Total` row is the total
+  of what is on screen — the only honest thing it can say. `tools › cashFlow` draws no exception any
+  more: it never receives a filtered list at all, since it honours no filter — see "The journal's
+  balance is the whole journal's" above.
 - The filter is reconciled against every fresh snapshot exactly as the selection is: deleting the
   filtered poste clears it, rather than leaving the mode showing nothing under a chip naming a
   poste the project no longer has.
 
-## The capture band is the daily gesture
+## The entry wizard is the daily gesture
 
-- `OcptBudgetCaptureBand` (`ocpt_budget_capture_band.dart`) sits at the top of three views now
-  (`OcptBudgetMode._captureBandDirectionOf`): `costTracking` and `cashJournal` open it as a debit,
-  `financing` as a credit, never `dashboard`, `committed`, `regie` or `sharing`. A direction toggle
-  (`Out of the account` / `Into the account`), an amount, a wording, a date and a `Save`. Nothing
-  else is asked for.
-- **It keeps its own half-typed draft across `costTracking` and `cashJournal`, and remounts fresh
-  only moving into or out of `financing`.** The first two read the very same underlying data, poste
-  by poste or by date, so a reader clicking from one to the other is not switching what the band is
-  capturing, only how the rest of the screen reads it, and losing a half-typed draft over that click
-  would read as the app forgetting what it was just told. `financing` is a different direction
-  outright, a credit rather than a debit, and earns a fresh draft the way any other change of
-  subject would: the band is keyed on `_captureBandDirectionOf`'s own answer, so it remounts exactly
-  when that answer changes.
-- **The moment amount and wording are both typed, the app proposes what the movement settles.**
-  `ocptBudgetMatchSuggestionsOf` (`lib/utils/ocpt_budget_match.dart`, pure) ranks what a draft
-  movement — direction, amount, date, wording — could settle among the commitments still owed and
-  every live defrayal on a debit, or the resources and the revenues still short on a credit, in that
-  order: **exact amount first**, then **date proximity** (within a 7-day window; a candidate with no
-  date of its own sorts after every dated one, never as infinitely close), then **wording overlap**
-  (a folded, diacritic-insensitive word-set intersection). A candidate agreeing with the draft on
-  none of the three is dropped outright — proposing something that agrees on nothing is worse than
-  proposing nothing — and every surviving candidate carries **why** it matched
-  (`matchesAmount`/`matchesDate`/`matchesWording`), which the band, never the pure util, turns into
-  words: "solde l'engagement « Couronne », 250,00 €, poste 5, échéance aujourd'hui: même montant,
-  même fournisseur."
-- **`That's it` accepts the first suggestion in one click.** `Something else…` opens
-  `OcptBudgetEntryDialog` pre-filled with the band's own draft instead. Once answered or ignored,
-  the band clears and the movement is an ordinary entry — nothing queues, so nothing has to remember
-  that it was queued, and a movement waiting to be attached invents no table of its own: it is a
-  `budget_entries` row naming no poste, resource, revenue or share, which was always a legal state.
-- **`Something else…` is a full door, not a fallback for when nothing matched.** It is offered
-  whenever the draft reads as saveable, a suggestion or no suggestion — never withheld merely
-  because `_suggestionsOf` found nothing to propose. The alternative was tried and reversed: a band
-  offering `Something else…` only alongside a suggestion let a reader record an off-quote movement
-  without ever meaning to, under a hint that claimed, wrongly, that there was nothing else here to
-  fill in.
-- **The band is withheld whole, never disabled, on the four views `_captureBandDirectionOf` answers
-  null for** — `dashboard`, `committed`, `regie`, `sharing` — **and under a previewed version.**
-  `OcptBudgetMode` simply does not build it there: the daily gesture belongs to a view that reads
-  money moving in one direction at its own top level, not to a whole-project standing reading, a
-  view that already reads a projection of its own, or a page whose own rows are not bank
-  movements at all.
+- `OcptBudgetEntryDialog` (`ocpt_budget_entry_dialog.dart`) replaces `OcptBudgetCaptureBand`
+  outright — the band that used to sit atop three views is gone, and every working surface's own
+  header band now carries **one trailing primary button** instead (`OcptBudgetHeader.captureLabel`):
+  `expenses` opens the wizard on `expense`, `resources` on `financing`, `tools › regie` opens
+  `OcptBudgetAllowanceDialog` instead — no wizard, a defrayal is typed by hand and always was, and
+  both doors stay, since the régie's own creation button opens the very same dialog — `tools ›
+  sharing` opens the wizard on `payout`, with no participant named, a page-level button being unable
+  to know which one is meant, unlike a participant's own `⋮` menu, which still pre-fills it.
+  `dashboard` and `tools › cashFlow` carry no button at all — withheld whole, never disabled, and,
+  under a previewed version, every one of the others alike.
+- **The dialog is now a two-step wizard** (mockups `5a`/`5b`), never a single form. Step 1 asks
+  `Qu'est-ce que vous faites ?`, in production language rather than accounting terms, six cards, one
+  `OcptBudgetEntryNature` each: `J'ai payé quelque chose` (a debit against a quote poste), `J'ai reçu
+  un financement` (a credit against a financing resource), `Le film a rapporté de l'argent` (a
+  credit against a taking), `J'ai versé sa part à quelqu'un` (a debit against a revenue-sharing
+  participant), `J'ai remboursé un apport` (a debit against a financing resource — see below) and
+  `Autre mouvement`. Step 2 is the form, reduced to the one link field the chosen nature names —
+  never all four fields crossed with every nature, which is the whole reason a wizard replaced a
+  single form.
+- **`other` is the one nature that still asks the direction, in step 2.** The other five each fix
+  their own movement's direction outright (`ocptBudgetEntryNatureDirectionOf`) and draw no direction
+  control at all — not disabled, absent — because agios go out, a regularisation or a bank
+  correction can come in, and a credit naming neither a financing resource nor a taking would
+  otherwise have no nature at all to be typed under: exactly the movement `tools › cashFlow` exists
+  to hold and no other view of the mode draws.
+- **`repayment` is the one nature the mockup does not draw, and it exists because the app already
+  has the gesture.** The sharing page's own `Repaying the contributions` card offers to repay a
+  contributor, which writes money leaving the account against a financing resource — the very same
+  link `financing` itself names, only the other way. Without a nature of its own the movement used
+  to be recalled as `financing`, `J'ai reçu un financement` printed over money leaving the account,
+  because a link alone cannot tell a resource receiving money from a resource being repaid apart —
+  which is exactly why `ocptBudgetEntryNatureOfLinks` (`lib/types/ocpt_budget_entry_nature.dart`)
+  reads the direction as well as the link when it infers a nature back from an existing entry.
+- **`Hors devis` is what an unanswered poste field shows**, on `expense` and `other` alike — never a
+  generic "no poste": the very same label the expenses table already draws for its own poste-less
+  row, so a reader who leaves the field blank sees, in the field itself, exactly where the entry
+  will land.
+- **When step 1 is shown, and when it is skipped.** Step 1 draws whenever only the nature is known,
+  and is skipped whenever the nature *and* its one link are both already known: editing an existing
+  entry always opens step 2 directly, its nature **inferred** from whichever of the four link fields
+  is set (none set reading as `other`); a prefill naming a poste, a resource, a taking or a
+  participant does the same — settling a commitment, recording a receipt against a named resource or
+  taking, paying a named participant from that participant's own `⋮` menu all already know both. A
+  header button alone (`initialNature`, no link) opens step 1 with that card already selected, so
+  `Continuer` is one click; opened with neither, step 1 opens with nothing picked. The header's own
+  `changer` link and step 2's own `Retour` both return to step 1 unconditionally, even when it was
+  skipped on the way in — a user reconsidering what an edit actually is has to be able to say so.
+- **The reconciliation strip moved into step 2, and only while creating.** The moment amount and
+  wording are both typed, `ocptBudgetMatchSuggestionsOf` (`lib/utils/ocpt_budget_match.dart`, pure)
+  still ranks what the draft — direction, amount, date, wording — could settle among the commitments
+  still owed and every live defrayal on a debit, or the resources and the revenues still short on a
+  credit, in the same order it always has: **exact amount first**, then **date proximity** (within a
+  7-day window; a candidate with no date of its own sorts after every dated one, never as infinitely
+  close), then **wording overlap** (a folded, diacritic-insensitive word-set intersection). A
+  candidate agreeing with the draft on none of the three is dropped outright — proposing something
+  that agrees on nothing is worse than proposing nothing — and every surviving candidate carries
+  **why** it matched, which the dialog, never the pure util, turns into words. Unlike the band, only
+  the single best-ranked suggestion is ever drawn — the mockup draws one strip, not an expander over
+  three.
+- **`C'est ça` is a full door, not a fallback for when nothing matched — this argument survives
+  unchanged from the band it replaced.** `Enregistrer` is offered whenever the draft reads as
+  saveable, a suggestion or no suggestion — never withheld merely because nothing was proposed.
+  There is no separate "something else" button any more, because there is no third path left to
+  withhold it from: step 2 *is* the ordinary form, and `C'est ça` is the one shortcut sitting beside
+  it, never the form's own alternative. `C'est ça` pops the dialog's own future with the plain draft
+  and the accepted suggestion attached (`OcptBudgetEntryWizardResult`) rather than turning it into a
+  write itself — see "Money is added in one way, reached through several doors" below for where that
+  write happens and why.
+- **Editing draws no strip at all** — there is no event that both updates an existing entry and
+  settles a commitment as one write, mirroring the band, which only ever created.
 
 ## Money is added in one way, reached through several doors
 
 - **Exactly two events ever write a `budget_entries` row**: `OcptBudgetEntryCreationConfirmedEvent`
   and `OcptBudgetCommitmentSettlementConfirmedEvent`, the second naming the commitment it settles
   alongside the very same fields the first collects. Every door the mode offers converges on one of
-  these two, never inventing a third: `OcptBudgetEntryDialog`'s own `Save`, wherever it is opened
-  from; a facilitator that opens it pre-filled — a resource's `Record a receipt`, a revenue's
+  these two, never inventing a third: `OcptBudgetEntryDialog`'s own `Enregistrer`, wherever it is
+  opened from; a facilitator that opens it pre-filled — a resource's `Record a receipt`, a revenue's
   `Receive`, a commitment's `Settle`, a share's `Record a payout` — reached from a row's own `⋮`
-  menu or from the fiche's own primary action; and the capture band's own `That's it`, which
-  dispatches straight to whichever of the two events the matched candidate needs, without opening
-  the dialog at all. A reader never sees three different write paths — they see one shape of
-  movement, reached however is fastest for the gesture at hand.
+  menu or from the fiche's own primary action; and the entry wizard's own accepted suggestion,
+  `C'est ça`, which dispatches straight to whichever of the two events the matched candidate needs
+  (`OcptBudgetMode._handleEntryWizardSuggestionAccepted`). A reader never sees three different write
+  paths — they see one shape of movement, reached however is fastest for the gesture at hand.
 - The one thing no door could do was **mint** a taking, so recording a festival prize meant leaving
   the journal for the resources tree, creating the taking there and coming back. The `Taking`
   picker inside `OcptBudgetEntryDialog` carries a `New taking…` entry that opens
@@ -776,11 +833,12 @@ record of them.
   the alert is not a notification to clear, it is a standing fact about the project that stays true
   until the underlying figures change. A poste over its quote reuses the very gesture a dashboard
   poste row already makes (`OcptBudgetMode._handleDashboardPosteOpened`): it selects that poste and
-  switches to `costTracking` in the same gesture, exactly as "The dashboard" above already argues for
-  a poste row in general — the alert itself sits on a read-only summary, never where a poste is
-  actually worked on. The cash projection going negative switches straight to `committed`
-  (`OcptBudgetView.committed`), the view its own projection now lives beside — see "A stacked pane
-  states its height" below for where that projection draws today.
+  switches to `expenses` in the same gesture, exactly as "The dashboard" above already argues for a
+  poste row in general — the alert itself sits on a read-only summary, never where a poste is
+  actually worked on. The cash projection going negative switches straight to `tools › cashFlow`
+  (`OcptBudgetMode._handleCashAlertActionRequested`), the very statement its own projection now
+  scrolls under, as `À venir` — see "The journal scrolls rather than losing a column" below for
+  where that projection draws today.
 
 ## The voucher
 
@@ -915,6 +973,25 @@ record of them.
   scrolling either alone would slide the figures out from under their own headings. No column is
   dropped and none shrinks: what does not fit is scrolled to, which is the treatment the rest of the
   app already gives a table too wide for its slot.
+- **The statement closes on its own row rather than opening under a band.** The journal used to
+  carry a top band stating the whole ledger's debit, credit and balance, pinned above whatever the
+  reader had scrolled to; only the balance survives the move, in `_OcptCashStatementFooterRow`, at
+  the foot of the last drawn entry — the honest place to state a running figure, since a balance
+  read off a band pinned above a scrolled table invites comparing it against rows no longer on
+  screen. It closes on the last drawn entry's own date, never today's: a statement closes on its
+  last movement, not on the day somebody happened to open the page.
+- **Under the statement, `À venir` reads the account's future rather than its past** — one row per
+  unsettled commitment, in `ocptBudgetProjectionOf`'s own due-date-first order
+  (`lib/utils/ocpt_budget_projection.dart`), then a footer naming the total falling due and the
+  balance the account would hold once it has, printing in the error colour once that balance goes
+  negative. It draws only while at least one unsettled commitment exists, and carries no empty state
+  of its own — a project owing nothing simply has no second card. A row is selectable, never a
+  write: it opens the right dock's fiche on the commitment, which is where it is edited or settled,
+  and it carries no `⋮` menu of its own — `Modifier`/`Supprimer`/`Payer` live in the fiche and only
+  there.
+- **Both sections scroll together**, as slivers of one `CustomScrollView`, under the one fixed
+  header row above them: two independent scroll areas would let a reader scroll the statement while
+  `À venir` stayed put, which is not a statement any more.
 
 ## A stacked pane states its height, it does not take a share of one
 
@@ -934,18 +1011,6 @@ record of them.
 - Side by side, both panes still take the whole height, floored at 320 px: under that the pair
   scrolls rather than being crushed, which is the same rule stated for a window nobody normally
   opens that short.
-- **The committed view's own cash projection is back beside the commitments**, in its own
-  right-hand column above `_ocptCommittedProjectionSideBySideWidth` (1088 px — the table's own
-  792 px floor, plus a 16 px gap, plus a 280 px column for the projection) and stacked under it,
-  capped at `_ocptCommittedStackedProjectionMaxShare` (half the pane) once it is. It is not the
-  `Expanded` share that failed silently above: **the projection scrolls inside whichever column it
-  is given, in both branches**, so a dozen still-owed commitments cap out rather than pushing the
-  table off the bottom or overflowing the pane outright — laid out unscrolled it overflowed its
-  column in every geometry tested, invisibly, since a release build paints no overflow band. Side by
-  side it is capped by the pane's own height; stacked, by half of it, the very rule this section
-  states for the panes themselves, one card over. It draws only while there is at least one
-  unsettled commitment to project, the rule the header's own alerts band used to state before this
-  view took the projection back.
 
 ## An add button shows one plus, not two
 
@@ -1117,75 +1182,77 @@ record of them.
   `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly the
   argument `OcptBudgetRegie` used to make for itself before it started writing defrayals, so it
   carries no `isReadOnly` flag and is offered identically under a previewed version. Its content
-  follows `OcptBudgetState.view`, one field: switching the header's own chip changes what the panel
-  says, with no extra click, since the dock stays open on `Help` across a route change exactly as it
-  stays open on `Inspector` across a selection. **The panel now prints a body on `dashboard` too**,
-  the one view that carries no capture band of its own to open on — `OcptBudgetHelp._bodyOf` works
-  through what its own chain above already introduces instead: the KPI tiles, the needs/resources
-  balance band, the standing alerts and the feed card, each in the order the dashboard itself draws
-  them, since a body opening on a control this page does not show would describe nothing the reader
-  can see.
+  follows `(OcptBudgetState.view, OcptBudgetState.toolsView)`, two fields together: switching the
+  header's own chip or the drawer's own second switch changes what the panel says, with no extra
+  click, since the dock stays open on `Help` across a route change exactly as it stays open on
+  `Inspector` across a selection. Each route's own strings are keyed on the route rather than on the
+  widget drawing it — `budgetHelpExpenses…`, `budgetHelpCashFlow…`, `budgetHelpResources…` — so the
+  ARB reads in the same words the chips do, and a paragraph inserted into a route's own reading order
+  renumbers that route's keys rather than being appended out of place. **The panel now prints a body
+  on `dashboard` too**, the one route that carries no header button of its own to open on —
+  `OcptBudgetHelp._bodyOf` works through what its own chain above already introduces instead: the
+  four tiles, the needs/resources balance band and the standing alerts, each in the order the
+  dashboard itself draws them. There is no paragraph for a feed card any more: the dashboard
+  summarises the other views and nothing else, and a card that only ever navigated elsewhere left
+  with it.
 - **The two-by-two matrix is gone, replaced by the chain of states a row passes through — the
   reading survives even though the pages it once described do not.** The matrix used to cross what
   is only promised against what has actually moved, promised money coming in against money going
   out — a navigation of six sibling pages, long retired, and two of the six were never in the matrix
-  to begin with. What actually happens to a row, whichever of today's seven chips it is read from,
-  is a small chain: an estimate becomes a commitment becomes a payment, a promise becomes a receipt.
-  Every view but the régie opens on one of three chains (`OcptBudgetHelp._chainStepsOf`), one cell
-  per state, left to right, each carrying the state's own word and, under it, a short caption naming
-  where that figure comes from:
-  - **The expenses chain** — `dashboard`, `costTracking`, `cashJournal` and `committed` all read
-    it, since all four are that same money read at a different grain: **Estimated** (the quote) ·
-    **Committed** (a commitment) · **Paid** (an entry).
-  - **The resources chain** — `financing` alone: **Promised** (a resource or a taking) ·
+  to begin with. What actually happens to a row, whichever of today's six routes it is read from, is
+  a small chain: an estimate becomes a commitment becomes a payment, a promise becomes a receipt.
+  Every route but `tools › regie` opens on one of three chains (`OcptBudgetHelp._chainStepsOf`), one
+  cell per state, left to right, each carrying the state's own word and, under it, a short caption
+  naming where that figure comes from:
+  - **The expenses chain** — `dashboard`, `expenses` and `tools › cashFlow` all read it, since all
+    three are that same money read at a different grain: **Estimated** (the quote) · **Committed**
+    (a commitment) · **Paid** (an entry).
+  - **The resources chain** — `resources` alone: **Promised** (a resource or a taking) ·
     **Received** (an entry naming it) — no hand-typed step in between, unlike the expenses chain's
     own commitment.
-  - **The sharing chain** — `sharing` alone: **Received** (the takings) · **Already repaid** (the
-    reimbursable contributions) · **Left to share** (the agreed shares).
+  - **The sharing chain** — `tools › sharing` alone: **Received** (the takings) · **Already repaid**
+    (the reimbursable contributions) · **Left to share** (the agreed shares).
   Under the chain, one short sentence says how a step becomes the next; the panel's own body below
   it is the detail, worded in the plain language this file already argues for, every cross-reference
   to a figure or a label resolved as an ICU argument (`intl_utils`'s own convention, "The four
   documents" below) rather than restated by hand, so the help text can never drift from the very
   word it is pointing at.
-- **The régie draws no chain** — it is not a stage of anything a row passes through, and its own
-  first paragraph says what it is instead: one column computed off the schedule, one typed row by
-  row.
+- **`tools › regie` draws no chain** — it is not a stage of anything a row passes through, and its
+  own first paragraph says what it is instead: one column computed off the schedule, one typed row
+  by row.
 - **The current step wears no extra word of its own, only a wash and a weight, and is announced
   through `Semantics` rather than drawn.** A cell's label carries a second sentence — `"{label},
   You are here"` — only while it is the reader's current one; colour alone would say nothing in
   high contrast, nothing to a colour-blind reader and nothing at all to a screen reader, so the
   meaning rides the accessibility tree instead of the paint.
-- **Seven chips, in the design's own order** — `dashboard`, `costTracking`, `financing`,
-  `cashJournal`, `committed`, `regie`, `sharing` — each its own value of `OcptBudgetView`, not the
-  three retired document names read left to right as a sentence.
-  **Controls are contextual, not global** — the retired seven-sibling-page header once offered every
-  control on every page, and there is **no reading switch at all** to withhold or offer any more,
-  `OcptBudgetDocumentReading` having gone with the documents it read. The tax-basis switch is offered
-  on the three views whose own amounts actually follow it
-  (`OcptBudgetHeader._showsTaxBasisSwitch`) — `dashboard`, `costTracking` and `cashJournal` — every
-  other view reading money that has moved, always tax-inclusive, with nothing for the toggle to
+- **Four chips, in the design's own order** — `dashboard`, `expenses`, `resources`, `tools` — each
+  its own value of `OcptBudgetView`, and, only while `tools` is picked, a second switch beside them
+  between the drawer's own three pages, `cashFlow`, `regie`, `sharing` (`OcptBudgetToolsView`).
+  **Controls are contextual, not global** — there is **no reading switch at all** to withhold or
+  offer, `OcptBudgetDocumentReading` having gone with the three-document shape it read. The
+  tax-basis switch is offered on the three routes whose own amounts actually follow it
+  (`OcptBudgetHeader._showsTaxBasisSwitch`) — `dashboard`, `expenses` and `tools › cashFlow` — every
+  other route reading money that has moved, always tax-inclusive, with nothing for the toggle to
   change. The simplified/detailed switch and the poste filter both follow
-  `ocptBudgetViewHonoursPosteFilter` (`OcptBudgetHeader._honoursPosteKeyedControls`): `costTracking`,
-  `cashJournal` and `committed`, the three places a poste-keyed row is drawn at all, and withheld,
-  never disabled or captioned, everywhere else — the standing rule for an affordance without a
-  subject. Every one of these is a **list-literal conditional**, not a disabled or greyed control:
-  the widget the header would have drawn simply is not built.
+  `ocptBudgetViewHonoursPosteFilter` (`OcptBudgetHeader._honoursPosteKeyedControls`): **`expenses`
+  alone**, the one route left that draws a poste-keyed row, and withheld, never disabled or
+  captioned, everywhere else — the standing rule for an affordance without a subject. Every one of
+  these is a **list-literal conditional**, not a disabled or greyed control: the widget the header
+  would have drawn simply is not built.
 - **No chip is worded by the simplified reading, and none should be**, exactly the argument that
   held for the old seven — real trade words retitled for a five-person crew lost their reason the
   moment the navigation itself stopped naming a stage by its trade name. What the simplified toggle
   still governs is the ten CNC poste labels (`budget_postes.simpleLabel`) and the empty-state
   sentences that name the ledgers in prose: real translations of opaque trade language, unlike a
   second name for a document that already said the plain thing it was.
-- **Shedding the title is not enough on its own**, and the header does not stop there: under
-  `_ocptBudgetHeaderTitleMinWidth` (1880 px, recomputed whole for this milestone's own single
-  seven-segment view switch rather than grown from the three-document header's own running total,
-  since the control *set* changed shape and not merely its count — its own doc comment carries the
-  arithmetic) the controls **wrap onto a second line**, and the chips wrap inside their own border
-  too, as `OcptScheduleHeader`'s controls already do. The centre narrows for a reason the header
-  cannot see — the right dock opening takes roughly 580 px of it — and a plain `Row` then clips
-  silently in release, which had been taking the tax-basis switch off the screen altogether. A
-  control scrolled out of a clipped row is worse than a disabled one: nothing on screen says it
-  exists.
+- **The header carries no title to shed any more — see "The mode's own shape" above — so there is
+  no threshold width where one disappears.** What is left is one `Wrap` (`OcptBudgetHeader.build`)
+  carrying every control, which flows onto a second line the moment the centre is too narrow to hold
+  them side by side, and each switch's own segments wrap inside their own border the same way,
+  mirroring `OcptScheduleHeader`'s controls. The centre narrows for a reason the header cannot see —
+  the right dock opening takes roughly 580 px of it — and a plain `Row` then clips silently in
+  release, which had been taking the tax-basis switch off the screen altogether. A control scrolled
+  out of a clipped row is worse than a disabled one: nothing on screen says it exists.
   Every other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder,
   a delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
   code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
@@ -1369,7 +1436,7 @@ record of them.
   three-way verdict — no quote yet, covered, or short by an amount — rather than declaring a
   financing plan sufficient against a quote nobody has begun (`OcptBudgetNeedsResourcesBalance`,
   read by these documents alone now that the live screen draws its own two-tone reading instead —
-  see "The financing view says what covers the film, twice" above).
+  see "The resources view says what covers the film, twice" above).
   **The financial report reads the cost-tracking table's own off-quote reading too.** It draws an
   `Off quote` row, reusing the cost-tracking table's own label
   (`tr.budgetCostTrackingOffQuoteLabel`), between the last poste and the totals row, only while
