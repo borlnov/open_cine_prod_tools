@@ -54,8 +54,9 @@ const double _ocptCashJournalRowHeight = 44;
 const double _ocptCashJournalHeaderRowHeight = 36;
 
 /// The tools drawer's `Flux de trésorerie` page: the whole account book, in date order — **every
-/// movement the project has ever recorded, debit and credit alike**, read-only. A top band, the
-/// entry table, then a note — the layout the validated mockup lays this view out as.
+/// movement the project has ever recorded, debit and credit alike**, read-only. The entry table
+/// closed by its own balance row, `À venir` under it closed by its own, then a note — the layout
+/// mockup `4b` lays this view out as.
 ///
 /// **This is the one place a movement naming nothing can still be reached.** A poste, a resource or
 /// a revenue each has a document of its own to be found under; an entry naming none of them — a
@@ -69,10 +70,10 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// **[entries] is always the whole journal, and the table draws every one of them — this page no
 /// longer honours the header's own poste filter at all** (`ocptBudgetViewHonoursPosteFilter` is
 /// now `OcptBudgetView.expenses` alone): a bank statement reads across the whole account, not one
-/// category narrowed out of it, and mockup `4b` draws no filtered reading of this page. The top
-/// band's own `Debit`/`Credit`/`Balance` figures were always the whole journal's, unchanged —
-/// Benoit's own ruling is that this is the production's bank account, and it does not change
-/// because a view narrowed to one poste.
+/// category narrowed out of it, and mockup `4b` draws no filtered reading of this page. The closing
+/// balance ([_OcptCashStatementFooterRow]) is the whole journal's, unchanged — Benoit's own ruling
+/// is that this is the production's bank account, and it does not change because a view narrowed to
+/// one poste.
 ///
 /// **No capture affordance of any kind — read-only means nothing is created from a statement, not
 /// that nothing can be touched.** The `+ Entry` action mockup `2a`/`3a` used to draw here is gone
@@ -85,8 +86,8 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// row's own click never writes either way — it selects the entry, opening the right dock's fiche
 /// on it, mirroring `OcptBudgetCostTracking`'s own row selection.
 ///
-/// Empty state: [OcptWorkspaceEmptyMode] draws **in the table's place, under a top band that stays
-/// drawn**, whenever the page has nothing at all to read — no live entry *and* no unsettled
+/// Empty state: [OcptWorkspaceEmptyMode] draws **in the table's place** whenever the page has
+/// nothing at all to read — no live entry *and* no unsettled
 /// commitment. A project that has committed spending before paying anything is the ordinary state
 /// of an early production, and it is precisely the one that needs `À venir`: hiding the whole page
 /// behind "no movement yet" would put its own commitments out of reach on the very page built to
@@ -200,8 +201,6 @@ class OcptBudgetCashJournal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _OcptCashJournalTopBand(totals: totals, currencyCode: currencyCode),
-        const SizedBox(height: 12),
         Expanded(
           child: entries.isEmpty && !showsUpcoming
               ? OcptWorkspaceEmptyMode(
@@ -251,6 +250,30 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                           : () => onEntryDeletionRequested?.call(rows[index].entry.id),
                                     ),
                                   ),
+                                  if (rows.isNotEmpty) ...[
+                                    SliverToBoxAdapter(
+                                      child: _OcptCashStatementFooterRow(
+                                        closingDate: rows.last.entry.date,
+                                        balanceCents: totals.balanceCents,
+                                        currencyCode: currencyCode,
+                                      ),
+                                    ),
+                                    if (!totals.isComplete)
+                                      SliverToBoxAdapter(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                          child: Text(
+                                            tr.budgetCashJournalCoverageReadOut(
+                                              totals.coveredEntryCount,
+                                              totals.entryCount,
+                                            ),
+                                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                   if (showsUpcoming) ...[
                                     const SliverToBoxAdapter(child: _OcptCashUpcomingHeaderRow()),
                                     SliverList.builder(
@@ -347,75 +370,78 @@ class OcptBudgetCashJournal extends StatelessWidget {
   }
 }
 
-/// The view's own top band: what it is filtered to and the action clearing it, pushed-right the
-/// whole journal's own debit/credit/balance figures, then the `+ Entry` action.
-class _OcptCashJournalTopBand extends StatelessWidget {
-  /// The whole journal's own debit, credit and balance.
-  final OcptBudgetCashTotals totals;
+/// The statement's own closing row, in the very same tinted style [_OcptCashUpcomingFooterRow]
+/// closes `À venir` with: the closing label past a span of the leading columns, nothing under
+/// `Debit` and `Credit`, and [balanceCents] under `Balance`. Mockup `4b` draws the two footers
+/// answering each other — the account's past closed here, its future closed below.
+///
+/// **This replaced a top band carrying the whole journal's debit, credit and balance.** Only the
+/// balance survives the move, which is the mockup's own reading and the honest one: on a running
+/// statement the debit and credit totals are the two halves of the very figure the last line
+/// already shows, and reading all three off a band pinned above a scrolled table invited comparing
+/// them against whichever rows happened to be on screen. Stated at the foot of the rows they add
+/// up, they can only be read as what they are. The coverage read-out the band carried under
+/// `Balance` follows the figure down, drawn under this row exactly as `À venir` draws its own.
+///
+/// [closingDate] is the last drawn entry's own date, never today's: a statement closes on its last
+/// movement, and a production that has recorded nothing this month holds a balance as of the day it
+/// last did, not as of the day somebody happened to open the page.
+class _OcptCashStatementFooterRow extends StatelessWidget {
+  /// The date the statement closes on — the last drawn entry's own.
+  final DateTime closingDate;
+
+  /// The whole journal's own balance (`OcptBudgetCashTotals.balanceCents`), in cents.
+  final int balanceCents;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
   /// Class constructor
-  const _OcptCashJournalTopBand({required this.totals, required this.currencyCode});
+  const _OcptCashStatementFooterRow({
+    required this.closingDate,
+    required this.balanceCents,
+    required this.currencyCode,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final coverageText = totals.isComplete
-        ? null
-        : tr.budgetCashJournalCoverageReadOut(totals.coveredEntryCount, totals.entryCount);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Spacer(),
-        const SizedBox(width: 16),
-        _figure(
-          context,
-          tr.budgetCashJournalDebitLabel,
-          ocptBudgetAmountLabel(totals.debitCents, currencyCode),
-        ),
-        const SizedBox(width: 20),
-        _figure(
-          context,
-          tr.budgetCashJournalCreditLabel,
-          ocptBudgetAmountLabel(totals.creditCents, currencyCode),
-        ),
-        const SizedBox(width: 20),
-        _figure(
-          context,
-          tr.budgetCashJournalBalanceLabel,
-          ocptBudgetAmountLabel(totals.balanceCents, currencyCode),
-          caption: coverageText,
-        ),
-      ],
-    );
-  }
-
-  /// One of the band's own figures: a muted label over a value, an optional muted caption
-  /// underneath it (the coverage read-out, drawn only under `Balance`, once, rather than repeated
-  /// under all three — see [OcptBudgetCashJournal]'s own class doc comment for why the three
-  /// figures are never the filtered subset's own).
-  Widget _figure(BuildContext context, String label, String value, {String? caption}) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final locale = Localizations.localeOf(context).toString();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: SizedBox(
+        height: _ocptCashJournalRowHeight,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                tr.budgetCashJournalClosingBalanceLabel(DateFormat.yMMMd(locale).format(closingDate)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(width: _ocptCashJournalAmountColumnWidth),
+            const SizedBox(width: _ocptCashJournalAmountColumnWidth),
+            SizedBox(
+              width: _ocptCashJournalAmountColumnWidth,
+              child: Text(
+                ocptBudgetAmountLabel(balanceCents, currencyCode),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(width: _ocptCashJournalMenuColumnWidth),
+          ],
         ),
-        Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-        if (caption != null)
-          Text(
-            caption,
-            textAlign: TextAlign.right,
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-      ],
+      ),
     );
   }
 }

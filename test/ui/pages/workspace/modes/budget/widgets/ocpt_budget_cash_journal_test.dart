@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
@@ -392,9 +393,9 @@ void main() {
       // wording a poste-less debit already reads.
       expect(find.text("Grant instalment"), findsOneWidget);
       expect(find.text(tr.budgetCashJournalNoPosteLabel), findsNWidgets(2));
-      // Its amount is drawn in the `Credit` column — the amount also totals into the top band's
-      // own whole-journal figure, hence the two matches.
-      expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsNWidgets(2));
+      // Its amount is drawn in the `Credit` column, once: the statement's closing row states the
+      // balance alone, so a credit's own figure is printed nowhere but on its own row.
+      expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsOneWidget);
 
       // It selects like any other row.
       await tester.tap(find.text("Grant instalment"));
@@ -1106,6 +1107,83 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(selectedId, "c1");
+    });
+  });
+
+  group("the statement's own closing row", () {
+    testWidgets("closes on the last entry's date, and states the balance alone", (tester) async {
+      final entries = [
+        _entry(id: "e1", date: DateTime(2026, 1, 4), label: "Grant instalment", creditCents: 800000),
+        _entry(id: "e2", date: DateTime(2026, 2, 23), label: "Camera deposit", debitCents: 120000),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: entries,
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final context = tester.element(find.byType(OcptBudgetCashJournal));
+      final tr = Tr.of(context);
+      final closingDate = DateFormat.yMMMd(
+        Localizations.localeOf(context).toString(),
+      ).format(DateTime(2026, 2, 23));
+
+      // The statement closes on its last movement, never on today.
+      expect(find.text(tr.budgetCashJournalClosingBalanceLabel(closingDate)), findsOneWidget);
+
+      // And it states the balance alone: the debit and credit totals the top band used to carry
+      // are gone, so each entry's own figure is printed once, on its own row.
+      // The closing balance is printed twice — once as the last row's own running balance, once
+      // under the closing label — and every other figure exactly once, on the row that moved it.
+      expect(find.text(ocptBudgetAmountLabel(680000, "EUR")), findsNWidgets(2));
+      // The opening credit reads twice too, in its own `Credit` cell and as the running balance it
+      // opened the account at.
+      expect(find.text(ocptBudgetAmountLabel(800000, "EUR")), findsNWidgets(2));
+      expect(find.text(ocptBudgetAmountLabel(120000, "EUR")), findsOneWidget);
+    });
+
+    testWidgets("a project owing money before paying any closes no statement", (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            entries: const [],
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: [_commitment(id: "c1", dueDate: DateTime(2026, 3, 10), amountCents: 50000)],
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+
+      // `À venir` is drawn, but nothing closes a statement with no movement in it — a closing row
+      // would have no date to close on.
+      expect(find.text(tr.budgetCashUpcomingSectionTitle), findsOneWidget);
+      expect(find.textContaining(tr.budgetCashJournalClosingBalanceLabel("")), findsNothing);
     });
   });
 }

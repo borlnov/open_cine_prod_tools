@@ -218,9 +218,9 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => [
       _captureBandBody(tr),
       tr.budgetHelpCashJournalIntro(tr.budgetHeaderExpensesSegmentLabel),
-      tr.budgetHelpCashJournalBody1(tr.budgetCashJournalDebitLabel, tr.budgetCashJournalCreditLabel),
+      tr.budgetHelpCashJournalBody1(tr.budgetCashJournalColumnDebit, tr.budgetCashJournalColumnCredit),
       tr.budgetHelpCashJournalBody2(tr.budgetCostTrackingOffQuoteLabel),
-      tr.budgetHelpCashJournalBody3(tr.budgetCashJournalBalanceLabel),
+      tr.budgetHelpCashJournalBody3(tr.budgetCashJournalColumnBalance),
       tr.budgetHelpCashJournalBody4,
     ],
     (OcptBudgetView.expenses, _) => [

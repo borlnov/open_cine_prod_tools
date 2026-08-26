@@ -11609,26 +11609,17 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCashJournalDebitLabel": "Debit",
-  "@budgetCashJournalDebitLabel": {
-    "description": "Label of the cash journal view's own whole-journal debit figure",
-    "context": "Displayed at the top of the budget mode's cash journal view",
+  "budgetCashJournalClosingBalanceLabel": "Bank balance as of {date}",
+  "@budgetCashJournalClosingBalanceLabel": {
+    "description": "Label of the cash-flow statement's own closing row, naming the date the statement closes on",
+    "context": "Displayed in the tinted row closing the budget mode's cash-flow statement, facing the balance itself",
     "type": "text",
-    "placeholders": {}
-  },
-  "budgetCashJournalCreditLabel": "Credit",
-  "@budgetCashJournalCreditLabel": {
-    "description": "Label of the cash journal view's own whole-journal credit figure",
-    "context": "Displayed at the top of the budget mode's cash journal view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCashJournalBalanceLabel": "Balance",
-  "@budgetCashJournalBalanceLabel": {
-    "description": "Label of the cash journal view's own whole-journal balance figure",
-    "context": "Displayed at the top of the budget mode's cash journal view",
-    "type": "text",
-    "placeholders": {}
+    "placeholders": {
+      "date": {
+        "description": "The last drawn entry's own date, already formatted for the reader's locale",
+        "type": "String"
+      }
+    }
   },
   "budgetCashJournalCoverageReadOut": "over {coveredCount} of the {entryCount} entries",
   "@budgetCashJournalCoverageReadOut": {
