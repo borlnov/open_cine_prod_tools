@@ -12450,7 +12450,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetFinancingCoverageExpensesAction": "View cost tracking",
+  "budgetFinancingCoverageExpensesAction": "View the expenses",
   "@budgetFinancingCoverageExpensesAction": {
     "description": "The coverage band's own action, switching to the Expenses chip",
     "context": "Displayed under the budget mode's own resources tree",

@@ -1655,7 +1655,7 @@
   "budgetFinancingCoverageReadOut": "{received} rentrés, {promised} promis",
   "budgetFinancingCoverageMissingReadOut": "{missing} manquants",
   "budgetFinancingCoverageCoveredReadOut": "couvre le devis",
-  "budgetFinancingCoverageExpensesAction": "Voir le suivi de coût",
+  "budgetFinancingCoverageExpensesAction": "Voir les dépenses",
   "budgetFinancingGroupSubsidyLabel": "Subventions",
   "budgetFinancingGroupCashLabel": "Numéraire",
   "budgetFinancingGroupInKindLabel": "En nature",

@@ -482,8 +482,9 @@ are all here, and this file is the whole record of them.
 - **What used to live here and no longer does.** The poste-by-poste list is gone, and the "what
   feeds this budget" card with it: neither summarises, the mockup draws neither, and the four tiles
   plus the balance band already carry the whole-project reading the poste list used to add up to one
-  row at a time. `OcptBudgetFeedCard` itself is unaffected — `OcptBudgetCostTracking` and
-  `OcptBudgetRegie` still draw it at their own top.
+  row at a time. `OcptBudgetFeedCard` itself is unaffected — `OcptBudgetRegie` draws it at its own
+  top, and `OcptBudgetCostTracking` draws it under its **empty state**, which is the one place where
+  "what feeds this budget" is the only thing left to say.
 - **The standing alerts live here, and are reachable from everywhere.** `ocptComputeBudgetAlerts`
   is computed once, carried by the state, and the dashboard is the only view that draws the alert
   cards themselves; every other view reaches them through the `Tableau de bord` chip's own count
@@ -577,8 +578,8 @@ are all here, and this file is the whole record of them.
   quote.
   **`OcptBudgetNeedsResourcesBalance`/`ocptBudgetNeedsResourcesBalanceOf`** is the older reading, and
   it stays exactly as it is: a **three-way** verdict — no quote yet, covered, or short by an amount
-  — rather than the two-tone bar's own lighter/solid split. It is drawn live again, this milestone,
-  on the dashboard's own balance band (see "The dashboard" above), and it is also what the
+  — rather than the two-tone bar's own lighter/solid split. It is drawn live on the dashboard's
+  own balance band (see "The dashboard" above), and it is also what the
   financing-plan and financial-report PDF exports read for the very same comparison, worded there for
   a document rather than a screen. The two bars answer different questions off the very same two
   figures, needs and resources, and neither is a second way of computing the other's.
