@@ -100,7 +100,6 @@ void main() {
       find.text(tr.budgetHelpDashboardBody4(tr.budgetHeaderDashboardSegmentLabel)),
       findsOneWidget,
     );
-    expect(find.text(tr.budgetHelpDashboardBody5), findsOneWidget);
   });
 
   testWidgets("régie draws no chain at all", (tester) async {

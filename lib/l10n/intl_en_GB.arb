@@ -10941,22 +10941,15 @@
   },
   "budgetDashboardQuotedTotalLabel": "Quoted total",
   "@budgetDashboardQuotedTotalLabel": {
-    "description": "Label of the dashboard's own quoted-total KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardExcludingTaxTotalLabel": "Excluding tax",
-  "@budgetDashboardExcludingTaxTotalLabel": {
-    "description": "Label of the dashboard's own excluding-tax-total KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "description": "Label of the dashboard's own quoted-total tile",
+    "context": "Displayed above the figure in the budget mode's dashboard tile row",
     "type": "text",
     "placeholders": {}
   },
   "budgetDashboardCoverageCaption": "over {coveredCount} of {lineCount} lines",
   "@budgetDashboardCoverageCaption": {
-    "description": "Caption under the dashboard's excluding-tax-total KPI, while some lines carry no known rate",
-    "context": "Displayed under the excluding-tax-total figure; disappears once every line declares a rate",
+    "description": "Hint under one of the dashboard's own tiles, in place of its own usual hint, while some of the rows its value summed carry no known rate",
+    "context": "Displayed under a dashboard tile's own value; disappears once every row it summed declares a rate",
     "type": "text",
     "placeholders": {
       "coveredCount": {
@@ -10967,59 +10960,54 @@
       }
     }
   },
-  "budgetDashboardPosteCountLabel": "Postes",
-  "@budgetDashboardPosteCountLabel": {
-    "description": "Label of the dashboard's own poste-count KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardLineCountLabel": "Quote lines",
-  "@budgetDashboardLineCountLabel": {
-    "description": "Label of the dashboard's own line-count KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardPostesSectionTitle": "Postes",
-  "@budgetDashboardPostesSectionTitle": {
-    "description": "Title of the dashboard's own poste-by-poste section",
-    "context": "Displayed above the budget mode's dashboard poste rows",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardCashBalanceLabel": "Cash balance",
+  "budgetDashboardCashBalanceLabel": "Bank balance",
   "@budgetDashboardCashBalanceLabel": {
-    "description": "Label of the dashboard's own cash-balance KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+    "description": "Label of the dashboard's own bank-balance tile",
+    "context": "Displayed above the figure in the budget mode's dashboard tile row",
     "type": "text",
     "placeholders": {}
   },
-  "budgetDashboardPaidLabel": "Paid",
-  "@budgetDashboardPaidLabel": {
-    "description": "Label of the dashboard's own paid KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+  "budgetDashboardSpentLabel": "Spent",
+  "@budgetDashboardSpentLabel": {
+    "description": "Label of the dashboard's own spent tile — what has actually been paid, off-quote spending included",
+    "context": "Displayed above the figure in the budget mode's dashboard tile row",
     "type": "text",
     "placeholders": {}
   },
-  "budgetDashboardCommittedLabel": "Committed",
-  "@budgetDashboardCommittedLabel": {
-    "description": "Label of the dashboard's own committed KPI",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+  "budgetDashboardPaidShareCaption": "{percent} % of the quote, off-quote spending included",
+  "@budgetDashboardPaidShareCaption": {
+    "description": "Hint under the dashboard's own spent tile, once its own figure carries a known rate and the quote's own total is not zero",
+    "context": "Displayed under the spent figure; withheld rather than divided by zero while the quote holds no total to measure against",
     "type": "text",
-    "placeholders": {}
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
-  "budgetDashboardResourcesTotalLabel": "Total resources",
-  "@budgetDashboardResourcesTotalLabel": {
-    "description": "Label of the dashboard's own financing KPI: the financing plan's own total",
-    "context": "Displayed above the figure in the budget mode's dashboard KPI row",
+  "budgetDashboardCommittedCaption": "{amount} committed",
+  "@budgetDashboardCommittedCaption": {
+    "description": "Hint under the dashboard's own bank-balance tile, naming what is currently committed against the quote",
+    "context": "Displayed under the bank-balance figure, once it carries no coverage read-out of its own",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "The committed amount, already formatted with its currency symbol",
+        "type": "String"
+      }
+    }
+  },
+  "budgetDashboardFinancingLabel": "Financing",
+  "@budgetDashboardFinancingLabel": {
+    "description": "Label of the dashboard's own financing tile: the financing plan's own total, whatever each resource's own status — deliberately not a stronger word claiming the money is already secured",
+    "context": "Displayed above the figure in the budget mode's dashboard tile row",
     "type": "text",
     "placeholders": {}
   },
   "budgetDashboardResourcesInKindCaption": "{amount} in kind",
   "@budgetDashboardResourcesInKindCaption": {
-    "description": "Caption under the Total resources KPI, naming how much of it is in-kind",
-    "context": "Displayed in the budget mode's dashboard KPI row",
+    "description": "Hint under the dashboard's own financing tile, naming how much of it is in-kind",
+    "context": "Displayed in the budget mode's dashboard tile row",
     "type": "text",
     "placeholders": {
       "amount": {
@@ -11027,6 +11015,13 @@
         "type": "String"
       }
     }
+  },
+  "budgetDashboardBalanceTitle": "Budget balance",
+  "@budgetDashboardBalanceTitle": {
+    "description": "Title of the dashboard's own needs/resources balance card",
+    "context": "Displayed at the top of the budget mode's dashboard balance card, beside its own verdict",
+    "type": "text",
+    "placeholders": {}
   },
   "budgetDashboardBalanceNeedsLabel": "Needs",
   "@budgetDashboardBalanceNeedsLabel": {
@@ -11188,17 +11183,24 @@
       }
     }
   },
-  "budgetDashboardPosteOverQuoteAlertTitle": "Over its quote",
-  "@budgetDashboardPosteOverQuoteAlertTitle": {
-    "description": "Title of the dashboard's alert card for a poste whose paid plus committed exceeds its own quote",
-    "context": "Displayed above the message, in the budget mode's dashboard, one card per poste over its quote",
+  "budgetDashboardAlertsSectionTitle": "What needs a decision",
+  "@budgetDashboardAlertsSectionTitle": {
+    "description": "Title of the dashboard's own alerts card",
+    "context": "Displayed at the top of the budget mode's dashboard alerts card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetDashboardOverrunBadge": "Overrun",
+  "@budgetDashboardOverrunBadge": {
+    "description": "Badge of the dashboard's own alert row for a poste whose paid plus committed exceeds its own quote",
+    "context": "Displayed at the start of the row, in the budget mode's dashboard alerts card, one row per poste over its quote",
     "type": "text",
     "placeholders": {}
   },
   "budgetDashboardPosteOverQuoteAlertMessage": "{posteLabel} has {spentAmount} paid or committed against a {quotedAmount} quote — {varianceAmount} over.",
   "@budgetDashboardPosteOverQuoteAlertMessage": {
-    "description": "Message of the dashboard's alert card for a poste over its own quote",
-    "context": "Displayed in the budget mode's dashboard, one card per poste over its quote",
+    "description": "Message of the dashboard's own alert row for a poste over its own quote",
+    "context": "Displayed in the budget mode's dashboard alerts card, one row per poste over its quote",
     "type": "text",
     "placeholders": {
       "posteLabel": {
@@ -11215,24 +11217,17 @@
       }
     }
   },
-  "budgetDashboardPosteOverQuoteAlertAction": "View poste",
-  "@budgetDashboardPosteOverQuoteAlertAction": {
-    "description": "Action of the dashboard's alert card for a poste over its own quote, selecting it and switching to the cost-tracking view",
-    "context": "Displayed on the budget mode's dashboard, one card per poste over its quote",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetDashboardCashNegativeAlertTitle": "Cash going negative",
-  "@budgetDashboardCashNegativeAlertTitle": {
-    "description": "Title of the dashboard's alert card for the cash projection going negative",
-    "context": "Displayed above the message, in the budget mode's dashboard",
+  "budgetDashboardCashAlertBadge": "Cash",
+  "@budgetDashboardCashAlertBadge": {
+    "description": "Badge of the dashboard's own alert row for the cash projection going negative",
+    "context": "Displayed at the start of the row, in the budget mode's dashboard alerts card",
     "type": "text",
     "placeholders": {}
   },
   "budgetDashboardCashNegativeAlertMessageDated": "The {balance} balance falls below zero on {date}, once {dueAmount} falls due.",
   "@budgetDashboardCashNegativeAlertMessageDated": {
-    "description": "Message of the dashboard's cash-negative alert card, while the instalment that tips the balance under has a recorded due date",
-    "context": "Displayed in the budget mode's dashboard",
+    "description": "Message of the dashboard's own cash-negative alert row, while the instalment that tips the balance under has a recorded due date",
+    "context": "Displayed in the budget mode's dashboard alerts card",
     "type": "text",
     "placeholders": {
       "balance": {
@@ -11248,8 +11243,8 @@
   },
   "budgetDashboardCashNegativeAlertMessageUndated": "The {balance} balance falls below zero once {dueAmount} falls due, on a date nobody has recorded yet.",
   "@budgetDashboardCashNegativeAlertMessageUndated": {
-    "description": "Message of the dashboard's cash-negative alert card, while the instalment that tips the balance under carries no recorded due date",
-    "context": "Displayed in the budget mode's dashboard",
+    "description": "Message of the dashboard's own cash-negative alert row, while the instalment that tips the balance under carries no recorded due date",
+    "context": "Displayed in the budget mode's dashboard alerts card",
     "type": "text",
     "placeholders": {
       "balance": {
@@ -11259,13 +11254,6 @@
         "type": "String"
       }
     }
-  },
-  "budgetDashboardCashNegativeAlertAction": "View commitments",
-  "@budgetDashboardCashNegativeAlertAction": {
-    "description": "Action of the dashboard's cash-negative alert card, switching to the committed view",
-    "context": "Displayed in the budget mode's dashboard",
-    "type": "text",
-    "placeholders": {}
   },
   "budgetInspectorPosteLabelFieldLabel": "Label",
   "@budgetInspectorPosteLabelFieldLabel": {
@@ -13926,13 +13914,6 @@
         "type": "String"
       }
     }
-  },
-  "budgetHelpDashboardBody5": "The last card says what the other modes feed into this budget — the breakdown, the schedule, the catering pass — and each row is its own way back to where that reading comes from.",
-  "@budgetHelpDashboardBody5": {
-    "description": "Fifth paragraph of the budget mode's help panel for the dashboard view, stating the feed card",
-    "context": "Displayed on the budget mode's own Help tab while the dashboard is the centre view",
-    "type": "text",
-    "placeholders": {}
   },
   "budgetHelpCostTrackingBody1": "This is the quote itself, poste by poste — the only page where {quote} is typed. The ten CNC postes are seeded once and become ordinary rows from then on: rename, reorder or delete them freely.",
   "@budgetHelpCostTrackingBody1": {

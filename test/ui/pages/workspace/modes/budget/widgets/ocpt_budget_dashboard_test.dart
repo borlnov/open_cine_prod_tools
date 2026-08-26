@@ -116,16 +116,8 @@ Future<Tr> _pumpDashboard(
   Map<String, OcptBudgetCoveredTotal> committedByPosteId = const {},
   List<OcptBudgetAlert> alerts = const [],
   List<OcptBudgetResource> resources = const [],
-  int breakdownPricedElementCount = 0,
-  int breakdownUnpricedElementCount = 0,
-  int shootingDayCount = 0,
-  int mealCount = 0,
-  int buffetCount = 0,
   ValueChanged<String>? onPosteOpened,
   VoidCallback? onCashAlertActionRequested,
-  VoidCallback? onBreakdownFeedRequested,
-  VoidCallback? onScheduleFeedRequested,
-  VoidCallback? onCateringFeedRequested,
 }) async {
   await tester.pumpWidget(
     _wrap(
@@ -140,16 +132,8 @@ Future<Tr> _pumpDashboard(
         committedByPosteId: committedByPosteId,
         alerts: alerts,
         resources: resources,
-        breakdownPricedElementCount: breakdownPricedElementCount,
-        breakdownUnpricedElementCount: breakdownUnpricedElementCount,
-        shootingDayCount: shootingDayCount,
-        mealCount: mealCount,
-        buffetCount: buffetCount,
         onPosteOpened: onPosteOpened ?? (_) {},
         onCashAlertActionRequested: onCashAlertActionRequested ?? () {},
-        onBreakdownFeedRequested: onBreakdownFeedRequested ?? () {},
-        onScheduleFeedRequested: onScheduleFeedRequested ?? () {},
-        onCateringFeedRequested: onCateringFeedRequested ?? () {},
       ),
     ),
   );
@@ -159,43 +143,69 @@ Future<Tr> _pumpDashboard(
 }
 
 void main() {
-  group("the KPI row", () {
-    testWidgets("prints the cash balance, paid and committed KPIs", (tester) async {
+  group("the Devis total tile", () {
+    testWidgets("reads the quote's own total and how many postes it holds", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(tester, postes: [poste]);
+
+      expect(find.text(tr.budgetDashboardQuotedTotalLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(10000, "EUR")), findsOneWidget);
+      expect(find.text(tr.budgetStatsPostes(1)), findsOneWidget);
+    });
+
+    testWidgets("shows the coverage read-out instead of the poste count while a line lacks a rate", (
+      tester,
+    ) async {
+      final uncoveredLine = _buildLine(
+        id: "poste-1-line",
+        posteId: "poste-1",
+        amountCents: 10000,
+        isTaxInclusive: false,
+      );
+      final poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Camera",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a0",
+        lines: [uncoveredLine],
+      );
+
+      final tr = await _pumpDashboard(tester, postes: [poste]);
+
+      expect(find.text(tr.budgetDashboardCoverageCaption(0, 1)), findsOneWidget);
+      expect(find.text(tr.budgetStatsPostes(1)), findsNothing);
+    });
+  });
+
+  group("the Financement tile", () {
+    testWidgets("reads the resources total and how much of it is in kind, whatever each resource's own status", (
+      tester,
+    ) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
       final tr = await _pumpDashboard(
         tester,
         postes: [poste],
-        cashTotals: const OcptBudgetCashTotals(
-          debitCents: 3000,
-          creditCents: 8000,
-          coveredEntryCount: 2,
-          entryCount: 2,
-        ),
-        paidByPosteId: {
-          "poste-1": const OcptBudgetCoveredTotal(
-            amountCents: 3000,
-            coveredLineCount: 1,
-            lineCount: 1,
-          ),
-        },
-        committedByPosteId: {
-          "poste-1": const OcptBudgetCoveredTotal(
-            amountCents: 4000,
-            coveredLineCount: 1,
-            lineCount: 1,
-          ),
-        },
+        resources: [
+          _resource(id: "r1", amountCents: 5000),
+          _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 2000),
+        ],
       );
 
-      expect(find.text(tr.budgetDashboardCashBalanceLabel.toUpperCase()), findsOneWidget);
-      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsOneWidget);
-      expect(find.text(tr.budgetDashboardPaidLabel.toUpperCase()), findsOneWidget);
-      expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsOneWidget);
-      expect(find.text(tr.budgetDashboardCommittedLabel.toUpperCase()), findsOneWidget);
-      expect(find.text(ocptBudgetAmountLabel(4000, "EUR")), findsOneWidget);
+      expect(find.text(tr.budgetDashboardFinancingLabel.toUpperCase()), findsOneWidget);
+      // The balance card's own "Resources" line reads the very same total, so this amount is drawn
+      // twice on screen — see `_OcptDashboardBalanceBar`'s own doc comment.
+      expect(find.text(ocptBudgetAmountLabel(7000, "EUR")), findsWidgets);
+      expect(
+        find.text(tr.budgetDashboardResourcesInKindCaption(ocptBudgetAmountLabel(2000, "EUR"))),
+        findsOneWidget,
+      );
     });
+  });
 
-    testWidgets("the Paid KPI folds off-quote spending in with the per-poste total", (tester) async {
+  group("the Dépensé tile", () {
+    testWidgets("folds off-quote spending in with the per-poste total", (tester) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
       final tr = await _pumpDashboard(
         tester,
@@ -214,13 +224,123 @@ void main() {
         ),
       );
 
-      expect(find.text(tr.budgetDashboardPaidLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(tr.budgetDashboardSpentLabel.toUpperCase()), findsOneWidget);
       // 30.00 € against the poste plus 5.00 € off quote — what the cash journal would agree left
       // the account, not only what priced a poste.
       expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsOneWidget);
     });
 
-    testWidgets("the cash-balance KPI shows a coverage caption while an entry cannot be read", (
+    testWidgets("its own hint reads the share of the quote it represents, off-quote spending included", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        paidByPosteId: {
+          "poste-1": const OcptBudgetCoveredTotal(
+            amountCents: 3000,
+            coveredLineCount: 1,
+            lineCount: 1,
+          ),
+        },
+      );
+
+      expect(find.text(tr.budgetDashboardPaidShareCaption(30)), findsOneWidget);
+    });
+
+    testWidgets("the coverage read-out wins over the percentage while a row cannot be read", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        paidByPosteId: {
+          "poste-1": const OcptBudgetCoveredTotal(
+            amountCents: 3000,
+            coveredLineCount: 0,
+            lineCount: 1,
+          ),
+        },
+      );
+
+      expect(find.text(tr.budgetDashboardCoverageCaption(0, 1)), findsOneWidget);
+      expect(find.textContaining("%"), findsNothing);
+    });
+
+    testWidgets("prints no percentage at all rather than dividing by a zero-total quote", (
+      tester,
+    ) async {
+      final poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Camera",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a0",
+        lines: [_buildLine(id: "poste-1-line", posteId: "poste-1", amountCents: 0)],
+      );
+
+      await _pumpDashboard(
+        tester,
+        postes: [poste],
+        paidByPosteId: {
+          "poste-1": const OcptBudgetCoveredTotal(
+            amountCents: 3000,
+            coveredLineCount: 1,
+            lineCount: 1,
+          ),
+        },
+      );
+
+      // Every row is covered and the quote totals zero — the percentage is withheld whole, not
+      // printed as `0 %` or divided by zero.
+      expect(find.textContaining("%"), findsNothing);
+    });
+  });
+
+  group("the Solde en banque tile", () {
+    testWidgets("prints the cash balance", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        cashTotals: const OcptBudgetCashTotals(
+          debitCents: 3000,
+          creditCents: 8000,
+          coveredEntryCount: 2,
+          entryCount: 2,
+        ),
+      );
+
+      expect(find.text(tr.budgetDashboardCashBalanceLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsOneWidget);
+    });
+
+    testWidgets("its own hint names what is committed once every entry can be read", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        committedByPosteId: {
+          "poste-1": const OcptBudgetCoveredTotal(
+            amountCents: 4000,
+            coveredLineCount: 1,
+            lineCount: 1,
+          ),
+        },
+      );
+
+      expect(
+        find.text(tr.budgetDashboardCommittedCaption(ocptBudgetAmountLabel(4000, "EUR"))),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("the coverage read-out wins over the committed hint while an entry cannot be read", (
       tester,
     ) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
@@ -233,160 +353,31 @@ void main() {
           coveredEntryCount: 1,
           entryCount: 2,
         ),
+        committedByPosteId: {
+          "poste-1": const OcptBudgetCoveredTotal(
+            amountCents: 4000,
+            coveredLineCount: 1,
+            lineCount: 1,
+          ),
+        },
       );
 
       expect(find.text(tr.budgetDashboardCoverageCaption(1, 2)), findsOneWidget);
-    });
-
-    testWidgets("no empty section is drawn for a project raising neither alert", (tester) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      await _pumpDashboard(tester, postes: [poste]);
-
-      expect(find.byType(Container), findsNothing);
-    });
-  });
-
-  group("a poste over its quote", () {
-    testWidgets("draws its own alert card, naming the poste and by how much it is over", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final alert = const OcptBudgetPosteOverQuoteAlert(
-        posteId: "poste-1",
-        quotedAmountCents: 10000,
-        paidCents: 7000,
-        committedCents: 5000,
-        varianceCents: 2000,
-      );
-
-      final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
-
-      expect(find.text(tr.budgetDashboardPosteOverQuoteAlertTitle), findsOneWidget);
       expect(
-        find.text(
-          tr.budgetDashboardPosteOverQuoteAlertMessage(
-            "Camera",
-            ocptBudgetAmountLabel(12000, "EUR"),
-            ocptBudgetAmountLabel(10000, "EUR"),
-            ocptBudgetAmountLabel(2000, "EUR"),
-          ),
-        ),
-        findsOneWidget,
+        find.text(tr.budgetDashboardCommittedCaption(ocptBudgetAmountLabel(4000, "EUR"))),
+        findsNothing,
       );
-    });
-
-    testWidgets("its own action selects the poste and switches the centre view", (tester) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final alert = const OcptBudgetPosteOverQuoteAlert(
-        posteId: "poste-1",
-        quotedAmountCents: 10000,
-        paidCents: 12000,
-        committedCents: 0,
-        varianceCents: 2000,
-      );
-
-      String? selectedPosteId;
-      final tr = await _pumpDashboard(
-        tester,
-        postes: [poste],
-        alerts: [alert],
-        onPosteOpened: (posteId) => selectedPosteId = posteId,
-      );
-
-      await tester.tap(find.text(tr.budgetDashboardPosteOverQuoteAlertAction));
-      await tester.pumpAndSettle();
-
-      expect(selectedPosteId, "poste-1");
     });
   });
 
-  group("a poste row", () {
-    testWidgets("opens the quote on that poste, exactly as the alert's own action does", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", label: "Interpretation", quotedAmountCents: 10000);
-      String? openedPosteId;
-      await _pumpDashboard(
-        tester,
-        postes: [poste],
-        onPosteOpened: (posteId) => openedPosteId = posteId,
-      );
-
-      await tester.tap(find.text("Interpretation"));
-      await tester.pumpAndSettle();
-
-      expect(openedPosteId, "poste-1");
-    });
-  });
-
-  group("the cash projection going negative", () {
-    testWidgets("a dated instalment prints the balance, the date and the amount falling due", (
-      tester,
-    ) async {
+  group("the balance card", () {
+    testWidgets("shows its own title", (tester) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final alert = OcptBudgetCashProjectionNegativeAlert(
-        balanceCents: 5000,
-        dueDate: DateTime(2026, 3, 15),
-        fallingDueCents: 8000,
-        balanceAfterCents: -3000,
-      );
+      final tr = await _pumpDashboard(tester, postes: [poste]);
 
-      final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
-
-      expect(find.text(tr.budgetDashboardCashNegativeAlertTitle), findsOneWidget);
-      expect(find.textContaining(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-      expect(find.textContaining(ocptBudgetAmountLabel(8000, "EUR")), findsWidgets);
+      expect(find.text(tr.budgetDashboardBalanceTitle.toUpperCase()), findsOneWidget);
     });
 
-    testWidgets("an undated instalment words the message differently, never an empty date", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      const alert = OcptBudgetCashProjectionNegativeAlert(
-        balanceCents: 1000,
-        dueDate: null,
-        fallingDueCents: 6000,
-        balanceAfterCents: -5000,
-      );
-
-      final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
-
-      expect(
-        find.text(
-          tr.budgetDashboardCashNegativeAlertMessageUndated(
-            ocptBudgetAmountLabel(1000, "EUR"),
-            ocptBudgetAmountLabel(6000, "EUR"),
-          ),
-        ),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets("its own action switches the centre view, with no poste to select", (tester) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      const alert = OcptBudgetCashProjectionNegativeAlert(
-        balanceCents: 1000,
-        dueDate: null,
-        fallingDueCents: 6000,
-        balanceAfterCents: -5000,
-      );
-
-      var wasRequested = false;
-      final tr = await _pumpDashboard(
-        tester,
-        postes: [poste],
-        alerts: [alert],
-        onCashAlertActionRequested: () => wasRequested = true,
-      );
-
-      await tester.tap(find.text(tr.budgetDashboardCashNegativeAlertAction));
-      await tester.pumpAndSettle();
-
-      expect(wasRequested, isTrue);
-    });
-  });
-
-  group("the needs/resources balance", () {
     testWidgets("resources exceeding the quote read as balanced", (tester) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
       final tr = await _pumpDashboard(
@@ -441,7 +432,9 @@ void main() {
       expect(find.text(tr.budgetDashboardBalanceBalancedMessage), findsNothing);
     });
 
-    testWidgets("resources falling short of the quote say by how much", (tester) async {
+    testWidgets("resources falling short of the quote say by how much, in the error colour", (
+      tester,
+    ) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
       final tr = await _pumpDashboard(
         tester,
@@ -449,10 +442,12 @@ void main() {
         resources: [_resource(id: "r1", amountCents: 4000)],
       );
 
-      expect(
-        find.text(tr.budgetDashboardBalanceShortfallMessage(ocptBudgetAmountLabel(6000, "EUR"))),
-        findsOneWidget,
+      final finder = find.text(
+        tr.budgetDashboardBalanceShortfallMessage(ocptBudgetAmountLabel(6000, "EUR")),
       );
+      expect(finder, findsOneWidget);
+      final style = tester.widget<Text>(finder).style;
+      expect(style?.color, Theme.of(tester.element(finder)).colorScheme.error);
     });
 
     testWidgets("the needs figure prints its own coverage read-out while a line lacks a rate", (
@@ -478,7 +473,8 @@ void main() {
 
       expect(
         find.text(
-          tr.budgetDashboardBalanceCoverageReadOut(ocptBudgetAmountLabel(0, "EUR"), 0, 1),
+          "${tr.budgetDashboardBalanceNeedsLabel} "
+          "${tr.budgetDashboardBalanceCoverageReadOut(ocptBudgetAmountLabel(0, "EUR"), 0, 1)}",
         ),
         findsOneWidget,
       );
@@ -487,85 +483,162 @@ void main() {
     testWidgets("the coverage read-out drops once every line carries a known rate", (tester) async {
       // The very same poste as the previous test, its own line typed tax-inclusive this time (the
       // default `_buildLine` reads under), which needs no rate at all to answer the tax-inclusive
-      // reading the balance bar always reads under.
+      // reading the balance card always reads under.
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
 
       final tr = await _pumpDashboard(tester, postes: [poste]);
 
-      expect(find.text(tr.budgetDashboardBalanceNeedsLabel.toUpperCase()), findsOneWidget);
-      expect(find.text(ocptBudgetAmountLabel(10000, "EUR")), findsWidgets);
       expect(
-        find.text(tr.budgetDashboardBalanceCoverageReadOut(ocptBudgetAmountLabel(10000, "EUR"), 0, 1)),
-        findsNothing,
-      );
-    });
-
-    testWidgets("the balance bar reads tax-inclusive regardless of the header's basis toggle", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 12345);
-
-      await _pumpDashboard(tester, postes: [poste], taxBasis: OcptBudgetTaxBasis.excludingTax);
-
-      expect(find.text(ocptBudgetAmountLabel(12345, "EUR")), findsOneWidget);
-    });
-  });
-
-  group("what feeds this budget", () {
-    testWidgets("each of its own three rows reports its own click", (tester) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      var breakdownRequested = false;
-      var scheduleRequested = false;
-      var cateringRequested = false;
-
-      final tr = await _pumpDashboard(
-        tester,
-        postes: [poste],
-        breakdownPricedElementCount: 3,
-        breakdownUnpricedElementCount: 2,
-        shootingDayCount: 12,
-        mealCount: 8,
-        buffetCount: 8,
-        onBreakdownFeedRequested: () => breakdownRequested = true,
-        onScheduleFeedRequested: () => scheduleRequested = true,
-        onCateringFeedRequested: () => cateringRequested = true,
-      );
-
-      expect(find.text(tr.budgetDashboardFeedBreakdownReadOut(3, 5)), findsOneWidget);
-      expect(find.text(tr.budgetDashboardFeedScheduleReadOut(12)), findsOneWidget);
-      expect(find.text(tr.budgetDashboardFeedCateringReadOut(8, 8)), findsOneWidget);
-
-      await tester.tap(find.text(tr.budgetDashboardFeedBreakdownTitle));
-      await tester.tap(find.text(tr.budgetDashboardFeedScheduleTitle));
-      await tester.tap(find.text(tr.budgetDashboardFeedCateringTitle));
-      await tester.pumpAndSettle();
-
-      expect(breakdownRequested, isTrue);
-      expect(scheduleRequested, isTrue);
-      expect(cateringRequested, isTrue);
-    });
-  });
-
-  group("the financing KPI", () {
-    testWidgets("reads the resources total and how much of it is in kind", (tester) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final tr = await _pumpDashboard(
-        tester,
-        postes: [poste],
-        resources: [
-          _resource(id: "r1", amountCents: 5000),
-          _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 2000),
-        ],
-      );
-
-      expect(find.text(tr.budgetDashboardResourcesTotalLabel.toUpperCase()), findsOneWidget);
-      // The balance bar's own "Resources" figure reads the very same total, so this amount is
-      // drawn twice on screen — see `_OcptDashboardBalanceBar`'s own doc comment.
-      expect(find.text(ocptBudgetAmountLabel(7000, "EUR")), findsWidgets);
-      expect(
-        find.text(tr.budgetDashboardResourcesInKindCaption(ocptBudgetAmountLabel(2000, "EUR"))),
+        find.text("${tr.budgetDashboardBalanceNeedsLabel} ${ocptBudgetAmountLabel(10000, "EUR")}"),
         findsOneWidget,
       );
+    });
+
+    testWidgets("reads tax-inclusive regardless of the header's basis toggle", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 12345);
+
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        taxBasis: OcptBudgetTaxBasis.excludingTax,
+      );
+
+      // The Devis total tile follows the header's own (excluding-tax) basis and cannot answer this
+      // line's own tax-inclusive amount, so only the balance card's own needs line can be showing
+      // it, tax-inclusive always.
+      expect(
+        find.text("${tr.budgetDashboardBalanceNeedsLabel} ${ocptBudgetAmountLabel(12345, "EUR")}"),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group("the alerts card", () {
+    testWidgets("draws no card at all for a project raising no alert", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final tr = await _pumpDashboard(tester, postes: [poste]);
+
+      expect(find.text(tr.budgetDashboardAlertsSectionTitle), findsNothing);
+    });
+
+    testWidgets("a poste over its quote draws its own badge, message and the variance printed negative", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final alert = const OcptBudgetPosteOverQuoteAlert(
+        posteId: "poste-1",
+        quotedAmountCents: 10000,
+        paidCents: 7000,
+        committedCents: 5000,
+        varianceCents: 2000,
+      );
+
+      final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
+
+      expect(find.text(tr.budgetDashboardAlertsSectionTitle), findsOneWidget);
+      expect(find.text(tr.budgetDashboardOverrunBadge), findsOneWidget);
+      expect(
+        find.text(
+          tr.budgetDashboardPosteOverQuoteAlertMessage(
+            "Camera",
+            ocptBudgetAmountLabel(12000, "EUR"),
+            ocptBudgetAmountLabel(10000, "EUR"),
+            ocptBudgetAmountLabel(2000, "EUR"),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(ocptBudgetAmountLabel(-2000, "EUR")), findsOneWidget);
+    });
+
+    testWidgets("its own row selects the poste and switches the centre view", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final alert = const OcptBudgetPosteOverQuoteAlert(
+        posteId: "poste-1",
+        quotedAmountCents: 10000,
+        paidCents: 12000,
+        committedCents: 0,
+        varianceCents: 2000,
+      );
+
+      String? selectedPosteId;
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        alerts: [alert],
+        onPosteOpened: (posteId) => selectedPosteId = posteId,
+      );
+
+      // No button — the row itself, tapped through its own badge, is the click target.
+      await tester.tap(find.text(tr.budgetDashboardOverrunBadge));
+      await tester.pumpAndSettle();
+
+      expect(selectedPosteId, "poste-1");
+    });
+
+    testWidgets("a dated cash instalment prints the balance, the date and the amount falling due", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final alert = OcptBudgetCashProjectionNegativeAlert(
+        balanceCents: 5000,
+        dueDate: DateTime(2026, 3, 15),
+        fallingDueCents: 8000,
+        balanceAfterCents: -3000,
+      );
+
+      final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
+
+      expect(find.text(tr.budgetDashboardCashAlertBadge), findsOneWidget);
+      expect(find.textContaining(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
+      expect(find.textContaining(ocptBudgetAmountLabel(8000, "EUR")), findsWidgets);
+    });
+
+    testWidgets("an undated cash instalment words the message differently, never an empty date", (
+      tester,
+    ) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      const alert = OcptBudgetCashProjectionNegativeAlert(
+        balanceCents: 1000,
+        dueDate: null,
+        fallingDueCents: 6000,
+        balanceAfterCents: -5000,
+      );
+
+      final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
+
+      expect(
+        find.text(
+          tr.budgetDashboardCashNegativeAlertMessageUndated(
+            ocptBudgetAmountLabel(1000, "EUR"),
+            ocptBudgetAmountLabel(6000, "EUR"),
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("its own row switches the centre view, with no poste to select", (tester) async {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      const alert = OcptBudgetCashProjectionNegativeAlert(
+        balanceCents: 1000,
+        dueDate: null,
+        fallingDueCents: 6000,
+        balanceAfterCents: -5000,
+      );
+
+      var wasRequested = false;
+      final tr = await _pumpDashboard(
+        tester,
+        postes: [poste],
+        alerts: [alert],
+        onCashAlertActionRequested: () => wasRequested = true,
+      );
+
+      await tester.tap(find.text(tr.budgetDashboardCashAlertBadge));
+      await tester.pumpAndSettle();
+
+      expect(wasRequested, isTrue);
     });
   });
 }

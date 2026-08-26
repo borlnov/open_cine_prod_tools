@@ -725,20 +725,16 @@ class _BudgetViewState extends State<_BudgetView> {
       ..add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.regie));
   }
 
-  /// Builds the dashboard: the whole project's standing reading, opened by default.
+  /// Builds the dashboard: the summary of the other pages, opened by default.
   ///
-  /// **Every callback it needs is one this file already has a handler for** — a dashboard poste row
-  /// and the poste-over-quote alert's own action both reuse [_handleDashboardPosteOpened], which
-  /// selects the poste and switches to [OcptBudgetView.expenses] in one gesture (see
-  /// `OcptBudgetDashboard.onPosteOpened`'s own doc comment for why the two used to differ and no
-  /// longer do); the cash-negative alert's own action reuses [_handleCashAlertActionRequested],
-  /// opening the tools drawer's own `Flux de trésorerie` page — the very reading it answers; the
-  /// three feed rows reuse
-  /// [_handleBreakdownFeedRequested]/[_handleScheduleFeedRequested]/[_handleCateringFeedRequested]
-  /// exactly as the cost-tracking table's own feed card already does.
+  /// **Every callback it needs is one this file already has a handler for** — a dashboard alert
+  /// row's own poste-over-quote action reuses [_handleDashboardPosteOpened], which selects the
+  /// poste and switches to [OcptBudgetView.expenses] in one gesture (see
+  /// `OcptBudgetDashboard.onPosteOpened`'s own doc comment for why a plain selection would not be
+  /// enough); the cash-negative alert's own row reuses [_handleCashAlertActionRequested], opening
+  /// the tools drawer's own `Flux de trésorerie` page — the very reading it answers.
   Widget _buildDashboard(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
-    final elementLinkCounts = state.elementLinkCounts;
 
     return OcptBudgetDashboard(
       postes: state.postes,
@@ -751,23 +747,14 @@ class _BudgetViewState extends State<_BudgetView> {
       committedByPosteId: state.committedByPosteId,
       alerts: state.alerts,
       resources: state.resources,
-      breakdownPricedElementCount: elementLinkCounts.pricedCount,
-      breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
-      shootingDayCount: state.regieDays.length,
-      mealCount: state.regieTotals.mealCount,
-      buffetCount: state.regieTotals.buffetCount,
       onPosteOpened: (posteId) => _handleDashboardPosteOpened(bloc, posteId),
       onCashAlertActionRequested: () => _handleCashAlertActionRequested(bloc),
-      onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
-      onScheduleFeedRequested: () => _handleScheduleFeedRequested(context),
-      onCateringFeedRequested: () => _handleCateringFeedRequested(bloc),
     );
   }
 
-  /// A dashboard poste row is a link to where the poste is worked on, not a selection of its own —
+  /// A dashboard alert row is a link to where the poste is worked on, not a selection of its own —
   /// see `OcptBudgetDashboard.onPosteOpened`'s own doc comment. Selects [posteId] and switches to
-  /// [OcptBudgetView.expenses] in the same gesture — the very reading the header's own
-  /// poste-over-quote alert action gave before the alerts moved to the dashboard with it.
+  /// [OcptBudgetView.expenses] in the same gesture.
   void _handleDashboardPosteOpened(OcptBudgetBloc bloc, String posteId) {
     bloc
       ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))

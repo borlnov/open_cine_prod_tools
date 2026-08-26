@@ -234,35 +234,41 @@ void main() {
       expect(find.byType(OcptBudgetCaptureBand), findsNothing);
     });
 
-    testWidgets("a poste row selects the poste and lands on the cost report", (tester) async {
-      tester.view.physicalSize = const Size(1750, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      "its own onPosteOpened wiring selects the poste and lands on the cost report",
+      (tester) async {
+        tester.view.physicalSize = const Size(1750, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+        await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+        // A fresh project seeds ten postes but no alert, so the dashboard's only poste-linking
+        // gesture — an over-quote alert row — draws nothing yet
+        // (`ocpt_budget_dashboard_test.dart` covers that row's own click end to end once an alert
+        // exists). What this integration needs is that `budget_mode.dart`'s own wiring of
+        // `OcptBudgetDashboard.onPosteOpened` still selects the poste and switches to Expenses, so
+        // it is invoked directly on the mounted widget rather than through a tap.
+        final dashboard = tester.widget<OcptBudgetDashboard>(find.byType(OcptBudgetDashboard));
+        final posteId = dashboard.postes
+            .firstWhere((poste) => poste.label == tr.budgetCncPosteArtisticRights)
+            .id;
 
-      // Scoped to the dashboard itself, so a bare `find.text` proves the tap actually landed on
-      // this row rather than a same-named one elsewhere on screen.
-      await tester.tap(
-        find.descendant(
-          of: find.byType(OcptBudgetDashboard),
-          matching: find.text(tr.budgetCncPosteArtisticRights),
-        ),
-      );
-      await tester.pumpAndSettle();
+        dashboard.onPosteOpened(posteId);
+        await tester.pumpAndSettle();
 
-      // Landed on the cost report — a dashboard row is a link to where the poste is worked on,
-      // not a selection that opens the fiche over the dashboard itself.
-      expect(find.byType(OcptBudgetDashboard), findsNothing);
-      expect(find.byType(OcptBudgetCostTracking), findsOneWidget);
+        // Landed on the cost report — a dashboard row is a link to where the poste is worked on,
+        // not a selection that opens the fiche over the dashboard itself.
+        expect(find.byType(OcptBudgetDashboard), findsNothing);
+        expect(find.byType(OcptBudgetCostTracking), findsOneWidget);
 
-      // And the poste it names is the very one selected — the fiche opened on it.
-      expect(find.byType(OcptBudgetFiche), findsOneWidget);
-    });
+        // And the poste it names is the very one selected — the fiche opened on it.
+        expect(find.byType(OcptBudgetFiche), findsOneWidget);
+      },
+    );
   });
 
   testWidgets("the simplified switch swaps every poste's label and hides the N° column", (
