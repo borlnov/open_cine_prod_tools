@@ -47,6 +47,15 @@ const double _ocptBudgetSegmentPadding = 12;
 /// [alertCount], a count badge on the view switch's own `Tableau de bord` segment, so the news
 /// stays reachable from every other view without repeating the alert cards themselves in two
 /// places.
+///
+/// **The band's own trailing primary button replaces `OcptBudgetCaptureBand`.** [captureLabel] and
+/// [onCaptureRequested] travel together, pushed to the right end of the band after every other
+/// control (mockups `4c`/`4d`) — a view with no capture at all (the dashboard, `tools ›
+/// cashFlow`) hands in null and this header draws nothing there, and, under a previewed version,
+/// `budget_mode.dart` hands in null too: **withheld whole, never disabled**, the standing rule for
+/// an affordance a preview takes away. This header itself needs no `isReadOnly` flag of its own for
+/// that — the mode already decides what to hand in, exactly as it always has for every other
+/// contextual control here.
 class OcptBudgetHeader extends StatelessWidget {
   /// Which of the mode's four chips is currently shown.
   final OcptBudgetView view;
@@ -89,6 +98,12 @@ class OcptBudgetHeader extends StatelessWidget {
   /// drawn as an empty pill, while it is zero.
   final int alertCount;
 
+  /// The band's own trailing primary button, or null to draw none — see the class doc comment.
+  final String? captureLabel;
+
+  /// Called when [captureLabel]'s own button is clicked — null exactly when [captureLabel] is.
+  final VoidCallback? onCaptureRequested;
+
   /// Class constructor
   const OcptBudgetHeader({
     super.key,
@@ -104,11 +119,14 @@ class OcptBudgetHeader extends StatelessWidget {
     required this.filterPosteId,
     required this.onPosteFilterCleared,
     required this.alertCount,
+    required this.captureLabel,
+    required this.onCaptureRequested,
   });
 
   @override
   Widget build(BuildContext context) {
     final filtered = postes.where((poste) => poste.id == filterPosteId).firstOrNull;
+    final captureLabel = this.captureLabel;
 
     final controls = <Widget>[
       _OcptBudgetViewSwitch(value: view, onChanged: onViewSelected, alertCount: alertCount),
@@ -128,11 +146,26 @@ class OcptBudgetHeader extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 12,
-        runSpacing: 8,
-        children: controls,
+      child: Row(
+        children: [
+          Expanded(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
+              children: controls,
+            ),
+          ),
+          if (captureLabel != null) ...[
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              key: const Key("ocptBudgetHeaderCaptureButton"),
+              onPressed: onCaptureRequested,
+              icon: const Icon(Icons.add, size: 16),
+              label: Text(captureLabel),
+            ),
+          ],
+        ],
       ),
     );
   }

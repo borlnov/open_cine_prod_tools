@@ -16,8 +16,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_capture_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
@@ -222,7 +222,7 @@ void main() {
       expect(find.byType(OcptBudgetCostTracking), findsNothing);
     });
 
-    testWidgets("carries no capture band of its own", (tester) async {
+    testWidgets("carries no header capture button of its own", (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -231,7 +231,7 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
-      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
     });
 
     testWidgets(
@@ -326,8 +326,8 @@ void main() {
   });
 
   testWidgets(
-    "creating an entry through the capture band shows it in the tools drawer's own cash flow "
-    "page",
+    "creating an entry through the header's own capture button shows it in the tools drawer's "
+    "own cash flow page",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -335,20 +335,29 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       // The tools drawer's own cash flow page is now a read-only statement, carrying no capture
-      // affordance of its own — the daily gesture is the capture band mounted on `expenses`.
+      // affordance of its own — the daily gesture is the header's own button, opening the wizard.
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       await openExpenses(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
+      await tester.pumpAndSettle();
+
+      // Step 1 opens with `expense` already selected — one click reaches step 2.
+      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsOneWidget);
+      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byKey(const Key("ocptBudgetCaptureBandWordingField")),
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
         "Camera rental",
       );
       await tester.enterText(
-        find.byKey(const Key("ocptBudgetCaptureBandAmountField")),
+        find.byKey(const Key("ocptBudgetEntryWizardAmountField")),
         "50.00",
       );
-      await tester.tap(find.byKey(const Key("ocptBudgetCaptureBandSaveButton")));
+      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
       await tester.pumpAndSettle();
 
       await openCashFlow(tester);
@@ -400,6 +409,54 @@ void main() {
     expect(find.text("To be deleted"), findsNothing);
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
   });
+
+  testWidgets(
+    "editing a cash-journal entry opens the wizard on step 2 directly, its nature recalled",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026),
+        label: "Bank fees",
+        debitCents: 500,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openCashFlow(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      await tester.tap(find.byType(PopupMenuButton<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.budgetFinancingEditAction));
+      await tester.pumpAndSettle();
+
+      // Step 2 directly — no nature card, no Continuer, and the label field already reads the
+      // entry's own value.
+      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
+      expect(find.widgetWithText(TextFormField, "Bank fees"), findsOneWidget);
+
+      // The entry names no poste, resource, taking or share, so its nature is inferred as `Autre
+      // mouvement` — recalled here, with a link back to step 1.
+      expect(find.text(tr.budgetEntryNatureOtherLabel), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetEntryWizardChangeNatureLink")), findsOneWidget);
+
+      // Following the link reaches step 1, `Autre mouvement` still the one card on screen this
+      // entry's own nature was inferred as — `Continuer` is offered, so a card is indeed selected.
+      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardChangeNatureLink")));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsOneWidget);
+      final continueButton = tester.widget<FilledButton>(
+        find.byKey(const Key("ocptBudgetEntryWizardContinueButton")),
+      );
+      expect(continueButton.onPressed, isNotNull);
+    },
+  );
 
   testWidgets(
     "undoing a receipt against a financing resource asks through OcptConfirmDialog, then "
@@ -678,9 +735,8 @@ void main() {
       expect(find.widgetWithText(TextFormField, "Camera deposit"), findsOneWidget);
       expect(find.widgetWithText(TextFormField, "50.00"), findsOneWidget);
 
-      // Scoped to the dialog itself: the capture band sits on this very same document and reuses
-      // this very same `Save` label for its own button, so an unscoped finder is ambiguous the
-      // moment both are on screen at once.
+      // Scoped to the dialog itself, defensively — nothing else on this page reads the very same
+      // `Save` label, but every other tap in this file already scopes the same way.
       await tester.tap(inPanel(find.text(tr.budgetEntryDialogConfirmAction)));
       await tester.pumpAndSettle();
 
@@ -706,6 +762,61 @@ void main() {
       // was.
       await openCashFlow(tester);
       expect(find.text("Camera deposit"), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    "accepting the wizard's own reconciliation strip on a commitment settles it, exactly as "
+    "Settle does",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final posteId = await projectsManager.budgetQuoteService.createPoste(
+        database: project.database,
+        label: "Camera",
+      );
+      expect(posteId, isNotNull);
+      await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId!,
+        label: "Atelier Verrier",
+        amountCents: 25000,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+      await openExpenses(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      // The header's own button opens step 1 on `expense`, already a debit — one click to step 2.
+      await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")));
+      await tester.pumpAndSettle();
+
+      // Typed to match the commitment on both amount and wording — the strip appears once both
+      // the amount and the label read as saveable.
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        "Atelier Verrier",
+      );
+      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "250.00");
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")), findsOneWidget);
+      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")));
+      await tester.pumpAndSettle();
+
+      // The commitment reads Settled, exactly as the dedicated Settle gesture leaves it — the
+      // wizard's own accepted-suggestion mapping in `budget_mode.dart` named its poste and tax
+      // basis, which only a commitment settlement (not a plain entry) ever does.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetCommittedStatusSettledLabel), findsOneWidget);
     },
   );
 
@@ -1012,8 +1123,8 @@ void main() {
   });
 
   testWidgets(
-    "the capture band is offered on expenses and resources, absent everywhere in the tools "
-    "drawer",
+    "the header's own capture button is offered on every writing surface, drawn on its own view "
+    "and no other",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -1022,127 +1133,111 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      // The mode opens on the dashboard, which carries no capture band of its own — driven onto
-      // expenses explicitly, where the band shows.
+      // The mode opens on the dashboard, which offers no capture at all.
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
+
       await openExpenses(tester);
-      expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
+      expect(find.text(tr.budgetHeaderCaptureExpenseAction), findsOneWidget);
 
-      // Resources.
       await openResources(tester);
-      expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
+      expect(find.text(tr.budgetHeaderCaptureFinancingAction), findsOneWidget);
 
-      // The tools drawer's own three pages all carry no capture band: cash flow is now a
-      // read-only statement, régie is not a stage of anything, and sharing reads figures already
-      // captured elsewhere.
+      // The tools drawer's own cash flow page offers none either — it is a read-only statement.
       await openCashFlow(tester);
-      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
       await openRegie(tester);
-      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+      expect(find.text(tr.budgetHeaderCaptureAllowanceAction), findsOneWidget);
 
       await openSharing(tester);
-      expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+      expect(find.text(tr.budgetHeaderCapturePayoutAction), findsOneWidget);
     },
   );
 
   testWidgets(
-    "the capture band's draft starts fresh when the direction changes between expenses and "
-    "resources",
+    "the régie's own header button opens the very same défraiement dialog as its own creation "
+    "button inside the page — two doors, not one moved",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
+      // The défraiements section — and its own creation button — draws nothing at all while the
+      // régie holds neither a shooting day nor a defrayal yet: one is seeded so both doors are on
+      // screen to compare.
+      final project = projectsManager.currentProject!;
+      await projectsManager.budgetAllowancesService.createAllowance(
+        database: project.database,
+        personId: null,
+        kind: OcptBudgetAllowanceKind.other,
+        label: "Taxi",
+        date: DateTime(2026, 3),
+        endDate: null,
+        quantityMilli: 1000,
+        unitAmountMilliCents: 2000000,
+        notes: "",
+      );
+
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
+      await openRegie(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      // The mode opens on the dashboard now, which carries no capture band — driven onto
-      // expenses explicitly, where the band this test types into shows.
-      await openExpenses(tester);
-
-      /// The draft as the band's own controllers hold it, read straight off them rather than
-      /// through `find.text`: a wording echoed by a suggestion row would match that just as well,
-      /// and what this test is about is whether the widget was remounted, not what is on screen.
-      (String wording, String amount) draftOf() => (
-        tester
-            .widget<TextFormField>(find.byKey(const Key("ocptBudgetCaptureBandWordingField")))
-            .controller!
-            .text,
-        tester
-            .widget<TextFormField>(find.byKey(const Key("ocptBudgetCaptureBandAmountField")))
-            .controller!
-            .text,
-      );
-
-      await tester.enterText(
-        find.byKey(const Key("ocptBudgetCaptureBandWordingField")),
-        "Half-typed wording",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetCaptureBandAmountField")), "250.00");
+      // The header's own button.
+      await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
       await tester.pumpAndSettle();
-      expect(draftOf(), ("Half-typed wording", "250.00"));
+      expect(find.text(tr.budgetAllowanceDialogCreateTitle), findsOneWidget);
+      await tester.tap(find.text(tr.budgetEntryDialogCancelAction));
+      await tester.pumpAndSettle();
 
-      // Resources captures a credit instead, so the band remounts there — its draft cleared
-      // rather than carried into a direction it was never typed for.
-      await openResources(tester);
-      expect(draftOf(), ("", ""));
+      // The page's own creation button, inside the défraiements section — still offered.
+      final pageButton = find.text(tr.budgetRegieAllowanceCreationAction);
+      await tester.ensureVisible(pageButton);
+      await tester.pumpAndSettle();
+      await tester.tap(pageButton);
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetAllowanceDialogCreateTitle), findsOneWidget);
     },
   );
 
-  testWidgets("the capture band is withheld everywhere in the tools drawer", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    "the header's own capture button is withheld whole under a previewed version",
+    (tester) async {
+      tester.view.physicalSize = const Size(1750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+      final versionId = version!.id;
+      final previewResult = await projectsManager.previewVersion(versionId);
+      expect(previewResult.status.isSuccess, isTrue);
 
-    await openCashFlow(tester);
-    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
 
-    await openRegie(tester);
-    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+      // Driven onto every route that offers the button while live, so its absence here is the
+      // preview's own doing — not built at all, withheld, never disabled.
+      await openExpenses(tester);
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
-    await openSharing(tester);
-    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
+      await openResources(tester);
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
-    // Back on expenses, it returns.
-    await openExpenses(tester);
-    expect(find.byType(OcptBudgetCaptureBand), findsOneWidget);
-  });
+      await openRegie(tester);
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
-  testWidgets("the capture band is withheld whole under a previewed version", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+      await openSharing(tester);
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-    expect(version, isNotNull);
-    final versionId = version!.id;
-    final previewResult = await projectsManager.previewVersion(versionId);
-    expect(previewResult.status.isSuccess, isTrue);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-
-    // Driven onto the cost report explicitly: a route that offers the band while live, so its
-    // absence here is the preview's own doing, not merely the dashboard's.
-    await openExpenses(tester);
-
-    // Not built at all — withheld, not disabled.
-    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
-
-    // Still absent on resources, the other document that offers it while live.
-    await openResources(tester);
-    expect(find.byType(OcptBudgetCaptureBand), findsNothing);
-
-    // Leave the preview so the working copy is what the next test opens onto.
-    await projectsManager.exitPreview();
-  });
+      // Leave the preview so the working copy is what the next test opens onto.
+      await projectsManager.exitPreview();
+    },
+  );
 
   testWidgets(
     "selecting a poste row opens the fiche without narrowing any view",

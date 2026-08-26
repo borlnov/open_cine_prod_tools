@@ -10696,6 +10696,34 @@
   "@budgetHeaderPosteFilterClearTooltip": {
     "description": "Tooltip of the small clear button on the header's poste filter, shown only while a poste is filtered."
   },
+  "budgetHeaderCaptureExpenseAction": "Enter an expense",
+  "@budgetHeaderCaptureExpenseAction": {
+    "description": "Label of the header's own trailing primary button on the expenses view, opening the entry wizard on the expense nature",
+    "context": "Displayed in the budget mode's own header band",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCaptureFinancingAction": "Enter a receipt",
+  "@budgetHeaderCaptureFinancingAction": {
+    "description": "Label of the header's own trailing primary button on the resources view, opening the entry wizard on the financing nature",
+    "context": "Displayed in the budget mode's own header band",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCaptureAllowanceAction": "Enter a defrayal",
+  "@budgetHeaderCaptureAllowanceAction": {
+    "description": "Label of the header's own trailing primary button on the tools drawer's own régie page, opening OcptBudgetAllowanceDialog — the very door the page's own creation button already opens",
+    "context": "Displayed in the budget mode's own header band",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderCapturePayoutAction": "Pay out a share",
+  "@budgetHeaderCapturePayoutAction": {
+    "description": "Label of the header's own trailing primary button on the tools drawer's own sharing page, opening the entry wizard on the payout nature with no participant chosen yet",
+    "context": "Displayed in the budget mode's own header band",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
   "@budgetStatsPostes": {
     "description": "Poste count of the budget mode, read by both its status band and its dashboard's own quoted-total tile",
@@ -11768,23 +11796,170 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetEntryWizardStepLabel": "Step {current} of 2",
+  "@budgetEntryWizardStepLabel": {
+    "description": "The entry wizard's own step indicator, at the top right of the dialog",
+    "context": "Displayed at the top of OcptBudgetEntryDialog, opposite its own title",
+    "type": "text",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetEntryWizardChangeNatureAction": "change",
+  "@budgetEntryWizardChangeNatureAction": {
+    "description": "Link, under the entry wizard's own title on step 2, returning to step 1 without cancelling the dialog",
+    "context": "Displayed under OcptBudgetEntryDialog's own title on step 2, beside the recalled nature",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryWizardContinueAction": "Continue",
+  "@budgetEntryWizardContinueAction": {
+    "description": "Action of the entry wizard's own step 1 moving to step 2, withheld until a nature card is picked",
+    "context": "Displayed at the bottom of OcptBudgetEntryDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryWizardPosteFieldHint": "Left blank, this field reads {offQuoteLabel} — never nothing at all.",
+  "@budgetEntryWizardPosteFieldHint": {
+    "description": "Hint under the entry wizard's own poste field, naming what an unanswered poste reads as",
+    "context": "Displayed under OcptBudgetEntryDialog's own poste field, on step 2",
+    "type": "text",
+    "placeholders": {
+      "offQuoteLabel": {
+        "type": "String",
+        "example": "Off quote"
+      }
+    }
+  },
+  "budgetEntryNatureExpenseLabel": "I paid for something",
+  "@budgetEntryNatureExpenseLabel": {
+    "description": "Bold answer of the entry wizard's own expense nature card, step 1",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureExpenseHint": "Leaves the account · attaches to a quote poste, and may settle a commitment",
+  "@budgetEntryNatureExpenseHint": {
+    "description": "Muted hint of the entry wizard's own expense nature card, naming its fixed direction and its one link",
+    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own expense nature card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureFinancingLabel": "I received a financing",
+  "@budgetEntryNatureFinancingLabel": {
+    "description": "Bold answer of the entry wizard's own financing nature card, step 1",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureFinancingHint": "Comes into the account · attaches to a subsidy, a contribution, a grant",
+  "@budgetEntryNatureFinancingHint": {
+    "description": "Muted hint of the entry wizard's own financing nature card, naming its fixed direction and its one link",
+    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own financing nature card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureRevenueLabel": "The film earned money",
+  "@budgetEntryNatureRevenueLabel": {
+    "description": "Bold answer of the entry wizard's own revenue nature card, step 1",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureRevenueHint": "Comes into the account · attaches to a taking: a sale, a prize, a broadcast",
+  "@budgetEntryNatureRevenueHint": {
+    "description": "Muted hint of the entry wizard's own revenue nature card, naming its fixed direction and its one link",
+    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own revenue nature card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNaturePayoutLabel": "I paid out someone's share",
+  "@budgetEntryNaturePayoutLabel": {
+    "description": "Bold answer of the entry wizard's own payout nature card, step 1",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNaturePayoutHint": "Leaves the account · attaches to a revenue-sharing participant",
+  "@budgetEntryNaturePayoutHint": {
+    "description": "Muted hint of the entry wizard's own payout nature card, naming its fixed direction and its one link",
+    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own payout nature card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureOtherLabel": "Other movement",
+  "@budgetEntryNatureOtherLabel": {
+    "description": "Bold answer of the entry wizard's own other-movement nature card, step 1 — the one nature that still asks its own direction, in step 2",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureOtherHint": "Bank charges, an internal transfer, a correction · lands under {offQuoteLabel}, the row at the end of the table that is never exported to the quote",
+  "@budgetEntryNatureOtherHint": {
+    "description": "Muted hint of the entry wizard's own other-movement nature card",
+    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own other-movement nature card",
+    "type": "text",
+    "placeholders": {
+      "offQuoteLabel": {
+        "type": "String",
+        "example": "Off quote"
+      }
+    }
+  },
+  "budgetEntryWizardMatchBadgeCommitment": "Committed",
+  "@budgetEntryWizardMatchBadgeCommitment": {
+    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a commitment",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryWizardMatchBadgeDefrayal": "Defrayal",
+  "@budgetEntryWizardMatchBadgeDefrayal": {
+    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a defrayal",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryWizardMatchBadgeResource": "Financing",
+  "@budgetEntryWizardMatchBadgeResource": {
+    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a financing resource",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryWizardMatchBadgeRevenue": "Takings",
+  "@budgetEntryWizardMatchBadgeRevenue": {
+    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a taking",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetEntryDialogCancelAction": "Cancel",
   "@budgetEntryDialogCancelAction": {
-    "description": "Cancel action of the entry dialog",
-    "context": "Displayed at the bottom of OcptBudgetEntryDialog",
+    "description": "Cancel action of the entry wizard's own step 1, closing the whole dialog",
+    "context": "Displayed at the bottom of OcptBudgetEntryDialog's own step 1",
     "type": "text",
     "placeholders": {}
   },
   "budgetEntryDialogConfirmAction": "Save",
   "@budgetEntryDialogConfirmAction": {
-    "description": "Confirm action of the entry dialog",
-    "context": "Displayed at the bottom of OcptBudgetEntryDialog",
+    "description": "Confirm action of the entry dialog's own step 2",
+    "context": "Displayed at the bottom of OcptBudgetEntryDialog's own step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogBackAction": "Back",
+  "@budgetEntryDialogBackAction": {
+    "description": "Action of the entry dialog's own step 2 returning to step 1, its own nature left selected",
+    "context": "Displayed at the bottom of OcptBudgetEntryDialog's own step 2",
     "type": "text",
     "placeholders": {}
   },
   "budgetEntryDialogDirectionFieldLabel": "Movement",
   "@budgetEntryDialogDirectionFieldLabel": {
-    "description": "Label of the entry dialog's own debit/credit direction choice",
+    "description": "Label of the entry dialog's own debit/credit direction choice, drawn only while the Other movement nature is selected — every other nature fixes its own direction and draws no such control at all",
     "context": "Displayed above OcptBudgetEntryDialog's own direction choice",
     "type": "text",
     "placeholders": {}
@@ -11838,9 +12013,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetEntryDialogPosteFieldLabel": "Poste",
+  "budgetEntryDialogPosteFieldLabel": "Quote poste",
   "@budgetEntryDialogPosteFieldLabel": {
-    "description": "Label of the entry dialog's own poste picker",
+    "description": "Label of the entry dialog's own poste picker, offered under the expense and other-movement natures",
     "context": "Displayed above OcptBudgetEntryDialog's own poste picker",
     "type": "text",
     "placeholders": {}
@@ -11849,6 +12024,13 @@
   "@budgetEntryDialogAmountFieldLabel": {
     "description": "Label of the entry dialog's own amount field",
     "context": "Displayed above OcptBudgetEntryDialog's own amount field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogTaxBasisFieldLabel": "Tax basis",
+  "@budgetEntryDialogTaxBasisFieldLabel": {
+    "description": "Label of the entry dialog's own tax-inclusive/exclusive choice",
+    "context": "Displayed above OcptBudgetEntryDialog's own tax-basis choice, beside the date and the amount",
     "type": "text",
     "placeholders": {}
   },
@@ -13853,23 +14035,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpCaptureBandBody": "{title} asks for four things: a direction, an amount, a name, a date. The moment they are typed, the app proposes what the movement settles — {accept} answers in one click, {other} opens the full form instead.",
-  "@budgetHelpCaptureBandBody": {
-    "description": "Paragraph of the budget mode's help panel explaining the capture band, opening the cost-tracking, the cash-journal and the financing views",
-    "context": "Displayed on the budget mode's own Help tab, on the cost-tracking, the cash-journal and the financing views",
-    "type": "text",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      },
-      "accept": {
-        "type": "String"
-      },
-      "other": {
-        "type": "String"
-      }
-    }
-  },
   "budgetHelpDashboardBody1": "This page types nothing: every figure on it is read from the other views. It is where the mode opens, and the one screen that answers \"where does the whole thing stand\" without opening anything.",
   "@budgetHelpDashboardBody1": {
     "description": "First paragraph of the budget mode's help panel for the dashboard view",
@@ -14170,59 +14335,10 @@
     "placeholders": {}
   },
 
-  "budgetCaptureBandTitle": "What's just moved?",
-  "@budgetCaptureBandTitle": {
-    "description": "Title of the capture band, above its own direction choice",
-    "context": "Displayed at the top of OcptBudgetCaptureBand, on expenses and on resources",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCaptureBandOutOption": "Out of the account",
-  "@budgetCaptureBandOutOption": {
-    "description": "Label of the capture band's own debit segment — always plain wording, never the isSimplified/detailed pair",
-    "context": "Displayed on OcptBudgetCaptureBand's own direction choice",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCaptureBandInOption": "Into the account",
-  "@budgetCaptureBandInOption": {
-    "description": "Label of the capture band's own credit segment — always plain wording, never the isSimplified/detailed pair",
-    "context": "Displayed on OcptBudgetCaptureBand's own direction choice",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCaptureBandNoSuggestionHint": "The rest — poste, VAT, receipt, what it settles — is proposed here as soon as something matches. Until then, the full form is one click away.",
-  "@budgetCaptureBandNoSuggestionHint": {
-    "description": "Under-band hint shown while no suggestion has been found for the typed draft, pointing at the full-form escape hatch beside Save",
-    "context": "Displayed under OcptBudgetCaptureBand's own fields row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCaptureBandWhyAmountClause": "same amount",
-  "@budgetCaptureBandWhyAmountClause": {
-    "description": "One clause of a suggestion's own why line, when the draft's amount matches exactly",
-    "context": "Composed with its siblings into OcptBudgetCaptureBand's own suggestion why line",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCaptureBandWhyDateClause": "same day",
-  "@budgetCaptureBandWhyDateClause": {
-    "description": "One clause of a suggestion's own why line, when the draft's date falls close to the candidate's own",
-    "context": "Composed with its siblings into OcptBudgetCaptureBand's own suggestion why line",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCaptureBandWhyWordingClause": "same wording",
-  "@budgetCaptureBandWhyWordingClause": {
-    "description": "One clause of a suggestion's own why line, when the draft's wording shares a significant word with the candidate's own",
-    "context": "Composed with its siblings into OcptBudgetCaptureBand's own suggestion why line",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetCaptureBandCommitmentHeadlineDated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}, due {date}.",
   "@budgetCaptureBandCommitmentHeadlineDated": {
-    "description": "Headline of a capture band suggestion matching a commitment that carries a due date",
-    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a commitment that carries a due date",
+    "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
     "placeholders": {
       "label": {
@@ -14241,8 +14357,8 @@
   },
   "budgetCaptureBandCommitmentHeadlineUndated": "Settles the commitment « {label} » — {amount}, poste {posteLabel}.",
   "@budgetCaptureBandCommitmentHeadlineUndated": {
-    "description": "Headline of a capture band suggestion matching a commitment that carries no due date",
-    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a commitment that carries no due date",
+    "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
     "placeholders": {
       "label": {
@@ -14258,8 +14374,8 @@
   },
   "budgetCaptureBandResourceHeadline": "Records a receipt against « {label} » — {promised} promised, {received} received, {outstanding} still to come.",
   "@budgetCaptureBandResourceHeadline": {
-    "description": "Headline of a capture band suggestion matching a financing resource",
-    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a financing resource",
+    "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
     "placeholders": {
       "label": {
@@ -14278,8 +14394,8 @@
   },
   "budgetCaptureBandRevenueHeadline": "Records the taking « {label} » — {promised} expected, {received} received, {outstanding} still to come.",
   "@budgetCaptureBandRevenueHeadline": {
-    "description": "Headline of a capture band suggestion matching a taking",
-    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a taking",
+    "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
     "placeholders": {
       "label": {
@@ -14298,8 +14414,8 @@
   },
   "budgetCaptureBandDefrayalHeadline": "Records this as the defrayal « {label} » — {amount}. There is nothing to mark as paid here — only the movement itself is written.",
   "@budgetCaptureBandDefrayalHeadline": {
-    "description": "Headline of a capture band suggestion matching a defrayal — worded to say plainly that nothing is being marked settled, since a defrayal carries no such state",
-    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "description": "Headline of the entry wizard's own reconciliation strip, step 2, matching a defrayal — worded to say plainly that nothing is being marked settled, since a defrayal carries no such state",
+    "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
     "placeholders": {
       "label": {
@@ -14312,28 +14428,10 @@
   },
   "budgetCaptureBandAcceptAction": "That's it",
   "@budgetCaptureBandAcceptAction": {
-    "description": "Primary action of a capture band suggestion row, accepting it",
-    "context": "Displayed by OcptBudgetCaptureBand, one suggestion row",
+    "description": "Primary action of the entry wizard's own reconciliation strip, step 2, accepting it",
+    "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
     "type": "text",
     "placeholders": {}
-  },
-  "budgetCaptureBandOtherAction": "Something else…",
-  "@budgetCaptureBandOtherAction": {
-    "description": "Secondary action beside the capture band's own Save button, opening the full entry dialog prefilled",
-    "context": "Displayed by OcptBudgetCaptureBand's own fields row, whenever the typed draft reads as saveable — whether or not a suggestion was found",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCaptureBandMoreSuggestionsToggle": "{count, plural, one{1 more possibility} other{{count} more possibilities}}",
-  "@budgetCaptureBandMoreSuggestionsToggle": {
-    "description": "Label of the capture band's own discreet expander, offering the suggestions past the first",
-    "context": "Displayed by OcptBudgetCaptureBand, under the first suggestion row, while more than one was found",
-    "type": "text",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
   }
 
 }

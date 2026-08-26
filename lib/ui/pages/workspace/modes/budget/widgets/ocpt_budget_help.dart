@@ -190,17 +190,15 @@ class OcptBudgetHelp extends StatelessWidget {
   /// `docs/architecture/budget.md` states, in plain language, with every cross-reference to a
   /// figure or another route worded exactly as its own label or chip already reads.
   ///
-  /// `expenses`, `tools › cashFlow` and [OcptBudgetView.resources] all open on the capture band's
-  /// own paragraph: the band is mounted above every one of them, at their own top level, and is the
-  /// daily gesture the mode exists for (`OcptBudgetCaptureBand`'s own class doc comment).
-  ///
-  /// **[OcptBudgetView.dashboard] does not open on the capture band's own paragraph, unlike those
-  /// three.** It carries no capture band of its own (`OcptBudgetMode._captureBandDirectionOf`), so
-  /// the paragraph every other body opens with would be describing a control this page does not
-  /// draw; its own four paragraphs instead work through what the chain above already introduces —
-  /// the tiles, the needs/resources balance band and the standing alerts, each in the order they
-  /// draw. There is no fifth paragraph for a feed card any more: the dashboard summarises the other
-  /// pages and nothing else, and a card that only ever navigated elsewhere left with it.
+  /// **No route opens on a shared capture-band paragraph any more.** `OcptBudgetCaptureBand` is
+  /// gone: `expenses` and `resources` now carry their own header button opening the entry wizard,
+  /// `tools › cashFlow` carries none at all, and each of the three describes what it draws through
+  /// its own paragraphs rather than a shared opening line about a control only two of them still
+  /// have. [OcptBudgetView.dashboard]'s own four paragraphs work through what the chain above
+  /// already introduces — the tiles, the needs/resources balance band and the standing alerts, each
+  /// in the order they draw. There is no fifth paragraph for a feed card any more: the dashboard
+  /// summarises the other pages and nothing else, and a card that only ever navigated elsewhere
+  /// left with it.
   List<String> _bodyOf(Tr tr) => switch ((view, toolsView)) {
     (OcptBudgetView.dashboard, _) => [
       tr.budgetHelpDashboardBody1,
@@ -216,7 +214,6 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel),
     ],
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => [
-      _captureBandBody(tr),
       tr.budgetHelpCashJournalIntro(tr.budgetHeaderExpensesSegmentLabel),
       tr.budgetHelpCashJournalBody1(tr.budgetCashJournalColumnDebit, tr.budgetCashJournalColumnCredit),
       tr.budgetHelpCashJournalBody2(tr.budgetCostTrackingOffQuoteLabel),
@@ -224,7 +221,6 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpCashJournalBody4,
     ],
     (OcptBudgetView.expenses, _) => [
-      _captureBandBody(tr),
       tr.budgetHelpCostTrackingBody1(tr.budgetCostTrackingColumnQuote),
       tr.budgetHelpCostTrackingBody2(tr.budgetCostTrackingColumnPaid, tr.budgetCostTrackingColumnCommitted),
       tr.budgetHelpCostTrackingBody3(tr.budgetCostTrackingOffQuoteLabel, tr.budgetCostTrackingColumnPaid),
@@ -246,7 +242,6 @@ class OcptBudgetHelp extends StatelessWidget {
       ),
     ],
     (OcptBudgetView.resources, _) => [
-      _captureBandBody(tr),
       tr.budgetHelpFinancingBody1,
       tr.budgetHelpFinancingBody2(tr.budgetFinancingColumnDossier, tr.budgetFinancingRecordReceiptAction),
       tr.budgetHelpFinancingBody3,
@@ -265,16 +260,6 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpSharingBody3,
     ],
   };
-
-  /// The capture band's own paragraph — worded against its own labels
-  /// (`OcptBudgetCaptureBand`'s `budgetCaptureBandTitle`/`budgetCaptureBandAcceptAction`/
-  /// `budgetCaptureBandOtherAction`) rather than the util it calls, exactly as every other
-  /// cross-reference here points at a label rather than at the rule behind it.
-  String _captureBandBody(Tr tr) => tr.budgetHelpCaptureBandBody(
-    tr.budgetCaptureBandTitle,
-    tr.budgetCaptureBandAcceptAction,
-    tr.budgetCaptureBandOtherAction,
-  );
 }
 
 /// The chain every route but `tools › regie` opens with: the states the current route's own

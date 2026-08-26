@@ -52,6 +52,8 @@ void main() {
     String? filterPosteId,
     VoidCallback? onPosteFilterCleared,
     int alertCount = 0,
+    String? captureLabel,
+    VoidCallback? onCaptureRequested,
   }) async {
     await tester.pumpWidget(
       _wrap(
@@ -68,6 +70,8 @@ void main() {
           filterPosteId: filterPosteId,
           onPosteFilterCleared: onPosteFilterCleared ?? () {},
           alertCount: alertCount,
+          captureLabel: captureLabel,
+          onCaptureRequested: onCaptureRequested,
         ),
       ),
     );
@@ -343,6 +347,31 @@ void main() {
 
       expect(find.text("Interpretation"), findsNothing);
       expect(find.byIcon(Icons.close), findsNothing);
+    });
+  });
+
+  group("the trailing capture button", () {
+    testWidgets("draws nothing at all while captureLabel is null", (tester) async {
+      useWideWindow(tester);
+      await pumpHeader(tester);
+
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
+    });
+
+    testWidgets("draws the label and reports a click, while set", (tester) async {
+      useWideWindow(tester);
+      var wasCalled = false;
+      await pumpHeader(
+        tester,
+        captureLabel: "Enter an expense",
+        onCaptureRequested: () => wasCalled = true,
+      );
+
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
+      expect(find.text("Enter an expense"), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
+      expect(wasCalled, isTrue);
     });
   });
 
