@@ -40,7 +40,11 @@ const double _ocptDashboardBarHeight = 6;
 ///
 /// [alerts] — [ocptComputeBudgetAlerts]'s own answer, carried by the state rather than recomputed
 /// here — draws **no card at all** while it is empty: a project raising no alert shows nothing
-/// under its balance band, exactly as a project with no poste shows no dashboard at all.
+/// under its balance band.
+///
+/// The page itself gives way to [OcptWorkspaceEmptyMode] only for a project holding **nothing this
+/// page reads** — no poste, no financing resource and no journal entry. See the comment on that
+/// test in [build] for why the quote alone is not the question.
 class OcptBudgetDashboard extends StatelessWidget {
   /// Every live poste, in display order.
   final List<OcptBudgetPoste> postes;
@@ -113,7 +117,14 @@ class OcptBudgetDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    if (postes.isEmpty) {
+    // **The empty state answers "this project holds nothing at all", never "it holds no poste".**
+    // A production records its financing before it writes a quote as often as the other way round,
+    // and gating this page on the quote alone hid every figure it had already typed behind an
+    // invitation to start a different document — while leaving the balance band's own "no quote to
+    // measure the financing plan against yet" branch, which exists for exactly that production,
+    // almost unreachable. Every reading below stands on nothing: a quote with no poste totals zero
+    // over zero lines, and the tiles say so rather than guessing.
+    if (postes.isEmpty && resources.isEmpty && cashTotals.entryCount == 0) {
       return OcptWorkspaceEmptyMode(icon: Icons.payments_outlined, message: tr.budgetDashboardEmptyHint);
     }
 

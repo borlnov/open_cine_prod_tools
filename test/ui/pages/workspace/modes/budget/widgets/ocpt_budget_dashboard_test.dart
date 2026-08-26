@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
@@ -639,6 +640,56 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(wasRequested, isTrue);
+    });
+  });
+
+  group("the empty state", () {
+    testWidgets("answers only for a project holding nothing this page reads", (tester) async {
+      final tr = await _pumpDashboard(tester, postes: const []);
+
+      expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
+      expect(find.text(tr.budgetDashboardEmptyHint), findsOneWidget);
+    });
+
+    testWidgets("a production that recorded its financing first still reads it", (tester) async {
+      // Financing before a quote is an ordinary order of work, and the page that summarises the
+      // project must not hide what has already been typed behind an invitation to start elsewhere.
+      final tr = await _pumpDashboard(
+        tester,
+        postes: const [],
+        resources: [_resource(id: "r1", amountCents: 620000)],
+      );
+
+      expect(find.byType(OcptWorkspaceEmptyMode), findsNothing);
+      expect(find.text(tr.budgetDashboardFinancingLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(620000, "EUR")), findsOneWidget);
+      expect(
+        find.text(
+          "${tr.budgetDashboardBalanceResourcesLabel} ${ocptBudgetAmountLabel(620000, "EUR")}",
+        ),
+        findsOneWidget,
+      );
+
+      // And the balance band says it has no quote to measure that plan against, rather than
+      // declaring the plan sufficient against a quote nobody has begun.
+      expect(find.text(tr.budgetDashboardBalanceNoQuoteMessage), findsOneWidget);
+    });
+
+    testWidgets("a project with movements but no quote still reads its balance", (tester) async {
+      final tr = await _pumpDashboard(
+        tester,
+        postes: const [],
+        cashTotals: const OcptBudgetCashTotals(
+          debitCents: 0,
+          creditCents: 800000,
+          coveredEntryCount: 1,
+          entryCount: 1,
+        ),
+      );
+
+      expect(find.byType(OcptWorkspaceEmptyMode), findsNothing);
+      expect(find.text(tr.budgetDashboardCashBalanceLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(ocptBudgetAmountLabel(800000, "EUR")), findsOneWidget);
     });
   });
 }
