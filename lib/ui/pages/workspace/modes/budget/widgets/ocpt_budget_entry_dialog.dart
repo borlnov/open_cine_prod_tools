@@ -335,7 +335,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     }
 
     if (existing != null || _hasLink(_posteId, _resourceId, _revenueId, _shareId)) {
-      _nature = _natureOfLinks(
+      _nature = ocptBudgetEntryNatureOfLinks(
+        isDebit: _isDebit,
         posteId: _posteId,
         resourceId: _resourceId,
         revenueId: _revenueId,
@@ -361,30 +362,6 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// step 1.
   bool _hasLink(String? posteId, String? resourceId, String? revenueId, String? shareId) =>
       posteId != null || resourceId != null || revenueId != null || shareId != null;
-
-  /// The nature implied by which of the four link fields is set — [OcptBudgetEntryNature.other]
-  /// while none is, exactly the nature built for that case. An entry never attaches to more than
-  /// one of the four, so the order below only matters defensively.
-  OcptBudgetEntryNature _natureOfLinks({
-    required String? posteId,
-    required String? resourceId,
-    required String? revenueId,
-    required String? shareId,
-  }) {
-    if (resourceId != null) {
-      return OcptBudgetEntryNature.financing;
-    }
-    if (revenueId != null) {
-      return OcptBudgetEntryNature.revenue;
-    }
-    if (shareId != null) {
-      return OcptBudgetEntryNature.payout;
-    }
-    if (posteId != null) {
-      return OcptBudgetEntryNature.expense;
-    }
-    return OcptBudgetEntryNature.other;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -464,7 +441,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   // Step 1 — mockup `5a`
   // ---------------------------------------------------------------------------------------------
 
-  /// Step 1's own content: the five nature cards, one selected at most.
+  /// Step 1's own content: one card per [OcptBudgetEntryNature], one selected at most.
   Widget _buildNatureStep(BuildContext context, Tr tr) => Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1113,6 +1090,7 @@ String _ocptBudgetEntryNatureLabelOf(Tr tr, OcptBudgetEntryNature nature) => swi
   OcptBudgetEntryNature.financing => tr.budgetEntryNatureFinancingLabel,
   OcptBudgetEntryNature.revenue => tr.budgetEntryNatureRevenueLabel,
   OcptBudgetEntryNature.payout => tr.budgetEntryNaturePayoutLabel,
+  OcptBudgetEntryNature.repayment => tr.budgetEntryNatureRepaymentLabel,
   OcptBudgetEntryNature.other => tr.budgetEntryNatureOtherLabel,
 };
 
@@ -1123,6 +1101,7 @@ String _ocptBudgetEntryNatureHintOf(Tr tr, OcptBudgetEntryNature nature) => swit
   OcptBudgetEntryNature.financing => tr.budgetEntryNatureFinancingHint,
   OcptBudgetEntryNature.revenue => tr.budgetEntryNatureRevenueHint,
   OcptBudgetEntryNature.payout => tr.budgetEntryNaturePayoutHint,
+  OcptBudgetEntryNature.repayment => tr.budgetEntryNatureRepaymentHint,
   OcptBudgetEntryNature.other => tr.budgetEntryNatureOtherHint(tr.budgetCostTrackingOffQuoteLabel),
 };
 

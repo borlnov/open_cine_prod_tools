@@ -11889,6 +11889,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetEntryNatureRepaymentLabel": "I repaid a contribution",
+  "@budgetEntryNatureRepaymentLabel": {
+    "description": "Bold answer of the entry wizard's own repayment nature card, step 1 — the mirror image of the financing card, the same financing resource with the money going the other way",
+    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryNatureRepaymentHint": "Leaves the account · attaches to a repayable financing resource",
+  "@budgetEntryNatureRepaymentHint": {
+    "description": "Muted hint of the entry wizard's own repayment nature card, naming its fixed direction and its one link",
+    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own repayment nature card",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetEntryNatureOtherLabel": "Other movement",
   "@budgetEntryNatureOtherLabel": {
     "description": "Bold answer of the entry wizard's own other-movement nature card, step 1 — the one nature that still asks its own direction, in step 2",

@@ -539,6 +539,23 @@ void main() {
       expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsOneWidget);
     });
 
+    testWidgets("a resource paid back is recalled as a repayment, not as a receipt", (tester) async {
+      // The same row of the financing plan, the money going the other way: reading the link alone
+      // printed "I received a financing" over a movement leaving the account.
+      final existing = _existingEntry(resourceId: "resource-1", debitCents: 500);
+      final tr = await pumpDialog(
+        tester,
+        existing: existing,
+        resources: [_resource(id: "resource-1", label: "Regional grant")],
+      );
+
+      expect(find.text(tr.budgetEntryNatureRepaymentLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryNatureFinancingLabel), findsNothing);
+      // It still asks for the very same link, and asks no direction of its own.
+      expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogDebitOption), findsNothing);
+    });
+
     testWidgets("a taking opens step 2 directly, recalled as the film earned money", (
       tester,
     ) async {

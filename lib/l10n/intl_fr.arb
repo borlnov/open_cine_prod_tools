@@ -1579,6 +1579,8 @@
   "budgetEntryNatureRevenueHint": "Rentre sur le compte · se rattache à une recette : vente, prix, diffusion",
   "budgetEntryNaturePayoutLabel": "J'ai versé sa part à quelqu'un",
   "budgetEntryNaturePayoutHint": "Sort du compte · se rattache à un participant au partage des recettes",
+  "budgetEntryNatureRepaymentLabel": "J'ai remboursé un apport",
+  "budgetEntryNatureRepaymentHint": "Sort du compte · se rattache à un apport remboursable",
   "budgetEntryNatureOtherLabel": "Autre mouvement",
   "budgetEntryNatureOtherHint": "Agios, virement interne, régularisation · atterrit dans « {offQuoteLabel} », la rubrique de fin de tableau qui ne s'exporte pas au devis",
   "budgetEntryWizardMatchBadgeCommitment": "Engagé",
