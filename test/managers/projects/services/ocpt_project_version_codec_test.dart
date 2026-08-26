@@ -872,6 +872,8 @@ void main() {
         resourceId: "resource-1",
         revenueId: "revenue-1",
         shareId: "share-1",
+        commitmentId: "commitment-1",
+        personId: "person-1",
       ),
       OcptBudgetEntryRow(
         id: "entry-2",
@@ -897,7 +899,6 @@ void main() {
         isTaxInclusive: false,
         vatRateBasisPoints: 2000,
         status: OcptBudgetCommitmentStatus.contractSigned,
-        settledEntryId: "entry-1",
       ),
       const OcptBudgetCommitmentRow(
         id: "commitment-2",
@@ -1567,8 +1568,13 @@ void main() {
       expect(liveEntry.voucherNumber, "J-001");
       expect(liveEntry.isDeleted, isFalse);
 
+      expect(liveEntry.commitmentId, "commitment-1");
+      expect(liveEntry.personId, "person-1");
+
       final tombstonedEntry = roundTripped.budgetEntries.firstWhere((row) => row.id == "entry-2");
       expect(tombstonedEntry.posteId, isNull);
+      expect(tombstonedEntry.commitmentId, isNull);
+      expect(tombstonedEntry.personId, isNull);
       expect(tombstonedEntry.isDeleted, isTrue);
 
       final liveCommitment = roundTripped.budgetCommitments.firstWhere(
@@ -1581,14 +1587,12 @@ void main() {
       expect(liveCommitment.isTaxInclusive, isFalse);
       expect(liveCommitment.vatRateBasisPoints, 2000);
       expect(liveCommitment.status, OcptBudgetCommitmentStatus.contractSigned);
-      expect(liveCommitment.settledEntryId, "entry-1");
       expect(liveCommitment.isDeleted, isFalse);
 
       final tombstonedCommitment = roundTripped.budgetCommitments.firstWhere(
         (row) => row.id == "commitment-2",
       );
       expect(tombstonedCommitment.dueDate, isNull);
-      expect(tombstonedCommitment.settledEntryId, isNull);
       expect(tombstonedCommitment.isDeleted, isTrue);
     });
 
@@ -3698,9 +3702,9 @@ void main() {
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewEntry)));
     });
 
-    test('changes when a commitment is settled', () {
+    test('changes when an entry stops naming the commitment it pays', () {
       final payload = buildRichPayload();
-      final settled = OcptProjectVersionPayload(
+      final unsettled = OcptProjectVersionPayload(
         screenplays: payload.screenplays,
         scenes: payload.scenes,
         shots: payload.shots,
@@ -3721,11 +3725,11 @@ void main() {
         roleElements: payload.roleElements,
         budgetPostes: payload.budgetPostes,
         budgetLines: payload.budgetLines,
-        budgetEntries: payload.budgetEntries,
-        budgetCommitments: [
-          payload.budgetCommitments.first.copyWith(settledEntryId: const drift.Value(null)),
-          payload.budgetCommitments.last,
+        budgetEntries: [
+          payload.budgetEntries.first.copyWith(commitmentId: const drift.Value(null)),
+          ...payload.budgetEntries.skip(1),
         ],
+        budgetCommitments: payload.budgetCommitments,
         budgetResources: payload.budgetResources,
         budgetMileageRates: payload.budgetMileageRates,
         budgetRevenues: payload.budgetRevenues,
@@ -3756,9 +3760,9 @@ void main() {
         shootingBlockCandidates: payload.shootingBlockCandidates,
       );
 
-      // A digest that left the commitments out would let a settlement — or the lack of one — go
-      // unnoticed.
-      expect(codec.contentDigest(payload), isNot(codec.contentDigest(settled)));
+      // A digest that left an entry's own commitmentId out would let a settlement — or the lack of
+      // one — go unnoticed.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(unsettled)));
     });
 
     test("changes when a block's crew note is typed", () {
@@ -5235,6 +5239,60 @@ void main() {
         expect(
           result.value!.budgetPostes.map((row) => row.label),
           buildRichPayload().budgetPostes.map((row) => row.label),
+        );
+      },
+    );
+
+    test(
+      "a stored format-30 payload carries a commitment's settling entry onto that entry",
+      () {
+        // Format 30 is the last one where a `budgetCommitments` row named its own settling entry
+        // (`settledEntryId`) rather than the entry naming the commitment it pays.
+        // [_upgradeFormat30To31] carries that fact onto the very entry it named, through its own
+        // freshly materialised `commitmentId`, before the key is dropped from the commitment — a
+        // fifth kind of upgrade step, neither a materialisation, a null nor a removal on its own,
+        // since it moves a fact from one row of one table onto a different row of a different
+        // table. Every `budgetEntries` row also gains a **null** `personId` —
+        // [_upgradeFormat3To4]'s kind, nobody having ever been named as reimbursed by a movement
+        // before this column existed. The fixture is the current encoding with the keys taken back
+        // out (and `settledEntryId` put back on the commitment it was read off) and the format
+        // wound back, rather than a second hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        final entries = [
+          for (final row in encoded["budgetEntries"] as List)
+            ({...row as Map<String, dynamic>}
+              ..remove("commitmentId")
+              ..remove("personId")),
+        ];
+        encoded["budgetEntries"] = entries;
+        final commitments = [
+          for (final row in (encoded["budgetCommitments"] as List).cast<Map<String, dynamic>>())
+            if (row["id"] == "commitment-1") {...row, "settledEntryId": "entry-1"} else row,
+        ];
+        encoded["budgetCommitments"] = commitments;
+        encoded["payloadFormat"] = 30;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(
+          result.value!.budgetEntries.firstWhere((row) => row.id == "entry-1").commitmentId,
+          "commitment-1",
+        );
+        expect(result.value!.budgetEntries.map((row) => row.personId), everyElement(isNull));
+        // An entry no commitment ever named carries nothing over.
+        expect(
+          result.value!.budgetEntries.firstWhere((row) => row.id == "entry-2").commitmentId,
+          isNull,
+        );
+        // And nothing else was disturbed on the way through: the rest of the project came back.
+        expect(
+          result.value!.budgetEntries.map((row) => row.label),
+          buildRichPayload().budgetEntries.map((row) => row.label),
+        );
+        expect(
+          result.value!.budgetCommitments.map((row) => row.label),
+          buildRichPayload().budgetCommitments.map((row) => row.label),
         );
       },
     );

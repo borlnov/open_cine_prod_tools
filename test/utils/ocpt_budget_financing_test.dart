@@ -39,6 +39,8 @@ void main() {
     resourceId: resourceId,
     revenueId: null,
     shareId: null,
+    commitmentId: null,
+    personId: null,
   );
 
   OcptBudgetResource buildResource({

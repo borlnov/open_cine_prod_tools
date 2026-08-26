@@ -54,6 +54,8 @@ OcptBudgetEntry _buildEntry({
   resourceId: resourceId,
   revenueId: null,
   shareId: null,
+  commitmentId: null,
+  personId: null,
 );
 
 /// Builds a poste holding no line, only what this test reads: its own id and label.

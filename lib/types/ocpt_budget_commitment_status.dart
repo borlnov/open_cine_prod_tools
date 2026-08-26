@@ -5,15 +5,15 @@
 /// How far a `budget_commitments` row has progressed towards being paid, the mockup's own four
 /// steps ("Devis accepté / Contrat signé / Facture reçue / Déclaré").
 ///
-/// **There is deliberately no fifth, `settled`, value.** A commitment is settled the moment
-/// `OcptBudgetCommitmentsTable.settledEntryId` names the journal entry that paid it
-/// (`OcptBudgetCommitment.isSettled`) — a status the enum itself also claimed would be a second copy
-/// of the very same fact, kept in step by hand or by a write nobody could guarantee never to forget,
-/// exactly the argument `OcptBudgetPostesTable`'s own doc comment makes against a stored
-/// `quotedAmount`. Reading settlement off the link rather than off a status also means a commitment
-/// can be marked `declared` and settled at once, or settled without ever having been marked
-/// `declared` at all — a production that pays before its paperwork catches up is not a state this
-/// enum has to pretend cannot happen.
+/// **There is deliberately no fifth, `settled`, value.** A commitment is settled the moment the
+/// journal entries naming it (`OcptBudgetEntriesTable.commitmentId`) have paid it in full
+/// (`lib/utils/ocpt_budget_projection.dart`'s own `ocptBudgetCommitmentIsSettledOf`) — a status the
+/// enum itself also claimed would be a second copy of the very same fact, kept in step by hand or by
+/// a write nobody could guarantee never to forget, exactly the argument `OcptBudgetPostesTable`'s own
+/// doc comment makes against a stored `quotedAmount`. Reading settlement off the ledger rather than
+/// off a status also means a commitment can be marked `declared` and settled at once, or settled
+/// without ever having been marked `declared` at all — a production that pays before its paperwork
+/// catches up is not a state this enum has to pretend cannot happen.
 enum OcptBudgetCommitmentStatus {
   /// A quote has been accepted for this spend, but nothing has been signed or paid yet.
   quoteAccepted,

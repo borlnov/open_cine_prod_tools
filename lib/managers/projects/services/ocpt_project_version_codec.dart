@@ -66,7 +66,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 30;
+  static const currentPayloadFormat = 31;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -888,9 +888,16 @@ class OcptProjectVersionCodec {
   /// payload format 18, a `budget_resources.amountCents` column, from a JSON object
   static const _amountCentsKey = "amountCents";
 
-  /// This is the key used to stringify or parse a `budget_commitments.settledEntryId` column from a
-  /// JSON object
+  /// The key a payload-format-30 `budget_commitments` row stored its `settledEntryId` column
+  /// under — the `budget_entries` row it named as the one that settled it. Read only by
+  /// [_upgradeFormat30To31], which carries the fact it stated onto [_commitmentIdKey] on the entry
+  /// it named, before dropping it: the column itself is gone from format 31 on, settlement read off
+  /// `OcptBudgetEntriesTable.commitmentId` instead.
   static const _settledEntryIdKey = "settledEntryId";
+
+  /// This is the key used to stringify or parse a `budget_entries.commitmentId` column from a JSON
+  /// object, from payload format 31: which commitment a debit actually pays.
+  static const _commitmentIdKey = "commitmentId";
 
   /// This is the key used to stringify or parse a `budget_commitments.lineId` column from a JSON
   /// object, from payload format 29: the quote line a commitment was promoted from.
@@ -1012,6 +1019,7 @@ class OcptProjectVersionCodec {
     27: _upgradeFormat27To28,
     28: _upgradeFormat28To29,
     29: _upgradeFormat29To30,
+    30: _upgradeFormat30To31,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -1802,6 +1810,49 @@ class OcptProjectVersionCodec {
       for (final row in _rows(json, _budgetPostesKey)) {...row, _estimateToCompleteCentsKey: null},
     ],
   };
+
+  /// Turns a format-**30** JSON object into a format-**31** one: every `budgetCommitments` row's
+  /// own [_settledEntryIdKey], the one `budgetEntries` row it named as having settled it, is carried
+  /// onto that very entry's own new [_commitmentIdKey] before the key is dropped from the
+  /// commitment — the payload's own half of the schema's own settlement rework, which reads it the
+  /// other way round from here on: an entry names the commitment it pays, never a commitment naming
+  /// the entry that paid it. Every `budgetEntries` row also gains a **null** [_personIdKey] —
+  /// [_upgradeFormat3To4]'s kind, nobody having ever been named as reimbursed by a movement before
+  /// this column existed to name one.
+  ///
+  /// **Neither a materialisation, a null nor a removal on its own — a fifth kind of upgrade step**,
+  /// carrying a fact from one row of one table onto a *different* row of a *different* table rather
+  /// than reshaping a table in place. Nothing is reconstructed and nothing is invented: a commitment
+  /// that named no settling entry carries nothing over, an entry no commitment ever named stays
+  /// exactly as untouched as it already was, and the fold is a plain lookup by id — the very same
+  /// carry-over the schema's own `from < 35` migration step performs on the working copy, so a
+  /// version restored across this boundary and the project it is restored into agree about which
+  /// entry paid which commitment.
+  static Map<String, dynamic> _upgradeFormat30To31(Map<String, dynamic> json) {
+    final settlingEntryIdByCommitmentId = {
+      for (final row in _rows(json, _budgetCommitmentsKey))
+        if (_nullableString(row, _settledEntryIdKey) case final entryId?)
+          _string(row, _idKey): entryId,
+    };
+    final commitmentIdByEntryId = {
+      for (final entry in settlingEntryIdByCommitmentId.entries) entry.value: entry.key,
+    };
+
+    return {
+      ...json,
+      _budgetEntriesKey: [
+        for (final row in _rows(json, _budgetEntriesKey))
+          {
+            ...row,
+            _commitmentIdKey: commitmentIdByEntryId[_string(row, _idKey)],
+            _personIdKey: null,
+          },
+      ],
+      _budgetCommitmentsKey: [
+        for (final row in _rows(json, _budgetCommitmentsKey)) ({...row}..remove(_settledEntryIdKey)),
+      ],
+    };
+  }
 
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
@@ -2850,6 +2901,8 @@ class OcptProjectVersionCodec {
     _resourceIdKey: row.resourceId,
     _revenueIdKey: row.revenueId,
     _shareIdKey: row.shareId,
+    _commitmentIdKey: row.commitmentId,
+    _personIdKey: row.personId,
   };
 
   /// Parses one `budget_entries` row.
@@ -2868,6 +2921,8 @@ class OcptProjectVersionCodec {
     resourceId: _nullableString(json, _resourceIdKey),
     revenueId: _nullableString(json, _revenueIdKey),
     shareId: _nullableString(json, _shareIdKey),
+    commitmentId: _nullableString(json, _commitmentIdKey),
+    personId: _nullableString(json, _personIdKey),
   );
 
   /// Serializes one `budget_commitments` row.
@@ -2882,7 +2937,6 @@ class OcptProjectVersionCodec {
     _isTaxInclusiveKey: row.isTaxInclusive,
     _vatRateBasisPointsKey: row.vatRateBasisPoints,
     _statusKey: row.status.name,
-    _settledEntryIdKey: row.settledEntryId,
     _commitmentLineIdKey: row.lineId,
   };
 
@@ -2899,7 +2953,6 @@ class OcptProjectVersionCodec {
         isTaxInclusive: _bool(json, _isTaxInclusiveKey),
         vatRateBasisPoints: _nullableInt(json, _vatRateBasisPointsKey),
         status: _enum(json, _statusKey, OcptBudgetCommitmentStatus.values.asNameMap()),
-        settledEntryId: _nullableString(json, _settledEntryIdKey),
         lineId: _nullableString(json, _commitmentLineIdKey),
       );
 

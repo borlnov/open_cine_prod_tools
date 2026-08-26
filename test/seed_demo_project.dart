@@ -1158,18 +1158,14 @@ void main() {
       debitCents: 144000,
       vatRateBasisPoints: 2000,
     );
-    final costumesEntryId = (await budgetJournalService.createEntry(
+    await budgetJournalService.createEntry(
       database: database,
       date: DateTime.utc(2026, 9, 20),
       label: "Maison Couronne — period costumes",
       posteId: posteIdOf("5"),
+      commitmentId: costumesCommitmentId,
       debitCents: 180000,
       vatRateBasisPoints: 2000,
-    ))!;
-    await budgetJournalService.updateCommitment(
-      database: database,
-      commitmentId: costumesCommitmentId,
-      settledEntryId: Value(costumesEntryId),
     );
 
     // The premium came in above the line quoted for it, so poste 9 reads over its own quote — the

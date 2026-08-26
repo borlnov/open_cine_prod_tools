@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
@@ -26,7 +27,6 @@ void main() {
     bool isTaxInclusive = true,
     int? vatRateBasisPoints,
     OcptBudgetCommitmentStatus status = OcptBudgetCommitmentStatus.quoteAccepted,
-    String? settledEntryId,
   }) => OcptBudgetCommitment(
     id: id,
     dueDate: dueDate,
@@ -38,9 +38,30 @@ void main() {
       vatRateBasisPoints: vatRateBasisPoints,
     ),
     status: status,
-    settledEntryId: settledEntryId,
     lineId: null,
     sortKey: "V",
+  );
+
+  OcptBudgetEntry buildEntry({
+    required String id,
+    String? commitmentId,
+    int debitCents = 0,
+  }) => OcptBudgetEntry(
+    id: id,
+    date: DateTime(2026),
+    label: "An entry",
+    posteId: null,
+    debitCents: debitCents,
+    creditCents: 0,
+    isTaxInclusive: true,
+    vatRateBasisPoints: null,
+    voucherNumber: "J-001",
+    sortKey: "V",
+    resourceId: null,
+    revenueId: null,
+    shareId: null,
+    commitmentId: commitmentId,
+    personId: null,
   );
 
   OcptBudgetAllowance buildAllowance({
@@ -106,6 +127,7 @@ void main() {
         draftDate: draftDate,
         draftWording: "Couronne",
         commitments: [buildCommitment(id: "c1", label: "Couronne", amountCents: 25000, dueDate: draftDate)],
+        entries: const [],
         allowances: [buildAllowance(id: "a1", label: "Couronne", unitAmountMilliCents: 25000000)],
         resources: [buildResource(id: "r1", label: "Couronne", amountCents: 25000)],
         revenues: [buildRevenue(id: "v1", label: "Couronne", amountCents: 25000)],
@@ -127,6 +149,7 @@ void main() {
         draftDate: draftDate,
         draftWording: "Couronne",
         commitments: [buildCommitment(id: "c1", label: "Couronne", amountCents: 25000, dueDate: draftDate)],
+        entries: const [],
         allowances: [buildAllowance(id: "a1", label: "Couronne", unitAmountMilliCents: 25000000)],
         resources: [buildResource(id: "r1", label: "Couronne", amountCents: 25000)],
         revenues: [buildRevenue(id: "v1", label: "Couronne", amountCents: 25000)],
@@ -160,6 +183,7 @@ void main() {
             dueDate: draftDate.add(const Duration(days: 30)),
           ),
         ],
+        entries: const [],
         allowances: const [],
         resources: const [],
         revenues: const [],
@@ -178,6 +202,7 @@ void main() {
         draftDate: draftDate,
         draftWording: "unrelated",
         commitments: const [],
+        entries: const [],
         allowances: const [],
         resources: [buildResource(id: "no-date", label: "Other", amountCents: 10000)],
         revenues: [
@@ -205,6 +230,7 @@ void main() {
         draftDate: draftDate.add(const Duration(days: 400)),
         draftWording: "loc. caméra couronne",
         commitments: [buildCommitment(id: "c1", label: "COURONNE SARL", amountCents: 1)],
+        entries: const [],
         allowances: const [],
         resources: const [],
         revenues: const [],
@@ -226,6 +252,7 @@ void main() {
         draftDate: draftDate,
         draftWording: "unrelated",
         commitments: const [],
+        entries: const [],
         allowances: const [],
         resources: [buildResource(id: "r1", label: "Camera", amountCents: 10000)],
         revenues: const [],
@@ -250,14 +277,9 @@ void main() {
         draftDate: draftDate,
         draftWording: "unrelated",
         commitments: [
-          buildCommitment(
-            id: "c1",
-            label: "unrelated",
-            amountCents: 25000,
-            dueDate: draftDate,
-            settledEntryId: "entry-1",
-          ),
+          buildCommitment(id: "c1", label: "unrelated", amountCents: 25000, dueDate: draftDate),
         ],
+        entries: [buildEntry(id: "entry-1", commitmentId: "c1", debitCents: 25000)],
         allowances: const [],
         resources: const [],
         revenues: const [],
@@ -276,6 +298,7 @@ void main() {
         draftDate: draftDate,
         draftWording: "unrelated",
         commitments: const [],
+        entries: const [],
         allowances: const [],
         resources: [buildResource(id: "r1", label: "unrelated", amountCents: 10000)],
         revenues: const [],
@@ -303,6 +326,7 @@ void main() {
             dueDate: draftDate.add(const Duration(days: 400)),
           ),
         ],
+        entries: const [],
         allowances: const [],
         resources: const [],
         revenues: const [],
@@ -324,6 +348,7 @@ void main() {
           5,
           (i) => buildCommitment(id: "c$i", label: "unrelated", amountCents: 5000, dueDate: draftDate),
         ),
+        entries: const [],
         allowances: const [],
         resources: const [],
         revenues: const [],

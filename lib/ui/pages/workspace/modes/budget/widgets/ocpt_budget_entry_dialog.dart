@@ -135,9 +135,14 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   /// Every live share of the project, offered by the `Participant` field.
   final List<OcptBudgetShare> shares;
 
-  /// Every live commitment still owed, read only to rank and word the reconciliation strip's own
-  /// suggestions against a debit — see [ocptBudgetMatchSuggestionsOf].
+  /// Every live commitment, read only to rank and word the reconciliation strip's own suggestions
+  /// against a debit — see [ocptBudgetMatchSuggestionsOf].
   final List<OcptBudgetCommitment> commitments;
+
+  /// Every live journal entry, read only for the same reason: what a commitment still owes is read
+  /// off this list, through [ocptBudgetMatchSuggestionsOf]'s own
+  /// `ocptBudgetCommitmentOutstandingCentsOf`.
+  final List<OcptBudgetEntry> entries;
 
   /// Every live defrayal, read only for the same reason.
   final List<OcptBudgetAllowance> allowances;
@@ -173,6 +178,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     this.revenues = const [],
     this.shares = const [],
     this.commitments = const [],
+    this.entries = const [],
     this.allowances = const [],
     this.receivedByResourceId = const {},
     this.receivedByRevenueId = const {},
@@ -195,6 +201,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
     List<OcptBudgetCommitment> commitments = const [],
+    List<OcptBudgetEntry> entries = const [],
     List<OcptBudgetAllowance> allowances = const [],
     Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
     Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
@@ -213,6 +220,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
       revenues: revenues,
       shares: shares,
       commitments: commitments,
+      entries: entries,
       allowances: allowances,
       receivedByResourceId: receivedByResourceId,
       receivedByRevenueId: receivedByRevenueId,
@@ -907,6 +915,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
       draftDate: _date,
       draftWording: draft.wording,
       commitments: widget.commitments,
+      entries: widget.entries,
       allowances: widget.allowances,
       resources: widget.resources,
       revenues: widget.revenues,

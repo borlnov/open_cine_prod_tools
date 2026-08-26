@@ -479,16 +479,19 @@ class OcptBudgetFiche extends StatelessWidget {
     final lineTotalCents = ocptBudgetLineTotalCents(line);
     final commitment = commitments.firstWhereOrNull((commitment) => commitment.lineId == lineId);
     final isPromoted = commitment != null;
-    final isSettled = commitment?.isSettled ?? false;
+    final isSettled =
+        commitment != null &&
+        ocptBudgetCommitmentIsSettledOf(commitment, entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
     final committedCents = commitment == null
         ? null
         : ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: defaultVatRateBasisPoints);
-    final settlementEntry = commitment?.settledEntryId == null
+    // `Payé` only ever reads once this line's own commitment is settled — matching what a single,
+    // exact-amount payment already read before commitments could be paid in instalments: a
+    // commitment still owed something, even partly paid, states nothing here yet.
+    final paidCents = commitment == null || !isSettled
         ? null
-        : entries.firstWhereOrNull((entry) => entry.id == commitment!.settledEntryId);
-    final paidCents = settlementEntry == null
-        ? null
-        : ocptBudgetEntryDebitCentsOf(settlementEntry, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+        : ocptBudgetCommitmentPaidCentsOf(commitment, entries, projectVatRateBasisPoints: defaultVatRateBasisPoints)
+              .amountCents;
 
     final elementName = line.elementId == null ? null : elementNameByElementId[line.elementId];
     final quantityText = ocptBudgetQuantityLabel(line.quantityMilli);
@@ -721,12 +724,18 @@ class OcptBudgetFiche extends StatelessWidget {
       commitment,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final settlementEntry = commitment.settledEntryId == null
-        ? null
-        : entries.firstWhereOrNull((entry) => entry.id == commitment.settledEntryId);
-    final paidCents = settlementEntry == null
-        ? null
-        : ocptBudgetEntryDebitCentsOf(settlementEntry, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+    final isSettled = ocptBudgetCommitmentIsSettledOf(
+      commitment,
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    // Mirrors `_buildLine`'s own reading: `Payé` only ever states a figure once this commitment is
+    // settled, matching what a single, exact-amount payment already read before a commitment could
+    // be paid in instalments.
+    final paidCents = isSettled
+        ? ocptBudgetCommitmentPaidCentsOf(commitment, entries, projectVatRateBasisPoints: defaultVatRateBasisPoints)
+              .amountCents
+        : null;
     final quotedLineCents = line == null ? null : ocptBudgetLineTotalCents(line);
 
     final title = commitment.label.isEmpty ? tr.budgetPosteUnnamed : commitment.label;
@@ -748,15 +757,18 @@ class OcptBudgetFiche extends StatelessWidget {
         tr.budgetInspectorFigureCommitted,
         tr.budgetInspectorFigurePaid,
       ],
-      reachedCount: commitment.isSettled ? 3 : 2,
+      reachedCount: isSettled ? 3 : 2,
       figures: [
         (tr.budgetFicheStepEstimatedLabel, _amount(quotedLineCents)),
         (tr.budgetInspectorFigureCommitted, _amount(cashCents)),
         (tr.budgetInspectorFigurePaid, _amount(paidCents)),
       ],
+      // `cashCents`, not the commitment's own outstanding figure, here and in the `Pay` action
+      // below: this fiche still offers the commitment's own total, unchanged from before — only
+      // [isSettled] itself is now derived from the ledger rather than read off a stored link.
       outstandingLabel: tr.budgetCommittedOutstandingLabel,
-      outstandingValue: commitment.isSettled ? null : _amount(cashCents),
-      primary: isReadOnly || commitment.isSettled || onCommitmentSettleRequested == null
+      outstandingValue: isSettled ? null : _amount(cashCents),
+      primary: isReadOnly || isSettled || onCommitmentSettleRequested == null
           ? null
           : _OcptBudgetFicheAction(
               label: tr.budgetFichePayAction(_amount(cashCents)),
@@ -814,9 +826,9 @@ class OcptBudgetFiche extends StatelessWidget {
     );
     final receipt = receiptsByEntryId[entry.id];
 
-    final settlingCommitment = commitments.firstWhereOrNull(
-      (commitment) => commitment.settledEntryId == entry.id,
-    );
+    final settlingCommitment = entry.commitmentId == null
+        ? null
+        : commitments.firstWhereOrNull((commitment) => commitment.id == entry.commitmentId);
     final settlingResource = entry.resourceId == null
         ? null
         : resources.firstWhereOrNull((resource) => resource.id == entry.resourceId);
@@ -1052,6 +1064,7 @@ class OcptBudgetFiche extends StatelessWidget {
   /// `posteId`'s own committed total, in cents, tax-inclusive — mirrors [_paidCentsOf].
   int _committedCentsOf(String posteId) => ocptBudgetCommittedCentsByPosteId(
     commitments,
+    entries: entries,
     projectVatRateBasisPoints: defaultVatRateBasisPoints,
   )[posteId]?.amountCents ?? 0;
 

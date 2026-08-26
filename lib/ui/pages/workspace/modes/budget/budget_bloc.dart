@@ -1452,10 +1452,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Records commitment `event.commitmentId`'s own payment: creates the journal entry
-  /// `event.fields` describes and, once it exists, points the commitment's own `settledEntryId` at
-  /// it — one dispatched event, two writes, then one reload. A write refused by the preview guard
-  /// (`createEntry` answering null) skips the second write rather than linking a commitment to an
-  /// entry that was never actually created.
+  /// `event.fields` describes, naming this commitment through `commitmentId` — one dispatched
+  /// event, one write, then one reload. Settlement is read back off that link
+  /// (`ocptBudgetCommitmentIsSettledOf`), never written a second time onto the commitment itself.
   Future<void> _onCommitmentSettlementConfirmed(
     OcptBudgetCommitmentSettlementConfirmedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1474,6 +1473,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       resourceId: fields.resourceId,
       revenueId: fields.revenueId,
       shareId: fields.shareId,
+      commitmentId: event.commitmentId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
@@ -1481,20 +1481,19 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
 
     if (entryId != null) {
-      await _budgetJournalService.updateCommitment(
-        database: project.database,
-        commitmentId: event.commitmentId,
-        settledEntryId: Value(entryId),
-      );
       await _writeEntryReceiptChange(project, entryId, fields);
     }
 
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Undoes commitment `event.commitmentId`'s own settlement: clears `settledEntryId` back to null
-  /// alone, the journal entry it named untouched — see
-  /// `OcptBudgetCommitmentUnsettleRequestedEvent`'s own doc comment.
+  /// Undoes commitment `event.commitmentId`'s own settlement: clears `commitmentId` back to null on
+  /// the one live entry that names it, the entry itself left untouched otherwise — see
+  /// `OcptBudgetCommitmentUnsettleRequestedEvent`'s own doc comment. **A single-entry gesture at
+  /// this milestone**: a commitment paid in more than one instalment would need the reader to say
+  /// which one to unlink, which this event carries no way to ask yet, so the first live entry naming
+  /// it found in [OcptBudgetState.entries] is the one unlinked — the very entry a single settlement
+  /// ever produces.
   Future<void> _onCommitmentUnsettleRequested(
     OcptBudgetCommitmentUnsettleRequestedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1504,11 +1503,17 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    await _budgetJournalService.updateCommitment(
-      database: project.database,
-      commitmentId: event.commitmentId,
-      settledEntryId: const Value(null),
-    );
+    final settlingEntry = state.entries
+        .where((entry) => entry.commitmentId == event.commitmentId)
+        .firstOrNull;
+    if (settlingEntry != null) {
+      await _budgetJournalService.updateEntry(
+        database: project.database,
+        entryId: settlingEntry.id,
+        commitmentId: const Value(null),
+      );
+    }
+
     await _applyBudgetSnapshot(emitter, project);
   }
 

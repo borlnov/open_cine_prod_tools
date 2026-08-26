@@ -69,7 +69,6 @@ OcptBudgetCommitment _existingCommitment({
     vatRateBasisPoints: vatRateBasisPoints,
   ),
   status: status,
-  settledEntryId: null,
   lineId: null,
   sortKey: "a0",
 );

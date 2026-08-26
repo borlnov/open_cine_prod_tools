@@ -57,6 +57,15 @@ class OcptBudgetEntry extends Equatable {
   /// sharing.
   final String? shareId;
 
+  /// The commitment this debit actually pays, or null — see
+  /// `OcptBudgetEntriesTable.commitmentId`'s own doc comment: null is the normal case, a movement
+  /// that pays no commitment at all.
+  final String? commitmentId;
+
+  /// The person this debit actually reimburses, or null — see `OcptBudgetEntriesTable.personId`'s
+  /// own doc comment: null is the normal case, a movement that reimburses nobody.
+  final String? personId;
+
   /// This entry's tax triple ([debitCents], [creditCents], [isTaxInclusive],
   /// [vatRateBasisPoints]), read as a single signed cash figure: [OcptMoney.amountCents] is
   /// [creditCents] minus [debitCents], negative when this entry is, on balance, a cost.
@@ -85,6 +94,8 @@ class OcptBudgetEntry extends Equatable {
     required this.resourceId,
     required this.revenueId,
     required this.shareId,
+    required this.commitmentId,
+    required this.personId,
   });
 
   /// Builds an [OcptBudgetEntry] from its stored [row].
@@ -102,6 +113,8 @@ class OcptBudgetEntry extends Equatable {
     resourceId: row.resourceId,
     revenueId: row.revenueId,
     shareId: row.shareId,
+    commitmentId: row.commitmentId,
+    personId: row.personId,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -125,5 +138,7 @@ class OcptBudgetEntry extends Equatable {
     resourceId,
     revenueId,
     shareId,
+    commitmentId,
+    personId,
   ];
 }

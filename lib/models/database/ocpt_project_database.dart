@@ -309,7 +309,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
   /// number **before** any database exists — its whole point is to read a file's own
   /// `PRAGMA user_version` and compare it to this one while nothing has been opened yet.
-  static const currentSchemaVersion = 34;
+  static const currentSchemaVersion = 35;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -910,6 +910,45 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // existed.
         if (from >= 25) {
           await m.addColumn(ocptBudgetPostesTable, ocptBudgetPostesTable.estimateToCompleteCents);
+        }
+      }
+
+      if (from < 35) {
+        // `budget_entries` has existed, and been alterable, since version 26 — a file older than
+        // that has just had it created fresh above, from the current declaration, so it already
+        // carries both columns. Guarded for the reason `assets.budgetEntryId` above is guarded.
+        if (from >= 26) {
+          await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.commitmentId);
+          await m.addColumn(ocptBudgetEntriesTable, ocptBudgetEntriesTable.personId);
+
+          // Carried over **before** the column it came from goes: every commitment that named a
+          // settling entry (`settled_entry_id`, the only place this fact was ever recorded before
+          // this step) writes its own id onto that entry's freshly added `commitment_id` — a
+          // payment recorded as one instalment before this step reads as exactly one after it too.
+          // Nothing is invented for an entry no commitment ever named, and nothing is lost for a
+          // commitment that named no entry at all: both simply keep the null they already read as.
+          await customStatement(
+            'UPDATE budget_entries SET commitment_id = '
+            '(SELECT id FROM budget_commitments WHERE budget_commitments.settled_entry_id = '
+            'budget_entries.id) '
+            'WHERE EXISTS '
+            '(SELECT 1 FROM budget_commitments WHERE budget_commitments.settled_entry_id = '
+            'budget_entries.id)',
+          );
+
+          // `budget_commitments.settled_entry_id` is retired: settlement is read off
+          // `budget_entries.commitment_id` from here on, never a link the commitment itself
+          // stores. Dropped through `TableMigration` rather than a plain `ALTER TABLE … DROP
+          // COLUMN` (the recipe version 30's own rewrite above uses on `budget_resources.status`):
+          // that column carries no foreign key, and this one does — see
+          // `_alterRoleAndShootingDayTablesToV18`'s own doc comment for why a column that is also
+          // a foreign key needs the full rebuild recipe instead.
+          await m.alterTable(
+            // TableMigration is drift's documented, if still @experimental, recipe for a column
+            // drop: see this block's own comment above.
+            // ignore: experimental_member_use
+            TableMigration(ocptBudgetCommitmentsTable),
+          );
         }
       }
     },

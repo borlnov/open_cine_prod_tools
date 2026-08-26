@@ -405,12 +405,12 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
         // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
         // (just above) and, optionally, `elements` (already inserted above): neither is a forward
-        // reference. `budget_entries` references `budget_postes` too, and `budget_commitments`
-        // references `budget_postes` and `budget_entries` (just above it) — and `assets.
-        // budgetEntryId`, inserted well above this, names a `budget_entries` row inserted only
-        // here: a genuine forward reference, but `insertAll` defers foreign-key checking to the end
-        // of this batch's own transaction, exactly what already lets the person/location/element
-        // trio point at an `assets` row inserted after them.
+        // reference. `budget_commitments` references `budget_postes` too, and, optionally,
+        // `budget_lines` (just above it) — and `assets.budgetEntryId`, inserted well above this,
+        // names a `budget_entries` row inserted only further below: a genuine forward reference, but
+        // `insertAll` defers foreign-key checking to the end of this batch's own transaction,
+        // exactly what already lets the person/location/element trio point at an `assets` row
+        // inserted after them.
         ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
         ..insertAll(database.ocptBudgetLinesTable, payload.budgetLines)
         // `budget_resources` references nothing, and must be inserted before `budget_entries`,
@@ -424,8 +424,11 @@ class OcptProjectVersionsService {
         // `budget_allowances` only optionally names a `people` row already inserted well above,
         // and nothing references it, so it may land anywhere after `people`.
         ..insertAll(database.ocptBudgetAllowancesTable, payload.budgetAllowances)
-        ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
+        // `budget_commitments`, inserted just above, before `budget_entries`, which may now name
+        // one through `commitmentId` — reversed from the order these two used to insert in, back
+        // when a commitment named its own settling entry rather than the other way round.
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
+        ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -792,11 +795,15 @@ class OcptProjectVersionsService {
   /// inside the asset trio's own deferred-foreign-key cycle), and `budget_entries`, restored right
   /// after both, may name either of their rows through `revenueId`/`shareId`.
   ///
-  /// `budget_entries` and `budget_commitments` are restored last: `budget_entries` references
-  /// `budget_postes` (restored well above), `budget_resources`, `budget_revenues` and
-  /// `budget_shares` (all three restored immediately above it), and `budget_commitments` references
-  /// `budget_postes` and `budget_entries` (restored immediately above it) — none of these is a
-  /// forward reference either. `assets.budgetEntryId`, restored well above this pair, names a
+  /// `budget_commitments` and `budget_entries` are restored last, in that order: `budget_commitments`
+  /// references only `budget_postes` (restored well above) and, optionally, `budget_lines` (restored
+  /// well above too), so it closes no cycle of its own. `budget_entries` follows it — reversed from
+  /// the order these two used to restore in, back when a commitment named its own settling entry
+  /// rather than the other way round — since it may now name a commitment through `commitmentId`,
+  /// beside `budget_postes`, `budget_resources`, `budget_revenues`, `budget_shares` (all restored
+  /// above it already) and `people` (through `personId`, restored well above, inside the asset
+  /// trio's own deferred-foreign-key cycle). None of these is a forward reference either.
+  /// `assets.budgetEntryId`, restored well above this pair, names a
   /// `budget_entries` row that only exists once this method reaches here: a genuine forward
   /// reference, closed the same way the asset trio's own cycle is, by this whole
   /// restore running under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
@@ -1179,8 +1186,8 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
-      table: database.ocptBudgetEntriesTable,
-      payloadRows: payload.budgetEntries,
+      table: database.ocptBudgetCommitmentsTable,
+      payloadRows: payload.budgetCommitments,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -1188,8 +1195,8 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
-      table: database.ocptBudgetCommitmentsTable,
-      payloadRows: payload.budgetCommitments,
+      table: database.ocptBudgetEntriesTable,
+      payloadRows: payload.budgetEntries,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,

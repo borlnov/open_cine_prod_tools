@@ -17,7 +17,6 @@ void main() {
     int amountCents = 0,
     bool isTaxInclusive = true,
     int? vatRateBasisPoints,
-    String? settledEntryId,
   }) => OcptBudgetCommitment(
     id: id,
     dueDate: null,
@@ -29,7 +28,6 @@ void main() {
       vatRateBasisPoints: vatRateBasisPoints,
     ),
     status: OcptBudgetCommitmentStatus.quoteAccepted,
-    settledEntryId: settledEntryId,
     lineId: lineId,
     sortKey: "a0",
   );
@@ -41,6 +39,7 @@ void main() {
     int creditCents = 0,
     bool isTaxInclusive = true,
     int? vatRateBasisPoints,
+    String? commitmentId,
   }) => OcptBudgetEntry(
     id: id,
     date: DateTime(2026),
@@ -55,6 +54,8 @@ void main() {
     resourceId: null,
     revenueId: null,
     shareId: null,
+    commitmentId: commitmentId,
+    personId: null,
   );
 
   group("ocptBudgetLineCommittedTotalOf", () {
@@ -64,7 +65,11 @@ void main() {
         buildCommitment(id: "c2", amountCents: 500),
       ];
 
-      final total = ocptBudgetLineCommittedTotalOf(commitments, projectVatRateBasisPoints: null);
+      final total = ocptBudgetLineCommittedTotalOf(
+        commitments,
+        entries: const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(total.amountCents, 1500);
       expect(total.coveredLineCount, 2);
@@ -74,10 +79,15 @@ void main() {
     test("excludes a settled commitment outright — from the total and from the coverage counts", () {
       final commitments = [
         buildCommitment(id: "c1", amountCents: 1000),
-        buildCommitment(id: "c2", amountCents: 500, settledEntryId: "entry-1"),
+        buildCommitment(id: "c2", amountCents: 500),
       ];
+      final entries = [buildEntry(commitmentId: "c2", debitCents: 500)];
 
-      final total = ocptBudgetLineCommittedTotalOf(commitments, projectVatRateBasisPoints: null);
+      final total = ocptBudgetLineCommittedTotalOf(
+        commitments,
+        entries: entries,
+        projectVatRateBasisPoints: null,
+      );
 
       expect(total.amountCents, 1000);
       expect(total.coveredLineCount, 1);
@@ -85,7 +95,11 @@ void main() {
     });
 
     test("a line with no commitment at all answers a zero, fully covered total", () {
-      final total = ocptBudgetLineCommittedTotalOf(const [], projectVatRateBasisPoints: null);
+      final total = ocptBudgetLineCommittedTotalOf(
+        const [],
+        entries: const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(total.amountCents, 0);
       expect(total.coveredLineCount, 0);
@@ -98,7 +112,11 @@ void main() {
         buildCommitment(id: "c1", amountCents: 1000, isTaxInclusive: false),
       ];
 
-      final total = ocptBudgetLineCommittedTotalOf(commitments, projectVatRateBasisPoints: null);
+      final total = ocptBudgetLineCommittedTotalOf(
+        commitments,
+        entries: const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(total.amountCents, 0);
       expect(total.coveredLineCount, 0);
@@ -112,7 +130,11 @@ void main() {
         buildCommitment(id: "c1", amountCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 2000),
       ];
 
-      final total = ocptBudgetLineCommittedTotalOf(commitments, projectVatRateBasisPoints: null);
+      final total = ocptBudgetLineCommittedTotalOf(
+        commitments,
+        entries: const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(total.amountCents, 1200);
       expect(total.isComplete, isTrue);
@@ -120,14 +142,14 @@ void main() {
   });
 
   group("ocptBudgetLinePaidTotalOf", () {
-    test("sums the debit of the entry settling each settled commitment, row by row", () {
+    test("sums what has actually been paid against each settled commitment, row by row", () {
       final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000, settledEntryId: "entry-1"),
-        buildCommitment(id: "c2", amountCents: 500, settledEntryId: "entry-2"),
+        buildCommitment(id: "c1", amountCents: 900),
+        buildCommitment(id: "c2", amountCents: 400),
       ];
       final entries = [
-        buildEntry(debitCents: 900),
-        buildEntry(id: "entry-2", debitCents: 400),
+        buildEntry(commitmentId: "c1", debitCents: 900),
+        buildEntry(id: "entry-2", commitmentId: "c2", debitCents: 400),
       ];
 
       final total = ocptBudgetLinePaidTotalOf(
@@ -141,12 +163,12 @@ void main() {
       expect(total.lineCount, 2);
     });
 
-    test("excludes an unsettled commitment outright — it has no entry to read at all", () {
+    test("excludes an unsettled commitment outright — nothing paid against it reaches its amount", () {
       final commitments = [
         buildCommitment(id: "c1", amountCents: 1000),
-        buildCommitment(id: "c2", amountCents: 500, settledEntryId: "entry-1"),
+        buildCommitment(id: "c2", amountCents: 500),
       ];
-      final entries = [buildEntry(debitCents: 500)];
+      final entries = [buildEntry(commitmentId: "c2", debitCents: 500)];
 
       final total = ocptBudgetLinePaidTotalOf(
         commitments,
@@ -159,11 +181,10 @@ void main() {
       expect(total.lineCount, 1);
     });
 
-    test("reads the entry's own debit, not the commitment's own amount, once they disagree", () {
-      final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000, settledEntryId: "entry-1"),
-      ];
-      final entries = [buildEntry(debitCents: 750)];
+    test("reads what has actually been paid, not the commitment's own amount, once an "
+        "overpayment makes the two disagree", () {
+      final commitments = [buildCommitment(id: "c1", amountCents: 1000)];
+      final entries = [buildEntry(commitmentId: "c1", debitCents: 1200)];
 
       final total = ocptBudgetLinePaidTotalOf(
         commitments,
@@ -171,18 +192,23 @@ void main() {
         projectVatRateBasisPoints: null,
       );
 
-      expect(total.amountCents, 750);
+      expect(total.amountCents, 1200);
     });
 
-    test("a settled commitment naming an entry absent from the given list leaves the total "
+    test("a settled commitment whose own paid reading is incomplete leaves the line's total "
         "covered-but-incomplete rather than silently wrong", () {
-      final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000, settledEntryId: "entry-missing"),
+      final commitments = [buildCommitment(id: "c1", amountCents: 1000)];
+      final entries = [
+        // Reaches the commitment's own amount on its own, so the commitment reads settled…
+        buildEntry(commitmentId: "c1", debitCents: 1000),
+        // …but this second entry naming it cannot itself be read, which is what leaves the
+        // commitment's own paid reading — and so this line's own total — incomplete.
+        buildEntry(id: "entry-2", commitmentId: "c1", debitCents: 500, isTaxInclusive: false),
       ];
 
       final total = ocptBudgetLinePaidTotalOf(
         commitments,
-        entries: const [],
+        entries: entries,
         projectVatRateBasisPoints: null,
       );
 
@@ -204,12 +230,10 @@ void main() {
       expect(total.lineCount, 0);
     });
 
-    test("reads the settling entry's own debit tax-inclusive, given the project's own rate", () {
-      final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000, settledEntryId: "entry-1"),
-      ];
+    test("reads what has been paid tax-inclusive, given the project's own rate", () {
+      final commitments = [buildCommitment(id: "c1", amountCents: 1000)];
       final entries = [
-        buildEntry(debitCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 2000),
+        buildEntry(commitmentId: "c1", debitCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 2000),
       ];
 
       final total = ocptBudgetLinePaidTotalOf(

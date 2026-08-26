@@ -72,12 +72,12 @@ OcptBudgetLine _line({
 );
 
 /// A commitment of [amountCents] (10.00 € by default), tax-inclusive, against [posteId], naming
-/// [lineId] or none, settled by [settledEntryId] or still owed.
+/// [lineId] or none — settlement is read off whichever entries the test hands in alongside it,
+/// through `ocptBudgetCommitmentIsSettledOf`, never a field of the commitment itself any more.
 OcptBudgetCommitment _commitment({
   required String id,
   required String posteId,
   String? lineId,
-  String? settledEntryId,
   int amountCents = 1000,
   OcptBudgetCommitmentStatus status = OcptBudgetCommitmentStatus.quoteAccepted,
   String label = "",
@@ -88,18 +88,19 @@ OcptBudgetCommitment _commitment({
   posteId: posteId,
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: status,
-  settledEntryId: settledEntryId,
   lineId: lineId,
   sortKey: "a0",
 );
 
-/// A journal entry of [debitCents] (10.00 € by default), tax-inclusive, against [posteId].
+/// A journal entry of [debitCents] (10.00 € by default), tax-inclusive, against [posteId], paying
+/// [commitmentId] or none.
 OcptBudgetEntry _entry({
   required String id,
   String? posteId,
   int debitCents = 1000,
   String label = "",
   String voucherNumber = "J-001",
+  String? commitmentId,
 }) => OcptBudgetEntry(
   id: id,
   date: DateTime(2026),
@@ -114,6 +115,8 @@ OcptBudgetEntry _entry({
   resourceId: null,
   revenueId: null,
   shareId: null,
+  commitmentId: commitmentId,
+  personId: null,
 );
 
 void main() {
@@ -1011,20 +1014,17 @@ void main() {
         "commitments and their settling entries, never the poste's", (tester) async {
       final poste = posteWithLine();
       // Line one is quoted at 20.00 €: one unsettled commitment of 5.00 € (Engagé), one settled
-      // commitment of 8.00 €, settled by a 7.00 € entry (Payé reads the entry's own debit, not
-      // the commitment's own amount) — Reste 20 - 5 - 7 = 8.00 €, derived estimate to complete
-      // max(0, 8) = 8.00 €, Coût final 5 + 7 + 8 = 20.00 €, Écart 5 + 7 - 20 = -8.00 €.
+      // commitment of 8.00 €, paid in full by an 8.00 € entry naming it (Payé reads what has
+      // actually been paid against it, not the commitment's own amount, though the two agree once
+      // it is settled) — Reste 20 - 5 - 8 = 7.00 €, derived estimate to complete max(0, 7) =
+      // 7.00 €, Coût final 5 + 8 + 7 = 20.00 €, Écart 5 + 8 - 20 = -7.00 €.
       final commitments = [
         _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1", amountCents: 500),
-        _commitment(
-          id: "commitment-2",
-          posteId: "poste-1",
-          lineId: "line-1",
-          amountCents: 800,
-          settledEntryId: "entry-1",
-        ),
+        _commitment(id: "commitment-2", posteId: "poste-1", lineId: "line-1", amountCents: 800),
       ];
-      final entries = [_entry(id: "entry-1", posteId: "poste-1", debitCents: 700)];
+      final entries = [
+        _entry(id: "entry-1", posteId: "poste-1", debitCents: 800, commitmentId: "commitment-2"),
+      ];
 
       await tester.pumpWidget(
         _wrap(
@@ -1040,8 +1040,8 @@ void main() {
       // Devis (2000) is left unchecked here: the poste's own row reads the very same 20.00 €,
       // since it holds this one line alone, so the figure would not tell the two rows apart.
       expect(find.text(ocptBudgetAmountLabel(500, "EUR")), findsOneWidget); // Engagé
-      expect(find.text(ocptBudgetAmountLabel(700, "EUR")), findsOneWidget); // Payé
-      expect(find.text(ocptBudgetAmountLabel(-800, "EUR")), findsOneWidget); // Écart
+      expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsOneWidget); // Payé
+      expect(find.text(ocptBudgetAmountLabel(-700, "EUR")), findsOneWidget); // Écart
     });
 
     testWidgets("a line with commitments expands to show them, an unsettled one printing its "
@@ -1059,11 +1059,18 @@ void main() {
           posteId: "poste-1",
           lineId: "line-1",
           amountCents: 800,
-          settledEntryId: "entry-1",
           label: "The invoice",
         ),
       ];
-      final entries = [_entry(id: "entry-1", posteId: "poste-1", debitCents: 800, label: "The payment")];
+      final entries = [
+        _entry(
+          id: "entry-1",
+          posteId: "poste-1",
+          debitCents: 800,
+          label: "The payment",
+          commitmentId: "commitment-2",
+        ),
+      ];
 
       await tester.pumpWidget(
         _wrap(
@@ -1170,13 +1177,8 @@ void main() {
     });
 
     testWidgets("an entry sub-row's own ⋮ menu offers Edit and Delete", (tester) async {
-      final commitment = _commitment(
-        id: "commitment-1",
-        posteId: "poste-1",
-        lineId: "line-1",
-        settledEntryId: "entry-1",
-      );
-      final entry = _entry(id: "entry-1", posteId: "poste-1");
+      final commitment = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");
+      final entry = _entry(id: "entry-1", posteId: "poste-1", commitmentId: "commitment-1");
 
       await tester.pumpWidget(
         _wrap(
@@ -1205,13 +1207,8 @@ void main() {
     });
 
     testWidgets("withholds every sub-row's own ⋮ menu while isReadOnly", (tester) async {
-      final commitment = _commitment(
-        id: "commitment-1",
-        posteId: "poste-1",
-        lineId: "line-1",
-        settledEntryId: "entry-1",
-      );
-      final entry = _entry(id: "entry-1", posteId: "poste-1");
+      final commitment = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");
+      final entry = _entry(id: "entry-1", posteId: "poste-1", commitmentId: "commitment-1");
 
       await tester.pumpWidget(
         _wrap(
@@ -1233,13 +1230,8 @@ void main() {
     });
 
     testWidgets("selecting a commitment or an entry highlights its own sub-row", (tester) async {
-      final commitment = _commitment(
-        id: "commitment-1",
-        posteId: "poste-1",
-        lineId: "line-1",
-        settledEntryId: "entry-1",
-      );
-      final entry = _entry(id: "entry-1", posteId: "poste-1");
+      final commitment = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");
+      final entry = _entry(id: "entry-1", posteId: "poste-1", commitmentId: "commitment-1");
 
       await tester.pumpWidget(
         _wrap(

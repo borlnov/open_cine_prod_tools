@@ -840,13 +840,19 @@ void main() {
     /// written: the latest schema step's own additions taken back out, and the format number
     /// with them.
     ///
-    /// It removes what the top step added, `budget_postes.estimateToCompleteCents`. Undoing the
-    /// step rather than only stamping the number down is what makes this a real migration to run,
-    /// which is exactly what a file merely relabelled would have hidden.
+    /// It removes what the top step added — `budget_entries.commitmentId`/`.personId` — and puts
+    /// back what it dropped, `budget_commitments.settledEntryId`. Undoing the step rather than
+    /// only stamping the number down is what makes this a real migration to run, which is exactly
+    /// what a file merely relabelled would have hidden.
     void demoteToPreviousFormat(String filePath) {
       final database = sqlite3.open(filePath);
       database
-        ..execute("ALTER TABLE budget_postes DROP COLUMN estimate_to_complete_cents")
+        ..execute("ALTER TABLE budget_entries DROP COLUMN commitment_id")
+        ..execute("ALTER TABLE budget_entries DROP COLUMN person_id")
+        ..execute(
+          'ALTER TABLE "budget_commitments" ADD COLUMN "settled_entry_id" TEXT NULL '
+          "REFERENCES budget_entries (id)",
+        )
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

@@ -100,6 +100,8 @@ OcptBudgetEntry _buildCreditEntry({required String id, required String resourceI
       resourceId: resourceId,
       revenueId: null,
       shareId: null,
+      commitmentId: null,
+      personId: null,
     );
 
 void main() {

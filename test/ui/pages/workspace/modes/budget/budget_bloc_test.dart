@@ -44,6 +44,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -1162,7 +1163,13 @@ void main() {
       );
       final state = await waitForState(
         bloc,
-        (state) => state.commitments.single.isSettled && state.receiptsByEntryId.isNotEmpty,
+        (state) =>
+            ocptBudgetCommitmentIsSettledOf(
+              state.commitments.single,
+              state.entries,
+              projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+            ) &&
+            state.receiptsByEntryId.isNotEmpty,
       );
 
       final settledEntry = state.entries.single;
@@ -1376,7 +1383,7 @@ void main() {
   });
 
   group("creating a commitment", () {
-    test("writes every field, defaulting settledEntryId to null", () async {
+    test("writes every field, a fresh commitment reading unsettled", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
@@ -1403,7 +1410,10 @@ void main() {
       expect(commitment.posteId, posteId);
       expect(commitment.amount.amountCents, 5000);
       expect(commitment.status, OcptBudgetCommitmentStatus.quoteAccepted);
-      expect(commitment.isSettled, isFalse);
+      expect(
+        ocptBudgetCommitmentIsSettledOf(commitment, state.entries, projectVatRateBasisPoints: null),
+        isFalse,
+      );
     });
   });
 
@@ -1478,7 +1488,7 @@ void main() {
   });
 
   group("settling a commitment", () {
-    test("creates a debit entry and links it as settledEntryId", () async {
+    test("creates a debit entry naming the commitment it pays", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
@@ -1516,14 +1526,21 @@ void main() {
           ),
         ),
       );
-      final state = await waitForState(bloc, (state) => state.commitments.single.isSettled);
+      final state = await waitForState(
+        bloc,
+        (state) => ocptBudgetCommitmentIsSettledOf(
+          state.commitments.single,
+          state.entries,
+          projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+        ),
+      );
 
       expect(state.entries, hasLength(1));
       final entry = state.entries.single;
       expect(entry.debitCents, 5000);
       expect(entry.creditCents, 0);
       final commitment = state.commitments.single;
-      expect(commitment.settledEntryId, entry.id);
+      expect(entry.commitmentId, commitment.id);
       // Settled, it no longer counts as committed against the poste.
       expect(state.committedCentsOf(posteId), 0);
     });
@@ -1549,22 +1566,34 @@ void main() {
         date: DateTime(2026, 4),
         label: "Camera deposit",
         posteId: posteId,
+        commitmentId: commitmentId,
         debitCents: 5000,
       );
       expect(entryId, isNotNull);
-      await projectsManager.budgetJournalService.updateCommitment(
-        database: project.database,
-        commitmentId: commitmentId!,
-        settledEntryId: drift.Value(entryId),
-      );
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
-      await waitForState(bloc, (state) => state.commitments.isNotEmpty && state.commitments.single.isSettled);
+      await waitForState(
+        bloc,
+        (state) =>
+            state.commitments.isNotEmpty &&
+            ocptBudgetCommitmentIsSettledOf(
+              state.commitments.single,
+              state.entries,
+              projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+            ),
+      );
 
-      bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId));
-      final state = await waitForState(bloc, (state) => !state.commitments.single.isSettled);
+      bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId!));
+      final state = await waitForState(
+        bloc,
+        (state) => !ocptBudgetCommitmentIsSettledOf(
+          state.commitments.single,
+          state.entries,
+          projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+        ),
+      );
 
-      expect(state.commitments.single.settledEntryId, isNull);
+      expect(state.entries.single.commitmentId, isNull);
       // The journal entry itself is untouched.
       expect(state.entries, hasLength(1));
       expect(state.entries.single.id, entryId);

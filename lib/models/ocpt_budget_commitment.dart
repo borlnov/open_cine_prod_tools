@@ -29,9 +29,6 @@ class OcptBudgetCommitment extends Equatable {
   /// How far this commitment has progressed towards being paid.
   final OcptBudgetCommitmentStatus status;
 
-  /// The `budget_entries` row that settled this commitment, or null while it remains unpaid.
-  final String? settledEntryId;
-
   /// The quote line this commitment was promoted from, or null when it was typed from scratch —
   /// see `OcptBudgetCommitmentsTable.lineId`, which argues why this is a provenance and not a link
   /// anything is recomputed through.
@@ -39,13 +36,6 @@ class OcptBudgetCommitment extends Equatable {
 
   /// This commitment's position within the journal's own flat `sortKey` order.
   final String sortKey;
-
-  /// Whether this commitment has been paid.
-  ///
-  /// Read off [settledEntryId] alone, never off [status]: see
-  /// `OcptBudgetCommitmentStatus`'s own doc comment for why settlement is deliberately not a fifth
-  /// status value, but the one fact this link carries.
-  bool get isSettled => settledEntryId != null;
 
   /// Class constructor
   const OcptBudgetCommitment({
@@ -55,7 +45,6 @@ class OcptBudgetCommitment extends Equatable {
     required this.posteId,
     required this.amount,
     required this.status,
-    required this.settledEntryId,
     required this.lineId,
     required this.sortKey,
   });
@@ -72,7 +61,6 @@ class OcptBudgetCommitment extends Equatable {
       vatRateBasisPoints: row.vatRateBasisPoints,
     ),
     status: row.status,
-    settledEntryId: row.settledEntryId,
     lineId: row.lineId,
     sortKey: row.sortKey,
   );
@@ -84,15 +72,5 @@ class OcptBudgetCommitment extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [
-    id,
-    dueDate,
-    label,
-    posteId,
-    amount,
-    status,
-    settledEntryId,
-    lineId,
-    sortKey,
-  ];
+  List<Object?> get props => [id, dueDate, label, posteId, amount, status, lineId, sortKey];
 }

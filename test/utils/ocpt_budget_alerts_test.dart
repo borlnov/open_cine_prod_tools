@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
@@ -43,13 +44,13 @@ OcptBudgetPoste _buildPoste({required String id, required int quotedAmountCents}
   lines: [_buildLine(id: "$id-line", posteId: id, amountCents: quotedAmountCents)],
 );
 
-/// Builds an unsettled commitment against [posteId], everything else neutral.
+/// Builds a commitment against [posteId], everything else neutral — settlement is read off
+/// whichever entries a test hands alongside it, never a field of the commitment itself any more.
 OcptBudgetCommitment _buildCommitment({
   required String id,
   required String posteId,
   DateTime? dueDate,
   int amountCents = 0,
-  String? settledEntryId,
 }) => OcptBudgetCommitment(
   id: id,
   dueDate: dueDate,
@@ -57,9 +58,31 @@ OcptBudgetCommitment _buildCommitment({
   posteId: posteId,
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: OcptBudgetCommitmentStatus.quoteAccepted,
-  settledEntryId: settledEntryId,
   lineId: null,
   sortKey: "a0",
+);
+
+/// Builds a debit entry naming [commitmentId], everything else neutral.
+OcptBudgetEntry _buildEntry({
+  required String id,
+  String? commitmentId,
+  int debitCents = 0,
+}) => OcptBudgetEntry(
+  id: id,
+  date: DateTime(2026),
+  label: "Entry $id",
+  posteId: null,
+  debitCents: debitCents,
+  creditCents: 0,
+  isTaxInclusive: true,
+  vatRateBasisPoints: null,
+  voucherNumber: "J-001",
+  sortKey: "a0",
+  resourceId: null,
+  revenueId: null,
+  shareId: null,
+  commitmentId: commitmentId,
+  personId: null,
 );
 
 /// The zero-everything cash totals every test not concerned with the balance itself starts from.
@@ -77,6 +100,7 @@ List<OcptBudgetAlert> _computeAlerts({
   int Function(String posteId)? paidCentsOf,
   int Function(String posteId)? committedCentsOf,
   List<OcptBudgetCommitment> commitments = const [],
+  List<OcptBudgetEntry> entries = const [],
   OcptBudgetCashTotals cashTotals = _zeroCashTotals,
   int? projectVatRateBasisPoints,
 }) => ocptComputeBudgetAlerts(
@@ -84,6 +108,7 @@ List<OcptBudgetAlert> _computeAlerts({
   paidCentsOf: paidCentsOf ?? (posteId) => 0,
   committedCentsOf: committedCentsOf ?? (posteId) => 0,
   commitments: commitments,
+  entries: entries,
   cashTotals: cashTotals,
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
@@ -249,18 +274,14 @@ void main() {
 
     test("a settled commitment is never counted against the balance", () {
       final commitments = [
-        _buildCommitment(
-          id: "c1",
-          posteId: "poste-1",
-          dueDate: DateTime(2026, 3),
-          amountCents: 9000,
-          settledEntryId: "entry-already-paid",
-        ),
+        _buildCommitment(id: "c1", posteId: "poste-1", dueDate: DateTime(2026, 3), amountCents: 9000),
       ];
+      final entries = [_buildEntry(id: "entry-already-paid", commitmentId: "c1", debitCents: 9000)];
 
       final alerts = _computeAlerts(
         postes: const [],
         commitments: commitments,
+        entries: entries,
         cashTotals: const OcptBudgetCashTotals(
           debitCents: 0,
           creditCents: 1000,

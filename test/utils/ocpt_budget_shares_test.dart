@@ -42,6 +42,8 @@ void main() {
     resourceId: resourceId,
     revenueId: revenueId,
     shareId: shareId,
+    commitmentId: null,
+    personId: null,
   );
 
   OcptBudgetRevenue buildRevenue({

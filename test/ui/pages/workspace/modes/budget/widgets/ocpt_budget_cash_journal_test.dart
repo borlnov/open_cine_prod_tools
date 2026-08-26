@@ -64,6 +64,8 @@ OcptBudgetEntry _entry({
   resourceId: null,
   revenueId: null,
   shareId: null,
+  commitmentId: null,
+  personId: null,
 );
 
 /// A minimal commitment, everything but what each test actually varies neutral.
@@ -76,7 +78,6 @@ OcptBudgetCommitment _commitment({
   bool isTaxInclusive = true,
   int? vatRateBasisPoints,
   OcptBudgetCommitmentStatus status = OcptBudgetCommitmentStatus.quoteAccepted,
-  String? settledEntryId,
   String? lineId,
   String sortKey = "a0",
 }) => OcptBudgetCommitment(
@@ -90,7 +91,6 @@ OcptBudgetCommitment _commitment({
     vatRateBasisPoints: vatRateBasisPoints,
   ),
   status: status,
-  settledEntryId: settledEntryId,
   lineId: lineId,
   sortKey: sortKey,
 );

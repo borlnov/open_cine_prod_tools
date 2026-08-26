@@ -12149,7 +12149,7 @@
   "budgetCommittedStatusSettledLabel": "Settled",
   "@budgetCommittedStatusSettledLabel": {
     "description": "Wording of the badge a settled commitment wears in place of its own four-value status",
-    "context": "Displayed on the commitments table's own row for a commitment whose settledEntryId names a journal entry",
+    "context": "Displayed on the commitments table's own row for a commitment whose outstanding amount has reached zero",
     "type": "text",
     "placeholders": {}
   },
@@ -12162,7 +12162,7 @@
   },
   "budgetCommittedUnsettleAction": "Undo settlement",
   "@budgetCommittedUnsettleAction": {
-    "description": "Entry of a commitment row's own ⋮ menu clearing its settledEntryId link, offered only while it is settled — the journal entry it named is never deleted by this",
+    "description": "Entry of a commitment row's own ⋮ menu clearing the commitmentId the entry that paid it named, offered only while it is settled — the journal entry itself is never deleted by this",
     "context": "Displayed in the budget mode's commitments table row menu",
     "type": "text",
     "placeholders": {}

@@ -409,7 +409,12 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        ..execute("ALTER TABLE budget_postes DROP COLUMN estimate_to_complete_cents")
+        ..execute("ALTER TABLE budget_entries DROP COLUMN commitment_id")
+        ..execute("ALTER TABLE budget_entries DROP COLUMN person_id")
+        ..execute(
+          'ALTER TABLE "budget_commitments" ADD COLUMN "settled_entry_id" TEXT NULL '
+          "REFERENCES budget_entries (id)",
+        )
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

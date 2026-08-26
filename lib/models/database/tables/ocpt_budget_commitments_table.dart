@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
@@ -37,10 +36,16 @@ class OcptBudgetCommitmentStatusConverter extends TypeConverter<OcptBudgetCommit
 /// cost incurred against the quote — there is no "committed spending that prices nothing" the way a
 /// subsidy instalment coming in prices no poste.
 ///
-/// [settledEntryId] is how a commitment becomes paid: once it names a `budget_entries` row, the
-/// commitment is settled (`OcptBudgetCommitment.isSettled`) — see [OcptBudgetCommitmentStatus]'s own
-/// doc comment for why this is the one and only place that fact is recorded, rather than a fifth
-/// status value duplicating it.
+/// **This table carries no `settledEntryId` of its own any more.** A commitment used to become paid
+/// by naming, itself, the one `budget_entries` row that settled it — so it could only ever be paid
+/// in a single instalment, and a deposit followed by a balance needed a second commitment standing
+/// in for the second payment. Settlement is read the other way round now, off
+/// `OcptBudgetEntriesTable.commitmentId`: an entry names the commitment it pays, several entries may
+/// name the very same one, and `lib/utils/ocpt_budget_projection.dart`'s own
+/// `ocptBudgetCommitmentIsSettledOf` says whether the sum of them has reached this row's own
+/// `amountCents` — exactly the reading `OcptBudgetResourcesTable`'s own doc comment already argues
+/// for a financing resource's "received" figure: summed off the ledger, on every read, never a
+/// stored counter kept in step by hand.
 @DataClassName('OcptBudgetCommitmentRow')
 class OcptBudgetCommitmentsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptBudgetCommitmentsTable}
@@ -90,10 +95,6 @@ class OcptBudgetCommitmentsTable extends Table {
   TextColumn get status => text()
       .map(const OcptBudgetCommitmentStatusConverter())
       .withDefault(const Constant('quoteAccepted'))();
-
-  /// The `budget_entries` row that settled this commitment, or null while it remains unpaid.
-  /// → [OcptBudgetEntriesTable]
-  TextColumn get settledEntryId => text().nullable().references(OcptBudgetEntriesTable, #id)();
 
   /// The quote line this commitment was promoted from, or null when it was typed from scratch —
   /// which is the ordinary case, and the only one that existed before the promotion did.

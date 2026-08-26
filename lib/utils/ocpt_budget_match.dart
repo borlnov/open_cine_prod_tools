@@ -5,6 +5,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_allowances.dart';
@@ -83,10 +84,12 @@ class OcptBudgetMatchSuggestion extends Equatable {
   final DateTime? date;
 
   /// What the draft movement would actually settle if matched to this row, in cents, or null exactly
-  /// when [amountCents] is: a commitment or a defrayal is owed or unpaid in full, so this equals
-  /// [amountCents] verbatim; a resource or a revenue may already be partly received, so this is
-  /// [amountCents] minus what has already come in — a resource quoted at 10 000 € having already
-  /// received 7 000 € is matched by a 3 000 € receipt, not a 10 000 € one.
+  /// when [amountCents] is for a defrayal (which is always owed or unpaid in full, so this equals
+  /// [amountCents] verbatim); a commitment, a resource or a revenue may already be partly paid or
+  /// received, so this is [amountCents] minus what has already moved against it —
+  /// [ocptBudgetCommitmentOutstandingCentsOf] for a commitment, the same reading
+  /// `ocptBudgetResourceOutstandingCents` already gives a resource: a resource quoted at 10 000 €
+  /// having already received 7 000 € is matched by a 3 000 € receipt, not a 10 000 € one.
   final int? outstandingCents;
 
   /// Whether [outstandingCents] equals the draft's own amount to the cent — the fact a user actually
@@ -251,8 +254,9 @@ class _OcptBudgetMatchCandidate {
 /// given the project's own [projectVatRateBasisPoints].
 ///
 /// **Which candidates are even eligible depends on the direction.** A debit (money going out) can
-/// only settle a cost: [commitments] still owed ([OcptBudgetCommitment.isSettled] false) and every
-/// one of [allowances] (see the file's own doc comment for why none is pre-filtered). A credit
+/// only settle a cost: [commitments] still owed — [ocptBudgetCommitmentOutstandingCentsOf] over
+/// [entries] reading above zero, or unknown — and every one of [allowances] (see the file's own doc
+/// comment for why none is pre-filtered). A credit
 /// (money coming in) can only settle an expectation: a resource of [resources] whose
 /// [receivedByResourceId]'s own figure falls short of [OcptBudgetResource.amountCents], and a
 /// revenue of [revenues] whose [receivedByRevenueId]'s own figure falls short of
@@ -289,6 +293,7 @@ List<OcptBudgetMatchSuggestion> ocptBudgetMatchSuggestionsOf({
   required DateTime draftDate,
   required String draftWording,
   required List<OcptBudgetCommitment> commitments,
+  required List<OcptBudgetEntry> entries,
   required List<OcptBudgetAllowance> allowances,
   required List<OcptBudgetResource> resources,
   required List<OcptBudgetRevenue> revenues,
@@ -334,7 +339,12 @@ List<OcptBudgetMatchSuggestion> ocptBudgetMatchSuggestionsOf({
 
   if (isDebit) {
     for (final commitment in commitments) {
-      if (commitment.isSettled) {
+      final outstandingCents = ocptBudgetCommitmentOutstandingCentsOf(
+        commitment,
+        entries,
+        projectVatRateBasisPoints: projectVatRateBasisPoints,
+      );
+      if (outstandingCents != null && outstandingCents <= 0) {
         continue;
       }
 
@@ -349,7 +359,7 @@ List<OcptBudgetMatchSuggestion> ocptBudgetMatchSuggestionsOf({
           label: commitment.label,
           amountCents: cashCents,
           date: commitment.dueDate,
-          outstandingCents: cashCents,
+          outstandingCents: outstandingCents,
         ),
       );
     }

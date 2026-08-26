@@ -75,6 +75,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
@@ -346,26 +347,22 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// What each live entry of [state] settles, keyed by its own id — a resource's, a taking's or a
   /// share's own label read straight off the entry naming it, or the label of the commitment this
-  /// entry itself settles (`OcptBudgetCommitment.settledEntryId`), an entry naming none of them
-  /// getting no key here at all. `OcptBudgetCashJournalXlsxExportService` resolves nothing of this
-  /// itself (its own doc comment), which is what keeps it independent of `budget_revenues`/
-  /// `budget_shares`.
+  /// entry itself pays (`OcptBudgetEntry.commitmentId`), an entry naming none of them getting no key
+  /// here at all. `OcptBudgetCashJournalXlsxExportService` resolves nothing of this itself (its own
+  /// doc comment), which is what keeps it independent of `budget_revenues`/`budget_shares`.
   Map<String, String> _linkLabelByEntryIdOf(OcptBudgetState state) {
     final resourceById = {for (final resource in state.resources) resource.id: resource};
     final revenueById = {for (final revenue in state.revenues) revenue.id: revenue};
     final shareById = {for (final share in state.shares) share.id: share};
-    final commitmentBySettledEntryId = {
-      for (final commitment in state.commitments)
-        if (commitment.settledEntryId != null) commitment.settledEntryId!: commitment,
-    };
+    final commitmentById = {for (final commitment in state.commitments) commitment.id: commitment};
 
     final linkLabelByEntryId = <String, String>{};
     for (final entry in state.entries) {
       final resourceLabel = resourceById[entry.resourceId]?.label;
       final revenueLabel = revenueById[entry.revenueId]?.label;
       final shareLabel = shareById[entry.shareId]?.label;
-      final settledCommitmentLabel = commitmentBySettledEntryId[entry.id]?.label;
-      final label = resourceLabel ?? revenueLabel ?? shareLabel ?? settledCommitmentLabel;
+      final paidCommitmentLabel = commitmentById[entry.commitmentId]?.label;
+      final label = resourceLabel ?? revenueLabel ?? shareLabel ?? paidCommitmentLabel;
       if (label != null) {
         linkLabelByEntryId[entry.id] = label;
       }
@@ -552,6 +549,7 @@ class _BudgetViewState extends State<_BudgetView> {
       revenues: state.revenues,
       shares: state.shares,
       commitments: state.commitments,
+      entries: state.entries,
       allowances: state.allowances,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
@@ -1087,6 +1085,7 @@ class _BudgetViewState extends State<_BudgetView> {
       revenues: state.revenues,
       shares: state.shares,
       commitments: state.commitments,
+      entries: state.entries,
       allowances: state.allowances,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
@@ -1300,6 +1299,7 @@ class _BudgetViewState extends State<_BudgetView> {
       revenues: state.revenues,
       shares: state.shares,
       commitments: state.commitments,
+      entries: state.entries,
       allowances: state.allowances,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
@@ -1681,6 +1681,7 @@ class _BudgetViewState extends State<_BudgetView> {
       revenues: state.revenues,
       shares: state.shares,
       commitments: state.commitments,
+      entries: state.entries,
       allowances: state.allowances,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
@@ -1814,6 +1815,7 @@ class _BudgetViewState extends State<_BudgetView> {
       revenues: state.revenues,
       shares: state.shares,
       commitments: state.commitments,
+      entries: state.entries,
       allowances: state.allowances,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
@@ -1949,6 +1951,7 @@ class _BudgetViewState extends State<_BudgetView> {
       revenues: state.revenues,
       shares: state.shares,
       commitments: state.commitments,
+      entries: state.entries,
       allowances: state.allowances,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
@@ -2028,7 +2031,15 @@ class _BudgetViewState extends State<_BudgetView> {
     final tr = Tr.of(context);
 
     final commitment = state.commitments
-        .where((commitment) => commitment.lineId == lineId && !commitment.isSettled)
+        .where(
+          (commitment) =>
+              commitment.lineId == lineId &&
+              !ocptBudgetCommitmentIsSettledOf(
+                commitment,
+                state.entries,
+                projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+              ),
+        )
         .firstOrNull;
     if (commitment == null) {
       return;
@@ -2229,7 +2240,15 @@ class _BudgetViewState extends State<_BudgetView> {
     String lineId,
   ) async {
     final commitment = state.commitments
-        .where((commitment) => commitment.lineId == lineId && !commitment.isSettled)
+        .where(
+          (commitment) =>
+              commitment.lineId == lineId &&
+              !ocptBudgetCommitmentIsSettledOf(
+                commitment,
+                state.entries,
+                projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+              ),
+        )
         .firstOrNull;
     if (commitment == null) {
       return;
@@ -2244,7 +2263,15 @@ class _BudgetViewState extends State<_BudgetView> {
   /// own unsettled commitment, `À venir` holding no other kind.
   void _handleLineShowCommitmentRequested(OcptBudgetBloc bloc, OcptBudgetState state, String lineId) {
     final commitment = state.commitments
-        .where((commitment) => commitment.lineId == lineId && !commitment.isSettled)
+        .where(
+          (commitment) =>
+              commitment.lineId == lineId &&
+              !ocptBudgetCommitmentIsSettledOf(
+                commitment,
+                state.entries,
+                projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+              ),
+        )
         .firstOrNull;
     if (commitment == null) {
       return;

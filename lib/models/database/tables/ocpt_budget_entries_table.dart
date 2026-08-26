@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_commitments_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_revenues_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 
 /// One movement of the production's cash journal: money that actually left or entered the account,
 /// dated and, usually, priced against a poste.
@@ -43,6 +45,17 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_t
 /// actually pays — both nullable for the very same reason, and both are what a revenue's or a
 /// share's own doc comment (`OcptBudgetRevenuesTable`, `OcptBudgetSharesTable`) reads to add up
 /// what has actually come in or gone out, rather than a stored counter on either table.
+///
+/// [commitmentId] and [personId] complete the set, folding the ledger's last two exceptions into
+/// the very same reading. A `budget_commitments` row used to name **one** settling entry of its own
+/// (`settledEntryId`) — so an order could only ever be paid in a single instalment — and a
+/// defrayed person was linked to nothing at all, so nothing could ever mark them reimbursed.
+/// [commitmentId] names which commitment this debit actually pays and [personId] names which person
+/// this debit actually reimburses, both nullable for the very same reason [resourceId] is: **most
+/// movements name neither**, which is a real fact rather than an unfinished pick, and it is what has
+/// actually been paid against a commitment or a person that is now read off here, summed, exactly
+/// the way `OcptBudgetResourcesTable`'s own doc comment already reads what has come in against a
+/// financing resource — never a stored counter kept in step by hand.
 @DataClassName('OcptBudgetEntryRow')
 class OcptBudgetEntriesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptBudgetEntriesTable}
@@ -117,6 +130,24 @@ class OcptBudgetEntriesTable extends Table {
   /// See this table's own doc comment: null is the normal case, a movement that pays no share of
   /// the revenue sharing, read exactly the way [resourceId]'s own null is.
   TextColumn get shareId => text().nullable().references(OcptBudgetSharesTable, #id)();
+
+  /// The commitment this debit actually pays, or null. → [OcptBudgetCommitmentsTable]
+  ///
+  /// See this table's own doc comment: null is the normal case, a movement that pays no commitment
+  /// at all, read exactly the way [resourceId]'s own null is. What a commitment has been paid is the
+  /// tax-inclusive sum of every debit naming it here — `lib/utils/ocpt_budget_projection.dart`'s own
+  /// `ocptBudgetCommitmentPaidCentsOf` — which is what lets a commitment be paid in more than one
+  /// instalment: a second payment is a second entry naming the very same commitment, never a second
+  /// commitment standing in for it.
+  TextColumn get commitmentId => text().nullable().references(OcptBudgetCommitmentsTable, #id)();
+
+  /// The person this debit actually reimburses, or null. → [OcptPeopleTable]
+  ///
+  /// See this table's own doc comment: null is the normal case, a movement that reimburses nobody,
+  /// read exactly the way [resourceId]'s own null is. What a person has been reimbursed is the
+  /// tax-inclusive sum of every debit naming them here, read the very same way against what they
+  /// have advanced (`budget_allowances`, typed) to say what is still owed.
+  TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
   /// {@macro drift.Table.primaryKey}
   @override

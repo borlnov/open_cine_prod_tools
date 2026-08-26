@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quot
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
@@ -217,34 +218,43 @@ void main() {
       expect(await service.loadEntries(database: database), isEmpty);
     });
 
-    test("deleteEntry clears settledEntryId on any commitment naming it", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Paiement assurance",
-        posteId: posteId,
-        debitCents: 30000,
-      ))!;
+    test("deleteEntry tombstones the entry, so the commitment it named reads unsettled again", () async {
       final commitmentId = (await service.createCommitment(
         database: database,
         posteId: posteId,
         label: "Assurance tournage",
         amountCents: 30000,
       ))!;
-      await service.updateCommitment(
+      final entryId = (await service.createEntry(
         database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Paiement assurance",
+        posteId: posteId,
         commitmentId: commitmentId,
-        settledEntryId: Value(entryId),
-      );
+        debitCents: 30000,
+      ))!;
 
       final settled = (await service.loadCommitments(database: database)).single;
-      expect(settled.isSettled, isTrue);
+      expect(
+        ocptBudgetCommitmentIsSettledOf(
+          settled,
+          await service.loadEntries(database: database),
+          projectVatRateBasisPoints: null,
+        ),
+        isTrue,
+      );
 
       await service.deleteEntry(database: database, entryId: entryId);
 
       final commitment = (await service.loadCommitments(database: database)).single;
-      expect(commitment.settledEntryId, isNull);
-      expect(commitment.isSettled, isFalse);
+      expect(
+        ocptBudgetCommitmentIsSettledOf(
+          commitment,
+          await service.loadEntries(database: database),
+          projectVatRateBasisPoints: null,
+        ),
+        isFalse,
+      );
     });
 
     test("deleteEntry tombstones every live receipt asset naming the entry", () async {
@@ -452,7 +462,10 @@ void main() {
       expect(commitments.map((c) => c.id), [firstId, secondId]);
       expect(commitments.first.status, OcptBudgetCommitmentStatus.quoteAccepted);
       expect(commitments.first.amount.amountCents, 20000);
-      expect(commitments.first.isSettled, isFalse);
+      expect(
+        ocptBudgetCommitmentIsSettledOf(commitments.first, const [], projectVatRateBasisPoints: null),
+        isFalse,
+      );
     });
 
     test("updateCommitment writes every field passed", () async {
@@ -503,33 +516,39 @@ void main() {
       expect(commitment.posteId, otherPosteId);
     });
 
-    test("updateCommitment can set and then clear settledEntryId", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Paiement",
-        debitCents: 10000,
-      ))!;
+    test("an entry naming a commitment settles it, and clearing that link unsettles it", () async {
       final commitmentId = (await service.createCommitment(
         database: database,
         posteId: posteId,
         label: "Assurance",
         amountCents: 10000,
       ))!;
-
-      await service.updateCommitment(
+      final entryId = (await service.createEntry(
         database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Paiement",
         commitmentId: commitmentId,
-        settledEntryId: Value(entryId),
-      );
-      expect((await service.loadCommitments(database: database)).single.isSettled, isTrue);
+        debitCents: 10000,
+      ))!;
 
-      await service.updateCommitment(
-        database: database,
-        commitmentId: commitmentId,
-        settledEntryId: const Value(null),
+      expect(
+        ocptBudgetCommitmentIsSettledOf(
+          (await service.loadCommitments(database: database)).single,
+          await service.loadEntries(database: database),
+          projectVatRateBasisPoints: null,
+        ),
+        isTrue,
       );
-      expect((await service.loadCommitments(database: database)).single.isSettled, isFalse);
+
+      await service.updateEntry(database: database, entryId: entryId, commitmentId: const Value(null));
+      expect(
+        ocptBudgetCommitmentIsSettledOf(
+          (await service.loadCommitments(database: database)).single,
+          await service.loadEntries(database: database),
+          projectVatRateBasisPoints: null,
+        ),
+        isFalse,
+      );
     });
 
     test("reorderCommitment moves a commitment and writes exactly one row", () async {

@@ -77,6 +77,8 @@ OcptBudgetEntry _buildDebitEntry({required String id, required String posteId, r
       resourceId: null,
       revenueId: null,
       shareId: null,
+      commitmentId: null,
+      personId: null,
     );
 
 /// Builds a debit entry naming no poste at all — off-quote spending.
@@ -94,6 +96,8 @@ OcptBudgetEntry _buildOffQuoteDebitEntry({required String id, required int debit
   resourceId: null,
   revenueId: null,
   shareId: null,
+  commitmentId: null,
+  personId: null,
 );
 
 /// Builds a credit entry naming no poste, no resource and no revenue — money coming in this report
@@ -113,6 +117,8 @@ OcptBudgetEntry _buildOffQuoteCreditEntry({required String id, required int cred
   resourceId: null,
   revenueId: null,
   shareId: null,
+  commitmentId: null,
+  personId: null,
 );
 
 void main() {

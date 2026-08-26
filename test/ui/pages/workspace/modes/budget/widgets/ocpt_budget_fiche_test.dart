@@ -78,12 +78,13 @@ const _poste = OcptBudgetPoste(
   lines: [_line],
 );
 
-/// Builds a commitment against [_poste], everything but what a test actually varies neutral.
+/// Builds a commitment against [_poste], everything but what a test actually varies neutral —
+/// settlement is read off whichever entries the test hands in alongside it, never a field of the
+/// commitment itself any more.
 OcptBudgetCommitment _buildCommitment({
   String id = "commitment-1",
   String? lineId,
   int amountCents = 1000,
-  String? settledEntryId,
   DateTime? dueDate,
 }) => OcptBudgetCommitment(
   id: id,
@@ -92,7 +93,6 @@ OcptBudgetCommitment _buildCommitment({
   posteId: "poste-1",
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: OcptBudgetCommitmentStatus.invoiceReceived,
-  settledEntryId: settledEntryId,
   lineId: lineId,
   sortKey: "a0",
 );
@@ -105,6 +105,7 @@ OcptBudgetEntry _buildEntry({
   int creditCents = 0,
   String? resourceId,
   String? revenueId,
+  String? commitmentId,
 }) => OcptBudgetEntry(
   id: id,
   date: DateTime(2026, 8, 18),
@@ -119,6 +120,8 @@ OcptBudgetEntry _buildEntry({
   resourceId: resourceId,
   revenueId: revenueId,
   shareId: null,
+  commitmentId: commitmentId,
+  personId: null,
 );
 
 /// Builds a financing resource, everything but what a test actually varies neutral.
@@ -396,9 +399,8 @@ void main() {
         _wrap(
           _fiche(
             selection: const OcptBudgetLineSelection("line-1"),
-            commitments: [
-              _buildCommitment(lineId: "line-1", settledEntryId: "entry-1"),
-            ],
+            commitments: [_buildCommitment(lineId: "line-1")],
+            entries: [_buildEntry(debitCents: 1000, commitmentId: "commitment-1")],
             onLineShowCommitmentRequested: (_) {},
             onLineDeletionRequested: (_) {},
           ),
@@ -462,7 +464,8 @@ void main() {
         _wrap(
           _fiche(
             selection: const OcptBudgetCommitmentSelection("commitment-1"),
-            commitments: [_buildCommitment(settledEntryId: "entry-1")],
+            commitments: [_buildCommitment()],
+            entries: [_buildEntry(debitCents: 1000, commitmentId: "commitment-1")],
           ),
         ),
       );

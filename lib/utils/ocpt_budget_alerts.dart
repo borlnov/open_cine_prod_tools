@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
@@ -127,14 +128,15 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
 ///
 /// The cash projection going negative is read straight off [ocptBudgetProjectionOf]
 /// (`lib/utils/ocpt_budget_projection.dart`), opened at [cashTotals]'s own
-/// `OcptBudgetCashTotals.balanceCents` over [commitments] — at most one
-/// [OcptBudgetCashProjectionNegativeAlert], present only while that projection's own
+/// `OcptBudgetCashTotals.balanceCents` over [commitments], settlement read off [entries] — at most
+/// one [OcptBudgetCashProjectionNegativeAlert], present only while that projection's own
 /// `OcptBudgetProjection.goesNegative` is true.
 List<OcptBudgetAlert> ocptComputeBudgetAlerts({
   required List<OcptBudgetPoste> postes,
   required int Function(String posteId) paidCentsOf,
   required int Function(String posteId) committedCentsOf,
   required List<OcptBudgetCommitment> commitments,
+  required List<OcptBudgetEntry> entries,
   required OcptBudgetCashTotals cashTotals,
   required int? projectVatRateBasisPoints,
 }) {
@@ -172,6 +174,7 @@ List<OcptBudgetAlert> ocptComputeBudgetAlerts({
   final projection = ocptBudgetProjectionOf(
     openingBalanceCents: cashTotals.balanceCents,
     commitments: commitments,
+    entries: entries,
     projectVatRateBasisPoints: projectVatRateBasisPoints,
   );
   final firstNegativeStep = projection.firstNegativeStep;

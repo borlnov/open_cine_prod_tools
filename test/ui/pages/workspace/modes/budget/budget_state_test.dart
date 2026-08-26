@@ -87,23 +87,29 @@ OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = co
 
 /// Builds a minimal journal entry naming [posteId] — null for an entry naming no poste at all,
 /// off-quote spending's own reading — everything else neutral (a debit of [debitCents],
-/// tax-inclusive, no VAT rate override).
-OcptBudgetEntry _buildEntry({required String id, String? posteId, int debitCents = 0}) =>
-    OcptBudgetEntry(
-      id: id,
-      date: DateTime(2026),
-      label: "Entry $id",
-      posteId: posteId,
-      debitCents: debitCents,
-      creditCents: 0,
-      isTaxInclusive: true,
-      vatRateBasisPoints: null,
-      voucherNumber: "J-001",
-      sortKey: "a0",
-      resourceId: null,
-      revenueId: null,
-      shareId: null,
-    );
+/// tax-inclusive, no VAT rate override), except [commitmentId], the commitment this debit pays.
+OcptBudgetEntry _buildEntry({
+  required String id,
+  String? posteId,
+  int debitCents = 0,
+  String? commitmentId,
+}) => OcptBudgetEntry(
+  id: id,
+  date: DateTime(2026),
+  label: "Entry $id",
+  posteId: posteId,
+  debitCents: debitCents,
+  creditCents: 0,
+  isTaxInclusive: true,
+  vatRateBasisPoints: null,
+  voucherNumber: "J-001",
+  sortKey: "a0",
+  resourceId: null,
+  revenueId: null,
+  shareId: null,
+  commitmentId: commitmentId,
+  personId: null,
+);
 
 /// Builds a minimal financing resource, everything but [id] neutral.
 OcptBudgetResource _buildResource({
@@ -446,16 +452,15 @@ void main() {
     test("excludes a settled commitment outright", () {
       final snapshot = OcptBudgetSnapshot.build(
         postes: [_buildPoste(id: "poste-1")],
-        entries: const [],
-        commitments: [
-          const OcptBudgetCommitment(
+        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 5000, commitmentId: "commitment-1")],
+        commitments: const [
+          OcptBudgetCommitment(
             id: "commitment-1",
             dueDate: null,
             label: "Camera deposit",
             posteId: "poste-1",
             amount: OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
             status: OcptBudgetCommitmentStatus.quoteAccepted,
-            settledEntryId: "entry-1",
             lineId: null,
             sortKey: "a0",
           ),
@@ -481,7 +486,6 @@ void main() {
         posteId: "poste-1",
         amount: const OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
         status: OcptBudgetCommitmentStatus.quoteAccepted,
-        settledEntryId: null,
         lineId: null,
         sortKey: "a0",
       );
@@ -668,6 +672,8 @@ void main() {
         resourceId: "resource-1",
         revenueId: null,
         shareId: null,
+        commitmentId: null,
+        personId: null,
       );
       final snapshot = OcptBudgetSnapshot.build(
         postes: const [],

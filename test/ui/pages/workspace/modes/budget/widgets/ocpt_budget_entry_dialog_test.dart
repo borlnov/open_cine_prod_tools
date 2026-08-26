@@ -165,7 +165,6 @@ OcptBudgetCommitment _commitment({
   posteId: posteId,
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: OcptBudgetCommitmentStatus.quoteAccepted,
-  settledEntryId: null,
   lineId: null,
   sortKey: "a0",
 );
@@ -214,6 +213,8 @@ OcptBudgetEntry _existingEntry({
   resourceId: resourceId,
   revenueId: revenueId,
   shareId: shareId,
+  commitmentId: null,
+  personId: null,
 );
 
 void main() {

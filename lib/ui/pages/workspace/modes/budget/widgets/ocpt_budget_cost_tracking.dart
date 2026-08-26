@@ -520,12 +520,24 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// payment that happens to also be a settlement.
   List<_OcptTreeRow> _buildRows() {
     final rows = <_OcptTreeRow>[];
-    // Every entry named by some commitment's own `settledEntryId`, wherever that commitment lives
-    // — an off-line entry list must never repeat one of these, since it already draws nested under
-    // the very commitment it settles.
-    final settlingEntryIds = {
+    // Every entry naming a **settled** commitment, wherever that commitment lives — an off-line
+    // entry list must never repeat one of these, since [_addCommitmentRows] already draws it nested
+    // under the very commitment it pays. An entry naming a commitment still owed is left out of this
+    // set on purpose: [_addCommitmentRows] draws the muted "no entry" hint for an unsettled
+    // commitment rather than its own partial payments at this milestone, so excluding such an entry
+    // here too would drop it from the tree entirely.
+    final settledCommitmentIds = {
       for (final commitment in commitments)
-        if (commitment.settledEntryId case final entryId?) entryId,
+        if (ocptBudgetCommitmentIsSettledOf(
+          commitment,
+          entries,
+          projectVatRateBasisPoints: defaultVatRateBasisPoints,
+        ))
+          commitment.id,
+    };
+    final settlingEntryIds = {
+      for (final entry in entries)
+        if (settledCommitmentIds.contains(entry.commitmentId)) entry.id,
     };
 
     for (final poste in postes) {
@@ -591,9 +603,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
     return rows;
   }
 
-  /// Appends one row per commitment of [rowCommitments], each immediately followed by the entry
-  /// that settled it (found in [entries]) while it is settled, or by the muted "no entry" hint
-  /// while it is not — both at [depth], siblings of the commitment itself, never a level deeper.
+  /// Appends one row per commitment of [rowCommitments], each immediately followed by every entry
+  /// that pays it (found in [entries], through `OcptBudgetEntry.commitmentId`) while it is settled,
+  /// or by the muted "no entry" hint while it is not — all at [depth], siblings of the commitment
+  /// itself, never a level deeper. Ordinarily one entry, since the settle gesture still writes a
+  /// single instalment at this milestone, but drawing every one naming it is what already reads
+  /// correctly the moment a commitment is paid in more than one.
   void _addCommitmentRows(
     List<_OcptTreeRow> rows,
     List<OcptBudgetCommitment> rowCommitments, {
@@ -602,10 +617,15 @@ class OcptBudgetCostTracking extends StatelessWidget {
     for (final commitment in rowCommitments) {
       rows.add(_OcptCommitmentTreeRow(commitment: commitment, depth: depth));
 
-      if (commitment.isSettled) {
-        final settledEntry = entries.where((entry) => entry.id == commitment.settledEntryId).firstOrNull;
-        if (settledEntry != null) {
-          rows.add(_OcptEntryTreeRow(entry: settledEntry, depth: depth));
+      if (ocptBudgetCommitmentIsSettledOf(
+        commitment,
+        entries,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      )) {
+        for (final entry in entries) {
+          if (entry.commitmentId == commitment.id) {
+            rows.add(_OcptEntryTreeRow(entry: entry, depth: depth));
+          }
         }
       } else {
         rows.add(_OcptCommitmentHintTreeRow(depth: depth));
@@ -656,7 +676,11 @@ class OcptBudgetCostTracking extends StatelessWidget {
       onTap: () => onCommitmentSelected(row.commitment.id),
       builder: (context) {
         final tr = Tr.of(context);
-        final isSettled = row.commitment.isSettled;
+        final isSettled = ocptBudgetCommitmentIsSettledOf(
+          row.commitment,
+          entries,
+          projectVatRateBasisPoints: defaultVatRateBasisPoints,
+        );
         return _OcptCostTrackingSubLabel(
           label: row.commitment.label,
           isMuted: true,
@@ -747,17 +771,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
       isSelected: _isLineSelected(row.line.id),
       onTap: () => onLineSelected(row.line.id),
     ),
-    _OcptCommitmentTreeRow() => _OcptCostTrackingSubAmountsRow(
-      isSelected: _isCommitmentSelected(row.commitment.id),
-      onTap: () => onCommitmentSelected(row.commitment.id),
-      activeColumnIndex: row.commitment.isSettled ? 2 : 1,
-      activeCents: ocptBudgetCommitmentCashCentsOf(
-        row.commitment,
-        projectVatRateBasisPoints: defaultVatRateBasisPoints,
-      ),
-      currencyCode: currencyCode,
-      menuBuilder: (context) => _commitmentMenuOf(context, row.commitment),
-    ),
+    _OcptCommitmentTreeRow() => _commitmentAmountsRowOf(row.commitment),
     _OcptCommitmentHintTreeRow() => const _OcptCostTrackingSubAmountsRow(
       isSelected: false,
       onTap: null,
@@ -807,12 +821,47 @@ class OcptBudgetCostTracking extends StatelessWidget {
     return selection is OcptBudgetEntrySelection && selection.entryId == entryId;
   }
 
+  /// [commitment]'s own amounts sub-row — its own cash figure in `Engagé` while unsettled, what has
+  /// actually been paid against it in `Payé` once it is, read off [entries] through
+  /// [ocptBudgetCommitmentIsSettledOf]/[ocptBudgetCommitmentPaidCentsOf] — see the class doc
+  /// comment. Extracted out of [_amountsRowOf]'s own switch expression since settlement now needs
+  /// [entries] read once rather than the plain field read `OcptBudgetCommitment.isSettled` used to
+  /// be.
+  Widget _commitmentAmountsRowOf(OcptBudgetCommitment commitment) {
+    final isSettled = ocptBudgetCommitmentIsSettledOf(
+      commitment,
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final activeCents = isSettled
+        ? ocptBudgetCommitmentPaidCentsOf(
+            commitment,
+            entries,
+            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+          ).amountCents
+        : ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+
+    return _OcptCostTrackingSubAmountsRow(
+      isSelected: _isCommitmentSelected(commitment.id),
+      onTap: () => onCommitmentSelected(commitment.id),
+      activeColumnIndex: isSettled ? 2 : 1,
+      activeCents: activeCents,
+      currencyCode: currencyCode,
+      menuBuilder: (context) => _commitmentMenuOf(context, commitment),
+    );
+  }
+
   /// [commitment]'s own `⋮` menu, or null while every one of its own entries is withheld — see the
   /// class doc comment.
   Widget? _commitmentMenuOf(BuildContext context, OcptBudgetCommitment commitment) {
+    final isSettled = ocptBudgetCommitmentIsSettledOf(
+      commitment,
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
     final onEdit = isReadOnly ? null : onCommitmentEditRequested;
-    final onSettle = isReadOnly || commitment.isSettled ? null : onCommitmentSettleRequested;
-    final onUnsettle = isReadOnly || !commitment.isSettled ? null : onCommitmentUnsettleRequested;
+    final onSettle = isReadOnly || isSettled ? null : onCommitmentSettleRequested;
+    final onUnsettle = isReadOnly || !isSettled ? null : onCommitmentUnsettleRequested;
     final onDelete = isReadOnly ? null : onCommitmentDeletionRequested;
     if (onEdit == null && onSettle == null && onUnsettle == null && onDelete == null) {
       return null;
@@ -1700,6 +1749,7 @@ class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
     );
     final committed = ocptBudgetLineCommittedTotalOf(
       lineCommitments,
+      entries: entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final paid = ocptBudgetLinePaidTotalOf(

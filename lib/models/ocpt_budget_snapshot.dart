@@ -274,6 +274,7 @@ class OcptBudgetSnapshot extends Equatable {
     );
     final committedByPosteId = ocptBudgetCommittedCentsByPosteId(
       commitments,
+      entries: entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final cashTotals = ocptBudgetCashTotalsOf(
@@ -354,6 +355,7 @@ class OcptBudgetSnapshot extends Equatable {
         paidCentsOf: (posteId) => paidByPosteId[posteId]?.amountCents ?? 0,
         committedCentsOf: (posteId) => committedByPosteId[posteId]?.amountCents ?? 0,
         commitments: commitments,
+        entries: entries,
         cashTotals: cashTotals,
         projectVatRateBasisPoints: defaultVatRateBasisPoints,
       ),

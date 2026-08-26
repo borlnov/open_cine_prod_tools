@@ -543,9 +543,9 @@ class OcptBudgetCommitmentDeletionConfirmedEvent extends OcptBudgetEvent {
 
 /// Records commitment [commitmentId]'s own payment, dispatched by the mode once
 /// `OcptBudgetEntryDialog` returned a result for the fresh entry it was opened pre-filled with, from
-/// its row's own `Settle` action. The bloc creates the journal entry [fields] describes **and**
-/// points the commitment's own `settledEntryId` at it, in the one handler this event reaches, then
-/// reloads once — one dispatched event, two writes.
+/// its row's own `Settle` action. The bloc creates the journal entry [fields] describes, naming
+/// [commitmentId] on it, in the one handler this event reaches, then reloads once — one dispatched
+/// event, one write.
 class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetEvent {
   /// The id of the commitment being settled.
   final String commitmentId;
@@ -565,9 +565,10 @@ class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetEvent {
 }
 
 /// Undoes commitment [commitmentId]'s own settlement, dispatched by its row's own `Undo settlement`
-/// action — clears `settledEntryId` back to null alone. **The journal entry it named is never
-/// touched**: it is a movement that either happened or did not, and the journal is where it is
-/// deleted, if it should be — this event only forgets the link, not the payment.
+/// action — clears the paying entry's own `commitmentId` back to null alone. **The journal entry it
+/// named is never touched otherwise**: it is a movement that either happened or did not, and the
+/// journal is where it is deleted, if it should be — this event only forgets the link, not the
+/// payment.
 class OcptBudgetCommitmentUnsettleRequestedEvent extends OcptBudgetEvent {
   /// The id of the commitment to unsettle.
   final String commitmentId;

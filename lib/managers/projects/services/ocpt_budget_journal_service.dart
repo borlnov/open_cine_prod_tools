@@ -129,6 +129,8 @@ class OcptBudgetJournalService {
     String? resourceId,
     String? revenueId,
     String? shareId,
+    String? commitmentId,
+    String? personId,
     int debitCents = 0,
     int creditCents = 0,
     bool isTaxInclusive = true,
@@ -154,6 +156,8 @@ class OcptBudgetJournalService {
               resourceId: Value(resourceId),
               revenueId: Value(revenueId),
               shareId: Value(shareId),
+              commitmentId: Value(commitmentId),
+              personId: Value(personId),
               debitCents: Value(debitCents),
               creditCents: Value(creditCents),
               isTaxInclusive: Value(isTaxInclusive),
@@ -185,6 +189,8 @@ class OcptBudgetJournalService {
     Value<String?> resourceId = const Value.absent(),
     Value<String?> revenueId = const Value.absent(),
     Value<String?> shareId = const Value.absent(),
+    Value<String?> commitmentId = const Value.absent(),
+    Value<String?> personId = const Value.absent(),
     Value<int> debitCents = const Value.absent(),
     Value<int> creditCents = const Value.absent(),
     Value<bool> isTaxInclusive = const Value.absent(),
@@ -205,6 +211,8 @@ class OcptBudgetJournalService {
         resourceId: resourceId,
         revenueId: revenueId,
         shareId: shareId,
+        commitmentId: commitmentId,
+        personId: personId,
         debitCents: debitCents,
         creditCents: creditCents,
         isTaxInclusive: isTaxInclusive,
@@ -252,15 +260,17 @@ class OcptBudgetJournalService {
     });
   }
 
-  /// Tombstones entry [entryId] and, in the same transaction:
+  /// Tombstones entry [entryId] and, in the same transaction, tombstones every live `assets` row
+  /// naming it as its `OcptAssetKind.receipt` ([_tombstoneEntryReceipt]): the voucher goes with the
+  /// entry it stood for, exactly as `OcptElementsService` tombstones an element's photo alongside
+  /// the element.
   ///
-  /// - clears `settledEntryId` back to null on every live commitment that named it, so no
-  ///   commitment is ever left pointing at an entry that no longer exists as a settlement — settled
-  ///   is read off that link ([OcptBudgetCommitment.isSettled]), and a dangling one would silently
-  ///   misreport a commitment as still paid;
-  /// - tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt`
-  ///   ([_tombstoneEntryReceipt]): the voucher goes with the entry it stood for, exactly as
-  ///   `OcptElementsService` tombstones an element's photo alongside the element.
+  /// **No commitment needs correcting here any more.** A settled commitment used to name its own
+  /// settling entry (`settledEntryId`), so deleting that entry had to clear the link back to null or
+  /// leave a commitment pointing at a row that no longer existed. Settlement is read off
+  /// `budget_entries.commitmentId` now: tombstoning this entry is enough on its own, since every
+  /// read already filters tombstones out (`{@macro open_cine_prod_tools.tombstones}`) — a
+  /// commitment this entry used to pay simply stops seeing it summed against it.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -271,12 +281,6 @@ class OcptBudgetJournalService {
     }
 
     await database.transaction(() async {
-      await (database.update(
-        database.ocptBudgetCommitmentsTable,
-      )..where((table) => table.settledEntryId.equals(entryId))).write(
-        const OcptBudgetCommitmentsTableCompanion(settledEntryId: Value(null)),
-      );
-
       await _tombstoneEntryReceipt(database: database, entryId: entryId);
 
       await (database.update(
@@ -403,11 +407,11 @@ class OcptBudgetJournalService {
   }
 
   /// Updates the fields of commitment [commitmentId] in [database] that are passed as something
-  /// other than [Value.absent]. [settledEntryId] can be both set (a payment just settled it) and
-  /// **cleared** (`Value(null)`, a settlement undone) through this one method — there is no separate
-  /// "unsettle" gesture, since clearing the link is exactly as ordinary a write as setting it.
-  /// Never touches `sortKey` or `isDeleted`: those only change through [reorderCommitment] and
-  /// [deleteCommitment].
+  /// other than [Value.absent]. **Settlement is never written here any more** — it is read off
+  /// `budget_entries.commitmentId`, not stored on this row at all: writing a payment is
+  /// [OcptBudgetJournalService.createEntry] naming this commitment, and undoing one is clearing that
+  /// link back to null on the entry that named it ([updateEntry]). Never touches `sortKey` or
+  /// `isDeleted`: those only change through [reorderCommitment] and [deleteCommitment].
   ///
   /// **[posteId] *is* updatable here, unlike `OcptBudgetQuoteService.updateLine`'s own.** That
   /// method withholds it because a line's `sortKey` is fractional **within its own `posteId`**, so
@@ -430,7 +434,6 @@ class OcptBudgetJournalService {
     Value<bool> isTaxInclusive = const Value.absent(),
     Value<int?> vatRateBasisPoints = const Value.absent(),
     Value<OcptBudgetCommitmentStatus> status = const Value.absent(),
-    Value<String?> settledEntryId = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateCommitment")) {
       return;
@@ -447,7 +450,6 @@ class OcptBudgetJournalService {
         isTaxInclusive: isTaxInclusive,
         vatRateBasisPoints: vatRateBasisPoints,
         status: status,
-        settledEntryId: settledEntryId,
       ),
     );
   }

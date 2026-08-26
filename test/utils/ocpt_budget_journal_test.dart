@@ -32,6 +32,8 @@ void main() {
     resourceId: null,
     revenueId: null,
     shareId: null,
+    commitmentId: null,
+    personId: null,
   );
 
   group("ocptBudgetEntryDebitCentsOf / ocptBudgetEntryCreditCentsOf", () {

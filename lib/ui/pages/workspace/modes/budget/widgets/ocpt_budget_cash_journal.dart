@@ -193,6 +193,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
     final projection = ocptBudgetProjectionOf(
       openingBalanceCents: totals.balanceCents,
       commitments: commitments,
+      entries: entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final showsUpcoming = projection.commitmentCount > 0;

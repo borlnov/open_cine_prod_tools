@@ -4,7 +4,6 @@
 
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
@@ -23,7 +22,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// the "null, never zero" coverage rule [ocptBudgetCommittedCentsByPosteId] already keeps for a
 /// poste — a settled commitment is excluded outright rather than merely counted as zero, for the
 /// very same reason: the money it stood for has already left the account and is
-/// [ocptBudgetLinePaidTotalOf]'s own figure now, not this one's.
+/// [ocptBudgetLinePaidTotalOf]'s own figure now, not this one's. Settlement is read off [entries]
+/// through [ocptBudgetCommitmentIsSettledOf].
 ///
 /// [lineCommitments] is **every** commitment naming the line, settled or not — this function does
 /// its own split, exactly the way `ocptBudgetCommittedCentsByPosteId` takes every commitment
@@ -33,9 +33,18 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// reading, row by row, then summed.
 OcptBudgetCoveredTotal ocptBudgetLineCommittedTotalOf(
   List<OcptBudgetCommitment> lineCommitments, {
+  required List<OcptBudgetEntry> entries,
   required int? projectVatRateBasisPoints,
 }) {
-  final unsettled = [for (final commitment in lineCommitments) if (!commitment.isSettled) commitment];
+  final unsettled = [
+    for (final commitment in lineCommitments)
+      if (!ocptBudgetCommitmentIsSettledOf(
+        commitment,
+        entries,
+        projectVatRateBasisPoints: projectVatRateBasisPoints,
+      ))
+        commitment,
+  ];
 
   var amountCents = 0;
   var coveredLineCount = 0;
@@ -59,37 +68,43 @@ OcptBudgetCoveredTotal ocptBudgetLineCommittedTotalOf(
   );
 }
 
-/// A quote line's own `Payé` figure: the tax-inclusive debit of the `budget_entries` row that
+/// A quote line's own `Payé` figure: the tax-inclusive sum of every `budget_entries` debit that
 /// settles each of [lineCommitments]' own **settled** commitments — never an entry read directly,
 /// since an entry never names a line, only the commitment it pays
 /// (`docs/architecture/budget.md`'s own "a commitment settles by naming the entry that paid it").
 ///
-/// [entries] is searched for each settled commitment's own `OcptBudgetCommitment.settledEntryId`;
-/// a commitment whose named entry cannot be found in [entries] — a dangling link, which should not
-/// happen — leaves this total covered-but-incomplete rather than silently wrong, exactly as an
-/// unreadable rate does. Reuses [ocptBudgetEntryDebitCentsOf] rather than re-deriving the
-/// tax-inclusive reading, row by row, then summed.
+/// [ocptBudgetCommitmentPaidCentsOf] is read for each settled commitment, over [entries]; a
+/// commitment whose own reading is not itself complete — one of its own paying entries missing the
+/// rate it would need — leaves this total covered-but-incomplete rather than silently wrong, exactly
+/// as an unreadable rate does anywhere else in this mode.
 OcptBudgetCoveredTotal ocptBudgetLinePaidTotalOf(
   List<OcptBudgetCommitment> lineCommitments, {
   required List<OcptBudgetEntry> entries,
   required int? projectVatRateBasisPoints,
 }) {
-  final settled = [for (final commitment in lineCommitments) if (commitment.isSettled) commitment];
+  final settled = [
+    for (final commitment in lineCommitments)
+      if (ocptBudgetCommitmentIsSettledOf(
+        commitment,
+        entries,
+        projectVatRateBasisPoints: projectVatRateBasisPoints,
+      ))
+        commitment,
+  ];
 
   var amountCents = 0;
   var coveredLineCount = 0;
   for (final commitment in settled) {
-    final entry = entries.where((entry) => entry.id == commitment.settledEntryId).firstOrNull;
-    if (entry == null) {
+    final paid = ocptBudgetCommitmentPaidCentsOf(
+      commitment,
+      entries,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
+    if (!paid.isComplete) {
       continue;
     }
 
-    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
-    if (debit == null) {
-      continue;
-    }
-
-    amountCents += debit;
+    amountCents += paid.amountCents;
     coveredLineCount++;
   }
 
