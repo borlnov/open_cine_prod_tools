@@ -265,8 +265,9 @@ void main() {
         expect(find.text(tr.budgetCostTrackingColumnVariance.toUpperCase()), findsOneWidget);
         // The outstanding block's own label is not upper-cased.
         expect(find.text(tr.budgetInspectorFigureRemaining), findsOneWidget);
-        // Every step reads reached: a poste is an aggregate, not a single debt of its own.
-        expect(find.byIcon(Icons.circle), findsNWidgets(3));
+        // No stepper draws for the poste variant any more — a poste is an aggregate, not a single
+        // debt working through a lifecycle, and the stepper's own dots would lie about it.
+        expect(find.byIcon(Icons.circle), findsNothing);
         expect(find.byIcon(Icons.circle_outlined), findsNothing);
         // The label field's own editable value, and the simple-label field's own hint — both
         // read "Sets and costumes", the label field's stored value and the simple label's own
@@ -274,6 +275,17 @@ void main() {
         expect(find.widgetWithText(TextField, "Sets and costumes"), findsWidgets);
       },
     );
+
+    testWidgets("draws a proportion bar in place of the stepper", (tester) async {
+      await tester.pumpWidget(_wrap(_fiche(selection: const OcptBudgetPosteSelection("poste-1"))));
+
+      // The bar's own fixed track: a Container sized to the proportion bar's own constant width
+      // and height, so two postes stay comparable when the bar later appears in a list.
+      final track = find.byWidgetPredicate(
+        (widget) => widget is Container && widget.constraints?.maxWidth == 160 && widget.constraints?.maxHeight == 8,
+      );
+      expect(track, findsOneWidget);
+    });
 
     testWidgets("draws neither a primary nor a secondary action, Add and From breakdown gone", (
       tester,

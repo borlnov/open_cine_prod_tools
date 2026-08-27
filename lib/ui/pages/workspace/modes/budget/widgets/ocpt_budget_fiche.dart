@@ -29,6 +29,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 
+/// The poste's own proportion bar's fixed width, in logical pixels — fixed, not [Expanded], so two
+/// postes stay comparable when the bar later appears in a list
+/// (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
+const double _ocptBudgetPosteProportionBarWidth = 160;
+
+/// The poste's own proportion bar's own height, in logical pixels — matches
+/// `OcptBudgetFinancing`'s own two-tone coverage bar.
+const double _ocptBudgetPosteProportionBarHeight = 8;
+
 /// One primary or secondary action the fiche offers, resolved by whichever `_build…` method built
 /// the variant currently on screen.
 class _OcptBudgetFicheAction {
@@ -334,15 +343,18 @@ class OcptBudgetFiche extends StatelessWidget {
       breadcrumb: [tr.budgetHeaderExpensesSegmentLabel],
       title: ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
       amountText: _amount(quoted.amountCents),
-      stepLabels: [
-        tr.budgetFicheStepEstimatedLabel,
-        tr.budgetInspectorFigureCommitted,
-        tr.budgetInspectorFigurePaid,
-      ],
-      // A poste is an aggregate, not a single debt working through a lifecycle of its own — every
-      // step already has a figure behind it (0 while nothing has moved yet), so all three read
-      // reached rather than a progress no single number could state.
-      reachedCount: 3,
+      // A poste is an aggregate, not a single debt working through a lifecycle of its own — the
+      // three-step chain the line, commitment and entry variants below draw would light every step
+      // in hard code the moment a poste exists at all. The poste variant alone draws no stepper —
+      // `proportionBar` fills the very same slot instead, `docs/plans/budget-capture-wizard.md`'s "A
+      // poste's fiche lies".
+      stepLabels: const [],
+      reachedCount: 0,
+      proportionBar: _OcptBudgetPosteProportionBar(
+        quotedAmountCents: quoted.amountCents,
+        paidCents: paidCents,
+        committedCents: committedCents,
+      ),
       figures: [
         (tr.budgetInspectorFigureQuote, _amount(quoted.amountCents)),
         (tr.budgetInspectorFigureCommitted, _amount(committedCents)),
@@ -1093,11 +1105,18 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
   /// [badge]'s own accent colour.
   final Color? badgeColor;
 
-  /// The stepper's own step labels — two or three words, or empty while this variant draws none.
+  /// The stepper's own step labels — two or three words, or empty while this variant draws none
+  /// (the poste variant, which draws [proportionBar] in this very slot instead).
   final List<String> stepLabels;
 
   /// How many of [stepLabels] are reached.
   final int reachedCount;
+
+  /// The poste variant's own proportion bar, drawn in the very slot [stepLabels] would otherwise
+  /// fill — null for every other variant, which keeps its stepper
+  /// (`docs/plans/budget-capture-wizard.md`'s "The other corrections"). Never both at once: a poste
+  /// carries no [stepLabels], and every other variant carries no [proportionBar].
+  final Widget? proportionBar;
 
   /// The figures that make the amount up: a label paired with an already-formatted value, or null
   /// for [ocptBudgetEmptyValue].
@@ -1129,6 +1148,7 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
     this.badgeColor,
     required this.stepLabels,
     required this.reachedCount,
+    this.proportionBar,
     required this.figures,
     this.outstandingLabel,
     this.outstandingValue,
@@ -1189,7 +1209,7 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
             const SizedBox(height: 16),
             details,
           ],
-          if (stepLabels.isNotEmpty) ...[
+          if (stepLabels.isNotEmpty || proportionBar != null) ...[
             const SizedBox(height: 16),
             Card(
               child: Padding(
@@ -1197,7 +1217,8 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _OcptBudgetFicheStepper(stepLabels: stepLabels, reachedCount: reachedCount),
+                    proportionBar ??
+                        _OcptBudgetFicheStepper(stepLabels: stepLabels, reachedCount: reachedCount),
                     const SizedBox(height: 12),
                     _OcptBudgetFicheFiguresRow(figures: figures),
                   ],
@@ -1360,6 +1381,102 @@ class _OcptBudgetFicheStepper extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// The poste variant's own proportion bar, drawn in [_OcptBudgetFicheStepper]'s own slot: the paid
+/// amount, then the committed one, over a track of [_ocptBudgetPosteProportionBarWidth] — fixed
+/// rather than [Expanded], so two postes stay comparable when the bar later appears in a list
+/// (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
+///
+/// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
+/// does, the scale becomes that overrun total instead, so the whole bar still fits its own fixed
+/// width, and the overrun's own length eats the end of the bar in [ColorScheme.error]. A tick marks
+/// where the quote itself falls on that stretched scale — drawn only while there is an overrun to
+/// place it against, since without one the quote sits exactly at the bar's own right edge, where a
+/// tick would say nothing a reader could not already see.
+class _OcptBudgetPosteProportionBar extends StatelessWidget {
+  /// The poste's own quoted total, in cents — the track's own scale while nothing overruns it.
+  final int quotedAmountCents;
+
+  /// The poste's own paid total, in cents — the bar's own first segment.
+  final int paidCents;
+
+  /// The poste's own committed total, in cents — the bar's own second segment, drawn right after
+  /// [paidCents].
+  final int committedCents;
+
+  /// Class constructor
+  const _OcptBudgetPosteProportionBar({
+    required this.quotedAmountCents,
+    required this.paidCents,
+    required this.committedCents,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(_ocptBudgetPosteProportionBarHeight / 2);
+    // Never negative: a poste's own quote, paid and committed totals are all sums of non-negative
+    // amounts (`docs/architecture/budget.md`'s "The money rule").
+    final quoteCents = quotedAmountCents < 0 ? 0 : quotedAmountCents;
+    final totalCents = paidCents + committedCents;
+    final overrunCents = totalCents > quoteCents ? totalCents - quoteCents : 0;
+    final scaleCents = overrunCents > 0 ? totalCents : quoteCents;
+
+    final track = Container(
+      width: _ocptBudgetPosteProportionBarWidth,
+      height: _ocptBudgetPosteProportionBarHeight,
+      decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: radius),
+    );
+
+    if (scaleCents <= 0) {
+      // Nothing quoted and nothing moved: the empty track alone, no segment and no tick to draw.
+      return track;
+    }
+
+    double lengthOf(int cents) => _ocptBudgetPosteProportionBarWidth * cents / scaleCents;
+
+    // The within-budget share of each segment — what still fits inside the quote once the other
+    // has already claimed its own share of it — is what stays in the accent colour; whatever is
+    // left over, [overrunCents], is what eats the end of the track in red.
+    final withinBudgetPaidCents = paidCents < quoteCents ? paidCents : quoteCents;
+    final remainingBudgetCents = quoteCents - withinBudgetPaidCents;
+    final withinBudgetCommittedCents = committedCents < remainingBudgetCents
+        ? committedCents
+        : remainingBudgetCents;
+    final tickPosition = lengthOf(quoteCents);
+
+    return SizedBox(
+      width: _ocptBudgetPosteProportionBarWidth,
+      height: _ocptBudgetPosteProportionBarHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          track,
+          ClipRRect(
+            borderRadius: radius,
+            child: Row(
+              children: [
+                Container(width: lengthOf(withinBudgetPaidCents), color: colors.primary),
+                Container(
+                  width: lengthOf(withinBudgetCommittedCents),
+                  color: colors.primary.withValues(alpha: 0.45),
+                ),
+                if (overrunCents > 0) Container(width: lengthOf(overrunCents), color: colors.error),
+              ],
+            ),
+          ),
+          if (overrunCents > 0)
+            Positioned(
+              left: tickPosition - 1,
+              top: -2,
+              bottom: -2,
+              child: Container(width: 2, color: colors.onSurface),
+            ),
+        ],
+      ),
     );
   }
 }
