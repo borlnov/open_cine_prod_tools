@@ -1197,6 +1197,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
             context,
             label: tr.budgetEntryDialogLabelFieldLabel,
             child: TextFormField(
+              key: const Key("ocptBudgetNewLabelField"),
               controller: _labelController,
               autofocus: true,
               decoration: const InputDecoration(isDense: true),

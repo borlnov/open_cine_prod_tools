@@ -222,7 +222,7 @@ void main() {
       expect(find.byType(OcptBudgetCostTracking), findsNothing);
     });
 
-    testWidgets("carries no header capture button of its own", (tester) async {
+    testWidgets("carries the header's own + Nouveau button, like every other route", (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -231,7 +231,7 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
     });
 
     testWidgets(
@@ -336,31 +336,37 @@ void main() {
 
       // The tools drawer's own cash flow page is now a read-only statement, carrying no capture
       // affordance of its own — the daily gesture is the header's own button, opening the wizard.
+      // Opened from `tools › cashFlow`, the cash-movement family is promoted and `J'ai payé
+      // quelque chose` (recordExpense) arrives pre-selected, one click from step 2.
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openExpenses(tester);
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      await openCashFlow(tester);
 
       await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
       await tester.pumpAndSettle();
 
-      // Step 1 opens with `expense` already selected — one click reaches step 2.
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsOneWidget);
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")));
+      // Step 1 opens with `recordExpense` already selected — one click reaches step 2.
+      expect(find.byKey(const Key("ocptBudgetNewContinueButton")), findsOneWidget);
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+
+      // Step 2: the optional poste attachment — `Hors devis`.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewOffQuoteChoice")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        find.byKey(const Key("ocptBudgetNewLabelField")),
         "Camera rental",
       );
       await tester.enterText(
-        find.byKey(const Key("ocptBudgetEntryWizardAmountField")),
+        find.byKey(const Key("ocptBudgetNewAmountField")),
         "50.00",
       );
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();
 
-      await openCashFlow(tester);
       expect(find.text("Camera rental"), findsOneWidget);
     },
   );
@@ -411,7 +417,7 @@ void main() {
   });
 
   testWidgets(
-    "editing a cash-journal entry opens the wizard on step 2 directly, its nature recalled",
+    "editing a cash-journal entry opens the simplified dialog directly, no step of its own",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -436,25 +442,16 @@ void main() {
       await tester.tap(find.text(tr.budgetFinancingEditAction));
       await tester.pumpAndSettle();
 
-      // Step 2 directly — no nature card, no Continuer, and the label field already reads the
-      // entry's own value.
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
+      // The dialog only edits now: one screen, no nature card, no Continuer, no changer link — and
+      // the label field already reads the entry's own value.
+      expect(find.byKey(const Key("ocptBudgetNewContinueButton")), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetEntryWizardChangeNatureLink")), findsNothing);
+      expect(find.text(tr.budgetEntryDialogEditTitle), findsOneWidget);
       expect(find.widgetWithText(TextFormField, "Bank fees"), findsOneWidget);
 
-      // The entry names no poste, resource, taking or share, so its nature is inferred as `Autre
-      // mouvement` — recalled here, with a link back to step 1.
-      expect(find.text(tr.budgetEntryNatureOtherLabel), findsOneWidget);
-      expect(find.byKey(const Key("ocptBudgetEntryWizardChangeNatureLink")), findsOneWidget);
-
-      // Following the link reaches step 1, `Autre mouvement` still the one card on screen this
-      // entry's own nature was inferred as — `Continuer` is offered, so a card is indeed selected.
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardChangeNatureLink")));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsOneWidget);
-      final continueButton = tester.widget<FilledButton>(
-        find.byKey(const Key("ocptBudgetEntryWizardContinueButton")),
-      );
-      expect(continueButton.onPressed, isNotNull);
+      // The entry names no poste, resource, taking, share or person, so its nature is inferred as
+      // `Autre mouvement` and its own direction choice is drawn.
+      expect(find.text(tr.budgetEntryDialogDirectionFieldLabel.toUpperCase()), findsOneWidget);
     },
   );
 
@@ -789,31 +786,40 @@ void main() {
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openExpenses(tester);
+      await openCashFlow(tester);
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      // The header's own button opens step 1 on `expense`, already a debit — one click to step 2.
+      // The header's own button opens step 1 with `recordExpense` already selected (the
+      // cash-movement family promoted from `tools › cashFlow`) — one click to step 2.
       await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+
+      // Step 2: the optional poste attachment — `Hors devis`, the commitment's own match not
+      // depending on naming the same poste.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewOffQuoteChoice")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
       await tester.pumpAndSettle();
 
       // Typed to match the commitment on both amount and wording — the strip appears once both
-      // the amount and the label read as saveable.
+      // the amount and the label read as saveable, its own top candidate already selected.
       await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        find.byKey(const Key("ocptBudgetNewLabelField")),
         "Atelier Verrier",
       );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "250.00");
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "250.00");
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")), findsOneWidget);
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")));
+      expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsOneWidget);
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();
 
       // The commitment reads Settled, exactly as the dedicated Settle gesture leaves it — the
       // wizard's own accepted-suggestion mapping in `budget_mode.dart` named its poste and tax
       // basis, which only a commitment settlement (not a plain entry) ever does.
+      await openExpenses(tester);
       await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
       await tester.pumpAndSettle();
       expect(find.text(tr.budgetCommittedStatusSettledLabel), findsOneWidget);
@@ -1123,8 +1129,7 @@ void main() {
   });
 
   testWidgets(
-    "the header's own capture button is offered on every writing surface, drawn on its own view "
-    "and no other",
+    "the header's own capture button reads + Nouveau on all five routes, the dashboard included",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -1134,40 +1139,43 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+      final button = find.byKey(const Key("ocptBudgetHeaderCaptureButton"));
 
-      // The mode opens on the dashboard, which offers no capture at all.
-      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
+      // The mode opens on the dashboard, which now offers the very same button as every other
+      // route — no route withholds it of its own accord any more, only a previewed version does.
+      expect(button, findsOneWidget);
+      expect(find.text(tr.budgetHeaderNewAction), findsOneWidget);
 
       await openExpenses(tester);
-      expect(find.text(tr.budgetHeaderCaptureExpenseAction), findsOneWidget);
+      expect(button, findsOneWidget);
 
       await openResources(tester);
-      expect(find.text(tr.budgetHeaderCaptureFinancingAction), findsOneWidget);
+      expect(button, findsOneWidget);
 
-      // The tools drawer's own cash flow page offers none either — it is a read-only statement.
+      // The tools drawer's own cash flow page now offers it too — it carries no capture
+      // affordance of its own, but the daily gesture of recording a movement is one click away.
       await openCashFlow(tester);
-      expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
+      expect(button, findsOneWidget);
 
       await openRegie(tester);
-      expect(find.text(tr.budgetHeaderCaptureAllowanceAction), findsOneWidget);
+      expect(button, findsOneWidget);
 
       await openSharing(tester);
-      expect(find.text(tr.budgetHeaderCapturePayoutAction), findsOneWidget);
+      expect(button, findsOneWidget);
     },
   );
 
   testWidgets(
-    "the régie's own header button opens the very same défraiement dialog as its own creation "
-    "button inside the page — two doors, not one moved",
+    "the régie's own in-page defrayal button is gone — the header's own button is the only door "
+    "left",
     (tester) async {
       tester.view.physicalSize = const Size(1750, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      // The défraiements section — and its own creation button — draws nothing at all while the
-      // régie holds neither a shooting day nor a defrayal yet: one is seeded so both doors are on
-      // screen to compare.
+      // The défraiements section draws nothing at all while the régie holds neither a shooting
+      // day nor a defrayal yet: one is seeded so the section itself is on screen.
       final project = projectsManager.currentProject!;
       await projectsManager.budgetAllowancesService.createAllowance(
         database: project.database,
@@ -1186,20 +1194,16 @@ void main() {
       await openRegie(tester);
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      // The header's own button.
+      // The page's own creation button is gone — every defrayal is now typed through the wizard.
+      expect(find.text(tr.budgetRegieAllowancesSectionTitle), findsOneWidget);
+      expect(find.text(tr.budgetRegieAllowanceCreationAction), findsNothing);
+
+      // The header's own button, promoted to `defrayPerson`, one click from the defrayal form.
       await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
       await tester.pumpAndSettle();
-      expect(find.text(tr.budgetAllowanceDialogCreateTitle), findsOneWidget);
-      await tester.tap(find.text(tr.budgetEntryDialogCancelAction));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
       await tester.pumpAndSettle();
-
-      // The page's own creation button, inside the défraiements section — still offered.
-      final pageButton = find.text(tr.budgetRegieAllowanceCreationAction);
-      await tester.ensureVisible(pageButton);
-      await tester.pumpAndSettle();
-      await tester.tap(pageButton);
-      await tester.pumpAndSettle();
-      expect(find.text(tr.budgetAllowanceDialogCreateTitle), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewSaveButton")), findsOneWidget);
     },
   );
 
