@@ -279,10 +279,14 @@ void main() {
     testWidgets("draws a proportion bar in place of the stepper", (tester) async {
       await tester.pumpWidget(_wrap(_fiche(selection: const OcptBudgetPosteSelection("poste-1"))));
 
-      // The bar's own fixed track: a Container sized to the proportion bar's own constant width
-      // and height, so two postes stay comparable when the bar later appears in a list.
+      // The bar's own track: a Container of the proportion bar's own height, stretched to fill the
+      // width the fiche gives it rather than a fixed one — on the 420-wide test surface it comes out
+      // well past the 160 an earlier fixed pass drew, which is the whole point of the change.
       final track = find.byWidgetPredicate(
-        (widget) => widget is Container && widget.constraints?.maxWidth == 160 && widget.constraints?.maxHeight == 8,
+        (widget) =>
+            widget is Container &&
+            widget.constraints?.maxHeight == 8 &&
+            (widget.constraints?.maxWidth ?? 0) > 300,
       );
       expect(track, findsOneWidget);
     });

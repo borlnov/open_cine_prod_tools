@@ -29,11 +29,6 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 
-/// The poste's own proportion bar's fixed width, in logical pixels — fixed, not [Expanded], so two
-/// postes stay comparable when the bar later appears in a list
-/// (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
-const double _ocptBudgetPosteProportionBarWidth = 160;
-
 /// The poste's own proportion bar's own height, in logical pixels — matches
 /// `OcptBudgetFinancing`'s own two-tone coverage bar.
 const double _ocptBudgetPosteProportionBarHeight = 8;
@@ -1431,16 +1426,16 @@ class _OcptBudgetFicheStepper extends StatelessWidget {
 }
 
 /// The poste variant's own proportion bar, drawn in [_OcptBudgetFicheStepper]'s own slot: the paid
-/// amount, then the committed one, over a track of [_ocptBudgetPosteProportionBarWidth] — fixed
-/// rather than [Expanded], so two postes stay comparable when the bar later appears in a list
-/// (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
+/// amount, then the committed one, over a track that fills the full width the fiche gives it —
+/// measured through a [LayoutBuilder] rather than fixed, so it reads the same width as every other
+/// block in the panel (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
 ///
 /// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
-/// does, the scale becomes that overrun total instead, so the whole bar still fits its own fixed
-/// width, and the overrun's own length eats the end of the bar in [ColorScheme.error]. A tick marks
-/// where the quote itself falls on that stretched scale — drawn only while there is an overrun to
-/// place it against, since without one the quote sits exactly at the bar's own right edge, where a
-/// tick would say nothing a reader could not already see.
+/// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
+/// and the overrun's own length eats the end of the bar in [ColorScheme.error]. A tick marks where
+/// the quote itself falls on that stretched scale — drawn only while there is an overrun to place it
+/// against, since without one the quote sits exactly at the bar's own right edge, where a tick would
+/// say nothing a reader could not already see.
 class _OcptBudgetPosteProportionBar extends StatelessWidget {
   /// The poste's own quoted total, in cents — the track's own scale while nothing overruns it.
   final int quotedAmountCents;
@@ -1470,19 +1465,6 @@ class _OcptBudgetPosteProportionBar extends StatelessWidget {
     final overrunCents = totalCents > quoteCents ? totalCents - quoteCents : 0;
     final scaleCents = overrunCents > 0 ? totalCents : quoteCents;
 
-    final track = Container(
-      width: _ocptBudgetPosteProportionBarWidth,
-      height: _ocptBudgetPosteProportionBarHeight,
-      decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: radius),
-    );
-
-    if (scaleCents <= 0) {
-      // Nothing quoted and nothing moved: the empty track alone, no segment and no tick to draw.
-      return track;
-    }
-
-    double lengthOf(int cents) => _ocptBudgetPosteProportionBarWidth * cents / scaleCents;
-
     // The within-budget share of each segment — what still fits inside the quote once the other
     // has already claimed its own share of it — is what stays in the accent colour; whatever is
     // left over, [overrunCents], is what eats the end of the track in red.
@@ -1491,37 +1473,57 @@ class _OcptBudgetPosteProportionBar extends StatelessWidget {
     final withinBudgetCommittedCents = committedCents < remainingBudgetCents
         ? committedCents
         : remainingBudgetCents;
-    final tickPosition = lengthOf(quoteCents);
 
-    return SizedBox(
-      width: _ocptBudgetPosteProportionBarWidth,
-      height: _ocptBudgetPosteProportionBarHeight,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          track,
-          ClipRRect(
-            borderRadius: radius,
-            child: Row(
-              children: [
-                Container(width: lengthOf(withinBudgetPaidCents), color: colors.primary),
-                Container(
-                  width: lengthOf(withinBudgetCommittedCents),
-                  color: colors.primary.withValues(alpha: 0.45),
+    // The full width the fiche hands the bar, measured here rather than fixed, so it stretches to
+    // the panel like every other block above and below it.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final track = Container(
+          width: width,
+          height: _ocptBudgetPosteProportionBarHeight,
+          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: radius),
+        );
+
+        if (scaleCents <= 0) {
+          // Nothing quoted and nothing moved: the empty track alone, no segment and no tick to draw.
+          return track;
+        }
+
+        double lengthOf(int cents) => width * cents / scaleCents;
+
+        return SizedBox(
+          width: width,
+          height: _ocptBudgetPosteProportionBarHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              track,
+              ClipRRect(
+                borderRadius: radius,
+                child: Row(
+                  children: [
+                    Container(width: lengthOf(withinBudgetPaidCents), color: colors.primary),
+                    Container(
+                      width: lengthOf(withinBudgetCommittedCents),
+                      color: colors.primary.withValues(alpha: 0.45),
+                    ),
+                    if (overrunCents > 0)
+                      Container(width: lengthOf(overrunCents), color: colors.error),
+                  ],
                 ),
-                if (overrunCents > 0) Container(width: lengthOf(overrunCents), color: colors.error),
-              ],
-            ),
+              ),
+              if (overrunCents > 0)
+                Positioned(
+                  left: lengthOf(quoteCents) - 1,
+                  top: -2,
+                  bottom: -2,
+                  child: Container(width: 2, color: colors.onSurface),
+                ),
+            ],
           ),
-          if (overrunCents > 0)
-            Positioned(
-              left: tickPosition - 1,
-              top: -2,
-              bottom: -2,
-              child: Container(width: 2, color: colors.onSurface),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
