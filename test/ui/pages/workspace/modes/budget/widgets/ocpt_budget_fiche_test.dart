@@ -169,8 +169,6 @@ OcptBudgetFiche _fiche({
   bool isReadOnly = false,
   Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
   Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
-  ValueChanged<String>? onLineCreationRequested,
-  ValueChanged<String>? onLineFromElementRequested,
   ValueChanged<String>? onLineCommitRequested,
   ValueChanged<String>? onLineSettleRequested,
   ValueChanged<String>? onLineShowCommitmentRequested,
@@ -208,8 +206,6 @@ OcptBudgetFiche _fiche({
   onPosteEstimateToCompleteDerivedRequested: (_) {},
   onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
   onLineVatRateInheritedRequested: (_) {},
-  onLineCreationRequested: onLineCreationRequested,
-  onLineFromElementRequested: onLineFromElementRequested,
   onLineCommitRequested: onLineCommitRequested,
   onLineSettleRequested: onLineSettleRequested,
   onLineShowCommitmentRequested: onLineShowCommitmentRequested,
@@ -279,47 +275,18 @@ void main() {
       },
     );
 
-    testWidgets("Add and From breakdown fire with the poste's own id", (tester) async {
-      _useTallSurface(tester);
-      String? added;
-      String? fromElement;
-      await tester.pumpWidget(
-        _wrap(
-          _fiche(
-            selection: const OcptBudgetPosteSelection("poste-1"),
-            onLineCreationRequested: (posteId) => added = posteId,
-            onLineFromElementRequested: (posteId) => fromElement = posteId,
-          ),
-        ),
-      );
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
-
-      await tester.tap(find.widgetWithText(FilledButton, tr.budgetLineCreationAction));
-      expect(added, "poste-1");
-
-      await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetLineFromElementAction));
-      expect(fromElement, "poste-1");
-    });
-
-    testWidgets("withholds Add, From breakdown and every field under a previewed version", (
+    testWidgets("draws neither a primary nor a secondary action, Add and From breakdown gone", (
       tester,
     ) async {
-      var written = false;
+      _useTallSurface(tester);
       await tester.pumpWidget(
-        _wrap(
-          _fiche(
-            selection: const OcptBudgetPosteSelection("poste-1"),
-            isReadOnly: true,
-            onLineCreationRequested: (_) => written = true,
-            onLineFromElementRequested: (_) => written = true,
-          ),
-        ),
+        _wrap(_fiche(selection: const OcptBudgetPosteSelection("poste-1"))),
       );
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
-      expect(find.widgetWithText(FilledButton, tr.budgetLineCreationAction), findsNothing);
-      expect(find.widgetWithText(OutlinedButton, tr.budgetLineFromElementAction), findsNothing);
-      expect(written, isFalse);
+      // The poste's own Add/From breakdown actions moved to the capture wizard: no primary, no
+      // secondary action is drawn on this variant any more.
+      expect(find.byType(FilledButton), findsNothing);
+      expect(find.byType(OutlinedButton), findsNothing);
     });
   });
 

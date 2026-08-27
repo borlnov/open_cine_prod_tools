@@ -104,7 +104,6 @@ void main() {
     List<OcptPerson> people = const [],
     String? selectedShareId,
     bool isReadOnly = false,
-    VoidCallback? onShareCreationRequested,
     ValueChanged<String>? onShareSelected,
     ValueChanged<OcptBudgetShare>? onShareEditRequested,
     ValueChanged<OcptBudgetShare>? onSharePayoutRequested,
@@ -141,7 +140,6 @@ void main() {
           currencyCode: "EUR",
           selectedShareId: selectedShareId,
           isReadOnly: isReadOnly,
-          onShareCreationRequested: onShareCreationRequested ?? () {},
           onShareSelected: onShareSelected ?? (_) {},
           onShareEditRequested: onShareEditRequested ?? (_) {},
           onSharePayoutRequested: onSharePayoutRequested ?? (_) {},
@@ -377,8 +375,6 @@ void main() {
 
     await pumpView(tester, shares: [share], isReadOnly: true);
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));
-    expect(find.text(tr.budgetSharingShareCreationAction), findsNothing);
     // No menu at all: every one of its own entries would be withheld.
     expect(find.byIcon(Icons.more_vert), findsNothing);
   });

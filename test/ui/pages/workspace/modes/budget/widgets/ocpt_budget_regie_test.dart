@@ -214,7 +214,6 @@ void main() {
     VoidCallback? onScheduleOpenRequested,
     VoidCallback? onBreakdownFeedRequested,
     VoidCallback? onProjectSettingsRequested,
-    VoidCallback? onAllowanceCreationRequested,
     ValueChanged<String>? onAllowanceEditRequested,
     ValueChanged<String>? onAllowanceDeletionRequested,
     ValueChanged<String>? onProvisionPosteSelected,
@@ -249,7 +248,6 @@ void main() {
           breakdownUnpricedElementCount: breakdownUnpricedElementCount,
           currencyCode: "EUR",
           isReadOnly: isReadOnly,
-          onAllowanceCreationRequested: onAllowanceCreationRequested ?? () {},
           onAllowanceEditRequested: onAllowanceEditRequested ?? (_) {},
           onAllowanceDeletionRequested: onAllowanceDeletionRequested ?? (_) {},
           onProvisionPosteSelected: onProvisionPosteSelected ?? (_) {},
@@ -721,7 +719,6 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
     // Withheld, never disabled: the controls are not on screen at all.
-    expect(find.text(tr.budgetRegieAllowanceCreationAction), findsNothing);
     expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
     expect(find.byType(PopupMenuButton<String>), findsNothing);
     // The reading itself is untouched — a version is still read.

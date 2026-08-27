@@ -141,13 +141,11 @@ void main() {
     Set<String> expandedNodeIds = const {},
     bool isReadOnly = false,
     ValueChanged<String>? onNodeExpansionToggled,
-    ValueChanged<OcptBudgetResourceGroupKind>? onResourceCreationRequested,
     ValueChanged<String>? onResourceSelected,
     ValueChanged<OcptBudgetResource>? onResourceEditRequested,
     ValueChanged<OcptBudgetResource>? onResourceReceiptRequested,
     ValueChanged<OcptBudgetResource>? onResourceReceiptUndoRequested,
     ValueChanged<String>? onResourceDeletionRequested,
-    VoidCallback? onRevenueCreationRequested,
     ValueChanged<String>? onRevenueSelected,
     ValueChanged<OcptBudgetRevenue>? onRevenueEditRequested,
     ValueChanged<OcptBudgetRevenue>? onRevenueReceiptRequested,
@@ -177,13 +175,11 @@ void main() {
           expandedNodeIds: expandedNodeIds,
           isReadOnly: isReadOnly,
           onNodeExpansionToggled: onNodeExpansionToggled ?? (_) {},
-          onResourceCreationRequested: onResourceCreationRequested ?? (_) {},
           onResourceSelected: onResourceSelected ?? (_) {},
           onResourceEditRequested: onResourceEditRequested ?? (_) {},
           onResourceReceiptRequested: onResourceReceiptRequested ?? (_) {},
           onResourceReceiptUndoRequested: onResourceReceiptUndoRequested ?? (_) {},
           onResourceDeletionRequested: onResourceDeletionRequested ?? (_) {},
-          onRevenueCreationRequested: onRevenueCreationRequested ?? () {},
           onRevenueSelected: onRevenueSelected ?? (_) {},
           onRevenueEditRequested: onRevenueEditRequested ?? (_) {},
           onRevenueReceiptRequested: onRevenueReceiptRequested ?? (_) {},
@@ -197,13 +193,12 @@ void main() {
   }
 
   testWidgets("a project holding neither a resource nor a taking shows the empty state, with the "
-      "column header and the creation footer still drawn", (tester) async {
+      "column header still drawn", (tester) async {
     await pumpView(tester);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
     expect(find.text(tr.budgetFinancingColumnResource.toUpperCase()), findsOneWidget);
-    expect(find.text(tr.budgetFinancingCreationAction), findsOneWidget);
   });
 
   testWidgets("the three families draw in order, an empty family drawn not at all", (tester) async {
@@ -389,36 +384,6 @@ void main() {
     // "valued" (lower case) appears in no other financing string — `Valued` (the in-kind status
     // word) is capitalised — so its absence here is the caption's own.
     expect(find.textContaining("valued"), findsNothing);
-  });
-
-  testWidgets("the creation footer offers all four gestures", (tester) async {
-    OcptBudgetResourceGroupKind? pickedKind;
-    var revenuePicked = false;
-
-    await pumpView(
-      tester,
-      onResourceCreationRequested: (kind) => pickedKind = kind,
-      onRevenueCreationRequested: () => revenuePicked = true,
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
-    await tester.tap(find.text(tr.budgetFinancingCreationAction));
-    await tester.pumpAndSettle();
-
-    expect(find.text(tr.budgetFinancingAddSubsidyAction), findsOneWidget);
-    expect(find.text(tr.budgetFinancingAddCashAction), findsOneWidget);
-    expect(find.text(tr.budgetFinancingAddInKindAction), findsOneWidget);
-    expect(find.text(tr.budgetFinancingAddRevenueAction), findsOneWidget);
-
-    await tester.tap(find.text(tr.budgetFinancingAddRevenueAction));
-    await tester.pumpAndSettle();
-    expect(revenuePicked, isTrue);
-
-    await tester.tap(find.text(tr.budgetFinancingCreationAction));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.budgetFinancingAddCashAction));
-    await tester.pumpAndSettle();
-    expect(pickedKind, OcptBudgetResourceGroupKind.cash);
   });
 
   testWidgets("the coverage band states what's received and promised, and how much is missing", (
