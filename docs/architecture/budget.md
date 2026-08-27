@@ -769,8 +769,10 @@ are all here, and this file is the whole record of them.
   gesture that makes money go out whatever family it sits in — the quote's own three, the four
   debits, and the free-direction `Autre mouvement`; `Resources` offers every gesture that brings
   money in — the three planned incomes, the two receipts, and `Autre mouvement` again; the drawer's
-  `cashFlow` offers the whole `cashMovement` family, `regie` its defrayal and `sharing` its
-  participant. The **dashboard filters nothing**. A family with no offered gesture draws no heading,
+  `cashFlow` offers the whole `cashMovement` family, `regie` its defrayal, and `sharing` its
+  participant **plus `Le film a rapporté de l'argent`** (`recordTakingReceipt`) — the split is of
+  what the film earns, so recording a taking belongs where that money is divided up. The
+  **dashboard filters nothing**. A family with no offered gesture draws no heading,
   and a **removable tag** at the top names the filter (`Filtré : <route>`) with a `Tout afficher`
   action beside it — the mode's own poste-filter tag idiom — that **lifts the filter whole**, after
   which every family is shown in the plain natural order, the quote first, exactly the dashboard's

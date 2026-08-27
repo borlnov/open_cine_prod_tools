@@ -516,7 +516,9 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Which gestures the `+ New` wizard offers when opened from the current route — a semantic filter
   /// by the direction money moves (`ocptBudgetGestureFlowsOf`), **transverse to the families**: the
   /// expenses route offers everything that spends, the resources route everything that brings money
-  /// in, the drawer's cash-flow page its own movements, régie and sharing their own single family.
+  /// in, the drawer's cash-flow page its own movements, régie its defrayal. Sharing offers its own
+  /// participants **and `Le film a rapporté de l'argent`** (`recordTakingReceipt`): the split is of
+  /// what the film earns, so recording a taking belongs where that money is divided up.
   /// Null for the dashboard, which works on no document and filters nothing. The reader lifts it
   /// from inside the wizard (`Show all`).
   Set<OcptBudgetGesture>? _wizardGesturesForView(OcptBudgetState state) {
@@ -537,8 +539,10 @@ class _BudgetViewState extends State<_BudgetView> {
         ofFamily(OcptBudgetGestureFamily.cashMovement),
       (OcptBudgetView.tools, OcptBudgetToolsView.regie) =>
         ofFamily(OcptBudgetGestureFamily.allowances),
-      (OcptBudgetView.tools, OcptBudgetToolsView.sharing) =>
-        ofFamily(OcptBudgetGestureFamily.revenueSharing),
+      (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => {
+        ...ofFamily(OcptBudgetGestureFamily.revenueSharing),
+        OcptBudgetGesture.recordTakingReceipt,
+      },
     };
   }
 
