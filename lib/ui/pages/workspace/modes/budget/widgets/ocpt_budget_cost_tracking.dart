@@ -79,7 +79,7 @@ const double _ocptCostTrackingIndentStep = 16;
 /// reserved on every row a twisty could appear on (a poste, a quote line) so a poste or line with
 /// nothing to expand still lines its own label up with a sibling that does. 28, the theme's own
 /// floor for an icon button's own tap target, not the 20 an earlier pass under-sized it at
-/// (`docs/plans/budget-capture-wizard.md`'s "The other corrections") — its own tap target runs the
+/// (`docs/architecture/budget.md`) — its own tap target runs the
 /// **full height** of whichever row it sits on rather than squaring off at this same figure, see
 /// [_OcptCostTrackingTwisty]'s own doc comment.
 const double _ocptCostTrackingTwistyWidth = 28;
@@ -1259,8 +1259,7 @@ class _OcptCostTrackingPosteIdentityRow extends StatelessWidget {
 /// **Its own tap target is [_ocptCostTrackingTwistyWidth] wide over the whole of [rowHeight]**,
 /// not a square of the twisty's own width: the theme's own floor for an icon button already
 /// exceeds a column this narrow, so the row's own height, whichever fixed figure the row it sits on
-/// draws at, is what the tap target claims instead (`docs/plans/budget-capture-wizard.md`'s "The
-/// other corrections"). The 18 px arrow itself stays centred in that taller target — `Icon` centres
+/// draws at, is what the tap target claims instead (`docs/architecture/budget.md`). The 18 px arrow itself stays centred in that taller target — `Icon` centres
 /// its own glyph inside whatever box its surrounding layout hands it.
 class _OcptCostTrackingTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.

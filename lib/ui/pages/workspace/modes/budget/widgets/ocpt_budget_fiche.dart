@@ -341,8 +341,7 @@ class OcptBudgetFiche extends StatelessWidget {
       // A poste is an aggregate, not a single debt working through a lifecycle of its own — the
       // three-step chain the line, commitment and entry variants below draw would light every step
       // in hard code the moment a poste exists at all. The poste variant alone draws no stepper —
-      // `proportionBar` fills the very same slot instead, `docs/plans/budget-capture-wizard.md`'s "A
-      // poste's fiche lies".
+      // `proportionBar` fills the very same slot instead, `docs/architecture/budget.md`.
       stepLabels: const [],
       reachedCount: 0,
       proportionBar: _OcptBudgetPosteProportionBar(
@@ -387,8 +386,7 @@ class OcptBudgetFiche extends StatelessWidget {
       typedEstimateToCompleteCents: null,
     );
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
-    // Signalled, never blocked (`docs/plans/budget-capture-wizard.md`'s "A duplicate poste code is
-    // signalled, never blocked"): an empty code is not a duplicate, and the comparison trims both
+    // Signalled, never blocked (`docs/architecture/budget.md`): an empty code is not a duplicate, and the comparison trims both
     // sides so two codes differing only by surrounding whitespace still read as the same one.
     final trimmedCode = poste.code.trim();
     final hasDuplicateCode =
@@ -492,8 +490,7 @@ class OcptBudgetFiche extends StatelessWidget {
               .amountCents;
     // What this commitment still owes — the `Pay` action and the outstanding block below both read
     // this, never [committedCents]' own full figure, so a partly-paid commitment offers back only
-    // what is actually left to pay (`docs/plans/budget-capture-wizard.md`'s "the pay action offers
-    // the outstanding amount rather than the total").
+    // what is actually left to pay (`docs/architecture/budget.md`).
     final outstandingCents = commitment == null
         ? null
         : ocptBudgetCommitmentOutstandingCentsOf(
@@ -502,8 +499,7 @@ class OcptBudgetFiche extends StatelessWidget {
             projectVatRateBasisPoints: defaultVatRateBasisPoints,
           );
     // Every entry that has paid this commitment, oldest first — a commitment settled in
-    // instalments draws each one, `docs/plans/budget-capture-wizard.md`'s "The line fiche and the
-    // expenses tree learn to draw a commitment's own payments".
+    // instalments draws each one, `docs/architecture/budget.md`.
     final payments = commitment == null
         ? const <OcptBudgetEntry>[]
         : (entries.where((entry) => entry.commitmentId == commitment.id).toList()
@@ -1145,7 +1141,7 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
 
   /// The poste variant's own proportion bar, drawn in the very slot [stepLabels] would otherwise
   /// fill — null for every other variant, which keeps its stepper
-  /// (`docs/plans/budget-capture-wizard.md`'s "The other corrections"). Never both at once: a poste
+  /// (`docs/architecture/budget.md`). Never both at once: a poste
   /// carries no [stepLabels], and every other variant carries no [proportionBar].
   final Widget? proportionBar;
 
@@ -1428,7 +1424,7 @@ class _OcptBudgetFicheStepper extends StatelessWidget {
 /// The poste variant's own proportion bar, drawn in [_OcptBudgetFicheStepper]'s own slot: the paid
 /// amount, then the committed one, over a track that fills the full width the fiche gives it —
 /// measured through a [LayoutBuilder] rather than fixed, so it reads the same width as every other
-/// block in the panel (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
+/// block in the panel (`docs/architecture/budget.md`).
 ///
 /// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
 /// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
@@ -1564,8 +1560,7 @@ class _OcptBudgetFicheFiguresRow extends StatelessWidget {
 }
 
 /// A promoted quote line's own payments section: every entry that has paid its commitment, one
-/// instalment per row, date then amount — `docs/plans/budget-capture-wizard.md`'s "The line fiche
-/// and the expenses tree learn to draw a commitment's own payments". Read-only, like every other
+/// instalment per row, date then amount — `docs/architecture/budget.md`. Read-only, like every other
 /// figure this fiche prints: there is no affordance here to withhold under a preview.
 class _OcptBudgetCommitmentPayments extends StatelessWidget {
   /// The commitment's own payments, oldest first.
@@ -1687,7 +1682,7 @@ class _OcptBudgetInlineField extends StatefulWidget {
 
   /// An inline error message, or null while the field's own value stands as typed. Never blocks nor
   /// reverts the typed value — it is drawn beside it, exactly the way a duplicate poste code is
-  /// signalled rather than blocked (`docs/plans/budget-capture-wizard.md`).
+  /// signalled rather than blocked (`docs/architecture/budget.md`).
   final String? errorText;
 
   /// Called with the field's raw text on every keystroke, or null while it may not be written to.

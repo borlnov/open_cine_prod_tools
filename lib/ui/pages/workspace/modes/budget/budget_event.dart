@@ -317,7 +317,7 @@ class OcptBudgetLineCreatedFromElementEvent extends OcptBudgetEvent {
   /// capture wizard's own breakdown selector is this event's only caller once the poste fiche's own
   /// `From breakdown` action is gone: it always passes the count of scenes the element appears in,
   /// corrected in the table before creating — "the scale suggests, it never decides"
-  /// (`docs/plans/budget-capture-wizard.md`).
+  /// (`docs/architecture/budget.md`).
   final int? quantityMilli;
 
   /// Class constructor

@@ -74,7 +74,7 @@ const double _ocptResourcesIndentStep = 16;
 
 /// The twisty's own fixed width, in logical pixels, whether it draws an arrow or sits blank. 28,
 /// the theme's own floor for an icon button's own tap target, not the 20 an earlier pass
-/// under-sized it at (`docs/plans/budget-capture-wizard.md`'s "The other corrections") — its own
+/// under-sized it at (`docs/architecture/budget.md`) — its own
 /// tap target runs the full height of the row it sits on, see [_OcptResourcesTwisty]'s own doc
 /// comment.
 const double _ocptResourcesTwistyWidth = 28;
@@ -749,7 +749,7 @@ class _OcptResourcesHeaderRow extends StatelessWidget {
 /// **Its own tap target is [_ocptResourcesTwistyWidth] wide over the whole of [rowHeight]**, not a
 /// square of the twisty's own width — mirrors `OcptBudgetCostTracking`'s own
 /// `_OcptCostTrackingTwisty` exactly, the theme's own floor for an icon button already exceeding a
-/// column this narrow (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
+/// column this narrow (`docs/architecture/budget.md`).
 class _OcptResourcesTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.
   final bool isExpandable;

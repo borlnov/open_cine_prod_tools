@@ -908,7 +908,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ///
   /// Mints the line with `OcptElement.name` as its own label and `elementId` naming the element —
   /// **never a price**, whatever `OcptElement.cost` happens to hold: "the breakdown says what, not
-  /// how much" (`docs/plans/budget-capture-wizard.md`) is the whole reason this event's only caller
+  /// how much" (`docs/architecture/budget.md`) is the whole reason this event's only caller
   /// is a selector, not a form. `event.quantityMilli` seeds `quantityMilli`, passed on as
   /// [Value.absent] rather than defaulted while it is null.
   Future<void> _onLineCreatedFromElement(

@@ -1269,7 +1269,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   }
 
   /// The field's own label above it, dense — the one idiom every field of step 3 shares
-  /// (`docs/plans/budget-capture-wizard.md`).
+  /// (`docs/architecture/budget.md`).
   Widget _labelAbove(BuildContext context, {required String label, required Widget child}) {
     final theme = Theme.of(context);
     return Column(

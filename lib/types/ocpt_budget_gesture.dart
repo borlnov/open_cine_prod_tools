@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 /// The five documents the capture wizard's own step 1 groups its fifteen answers under — the
 /// headings, not states of mind: each names the thing being worked on, exactly as the mode's own
 /// four chips already do for the working surfaces themselves
-/// (`docs/plans/budget-capture-wizard.md`'s own "step 1 — grouped by document, not by intent").
+/// (`docs/architecture/budget.md`).
 ///
 /// [ocptBudgetGestureFamilyOf] is the only way a caller ever asks which heading an
 /// [OcptBudgetGesture] sits under — nothing else in this file switches over the fifteen answers by
@@ -66,7 +66,7 @@ enum OcptBudgetGestureAttachment {
 }
 
 /// The fifteen answers the capture wizard's own step 1 offers, one card each, grouped under the
-/// five [OcptBudgetGestureFamily] headings — `docs/plans/budget-capture-wizard.md`'s own table,
+/// five [OcptBudgetGestureFamily] headings — `docs/architecture/budget.md`,
 /// carried into a type so the wizard, its step counter and its step-2 attachment all read one
 /// source rather than three that could drift apart.
 ///
