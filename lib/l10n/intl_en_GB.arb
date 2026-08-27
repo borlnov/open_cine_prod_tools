@@ -11144,20 +11144,6 @@
       }
     }
   },
-  "budgetLineFromElementAction": "From breakdown",
-  "@budgetLineFromElementAction": {
-    "description": "Label of the poste inspector's own quote line creation action, from a breakdown element",
-    "context": "Displayed beside the Quote lines title in the budget mode's Inspector tab",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetLineFromElementDialogTitle": "Price a breakdown element",
-  "@budgetLineFromElementDialogTitle": {
-    "description": "Title of the dialog offering every breakdown element no quote line prices yet",
-    "context": "Displayed at the top of OcptBudgetElementPickerDialog",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetLineFromElementSearchHint": "Search elements…",
   "@budgetLineFromElementSearchHint": {
     "description": "Placeholder of the element picker's own search field",
@@ -11340,13 +11326,6 @@
   "@budgetInspectorPosteEstimateToCompleteDeriveAction": {
     "description": "Action putting a poste's own estimate to complete back to the derived figure",
     "context": "Displayed beside the poste's estimate-to-complete field in the budget mode's Inspector tab",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetLineCreationAction": "Add",
-  "@budgetLineCreationAction": {
-    "description": "Label of the poste inspector's own quote line creation action",
-    "context": "Displayed beside the Quote lines title in the budget mode's Inspector tab",
     "type": "text",
     "placeholders": {}
   },
@@ -11775,30 +11754,12 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetEntryDialogCreateTitle": "New entry",
-  "@budgetEntryDialogCreateTitle": {
-    "description": "Title of the entry dialog while creating a new cash book entry",
-    "context": "Displayed at the top of OcptBudgetEntryDialog",
-    "type": "text",
-    "placeholders": {}
-  },
   "budgetEntryDialogEditTitle": "Edit entry",
   "@budgetEntryDialogEditTitle": {
     "description": "Title of the entry dialog while editing an existing cash book entry",
     "context": "Displayed at the top of OcptBudgetEntryDialog",
     "type": "text",
     "placeholders": {}
-  },
-  "budgetEntryWizardStepLabel": "Step {current} of 2",
-  "@budgetEntryWizardStepLabel": {
-    "description": "The entry wizard's own step indicator, at the top right of the dialog",
-    "context": "Displayed at the top of OcptBudgetEntryDialog, opposite its own title",
-    "type": "text",
-    "placeholders": {
-      "current": {
-        "type": "int"
-      }
-    }
   },
   "budgetEntryWizardChangeNatureAction": "change",
   "@budgetEntryWizardChangeNatureAction": {
@@ -11830,116 +11791,6 @@
   "@budgetEntryNatureExpenseLabel": {
     "description": "Bold answer of the entry wizard's own expense nature card, step 1",
     "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureExpenseHint": "Leaves the account · attaches to a quote poste, and may settle a commitment",
-  "@budgetEntryNatureExpenseHint": {
-    "description": "Muted hint of the entry wizard's own expense nature card, naming its fixed direction and its one link",
-    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own expense nature card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureFinancingLabel": "I received a financing",
-  "@budgetEntryNatureFinancingLabel": {
-    "description": "Bold answer of the entry wizard's own financing nature card, step 1",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureFinancingHint": "Comes into the account · attaches to a subsidy, a contribution, a grant",
-  "@budgetEntryNatureFinancingHint": {
-    "description": "Muted hint of the entry wizard's own financing nature card, naming its fixed direction and its one link",
-    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own financing nature card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureRevenueLabel": "The film earned money",
-  "@budgetEntryNatureRevenueLabel": {
-    "description": "Bold answer of the entry wizard's own revenue nature card, step 1",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureRevenueHint": "Comes into the account · attaches to a taking: a sale, a prize, a broadcast",
-  "@budgetEntryNatureRevenueHint": {
-    "description": "Muted hint of the entry wizard's own revenue nature card, naming its fixed direction and its one link",
-    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own revenue nature card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNaturePayoutLabel": "I paid out someone's share",
-  "@budgetEntryNaturePayoutLabel": {
-    "description": "Bold answer of the entry wizard's own payout nature card, step 1",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNaturePayoutHint": "Leaves the account · attaches to a revenue-sharing participant",
-  "@budgetEntryNaturePayoutHint": {
-    "description": "Muted hint of the entry wizard's own payout nature card, naming its fixed direction and its one link",
-    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own payout nature card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureRepaymentLabel": "I repaid a contribution",
-  "@budgetEntryNatureRepaymentLabel": {
-    "description": "Bold answer of the entry wizard's own repayment nature card, step 1 — the mirror image of the financing card, the same financing resource with the money going the other way",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureRepaymentHint": "Leaves the account · attaches to a repayable financing resource",
-  "@budgetEntryNatureRepaymentHint": {
-    "description": "Muted hint of the entry wizard's own repayment nature card, naming its fixed direction and its one link",
-    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own repayment nature card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureOtherLabel": "Other movement",
-  "@budgetEntryNatureOtherLabel": {
-    "description": "Bold answer of the entry wizard's own other-movement nature card, step 1 — the one nature that still asks its own direction, in step 2",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 1, and recalled under its title on step 2",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryNatureOtherHint": "Bank charges, an internal transfer, a correction · lands under {offQuoteLabel}, the row at the end of the table that is never exported to the quote",
-  "@budgetEntryNatureOtherHint": {
-    "description": "Muted hint of the entry wizard's own other-movement nature card",
-    "context": "Displayed under the bold answer of OcptBudgetEntryDialog's own other-movement nature card",
-    "type": "text",
-    "placeholders": {
-      "offQuoteLabel": {
-        "type": "String",
-        "example": "Off quote"
-      }
-    }
-  },
-  "budgetEntryWizardMatchBadgeCommitment": "Committed",
-  "@budgetEntryWizardMatchBadgeCommitment": {
-    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a commitment",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryWizardMatchBadgeDefrayal": "Defrayal",
-  "@budgetEntryWizardMatchBadgeDefrayal": {
-    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a defrayal",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryWizardMatchBadgeResource": "Financing",
-  "@budgetEntryWizardMatchBadgeResource": {
-    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a financing resource",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetEntryWizardMatchBadgeRevenue": "Takings",
-  "@budgetEntryWizardMatchBadgeRevenue": {
-    "description": "Kind badge of the entry wizard's own reconciliation strip while the matched candidate is a taking",
-    "context": "Displayed on OcptBudgetEntryDialog's own step 2, before the reconciliation strip's own sentence",
     "type": "text",
     "placeholders": {}
   },
@@ -12094,13 +11945,6 @@
   "@budgetCommittedOutstandingLabel": {
     "description": "Label of a quote line's own fiche figure for what its commitment still owes, which excludes every settled commitment",
     "context": "Displayed on the budget mode's own Inspector tab, on a promoted quote line",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetCommittedColumnAmount": "Amount",
-  "@budgetCommittedColumnAmount": {
-    "description": "Header of the commitments table's amount column",
-    "context": "Displayed at the top of the budget mode's commitments table",
     "type": "text",
     "placeholders": {}
   },
@@ -12268,34 +12112,6 @@
   "budgetFinancingCreationAction": "Add",
   "@budgetFinancingCreationAction": {
     "description": "Button opening the menu of the four creation gestures under the resources tree",
-    "context": "Displayed in the budget mode's own resources tree's own creation footer",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingAddSubsidyAction": "Subsidy",
-  "@budgetFinancingAddSubsidyAction": {
-    "description": "Menu entry opening OcptBudgetResourceDialog on a fresh subsidy",
-    "context": "Displayed in the budget mode's own resources tree's own creation footer",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingAddCashAction": "Cash contribution",
-  "@budgetFinancingAddCashAction": {
-    "description": "Menu entry opening OcptBudgetResourceDialog on a fresh cash contribution",
-    "context": "Displayed in the budget mode's own resources tree's own creation footer",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingAddInKindAction": "In-kind contribution",
-  "@budgetFinancingAddInKindAction": {
-    "description": "Menu entry opening OcptBudgetResourceDialog on a fresh contribution in kind",
-    "context": "Displayed in the budget mode's own resources tree's own creation footer",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetFinancingAddRevenueAction": "Takings",
-  "@budgetFinancingAddRevenueAction": {
-    "description": "Menu entry opening OcptBudgetRevenueDialog on a fresh taking",
     "context": "Displayed in the budget mode's own resources tree's own creation footer",
     "type": "text",
     "placeholders": {}
@@ -13339,13 +13155,6 @@
         "type": "String"
       }
     }
-  },
-  "budgetSharingShareCreationAction": "+ Participant",
-  "@budgetSharingShareCreationAction": {
-    "description": "Label of the action that creates a new share",
-    "context": "Displayed as the distribution table's own footer action in OcptBudgetSharing",
-    "type": "text",
-    "placeholders": {}
   },
   "budgetSharingRecordPayoutAction": "Record a payout",
   "@budgetSharingRecordPayoutAction": {
@@ -14995,13 +14804,6 @@
         "type": "String"
       }
     }
-  },
-  "budgetEntryMatchAcceptAction": "That's it",
-  "@budgetEntryMatchAcceptAction": {
-    "description": "Primary action of the entry wizard's own reconciliation strip, step 2, accepting it",
-    "context": "Displayed by OcptBudgetEntryDialog's own step 2, on its reconciliation strip",
-    "type": "text",
-    "placeholders": {}
   }
 
 }
