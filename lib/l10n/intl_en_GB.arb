@@ -10578,14 +10578,14 @@
   },
   "budgetHeaderCashJournalTitle": "Cash flow",
   "@budgetHeaderCashJournalTitle": {
-    "description": "Title of the budget mode's header band while the cash journal is shown",
+    "description": "Title of the budget mode's header band while the cash book is shown",
     "context": "Shown at the left of OcptBudgetHeader, above its own subtitle",
     "type": "text",
     "placeholders": {}
   },
   "budgetHeaderCashJournalSubtitle": "Every movement the account has actually seen, in date order.",
   "@budgetHeaderCashJournalSubtitle": {
-    "description": "Subtitle of the budget mode's header band while the cash journal is shown",
+    "description": "Subtitle of the budget mode's header band while the cash book is shown",
     "context": "Shown at the left of OcptBudgetHeader, under its own title",
     "type": "text",
     "placeholders": {}
@@ -10695,34 +10695,6 @@
   "budgetHeaderPosteFilterClearTooltip": "Show every poste again",
   "@budgetHeaderPosteFilterClearTooltip": {
     "description": "Tooltip of the small clear button on the header's poste filter, shown only while a poste is filtered."
-  },
-  "budgetHeaderCaptureExpenseAction": "Enter an expense",
-  "@budgetHeaderCaptureExpenseAction": {
-    "description": "Label of the header's own trailing primary button on the expenses view, opening the entry wizard on the expense nature",
-    "context": "Displayed in the budget mode's own header band",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCaptureFinancingAction": "Enter a receipt",
-  "@budgetHeaderCaptureFinancingAction": {
-    "description": "Label of the header's own trailing primary button on the resources view, opening the entry wizard on the financing nature",
-    "context": "Displayed in the budget mode's own header band",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCaptureAllowanceAction": "Enter a defrayal",
-  "@budgetHeaderCaptureAllowanceAction": {
-    "description": "Label of the header's own trailing primary button on the tools drawer's own régie page, opening OcptBudgetAllowanceDialog — the very door the page's own creation button already opens",
-    "context": "Displayed in the budget mode's own header band",
-    "type": "text",
-    "placeholders": {}
-  },
-  "budgetHeaderCapturePayoutAction": "Pay out a share",
-  "@budgetHeaderCapturePayoutAction": {
-    "description": "Label of the header's own trailing primary button on the tools drawer's own sharing page, opening the entry wizard on the payout nature with no participant chosen yet",
-    "context": "Displayed in the budget mode's own header band",
-    "type": "text",
-    "placeholders": {}
   },
   "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
   "@budgetStatsPostes": {
@@ -11595,7 +11567,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportPanelMessage": "The quote, the financing plan, the cash journal and the financial report it's measured against.",
+  "budgetExportPanelMessage": "The quote, the financing plan, the cash book and the financial report it's measured against.",
   "@budgetExportPanelMessage": {
     "description": "Message of the budget mode's own export panel",
     "context": "Displayed under the title of the dialog the budget mode's toolbar Export control opens",
@@ -11646,12 +11618,12 @@
   },
   "budgetCashJournalSimpleEmptyHint": "Record something you paid, or money that came in, to start.",
   "@budgetCashJournalSimpleEmptyHint": {
-    "description": "Empty-state hint of the cash journal while the header's simplified switch reads simplified",
+    "description": "Empty-state hint of the cash book while the header's simplified switch reads simplified",
     "context": "Shown in place of the detailed wording, which names the ledger by its trade word",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCashJournalEmptyHint": "Record a payment or a receipt to start the cash journal.",
+  "budgetCashJournalEmptyHint": "Record a payment or a receipt to start the cash book.",
   "@budgetCashJournalEmptyHint": {
     "description": "Hint of the cash statement's own empty state",
     "context": "Shown in place of the tools drawer's own Cash flow page for a project with no entry at all",
@@ -11686,71 +11658,71 @@
   },
   "budgetCashJournalColumnDate": "Date",
   "@budgetCashJournalColumnDate": {
-    "description": "Header of the cash journal table's date column",
-    "context": "Displayed at the top of the budget mode's cash journal table",
+    "description": "Header of the cash book table's date column",
+    "context": "Displayed at the top of the budget mode's cash book table",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalColumnVoucher": "Voucher",
   "@budgetCashJournalColumnVoucher": {
-    "description": "Header of the cash journal table's voucher-number column",
-    "context": "Displayed at the top of the budget mode's cash journal table",
+    "description": "Header of the cash book table's voucher-number column",
+    "context": "Displayed at the top of the budget mode's cash book table",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalColumnLabel": "Label",
   "@budgetCashJournalColumnLabel": {
-    "description": "Header of the cash journal table's label column",
-    "context": "Displayed at the top of the budget mode's cash journal table",
+    "description": "Header of the cash book table's label column",
+    "context": "Displayed at the top of the budget mode's cash book table",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalVoucherAttachedTooltip": "This entry carries a voucher.",
   "@budgetCashJournalVoucherAttachedTooltip": {
-    "description": "Tooltip of a cash journal row's own small voucher marker, while the referenced file resolves",
-    "context": "Displayed on hover over the icon next to a row's own label in the budget mode's cash journal",
+    "description": "Tooltip of a cash book row's own small voucher marker, while the referenced file resolves",
+    "context": "Displayed on hover over the icon next to a row's own label in the budget mode's cash book",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalVoucherFileMissingTooltip": "This entry carries a voucher, but its file cannot be found.",
   "@budgetCashJournalVoucherFileMissingTooltip": {
-    "description": "Tooltip of a cash journal row's own small voucher marker, while the referenced file no longer resolves",
-    "context": "Displayed on hover over the icon next to a row's own label in the budget mode's cash journal",
+    "description": "Tooltip of a cash book row's own small voucher marker, while the referenced file no longer resolves",
+    "context": "Displayed on hover over the icon next to a row's own label in the budget mode's cash book",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalColumnDebit": "Debit",
   "@budgetCashJournalColumnDebit": {
-    "description": "Header of the cash journal table's debit column",
-    "context": "Displayed at the top of the budget mode's cash journal table",
+    "description": "Header of the cash book table's debit column",
+    "context": "Displayed at the top of the budget mode's cash book table",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalColumnCredit": "Credit",
   "@budgetCashJournalColumnCredit": {
-    "description": "Header of the cash journal table's credit column",
-    "context": "Displayed at the top of the budget mode's cash journal table",
+    "description": "Header of the cash book table's credit column",
+    "context": "Displayed at the top of the budget mode's cash book table",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalColumnBalance": "Balance",
   "@budgetCashJournalColumnBalance": {
-    "description": "Header of the cash journal table's running-balance column",
-    "context": "Displayed at the top of the budget mode's cash journal table",
+    "description": "Header of the cash book table's running-balance column",
+    "context": "Displayed at the top of the budget mode's cash book table",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalNoPosteLabel": "No poste",
   "@budgetCashJournalNoPosteLabel": {
     "description": "Wording of an entry naming no poste, or of the entry dialog's own explicit no-poste choice",
-    "context": "Displayed in the budget mode's cash journal table poste column and in the entry dialog's own poste picker",
+    "context": "Displayed in the budget mode's cash book table poste column and in the entry dialog's own poste picker",
     "type": "text",
     "placeholders": {}
   },
   "budgetCashJournalWholeJournalNote": "Debit, credit and balance always cover the whole account — the mode's poste filter never reaches this page.",
   "@budgetCashJournalWholeJournalNote": {
-    "description": "Note under the cash journal table explaining that its own top figures are never the filtered subset's",
-    "context": "Displayed under the budget mode's cash journal table",
+    "description": "Note under the cash book table explaining that its own top figures are never the filtered subset's",
+    "context": "Displayed under the budget mode's cash book table",
     "type": "text",
     "placeholders": {}
   },
@@ -11784,35 +11756,35 @@
   },
   "budgetEntryDeleteAction": "Delete",
   "@budgetEntryDeleteAction": {
-    "description": "Entry of a cash journal row's own ⋮ menu deleting it",
-    "context": "Displayed in the budget mode's cash journal table row menu",
+    "description": "Entry of a cash book row's own ⋮ menu deleting it",
+    "context": "Displayed in the budget mode's cash book table row menu",
     "type": "text",
     "placeholders": {}
   },
   "budgetDeleteEntryConfirmTitle": "Delete this entry?",
   "@budgetDeleteEntryConfirmTitle": {
-    "description": "Title of the confirmation dialog deleting a cash journal entry",
-    "context": "Shown by OcptConfirmDialog before a cash journal entry is deleted",
+    "description": "Title of the confirmation dialog deleting a cash book entry",
+    "context": "Shown by OcptConfirmDialog before a cash book entry is deleted",
     "type": "text",
     "placeholders": {}
   },
   "budgetDeleteEntryConfirmMessage": "This cannot be undone.",
   "@budgetDeleteEntryConfirmMessage": {
-    "description": "Message of the confirmation dialog deleting a cash journal entry",
-    "context": "Shown by OcptConfirmDialog before a cash journal entry is deleted",
+    "description": "Message of the confirmation dialog deleting a cash book entry",
+    "context": "Shown by OcptConfirmDialog before a cash book entry is deleted",
     "type": "text",
     "placeholders": {}
   },
   "budgetEntryDialogCreateTitle": "New entry",
   "@budgetEntryDialogCreateTitle": {
-    "description": "Title of the entry dialog while creating a new cash journal entry",
+    "description": "Title of the entry dialog while creating a new cash book entry",
     "context": "Displayed at the top of OcptBudgetEntryDialog",
     "type": "text",
     "placeholders": {}
   },
   "budgetEntryDialogEditTitle": "Edit entry",
   "@budgetEntryDialogEditTitle": {
-    "description": "Title of the entry dialog while editing an existing cash journal entry",
+    "description": "Title of the entry dialog while editing an existing cash book entry",
     "context": "Displayed at the top of OcptBudgetEntryDialog",
     "type": "text",
     "placeholders": {}
@@ -12578,7 +12550,7 @@
   },
   "budgetUndoReceiptConfirmTitle": "Undo the last receipt?",
   "@budgetUndoReceiptConfirmTitle": {
-    "description": "Title of the confirm dialog asked before the most recent receipt against a financing resource is undone, deleting the cash-journal entry it recorded",
+    "description": "Title of the confirm dialog asked before the most recent receipt against a financing resource is undone, deleting the cash-book entry it recorded",
     "context": "Displayed by OcptConfirmDialog, opened by the budget mode",
     "type": "text",
     "placeholders": {}
@@ -14067,16 +14039,16 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportCashJournalTitle": "Cash journal",
+  "budgetExportCashJournalTitle": "Cash book",
   "@budgetExportCashJournalTitle": {
-    "description": "Title of the cash journal's own card in the budget mode's export panel",
+    "description": "Title of the cash book's own card in the budget mode's export panel",
     "context": "Displayed on a card of OcptWorkspaceExportDialog",
     "type": "text",
     "placeholders": {}
   },
   "budgetExportCashJournalDescription": "Every entry, in chronological order, with its running balance.",
   "@budgetExportCashJournalDescription": {
-    "description": "One-line description of the cash journal's own card in the budget mode's export panel",
+    "description": "One-line description of the cash book's own card in the budget mode's export panel",
     "context": "Displayed on a card of OcptWorkspaceExportDialog",
     "type": "text",
     "placeholders": {}
@@ -14111,7 +14083,7 @@
   },
   "budgetExportUnavailableNoEntryReason": "No entry is recorded yet.",
   "@budgetExportUnavailableNoEntryReason": {
-    "description": "Reason shown in place of the cash journal's own card description while the project holds no live entry",
+    "description": "Reason shown in place of the cash book's own card description while the project holds no live entry",
     "context": "Displayed on a card of the budget mode's export panel while unavailable",
     "type": "text",
     "placeholders": {}
@@ -14126,7 +14098,7 @@
   "budgetExportXlsxFileTypeLabel": "Excel workbook",
   "@budgetExportXlsxFileTypeLabel": {
     "description": "Label of the .xlsx file type shown in the native save-file dialog",
-    "context": "Passed to the OS file picker when the user exports the cash journal workbook",
+    "context": "Passed to the OS file picker when the user exports the cash book workbook",
     "type": "text",
     "placeholders": {}
   },
@@ -14407,9 +14379,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportCashJournalSheetName": "Cash journal",
+  "budgetExportCashJournalSheetName": "Cash book",
   "@budgetExportCashJournalSheetName": {
-    "description": "The name given to the exported cash journal workbook's single sheet",
+    "description": "The name given to the exported cash book workbook's single sheet",
     "context": "OcptBudgetCashJournalXlsxLabels.sheetName",
     "type": "text",
     "placeholders": {}
@@ -14533,7 +14505,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpChainExpensesSentence": "A quote line becomes a commitment, and the commitment is settled by an entry that names it.",
+  "budgetHelpChainExpensesSentence": "A quote line becomes a commitment, and the commitment is settled by the entries that name it — in one payment or several.",
   "@budgetHelpChainExpensesSentence": {
     "description": "Sentence under the expenses chain, saying how one step becomes the next",
     "context": "Displayed under the budget mode's own help chain, on the expenses chain",
@@ -14636,7 +14608,7 @@
       }
     }
   },
-  "budgetHelpExpensesBody2": "{paid} reads the journal's debits that name this poste; {committed} reads the commitments that do. Neither is typed here.",
+  "budgetHelpExpensesBody2": "{paid} reads the cash book's debits that name this poste; {committed} reads the commitments that do. Neither is typed here.",
   "@budgetHelpExpensesBody2": {
     "description": "Second paragraph of the budget mode's help panel for the Expenses chip",
     "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
@@ -14650,13 +14622,13 @@
       }
     }
   },
-  "budgetHelpExpensesBody3": "A movement is typed from the band above, under {capture}, and in two steps: first what you are doing, then the form that fits that answer. The answer fixes the direction and the one thing the movement attaches to, so a debit is never picked against a credit. Once the amount and the date are typed, the app proposes what the movement settles and one click accepts it — a sum that already exists is never typed twice.",
+  "budgetHelpExpensesBody3": "A movement is recorded through {newAction}, the one button this band now carries on every page. It opens a short wizard: first what you are doing — grouped by the document it belongs to, this page's own answers promoted to the top with the first already picked — then, where the answer needs it, what the movement attaches to, and last its amount and date. The first answer fixes the direction and the one thing the movement settles, so a debit is never picked against a credit, and once the amount is typed the app proposes what it settles for a one-click accept — a sum that already exists is never typed twice.",
   "@budgetHelpExpensesBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the Expenses chip, stating how a movement is typed",
+    "description": "Third paragraph of the budget mode's help panel for the Expenses chip, stating how a movement is recorded through the wizard opened by the header's New button",
     "context": "Displayed on the budget mode's own Help tab while the Expenses chip is on screen",
     "type": "text",
     "placeholders": {
-      "capture": {
+      "newAction": {
         "type": "String"
       }
     }
@@ -14725,7 +14697,7 @@
       }
     }
   },
-  "budgetHelpCashFlowIntro": "Every movement the account has seen is listed here, and only here: debits and credits alike, in the order they happened. {expenses} reads the same journal poste by poste, but keeps the debits naming a poste alone.",
+  "budgetHelpCashFlowIntro": "Every movement the account has seen is listed here, and only here: debits and credits alike, in the order they happened. {expenses} reads the same cash book poste by poste, but keeps the debits naming a poste alone.",
   "@budgetHelpCashFlowIntro": {
     "description": "Lead paragraph of the budget mode's help panel for the tools drawer's Cash flow page, stating it is the only page listing every movement the account has seen, credits included",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
@@ -14761,7 +14733,7 @@
       }
     }
   },
-  "budgetHelpCashFlowBody3": "{balance} is always the whole journal's own balance — the mode's poste filter does not reach this page at all.",
+  "budgetHelpCashFlowBody3": "{balance} is always the whole cash book's own balance — the mode's poste filter does not reach this page at all.",
   "@budgetHelpCashFlowBody3": {
     "description": "Fourth paragraph of the budget mode's help panel for the tools drawer's Cash flow page",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
@@ -14772,7 +14744,7 @@
       }
     }
   },
-  "budgetHelpCashFlowBody4": "{upcoming} follows the statement and is the other half of the same page: what is committed and still owed, in due-date order across every poste, and, at its foot, what the balance becomes once all of it has fallen due. Nothing is typed on this page — a row here selects its commitment into the fiche, which is where it is settled.",
+  "budgetHelpCashFlowBody4": "{upcoming} follows the statement and is the other half of the same page: what is committed and still owed, in due-date order across every poste, and, at its foot, what the balance becomes once all of it has fallen due. The statement itself is only read: a row here selects its commitment into the fiche, where its outstanding amount is settled — in one payment or several.",
   "@budgetHelpCashFlowBody4": {
     "description": "Fifth paragraph of the budget mode's help panel for the tools drawer's Cash flow page, stating the upcoming section under the statement",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Cash flow page is on screen",
@@ -14797,7 +14769,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpResourcesBody2": "{status} is paperwork only — it never means the money has arrived. What has actually arrived is summed from the journal's credits naming this resource, which is exactly what {recordReceipt} writes.",
+  "budgetHelpResourcesBody2": "{status} is paperwork only — it never means the money has arrived. What has actually arrived is summed from the cash book's credits naming this resource, which is exactly what {recordReceipt} writes.",
   "@budgetHelpResourcesBody2": {
     "description": "Second paragraph of the budget mode's help panel for the Resources chip",
     "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
@@ -14811,13 +14783,13 @@
       }
     }
   },
-  "budgetHelpResourcesBody3": "Money coming in is typed exactly as money going out, from the band above, under {capture}: the same two steps, the same proposal of what the receipt settles. Only the answer to the first step differs, and this page's own button gives it for you.",
+  "budgetHelpResourcesBody3": "Money coming in is recorded exactly as money going out: through {newAction}, the same wizard, the same proposal of what the receipt settles. Only the first answer differs — and opened from this page, the wizard promotes it for you, a receipt against a financing resource or a taking sitting at the top.",
   "@budgetHelpResourcesBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the Resources chip, stating that a receipt is typed exactly as a payment is",
+    "description": "Third paragraph of the budget mode's help panel for the Resources chip, stating that a receipt is recorded exactly as a payment is, through the wizard opened by the header's New button",
     "context": "Displayed on the budget mode's own Help tab while the Resources chip is on screen",
     "type": "text",
     "placeholders": {
-      "capture": {
+      "newAction": {
         "type": "String"
       }
     }
@@ -14857,9 +14829,9 @@
       }
     }
   },
-  "budgetHelpRegieBody1": "This page reads in two directions at once: the left column is computed off the schedule, the right one is typed row by row.",
+  "budgetHelpRegieBody1": "This page reads in two directions at once. The left column is catering, computed off the schedule. The right one is a running account of what the production owes people: a row per person carrying what they have advanced, what has come back to them and what is still owed, opening onto their own defrayals and their reimbursements. A person's own menu reimburses them, never for more than is still owed; a defrayal that names nobody stands on its own, counting against the quote and against no running account.",
   "@budgetHelpRegieBody1": {
-    "description": "First paragraph of the budget mode's help panel for the tools drawer's Catering & travel page, stating the catering column is computed and the defrayal column is typed",
+    "description": "First paragraph of the budget mode's help panel for the tools drawer's Catering & travel page, stating the catering column is computed and the defrayal column is a running account grouped by person",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
@@ -14914,13 +14886,13 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpSharingBody3": "{payout}, in the band above, records what has actually gone out to somebody. It opens the very same two-step form the other pages open, already answered on paying a share; a row's own menu opens it too, naming the participant for you.",
+  "budgetHelpSharingBody3": "A payout — what has actually gone out to somebody — is recorded through {newAction} like every other movement; opened from this page, the wizard promotes paying a share to the top, and a row's own menu opens it too, naming the participant for you.",
   "@budgetHelpSharingBody3": {
-    "description": "Third paragraph of the budget mode's help panel for the tools drawer's Revenue sharing page, stating the page's own payout button",
+    "description": "Third paragraph of the budget mode's help panel for the tools drawer's Revenue sharing page, stating a payout is recorded through the wizard opened by the header's New button",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Revenue sharing page is on screen",
     "type": "text",
     "placeholders": {
-      "payout": {
+      "newAction": {
         "type": "String"
       }
     }

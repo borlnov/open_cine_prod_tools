@@ -190,12 +190,12 @@ class OcptBudgetHelp extends StatelessWidget {
   /// figure or another route worded exactly as its own label or chip already reads.
   ///
   /// **No route opens on a shared capture-band paragraph any more.** The band that used to sit atop
-  /// three views is gone, and each route says for itself how a movement is typed on it: `expenses`
-  /// and `resources` name their own header button and the two steps behind it, `tools › sharing`
-  /// names the one that pays a share, and `tools › cashFlow` says the opposite — that nothing is
-  /// typed there at all — beside the `À venir` section the statement now carries. Each of those
-  /// paragraphs is handed the very button label the band above it draws, so the help never names a
-  /// control by a word the screen does not use.
+  /// three views is gone, and each route says for itself how a movement is recorded on it:
+  /// `expenses`, `resources` and `tools › sharing` each name the header's own single `New` button
+  /// and the wizard behind it, differing only in which answer that page promotes; `tools › cashFlow`
+  /// says the statement itself is only read, beside the `À venir` section it now carries. Each of
+  /// those three paragraphs is handed the very same [Tr.budgetHeaderNewAction] label the band above
+  /// draws, so the help never names a control by a word the screen does not use.
   ///
   /// [OcptBudgetView.dashboard]'s own four paragraphs work through what the chain above already
   /// introduces — the tiles, the needs/resources balance band and the standing alerts, each in the
@@ -227,7 +227,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.expenses, _) => [
       tr.budgetHelpExpensesBody1(tr.budgetCostTrackingColumnQuote),
       tr.budgetHelpExpensesBody2(tr.budgetCostTrackingColumnPaid, tr.budgetCostTrackingColumnCommitted),
-      tr.budgetHelpExpensesBody3(tr.budgetHeaderCaptureExpenseAction),
+      tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction),
       tr.budgetHelpExpensesBody4(tr.budgetCostTrackingOffQuoteLabel, tr.budgetCostTrackingColumnPaid),
       tr.budgetHelpExpensesBody5,
       tr.budgetHelpExpensesBody6(
@@ -249,7 +249,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.resources, _) => [
       tr.budgetHelpResourcesBody1,
       tr.budgetHelpResourcesBody2(tr.budgetFinancingColumnDossier, tr.budgetFinancingRecordReceiptAction),
-      tr.budgetHelpResourcesBody3(tr.budgetHeaderCaptureFinancingAction),
+      tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction),
       tr.budgetHelpResourcesBody4,
       tr.budgetHelpResourcesBody5(
         tr.budgetResourceDialogReimbursableFieldLabel,
@@ -263,7 +263,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => [
       tr.budgetHelpSharingBody1(tr.budgetHeaderResourcesSegmentLabel),
       tr.budgetHelpSharingBody2,
-      tr.budgetHelpSharingBody3(tr.budgetHeaderCapturePayoutAction),
+      tr.budgetHelpSharingBody3(tr.budgetHeaderNewAction),
       tr.budgetHelpSharingBody4,
     ],
   };

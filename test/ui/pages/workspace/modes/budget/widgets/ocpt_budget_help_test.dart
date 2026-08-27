@@ -189,17 +189,17 @@ void main() {
   testWidgets("every working surface says how a movement is typed on it, in its own words", (
     tester,
   ) async {
-    // Each of the three names the very button its own header band draws, so a reader looking for
-    // the control the paragraph talks about finds the same words above the panel.
+    // All three name the header's own single New button, so a reader looking for the control the
+    // paragraph talks about finds the same word above the panel on every page.
     var tr = await pumpHelp(tester, view: OcptBudgetView.expenses);
     expect(
-      find.text(tr.budgetHelpExpensesBody3(tr.budgetHeaderCaptureExpenseAction)),
+      find.text(tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction)),
       findsOneWidget,
     );
 
     tr = await pumpHelp(tester, view: OcptBudgetView.resources);
     expect(
-      find.text(tr.budgetHelpResourcesBody3(tr.budgetHeaderCaptureFinancingAction)),
+      find.text(tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction)),
       findsOneWidget,
     );
 
@@ -209,22 +209,20 @@ void main() {
       toolsView: OcptBudgetToolsView.sharing,
     );
     expect(
-      find.text(tr.budgetHelpSharingBody3(tr.budgetHeaderCapturePayoutAction)),
+      find.text(tr.budgetHelpSharingBody3(tr.budgetHeaderNewAction)),
       findsOneWidget,
     );
   });
 
-  testWidgets("the cash flow page says the opposite: nothing is typed there, and why", (
-    tester,
-  ) async {
+  testWidgets("the cash flow page says the statement is only read, and why", (tester) async {
     final tr = await pumpHelp(tester, view: OcptBudgetView.tools);
 
-    // The one page of the three that carries no capture button at all, and the only one whose own
-    // paragraph names the upcoming section under the statement.
+    // The only page of the four whose own paragraph names the upcoming section under the statement,
+    // and the one that says the statement itself types nothing rather than naming the New button.
     expect(
       find.text(tr.budgetHelpCashFlowBody4(tr.budgetCashUpcomingSectionTitle)),
       findsOneWidget,
     );
-    expect(find.text(tr.budgetHeaderCaptureExpenseAction), findsNothing);
+    expect(find.text(tr.budgetHeaderNewAction), findsNothing);
   });
 }
