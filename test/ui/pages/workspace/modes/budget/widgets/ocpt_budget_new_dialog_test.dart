@@ -570,16 +570,8 @@ void main() {
   });
 
   group("every outcome variant reaches the mode correctly", () {
-    // skip: DEFECT — _buildFormStep wraps OcptBudgetLineFormBody in a second Form keyed with the
-    // same _formKey the body already keys its own inner Form with (ocpt_budget_new_dialog.dart's
-    // addQuoteLine case, ~line 979). Two Form elements share one GlobalKey<FormState>, and Flutter
-    // throws "'child == _child': is not true" the moment a field's onDraftChanged triggers a
-    // wizard rebuild (i.e. as soon as a field is typed into). Every other gesture body is passed
-    // formKey: _formKey directly, with no such wrapper — addQuoteLine's own case is the only one
-    // that adds it.
     testWidgets(
       "addQuoteLine pops OcptBudgetNewLineOutcome naming the poste and the typing",
-      skip: true,
       (tester) async {
         final tr = await pumpDialog(
           tester,

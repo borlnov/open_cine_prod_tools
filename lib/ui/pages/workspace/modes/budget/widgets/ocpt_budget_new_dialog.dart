@@ -976,13 +976,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     }
 
     return switch (gesture) {
-      OcptBudgetGesture.addQuoteLine => Form(
-        key: _formKey,
-        child: OcptBudgetLineFormBody(
-          currencyCode: widget.currencyCode,
-          formKey: _formKey,
-          onDraftChanged: (draft) => setState(() => _lineDraft = draft),
-        ),
+      OcptBudgetGesture.addQuoteLine => OcptBudgetLineFormBody(
+        currencyCode: widget.currencyCode,
+        formKey: _formKey,
+        onDraftChanged: (draft) => setState(() => _lineDraft = draft),
       ),
       OcptBudgetGesture.addQuoteLinesFromBreakdown => _buildBreakdownStep(context, tr),
       OcptBudgetGesture.commitSpend => OcptBudgetCommitmentFormBody(
