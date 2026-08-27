@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_allowance_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
@@ -323,9 +324,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   /// with the movement, or null.
   OcptBudgetResourceFormFields? _pendingNewResource;
 
-  /// The taking step 2's own trailing row just collected, or null.
-  OcptBudgetRevenueFormFields? _pendingNewRevenue;
-
   /// The participant step 2's own trailing row just collected, or null.
   OcptBudgetShareFormFields? _pendingNewShare;
 
@@ -545,12 +543,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
           return pendingNewResource.label;
         }
         return widget.resources.where((resource) => resource.id == _resourceId).firstOrNull?.label;
-      case OcptBudgetGestureAttachment.taking:
-        final pendingNewRevenue = _pendingNewRevenue;
-        if (pendingNewRevenue != null) {
-          return pendingNewRevenue.label;
-        }
-        return widget.revenues.where((revenue) => revenue.id == _revenueId).firstOrNull?.label;
       case OcptBudgetGestureAttachment.participant:
         final pendingNewShare = _pendingNewShare;
         if (pendingNewShare != null) {
@@ -712,7 +704,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       ),
       OcptBudgetGestureAttachment.posteAndLine => _buildPosteAndLineAttachment(context, tr),
       OcptBudgetGestureAttachment.financingResource => _buildResourceAttachment(context, tr),
-      OcptBudgetGestureAttachment.taking => _buildRevenueAttachment(context, tr),
       OcptBudgetGestureAttachment.participant => _buildParticipantAttachment(context, tr),
       OcptBudgetGestureAttachment.person => _buildPersonAttachment(context, tr),
     };
@@ -895,59 +886,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     });
   }
 
-  Widget _buildRevenueAttachment(BuildContext context, Tr tr) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      for (final revenue in widget.revenues)
-        _OcptBudgetNewChoiceRow(
-          label: revenue.label.isEmpty ? tr.budgetPosteUnnamed : revenue.label,
-          hint: tr.budgetNewRevenueChoiceHint(
-            ocptBudgetAmountLabel(revenue.amountCents, widget.currencyCode),
-            ocptBudgetAmountLabel(
-              widget.receivedByRevenueId[revenue.id]?.amountCents ?? 0,
-              widget.currencyCode,
-            ),
-          ),
-          isSelected: _pendingNewRevenue == null && _revenueId == revenue.id,
-          onTap: () => setState(() {
-            _revenueId = revenue.id;
-            _pendingNewRevenue = null;
-          }),
-        ),
-      if (_pendingNewRevenue case final pendingNewRevenue?)
-        _OcptBudgetNewChoiceRow(
-          key: const Key("ocptBudgetNewPendingRevenueChoice"),
-          label: tr.budgetNewWillCreateLabel(pendingNewRevenue.label),
-          isSelected: true,
-          onTap: () {},
-        ),
-      _OcptBudgetNewChoiceRow(
-        key: const Key("ocptBudgetNewCreateRevenueChoice"),
-        label: tr.budgetEntryDialogNewRevenueAction,
-        isSelected: false,
-        isCreationRow: true,
-        onTap: () => unawaited(_handleCreateRevenueRequested(context)),
-      ),
-    ],
-  );
-
-  Future<void> _handleCreateRevenueRequested(BuildContext context) async {
-    final fields = await OcptBudgetRevenueDialog.show(
-      context,
-      existing: null,
-      currencyCode: widget.currencyCode,
-    );
-    if (fields == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _pendingNewRevenue = fields;
-      _revenueId = null;
-    });
-  }
-
   Widget _buildParticipantAttachment(BuildContext context, Tr tr) => Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1033,7 +971,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         _posteAnswered && (_lineId != null || _lineNoneAnswered),
       OcptBudgetGestureAttachment.financingResource =>
         _resourceId != null || _pendingNewResource != null,
-      OcptBudgetGestureAttachment.taking => _revenueId != null || _pendingNewRevenue != null,
       OcptBudgetGestureAttachment.participant => _shareId != null || _pendingNewShare != null,
       OcptBudgetGestureAttachment.person => _personId != null,
     };
@@ -1759,9 +1696,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
               gesture == OcptBudgetGesture.repayContribution
           ? (_pendingNewResource == null ? _resourceId : null)
           : null,
-      revenueId: gesture == OcptBudgetGesture.recordTakingReceipt
-          ? (_pendingNewRevenue == null ? _revenueId : null)
-          : null,
+      // `recordTakingReceipt` carries a revenue only when a contextual `Receive` opened the wizard
+      // pre-filled from an existing taking; opened from `+ New` it names none and mints one below.
+      revenueId: gesture == OcptBudgetGesture.recordTakingReceipt ? _revenueId : null,
       shareId: gesture == OcptBudgetGesture.payParticipantShare
           ? (_pendingNewShare == null ? _shareId : null)
           : null,
@@ -1770,7 +1707,18 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
               gesture == OcptBudgetGesture.repayContribution
           ? _pendingNewResource
           : null,
-      newRevenue: gesture == OcptBudgetGesture.recordTakingReceipt ? _pendingNewRevenue : null,
+      // The one-shot shortcut: `Le film a rapporté de l'argent` opened from `+ New` mints its own
+      // taking from the very amount and label the reader typed once — fully received, since the
+      // money is already in — rather than making them pick a taking and retype its amount.
+      newRevenue: gesture == OcptBudgetGesture.recordTakingReceipt && _revenueId == null
+          ? OcptBudgetRevenueFormFields(
+              date: _date,
+              label: _labelController.text.trim(),
+              amountCents: amountCents,
+              status: OcptBudgetRevenueStatus.confirmed,
+              notes: "",
+            )
+          : null,
       newShare: gesture == OcptBudgetGesture.payParticipantShare ? _pendingNewShare : null,
       isDebit: _isDebit,
       amountCents: amountCents,

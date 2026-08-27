@@ -65,9 +65,6 @@ enum OcptBudgetGestureAttachment {
   /// A financing resource — `budget_resources`.
   financingResource,
 
-  /// A taking the finished film earns — `budget_revenues`.
-  taking,
-
   /// A participant in the revenue-sharing split — `budget_shares`.
   participant,
 
@@ -222,7 +219,10 @@ OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gest
       OcptBudgetGesture.commitSpend => OcptBudgetGestureAttachment.posteAndLine,
       OcptBudgetGesture.recordExpense => OcptBudgetGestureAttachment.optionalPoste,
       OcptBudgetGesture.recordFinancingReceipt => OcptBudgetGestureAttachment.financingResource,
-      OcptBudgetGesture.recordTakingReceipt => OcptBudgetGestureAttachment.taking,
+      // A taking just paid is typed once, an amount and a label, and its own row is created from
+      // them: the receipt form carries no attachment step, minting the taking behind the credit
+      // rather than asking the reader to pick one and then retype its amount — `budget.md`.
+      OcptBudgetGesture.recordTakingReceipt => OcptBudgetGestureAttachment.none,
       OcptBudgetGesture.reimbursePerson => OcptBudgetGestureAttachment.person,
       OcptBudgetGesture.payParticipantShare => OcptBudgetGestureAttachment.participant,
       OcptBudgetGesture.repayContribution => OcptBudgetGestureAttachment.financingResource,

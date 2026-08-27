@@ -33,7 +33,6 @@ import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_revenue_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_share_dialog.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
@@ -966,47 +965,40 @@ void main() {
     );
   });
 
-  group("step 2 closes the dead end for a missing object", () {
-    testWidgets("a missing taking is created inline, without leaving the wizard", (tester) async {
-      tester.view.physicalSize = const Size(900, 1000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
+  group("recording a taking mints its own from one amount and label", () {
+    testWidgets("goes straight to the form and carries a to-be-made taking", (tester) async {
       final tr = await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.recordTakingReceipt,
       );
 
+      // Two steps, not three: no taking to pick, so step 1 goes straight to the money form.
+      expect(find.text(tr.budgetNewStepLabel(1, 2)), findsOneWidget);
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
       await tester.pumpAndSettle();
 
-      // Nothing on offer yet: the trailing row is the only choice, this project naming no taking.
-      await tester.tap(find.byKey(const Key("ocptBudgetNewCreateRevenueChoice")));
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "10");
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewLabelField")), "Festival prize");
       await tester.pumpAndSettle();
 
-      expect(find.byType(OcptBudgetRevenueDialog), findsOneWidget);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Festival prize",
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
-        "1000",
-      );
-      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();
 
-      // Back on step 2, not step 1 and not popped: the fresh taking is present and selected.
-      expect(find.byType(OcptBudgetRevenueDialog), findsNothing);
-      expect(find.byType(OcptBudgetNewDialog), findsOneWidget);
-      expect(find.byKey(const Key("ocptBudgetNewPendingRevenueChoice")), findsOneWidget);
-      expect(find.text(tr.budgetNewWillCreateLabel("Festival prize")), findsOneWidget);
-      // The step counter still tells the truth: still step 2 of the 3 recordTakingReceipt takes.
-      expect(find.text(tr.budgetNewStepLabel(2, 3)), findsOneWidget);
+      final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
+      expect(outcome.acceptedSuggestion, isNull);
+      // A credit naming no existing taking, carrying a to-be-made one built from the same figures.
+      expect(outcome.fields.isDebit, isFalse);
+      expect(outcome.fields.revenueId, isNull);
+      final newRevenue = outcome.fields.newRevenue;
+      expect(newRevenue, isNotNull);
+      expect(newRevenue!.label, "Festival prize");
+      // The taking is minted at exactly the amount received — one value typed once, not twice.
+      expect(newRevenue.amountCents, outcome.fields.amountCents);
+      expect(newRevenue.amountCents, greaterThan(0));
     });
+  });
 
+  group("step 2 closes the dead end for a missing object", () {
     testWidgets(
       "a missing participant is created inline, without leaving the wizard",
       (tester) async {

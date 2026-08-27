@@ -857,17 +857,25 @@ are all here, and this file is the whole record of them.
   **lettrage** offer, `_handleEntryWizardSuggestionAccepted` dispatches straight to whichever of the
   two events the matched candidate needs. A reader never sees three different write paths — they see
   one shape of movement, reached however is fastest for the gesture at hand.
-- The one object a movement's own form could not **mint** is a taking, so recording a festival prize
-  used to mean leaving for the resources tree, creating the taking there and coming back. Step 2's
-  own `Taking` picker carries a `New taking…` entry that opens `OcptBudgetRevenueDialog` — the very
-  dialog the resources tree opens — and the taking travels back on
-  `OcptBudgetEntryFormFields.newRevenue`, which the bloc creates through the same two service calls
-  `OcptBudgetRevenueCreationConfirmedEvent` uses; a financing resource and a sharing participant
-  create in place the same way. A taking born from the wizard is byte for byte one born in the
-  resources tree: the door differs, the row never does.
-- The picker holds it as a **sentinel value**, not an id, since no row exists until the movement is
-  saved; the sentinel never leaves the wizard. Cancelling the taking dialog leaves the picker where
-  it was, an accidental open costing nothing.
+- **Recording a taking mints its own, from one amount and a label.** `Le film a rapporté de
+  l'argent` (`recordTakingReceipt`) — a sale, a prize, a screening just paid — used to attach to a
+  taking on step 2, making the reader pick one and then retype its amount. It now carries **no
+  attachment step at all** (a two-step gesture): step 1 goes straight to the money form, and the
+  single amount and label typed there mint the taking behind the credit, **fully received**, on
+  `OcptBudgetEntryFormFields.newRevenue` — the bloc creates it through the same two service calls
+  `OcptBudgetRevenueCreationConfirmedEvent` uses (`_createNewRevenueOf`), so a taking born this way
+  is byte for byte one born in the resources tree; the door differs, the row never does. A contextual
+  **`Receive`** on an existing taking still pre-fills the wizard with its `revenueId` and mints
+  nothing — that shortcut receives against the taking already there — and if the typed amount matches
+  a planned taking the **lettrage** offers it, so the one-shot never quietly duplicates a taking the
+  reader had already planned.
+- **A financing resource and a sharing participant still create in place on their own step 2**
+  (`New resource…`, `New participant…`, opening the very dialog the plan trees open), the object
+  travelling back on `OcptBudgetEntryFormFields.newResource`/`.newShare` the same way the taking's own
+  used to — held as a **sentinel value**, not an id, since no row exists until the movement is saved,
+  and never leaving the wizard. These stay the door for the objects a single money form cannot fully
+  state (a resource carries a group and a status a receipt does not); a taking, needing only an
+  amount and a label, no longer does.
 - The rule the help panel states in one line, and the reason there is no further way: **a taking or
   a financing resource is an expectation; a journal entry is a movement.** The first says what is
   owed to the film, the second says what the account has actually seen.
