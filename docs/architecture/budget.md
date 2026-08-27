@@ -726,8 +726,11 @@ are all here, and this file is the whole record of them.
 
 ## The capture wizard is the daily gesture
 
-- `OcptBudgetNewDialog` (`ocpt_budget_new_dialog.dart`) replaces both `OcptBudgetEntryDialog` and
-  the capture band that used to sit atop three views. Every working surface's own header now carries
+- `OcptBudgetNewDialog` (`ocpt_budget_new_dialog.dart`) replaces the capture band that used to sit
+  atop three views and takes **creation** over from `OcptBudgetEntryDialog`, which stays on as the
+  reduced dialog that only ever **edits** an entry already on the books — its own former step 1 and
+  its lettrage gone, since only creation ever drew them. Every working surface's own header now
+  carries
   **one trailing button, `+ New`** (`OcptBudgetHeader.captureLabel`), the same word in the same
   place on all five routes — `dashboard` and `tools › cashFlow` included, which carried none before.
   The button opens step 1 with the current route's own document promoted to the top and its first
@@ -764,8 +767,9 @@ are all here, and this file is the whole record of them.
   A **contextual shortcut** — a row's `⋮`, a fiche's action — opens the wizard already knowing both
   its gesture and its link, and so skips straight to step 3: settling a commitment, recording a
   receipt against a named resource or taking, paying a named participant, reimbursing a named person
-  all carry `entryPrefill`; committing a quote line carries `commitmentPrefill`. Editing an existing
-  entry opens step 3 directly too, its gesture inferred from whichever link field is set. The trail
+  all carry `entryPrefill`; committing a quote line carries `commitmentPrefill`. **Editing** an
+  existing entry does not open the wizard at all — it opens `OcptBudgetEntryDialog`, the reduced edit
+  dialog, which reads the entry's own nature there off whichever of its link fields is set. The trail
   above steps 2 and 3 recalls what has been answered, ending in a `changer` link back to step 1, and
   **every answer already given survives going back and forward again** — switching the gesture keeps
   whatever the later steps had collected.
@@ -888,12 +892,14 @@ are all here, and this file is the whole record of them.
 
 ## The one deliberate divergence: picking a receipt
 
-- `OcptBudgetNewDialog` resolves `globalGetIt().get<FileSelectorManager>()` directly, in its own
-  `_pickReceipt`, rather than dispatching a bloc event the way every other file pick in the app does
+- The capture wizard and the reduced edit dialog (`OcptBudgetEntryDialog`) each resolve
+  `globalGetIt().get<FileSelectorManager>()` directly, in their own `_pickReceipt`, rather than
+  dispatching a bloc event the way every other file pick in the app does
   (the resources mode's own photo and document pickers write the instant a file is chosen, because
-  that gesture has no `Save` step of its own to defer to). This dialog is built the other way round:
-  every other field it collects — the label, the amount, the tax basis, the VAT override — is gathered
-  locally and written once, on `Save`, and a receipt pick is no different in kind, only in the fact
+  that gesture has no `Save` step of its own to defer to). Both are built the other way round:
+  every other field they collect — the label, the amount, the tax basis, the VAT override — is
+  gathered locally and written once, on confirm, and a receipt pick is no different in kind, only in
+  the fact
   that it happens to involve a file. Calling the manager here is a plain read of a path the OS
   dialog already reports, with nothing to decode and no `assets` row to mint on the spot: the
   actual write — minting or tombstoning that row — happens in the very same bloc handler that
