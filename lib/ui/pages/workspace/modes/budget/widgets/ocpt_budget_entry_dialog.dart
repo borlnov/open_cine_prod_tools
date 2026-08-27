@@ -5,22 +5,19 @@
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_entry_wizard_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_entry_link_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
@@ -29,96 +26,37 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 
-/// Which of the wizard's own two screens `OcptBudgetEntryDialog` is currently drawing.
-enum _OcptBudgetEntryWizardStep {
-  /// Step 1, mockup `5a`: `Qu'est-ce que vous faites ?` — five cards, one
-  /// `OcptBudgetEntryNature` each.
-  nature,
-
-  /// Step 2, mockup `5b`: the form, reduced to the one link field [nature] picks.
-  form,
-}
-
-/// The dialog that both **creates and edits** a cash-journal entry, and, since this milestone, asks
-/// in two steps rather than one form (mockups `5a`/`5b`) — `docs/architecture/budget.md` argues the
-/// single-shape-for-both decision this class still carries out; this doc comment argues the wizard
-/// itself, since that document's own capture-band section describes what died to make room for it.
+/// The dialog that **edits** a cash-journal entry already on the books — creating one moved to the
+/// capture wizard, `OcptBudgetNewDialog`, whose own step 3 draws `OcptBudgetMovementFormBody` for
+/// every one of the seven `cashMovement` gestures instead.
 ///
-/// **The class name, the file and [show]'s own shape are unchanged.** Every call site already goes
-/// through [show]; only what happens between opening and closing it is new. The two steps are
-/// private widgets of this file, switched on `_OcptBudgetEntryDialogState._step`.
+/// **What used to be this dialog's own step 1 is gone, with everything that served it alone**: the
+/// six nature cards, `Continuer`, the header's own `changer` link, and the reconciliation strip
+/// (`OcptBudgetEntryDialog` only ever drew that strip while creating, which this dialog no longer
+/// does at all). [existing] is now required — this dialog opens on one screen, the very form its own
+/// former step 2 already drew, its nature read once, silently, off whichever of [existing]'s own
+/// links is set (`ocptBudgetEntryNatureOfLinks`), exactly as before.
 ///
-/// ## When step 1 is shown, and when it is skipped
+/// **[OcptBudgetEntryLinkKind.person] is reachable here now**, unlike before this milestone: the
+/// capture wizard's own `reimbursePerson` gesture can write an entry naming a person, and this
+/// dialog has to be able to edit it back rather than throwing the moment it tries. [people] is new
+/// for exactly that: the `Personne` field mirrors `_buildShareField` verbatim.
 ///
-/// **Step 1 is shown whenever only the nature of the movement is known, and skipped whenever the
-/// nature *and* its one link are both already known.** The moment a user is still deciding what
-/// they are doing is exactly the moment step 1 earns its place; the moment they have already
-/// pointed at the thing being settled, it would only be a screen to click past:
+/// Structured after `OcptProjectVersionCreateDialog`: a [Form] validating the label before `Save`
+/// is honoured, an `AlertDialog`. `Date` is `OcptPersonSheetDateField`; `Amount` is read through
+/// [ocptCostCentsOf]; the tax-inclusive choice reuses [OcptBudgetBinaryChoice], as does the
+/// direction choice while [OcptBudgetEntryNature.other] draws one at all.
 ///
-/// - Editing [existing] always opens step 2 directly, its nature **inferred** from whichever of
-///   its own four link fields is set (none set reads as [OcptBudgetEntryNature.other] — the one
-///   nature built for an entry naming nothing).
-/// - A [prefill] naming a poste, a resource, a taking or a participant does the same: settling a
-///   commitment, recording a receipt against a named resource or a named taking, paying a named
-///   participant from that participant's own `⋮` menu all already know both.
-/// - [initialNature] alone, no link named — a working surface's own header button, or the sharing
-///   page's own `Verser une part` button pre-answering `payout` with no participant chosen yet —
-///   opens step 1 with that card already selected, so `Continuer` is one click and any other answer
-///   is one click away.
-/// - Neither [existing], a linking [prefill] nor [initialNature]: step 1 opens with nothing
-///   selected, `Continuer` withheld until a card is picked.
-///
-/// **The header's own `changer` link and step 2's own `Retour` both return to step 1 unconditionally
-/// — even when it was skipped on the way in.** A user reconsidering what an edit actually is must
-/// be able to say so; there is no third "back to the form without reconsidering" button, mirroring
-/// the mockup's own two-button step 1 exactly. Picking a different nature there and pressing
-/// `Continuer` again applies that nature's own fixed direction (see
-/// [ocptBudgetEntryNatureDirectionOf]) to the movement; every one of the four link fields keeps
-/// whatever it already held, so switching nature and switching back loses nothing.
-///
-/// ## The reconciliation strip
-///
-/// `ocptBudgetMatchSuggestionsOf` moved here from the capture band, offered on step 2 **only while
-/// creating** ([existing] null) — mirroring the band, which only ever created. There is no event
-/// that both updates an existing entry and settles a commitment as one write, so editing draws no
-/// strip at all. The gate mirrors the band's own `_saveableDraft`: a positive amount and a
-/// non-blank label, the very two things `Save` itself already requires, so accepting a suggestion
-/// never produces an entry the very same click would have refused to save. Unlike the band, only
-/// the single best-ranked suggestion is ever drawn — the mockup draws one strip, not an expander
-/// over three.
-///
-/// `C'est ça` pops [show]'s own future with the accepted suggestion attached
-/// (`OcptBudgetEntryWizardResult.acceptedSuggestion`) rather than turning it into a domain write
-/// itself — see that class's own doc comment for why, and `budget_mode.dart`'s own handler for the
-/// mapping this carries over unchanged.
-///
-/// Structured after `OcptProjectVersionCreateDialog`, exactly as before this milestone: a [Form]
-/// validating the label before `Save` is honoured, an `AlertDialog`. `Date` is
-/// `OcptPersonSheetDateField`; `Amount` is read through [ocptCostCentsOf]; the tax-inclusive choice
-/// reuses [OcptBudgetBinaryChoice], as does the direction choice while [OcptBudgetEntryNature.other]
-/// draws one at all.
-///
-/// **`Voucher number` only exists on an edit**, unchanged: creating an entry offers a muted line
-/// instead, since `OcptBudgetJournalService.createEntry` mints one itself. **`Receipt` is offered on
-/// both**, unchanged — see `OcptBudgetEntryFormFields.pickedReceiptPath`'s own doc comment for why
-/// this dialog picks the file directly rather than through a bloc event.
+/// **`Voucher number` and `Receipt` are both always offered**: an edit always opens with an entry
+/// already on the books, so neither the auto-mint hint nor an unreachable receipt field has a
+/// reason to exist here — see [OcptBudgetEntryFormFields.pickedReceiptPath]'s own doc comment for
+/// why this dialog picks the file directly rather than through a bloc event.
 class OcptBudgetEntryDialog extends StatefulWidget {
-  /// The entry being edited, or null while creating a new one.
-  final OcptBudgetEntry? existing;
-
-  /// Seeds a fresh entry's own fields while [existing] is null. Naming a poste, a resource, a
-  /// taking or a participant skips step 1 straight to step 2 — see the class doc comment.
-  final OcptBudgetEntryFormFields? prefill;
-
-  /// The nature step 1 opens with already selected, read only while [existing] is null and
-  /// [prefill] names none of its own four links — see the class doc comment. Null draws step 1
-  /// with nothing picked.
-  final OcptBudgetEntryNature? initialNature;
+  /// The entry being edited.
+  final OcptBudgetEntry existing;
 
   /// [existing]'s own voucher, if it carries one, or null.
   final OcptAssetRef? existingReceipt;
@@ -135,95 +73,59 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   /// Every live share of the project, offered by the `Participant` field.
   final List<OcptBudgetShare> shares;
 
-  /// Every live commitment, read only to rank and word the reconciliation strip's own suggestions
-  /// against a debit — see [ocptBudgetMatchSuggestionsOf].
-  final List<OcptBudgetCommitment> commitments;
-
-  /// Every live journal entry, read only for the same reason: what a commitment still owes is read
-  /// off this list, through [ocptBudgetMatchSuggestionsOf]'s own
-  /// `ocptBudgetCommitmentOutstandingCentsOf`.
-  final List<OcptBudgetEntry> entries;
-
-  /// Every live defrayal, read only for the same reason.
-  final List<OcptBudgetAllowance> allowances;
-
-  /// What each financing resource has already received, keyed by its own id — read only for the
-  /// same reason, against a credit.
-  final Map<String, OcptBudgetCoveredTotal> receivedByResourceId;
-
-  /// What each taking has already received, keyed by its own id — read only for the same reason.
-  final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
+  /// Every live person of the project's address book, offered by the `Personne` field.
+  final List<OcptPerson> people;
 
   /// The project's currency, an ISO 4217 code, shown beside the `Montant` field.
   final String currencyCode;
 
   /// The project's default VAT rate, in basis points, or null — what the `TVA` field's own hint
-  /// reads while it is left empty, and what [ocptBudgetMatchSuggestionsOf] reads a commitment
-  /// candidate's cash figure against.
+  /// reads while it is left empty.
   final int? defaultVatRateBasisPoints;
 
-  /// Whether the mode's header currently reads simplified — read by [OcptBudgetEntryNature.other]'s
-  /// own direction choice and by the `Poste du devis` field's own poste labels.
+  /// Whether the mode's header currently reads simplified — read by
+  /// [OcptBudgetEntryNature.other]'s own direction choice and by the `Poste du devis` field's own
+  /// poste labels.
   final bool isSimplified;
 
   /// Class constructor
   const OcptBudgetEntryDialog({
     super.key,
     required this.existing,
-    this.prefill,
-    this.initialNature,
     this.existingReceipt,
     required this.postes,
     required this.resources,
     this.revenues = const [],
     this.shares = const [],
-    this.commitments = const [],
-    this.entries = const [],
-    this.allowances = const [],
-    this.receivedByResourceId = const {},
-    this.receivedByRevenueId = const {},
+    this.people = const [],
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
     required this.isSimplified,
   });
 
-  /// Shows the dialog and returns what the user confirmed, or null if they cancelled it — see
-  /// [OcptBudgetEntryWizardResult]'s own doc comment for what a reconciliation acceptance adds to
-  /// it.
-  static Future<OcptBudgetEntryWizardResult?> show(
+  /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
+  static Future<OcptBudgetEntryFormFields?> show(
     BuildContext context, {
-    required OcptBudgetEntry? existing,
-    OcptBudgetEntryFormFields? prefill,
-    OcptBudgetEntryNature? initialNature,
+    required OcptBudgetEntry existing,
     OcptAssetRef? existingReceipt,
     required List<OcptBudgetPoste> postes,
     required List<OcptBudgetResource> resources,
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
-    List<OcptBudgetCommitment> commitments = const [],
-    List<OcptBudgetEntry> entries = const [],
-    List<OcptBudgetAllowance> allowances = const [],
-    Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
-    Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
+    List<OcptPerson> people = const [],
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
     required bool isSimplified,
-  }) => showDialog<OcptBudgetEntryWizardResult>(
+  }) => showDialog<OcptBudgetEntryFormFields>(
     context: context,
     builder: (context) => OcptBudgetEntryDialog(
       existing: existing,
-      prefill: prefill,
-      initialNature: initialNature,
       existingReceipt: existingReceipt,
       postes: postes,
       resources: resources,
       revenues: revenues,
       shares: shares,
-      commitments: commitments,
-      entries: entries,
-      allowances: allowances,
-      receivedByResourceId: receivedByResourceId,
-      receivedByRevenueId: receivedByRevenueId,
+      people: people,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       isSimplified: isSimplified,
@@ -241,8 +143,7 @@ const String _ocptNewRevenuePickedValue = "#new-revenue";
 /// The `Recette` picker's own value standing for the `New taking…` action itself.
 const String _ocptNewRevenueActionValue = "#new-revenue-action";
 
-/// The state of [OcptBudgetEntryDialog]: the draft — one continuous set of controllers and fields
-/// spanning both steps — and which step is currently drawn.
+/// The state of [OcptBudgetEntryDialog]: the draft — one continuous set of controllers and fields.
 class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// The form validating the label field before `Save` is honoured.
   final _formKey = GlobalKey<FormState>();
@@ -256,11 +157,10 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// The controller of the VAT rate override field.
   late final TextEditingController _vatRateController;
 
-  /// The controller of the voucher number field — only built, and only shown, while
-  /// [OcptBudgetEntryDialog.existing] is not null.
-  TextEditingController? _voucherController;
+  /// The controller of the voucher number field.
+  late final TextEditingController _voucherController;
 
-  /// The date currently picked — today for a new entry.
+  /// The date currently picked.
   late DateTime _date;
 
   /// The poste currently picked, or null.
@@ -275,13 +175,15 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// The share currently picked, or null.
   String? _shareId;
 
+  /// The person currently picked, or null.
+  String? _personId;
+
   /// The taking the `New taking…` entry just collected, waiting to be created along with this
   /// movement, or null — see [OcptBudgetEntryFormFields.newRevenue].
   OcptBudgetRevenueFormFields? _newRevenue;
 
-  /// Whether the direction currently picked is a debit. Only ever changed through step 1's own
-  /// nature choice (for the four fixed natures) or, for [OcptBudgetEntryNature.other], through
-  /// step 2's own direction choice.
+  /// Whether the direction currently picked is a debit. Only ever changed through
+  /// [OcptBudgetEntryNature.other]'s own direction choice — every other nature fixes it.
   late bool _isDebit;
 
   /// Whether the amount currently picked includes tax.
@@ -294,14 +196,11 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// Whether the `Detach` action was used on the voucher already referenced.
   bool _isReceiptDetached = false;
 
-  /// Which of the wizard's two screens is currently drawn.
-  late _OcptBudgetEntryWizardStep _step;
+  /// `widget.existing`'s own nature, read once off whichever of its own links is set — never
+  /// changed afterwards, this dialog offering no way to reconsider it.
+  late final OcptBudgetEntryNature _nature;
 
-  /// The nature currently selected on step 1, or in effect on step 2 — null only while step 1 is
-  /// on screen and nothing has been picked yet.
-  OcptBudgetEntryNature? _nature;
-
-  /// The path currently shown for the `Justificatif` field — unchanged from before this milestone.
+  /// The path currently shown for the `Justificatif` field.
   String? get _displayedReceiptPath {
     final pickedReceiptPath = _pickedReceiptPath;
     if (pickedReceiptPath != null) {
@@ -318,48 +217,33 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     super.initState();
 
     final existing = widget.existing;
-    final prefill = widget.prefill;
-    final now = DateTime.now();
 
-    _date = existing?.date ?? prefill?.date ?? DateTime(now.year, now.month, now.day);
-    _posteId = existing?.posteId ?? prefill?.posteId;
-    _resourceId = existing?.resourceId ?? prefill?.resourceId;
-    _revenueId = existing?.revenueId ?? prefill?.revenueId;
-    _shareId = existing?.shareId ?? prefill?.shareId;
-    _isDebit = existing != null ? existing.debitCents > 0 : (prefill?.isDebit ?? true);
-    _isTaxInclusive = existing?.isTaxInclusive ?? prefill?.isTaxInclusive ?? true;
+    _date = existing.date;
+    _posteId = existing.posteId;
+    _resourceId = existing.resourceId;
+    _revenueId = existing.revenueId;
+    _shareId = existing.shareId;
+    _personId = existing.personId;
+    _isDebit = existing.debitCents > 0;
+    _isTaxInclusive = existing.isTaxInclusive;
 
-    _labelController = TextEditingController(text: existing?.label ?? prefill?.label ?? "");
+    _labelController = TextEditingController(text: existing.label);
     _amountController = TextEditingController(
-      text: existing != null
-          ? ocptCostTextOf(existing.debitCents > 0 ? existing.debitCents : existing.creditCents)
-          : ocptCostTextOf(prefill?.amountCents),
+      text: ocptCostTextOf(existing.debitCents > 0 ? existing.debitCents : existing.creditCents),
     );
     _vatRateController = TextEditingController(
-      text: ocptVatRatePercentTextOf(existing?.vatRateBasisPoints ?? prefill?.vatRateBasisPoints),
+      text: ocptVatRatePercentTextOf(existing.vatRateBasisPoints),
     );
-    if (existing != null) {
-      _voucherController = TextEditingController(text: existing.voucherNumber);
-    }
+    _voucherController = TextEditingController(text: existing.voucherNumber);
 
-    if (existing != null || _hasLink(_posteId, _resourceId, _revenueId, _shareId)) {
-      _nature = ocptBudgetEntryNatureOfLinks(
-        isDebit: _isDebit,
-        posteId: _posteId,
-        resourceId: _resourceId,
-        revenueId: _revenueId,
-        shareId: _shareId,
-        // This dialog carries no field naming a person at all — that arrives with the wizard this
-        // milestone only lays the ground for — so an entry that already names one, if it ever
-        // exists, is deliberately read as `other` here rather than a nature this dialog cannot
-        // express: exactly how it read before `personId` was a fact this function could see.
-        personId: null,
-      );
-      _step = _OcptBudgetEntryWizardStep.form;
-    } else {
-      _nature = widget.initialNature;
-      _step = _OcptBudgetEntryWizardStep.nature;
-    }
+    _nature = ocptBudgetEntryNatureOfLinks(
+      isDebit: _isDebit,
+      posteId: _posteId,
+      resourceId: _resourceId,
+      revenueId: _revenueId,
+      shareId: _shareId,
+      personId: _personId,
+    );
   }
 
   @override
@@ -367,213 +251,73 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     _labelController.dispose();
     _amountController.dispose();
     _vatRateController.dispose();
-    _voucherController?.dispose();
+    _voucherController.dispose();
     super.dispose();
   }
-
-  /// Whether any of the four link fields names something — [initState]'s own gate for skipping
-  /// step 1.
-  bool _hasLink(String? posteId, String? resourceId, String? revenueId, String? shareId) =>
-      posteId != null || resourceId != null || revenueId != null || shareId != null;
 
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
+    final currencySymbol = NumberFormat.simpleCurrency(name: widget.currencyCode).currencySymbol;
 
     return AlertDialog(
-      title: _buildTitle(context, tr),
+      title: Text(tr.budgetEntryDialogEditTitle),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          child: _step == _OcptBudgetEntryWizardStep.nature
-              ? _buildNatureStep(context, tr)
-              : _buildFormStep(context, tr),
-        ),
-      ),
-      actions: _step == _OcptBudgetEntryWizardStep.nature
-          ? _buildNatureActions(tr)
-          : _buildFormActions(tr),
-    );
-  }
-
-  /// The dialog's own title area: the create/edit title and `Étape X sur 2` on one row, and, on
-  /// step 2 alone, the recalled nature with its own `changer` link underneath — mockup `5b`'s own
-  /// header.
-  Widget _buildTitle(BuildContext context, Tr tr) {
-    final theme = Theme.of(context);
-    final isEditing = widget.existing != null;
-    final stepNumber = _step == _OcptBudgetEntryWizardStep.nature ? 1 : 2;
-
-    final children = <Widget>[
-      Row(
-        children: [
-          Expanded(
-            child: Text(isEditing ? tr.budgetEntryDialogEditTitle : tr.budgetEntryDialogCreateTitle),
-          ),
-          Text(
-            tr.budgetEntryWizardStepLabel(stepNumber),
-            style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-        ],
-      ),
-    ];
-
-    final nature = _nature;
-    if (_step == _OcptBudgetEntryWizardStep.form && nature != null) {
-      children.add(const SizedBox(height: 4));
-      children.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _ocptBudgetEntryNatureLabelOf(tr, nature),
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            Text(
-              " · ",
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            InkWell(
-              key: const Key("ocptBudgetEntryWizardChangeNatureLink"),
-              onTap: _handleBackToNature,
-              mouseCursor: ocptClickableCursor,
-              child: Text(
-                tr.budgetEntryWizardChangeNatureAction,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDateAmountBasisRow(tr, currencySymbol),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _labelController,
+                autofocus: true,
+                decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
+                validator: (value) =>
+                    (value ?? "").trim().isEmpty ? tr.budgetEntryDialogLabelRequiredError : null,
+                onChanged: (_) => setState(() {}),
               ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: children);
-  }
-
-  // ---------------------------------------------------------------------------------------------
-  // Step 1 — mockup `5a`
-  // ---------------------------------------------------------------------------------------------
-
-  /// Step 1's own content: one card per [_ocptBudgetEntryDialogNatures], one selected at most.
-  Widget _buildNatureStep(BuildContext context, Tr tr) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      for (final nature in _ocptBudgetEntryDialogNatures)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: _OcptBudgetEntryNatureCard(
-            nature: nature,
-            isSelected: _nature == nature,
-            onSelected: () => setState(() => _nature = nature),
+              const SizedBox(height: 12),
+              _buildLinkField(context, tr),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildVatField(tr)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildReceiptField(context, tr, Theme.of(context))),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _voucherController,
+                decoration: InputDecoration(labelText: tr.budgetEntryDialogVoucherFieldLabel),
+              ),
+              if (_nature == OcptBudgetEntryNature.other) ...[
+                const SizedBox(height: 12),
+                _buildDirectionField(context, tr),
+              ],
+            ],
           ),
         ),
-    ],
-  );
-
-  /// Step 1's own actions: `Annuler` closes the whole dialog; `Continuer` is withheld until a card
-  /// is picked, and applies that nature's own fixed direction before moving to step 2.
-  List<Widget> _buildNatureActions(Tr tr) => [
-    TextButton(
-      key: const Key("ocptBudgetEntryWizardCancelButton"),
-      onPressed: _handleCancel,
-      child: Text(tr.budgetEntryDialogCancelAction),
-    ),
-    FilledButton(
-      key: const Key("ocptBudgetEntryWizardContinueButton"),
-      onPressed: _nature == null ? null : _handleContinue,
-      child: Text(tr.budgetEntryWizardContinueAction),
-    ),
-  ];
-
-  /// `Annuler`: closes the dialog with nothing — the wizard's only escape hatch, mirroring the
-  /// mockup's own two-button step 1 exactly (see the class doc comment for why there is no third
-  /// "back to the form" button).
-  void _handleCancel() => globalGetIt().get<OcptRouterManager>().pop();
-
-  /// `Continuer`: applies [_nature]'s own fixed direction, if it has one, then moves to step 2.
-  /// [OcptBudgetEntryNature.other] leaves [_isDebit] exactly as it was — its own direction is
-  /// asked in step 2 instead.
-  void _handleContinue() {
-    final nature = _nature;
-    if (nature == null) {
-      return;
-    }
-    final fixedDirection = ocptBudgetEntryNatureDirectionOf(nature);
-    setState(() {
-      if (fixedDirection != null) {
-        _isDebit = fixedDirection;
-      }
-      _step = _OcptBudgetEntryWizardStep.form;
-    });
-  }
-
-  /// The header's own `changer` link and step 2's own `Retour` both call this: back to step 1,
-  /// [_nature] left exactly as it is so the very same card starts selected.
-  void _handleBackToNature() => setState(() => _step = _OcptBudgetEntryWizardStep.nature);
-
-  // ---------------------------------------------------------------------------------------------
-  // Step 2 — mockup `5b`
-  // ---------------------------------------------------------------------------------------------
-
-  /// Step 2's own content, in the mockup's own order: `Date`/`Montant`/`Base`, `Intitulé`, the one
-  /// link field [_nature] picks, the reconciliation strip, `TVA`/`Justificatif`, the voucher area.
-  Widget _buildFormStep(BuildContext context, Tr tr) {
-    final currencySymbol = NumberFormat.simpleCurrency(name: widget.currencyCode).currencySymbol;
-    final reconciliationStrip = _buildReconciliationStrip(context, tr);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildDateAmountBasisRow(tr, currencySymbol),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _labelController,
-          autofocus: true,
-          decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
-          validator: (value) =>
-              (value ?? "").trim().isEmpty ? tr.budgetEntryDialogLabelRequiredError : null,
-          onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
+          child: Text(tr.budgetEntryDialogCancelAction),
         ),
-        const SizedBox(height: 12),
-        _buildLinkField(context, tr),
-        if (reconciliationStrip != null) ...[const SizedBox(height: 12), reconciliationStrip],
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _buildVatField(tr)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildReceiptField(context, tr, Theme.of(context))),
-          ],
+        FilledButton(
+          key: const Key("ocptBudgetEntryWizardSaveButton"),
+          onPressed: _submit,
+          child: Text(tr.budgetEntryDialogConfirmAction),
         ),
-        const SizedBox(height: 12),
-        _buildVoucherArea(context, tr, Theme.of(context)),
-        if (_nature == OcptBudgetEntryNature.other) ...[
-          const SizedBox(height: 12),
-          _buildDirectionField(context, tr),
-        ],
       ],
     );
   }
 
-  /// Step 2's own actions: `Retour` returns to step 1 (see [_handleBackToNature]), `Enregistrer`
-  /// validates and pops with the typed fields.
-  List<Widget> _buildFormActions(Tr tr) => [
-    TextButton(
-      key: const Key("ocptBudgetEntryWizardBackButton"),
-      onPressed: _handleBackToNature,
-      child: Text(tr.budgetEntryDialogBackAction),
-    ),
-    FilledButton(
-      key: const Key("ocptBudgetEntryWizardSaveButton"),
-      onPressed: _submit,
-      child: Text(tr.budgetEntryDialogConfirmAction),
-    ),
-  ];
-
-  /// `Date`, `Montant` and `Base` on one row, mockup `5b`'s own top row.
+  /// `Date`, `Montant` and `Base` on one row.
   Widget _buildDateAmountBasisRow(Tr tr, String currencySymbol) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -603,15 +347,11 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     ],
   );
 
-  /// `Base`: the tax-inclusive/exclusive choice, labelled the way every other bare control of this
-  /// dialog already is.
+  /// `Base`: the tax-inclusive/exclusive choice.
   ///
-  /// **Wrapped in [IntrinsicWidth]**, mirroring the capture band's own reasoning for its direction
-  /// choice: [OcptBudgetBinaryChoice]'s own `Row` reads `MainAxisSize.max`, which would otherwise
-  /// claim the whole width the outer `Row` offers a non-flexible child before `Date` and `Montant`
-  /// (both `Expanded`) are even sized — a fixed pixel width was tried first and overflowed the
-  /// moment the English wording ("Tax included"/"Tax excluded") ran longer than the French
-  /// ("TTC"/"HT") the mockup drew.
+  /// **Wrapped in [IntrinsicWidth]**: [OcptBudgetBinaryChoice]'s own `Row` reads
+  /// `MainAxisSize.max`, which would otherwise claim the whole width the outer `Row` offers a
+  /// non-flexible child before `Date` and `Montant` (both `Expanded`) are even sized.
   Widget _buildTaxBasisField(BuildContext context, Tr tr) => IntrinsicWidth(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,8 +373,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     ),
   );
 
-  /// [OcptBudgetEntryNature.other]'s own direction choice — the one nature that still asks it, in
-  /// step 2, at the very bottom of the form: see the class doc comment.
+  /// [OcptBudgetEntryNature.other]'s own direction choice — the one nature that still asks it.
   Widget _buildDirectionField(BuildContext context, Tr tr) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -657,27 +396,19 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   );
 
   /// The one link field [_nature] picks — [OcptBudgetEntryLinkKind] says which.
-  ///
-  /// **[OcptBudgetEntryLinkKind.person] never actually reaches here** — it is what
-  /// [OcptBudgetEntryNature.personReimbursement] resolves to, and
-  /// [_ocptBudgetEntryDialogNatures]'s own doc comment already argues why [_nature] can never hold
-  /// that value in this dialog.
-  Widget _buildLinkField(BuildContext context, Tr tr) =>
-      switch (ocptBudgetEntryNatureLinkKindOf(_nature ?? OcptBudgetEntryNature.other)) {
-        OcptBudgetEntryLinkKind.poste => _buildPosteField(context, tr),
-        OcptBudgetEntryLinkKind.financingResource => _buildResourceField(tr),
-        OcptBudgetEntryLinkKind.taking => _buildRevenueField(context, tr),
-        OcptBudgetEntryLinkKind.participant => _buildShareField(tr),
-        OcptBudgetEntryLinkKind.person => throw UnsupportedError(
-          "OcptBudgetEntryDialog never selects OcptBudgetEntryLinkKind.person",
-        ),
-      };
+  Widget _buildLinkField(BuildContext context, Tr tr) => switch (ocptBudgetEntryNatureLinkKindOf(_nature)) {
+    OcptBudgetEntryLinkKind.poste => _buildPosteField(context, tr),
+    OcptBudgetEntryLinkKind.financingResource => _buildResourceField(tr),
+    OcptBudgetEntryLinkKind.taking => _buildRevenueField(context, tr),
+    OcptBudgetEntryLinkKind.participant => _buildShareField(tr),
+    OcptBudgetEntryLinkKind.person => _buildPersonField(tr),
+  };
 
   /// `Poste du devis` — offered under [OcptBudgetEntryNature.expense] and
   /// [OcptBudgetEntryNature.other] alike. **Its own "unanswered" item reads `Hors devis`, never a
-  /// generic "no poste"** (settled 25 August, not to be re-decided): the very same label the
-  /// expenses table draws for the very same synthetic row, so a reader who leaves this field blank
-  /// sees, in the field itself, exactly where the entry will land.
+  /// generic "no poste"**: the very same label the expenses table draws for the very same synthetic
+  /// row, so a reader who leaves this field blank sees, in the field itself, exactly where the entry
+  /// will land.
   Widget _buildPosteField(BuildContext context, Tr tr) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -705,7 +436,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     ],
   );
 
-  /// `Ressource` — offered under [OcptBudgetEntryNature.financing] alone.
+  /// `Ressource` — offered under [OcptBudgetEntryNature.financing] and
+  /// [OcptBudgetEntryNature.repayment] alike.
   Widget _buildResourceField(Tr tr) => DropdownButtonFormField<String?>(
     key: const Key("ocptBudgetEntryWizardResourceField"),
     initialValue: _resourceId,
@@ -761,6 +493,21 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     onChanged: (value) => setState(() => _shareId = value),
   );
 
+  /// `Personne` — offered under [OcptBudgetEntryNature.personReimbursement] alone. Mirrors
+  /// [_buildShareField] verbatim: the field this dialog could neither draw nor infer before this
+  /// milestone gave [OcptBudgetEntryLinkKind.person] a real screen instead of a thrown error.
+  Widget _buildPersonField(Tr tr) => DropdownButtonFormField<String?>(
+    key: const Key("ocptBudgetEntryWizardPersonField"),
+    initialValue: _personId,
+    decoration: InputDecoration(labelText: tr.budgetEntryDialogPersonFieldLabel),
+    items: [
+      DropdownMenuItem(child: Text(tr.budgetEntryDialogNoPersonLabel)),
+      for (final person in widget.people)
+        DropdownMenuItem(value: person.id, child: Text(person.displayName)),
+    ],
+    onChanged: (value) => setState(() => _personId = value),
+  );
+
   /// Applies the `Recette` picker's own choice — unchanged from before this milestone.
   Future<void> _onRevenuePicked(String? value) async {
     if (value != _ocptNewRevenueActionValue) {
@@ -783,7 +530,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     });
   }
 
-  /// `TVA` — unchanged from before this milestone.
+  /// `TVA`.
   Widget _buildVatField(Tr tr) {
     final defaultVatRateBasisPoints = widget.defaultVatRateBasisPoints;
     final vatRateHint = defaultVatRateBasisPoints == null
@@ -800,7 +547,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     );
   }
 
-  /// `Justificatif` — unchanged from before this milestone.
+  /// `Justificatif`.
   Widget _buildReceiptField(BuildContext context, Tr tr, ThemeData theme) {
     final displayedReceiptPath = _displayedReceiptPath;
 
@@ -852,7 +599,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     );
   }
 
-  /// Shows the native "open" dialog — unchanged from before this milestone.
+  /// Shows the native "open" dialog.
   Future<void> _pickReceipt() async {
     final label = Tr.of(context).budgetEntryDialogReceiptFieldLabel;
     final selection = await globalGetIt().get<FileSelectorManager>().openSelector(
@@ -874,199 +621,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     });
   }
 
-  /// The voucher area: editable while editing an existing entry, a muted informational line while
-  /// creating a new one — the muted line mockup `5b` draws at the very bottom of the form,
-  /// unchanged from before this milestone.
-  Widget _buildVoucherArea(BuildContext context, Tr tr, ThemeData theme) {
-    final voucherController = _voucherController;
-    if (voucherController != null) {
-      return TextFormField(
-        controller: voucherController,
-        decoration: InputDecoration(labelText: tr.budgetEntryDialogVoucherFieldLabel),
-      );
-    }
-
-    return Text(
-      tr.budgetEntryDialogVoucherAutoHint,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-        fontStyle: FontStyle.italic,
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------------------------
-  // The reconciliation strip
-  // ---------------------------------------------------------------------------------------------
-
-  /// What is currently typed, once it reads as saveable, or null while it does not — the same two
-  /// fields `Save` itself requires, and null outright while [OcptBudgetEntryDialog.existing] is not
-  /// null: see the class doc comment for why editing draws no strip at all.
-  ({int amountCents, String wording})? get _saveableDraft {
-    if (widget.existing != null) {
-      return null;
-    }
-    final amountCents = ocptCostCentsOf(_amountController.text);
-    final wording = _labelController.text.trim();
-    if (amountCents == null || amountCents <= 0 || wording.isEmpty) {
-      return null;
-    }
-    return (amountCents: amountCents, wording: wording);
-  }
-
-  /// [ocptBudgetMatchSuggestionsOf]'s own answer to the draft currently typed, or the empty list
-  /// while [_saveableDraft] answers null.
-  List<OcptBudgetMatchSuggestion> _suggestionsOf() {
-    final draft = _saveableDraft;
-    if (draft == null) {
-      return const [];
-    }
-
-    return ocptBudgetMatchSuggestionsOf(
-      isDebit: _isDebit,
-      draftAmountCents: draft.amountCents,
-      draftDate: _date,
-      draftWording: draft.wording,
-      commitments: widget.commitments,
-      entries: widget.entries,
-      allowances: widget.allowances,
-      resources: widget.resources,
-      revenues: widget.revenues,
-      receivedByResourceId: widget.receivedByResourceId,
-      receivedByRevenueId: widget.receivedByRevenueId,
-      projectVatRateBasisPoints: widget.defaultVatRateBasisPoints,
-    );
-  }
-
-  /// The reconciliation strip itself, or null while [_suggestionsOf] found nothing worth offering —
-  /// a tinted row carrying a kind badge, one sentence naming the match, and `C'est ça`.
-  Widget? _buildReconciliationStrip(BuildContext context, Tr tr) {
-    final suggestions = _suggestionsOf();
-    if (suggestions.isEmpty) {
-      return null;
-    }
-
-    final first = suggestions.first;
-    return _OcptBudgetEntryWizardMatchStrip(
-      badge: _badgeOf(tr, first.kind),
-      sentence: _headlineOf(context, tr, first),
-      acceptLabel: tr.budgetEntryMatchAcceptAction,
-      onAccept: () => _handleAcceptSuggestion(first),
-    );
-  }
-
-  /// [kind]'s own small badge word — the mockup's own `Engagé` pill, one per
-  /// [OcptBudgetMatchCandidateKind].
-  String _badgeOf(Tr tr, OcptBudgetMatchCandidateKind kind) => switch (kind) {
-    OcptBudgetMatchCandidateKind.commitment => tr.budgetEntryWizardMatchBadgeCommitment,
-    OcptBudgetMatchCandidateKind.defrayal => tr.budgetEntryWizardMatchBadgeDefrayal,
-    OcptBudgetMatchCandidateKind.resource => tr.budgetEntryWizardMatchBadgeResource,
-    OcptBudgetMatchCandidateKind.revenue => tr.budgetEntryWizardMatchBadgeRevenue,
-  };
-
-  /// [suggestion]'s own headline, per its [OcptBudgetMatchSuggestion.kind] — ported from the
-  /// capture band's own `_headlineOf` verbatim: this widget words the suggestion, never the pure
-  /// util, exactly as that class's own doc comment argued.
-  String _headlineOf(BuildContext context, Tr tr, OcptBudgetMatchSuggestion suggestion) {
-    final currencyCode = widget.currencyCode;
-
-    switch (suggestion.kind) {
-      case OcptBudgetMatchCandidateKind.commitment:
-        final amountLabel = suggestion.outstandingCents == null
-            ? ""
-            : ocptBudgetAmountLabel(suggestion.outstandingCents!, currencyCode);
-        final posteLabel = _commitmentPosteLabelOf(tr, suggestion);
-        final date = suggestion.date;
-        if (date == null) {
-          return tr.budgetEntryMatchCommitmentHeadlineUndated(suggestion.label, amountLabel, posteLabel);
-        }
-        return tr.budgetEntryMatchCommitmentHeadlineDated(
-          suggestion.label,
-          amountLabel,
-          posteLabel,
-          DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date),
-        );
-
-      case OcptBudgetMatchCandidateKind.resource:
-        return tr.budgetEntryMatchResourceHeadline(
-          suggestion.label,
-          ocptBudgetAmountLabel(suggestion.amountCents ?? 0, currencyCode),
-          ocptBudgetAmountLabel(_receivedCentsOf(suggestion), currencyCode),
-          ocptBudgetAmountLabel(suggestion.outstandingCents ?? 0, currencyCode),
-        );
-
-      case OcptBudgetMatchCandidateKind.revenue:
-        return tr.budgetEntryMatchRevenueHeadline(
-          suggestion.label,
-          ocptBudgetAmountLabel(suggestion.amountCents ?? 0, currencyCode),
-          ocptBudgetAmountLabel(_receivedCentsOf(suggestion), currencyCode),
-          ocptBudgetAmountLabel(suggestion.outstandingCents ?? 0, currencyCode),
-        );
-
-      case OcptBudgetMatchCandidateKind.defrayal:
-        return tr.budgetEntryMatchDefrayalHeadline(
-          suggestion.label,
-          ocptBudgetAmountLabel(suggestion.amountCents ?? 0, currencyCode),
-        );
-    }
-  }
-
-  /// What has already come in against [suggestion] — ported from the capture band's own
-  /// `_receivedCentsOf` verbatim.
-  int _receivedCentsOf(OcptBudgetMatchSuggestion suggestion) =>
-      (suggestion.amountCents ?? 0) - (suggestion.outstandingCents ?? 0);
-
-  /// The name of the poste a commitment suggestion is quoted against — ported from the capture
-  /// band's own `_commitmentPosteLabelOf` verbatim.
-  String _commitmentPosteLabelOf(Tr tr, OcptBudgetMatchSuggestion suggestion) {
-    final commitment = widget.commitments
-        .where((candidate) => candidate.id == suggestion.candidateId)
-        .firstOrNull;
-    final poste = widget.postes.where((poste) => poste.id == commitment?.posteId).firstOrNull;
-    final label = poste?.label ?? "";
-    final code = poste?.code ?? "";
-    if (label.isEmpty) {
-      return code.isEmpty ? tr.budgetPosteUnnamed : code;
-    }
-    return code.isEmpty ? label : "$code $label";
-  }
-
-  /// `C'est ça`: pops [OcptBudgetEntryDialog.show]'s own future with the plain draft and
-  /// [suggestion] attached — see [OcptBudgetEntryWizardResult]'s own doc comment for why the
-  /// enrichment itself happens in `budget_mode.dart` rather than here. The draft carries none of
-  /// the four link fields, [OcptBudgetEntryDialog]'s own tax defaults and no VAT override,
-  /// mirroring the capture band's own `_draftFieldsOrNull` exactly: naming the matched row is the
-  /// caller's job, not this dialog's.
-  void _handleAcceptSuggestion(OcptBudgetMatchSuggestion suggestion) {
-    final draft = _saveableDraft;
-    if (draft == null) {
-      return;
-    }
-
-    globalGetIt().get<OcptRouterManager>().pop<OcptBudgetEntryWizardResult>(
-      OcptBudgetEntryWizardResult(
-        fields: OcptBudgetEntryFormFields(
-          date: _date,
-          label: draft.wording,
-          posteId: null,
-          resourceId: null,
-          revenueId: null,
-          shareId: null,
-          isDebit: _isDebit,
-          amountCents: draft.amountCents,
-          isTaxInclusive: true,
-          vatRateBasisPoints: null,
-          voucherNumber: null,
-          pickedReceiptPath: null,
-          isReceiptDetached: false,
-        ),
-        acceptedSuggestion: suggestion,
-      ),
-    );
-  }
-
-  /// `Enregistrer`: validates the form and, if it passes, pops with every field collected — the
-  /// suggestion, if the strip offered one and it was ignored, is simply not attached.
+  /// `Enregistrer`: validates the form and, if it passes, pops with every field collected.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -1077,204 +632,25 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
       return;
     }
 
-    final voucherController = _voucherController;
-
-    globalGetIt().get<OcptRouterManager>().pop<OcptBudgetEntryWizardResult>(
-      OcptBudgetEntryWizardResult(
-        fields: OcptBudgetEntryFormFields(
-          date: _date,
-          label: _labelController.text.trim(),
-          posteId: _posteId,
-          resourceId: _resourceId,
-          // The sentinel never leaves this dialog: a taking still to be created travels as
-          // `newRevenue`, and the bloc writes its fresh id where this would have gone.
-          revenueId: _revenueId == _ocptNewRevenuePickedValue ? null : _revenueId,
-          newRevenue: _newRevenue,
-          shareId: _shareId,
-          isDebit: _isDebit,
-          amountCents: amountCents,
-          isTaxInclusive: _isTaxInclusive,
-          vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
-          voucherNumber: voucherController?.text.trim(),
-          pickedReceiptPath: _pickedReceiptPath,
-          isReceiptDetached: _isReceiptDetached,
-        ),
-        acceptedSuggestion: null,
-      ),
-    );
-  }
-}
-
-/// The natures step 1 draws a card for, in the mockup's own order — **every value of
-/// [OcptBudgetEntryNature] but [OcptBudgetEntryNature.personReimbursement]**, which names a
-/// gesture the entry wizard offers, not this dialog: `docs/plans/budget-capture-wizard.md`'s own
-/// M2 is the milestone that draws it a card, under its own step counter. Until then this dialog
-/// neither offers it here nor infers it in [_OcptBudgetEntryDialogState.initState] (which reads
-/// `personId` as null on purpose) — the two together are what keep
-/// [OcptBudgetEntryNature.personReimbursement] unreachable in the rest of this file, and the reason
-/// the switches below still need an arm for it is only that the type itself now has one.
-const List<OcptBudgetEntryNature> _ocptBudgetEntryDialogNatures = [
-  OcptBudgetEntryNature.expense,
-  OcptBudgetEntryNature.financing,
-  OcptBudgetEntryNature.revenue,
-  OcptBudgetEntryNature.payout,
-  OcptBudgetEntryNature.repayment,
-  OcptBudgetEntryNature.other,
-];
-
-/// [nature]'s own recalled label — the very same word its step 1 card reads in bold, factored out
-/// so the title area's own `changer` line and the card itself never drift apart.
-///
-/// **Never actually called with [OcptBudgetEntryNature.personReimbursement]** — see
-/// [_ocptBudgetEntryDialogNatures]'s own doc comment — so that arm only satisfies the switch's own
-/// exhaustiveness, over a value this dialog can neither select nor infer.
-String _ocptBudgetEntryNatureLabelOf(Tr tr, OcptBudgetEntryNature nature) => switch (nature) {
-  OcptBudgetEntryNature.expense => tr.budgetEntryNatureExpenseLabel,
-  OcptBudgetEntryNature.financing => tr.budgetEntryNatureFinancingLabel,
-  OcptBudgetEntryNature.revenue => tr.budgetEntryNatureRevenueLabel,
-  OcptBudgetEntryNature.payout => tr.budgetEntryNaturePayoutLabel,
-  OcptBudgetEntryNature.repayment => tr.budgetEntryNatureRepaymentLabel,
-  OcptBudgetEntryNature.other => tr.budgetEntryNatureOtherLabel,
-  OcptBudgetEntryNature.personReimbursement => throw UnsupportedError(
-    "OcptBudgetEntryDialog never selects OcptBudgetEntryNature.personReimbursement",
-  ),
-};
-
-/// [nature]'s own muted hint — the sentence under its bold label on step 1's own card, naming its
-/// fixed direction (or, for [OcptBudgetEntryNature.other], that there is none) and its one link.
-///
-/// **Never actually called with [OcptBudgetEntryNature.personReimbursement]** — see
-/// [_ocptBudgetEntryDialogNatures]'s own doc comment.
-String _ocptBudgetEntryNatureHintOf(Tr tr, OcptBudgetEntryNature nature) => switch (nature) {
-  OcptBudgetEntryNature.expense => tr.budgetEntryNatureExpenseHint,
-  OcptBudgetEntryNature.financing => tr.budgetEntryNatureFinancingHint,
-  OcptBudgetEntryNature.revenue => tr.budgetEntryNatureRevenueHint,
-  OcptBudgetEntryNature.payout => tr.budgetEntryNaturePayoutHint,
-  OcptBudgetEntryNature.repayment => tr.budgetEntryNatureRepaymentHint,
-  OcptBudgetEntryNature.other => tr.budgetEntryNatureOtherHint(tr.budgetCostTrackingOffQuoteLabel),
-  OcptBudgetEntryNature.personReimbursement => throw UnsupportedError(
-    "OcptBudgetEntryDialog never selects OcptBudgetEntryNature.personReimbursement",
-  ),
-};
-
-/// One card of step 1 — a bold answer over its own muted hint, tinted `primary` while selected.
-/// Mockup `5a`.
-class _OcptBudgetEntryNatureCard extends StatelessWidget {
-  /// The nature this card stands for.
-  final OcptBudgetEntryNature nature;
-
-  /// Whether this card is the one currently selected.
-  final bool isSelected;
-
-  /// Called when this card is tapped.
-  final VoidCallback onSelected;
-
-  /// Class constructor
-  const _OcptBudgetEntryNatureCard({
-    required this.nature,
-    required this.isSelected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-
-    return InkWell(
-      key: Key("ocptBudgetEntryNatureCard-${nature.name}"),
-      onTap: onSelected,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
-          border: Border.all(
-            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
-          ),
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _ocptBudgetEntryNatureLabelOf(tr, nature),
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              _ocptBudgetEntryNatureHintOf(tr, nature),
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The reconciliation strip itself — a tinted row, mirroring the capture band's own suggestion row
-/// with one addition: [badge], the kind pill mockup `5b` draws before the sentence.
-class _OcptBudgetEntryWizardMatchStrip extends StatelessWidget {
-  /// The matched candidate's own kind word — `Engagé`, `Financement`…
-  final String badge;
-
-  /// The sentence naming what this entry would settle.
-  final String sentence;
-
-  /// `C'est ça`'s own label.
-  final String acceptLabel;
-
-  /// Called when `C'est ça` is tapped.
-  final VoidCallback onAccept;
-
-  /// Class constructor
-  const _OcptBudgetEntryWizardMatchStrip({
-    required this.badge,
-    required this.sentence,
-    required this.acceptLabel,
-    required this.onAccept,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
-            ),
-            child: Text(
-              badge,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(sentence, style: theme.textTheme.bodySmall)),
-          const SizedBox(width: 8),
-          FilledButton(
-            key: const Key("ocptBudgetEntryWizardAcceptButton"),
-            onPressed: onAccept,
-            child: Text(acceptLabel),
-          ),
-        ],
+    globalGetIt().get<OcptRouterManager>().pop<OcptBudgetEntryFormFields>(
+      OcptBudgetEntryFormFields(
+        date: _date,
+        label: _labelController.text.trim(),
+        posteId: _posteId,
+        resourceId: _resourceId,
+        // The sentinel never leaves this dialog: a taking still to be created travels as
+        // `newRevenue`, and the bloc writes its fresh id where this would have gone.
+        revenueId: _revenueId == _ocptNewRevenuePickedValue ? null : _revenueId,
+        newRevenue: _newRevenue,
+        shareId: _shareId,
+        personId: _personId,
+        isDebit: _isDebit,
+        amountCents: amountCents,
+        isTaxInclusive: _isTaxInclusive,
+        vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
+        voucherNumber: _voucherController.text.trim(),
+        pickedReceiptPath: _pickedReceiptPath,
+        isReceiptDetached: _isReceiptDetached,
       ),
     );
   }

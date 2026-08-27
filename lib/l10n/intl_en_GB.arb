@@ -13435,6 +13435,494 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetEntryDialogPersonFieldLabel": "Person",
+  "@budgetEntryDialogPersonFieldLabel": {
+    "description": "Label of the entry dialog's own Person picker, offered while editing a défraiement reimbursement",
+    "context": "Displayed in OcptBudgetEntryDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetEntryDialogNoPersonLabel": "No person",
+  "@budgetEntryDialogNoPersonLabel": {
+    "description": "Label of the entry dialog's own Person picker explicit no-person choice",
+    "context": "Displayed in OcptBudgetEntryDialog's own Person picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetHeaderNewAction": "New",
+  "@budgetHeaderNewAction": {
+    "description": "The header's own trailing button, opening the capture wizard, offered on all five routes",
+    "context": "Displayed with a leading + on OcptBudgetHeader, pushed to the right of every other control",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewDialogTitle": "New",
+  "@budgetNewDialogTitle": {
+    "description": "Title of the capture wizard, unchanged across all three of its own steps",
+    "context": "Displayed at the top of OcptBudgetNewDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewStepLabel": "Step {current} of {total}",
+  "@budgetNewStepLabel": {
+    "description": "The capture wizard's own step indicator, once the gesture picked says how many steps it takes",
+    "context": "Displayed at the top of OcptBudgetNewDialog, opposite its own title, steps 2 and 3",
+    "type": "text",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetNewStepLabelUnknown": "Step {current}",
+  "@budgetNewStepLabelUnknown": {
+    "description": "The capture wizard's own step indicator on step 1, before a gesture is picked says how many steps the whole wizard takes",
+    "context": "Displayed at the top of OcptBudgetNewDialog, opposite its own title, step 1",
+    "type": "text",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetNewFamilyQuoteLabel": "The quote",
+  "@budgetNewFamilyQuoteLabel": {
+    "description": "Heading of the capture wizard's own step 1, the quote's own group of answers",
+    "context": "Displayed above a group of answer cards on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyQuoteSubtitle": "What the film is going to cost, poste by poste.",
+  "@budgetNewFamilyQuoteSubtitle": {
+    "description": "Subtitle of the capture wizard's own step 1, the quote's own group, stating its tense",
+    "context": "Displayed under the quote group's own heading on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyCashMovementLabel": "Money that has moved",
+  "@budgetNewFamilyCashMovementLabel": {
+    "description": "Heading of the capture wizard's own step 1, the cash-movement group of answers",
+    "context": "Displayed above a group of answer cards on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyCashMovementSubtitle": "What has already come into or left the account.",
+  "@budgetNewFamilyCashMovementSubtitle": {
+    "description": "Subtitle of the capture wizard's own step 1, the cash-movement group, stating its tense",
+    "context": "Displayed under the cash-movement group's own heading on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyFinancingPlanLabel": "The financing plan",
+  "@budgetNewFamilyFinancingPlanLabel": {
+    "description": "Heading of the capture wizard's own step 1, the financing-plan group of answers",
+    "context": "Displayed above a group of answer cards on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyFinancingPlanSubtitle": "What is promised, and not yet arrived.",
+  "@budgetNewFamilyFinancingPlanSubtitle": {
+    "description": "Subtitle of the capture wizard's own step 1, the financing-plan group, stating its tense",
+    "context": "Displayed under the financing-plan group's own heading on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyAllowancesLabel": "Allowances",
+  "@budgetNewFamilyAllowancesLabel": {
+    "description": "Heading of the capture wizard's own step 1, the allowances group of answers",
+    "context": "Displayed above a group of answer cards on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyAllowancesSubtitle": "What the production owes the people who advanced money for it.",
+  "@budgetNewFamilyAllowancesSubtitle": {
+    "description": "Subtitle of the capture wizard's own step 1, the allowances group, stating its tense",
+    "context": "Displayed under the allowances group's own heading on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyRevenueSharingLabel": "Revenue sharing",
+  "@budgetNewFamilyRevenueSharingLabel": {
+    "description": "Heading of the capture wizard's own step 1, the revenue-sharing group of answers",
+    "context": "Displayed above a group of answer cards on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewFamilyRevenueSharingSubtitle": "Who gets what of what the film earns.",
+  "@budgetNewFamilyRevenueSharingSubtitle": {
+    "description": "Subtitle of the capture wizard's own step 1, the revenue-sharing group, stating its tense",
+    "context": "Displayed under the revenue-sharing group's own heading on OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureAddQuoteLineLabel": "Add a quote line",
+  "@budgetNewGestureAddQuoteLineLabel": {
+    "description": "Answer card of the capture wizard's own step 1, addQuoteLine gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureAddQuoteLineHint": "A label, a quantity, a unit price, inside a poste.",
+  "@budgetNewGestureAddQuoteLineHint": {
+    "description": "Hint of the capture wizard's own step 1, addQuoteLine gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureAddQuoteLinesFromBreakdownLabel": "Add lines from the breakdown",
+  "@budgetNewGestureAddQuoteLinesFromBreakdownLabel": {
+    "description": "Answer card of the capture wizard's own step 1, addQuoteLinesFromBreakdown gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureAddQuoteLinesFromBreakdownHint": "The elements spotted in the screenplay, priced all at once.",
+  "@budgetNewGestureAddQuoteLinesFromBreakdownHint": {
+    "description": "Hint of the capture wizard's own step 1, addQuoteLinesFromBreakdown gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureCommitSpendLabel": "Commit a spend",
+  "@budgetNewGestureCommitSpendLabel": {
+    "description": "Answer card of the capture wizard's own step 1, commitSpend gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureCommitSpendHint": "An accepted quote, a signed contract: the sum is set aside, to be paid in one or several instalments.",
+  "@budgetNewGestureCommitSpendHint": {
+    "description": "Hint of the capture wizard's own step 1, commitSpend gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordExpenseLabel": "I paid for something",
+  "@budgetNewGestureRecordExpenseLabel": {
+    "description": "Answer card of the capture wizard's own step 1, recordExpense gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordExpenseHint": "Money has left the account, against a poste of the quote.",
+  "@budgetNewGestureRecordExpenseHint": {
+    "description": "Hint of the capture wizard's own step 1, recordExpense gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordFinancingReceiptLabel": "I received a financing payment",
+  "@budgetNewGestureRecordFinancingReceiptLabel": {
+    "description": "Answer card of the capture wizard's own step 1, recordFinancingReceipt gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordFinancingReceiptHint": "The money from a subsidy or a contribution has arrived.",
+  "@budgetNewGestureRecordFinancingReceiptHint": {
+    "description": "Hint of the capture wizard's own step 1, recordFinancingReceipt gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordTakingReceiptLabel": "The film has earned money",
+  "@budgetNewGestureRecordTakingReceiptLabel": {
+    "description": "Answer card of the capture wizard's own step 1, recordTakingReceipt gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordTakingReceiptHint": "A sale, a prize, a broadcast that has just been paid.",
+  "@budgetNewGestureRecordTakingReceiptHint": {
+    "description": "Hint of the capture wizard's own step 1, recordTakingReceipt gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureReimbursePersonLabel": "I reimbursed someone",
+  "@budgetNewGestureReimbursePersonLabel": {
+    "description": "Answer card of the capture wizard's own step 1, reimbursePerson gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureReimbursePersonHint": "What a person advanced for the production.",
+  "@budgetNewGestureReimbursePersonHint": {
+    "description": "Hint of the capture wizard's own step 1, reimbursePerson gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePayParticipantShareLabel": "I paid someone their share",
+  "@budgetNewGesturePayParticipantShareLabel": {
+    "description": "Answer card of the capture wizard's own step 1, payParticipantShare gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePayParticipantShareHint": "A revenue-sharing participant receives their share of what the film earns.",
+  "@budgetNewGesturePayParticipantShareHint": {
+    "description": "Hint of the capture wizard's own step 1, payParticipantShare gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRepayContributionLabel": "I repaid a contribution",
+  "@budgetNewGestureRepayContributionLabel": {
+    "description": "Answer card of the capture wizard's own step 1, repayContribution gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRepayContributionHint": "A contributor gets back the sum they put in.",
+  "@budgetNewGestureRepayContributionHint": {
+    "description": "Hint of the capture wizard's own step 1, repayContribution gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordOtherMovementLabel": "Other movement",
+  "@budgetNewGestureRecordOtherMovementLabel": {
+    "description": "Answer card of the capture wizard's own step 1, recordOtherMovement gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureRecordOtherMovementHint": "Bank charges, an internal transfer, a correction.",
+  "@budgetNewGestureRecordOtherMovementHint": {
+    "description": "Hint of the capture wizard's own step 1, recordOtherMovement gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePlanSubsidyLabel": "Record an expected subsidy",
+  "@budgetNewGesturePlanSubsidyLabel": {
+    "description": "Answer card of the capture wizard's own step 1, planSubsidy gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePlanSubsidyHint": "A dossier filed or granted, whose money has not arrived yet.",
+  "@budgetNewGesturePlanSubsidyHint": {
+    "description": "Hint of the capture wizard's own step 1, planSubsidy gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePlanContributionLabel": "Record an expected contribution",
+  "@budgetNewGesturePlanContributionLabel": {
+    "description": "Answer card of the capture wizard's own step 1, planContribution gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePlanContributionHint": "In cash, or in kind (equipment lent, volunteer crew).",
+  "@budgetNewGesturePlanContributionHint": {
+    "description": "Hint of the capture wizard's own step 1, planContribution gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePlanTakingLabel": "Record an expected taking",
+  "@budgetNewGesturePlanTakingLabel": {
+    "description": "Answer card of the capture wizard's own step 1, planTaking gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGesturePlanTakingHint": "A sale, a prize, a broadcast hoped for.",
+  "@budgetNewGesturePlanTakingHint": {
+    "description": "Hint of the capture wizard's own step 1, planTaking gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureDefrayPersonLabel": "Defray someone",
+  "@budgetNewGestureDefrayPersonLabel": {
+    "description": "Answer card of the capture wizard's own step 1, defrayPerson gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureDefrayPersonHint": "A trip, a night's stay, a meal a person advanced.",
+  "@budgetNewGestureDefrayPersonHint": {
+    "description": "Hint of the capture wizard's own step 1, defrayPerson gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureAddSharingParticipantLabel": "Add a participant",
+  "@budgetNewGestureAddSharingParticipantLabel": {
+    "description": "Answer card of the capture wizard's own step 1, addSharingParticipant gesture",
+    "context": "Displayed in bold on an answer card of OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewGestureAddSharingParticipantHint": "Who will receive a percentage of what the film earns.",
+  "@budgetNewGestureAddSharingParticipantHint": {
+    "description": "Hint of the capture wizard's own step 1, addSharingParticipant gesture",
+    "context": "Displayed muted under an answer card's own label, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewLinePickerHint": "{amount} — {status}",
+  "@budgetNewLinePickerHint": {
+    "description": "Hint of a quote line offered by the capture wizard's own posteAndLine attachment step, stating what it is quoted at and whether it is already committed",
+    "context": "Displayed muted under a line's own row, OcptBudgetNewDialog's own step 2, commitSpend gesture",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetNewLineAlreadyCommittedHint": "already committed",
+  "@budgetNewLineAlreadyCommittedHint": {
+    "description": "One half of a quote line's own picker hint, once it already carries a commitment",
+    "context": "Substituted into budgetNewLinePickerHint's own status placeholder",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewLineNotCommittedHint": "not committed yet",
+  "@budgetNewLineNotCommittedHint": {
+    "description": "One half of a quote line's own picker hint, while it carries no commitment yet",
+    "context": "Substituted into budgetNewLinePickerHint's own status placeholder",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewNoLineAnswer": "None — the commitment is against the poste",
+  "@budgetNewNoLineAnswer": {
+    "description": "The posteAndLine attachment step's own third answer, a commitment hanging off the poste directly rather than one of its lines",
+    "context": "Displayed as the last row of OcptBudgetNewDialog's own step 2, commitSpend gesture",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewNoLineHint": "For a committed spend that was not in the quote.",
+  "@budgetNewNoLineHint": {
+    "description": "Hint of the posteAndLine attachment step's own third answer",
+    "context": "Displayed muted under budgetNewNoLineAnswer's own row, OcptBudgetNewDialog's own step 2",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewResourceChoiceHint": "Promised {promised} · Received {received} · Outstanding {outstanding}",
+  "@budgetNewResourceChoiceHint": {
+    "description": "Hint of a financing resource offered by the capture wizard's own financingResource attachment step",
+    "context": "Displayed muted under a resource's own row, OcptBudgetNewDialog's own step 2",
+    "type": "text",
+    "placeholders": {
+      "promised": {
+        "type": "String"
+      },
+      "received": {
+        "type": "String"
+      },
+      "outstanding": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetNewRevenueChoiceHint": "Expected {expected} · Cashed in {cashedIn}",
+  "@budgetNewRevenueChoiceHint": {
+    "description": "Hint of a taking offered by the capture wizard's own taking attachment step",
+    "context": "Displayed muted under a taking's own row, OcptBudgetNewDialog's own step 2",
+    "type": "text",
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      },
+      "cashedIn": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetNewWillCreateLabel": "Will create « {label} »",
+  "@budgetNewWillCreateLabel": {
+    "description": "Row shown once the capture wizard's own attachment step has collected a fresh resource, taking or participant not yet created",
+    "context": "Displayed as a selected row of OcptBudgetNewDialog's own step 2",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetNewCreateResourceAction": "New resource…",
+  "@budgetNewCreateResourceAction": {
+    "description": "The financingResource attachment step's own trailing row, opening the resource dialog so a missing one can be created without leaving the wizard",
+    "context": "Displayed as the last row of OcptBudgetNewDialog's own step 2, financingResource attachment",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewCreateParticipantAction": "New participant…",
+  "@budgetNewCreateParticipantAction": {
+    "description": "The participant attachment step's own trailing row, opening the share dialog so a missing one can be created without leaving the wizard",
+    "context": "Displayed as the last row of OcptBudgetNewDialog's own step 2, participant attachment",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewCreateLinesAction": "{count, plural, =1{Create 1 quote line} other{Create {count} quote lines}}",
+  "@budgetNewCreateLinesAction": {
+    "description": "The breakdown selector's own primary action, counting out loud how many lines it will create",
+    "context": "Displayed at the bottom of OcptBudgetNewDialog's own step 3, addQuoteLinesFromBreakdown gesture",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetNewLettrageTitle": "This entry will settle:",
+  "@budgetNewLettrageTitle": {
+    "description": "Title of the lettrage strip, stating what accepting an offer will do rather than merely what the strip is",
+    "context": "Displayed at the top of the lettrage strip, OcptBudgetNewDialog's own step 3, a cashMovement gesture while creating",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewLettrageNoneAction": "None of these",
+  "@budgetNewLettrageNoneAction": {
+    "description": "The lettrage strip's own last candidate, settling nothing — always reachable, never withheld merely because a suggestion was ranked first",
+    "context": "Displayed as the last row of the lettrage strip, OcptBudgetNewDialog's own step 3",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewLettrageReasonAmount": "same amount",
+  "@budgetNewLettrageReasonAmount": {
+    "description": "One of the reasons a lettrage candidate was ranked, offered when it matches the draft's own amount exactly",
+    "context": "Displayed under a lettrage candidate's own headline, OcptBudgetNewDialog's own step 3",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewLettrageReasonDate": "same day",
+  "@budgetNewLettrageReasonDate": {
+    "description": "One of the reasons a lettrage candidate was ranked, offered when it falls close to the draft's own date",
+    "context": "Displayed under a lettrage candidate's own headline, OcptBudgetNewDialog's own step 3",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewLettrageReasonWording": "a word in common",
+  "@budgetNewLettrageReasonWording": {
+    "description": "One of the reasons a lettrage candidate was ranked, offered when it shares a significant word with the draft's own wording",
+    "context": "Displayed under a lettrage candidate's own headline, OcptBudgetNewDialog's own step 3",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewBreakdownSceneCountHint": "{count, plural, =1{Appears in 1 scene} other{Appears in {count} scenes}}",
+  "@budgetNewBreakdownSceneCountHint": {
+    "description": "Hint under a breakdown element's own row, naming how many scenes it appears in — the figure the row's own quantity suggestion is drawn from",
+    "context": "Displayed muted under an element's own name, OcptBudgetNewDialog's own step 3, addQuoteLinesFromBreakdown gesture",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "budgetRevenueDialogCreateTitle": "New taking",
   "@budgetRevenueDialogCreateTitle": {
     "description": "Title of the revenue dialog while creating a new taking",
