@@ -285,16 +285,18 @@ are all here, and this file is the whole record of them.
   under its line in the expenses tree regardless, marked settled rather than removed, its own
   payments drawn beneath it, since a production still wants to see what it once owed and to whom.
 - The `Pay` gesture is not a status flip: it opens the capture wizard on its own money step,
-  pre-filled from the commitment (today's date, its own label, poste, amount, tax basis and rate, as
-  a debit), so a payment is recorded exactly as any other debit — a new entry naming the commitment,
-  never a mutation of the commitment itself. Reached from a **quote line's** own fiche the amount
-  offered is what is still outstanding, so a partly-paid line offers back only what is left; reached
-  from a **commitment shown on its own** (the cash-flow page's `À venir` section) it offers the
-  commitment's full total, deliberately unchanged from before. `Undo settlement` clears
-  `commitmentId` back to null on **every** entry naming the commitment — never only the first, which
-  would leave it reading unsettled while some instalments still counted as paid — and touches none
-  of those entries otherwise: each is a movement that happened, and the journal is where one is
-  deleted if it should be. This event forgets the link, not the payment.
+  pre-filled from the commitment (today's date, its own label, poste, tax basis and rate, as a
+  debit), so a payment is recorded exactly as any other debit — a new entry naming the commitment,
+  never a mutation of the commitment itself. **The amount offered is what is still outstanding, not
+  the full commitment** — the whole typed amount while nothing has been paid, what is left once
+  instalments have been — and it is expressed in the commitment's own tax basis and rate (the
+  outstanding cash scaled by the fraction it is of the commitment's own cash), so the payment entry
+  carries the very VAT reading the commitment does. This holds whichever fiche opens it, a quote
+  line's or a commitment shown on its own under the cash-flow page's `À venir` section. `Undo
+  settlement` clears `commitmentId` back to null on **every** entry naming the commitment — never
+  only the first, which would leave it reading unsettled while some instalments still counted as
+  paid — and touches none of those entries otherwise: each is a movement that happened, and the
+  journal is where one is deleted if it should be. This event forgets the link, not the payment.
 
 ## A commitment's poste is editable, a quote line's is not
 
@@ -639,9 +641,9 @@ are all here, and this file is the whole record of them.
     `Pay {amount}` once it has been promoted and is still owed, and none once settled — mirroring
     "A quote line can be promoted into a commitment" below.
   - A **commitment**'s primary action is `Pay {amount}` (`onCommitmentSettleRequested`), opening the
-    capture wizard on its own money step pre-filled from it — the commitment's full total here,
-    deliberately unchanged from before (see "A commitment settles when the ledger says it is paid"
-    above) — and null once settled.
+    capture wizard on its own money step pre-filled from it — the amount still outstanding, in the
+    commitment's own tax basis (see "A commitment settles when the ledger says it is paid" above) —
+    and null once settled.
   - An **entry**'s stepper is always fully reached; its primary action is `Edit`, its secondary
     `Delete`.
   - A **resource**'s stepper reads `Promised · Received`, its badge the `Dossier` fact held apart

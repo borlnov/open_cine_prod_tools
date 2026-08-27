@@ -1111,6 +1111,30 @@ class _BudgetViewState extends State<_BudgetView> {
   ) async {
     final bloc = context.read<OcptBudgetBloc>();
     final now = DateTime.now();
+    // Offer what is still owed rather than the full commitment, expressed in the commitment's own
+    // tax basis and rate so the payment entry carries the very VAT reading the commitment does. The
+    // outstanding is read as a tax-inclusive cash figure, so it is scaled back into the commitment's
+    // basis by the fraction it is of the commitment's own cash — the whole typed amount when nothing
+    // has been paid, proportional once it has. A commitment whose cash cannot be read (unknown rate)
+    // keeps its full typed amount; an overpaid one offers nothing.
+    final commitmentCashCents = ocptBudgetCommitmentCashCentsOf(
+      commitment,
+      projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+    );
+    final outstandingCashCents = ocptBudgetCommitmentOutstandingCentsOf(
+      commitment,
+      state.entries,
+      projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+    );
+    final int prefillAmountCents;
+    if (commitmentCashCents == null || outstandingCashCents == null || commitmentCashCents <= 0) {
+      prefillAmountCents = commitment.amount.amountCents;
+    } else if (outstandingCashCents <= 0) {
+      prefillAmountCents = 0;
+    } else {
+      prefillAmountCents =
+          (commitment.amount.amountCents * outstandingCashCents / commitmentCashCents).round();
+    }
     final prefill = OcptBudgetEntryFormFields(
       date: DateTime(now.year, now.month, now.day),
       label: commitment.label,
@@ -1119,7 +1143,7 @@ class _BudgetViewState extends State<_BudgetView> {
       revenueId: null,
       shareId: null,
       isDebit: true,
-      amountCents: commitment.amount.amountCents,
+      amountCents: prefillAmountCents,
       isTaxInclusive: commitment.amount.isTaxInclusive,
       vatRateBasisPoints: commitment.amount.vatRateBasisPoints,
       voucherNumber: null,

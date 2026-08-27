@@ -756,6 +756,14 @@ class OcptBudgetFiche extends StatelessWidget {
               .amountCents
         : null;
     final quotedLineCents = line == null ? null : ocptBudgetLineTotalCents(line);
+    // What this commitment still owes — the `Pay` action and the outstanding block both read this,
+    // never [cashCents]' own full figure, so a commitment paid in part offers back only what is
+    // actually left, exactly as the promoted quote line's own fiche already does.
+    final outstandingCents = ocptBudgetCommitmentOutstandingCentsOf(
+      commitment,
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
 
     final title = commitment.label.isEmpty ? tr.budgetPosteUnnamed : commitment.label;
     final dueDateText = commitment.dueDate == null
@@ -782,15 +790,12 @@ class OcptBudgetFiche extends StatelessWidget {
         (tr.budgetInspectorFigureCommitted, _amount(cashCents)),
         (tr.budgetInspectorFigurePaid, _amount(paidCents)),
       ],
-      // `cashCents`, not the commitment's own outstanding figure, here and in the `Pay` action
-      // below: this fiche still offers the commitment's own total, unchanged from before — only
-      // [isSettled] itself is now derived from the ledger rather than read off a stored link.
       outstandingLabel: tr.budgetCommittedOutstandingLabel,
-      outstandingValue: isSettled ? null : _amount(cashCents),
+      outstandingValue: isSettled ? null : _amount(outstandingCents),
       primary: isReadOnly || isSettled || onCommitmentSettleRequested == null
           ? null
           : _OcptBudgetFicheAction(
-              label: tr.budgetFichePayAction(_amount(cashCents)),
+              label: tr.budgetFichePayAction(_amount(outstandingCents)),
               onTap: () => onCommitmentSettleRequested?.call(commitment),
             ),
       secondaries: [

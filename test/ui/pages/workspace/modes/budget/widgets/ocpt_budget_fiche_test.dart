@@ -563,6 +563,32 @@ void main() {
       expect(deletedId, "commitment-1");
     });
 
+    testWidgets("part-paid: Pay offers the outstanding, not the full commitment", (tester) async {
+      _useTallSurface(tester);
+      await tester.pumpWidget(
+        _wrap(
+          _fiche(
+            selection: const OcptBudgetCommitmentSelection("commitment-1"),
+            commitments: [_buildCommitment()],
+            entries: [_buildEntry(debitCents: 400, commitmentId: "commitment-1")],
+            onCommitmentSettleRequested: (_) {},
+          ),
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+      // Outstanding is 1000 - 400 = 600, not the commitment's own full 1000 — the same reading the
+      // promoted quote line's own fiche already offers.
+      expect(
+        find.widgetWithText(FilledButton, tr.budgetFichePayAction(ocptBudgetAmountLabel(600, "EUR"))),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(FilledButton, tr.budgetFichePayAction(ocptBudgetAmountLabel(1000, "EUR"))),
+        findsNothing,
+      );
+    });
+
     testWidgets("settled: no primary, and the outstanding block reads the em dash", (
       tester,
     ) async {
