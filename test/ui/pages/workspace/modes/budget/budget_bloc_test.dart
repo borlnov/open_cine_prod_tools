@@ -2420,43 +2420,8 @@ void main() {
       },
     );
 
-    test("a fresh line seeds its label and unit price from the element's own cost", () async {
-      final bloc = buildBloc();
-      addTearDown(bloc.close);
-      final project = projectsManager.currentProject!;
-
-      final elementId = await projectsManager.elementsService.createElement(
-        database: project.database,
-        name: "Camera body",
-        category: OcptElementCategory.camera,
-        sourceKind: OcptElementSourceKind.owned,
-      );
-      expect(elementId, isNotNull);
-      await projectsManager.elementsService.updateElement(
-        database: project.database,
-        elementId: elementId!,
-        cost: const drift.Value(5000),
-      );
-
-      final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
-      final posteId = loaded.postes.first.id;
-
-      bloc.add(OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: elementId));
-
-      final state = await waitForState(
-        bloc,
-        (state) => state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
-      );
-      final line = state.postes
-          .expand((poste) => poste.lines)
-          .firstWhere((line) => line.elementId == elementId);
-
-      expect(line.label, "Camera body");
-      expect(line.unitPrice.amountCents, 5000);
-    });
-
     test(
-      "an element with no cost seeds no unit price, the line left at the ordinary default",
+      "a fresh line seeds its label from the element, never a price even off a known cost",
       () async {
         final bloc = buildBloc();
         addTearDown(bloc.close);
@@ -2464,16 +2429,21 @@ void main() {
 
         final elementId = await projectsManager.elementsService.createElement(
           database: project.database,
-          name: "Dolly",
-          category: OcptElementCategory.specialEquipment,
-          sourceKind: OcptElementSourceKind.toBuy,
+          name: "Camera body",
+          category: OcptElementCategory.camera,
+          sourceKind: OcptElementSourceKind.owned,
         );
         expect(elementId, isNotNull);
+        await projectsManager.elementsService.updateElement(
+          database: project.database,
+          elementId: elementId!,
+          cost: const drift.Value(5000),
+        );
 
         final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
         final posteId = loaded.postes.first.id;
 
-        bloc.add(OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: elementId!));
+        bloc.add(OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: elementId));
 
         final state = await waitForState(
           bloc,
@@ -2483,9 +2453,45 @@ void main() {
             .expand((poste) => poste.lines)
             .firstWhere((line) => line.elementId == elementId);
 
+        expect(line.label, "Camera body");
         expect(line.unitPrice.amountCents, 0);
       },
     );
+
+    test("event.quantityMilli seeds the fresh line's own quantity, absent leaving the default", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final project = projectsManager.currentProject!;
+
+      final elementId = await projectsManager.elementsService.createElement(
+        database: project.database,
+        name: "Rostrum",
+        category: OcptElementCategory.specialEquipment,
+        sourceKind: OcptElementSourceKind.toBuy,
+      );
+      expect(elementId, isNotNull);
+
+      final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetLineCreatedFromElementEvent(
+          posteId: posteId,
+          elementId: elementId!,
+          quantityMilli: 3000,
+        ),
+      );
+
+      final state = await waitForState(
+        bloc,
+        (state) => state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
+      );
+      final line = state.postes
+          .expand((poste) => poste.lines)
+          .firstWhere((line) => line.elementId == elementId);
+
+      expect(line.quantityMilli, 3000);
+    });
   });
 
   group("exporting the quote", () {

@@ -907,11 +907,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// dialog result.
   ///
   /// Mints the line with `OcptElement.name` as its own label and `elementId` naming the element —
-  /// `element.cost` seeds `unitAmountCents` when it is known, and is passed on as
-  /// [Value.absent] rather than [Value] of zero when it is not: see
-  /// `OcptBudgetQuoteService.createLine`'s own doc comment for why a null cost is not a zero unit
-  /// price. `event.quantityMilli` seeds `quantityMilli` the same way, absent rather than defaulted
-  /// while it is null.
+  /// **never a price**, whatever `OcptElement.cost` happens to hold: "the breakdown says what, not
+  /// how much" (`docs/plans/budget-capture-wizard.md`) is the whole reason this event's only caller
+  /// is a selector, not a form. `event.quantityMilli` seeds `quantityMilli`, passed on as
+  /// [Value.absent] rather than defaulted while it is null.
   Future<void> _onLineCreatedFromElement(
     OcptBudgetLineCreatedFromElementEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -932,14 +931,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    final cost = element.cost;
     final quantityMilli = event.quantityMilli;
     final lineId = await _budgetQuoteService.createLine(
       database: project.database,
       posteId: event.posteId,
       label: element.name,
       elementId: Value(element.id),
-      unitAmountCents: cost == null ? const Value.absent() : Value(cost),
       quantityMilli: quantityMilli == null ? const Value.absent() : Value(quantityMilli),
     );
 
