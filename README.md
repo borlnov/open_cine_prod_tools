@@ -112,12 +112,13 @@ the chip carries the count of them from every other page.
 ![The budget dashboard, four tiles over the needs-against-resources band and two standing alerts](docs/screenshots/budget-dashboard.png)
 
 What the film costs, poste by poste: one row per poste of the CNC nomenclature, opening on its own
-quote lines, and a line opening in turn on the commitment it became and on the entry that settled
-it. Spending that names no poste is not hidden - it lands in a row of its own, and counts in the
-total. `Enter an expense` opens a two-step form: first what you are doing, in the words a
-production actually uses, then the fields that answer belongs to.
+quote lines, and a line opening in turn on the commitment it became and on the payments that settle
+it - in one instalment or several. Spending that names no poste is not hidden - it lands in a row of
+its own, and counts in the total. `+ New`, the one button every page carries, opens a short wizard:
+first what you are doing, in the words a production actually uses, then - where it is needed - what
+the movement attaches to, and last the amount.
 
-![The expenses view, a poste opened down to its commitment and its settling entry](docs/screenshots/budget-expenses.png)
+![The expenses view, a poste opened down to its commitment and its payments](docs/screenshots/budget-expenses.png)
 
 What pays for it, read the same way: subsidies, contributions and takings, each with the paperwork
 it is held on - which never means the money has arrived - and, at the foot, whether all of it
