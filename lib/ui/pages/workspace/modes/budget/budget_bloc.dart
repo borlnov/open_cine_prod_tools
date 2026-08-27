@@ -1513,12 +1513,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Undoes commitment `event.commitmentId`'s own settlement: clears `commitmentId` back to null on
-  /// the one live entry that names it, the entry itself left untouched otherwise — see
-  /// `OcptBudgetCommitmentUnsettleRequestedEvent`'s own doc comment. **A single-entry gesture at
-  /// this milestone**: a commitment paid in more than one instalment would need the reader to say
-  /// which one to unlink, which this event carries no way to ask yet, so the first live entry naming
-  /// it found in [OcptBudgetState.entries] is the one unlinked — the very entry a single settlement
-  /// ever produces.
+  /// **every** live entry that names it, each entry itself left untouched otherwise — see
+  /// `OcptBudgetCommitmentUnsettleRequestedEvent`'s own doc comment. The wizard is what makes
+  /// several payments against one commitment possible (`OcptBudgetEntryFormFields.commitmentId`'s
+  /// own doc comment), so `Undo settlement` clearing only the first one found would leave the
+  /// commitment reading unsettled while some of its instalments still counted as paid against it —
+  /// exactly the double-count this whole mode refuses everywhere else. Unlinking one instalment
+  /// among several, rather than all of them, is a later milestone's job, once the expenses tree
+  /// draws a commitment's own payments individually.
   Future<void> _onCommitmentUnsettleRequested(
     OcptBudgetCommitmentUnsettleRequestedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1528,10 +1530,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    final settlingEntry = state.entries
-        .where((entry) => entry.commitmentId == event.commitmentId)
-        .firstOrNull;
-    if (settlingEntry != null) {
+    final settlingEntries = state.entries.where(
+      (entry) => entry.commitmentId == event.commitmentId,
+    );
+    for (final settlingEntry in settlingEntries) {
       await _budgetJournalService.updateEntry(
         database: project.database,
         entryId: settlingEntry.id,

@@ -1598,6 +1598,66 @@ void main() {
       expect(state.entries, hasLength(1));
       expect(state.entries.single.id, entryId);
     });
+
+    test("clears the link on every entry naming the commitment, not just the first", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+      final project = projectsManager.currentProject!;
+
+      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
+        database: project.database,
+        posteId: posteId,
+        label: "Camera deposit",
+        amountCents: 5000,
+      );
+      expect(commitmentId, isNotNull);
+      final firstEntryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026, 4),
+        label: "Deposit",
+        posteId: posteId,
+        commitmentId: commitmentId,
+        debitCents: 3000,
+      );
+      final secondEntryId = await projectsManager.budgetJournalService.createEntry(
+        database: project.database,
+        date: DateTime(2026, 5),
+        label: "Balance",
+        posteId: posteId,
+        commitmentId: commitmentId,
+        debitCents: 2000,
+      );
+      expect(firstEntryId, isNotNull);
+      expect(secondEntryId, isNotNull);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(
+        bloc,
+        (state) =>
+            state.commitments.isNotEmpty &&
+            ocptBudgetCommitmentIsSettledOf(
+              state.commitments.single,
+              state.entries,
+              projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
+            ),
+      );
+
+      bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId!));
+      final state = await waitForState(
+        bloc,
+        (state) => state.entries.every((entry) => entry.commitmentId == null),
+      );
+
+      // Both entries are unlinked, and both survive untouched otherwise.
+      expect(state.entries, hasLength(2));
+      expect(state.entries.map((entry) => entry.commitmentId), everyElement(isNull));
+      expect(
+        state.entries.map((entry) => entry.id),
+        containsAll(<String>[firstEntryId!, secondEntryId!]),
+      );
+    });
   });
 
   group("the financing plan", () {
