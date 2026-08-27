@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
@@ -149,6 +150,12 @@ class OcptBudgetSnapshot extends Equatable {
   /// themselves rather than a computed reading of them.
   final List<OcptBudgetAllowance> allowances;
 
+  /// What has actually been reimbursed against each defrayed person, keyed by their own id —
+  /// `ocptBudgetReimbursedByPersonId` (`lib/utils/ocpt_budget_reimbursements.dart`), the régie's own
+  /// running account for the person tree, mirroring [receivedByResourceId]. A person with no key
+  /// here has been reimbursed nothing at all.
+  final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
+
   /// Every live taking of the revenue sharing, in the `sortKey` order `OcptBudgetSharingService
   /// .loadRevenues` gives them — never reordered here. Defaults to empty for every caller
   /// unconcerned with the revenue sharing, exactly as [resources] already does for a caller
@@ -213,6 +220,7 @@ class OcptBudgetSnapshot extends Equatable {
     required this.regieDays,
     required this.regieTotals,
     required this.allowances,
+    required this.reimbursedByPersonId,
     required this.revenues,
     required this.shares,
     required this.receivedByRevenueId,
@@ -286,6 +294,10 @@ class OcptBudgetSnapshot extends Equatable {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     final receivedByResourceId = ocptBudgetReceivedByResourceId(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final reimbursedByPersonId = ocptBudgetReimbursedByPersonId(
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
@@ -363,6 +375,7 @@ class OcptBudgetSnapshot extends Equatable {
       regieDays: regieDays,
       regieTotals: ocptBudgetRegieTotalsOf(regieDays),
       allowances: allowances,
+      reimbursedByPersonId: reimbursedByPersonId,
       revenues: revenues,
       shares: shares,
       receivedByRevenueId: receivedByRevenueId,
@@ -446,6 +459,7 @@ class OcptBudgetSnapshot extends Equatable {
     regieDays,
     regieTotals,
     allowances,
+    reimbursedByPersonId,
     revenues,
     shares,
     receivedByRevenueId,

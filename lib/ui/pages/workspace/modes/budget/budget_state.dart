@@ -165,16 +165,19 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// view's own right-column selection, mirroring [selectedRevenueId].
   final String? selectedShareId;
 
-  /// Which nodes of the expenses tree or of the resources tree are currently expanded, keyed by
-  /// their own id — a poste id, a quote line id, a resource id or a revenue id, whichever twisty
-  /// was last clicked open, or an `OcptBudgetResourceFamily`'s own `name` for a family row, which
-  /// mints no id of its own. The expenses tree also keys one reserved node naming no record at all
-  /// — `OcptBudgetCostTracking`'s own off-quote total, which sums a reading over the journal rather
-  /// than a poste or a line, and so mints no id either. A commitment sub-row, an entry sub-row and
-  /// a receipt sub-row carry no twisty of their own and so never appear here: each is revealed or
-  /// hidden wholesale with whichever line, poste, resource, revenue or family it sits directly
-  /// under. Not persisted across a relaunch, mirroring [view], [isSimplified] and [taxBasis]
-  /// above.
+  /// Which nodes of the expenses tree, of the resources tree or of the régie's own defrayal tree
+  /// are currently expanded, keyed by their own id — a poste id, a quote line id, a resource id, a
+  /// revenue id or a person id, whichever twisty was last clicked open, or an
+  /// `OcptBudgetResourceFamily`'s own `name` for a family row, which mints no id of its own. The
+  /// expenses tree also keys one reserved node naming no record at all —
+  /// `OcptBudgetCostTracking`'s own off-quote total, which sums a reading over the journal rather
+  /// than a poste or a line, and so mints no id either. A commitment sub-row, an entry sub-row, a
+  /// receipt sub-row, a defrayal sub-row and a reimbursement sub-row carry no twisty of their own
+  /// and so never appear here: each is revealed or hidden wholesale with whichever line, poste,
+  /// resource, revenue, family or person it sits directly under — a defrayal naming nobody mints no
+  /// id here either, drawing as its own group of one with no twisty
+  /// (`OcptBudgetRegie`'s own doc comment). Not persisted across a relaunch, mirroring [view],
+  /// [isSimplified] and [taxBasis] above.
   final Set<String> expandedNodeIds;
 
   /// The right dock's currently active tab, or null if the dock is closed.
@@ -427,6 +430,12 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// Every live defrayal, empty while nothing is loaded or the production has defrayed nobody —
   /// `OcptBudgetRegie`'s own right column.
   List<OcptBudgetAllowance> get allowances => snapshot?.allowances ?? const [];
+
+  /// What has actually been reimbursed against each defrayed person of [snapshot], keyed by their
+  /// own id — empty while nothing is loaded. `OcptBudgetRegie`'s own person tree reads this map
+  /// itself, raw, mirroring [receivedByResourceId]'s own reading.
+  Map<String, OcptBudgetCoveredTotal> get reimbursedByPersonId =>
+      snapshot?.reimbursedByPersonId ?? const {};
 
   /// Every live voucher, keyed by the `budget_entries` row it evidences — empty while nothing is
   /// loaded or no entry carries one.
