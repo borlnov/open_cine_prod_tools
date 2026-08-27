@@ -11297,6 +11297,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetInspectorPosteCodeDuplicateError": "This code is already used by another poste.",
+  "@budgetInspectorPosteCodeDuplicateError": {
+    "description": "Error shown under the poste inspector's own code field while another live poste already carries the same code",
+    "context": "Displayed under the poste's code field in the budget mode's Inspector tab; the typed value is kept, never reverted",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetInspectorPosteSimpleLabelFieldLabel": "Simple label",
   "@budgetInspectorPosteSimpleLabelFieldLabel": {
     "description": "Label of the poste fiche's own simple-label field — the plain-language name shown under the header's simplified switch, falling back to the ordinary label while empty",

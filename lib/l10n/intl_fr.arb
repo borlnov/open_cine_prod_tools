@@ -1500,6 +1500,7 @@
   "budgetDashboardCashNegativeAlertMessageUndated": "Le solde de {balance} passe sous zéro une fois {dueAmount} échu, à une date non renseignée.",
   "budgetInspectorPosteLabelFieldLabel": "Intitulé",
   "budgetInspectorPosteCodeFieldLabel": "Code",
+  "budgetInspectorPosteCodeDuplicateError": "Ce code est déjà utilisé par un autre poste.",
   "budgetInspectorPosteSimpleLabelFieldLabel": "Intitulé simplifié",
   "budgetInspectorFigureQuote": "Devis",
   "budgetInspectorFigurePaid": "Payé",

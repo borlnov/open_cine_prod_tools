@@ -392,6 +392,13 @@ class OcptBudgetFiche extends StatelessWidget {
       typedEstimateToCompleteCents: null,
     );
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
+    // Signalled, never blocked (`docs/plans/budget-capture-wizard.md`'s "A duplicate poste code is
+    // signalled, never blocked"): an empty code is not a duplicate, and the comparison trims both
+    // sides so two codes differing only by surrounding whitespace still read as the same one.
+    final trimmedCode = poste.code.trim();
+    final hasDuplicateCode =
+        trimmedCode.isNotEmpty &&
+        postes.any((other) => other.id != poste.id && other.code.trim() == trimmedCode);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,6 +415,7 @@ class OcptBudgetFiche extends StatelessWidget {
           field: OcptBudgetField.posteCode,
           label: tr.budgetInspectorPosteCodeFieldLabel,
           storedValue: poste.code,
+          errorText: hasDuplicateCode ? tr.budgetInspectorPosteCodeDuplicateError : null,
         ),
         const SizedBox(height: 8),
         _inlineField(
@@ -1069,6 +1077,7 @@ class OcptBudgetFiche extends StatelessWidget {
     required String label,
     required String storedValue,
     String? hintText,
+    String? errorText,
     bool multiline = false,
   }) {
     final onFieldChanged = this.onFieldChanged;
@@ -1076,6 +1085,7 @@ class OcptBudgetFiche extends StatelessWidget {
       label: label,
       value: fieldValueOf(targetId, field, storedValue),
       hintText: hintText,
+      errorText: errorText,
       multiline: multiline,
       onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(targetId, field, value),
     );
@@ -1574,6 +1584,11 @@ class _OcptBudgetInlineField extends StatefulWidget {
   /// Whether this field is written as several lines.
   final bool multiline;
 
+  /// An inline error message, or null while the field's own value stands as typed. Never blocks nor
+  /// reverts the typed value — it is drawn beside it, exactly the way a duplicate poste code is
+  /// signalled rather than blocked (`docs/plans/budget-capture-wizard.md`).
+  final String? errorText;
+
   /// Called with the field's raw text on every keystroke, or null while it may not be written to.
   final ValueChanged<String>? onChanged;
 
@@ -1584,6 +1599,7 @@ class _OcptBudgetInlineField extends StatefulWidget {
     this.hintText,
     this.suffixText,
     this.multiline = false,
+    this.errorText,
     required this.onChanged,
   });
 
@@ -1615,13 +1631,16 @@ class _OcptBudgetInlineFieldState extends State<_OcptBudgetInlineField> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasError = widget.errorText != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.label.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: hasError ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 4),
         TextField(
@@ -1635,6 +1654,7 @@ class _OcptBudgetInlineFieldState extends State<_OcptBudgetInlineField> {
             isDense: true,
             hintText: widget.hintText,
             suffixText: widget.suffixText,
+            errorText: widget.errorText,
           ),
         ),
       ],

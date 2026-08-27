@@ -300,6 +300,41 @@ void main() {
       expect(find.byType(FilledButton), findsNothing);
       expect(find.byType(OutlinedButton), findsNothing);
     });
+
+    testWidgets("a code shared with another live poste turns the code field red, keeping the "
+        "typed value", (tester) async {
+      const otherPoste = OcptBudgetPoste(
+        id: "poste-2",
+        code: "5",
+        label: "Another poste",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a1",
+        lines: [],
+      );
+      await tester.pumpWidget(
+        _wrap(
+          _fiche(
+            selection: const OcptBudgetPosteSelection("poste-1"),
+            postes: const [_poste, otherPoste],
+          ),
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+      expect(find.text(tr.budgetInspectorPosteCodeDuplicateError), findsOneWidget);
+      // The typed value is kept, never reverted or blanked.
+      expect(find.widgetWithText(TextField, "5"), findsOneWidget);
+    });
+
+    testWidgets("no error while no other live poste shares the same code", (tester) async {
+      await tester.pumpWidget(
+        _wrap(_fiche(selection: const OcptBudgetPosteSelection("poste-1"))),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+      expect(find.text(tr.budgetInspectorPosteCodeDuplicateError), findsNothing);
+    });
   });
 
   group("the quote line variant", () {
