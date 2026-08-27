@@ -588,6 +588,31 @@ class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, commitmentId, fields];
 }
 
+/// Pays quote line [lineId] directly, promoting it into a commitment in the same gesture — the
+/// line's own `Pay` action, for the common case where a production quotes a cost and then pays it
+/// without ever thinking of the commitment in between. The bloc creates the commitment from the
+/// line first (`OcptBudgetJournalService.createCommitment`, seeded from the line as
+/// [OcptBudgetCommitmentCreationConfirmedEvent] would), then records [fields] as a debit naming it
+/// ([OcptBudgetCommitmentSettlementConfirmedEvent]'s own reading): the engagement is real in the
+/// data — it is what carries the outstanding and the
+/// lettrage — but transparent to the reader, who only ever quoted and paid. A partial payment
+/// leaves the commitment standing with its own outstanding, exactly as one against a commitment
+/// made by hand.
+class OcptBudgetLinePaidDirectlyEvent extends OcptBudgetEvent {
+  /// The id of the quote line being paid, and promoted into a commitment as it is.
+  final String lineId;
+
+  /// Every field the capture wizard collected for the payment itself.
+  final OcptBudgetEntryFormFields fields;
+
+  /// Class constructor
+  const OcptBudgetLinePaidDirectlyEvent({required this.lineId, required this.fields});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, lineId, fields];
+}
+
 /// Undoes commitment [commitmentId]'s own settlement, dispatched by its row's own `Undo settlement`
 /// action — clears `commitmentId` back to null on **every** live entry naming it, each entry itself
 /// left untouched otherwise. `Undo settlement`'s own label promises the commitment is not paid, and

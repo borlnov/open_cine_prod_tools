@@ -170,6 +170,7 @@ OcptBudgetFiche _fiche({
   Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
   Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
   ValueChanged<String>? onLineCommitRequested,
+  ValueChanged<String>? onLinePayDirectlyRequested,
   ValueChanged<String>? onLineSettleRequested,
   ValueChanged<String>? onLineShowCommitmentRequested,
   ValueChanged<String>? onLineUncommitRequested,
@@ -207,6 +208,7 @@ OcptBudgetFiche _fiche({
   onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
   onLineVatRateInheritedRequested: (_) {},
   onLineCommitRequested: onLineCommitRequested,
+  onLinePayDirectlyRequested: onLinePayDirectlyRequested,
   onLineSettleRequested: onLineSettleRequested,
   onLineShowCommitmentRequested: onLineShowCommitmentRequested,
   onLineUncommitRequested: onLineUncommitRequested,
@@ -342,16 +344,16 @@ void main() {
   });
 
   group("the quote line variant", () {
-    testWidgets("not promoted: Commit this line… is primary, Delete the only secondary", (
-      tester,
-    ) async {
+    testWidgets("not promoted: Pay is primary, Commit and Delete the secondaries", (tester) async {
       _useTallSurface(tester);
+      String? paidLineId;
       String? committedLineId;
       String? deletedLineId;
       await tester.pumpWidget(
         _wrap(
           _fiche(
             selection: const OcptBudgetLineSelection("line-1"),
+            onLinePayDirectlyRequested: (lineId) => paidLineId = lineId,
             onLineCommitRequested: (lineId) => committedLineId = lineId,
             onLineDeletionRequested: (lineId) => deletedLineId = lineId,
           ),
@@ -360,10 +362,17 @@ void main() {
       final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
       expect(find.text("Crown"), findsWidgets);
+      // Estimated reached only: one filled step, two hollow.
       expect(find.byIcon(Icons.circle), findsNWidgets(1));
       expect(find.byIcon(Icons.circle_outlined), findsNWidgets(2));
 
-      await tester.tap(find.widgetWithText(FilledButton, tr.budgetLineCommitAction));
+      // Pay is the primary gesture; it offers the line's own full quoted total.
+      await tester.tap(
+        find.widgetWithText(FilledButton, tr.budgetFichePayAction(ocptBudgetAmountLabel(1000, "EUR"))),
+      );
+      expect(paidLineId, "line-1");
+
+      await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetLineCommitAction));
       expect(committedLineId, "line-1");
 
       await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction));

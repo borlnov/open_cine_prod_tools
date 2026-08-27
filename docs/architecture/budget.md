@@ -298,6 +298,27 @@ are all here, and this file is the whole record of them.
   paid — and touches none of those entries otherwise: each is a movement that happened, and the
   journal is where one is deleted if it should be. This event forgets the link, not the payment.
 
+## A quote line is paid directly, the commitment made for it
+
+- Most productions quote a cost and then pay it, never thinking of the commitment in between, so an
+  **un-promoted quote line's own primary action is `Pay {quoted total}`**, not `Commit this line…`
+  (which stays on as a secondary, beside `Delete`, for a cost acted before it is paid). The gesture
+  is `onLinePayDirectlyRequested`, and it opens the capture wizard on `recordExpense` pre-filled from
+  the line — its full quoted total, in the line's own tax basis and rate, as today's debit — exactly
+  as `_handleCommitmentSettleRequested` pre-fills from a commitment.
+- On confirm it dispatches `OcptBudgetLinePaidDirectlyEvent`, and the bloc does **as one write** the
+  two the promote-then-pay path does apart: it creates the commitment from the line first
+  (`createCommitment`, seeded from the line, naming it through `lineId`, at the line's full quoted
+  total), then records the debit naming that fresh commitment (`createEntry`, `commitmentId` set).
+  The **engagement is real in the data** — it is what carries the outstanding and the lettrage, and
+  it draws its own settled sub-row under the line like any other — but **transparent to the reader**,
+  who only ever quoted and paid. A **partial** payment leaves the commitment standing at its full
+  amount with its own outstanding, read back off the link exactly as one made by hand.
+- A **lettrage suggestion accepted** in the wizard still outranks the direct pay, exactly as it does
+  when settling a commitment: a payment that actually matches an existing commitment or defrayal
+  settles that rather than minting a second, so the mode dispatches the suggestion's own settlement
+  instead of `OcptBudgetLinePaidDirectlyEvent`.
+
 ## A commitment's poste is editable, a quote line's is not
 
 - `OcptBudgetQuoteService.updateLine` refuses to move a line to another poste, because
@@ -637,9 +658,12 @@ are all here, and this file is the whole record of them.
     a lifecycle a single poste never passes through. Its primary action is `Add`, opening a fresh
     quote line; a secondary offers `From breakdown`.
   - A **quote line**'s stepper is the same three words, its reached count following whether the
-    line has been promoted and settled; its primary action is `Commit this line…` while it has not,
-    `Pay {amount}` once it has been promoted and is still owed, and none once settled — mirroring
-    "A quote line can be promoted into a commitment" below.
+    line has been promoted and settled. While it has **not** been promoted, its primary action is
+    **`Pay {quoted total}`** (`onLinePayDirectlyRequested`) — the common gesture, a cost quoted and
+    then paid — with `Commit this line…` and `Delete` as its secondaries; the pay creates the
+    commitment transparently behind the payment (see "A quote line is paid directly, the commitment
+    made for it" below). Once promoted it reads `Pay {outstanding}` while still owed, and none once
+    settled — mirroring "A quote line can be promoted into a commitment" below.
   - A **commitment**'s primary action is `Pay {amount}` (`onCommitmentSettleRequested`), opening the
     capture wizard on its own money step pre-filled from it — the amount still outstanding, in the
     commitment's own tax basis (see "A commitment settles when the ledger says it is paid" above) —

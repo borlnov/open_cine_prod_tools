@@ -146,6 +146,12 @@ class OcptBudgetFiche extends StatelessWidget {
   /// Called with a line's id when `Commit this line…` is clicked, or null while [isReadOnly].
   final ValueChanged<String>? onLineCommitRequested;
 
+  /// Called with a line's id when its own `Pay` action is clicked on an un-promoted line — pays the
+  /// line directly, the commitment created transparently behind the payment — or null while
+  /// [isReadOnly]. The common gesture: a production quotes a cost and pays it without ever thinking
+  /// of the commitment in between.
+  final ValueChanged<String>? onLinePayDirectlyRequested;
+
   /// Called with a line's id when its own promoted, unsettled commitment is to be paid — opens the
   /// entry dialog pre-filled from that commitment, or null while [isReadOnly].
   final ValueChanged<String>? onLineSettleRequested;
@@ -223,6 +229,7 @@ class OcptBudgetFiche extends StatelessWidget {
     required this.onLineTaxInclusiveChanged,
     required this.onLineVatRateInheritedRequested,
     required this.onLineCommitRequested,
+    required this.onLinePayDirectlyRequested,
     required this.onLineSettleRequested,
     required this.onLineShowCommitmentRequested,
     required this.onLineUncommitRequested,
@@ -531,12 +538,22 @@ class OcptBudgetFiche extends StatelessWidget {
     if (isReadOnly) {
       primary = null;
     } else if (!isPromoted) {
-      primary = onLineCommitRequested == null
+      // Pay is the primary gesture, not commit: a production quotes then pays, the commitment made
+      // for it transparently. Commit stays on as a secondary, for a cost acted before it is paid.
+      primary = onLinePayDirectlyRequested == null
           ? null
           : _OcptBudgetFicheAction(
-              label: tr.budgetLineCommitAction,
-              onTap: () => onLineCommitRequested?.call(lineId),
+              label: tr.budgetFichePayAction(_amount(lineTotalCents)),
+              onTap: () => onLinePayDirectlyRequested?.call(lineId),
             );
+      if (onLineCommitRequested != null) {
+        secondaries.add(
+          _OcptBudgetFicheAction(
+            label: tr.budgetLineCommitAction,
+            onTap: () => onLineCommitRequested?.call(lineId),
+          ),
+        );
+      }
       if (onLineDeletionRequested != null) {
         secondaries.add(
           _OcptBudgetFicheAction(

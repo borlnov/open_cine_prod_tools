@@ -2037,6 +2037,81 @@ class _BudgetViewState extends State<_BudgetView> {
     _handleNewOutcome(bloc, state, outcome);
   }
 
+  /// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action, pre-filled
+  /// from the line (its full quoted total, in the line's own tax basis and rate, as today's debit) —
+  /// and, on confirm, dispatches [OcptBudgetLinePaidDirectlyEvent], which creates the commitment
+  /// behind the payment so the reader only ever quoted and paid. A lettrage suggestion accepted in
+  /// the wizard still outranks it, exactly as [_handleCommitmentSettleRequested] lets one: a payment
+  /// that actually matches an existing commitment settles that rather than minting a second.
+  Future<void> _handleLinePayDirectlyRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    String lineId,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final now = DateTime.now();
+
+    final poste = state.postes
+        .where((poste) => poste.lines.any((line) => line.id == lineId))
+        .firstOrNull;
+    final line = poste?.lines.where((line) => line.id == lineId).firstOrNull;
+    if (poste == null || line == null) {
+      return;
+    }
+
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(now.year, now.month, now.day),
+      label: line.label,
+      posteId: poste.id,
+      resourceId: null,
+      revenueId: null,
+      shareId: null,
+      isDebit: true,
+      amountCents: ocptBudgetLineTotalCents(line),
+      isTaxInclusive: line.unitPrice.isTaxInclusive,
+      vatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
+
+    final outcome = await OcptBudgetNewDialog.show(
+      context,
+      initialGesture: OcptBudgetGesture.recordExpense,
+      entryPrefill: prefill,
+      postes: state.postes,
+      resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
+      people: state.people,
+      unpricedElements: state.unpricedElements,
+      commitments: state.commitments,
+      entries: state.entries,
+      allowances: state.allowances,
+      mileageRates: state.mileageRates,
+      receivedByResourceId: state.receivedByResourceId,
+      receivedByRevenueId: state.receivedByRevenueId,
+      reimbursedByPersonId: state.reimbursedByPersonId,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (outcome is! OcptBudgetEntryWizardResult) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final suggestion = outcome.acceptedSuggestion;
+    if (suggestion != null) {
+      _handleEntryWizardSuggestionAccepted(bloc, state, suggestion, outcome.fields);
+      return;
+    }
+
+    bloc.add(OcptBudgetLinePaidDirectlyEvent(lineId: lineId, fields: outcome.fields));
+  }
+
   /// Asks, through `OcptConfirmDialog`, before undoing line [lineId]'s own promotion — which
   /// deletes the commitment it produced, and leaves the quote line itself alone.
   Future<void> _handleLineUncommitRequested(
@@ -2195,6 +2270,9 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineCommitRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineCommitRequested(context, state, lineId)),
+      onLinePayDirectlyRequested: isReadOnly
+          ? null
+          : (lineId) => unawaited(_handleLinePayDirectlyRequested(context, state, lineId)),
       onLineSettleRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineSettleRequested(context, state, lineId)),

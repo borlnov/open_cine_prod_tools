@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_export_
 import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_line_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
@@ -1379,6 +1380,114 @@ void main() {
       final state = await waitForState(bloc, (state) => state.commitments.isNotEmpty);
 
       expect(state.commitments.single.lineId, isNull);
+    });
+  });
+
+  group("paying a quote line directly", () {
+    test("mints the commitment behind the payment and the payment names it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      // A line quoted at 10.00 €, tax-inclusive.
+      bloc.add(
+        OcptBudgetLineCreatedEvent(
+          posteId: posteId,
+          fields: const OcptBudgetLineFormFields(
+            label: "Camera",
+            quantityMilli: 1000,
+            unit: "u",
+            unitAmountCents: 1000,
+          ),
+        ),
+      );
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+
+      bloc.add(
+        OcptBudgetLinePaidDirectlyEvent(
+          lineId: lineId,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 6),
+            label: "Camera",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 1000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.commitments.isNotEmpty && state.entries.isNotEmpty,
+      );
+
+      // The commitment was minted from the line, naming it, at its full quoted total.
+      final commitment = state.commitments.single;
+      expect(commitment.lineId, lineId);
+      expect(commitment.amount.amountCents, 1000);
+      // The payment names that very commitment, so settlement reads back off the link.
+      expect(state.entries.single.commitmentId, commitment.id);
+    });
+
+    test("a partial payment leaves the commitment standing at its full amount", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetLineCreatedEvent(
+          posteId: posteId,
+          fields: const OcptBudgetLineFormFields(
+            label: "Camera",
+            quantityMilli: 1000,
+            unit: "u",
+            unitAmountCents: 1000,
+          ),
+        ),
+      );
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+
+      // Pay only 4.00 € of the 10.00 € quoted.
+      bloc.add(
+        OcptBudgetLinePaidDirectlyEvent(
+          lineId: lineId,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 6),
+            label: "Camera deposit",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 400,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.commitments.isNotEmpty && state.entries.isNotEmpty,
+      );
+
+      // The commitment is the full quoted total; only 400 has been paid against it.
+      expect(state.commitments.single.amount.amountCents, 1000);
+      expect(state.entries.single.debitCents, 400);
+      expect(state.entries.single.commitmentId, state.commitments.single.id);
     });
   });
 

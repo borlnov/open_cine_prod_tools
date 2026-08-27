@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
@@ -52,6 +53,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_even
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 
@@ -275,6 +277,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetCommitmentUpdateConfirmedEvent>(_onCommitmentUpdateConfirmed);
     on<OcptBudgetCommitmentDeletionConfirmedEvent>(_onCommitmentDeletionConfirmed);
     on<OcptBudgetCommitmentSettlementConfirmedEvent>(_onCommitmentSettlementConfirmed);
+    on<OcptBudgetLinePaidDirectlyEvent>(_onLinePaidDirectly);
     on<OcptBudgetCommitmentUnsettleRequestedEvent>(_onCommitmentUnsettleRequested);
     on<OcptBudgetResourceSelectedEvent>(_onResourceSelected);
     on<OcptBudgetAllowanceCreationConfirmedEvent>(_onAllowanceCreationConfirmed);
@@ -1552,6 +1555,75 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       revenueId: fields.revenueId,
       shareId: fields.shareId,
       commitmentId: event.commitmentId,
+      debitCents: fields.isDebit ? fields.amountCents : 0,
+      creditCents: fields.isDebit ? 0 : fields.amountCents,
+      isTaxInclusive: fields.isTaxInclusive,
+      vatRateBasisPoints: fields.vatRateBasisPoints,
+    );
+
+    if (entryId != null) {
+      await _writeEntryReceiptChange(project, entryId, fields);
+    }
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Pays quote line `event.lineId` directly, promoting it into a commitment in the same gesture —
+  /// the line's own `Pay` action (`OcptBudgetLinePaidDirectlyEvent`). Creates the commitment from
+  /// the line first — its full quoted total, in the line's own tax basis and rate, naming the line —
+  /// then records `event.fields` as the debit that settles it, naming that fresh commitment: the two
+  /// writes `_onCommitmentCreationConfirmed` and `_onCommitmentSettlementConfirmed` do apart, done
+  /// here as one so the engagement stays transparent to a reader who only quoted and paid. A partial
+  /// payment leaves the commitment standing with its own outstanding, read back off the link like
+  /// any other.
+  Future<void> _onLinePaidDirectly(
+    OcptBudgetLinePaidDirectlyEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    OcptBudgetPoste? poste;
+    OcptBudgetLine? line;
+    for (final candidate in state.postes) {
+      final match = candidate.lines.where((candidate) => candidate.id == event.lineId).firstOrNull;
+      if (match != null) {
+        poste = candidate;
+        line = match;
+        break;
+      }
+    }
+    if (poste == null || line == null) {
+      return;
+    }
+
+    final commitmentId = await _budgetJournalService.createCommitment(
+      database: project.database,
+      posteId: poste.id,
+      label: line.label,
+      amountCents: ocptBudgetLineTotalCents(line),
+      isTaxInclusive: line.unitPrice.isTaxInclusive,
+      vatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
+      // createCommitment already defaults status to quoteAccepted — a line just quoted, nothing yet
+      // signed.
+      lineId: line.id,
+    );
+    if (commitmentId == null) {
+      return;
+    }
+
+    final fields = event.fields;
+    final entryId = await _budgetJournalService.createEntry(
+      database: project.database,
+      date: fields.date,
+      label: fields.label,
+      posteId: fields.posteId,
+      resourceId: fields.resourceId,
+      revenueId: fields.revenueId,
+      shareId: fields.shareId,
+      commitmentId: commitmentId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
