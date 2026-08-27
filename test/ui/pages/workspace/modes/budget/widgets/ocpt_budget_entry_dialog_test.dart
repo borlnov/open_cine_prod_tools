@@ -12,26 +12,19 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_entry_wizard_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
-import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// A router manager whose [pop] only records the last call and its value — mirrors
 /// `ocpt_project_version_create_dialog_test.dart`'s own instance of this pattern.
@@ -112,28 +105,35 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 );
 
 /// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste _poste({required String id, required String label}) =>
-    OcptBudgetPoste(id: id, code: "1", label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: const []);
+OcptBudgetPoste _poste({required String id, required String label}) => OcptBudgetPoste(
+  id: id,
+  code: "1",
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a0",
+  lines: const [],
+);
 
 /// A minimal financing resource, everything but [id]/[label] neutral.
-OcptBudgetResource _resource({required String id, required String label, int amountCents = 10000}) => OcptBudgetResource(
+OcptBudgetResource _resource({required String id, required String label}) => OcptBudgetResource(
   id: id,
   groupKind: OcptBudgetResourceGroupKind.subsidy,
   personId: null,
   label: label,
-  amountCents: amountCents,
+  amountCents: 10000,
   status: OcptBudgetResourceStatus.pending,
   isReimbursable: false,
   notes: "",
   sortKey: "a0",
 );
 
-/// A minimal taking, everything but [id]/[label]/[amountCents] neutral.
-OcptBudgetRevenue _revenue({required String id, required String label, int amountCents = 10000}) => OcptBudgetRevenue(
+/// A minimal taking, everything but [id]/[label] neutral.
+OcptBudgetRevenue _revenue({required String id, required String label}) => OcptBudgetRevenue(
   id: id,
   date: DateTime(2026, 3),
   label: label,
-  amountCents: amountCents,
+  amountCents: 10000,
   status: OcptBudgetRevenueStatus.expected,
   notes: "",
   sortKey: "a0",
@@ -150,42 +150,53 @@ OcptBudgetShare _share({required String id, required String label}) => OcptBudge
   sortKey: "a0",
 );
 
-/// A minimal, unsettled commitment against [posteId], everything but [id]/[label]/[amountCents]
-/// neutral.
-OcptBudgetCommitment _commitment({
-  required String id,
-  required String label,
-  required String posteId,
-  int amountCents = 10000,
-  DateTime? dueDate,
-}) => OcptBudgetCommitment(
+/// A minimal person, everything but [id]/[firstName] neutral — mirrors
+/// `ocpt_budget_regie_test.dart`'s own `_buildPerson`.
+OcptPerson _person({required String id, String firstName = ""}) => OcptPerson(
   id: id,
-  dueDate: dueDate,
-  label: label,
-  posteId: posteId,
-  amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
-  status: OcptBudgetCommitmentStatus.quoteAccepted,
-  lineId: null,
-  sortKey: "a0",
-);
-
-/// A minimal defrayal, everything but [id]/[label]/its own figure neutral — priced at
-/// [amountCents] exactly (one unit at that price).
-OcptBudgetAllowance _allowance({required String id, required String label, int amountCents = 10000}) => OcptBudgetAllowance(
-  id: id,
-  personId: null,
-  kind: OcptBudgetAllowanceKind.other,
-  label: label,
-  date: DateTime(2026, 3),
-  endDate: null,
-  quantityMilli: 1000,
-  unitAmountMilliCents: amountCents * 1000,
+  firstName: firstName,
+  lastName: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  imageRightsDocument: null,
+  photoAssetId: null,
+  photo: null,
   notes: "",
-  sortKey: "a0",
+  commuteKmMilli: null,
+  mileageRateId: null,
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
 );
 
 /// A minimal existing entry, its debit or credit set by whichever of [debitCents]/[creditCents] is
-/// non-zero.
+/// non-zero, naming at most one of [posteId]/[resourceId]/[revenueId]/[shareId]/[personId].
 OcptBudgetEntry _existingEntry({
   String id = "entry-1",
   DateTime? date,
@@ -194,6 +205,7 @@ OcptBudgetEntry _existingEntry({
   String? resourceId,
   String? revenueId,
   String? shareId,
+  String? personId,
   int debitCents = 0,
   int creditCents = 0,
   bool isTaxInclusive = true,
@@ -214,7 +226,7 @@ OcptBudgetEntry _existingEntry({
   revenueId: revenueId,
   shareId: shareId,
   commitmentId: null,
-  personId: null,
+  personId: personId,
 );
 
 void main() {
@@ -238,39 +250,30 @@ void main() {
     await _registerFileSelector(null);
   });
 
-  /// Pumps [OcptBudgetEntryDialog] directly (no `.show`).
+  /// Pumps [OcptBudgetEntryDialog] directly (no `.show`), [existing] defaulting to a plain debit
+  /// naming a poste — this dialog now only ever edits, so [existing] is never null.
   Future<Tr> pumpDialog(
     WidgetTester tester, {
     OcptBudgetEntry? existing,
-    OcptBudgetEntryFormFields? prefill,
-    OcptBudgetEntryNature? initialNature,
     OcptAssetRef? existingReceipt,
     List<OcptBudgetPoste> postes = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
-    List<OcptBudgetCommitment> commitments = const [],
-    List<OcptBudgetAllowance> allowances = const [],
-    Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
-    Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
+    List<OcptPerson> people = const [],
     int? defaultVatRateBasisPoints,
     bool isSimplified = false,
   }) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
         OcptBudgetEntryDialog(
-          existing: existing,
-          prefill: prefill,
-          initialNature: initialNature,
+          existing: existing ?? _existingEntry(debitCents: 5000),
           existingReceipt: existingReceipt,
           postes: postes,
           resources: resources,
           revenues: revenues,
           shares: shares,
-          commitments: commitments,
-          allowances: allowances,
-          receivedByResourceId: receivedByResourceId,
-          receivedByRevenueId: receivedByRevenueId,
+          people: people,
           currencyCode: "EUR",
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           isSimplified: isSimplified,
@@ -282,846 +285,236 @@ void main() {
     return Tr.of(tester.element(find.byType(OcptBudgetEntryDialog)));
   }
 
-  /// Pumps the dialog and, when it opened on step 1, immediately advances to step 2 — every test
-  /// about the form itself uses this rather than [pumpDialog] directly.
-  Future<Tr> pumpDialogAtStep2(
-    WidgetTester tester, {
-    OcptBudgetEntryNature initialNature = OcptBudgetEntryNature.expense,
-    OcptBudgetEntry? existing,
-    OcptBudgetEntryFormFields? prefill,
-    OcptAssetRef? existingReceipt,
-    List<OcptBudgetPoste> postes = const [],
-    List<OcptBudgetResource> resources = const [],
-    List<OcptBudgetRevenue> revenues = const [],
-    List<OcptBudgetShare> shares = const [],
-    List<OcptBudgetCommitment> commitments = const [],
-    List<OcptBudgetAllowance> allowances = const [],
-    Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
-    Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
-    int? defaultVatRateBasisPoints,
-    bool isSimplified = false,
-  }) async {
-    final tr = await pumpDialog(
-      tester,
-      existing: existing,
-      prefill: prefill,
-      initialNature: initialNature,
-      existingReceipt: existingReceipt,
-      postes: postes,
-      resources: resources,
-      revenues: revenues,
-      shares: shares,
-      commitments: commitments,
-      allowances: allowances,
-      receivedByResourceId: receivedByResourceId,
-      receivedByRevenueId: receivedByRevenueId,
-      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-      isSimplified: isSimplified,
-    );
-
-    final continueButton = find.byKey(const Key("ocptBudgetEntryWizardContinueButton"));
-    if (continueButton.evaluate().isNotEmpty) {
-      await tester.tap(continueButton);
-      await tester.pumpAndSettle();
-    }
-
-    return tr;
-  }
-
-  group("step 1", () {
-    testWidgets("draws five cards, Continuer withheld until one is picked", (tester) async {
+  group("opening on the one screen it now has", () {
+    testWidgets("draws the edit title, straight to the form, no step counter", (tester) async {
       final tr = await pumpDialog(tester);
 
-      for (final label in [
-        tr.budgetEntryNatureExpenseLabel,
-        tr.budgetEntryNatureFinancingLabel,
-        tr.budgetEntryNatureRevenueLabel,
-        tr.budgetEntryNaturePayoutLabel,
-        tr.budgetEntryNatureOtherLabel,
-      ]) {
-        expect(find.text(label), findsOneWidget, reason: label);
-      }
+      expect(find.text(tr.budgetEntryDialogEditTitle), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")), findsOneWidget);
+      // Nothing left of the retired step 1: no nature cards, no `Continuer`, no step label.
+      expect(find.text(tr.budgetEntryNatureExpenseLabel), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
+    });
 
-      final continueButton = tester.widget<FilledButton>(
-        find.byKey(const Key("ocptBudgetEntryWizardContinueButton")),
+    testWidgets("pre-fills date, label and amount from the entry being edited", (tester) async {
+      await pumpDialog(
+        tester,
+        existing: _existingEntry(
+          date: DateTime(2026, 4, 2),
+          label: "Steadicam hire",
+          posteId: "poste-1",
+          debitCents: 45000,
+        ),
+        postes: [_poste(id: "poste-1", label: "Camera")],
       );
-      expect(continueButton.onPressed, isNull);
 
-      await tester.tap(find.text(tr.budgetEntryNatureExpenseLabel));
-      await tester.pumpAndSettle();
-
-      final afterPick = tester.widget<FilledButton>(
-        find.byKey(const Key("ocptBudgetEntryWizardContinueButton")),
-      );
-      expect(afterPick.onPressed, isNotNull);
+      expect(find.widgetWithText(TextFormField, "Steadicam hire"), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, "450.00"), findsOneWidget);
     });
 
     testWidgets("Annuler pops with nothing", (tester) async {
-      await pumpDialog(tester);
+      final tr = await pumpDialog(tester);
 
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardCancelButton")));
+      await tester.tap(find.text(tr.budgetEntryDialogCancelAction));
       await tester.pumpAndSettle();
 
       expect(routerManager.popped, isTrue);
       expect(routerManager.poppedValue, isNull);
     });
-
-    testWidgets("initialNature preselects a card, one click reaches step 2", (tester) async {
-      await pumpDialog(tester, initialNature: OcptBudgetEntryNature.payout);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")), findsOneWidget);
-    });
   });
 
-  group("each nature", () {
-    testWidgets("expense fixes a debit and asks for the quote poste alone", (tester) async {
-      final tr = await pumpDialogAtStep2(tester);
-
-      expect(find.text(tr.budgetEntryDialogDebitOption), findsNothing);
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsNothing);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Camera rental",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-      await tester.pumpAndSettle();
-
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.isDebit, isTrue);
-    });
-
-    testWidgets("financing fixes a credit and asks for the resource alone", (tester) async {
-      final tr = await pumpDialogAtStep2(tester, initialNature: OcptBudgetEntryNature.financing);
-
-      expect(find.text(tr.budgetEntryDialogDebitOption), findsNothing);
-      expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsNothing);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Grant instalment",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-      await tester.pumpAndSettle();
-
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.isDebit, isFalse);
-    });
-
-    testWidgets("revenue fixes a credit and asks for the taking alone", (tester) async {
-      final tr = await pumpDialogAtStep2(tester, initialNature: OcptBudgetEntryNature.revenue);
-
-      expect(find.text(tr.budgetEntryDialogDebitOption), findsNothing);
-      expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsNothing);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Festival prize",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-      await tester.pumpAndSettle();
-
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.isDebit, isFalse);
-    });
-
-    testWidgets("payout fixes a debit and asks for the participant alone", (tester) async {
-      final tr = await pumpDialogAtStep2(tester, initialNature: OcptBudgetEntryNature.payout);
-
-      expect(find.text(tr.budgetEntryDialogDebitOption), findsNothing);
-      expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsNothing);
-      expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsNothing);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Producer's share",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-      await tester.pumpAndSettle();
-
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.isDebit, isTrue);
-    });
-
-    testWidgets(
-      "other is the only nature still asking the direction, and offers an optional poste",
-      (tester) async {
-        final tr = await pumpDialogAtStep2(tester, initialNature: OcptBudgetEntryNature.other);
-
-        expect(find.text(tr.budgetEntryDialogDebitOption), findsOneWidget);
-        expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
-        expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsNothing);
-        expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsNothing);
-        expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsNothing);
-
-        // Defaults to a debit, and the choice is actually reachable — scrolled into view first,
-        // it sits at the very bottom of the form.
-        final creditOption = find.text(tr.budgetEntryDialogCreditOption);
-        await tester.ensureVisible(creditOption);
-        await tester.pumpAndSettle();
-        await tester.tap(creditOption);
-        await tester.pumpAndSettle();
-
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-          "Bank correction",
-        );
-        await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
-        await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-        await tester.pumpAndSettle();
-
-        final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-        expect(fields.isDebit, isFalse);
-      },
-    );
-
-    testWidgets("the direction choice reads as I paid / I received under the simplified header", (
-      tester,
-    ) async {
-      final tr = await pumpDialogAtStep2(
-        tester,
-        initialNature: OcptBudgetEntryNature.other,
-        isSimplified: true,
-      );
-
-      expect(find.text(tr.budgetEntryDialogPaidOption), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogReceivedOption), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogDebitOption), findsNothing);
-      expect(find.text(tr.budgetEntryDialogCreditOption), findsNothing);
-    });
-  });
-
-  group("editing infers the nature from what the entry already names", () {
-    testWidgets("a poste opens step 2 directly, recalled as I paid for something", (
-      tester,
-    ) async {
-      final existing = _existingEntry(posteId: "poste-1", debitCents: 500);
+  group("the nature is read once, silently, off whichever link is set", () {
+    testWidgets("a poste alone draws Poste du devis and no other link field", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: existing,
+        existing: _existingEntry(posteId: "poste-1", debitCents: 5000),
         postes: [_poste(id: "poste-1", label: "Camera")],
       );
 
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
-      expect(find.text(tr.budgetEntryNatureExpenseLabel), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsNothing);
+      expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsNothing);
+      expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsNothing);
+      expect(find.text(tr.budgetEntryDialogPersonFieldLabel), findsNothing);
+      // `expense`'s own direction is fixed: no direction choice drawn at all.
+      expect(find.text(tr.budgetEntryDialogDirectionFieldLabel), findsNothing);
     });
 
-    testWidgets("a resource opens step 2 directly, recalled as I received a financing", (
-      tester,
-    ) async {
-      final existing = _existingEntry(resourceId: "resource-1", creditCents: 500);
+    testWidgets("a resource alone draws Ressource", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: existing,
-        resources: [_resource(id: "resource-1", label: "Regional grant")],
+        existing: _existingEntry(resourceId: "r1", creditCents: 5000),
+        resources: [_resource(id: "r1", label: "Regional grant")],
       );
 
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
-      expect(find.text(tr.budgetEntryNatureFinancingLabel), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
     });
 
-    testWidgets("a resource paid back is recalled as a repayment, not as a receipt", (tester) async {
-      // The same row of the financing plan, the money going the other way: reading the link alone
-      // printed "I received a financing" over a movement leaving the account.
-      final existing = _existingEntry(resourceId: "resource-1", debitCents: 500);
+    testWidgets("a taking alone draws Recette", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: existing,
-        resources: [_resource(id: "resource-1", label: "Regional grant")],
+        existing: _existingEntry(revenueId: "v1", creditCents: 5000),
+        revenues: [_revenue(id: "v1", label: "Festival prize")],
       );
 
-      expect(find.text(tr.budgetEntryNatureRepaymentLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryNatureFinancingLabel), findsNothing);
-      // It still asks for the very same link, and asks no direction of its own.
-      expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogDebitOption), findsNothing);
-    });
-
-    testWidgets("a taking opens step 2 directly, recalled as the film earned money", (
-      tester,
-    ) async {
-      final existing = _existingEntry(revenueId: "revenue-1", creditCents: 500);
-      final tr = await pumpDialog(
-        tester,
-        existing: existing,
-        revenues: [_revenue(id: "revenue-1", label: "Festival prize")],
-      );
-
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
-      expect(find.text(tr.budgetEntryNatureRevenueLabel), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsOneWidget);
     });
 
-    testWidgets("a share opens step 2 directly, recalled as I paid out someone's share", (
-      tester,
-    ) async {
-      final existing = _existingEntry(shareId: "share-1", debitCents: 500);
+    testWidgets("a share alone draws Participant", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: existing,
-        shares: [_share(id: "share-1", label: "Producer")],
+        existing: _existingEntry(shareId: "s1", debitCents: 5000),
+        shares: [_share(id: "s1", label: "Co-producer")],
       );
 
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
-      expect(find.text(tr.budgetEntryNaturePayoutLabel), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsOneWidget);
     });
 
     testWidgets(
-      "naming nothing opens step 2 directly, recalled as Autre mouvement, its own direction "
-      "reachable",
+      "a person alone draws Personne — reachable now, unlike before this milestone",
       (tester) async {
-        final existing = _existingEntry(creditCents: 500);
-        final tr = await pumpDialog(tester, existing: existing);
+        final tr = await pumpDialog(
+          tester,
+          existing: _existingEntry(personId: "p1", debitCents: 5000),
+          people: [_person(id: "p1", firstName: "Alex")],
+        );
 
-        expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
-        expect(find.text(tr.budgetEntryNatureOtherLabel), findsOneWidget);
-        expect(find.text(tr.budgetEntryDialogDebitOption), findsOneWidget);
+        expect(find.text(tr.budgetEntryDialogPersonFieldLabel), findsOneWidget);
+        expect(find.text("Alex"), findsOneWidget);
       },
     );
+
+    testWidgets("naming nothing at all reads as other, and draws the direction choice", (
+      tester,
+    ) async {
+      final tr = await pumpDialog(tester, existing: _existingEntry(debitCents: 5000));
+
+      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
+      // Drawn upper-cased, like every other bare field label of this dialog.
+      expect(find.text(tr.budgetEntryDialogDirectionFieldLabel.toUpperCase()), findsOneWidget);
+    });
   });
 
-  group("a prefill", () {
-    testWidgets("naming a resource skips step 1 straight to step 2", (tester) async {
-      final resource = _resource(id: "resource-1", label: "Regional grant");
-      final tr = await pumpDialog(
-        tester,
-        resources: [resource],
-        prefill: OcptBudgetEntryFormFields(
-          date: DateTime(2026, 3),
-          label: "Grant instalment",
-          posteId: null,
-          resourceId: "resource-1",
-          revenueId: null,
-          shareId: null,
-          isDebit: false,
-          amountCents: 5000,
-          isTaxInclusive: true,
-          vatRateBasisPoints: null,
-          voucherNumber: null,
-          pickedReceiptPath: null,
-          isReceiptDetached: false,
-        ),
-      );
-
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsNothing);
-      expect(find.text(tr.budgetEntryNatureFinancingLabel), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-      await tester.pumpAndSettle();
-
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.resourceId, "resource-1");
-      expect(fields.isDebit, isFalse);
-      expect(fields.amountCents, 5000);
-    });
-
-    testWidgets("naming no link at all opens step 1, initialNature already selected", (
+  group("saving", () {
+    testWidgets("pops with the fields typed, including the retyped voucher number", (
       tester,
     ) async {
       await pumpDialog(
         tester,
-        initialNature: OcptBudgetEntryNature.payout,
-        prefill: OcptBudgetEntryFormFields(
-          date: DateTime(2026, 3),
-          label: "",
-          posteId: null,
-          resourceId: null,
-          revenueId: null,
-          shareId: null,
-          isDebit: true,
-          amountCents: 0,
-          isTaxInclusive: true,
-          vatRateBasisPoints: null,
-          voucherNumber: null,
-          pickedReceiptPath: null,
-          isReceiptDetached: false,
-        ),
+        existing: _existingEntry(posteId: "poste-1", debitCents: 5000, voucherNumber: "J-001"),
+        postes: [_poste(id: "poste-1", label: "Camera")],
       );
-
-      final continueButton = tester.widget<FilledButton>(
-        find.byKey(const Key("ocptBudgetEntryWizardContinueButton")),
-      );
-      expect(continueButton.onPressed, isNotNull);
-    });
-  });
-
-  group("the link back to step 1", () {
-    testWidgets("the header's own changer link returns to step 1, values kept", (tester) async {
-      final tr = await pumpDialogAtStep2(tester);
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Half-typed",
+        find.widgetWithText(TextFormField, "J-001"),
+        "J-002",
       );
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardChangeNatureLink")));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")));
-      await tester.pumpAndSettle();
-
-      expect(find.widgetWithText(TextFormField, "Half-typed"), findsOneWidget);
-    });
-
-    testWidgets("Retour, at the bottom of step 2, does the very same thing", (tester) async {
-      await pumpDialogAtStep2(tester);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardBackButton")));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key("ocptBudgetEntryWizardContinueButton")), findsOneWidget);
-    });
-  });
-
-  group("the poste field", () {
-    testWidgets("left unanswered reads Hors devis, never nothing at all", (tester) async {
-      final poste = _poste(id: "poste-1", label: "Camera");
-      final tr = await pumpDialogAtStep2(
-        tester,
-        postes: [poste],
-      );
-
-      expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
-    });
-
-    testWidgets("picking a poste round-trips it on Save", (tester) async {
-      final poste = _poste(id: "poste-1", label: "Camera");
-      final tr = await pumpDialogAtStep2(
-        tester,
-        postes: [poste],
-      );
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardPosteField")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text("Camera").last);
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Zoom lens",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
       await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
       await tester.pumpAndSettle();
 
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
+      expect(routerManager.popped, isTrue);
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.voucherNumber, "J-002");
       expect(fields.posteId, "poste-1");
-    });
-  });
-
-  group("the reconciliation strip", () {
-    testWidgets("is absent while editing an existing entry", (tester) async {
-      final commitment = _commitment(id: "commitment-1", label: "Camera deposit", posteId: "poste-1", amountCents: 1000);
-      final existing = _existingEntry(label: "Camera deposit", debitCents: 1000);
-      await pumpDialog(tester, existing: existing, commitments: [commitment]);
-
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10.00");
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")), findsNothing);
+      expect(fields.isDebit, isTrue);
+      expect(fields.amountCents, 5000);
     });
 
-    testWidgets(
-      "matches a commitment on amount and wording, badges it Committed, and C'est ça reports it",
-      (tester) async {
-        final commitment = _commitment(
-          id: "commitment-1",
-          label: "Atelier Verrier",
-          posteId: "poste-1",
-          amountCents: 25000,
-        );
-        final tr = await pumpDialogAtStep2(
-          tester,
-          commitments: [commitment],
-        );
+    testWidgets("is refused while the label is blank", (tester) async {
+      final tr = await pumpDialog(tester);
 
-        expect(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")), findsNothing);
-
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-          "Atelier Verrier",
-        );
-        await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "250.00");
-        await tester.pumpAndSettle();
-
-        expect(find.text(tr.budgetEntryWizardMatchBadgeCommitment), findsOneWidget);
-
-        await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")));
-        await tester.pumpAndSettle();
-
-        final result = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
-        expect(result.acceptedSuggestion?.kind, OcptBudgetMatchCandidateKind.commitment);
-        expect(result.acceptedSuggestion?.candidateId, "commitment-1");
-        // The plain draft, naming nothing — enrichment is `budget_mode.dart`'s own job.
-        expect(result.fields.posteId, isNull);
-        expect(result.fields.amountCents, 25000);
-      },
-    );
-
-    testWidgets("matches a defrayal on amount and wording, badged Defrayal", (tester) async {
-      final allowance = _allowance(id: "allowance-1", label: "Taxi", amountCents: 4000);
-      final tr = await pumpDialogAtStep2(
-        tester,
-        allowances: [allowance],
-      );
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Taxi",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "40.00");
-      await tester.pumpAndSettle();
-
-      expect(find.text(tr.budgetEntryWizardMatchBadgeDefrayal), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")));
-      await tester.pumpAndSettle();
-
-      final result = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
-      expect(result.acceptedSuggestion?.kind, OcptBudgetMatchCandidateKind.defrayal);
-      expect(result.acceptedSuggestion?.candidateId, "allowance-1");
-    });
-
-    testWidgets("matches a resource still short, badged Financing, on a credit", (tester) async {
-      final resource = _resource(id: "resource-1", label: "Regional grant", amountCents: 4000);
-      final tr = await pumpDialogAtStep2(
-        tester,
-        initialNature: OcptBudgetEntryNature.financing,
-        resources: [resource],
-      );
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Regional grant",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "40.00");
-      await tester.pumpAndSettle();
-
-      expect(find.text(tr.budgetEntryWizardMatchBadgeResource), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")));
-      await tester.pumpAndSettle();
-
-      final result = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
-      expect(result.acceptedSuggestion?.kind, OcptBudgetMatchCandidateKind.resource);
-      expect(result.acceptedSuggestion?.candidateId, "resource-1");
-    });
-
-    testWidgets("matches a taking still short, badged Takings, on a credit", (tester) async {
-      final revenue = _revenue(id: "revenue-1", label: "Festival prize", amountCents: 4000);
-      final tr = await pumpDialogAtStep2(
-        tester,
-        initialNature: OcptBudgetEntryNature.revenue,
-        revenues: [revenue],
-      );
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Festival prize",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "40.00");
-      await tester.pumpAndSettle();
-
-      expect(find.text(tr.budgetEntryWizardMatchBadgeRevenue), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")));
-      await tester.pumpAndSettle();
-
-      final result = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
-      expect(result.acceptedSuggestion?.kind, OcptBudgetMatchCandidateKind.revenue);
-      expect(result.acceptedSuggestion?.candidateId, "revenue-1");
-    });
-
-    testWidgets("nothing agreeing on amount, date or wording is offered at all", (tester) async {
-      final commitment = _commitment(id: "commitment-1", label: "Camera deposit", posteId: "poste-1", amountCents: 1000);
-      final tr = await pumpDialogAtStep2(
-        tester,
-        commitments: [commitment],
-      );
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Something else entirely",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "999.00");
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key("ocptBudgetEntryWizardAcceptButton")), findsNothing);
-    });
-  });
-
-  testWidgets("refuses to submit a blank label, and nothing is popped", (tester) async {
-    final tr = await pumpDialogAtStep2(tester);
-
-    await tester.enterText(
-      find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
-      "12.50",
-    );
-    await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-    await tester.pumpAndSettle();
-
-    expect(find.text(tr.budgetEntryDialogLabelRequiredError), findsOneWidget);
-    expect(routerManager.popped, isFalse);
-  });
-
-  testWidgets("an empty VAT field pops with a null override, meaning inherit", (tester) async {
-    final tr = await pumpDialogAtStep2(tester);
-
-    await tester.enterText(
-      find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-      "Camera rental",
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
-      "12.50",
-    );
-    await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-    await tester.pumpAndSettle();
-
-    expect(routerManager.popped, isTrue);
-    final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-    expect(fields.vatRateBasisPoints, isNull);
-    expect(fields.label, "Camera rental");
-    expect(fields.amountCents, 1250);
-    // `expense` fixes a debit.
-    expect(fields.isDebit, isTrue);
-    // Creating a new entry offers no voucher field at all: the service mints one instead.
-    expect(fields.voucherNumber, isNull);
-  });
-
-  testWidgets("editing an existing entry pre-fills every field and preserves the amount to the cent", (
-    tester,
-  ) async {
-    final existing = _existingEntry(creditCents: 1250, vatRateBasisPoints: 550);
-    await pumpDialog(tester, existing: existing);
-
-    expect(find.widgetWithText(TextFormField, "Camera rental"), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, "12.50"), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, "J-007"), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-    await tester.pumpAndSettle();
-
-    expect(routerManager.popped, isTrue);
-    final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-    expect(fields.amountCents, 1250);
-    // The entry was a credit (money that came in); naming nothing, its nature reads `other`,
-    // which keeps the direction reachable and round-tripping as it was.
-    expect(fields.isDebit, isFalse);
-    expect(fields.vatRateBasisPoints, 550);
-    expect(fields.voucherNumber, "J-007");
-  });
-
-  testWidgets("creating offers a muted voucher-number hint rather than an editable field", (
-    tester,
-  ) async {
-    final tr = await pumpDialogAtStep2(tester);
-
-    expect(find.text(tr.budgetEntryDialogVoucherAutoHint), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, "J-007"), findsNothing);
-  });
-
-  testWidgets("editing offers an editable voucher-number field instead of the auto-mint hint", (
-    tester,
-  ) async {
-    final existing = _existingEntry(debitCents: 500);
-    final tr = await pumpDialog(tester, existing: existing);
-
-    expect(find.text(tr.budgetEntryDialogVoucherAutoHint), findsNothing);
-    expect(find.widgetWithText(TextFormField, "J-007"), findsOneWidget);
-  });
-
-  group("the resource picker", () {
-    testWidgets("offers an explicit no-resource choice alongside every live resource, defaulting to null", (
-      tester,
-    ) async {
-      final resource = _resource(id: "resource-1", label: "Regional grant");
-      final tr = await pumpDialogAtStep2(
-        tester,
-        initialNature: OcptBudgetEntryNature.financing,
-        resources: [resource],
-      );
-
-      expect(find.text(tr.budgetEntryDialogNoResourceLabel), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardResourceField")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text("Regional grant").last);
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Grant instalment",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
+      // "Camera rental" is `_existingEntry`'s own default label.
+      await tester.enterText(find.widgetWithText(TextFormField, "Camera rental"), "");
       await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
       await tester.pumpAndSettle();
 
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.resourceId, "resource-1");
+      expect(routerManager.popped, isFalse);
+      expect(find.text(tr.budgetEntryDialogLabelRequiredError), findsOneWidget);
     });
 
-    testWidgets("submitting with no pick reports a null resourceId, the normal case", (tester) async {
-      final resource = _resource(id: "resource-1", label: "Regional grant");
-      final tr = await pumpDialogAtStep2(
-        tester,
-        initialNature: OcptBudgetEntryNature.financing,
-        resources: [resource],
-      );
+    testWidgets("is refused while the amount does not parse", (tester) async {
+      await pumpDialog(tester);
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Camera rental",
+        find.byKey(const Key("ocptBudgetEntryWizardAmountField")),
+        "not a number",
       );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
       await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
       await tester.pumpAndSettle();
 
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.resourceId, isNull);
+      expect(routerManager.popped, isFalse);
     });
   });
 
-  testWidgets("cancelling step 1 pops with nothing", (tester) async {
-    await pumpDialog(tester);
+  group("the voucher", () {
+    testWidgets("is always offered and always editable — no auto-mint hint, this dialog only "
+        "ever edits", (tester) async {
+      final tr = await pumpDialog(tester);
 
-    await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardCancelButton")));
-    await tester.pumpAndSettle();
-
-    expect(routerManager.popped, isTrue);
-    expect(routerManager.poppedValue, isNull);
+      expect(find.text(tr.budgetEntryDialogVoucherAutoHint), findsNothing);
+      expect(find.text(tr.budgetEntryDialogVoucherFieldLabel), findsOneWidget);
+    });
   });
 
-  group("the receipt field", () {
-    testWidgets("creating a new entry with no receipt shows the empty hint and an Attach action", (
-      tester,
-    ) async {
-      final tr = await pumpDialogAtStep2(tester);
-
-      expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogReceiptAttachAction), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsNothing);
-    });
-
-    testWidgets("editing an entry with a receipt shows its own file line and a Replace action", (
-      tester,
-    ) async {
-      final existing = _existingEntry(debitCents: 500);
+  group("the receipt", () {
+    testWidgets("shows the existing voucher and offers Replace", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: existing,
-        existingReceipt: _receipt(path: "/tmp/facture.pdf"),
+        existingReceipt: _receipt(path: "/tmp/invoice.pdf"),
       );
 
-      expect(find.text("facture.pdf"), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsNothing);
     });
 
-    testWidgets("its own Detach action drops the reference, and Save reports it", (tester) async {
-      final existing = _existingEntry(debitCents: 500);
-      final tr = await pumpDialog(
-        tester,
-        existing: existing,
-        existingReceipt: _receipt(path: "/tmp/facture.pdf"),
-      );
-
-      // The remove control is an `IconButton` with a tooltip rather than visible text — reused
-      // straight off `OcptAssetFileLine`, so it is located by that tooltip. Scrolled into view
-      // first: the extra fields this dialog now carries push it below the default test surface.
-      final removeFinder = find.byTooltip(tr.resourcesRemoveDocumentTooltip);
-      await tester.ensureVisible(removeFinder);
-      await tester.pumpAndSettle();
-      await tester.tap(removeFinder);
-      await tester.pumpAndSettle();
+    testWidgets("shows the empty hint and offers Attach while none is referenced", (tester) async {
+      final tr = await pumpDialog(tester);
 
       expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsOneWidget);
-      expect(find.text("facture.pdf"), findsNothing);
+      expect(find.text(tr.budgetEntryDialogReceiptAttachAction), findsOneWidget);
+    });
 
+    testWidgets("attaching a fresh file carries its path through Enregistrer", (tester) async {
+      await _registerFileSelector("/tmp/fresh-receipt.pdf");
+      await pumpDialog(tester, postes: [_poste(id: "poste-1", label: "Camera")]);
+
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
       await tester.pumpAndSettle();
 
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
+      expect(fields.pickedReceiptPath, "/tmp/fresh-receipt.pdf");
+      expect(fields.isReceiptDetached, isFalse);
+    });
+
+    testWidgets("Retirer marks the existing voucher detached", (tester) async {
+      await pumpDialog(tester, existingReceipt: _receipt(path: "/tmp/invoice.pdf"));
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
+      await tester.pumpAndSettle();
+
+      final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
       expect(fields.isReceiptDetached, isTrue);
       expect(fields.pickedReceiptPath, isNull);
     });
+  });
 
-    testWidgets("picking a receipt through the native selector attaches it, and Save reports it", (
-      tester,
-    ) async {
-      await _registerFileSelector("/tmp/nouvelle-facture.pdf");
-      final tr = await pumpDialogAtStep2(tester);
-
-      final attachFinder = find.text(tr.budgetEntryDialogReceiptAttachAction);
-      await tester.ensureVisible(attachFinder);
-      await tester.pumpAndSettle();
-      await tester.tap(attachFinder);
-      await tester.pumpAndSettle();
-
-      expect(find.text("nouvelle-facture.pdf"), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsOneWidget);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-        "Camera rental",
-      );
-      await tester.enterText(find.byKey(const Key("ocptBudgetEntryWizardAmountField")), "10");
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-      await tester.pumpAndSettle();
-
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.pickedReceiptPath, "/tmp/nouvelle-facture.pdf");
-      expect(fields.isReceiptDetached, isFalse);
-    });
-
-    testWidgets("cancelling the native selector leaves whatever was referenced alone", (
-      tester,
-    ) async {
-      await _registerFileSelector(null);
-      final existing = _existingEntry(debitCents: 500);
+  group("the taking picker's own inline creation", () {
+    testWidgets("New taking… still opens the revenue dialog, unchanged from before this "
+        "milestone", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: existing,
-        existingReceipt: _receipt(path: "/tmp/facture.pdf"),
+        existing: _existingEntry(revenueId: "v1", creditCents: 5000),
+        revenues: [_revenue(id: "v1", label: "Festival prize")],
       );
 
-      final replaceFinder = find.text(tr.budgetEntryDialogReceiptReplaceAction);
-      await tester.ensureVisible(replaceFinder);
+      await tester.tap(find.byType(DropdownButtonFormField<String?>).last);
       await tester.pumpAndSettle();
-      await tester.tap(replaceFinder);
-      await tester.pumpAndSettle();
-
-      expect(find.text("facture.pdf"), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
-      await tester.pumpAndSettle();
-
-      final fields = (routerManager.poppedValue! as OcptBudgetEntryWizardResult).fields;
-      expect(fields.pickedReceiptPath, isNull);
-      expect(fields.isReceiptDetached, isFalse);
+      expect(find.text(tr.budgetEntryDialogNewRevenueAction), findsOneWidget);
     });
   });
 }
