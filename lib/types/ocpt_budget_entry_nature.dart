@@ -4,12 +4,12 @@
 
 import 'package:open_cine_prod_tools/types/ocpt_budget_entry_link_kind.dart';
 
-/// The six answers step 1 of the entry wizard asks — **in production language, never in
+/// The seven answers step 1 of the entry wizard asks — **in production language, never in
 /// accounting terms**, the mockup's own wording being the specification this type carries no copy
 /// of (`lib/types/` stays pure: no `Tr`, no formatted string, the wizard resolves every word).
 ///
 /// Every value but [other] fixes the movement's own direction and names exactly one of the mode's
-/// four ledgers to attach to — [ocptBudgetEntryNatureDirectionOf] and
+/// five ledgers to attach to — [ocptBudgetEntryNatureDirectionOf] and
 /// [ocptBudgetEntryNatureLinkKindOf] answer both, so three separate widgets never each switch over
 /// this enum their own way.
 ///
@@ -19,6 +19,16 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_link_kind.dart';
 /// naming neither a financing resource nor a taking would otherwise have no nature at all to be
 /// typed under — and that is precisely the movement the cash-flow page exists to hold, the one that
 /// is drawn in no other view of the mode.
+///
+/// **[personReimbursement] is the seventh, and it is not [repayment].** [repayment] is money going
+/// back to somebody who *lent the film money* — a financing resource, `budget_resources`, however
+/// it is later spent. [personReimbursement] is money going back to somebody who *advanced it for
+/// the production* — a défraiement, the debt `budget_allowances` builds up and this milestone's own
+/// `OcptBudgetEntryLinkKind.person` names — and it prices no resource at all. A crew member who
+/// buys the gaffer tape and a producer who lends the production 5,000 € are both owed money, but
+/// only one of the two lent the film anything, and a status resolved off `resourceId` alone would
+/// have folded a défraiement's own repayment into the sharing document's `Repaying the
+/// contributions` card, a debt that document does not price.
 enum OcptBudgetEntryNature {
   /// `J'ai payé quelque chose` — a debit, attached to a quote poste (left unanswered, `Hors
   /// devis`), and the one nature the wizard is also opened onto pre-filled from a commitment's own
@@ -50,18 +60,23 @@ enum OcptBudgetEntryNature {
   /// poste (also `Hors devis` while unanswered), and the one nature whose direction is still asked,
   /// in step 2, rather than fixed by the answer itself — see the class doc comment.
   other,
+
+  /// `J'ai remboursé quelqu'un` — a debit, attached to a person through
+  /// `OcptBudgetEntryLinkKind.person` — see the class doc comment for why this is not [repayment].
+  personReimbursement,
 }
 
 /// Which direction [nature] fixes the movement to: `true` for a debit (money leaving the
 /// account), `false` for a credit, or `null` while [nature] leaves the direction to be asked —
 /// [OcptBudgetEntryNature.other] alone, in step 2 of the wizard.
 ///
-/// The four other natures carry no direction control of any kind in the wizard: not disabled,
+/// The five other natures carry no direction control of any kind in the wizard: not disabled,
 /// **absent** — this is the one answer that decides whether step 2 draws one at all.
 bool? ocptBudgetEntryNatureDirectionOf(OcptBudgetEntryNature nature) => switch (nature) {
   OcptBudgetEntryNature.expense => true,
   OcptBudgetEntryNature.payout => true,
   OcptBudgetEntryNature.repayment => true,
+  OcptBudgetEntryNature.personReimbursement => true,
   OcptBudgetEntryNature.financing => false,
   OcptBudgetEntryNature.revenue => false,
   OcptBudgetEntryNature.other => null,
@@ -82,19 +97,26 @@ OcptBudgetEntryLinkKind ocptBudgetEntryNatureLinkKindOf(OcptBudgetEntryNature na
       OcptBudgetEntryNature.payout => OcptBudgetEntryLinkKind.participant,
       OcptBudgetEntryNature.repayment => OcptBudgetEntryLinkKind.financingResource,
       OcptBudgetEntryNature.other => OcptBudgetEntryLinkKind.poste,
+      OcptBudgetEntryNature.personReimbursement => OcptBudgetEntryLinkKind.person,
     };
 
-/// The nature implied by which of the four link fields an entry names, [isDebit] telling the two
+/// The nature implied by which of the five link fields an entry names, [isDebit] telling the two
 /// resource-linked answers apart.
 ///
-/// **A link alone is not enough, and that is the whole reason this takes [isDebit].** A financing
-/// resource is named by money coming in ([OcptBudgetEntryNature.financing]) and by money going back
-/// out ([OcptBudgetEntryNature.repayment]) alike; reading the link on its own recalled a repayment
-/// as a receipt. No other pair is ambiguous — a poste, a taking and a share each admit one
+/// **[personId] is consulted first, ahead of every other link.** An entry naming a person is
+/// [OcptBudgetEntryNature.personReimbursement] whatever else it also names — the class doc comment
+/// argues why this is a défraiement debt rather than a financing resource, and nothing about the
+/// other four fields can override that reading.
+///
+/// **A link alone is not enough for the resource field, and that is the whole reason this takes
+/// [isDebit].** A financing resource is named by money coming in
+/// ([OcptBudgetEntryNature.financing]) and by money going back out
+/// ([OcptBudgetEntryNature.repayment]) alike; reading the link on its own recalled a repayment as a
+/// receipt. No other pair is ambiguous — a person, a poste, a taking and a share each admit one
 /// direction only — so the direction is consulted for that one field and no other.
 ///
-/// An entry naming none of the four is [OcptBudgetEntryNature.other], exactly the answer built for
-/// that case. An entry never attaches to more than one of the four, so the order below only matters
+/// An entry naming none of the five is [OcptBudgetEntryNature.other], exactly the answer built for
+/// that case. An entry never attaches to more than one of the five, so the order below only matters
 /// defensively.
 OcptBudgetEntryNature ocptBudgetEntryNatureOfLinks({
   required bool isDebit,
@@ -102,7 +124,11 @@ OcptBudgetEntryNature ocptBudgetEntryNatureOfLinks({
   required String? resourceId,
   required String? revenueId,
   required String? shareId,
+  required String? personId,
 }) {
+  if (personId != null) {
+    return OcptBudgetEntryNature.personReimbursement;
+  }
   if (resourceId != null) {
     return isDebit ? OcptBudgetEntryNature.repayment : OcptBudgetEntryNature.financing;
   }

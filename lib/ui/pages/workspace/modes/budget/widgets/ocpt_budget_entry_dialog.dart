@@ -349,6 +349,11 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         resourceId: _resourceId,
         revenueId: _revenueId,
         shareId: _shareId,
+        // This dialog carries no field naming a person at all — that arrives with the wizard this
+        // milestone only lays the ground for — so an entry that already names one, if it ever
+        // exists, is deliberately read as `other` here rather than a nature this dialog cannot
+        // express: exactly how it read before `personId` was a fact this function could see.
+        personId: null,
       );
       _step = _OcptBudgetEntryWizardStep.form;
     } else {
@@ -449,12 +454,12 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   // Step 1 — mockup `5a`
   // ---------------------------------------------------------------------------------------------
 
-  /// Step 1's own content: one card per [OcptBudgetEntryNature], one selected at most.
+  /// Step 1's own content: one card per [_ocptBudgetEntryDialogNatures], one selected at most.
   Widget _buildNatureStep(BuildContext context, Tr tr) => Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      for (final nature in OcptBudgetEntryNature.values)
+      for (final nature in _ocptBudgetEntryDialogNatures)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: _OcptBudgetEntryNatureCard(
@@ -652,12 +657,20 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   );
 
   /// The one link field [_nature] picks — [OcptBudgetEntryLinkKind] says which.
+  ///
+  /// **[OcptBudgetEntryLinkKind.person] never actually reaches here** — it is what
+  /// [OcptBudgetEntryNature.personReimbursement] resolves to, and
+  /// [_ocptBudgetEntryDialogNatures]'s own doc comment already argues why [_nature] can never hold
+  /// that value in this dialog.
   Widget _buildLinkField(BuildContext context, Tr tr) =>
       switch (ocptBudgetEntryNatureLinkKindOf(_nature ?? OcptBudgetEntryNature.other)) {
         OcptBudgetEntryLinkKind.poste => _buildPosteField(context, tr),
         OcptBudgetEntryLinkKind.financingResource => _buildResourceField(tr),
         OcptBudgetEntryLinkKind.taking => _buildRevenueField(context, tr),
         OcptBudgetEntryLinkKind.participant => _buildShareField(tr),
+        OcptBudgetEntryLinkKind.person => throw UnsupportedError(
+          "OcptBudgetEntryDialog never selects OcptBudgetEntryLinkKind.person",
+        ),
       };
 
   /// `Poste du devis` — offered under [OcptBudgetEntryNature.expense] and
@@ -1092,8 +1105,29 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   }
 }
 
+/// The natures step 1 draws a card for, in the mockup's own order — **every value of
+/// [OcptBudgetEntryNature] but [OcptBudgetEntryNature.personReimbursement]**, which names a
+/// gesture the entry wizard offers, not this dialog: `docs/plans/budget-capture-wizard.md`'s own
+/// M2 is the milestone that draws it a card, under its own step counter. Until then this dialog
+/// neither offers it here nor infers it in [_OcptBudgetEntryDialogState.initState] (which reads
+/// `personId` as null on purpose) — the two together are what keep
+/// [OcptBudgetEntryNature.personReimbursement] unreachable in the rest of this file, and the reason
+/// the switches below still need an arm for it is only that the type itself now has one.
+const List<OcptBudgetEntryNature> _ocptBudgetEntryDialogNatures = [
+  OcptBudgetEntryNature.expense,
+  OcptBudgetEntryNature.financing,
+  OcptBudgetEntryNature.revenue,
+  OcptBudgetEntryNature.payout,
+  OcptBudgetEntryNature.repayment,
+  OcptBudgetEntryNature.other,
+];
+
 /// [nature]'s own recalled label — the very same word its step 1 card reads in bold, factored out
 /// so the title area's own `changer` line and the card itself never drift apart.
+///
+/// **Never actually called with [OcptBudgetEntryNature.personReimbursement]** — see
+/// [_ocptBudgetEntryDialogNatures]'s own doc comment — so that arm only satisfies the switch's own
+/// exhaustiveness, over a value this dialog can neither select nor infer.
 String _ocptBudgetEntryNatureLabelOf(Tr tr, OcptBudgetEntryNature nature) => switch (nature) {
   OcptBudgetEntryNature.expense => tr.budgetEntryNatureExpenseLabel,
   OcptBudgetEntryNature.financing => tr.budgetEntryNatureFinancingLabel,
@@ -1101,10 +1135,16 @@ String _ocptBudgetEntryNatureLabelOf(Tr tr, OcptBudgetEntryNature nature) => swi
   OcptBudgetEntryNature.payout => tr.budgetEntryNaturePayoutLabel,
   OcptBudgetEntryNature.repayment => tr.budgetEntryNatureRepaymentLabel,
   OcptBudgetEntryNature.other => tr.budgetEntryNatureOtherLabel,
+  OcptBudgetEntryNature.personReimbursement => throw UnsupportedError(
+    "OcptBudgetEntryDialog never selects OcptBudgetEntryNature.personReimbursement",
+  ),
 };
 
 /// [nature]'s own muted hint — the sentence under its bold label on step 1's own card, naming its
 /// fixed direction (or, for [OcptBudgetEntryNature.other], that there is none) and its one link.
+///
+/// **Never actually called with [OcptBudgetEntryNature.personReimbursement]** — see
+/// [_ocptBudgetEntryDialogNatures]'s own doc comment.
 String _ocptBudgetEntryNatureHintOf(Tr tr, OcptBudgetEntryNature nature) => switch (nature) {
   OcptBudgetEntryNature.expense => tr.budgetEntryNatureExpenseHint,
   OcptBudgetEntryNature.financing => tr.budgetEntryNatureFinancingHint,
@@ -1112,6 +1152,9 @@ String _ocptBudgetEntryNatureHintOf(Tr tr, OcptBudgetEntryNature nature) => swit
   OcptBudgetEntryNature.payout => tr.budgetEntryNaturePayoutHint,
   OcptBudgetEntryNature.repayment => tr.budgetEntryNatureRepaymentHint,
   OcptBudgetEntryNature.other => tr.budgetEntryNatureOtherHint(tr.budgetCostTrackingOffQuoteLabel),
+  OcptBudgetEntryNature.personReimbursement => throw UnsupportedError(
+    "OcptBudgetEntryDialog never selects OcptBudgetEntryNature.personReimbursement",
+  ),
 };
 
 /// One card of step 1 — a bold answer over its own muted hint, tinted `primary` while selected.
