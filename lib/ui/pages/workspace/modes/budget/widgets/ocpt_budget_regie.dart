@@ -1454,8 +1454,10 @@ class _OcptRegieAllowancePersonRow extends StatelessWidget {
 }
 
 /// One defrayal naming nobody, drawn as its own top-level row: the wording that has always said so,
-/// in italics, its own amount under `ADVANCED`, `REIMBURSED`/`OWED` left blank — it names no
-/// running account to read either from. No twisty: there is nothing to expand onto.
+/// in italics, its own amount under `ADVANCED` **and** `OWED` — it is owed in full, never paid back
+/// through a running account — with `REIMBURSED` left blank. `OWED` reads its amount rather than a
+/// blank precisely because the total row counts this defrayal in: a figure that is summed has to be
+/// legible on the line it is summed from. No twisty: there is nothing to expand onto.
 class _OcptRegieAllowanceNoPersonRow extends StatelessWidget {
   /// The defrayal this row draws.
   final OcptBudgetAllowance allowance;
@@ -1528,7 +1530,7 @@ class _OcptRegieAllowanceNoPersonRow extends StatelessWidget {
             ),
             _ocptRegieAllowanceAmountCell(context, ocptBudgetAllowanceCentsOf(allowance), currencyCode),
             _ocptRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
-            _ocptRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+            _ocptRegieAllowanceAmountCell(context, ocptBudgetAllowanceCentsOf(allowance), currencyCode),
             SizedBox(
               width: _ocptRegieAllowanceMenuColumnWidth,
               child: onDeletionRequested == null

@@ -782,8 +782,9 @@ void main() {
       expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
       expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
-      // ADVANCED alone — REIMBURSED/OWED read blank rather than a claimed zero, no running account
-      // named by a defrayal that belongs to nobody.
+      // ADVANCED and OWED both read its amount — it is owed in full, and the total row counts it in,
+      // so it has to be legible on its own line — while REIMBURSED reads blank, no running account
+      // named by a defrayal that belongs to nobody. The amount therefore appears at least twice.
       expect(find.text(ocptBudgetAmountLabel(100, "EUR")), findsWidgets);
     });
 
