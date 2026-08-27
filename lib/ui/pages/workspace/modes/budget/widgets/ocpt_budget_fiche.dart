@@ -440,6 +440,7 @@ class OcptBudgetFiche extends StatelessWidget {
                 hintText: tr.budgetInspectorPosteEstimateToCompleteHint(
                   ocptBudgetAmountLabel(derivedEstimateToCompleteCents, currencyCode),
                 ),
+                helperText: tr.budgetInspectorPosteEstimateToCompleteHelper,
                 suffixText: currencySymbol,
                 onChanged: onFieldChanged == null
                     ? null
@@ -1672,6 +1673,10 @@ class _OcptBudgetInlineField extends StatefulWidget {
   /// The greyed placeholder shown while the field is empty, or null.
   final String? hintText;
 
+  /// A helper sentence drawn under the field, standing whatever the field holds, or null — the
+  /// poste estimate-to-complete field's own sentence saying what typing a figure changes.
+  final String? helperText;
+
   /// Chrome shown after the typed text, or null.
   final String? suffixText;
 
@@ -1691,6 +1696,7 @@ class _OcptBudgetInlineField extends StatefulWidget {
     required this.label,
     required this.value,
     this.hintText,
+    this.helperText,
     this.suffixText,
     this.multiline = false,
     this.errorText,
@@ -1747,6 +1753,8 @@ class _OcptBudgetInlineFieldState extends State<_OcptBudgetInlineField> {
           decoration: InputDecoration(
             isDense: true,
             hintText: widget.hintText,
+            helperText: widget.helperText,
+            helperMaxLines: 3,
             suffixText: widget.suffixText,
             errorText: widget.errorText,
           ),

@@ -1508,6 +1508,7 @@
   "budgetInspectorFigureRemaining": "Reste",
   "budgetInspectorPosteEstimateToCompleteFieldLabel": "Reste à dépenser (estimé)",
   "budgetInspectorPosteEstimateToCompleteHint": "calculé {amount}",
+  "budgetInspectorPosteEstimateToCompleteHelper": "Un montant saisi ici remplace l'estimation automatique ; laissé vide, il se déduit du devis.",
   "budgetInspectorPosteEstimateToCompleteDeriveAction": "Recalculer",
   "budgetLineCreationAction": "Ajouter",
   "budgetLineUnnamed": "Ligne sans nom",

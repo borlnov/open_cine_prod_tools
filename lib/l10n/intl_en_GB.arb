@@ -11357,6 +11357,13 @@
       }
     }
   },
+  "budgetInspectorPosteEstimateToCompleteHelper": "A figure typed here replaces the automatic estimate; left empty, it derives from the quote.",
+  "@budgetInspectorPosteEstimateToCompleteHelper": {
+    "description": "Helper sentence under the poste inspector's own estimate-to-complete field, saying what typing a figure changes",
+    "context": "Shown beneath the estimate-to-complete field in the budget mode's fiche, whether or not the field carries a typed figure",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetInspectorPosteEstimateToCompleteDeriveAction": "Derive again",
   "@budgetInspectorPosteEstimateToCompleteDeriveAction": {
     "description": "Action putting a poste's own estimate to complete back to the derived figure",
