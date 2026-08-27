@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
@@ -212,8 +213,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                   message: isSimplified ? tr.budgetCashJournalSimpleEmptyHint : tr.budgetCashJournalEmptyHint,
                 )
               : LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
+                  builder: (context, constraints) => OcptHorizontalScrollView(
                     // The header and the rows scroll **together**, inside one frame: they share
                     // the same fixed column widths, so scrolling either alone would slide the
                     // figures out from under their own headings.

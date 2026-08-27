@@ -1055,6 +1055,19 @@ are all here, and this file is the whole record of them.
   scrolling either alone would slide the figures out from under their own headings. No column is
   dropped and none shrinks: what does not fit is scrolled to, which is the treatment the rest of the
   app already gives a table too wide for its slot.
+- **Every one of these wide tables scrolls under an always-visible horizontal scrollbar**
+  (`OcptHorizontalScrollView`, `lib/ui/widgets/`): the cost tracking's amount pane, the cash book,
+  the financing plan and the two régie matrices each wrap their horizontal scroll in it, so a table
+  wider than its slot says so with a bar the reader can see rather than a scroll to be found by
+  accident. It owns its own `ScrollController` — a `Scrollbar` with `thumbVisibility` needs one to
+  attach to — and takes its colour and radius from the theme's own `ScrollbarThemeData` like every
+  other surface, overriding only its **thickness**, drawn thinner than an interactive scrollbar
+  because a bar on screen the whole time has to sit quieter than one shown only while scrolling. The
+  cost tracking's own pane keeps its pinned identity column, so its bar
+  sits under the amount pane it scrolls, at the foot of the rows rather than pinned to the frame —
+  the pane nests its horizontal scroll inside the one vertical scroll the fixed-row-height design
+  keeps both panes aligned with (this file's own reading above), and pinning it to the frame would
+  need the shared scroll controller that design deliberately does without.
 - **The statement closes on its own row rather than opening under a band.** The journal used to
   carry a top band stating the whole ledger's debit, credit and balance, pinned above whatever the
   reader had scrolled to; only the balance survives the move, in `_OcptCashStatementFooterRow`, at

@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_allowances.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
@@ -627,8 +628,7 @@ class _OcptRegieCateringColumn extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
+                builder: (context, constraints) => OcptHorizontalScrollView(
                   // Header, rows and total scroll **together**, inside one frame, for the reason
                   // `OcptBudgetCashJournal` gives: they share one set of fixed column widths.
                   child: SizedBox(
@@ -1027,8 +1027,7 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
                       ),
                     )
                   : LayoutBuilder(
-                      builder: (context, constraints) => SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
+                      builder: (context, constraints) => OcptHorizontalScrollView(
                         child: SizedBox(
                           width: math.max(constraints.maxWidth, _ocptRegieAllowanceMinTableWidth),
                           child: Column(

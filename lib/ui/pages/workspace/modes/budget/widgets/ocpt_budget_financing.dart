@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
@@ -279,8 +280,7 @@ class OcptBudgetFinancing extends StatelessWidget {
       children: [
         Expanded(
           child: LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            builder: (context, constraints) => OcptHorizontalScrollView(
               child: SizedBox(
                 width: math.max(constraints.maxWidth, _ocptResourcesMinTableWidth),
                 child: Column(
