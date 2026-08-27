@@ -155,7 +155,10 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
                 Expanded(
                   child: TextFormField(
                     controller: _unitController,
-                    decoration: InputDecoration(labelText: tr.budgetLineUnitFieldLabel),
+                    decoration: InputDecoration(
+                      labelText: tr.budgetLineUnitFieldLabel,
+                      hintText: tr.budgetLineUnitFieldHint,
+                    ),
                   ),
                 ),
               ],

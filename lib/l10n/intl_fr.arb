@@ -1507,6 +1507,7 @@
   "budgetLineUnnamed": "Ligne sans nom",
   "budgetLineLabelFieldLabel": "Intitulé",
   "budgetLineQuantityFieldLabel": "Quantité",
+  "budgetLineUnitFieldHint": "ex. jour, km",
   "budgetLineUnitFieldLabel": "Unité",
   "budgetLineUnitPriceFieldLabel": "Prix unitaire",
   "budgetLineTaxInclusiveOption": "TTC",

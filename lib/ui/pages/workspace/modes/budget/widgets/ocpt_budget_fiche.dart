@@ -656,6 +656,7 @@ class OcptBudgetFiche extends StatelessWidget {
                 field: OcptBudgetField.lineUnit,
                 label: tr.budgetLineUnitFieldLabel,
                 storedValue: line.unit,
+                hintText: tr.budgetLineUnitFieldHint,
               ),
             ),
           ],

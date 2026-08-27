@@ -11357,6 +11357,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetLineUnitFieldHint": "e.g. day, km",
+  "@budgetLineUnitFieldHint": {
+    "description": "Placeholder shown inside a quote line's empty unit field, telling the reader the field is a plain label for the quantity's unit rather than a figure",
+    "context": "Displayed inside a quote line's unit field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetLineUnitPriceFieldLabel": "Unit price",
   "@budgetLineUnitPriceFieldLabel": {
     "description": "Label of a quote line card's own unit price field",
