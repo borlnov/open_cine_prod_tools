@@ -50,6 +50,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
@@ -160,6 +161,10 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// What each taking has already received, keyed by its own id.
   final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
 
+  /// What each defrayed person has already been reimbursed, keyed by their own id — the person
+  /// picker's own third figure, mirroring [receivedByResourceId].
+  final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
+
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
@@ -189,6 +194,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     required this.mileageRates,
     required this.receivedByResourceId,
     required this.receivedByRevenueId,
+    required this.reimbursedByPersonId,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
     required this.isSimplified,
@@ -214,6 +220,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     List<OcptBudgetMileageRate> mileageRates = const [],
     Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
     Map<String, OcptBudgetCoveredTotal> receivedByRevenueId = const {},
+    Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId = const {},
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
     required bool isSimplified,
@@ -237,6 +244,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
       mileageRates: mileageRates,
       receivedByResourceId: receivedByResourceId,
       receivedByRevenueId: receivedByRevenueId,
+      reimbursedByPersonId: reimbursedByPersonId,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       isSimplified: isSimplified,
@@ -923,6 +931,23 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       for (final person in widget.people)
         _OcptBudgetNewChoiceRow(
           label: person.displayName,
+          hint: tr.budgetNewPersonChoiceHint(
+            ocptBudgetAmountLabel(
+              ocptBudgetPersonAdvancedCents(person.id, widget.allowances),
+              widget.currencyCode,
+            ),
+            ocptBudgetAmountLabel(
+              widget.reimbursedByPersonId[person.id]?.amountCents ?? 0,
+              widget.currencyCode,
+            ),
+            ocptBudgetAmountLabel(
+              ocptBudgetPersonOutstandingCents(
+                advancedCents: ocptBudgetPersonAdvancedCents(person.id, widget.allowances),
+                reimbursedCents: widget.reimbursedByPersonId[person.id]?.amountCents ?? 0,
+              ),
+              widget.currencyCode,
+            ),
+          ),
           isSelected: _personId == person.id,
           onTap: () => setState(() => _personId = person.id),
         ),

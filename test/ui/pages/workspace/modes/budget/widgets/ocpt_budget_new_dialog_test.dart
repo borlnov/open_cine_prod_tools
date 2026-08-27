@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
@@ -21,6 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
@@ -28,6 +30,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_revenue_dialog.dart';
@@ -175,6 +178,70 @@ OcptElement _element({required String id, required String name, int sceneCount =
   roleLinks: const [],
 );
 
+/// A minimal person, everything but [id]/[firstName] neutral.
+OcptPerson _person({required String id, required String firstName}) => OcptPerson(
+  id: id,
+  firstName: firstName,
+  lastName: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  imageRightsDocument: null,
+  photoAssetId: null,
+  photo: null,
+  notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
+);
+
+/// A minimal defrayal owed to [personId], priced at [quantityMilli] thousandths of a unit at
+/// [unitAmountMilliCents] thousandths of a cent each, everything else neutral.
+OcptBudgetAllowance _allowance({
+  required String id,
+  String? personId,
+  int quantityMilli = 1000,
+  int unitAmountMilliCents = 100000,
+}) => OcptBudgetAllowance(
+  id: id,
+  personId: personId,
+  kind: OcptBudgetAllowanceKind.other,
+  label: "",
+  date: null,
+  endDate: null,
+  quantityMilli: quantityMilli,
+  unitAmountMilliCents: unitAmountMilliCents,
+  notes: "",
+  sortKey: "a0",
+);
+
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -204,7 +271,9 @@ void main() {
     List<OcptPerson> people = const [],
     List<OcptBudgetCommitment> commitments = const [],
     List<OcptElement> unpricedElements = const [],
+    List<OcptBudgetAllowance> allowances = const [],
     Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
+    Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId = const {},
   }) async {
     await tester.pumpWidget(
       _wrap(
@@ -220,10 +289,11 @@ void main() {
           unpricedElements: unpricedElements,
           commitments: commitments,
           entries: const [],
-          allowances: const [],
+          allowances: allowances,
           mileageRates: const [],
           receivedByResourceId: receivedByResourceId,
           receivedByRevenueId: const {},
+          reimbursedByPersonId: reimbursedByPersonId,
           currencyCode: "EUR",
           defaultVatRateBasisPoints: null,
           isSimplified: false,
@@ -954,6 +1024,32 @@ void main() {
         ocptBudgetAmountLabel(150000, "EUR"),
         // The one computed figure: 500000 - 150000 = 350000, never read off a stored column.
         ocptBudgetAmountLabel(350000, "EUR"),
+      );
+      expect(find.text(expectedHint), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "step 2's own person row states what is advanced, reimbursed and owed",
+    (tester) async {
+      final tr = await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.reimbursePerson,
+        people: [_person(id: "p1", firstName: "Alex")],
+        allowances: [_allowance(id: "a1", personId: "p1")],
+        reimbursedByPersonId: const {
+          "p1": OcptBudgetCoveredTotal(amountCents: 40, coveredLineCount: 1, lineCount: 1),
+        },
+      );
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+
+      final expectedHint = tr.budgetNewPersonChoiceHint(
+        ocptBudgetAmountLabel(100, "EUR"),
+        ocptBudgetAmountLabel(40, "EUR"),
+        // The one computed figure: 100 - 40 = 60, never read off a stored column.
+        ocptBudgetAmountLabel(60, "EUR"),
       );
       expect(find.text(expectedHint), findsOneWidget);
     },

@@ -1853,6 +1853,7 @@
   "budgetNewNoLineHint": "Pour une dépense engagée qui n'était pas au devis.",
   "budgetNewResourceChoiceHint": "Promis {promised} · Reçus {received} · Reste {outstanding}",
   "budgetNewRevenueChoiceHint": "Attendu {expected} · Encaissé {cashedIn}",
+  "budgetNewPersonChoiceHint": "Avancé {advanced} · Remboursé {reimbursed} · Dû {owed}",
   "budgetNewWillCreateLabel": "Créera « {label} »",
   "budgetNewCreateResourceAction": "Nouvelle ressource…",
   "budgetNewCreateParticipantAction": "Nouveau participant…",

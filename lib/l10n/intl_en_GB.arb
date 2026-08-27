@@ -13876,6 +13876,23 @@
       }
     }
   },
+  "budgetNewPersonChoiceHint": "Advanced {advanced} · Reimbursed {reimbursed} · Owed {owed}",
+  "@budgetNewPersonChoiceHint": {
+    "description": "Hint of a person offered by the capture wizard's own person attachment step",
+    "context": "Displayed muted under a person's own row, OcptBudgetNewDialog's own step 2",
+    "type": "text",
+    "placeholders": {
+      "advanced": {
+        "type": "String"
+      },
+      "reimbursed": {
+        "type": "String"
+      },
+      "owed": {
+        "type": "String"
+      }
+    }
+  },
   "budgetNewWillCreateLabel": "Will create « {label} »",
   "@budgetNewWillCreateLabel": {
     "description": "Row shown once the capture wizard's own attachment step has collected a fresh resource, taking or participant not yet created",
