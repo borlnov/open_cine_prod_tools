@@ -77,8 +77,12 @@ const double _ocptCostTrackingIndentStep = 16;
 
 /// The twisty's own fixed width, in logical pixels, whether it draws an arrow or sits blank —
 /// reserved on every row a twisty could appear on (a poste, a quote line) so a poste or line with
-/// nothing to expand still lines its own label up with a sibling that does.
-const double _ocptCostTrackingTwistyWidth = 20;
+/// nothing to expand still lines its own label up with a sibling that does. 28, the theme's own
+/// floor for an icon button's own tap target, not the 20 an earlier pass under-sized it at
+/// (`docs/plans/budget-capture-wizard.md`'s "The other corrections") — its own tap target runs the
+/// **full height** of whichever row it sits on rather than squaring off at this same figure, see
+/// [_OcptCostTrackingTwisty]'s own doc comment.
+const double _ocptCostTrackingTwistyWidth = 28;
 
 /// The diameter of a commitment or an entry sub-row's own coloured dot, in logical pixels.
 const double _ocptCostTrackingDotDiameter = 8;
@@ -1242,6 +1246,7 @@ class _OcptCostTrackingPosteIdentityRow extends StatelessWidget {
                         isExpandable: isExpandable,
                         isExpanded: isExpanded,
                         onTap: onTwistyTap,
+                        rowHeight: _ocptCostTrackingRowHeight,
                       ),
                       Expanded(
                         child: Text(
@@ -1268,6 +1273,13 @@ class _OcptCostTrackingPosteIdentityRow extends StatelessWidget {
 /// The twisty every poste and quote line row draws — an arrow while [isExpandable], nothing but
 /// its own reserved width otherwise, so a row with nothing to expand still lines its own label up
 /// with a sibling that does.
+///
+/// **Its own tap target is [_ocptCostTrackingTwistyWidth] wide over the whole of [rowHeight]**,
+/// not a square of the twisty's own width: the theme's own floor for an icon button already
+/// exceeds a column this narrow, so the row's own height, whichever fixed figure the row it sits on
+/// draws at, is what the tap target claims instead (`docs/plans/budget-capture-wizard.md`'s "The
+/// other corrections"). The 18 px arrow itself stays centred in that taller target — `Icon` centres
+/// its own glyph inside whatever box its surrounding layout hands it.
 class _OcptCostTrackingTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.
   final bool isExpandable;
@@ -1278,8 +1290,17 @@ class _OcptCostTrackingTwisty extends StatelessWidget {
   /// Called when this twisty is clicked, or null while [isExpandable] is false.
   final VoidCallback? onTap;
 
+  /// The row this twisty sits on own fixed height, in logical pixels — its own tap target fills it
+  /// edge to edge.
+  final double rowHeight;
+
   /// Class constructor
-  const _OcptCostTrackingTwisty({required this.isExpandable, required this.isExpanded, this.onTap});
+  const _OcptCostTrackingTwisty({
+    required this.isExpandable,
+    required this.isExpanded,
+    this.onTap,
+    required this.rowHeight,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1289,11 +1310,11 @@ class _OcptCostTrackingTwisty extends StatelessWidget {
 
     return SizedBox(
       width: _ocptCostTrackingTwistyWidth,
-      height: _ocptCostTrackingTwistyWidth,
+      height: rowHeight,
       child: InkWell(
         onTap: onTap,
         mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(_ocptCostTrackingTwistyWidth / 2),
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
         child: Icon(
           isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
           size: 18,
@@ -1663,6 +1684,7 @@ class _OcptCostTrackingSubIdentityRow extends StatelessWidget {
                 isExpandable: isExpandable,
                 isExpanded: isExpanded,
                 onTap: onTwistyTap,
+                rowHeight: isSmall ? _ocptCostTrackingSubRowHeight : _ocptCostTrackingRowHeight,
               ),
             Expanded(child: builder(context)),
           ],
@@ -1960,6 +1982,7 @@ class _OcptCostTrackingOffQuoteIdentityRow extends StatelessWidget {
                     isExpandable: true,
                     isExpanded: isExpanded,
                     onTap: onTwistyTap,
+                    rowHeight: _ocptCostTrackingRowHeight,
                   ),
                   Expanded(
                     child: Text(

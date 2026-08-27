@@ -268,6 +268,20 @@ void main() {
     expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
   });
 
+  testWidgets("a family row's own twisty is 28 wide over the row's full 44 px height", (
+    tester,
+  ) async {
+    await pumpView(tester, resources: [_resource(id: "r1")]);
+
+    final twistyInkWell = find
+        .ancestor(of: find.byIcon(Icons.keyboard_arrow_right), matching: find.byType(InkWell))
+        .first;
+    final size = tester.getSize(twistyInkWell);
+
+    expect(size.width, 28);
+    expect(size.height, 44);
+  });
+
   testWidgets("expanding a resource reveals its own receipts, collapsing hides them again", (
     tester,
   ) async {

@@ -72,8 +72,12 @@ const double _ocptResourcesTotalRowHeight = 44;
 /// `OcptBudgetCostTracking`'s own `_ocptCostTrackingIndentStep`.
 const double _ocptResourcesIndentStep = 16;
 
-/// The twisty's own fixed width, in logical pixels, whether it draws an arrow or sits blank.
-const double _ocptResourcesTwistyWidth = 20;
+/// The twisty's own fixed width, in logical pixels, whether it draws an arrow or sits blank. 28,
+/// the theme's own floor for an icon button's own tap target, not the 20 an earlier pass
+/// under-sized it at (`docs/plans/budget-capture-wizard.md`'s "The other corrections") — its own
+/// tap target runs the full height of the row it sits on, see [_OcptResourcesTwisty]'s own doc
+/// comment.
+const double _ocptResourcesTwistyWidth = 28;
 
 /// A receipt sub-row's own leading dot, in logical pixels.
 const double _ocptResourcesDotDiameter = 8;
@@ -741,6 +745,11 @@ class _OcptResourcesHeaderRow extends StatelessWidget {
 /// The twisty every family, resource and revenue row draws — an arrow while [isExpandable],
 /// nothing but its own reserved width otherwise, so a row with nothing to expand still lines its
 /// own label up with a sibling that does.
+///
+/// **Its own tap target is [_ocptResourcesTwistyWidth] wide over the whole of [rowHeight]**, not a
+/// square of the twisty's own width — mirrors `OcptBudgetCostTracking`'s own
+/// `_OcptCostTrackingTwisty` exactly, the theme's own floor for an icon button already exceeding a
+/// column this narrow (`docs/plans/budget-capture-wizard.md`'s "The other corrections").
 class _OcptResourcesTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.
   final bool isExpandable;
@@ -751,8 +760,17 @@ class _OcptResourcesTwisty extends StatelessWidget {
   /// Called when this twisty is clicked, or null while [isExpandable] is false.
   final VoidCallback? onTap;
 
+  /// The row this twisty sits on own fixed height, in logical pixels — its own tap target fills it
+  /// edge to edge.
+  final double rowHeight;
+
   /// Class constructor
-  const _OcptResourcesTwisty({required this.isExpandable, required this.isExpanded, this.onTap});
+  const _OcptResourcesTwisty({
+    required this.isExpandable,
+    required this.isExpanded,
+    this.onTap,
+    required this.rowHeight,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -762,11 +780,11 @@ class _OcptResourcesTwisty extends StatelessWidget {
 
     return SizedBox(
       width: _ocptResourcesTwistyWidth,
-      height: _ocptResourcesTwistyWidth,
+      height: rowHeight,
       child: InkWell(
         onTap: onTap,
         mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(_ocptResourcesTwistyWidth / 2),
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
         child: Icon(
           isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
           size: 18,
@@ -846,7 +864,12 @@ class _OcptResourcesFamilyRow extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  _OcptResourcesTwisty(isExpandable: true, isExpanded: isExpanded, onTap: onTwistyTap),
+                  _OcptResourcesTwisty(
+                    isExpandable: true,
+                    isExpanded: isExpanded,
+                    onTap: onTwistyTap,
+                    rowHeight: _ocptResourcesRowHeight,
+                  ),
                   Expanded(
                     child: Text(
                       ocptBudgetResourceFamilyLabel(tr, family),
@@ -958,6 +981,7 @@ class _OcptResourcesResourceRow extends StatelessWidget {
                           isExpandable: isExpandable,
                           isExpanded: isExpanded,
                           onTap: onTwistyTap,
+                          rowHeight: _ocptResourcesRowHeight,
                         ),
                         Expanded(
                           child: Column(
@@ -1127,6 +1151,7 @@ class _OcptResourcesRevenueRow extends StatelessWidget {
                           isExpandable: isExpandable,
                           isExpanded: isExpanded,
                           onTap: onTwistyTap,
+                          rowHeight: _ocptResourcesRowHeight,
                         ),
                         Expanded(
                           child: Column(

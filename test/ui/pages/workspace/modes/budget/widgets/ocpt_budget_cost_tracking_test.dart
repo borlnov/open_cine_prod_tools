@@ -884,6 +884,20 @@ void main() {
       expect(find.text("Line one"), findsNothing);
     });
 
+    testWidgets("a poste row's own twisty is 28 wide over the row's full 48 px height", (
+      tester,
+    ) async {
+      await tester.pumpWidget(_wrap(buildTable(postes: [posteWithLine()])));
+
+      final twistyInkWell = find
+          .ancestor(of: find.byIcon(Icons.keyboard_arrow_right), matching: find.byType(InkWell))
+          .first;
+      final size = tester.getSize(twistyInkWell);
+
+      expect(size.width, 28);
+      expect(size.height, 48);
+    });
+
     testWidgets(
       "a row's own name sits level with its own figures, below an expanded poste",
       (tester) async {
