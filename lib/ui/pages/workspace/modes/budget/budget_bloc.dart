@@ -901,16 +901,17 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Creates a new quote line inside poste `event.posteId` **from** breakdown element
-  /// `event.elementId`, and selects it — dispatched by the poste fiche's own `From breakdown`
-  /// action once its picker has returned an element. An element id naming no live element of
-  /// [OcptBudgetState.elements] is ignored: the picker only ever offers a live one, so this should
-  /// not happen outside a stale dialog result.
+  /// `event.elementId`, and selects it — dispatched by the capture wizard's own breakdown selector,
+  /// once per row created. An element id naming no live element of [OcptBudgetState.elements] is
+  /// ignored: the selector only ever offers a live one, so this should not happen outside a stale
+  /// dialog result.
   ///
   /// Mints the line with `OcptElement.name` as its own label and `elementId` naming the element —
   /// `element.cost` seeds `unitAmountCents` when it is known, and is passed on as
   /// [Value.absent] rather than [Value] of zero when it is not: see
   /// `OcptBudgetQuoteService.createLine`'s own doc comment for why a null cost is not a zero unit
-  /// price.
+  /// price. `event.quantityMilli` seeds `quantityMilli` the same way, absent rather than defaulted
+  /// while it is null.
   Future<void> _onLineCreatedFromElement(
     OcptBudgetLineCreatedFromElementEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -932,12 +933,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     final cost = element.cost;
+    final quantityMilli = event.quantityMilli;
     final lineId = await _budgetQuoteService.createLine(
       database: project.database,
       posteId: event.posteId,
       label: element.name,
       elementId: Value(element.id),
       unitAmountCents: cost == null ? const Value.absent() : Value(cost),
+      quantityMilli: quantityMilli == null ? const Value.absent() : Value(quantityMilli),
     );
 
     await _applyBudgetSnapshot(emitter, project);

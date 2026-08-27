@@ -310,12 +310,26 @@ class OcptBudgetLineCreatedFromElementEvent extends OcptBudgetEvent {
   /// The id of the breakdown element the new line prices.
   final String elementId;
 
+  /// The quantity the new line is born with, in thousandths, or null to leave
+  /// `OcptBudgetQuoteService.createLine`'s own default in place.
+  ///
+  /// **Null while nothing overrides it, never a claim about what the line ought to cost.** The
+  /// capture wizard's own breakdown selector is this event's only caller once the poste fiche's own
+  /// `From breakdown` action is gone: it always passes the count of scenes the element appears in,
+  /// corrected in the table before creating — "the scale suggests, it never decides"
+  /// (`docs/plans/budget-capture-wizard.md`).
+  final int? quantityMilli;
+
   /// Class constructor
-  const OcptBudgetLineCreatedFromElementEvent({required this.posteId, required this.elementId});
+  const OcptBudgetLineCreatedFromElementEvent({
+    required this.posteId,
+    required this.elementId,
+    this.quantityMilli,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, posteId, elementId];
+  List<Object?> get props => [...super.props, posteId, elementId, quantityMilli];
 }
 
 /// Deletes quote line [lineId] for good, dispatched by the mode once its `OcptConfirmDialog` has
