@@ -1233,6 +1233,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       resourceId: fields.resourceId,
       revenueId: revenueId ?? fields.revenueId,
       shareId: fields.shareId,
+      commitmentId: fields.commitmentId,
+      personId: fields.personId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
@@ -1249,6 +1251,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// [OcptBudgetEntryFormFields.voucherNumber]'s own doc comment for why it is always set here, an
   /// entry dialog only ever being opened to edit with one already loaded.
   ///
+  /// **[OcptBudgetEntryFormFields.commitmentId] and [OcptBudgetEntryFormFields.personId] are
+  /// written only while non-null, mirroring `voucherNumber`'s own guard rather than
+  /// `posteId`/`resourceId`/`revenueId`/`shareId`'s.** `OcptBudgetEntryDialog` carries no field for
+  /// either yet, so `event.fields` never actually names one; reading a null here as "clear the
+  /// link" the way the four ordinary link fields do would silently un-settle a commitment, or drop
+  /// a reimbursement's own person, the very next time somebody edited that entry through the
+  /// ordinary `Edit` gesture. Undoing a settlement already has its own dedicated event
+  /// ([OcptBudgetCommitmentUnsettleRequestedEvent]); this handler must not duplicate it by
+  /// accident.
+  ///
   /// Writes whatever `event.fields` collected about the entry's own voucher
   /// ([_writeEntryReceiptChange]) in this very handler too, before the one reload at its end.
   Future<void> _onEntryUpdateConfirmed(
@@ -1262,6 +1274,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     final fields = event.fields;
     final voucherNumber = fields.voucherNumber;
+    final commitmentId = fields.commitmentId;
+    final personId = fields.personId;
     final revenueId = await _createNewRevenueOf(project, fields);
     await _budgetJournalService.updateEntry(
       database: project.database,
@@ -1272,6 +1286,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       resourceId: Value(fields.resourceId),
       revenueId: Value(revenueId ?? fields.revenueId),
       shareId: Value(fields.shareId),
+      commitmentId: commitmentId == null ? const Value.absent() : Value(commitmentId),
+      personId: personId == null ? const Value.absent() : Value(personId),
       debitCents: Value(fields.isDebit ? fields.amountCents : 0),
       creditCents: Value(fields.isDebit ? 0 : fields.amountCents),
       isTaxInclusive: Value(fields.isTaxInclusive),

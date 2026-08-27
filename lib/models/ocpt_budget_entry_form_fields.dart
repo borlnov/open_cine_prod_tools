@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 
 /// What `OcptBudgetEntryDialog` collected, handed back to the mode that opened it — one shape for
 /// both creating and editing a `budget_entries` movement, the decision taken for this milestone
@@ -37,6 +38,19 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// The participant this entry actually pays, or null meaning "no participant" — mirrors
   /// [revenueId], set instead by the sharing view's own `Record a payout` gesture.
   final String? shareId;
+
+  /// The commitment this entry pays down, or null meaning "no commitment" — read exactly the way
+  /// [shareId]'s own null is. `budget_entries.commitmentId` mirrors `resourceId`/`revenueId`/
+  /// `shareId` (`docs/architecture/budget.md`'s own "A commitment settles by naming the entry that
+  /// paid it"): several entries may name the same commitment, and it is settled the moment their
+  /// sum reaches its own amount, so this field is what lets a caller pay one down in instalments
+  /// through the very same shape every other entry is written in.
+  final String? commitmentId;
+
+  /// The person this debit actually reimburses, or null meaning "no person" — read exactly the way
+  /// [commitmentId]'s own null is. Names a défraiement debt rather than a financing resource, the
+  /// distinction [OcptBudgetEntryNature.personReimbursement] itself argues.
+  final String? personId;
 
   /// A taking to **create and then attach** this entry to, or null — the ordinary case.
   ///
@@ -102,6 +116,8 @@ class OcptBudgetEntryFormFields extends Equatable {
     required this.resourceId,
     required this.revenueId,
     required this.shareId,
+    this.commitmentId,
+    this.personId,
     this.newRevenue,
     required this.isDebit,
     required this.amountCents,
@@ -127,6 +143,8 @@ class OcptBudgetEntryFormFields extends Equatable {
     resourceId,
     revenueId,
     shareId,
+    commitmentId,
+    personId,
     newRevenue,
     isDebit,
     amountCents,
