@@ -29,6 +29,16 @@ enum OcptBudgetGestureFamily {
   revenueSharing,
 }
 
+/// Which direction money moves under a gesture — what the `+ New` wizard filters by when it opens
+/// from a working view, transverse to the families. See [ocptBudgetGestureFlowsOf].
+enum OcptBudgetGestureFlow {
+  /// The gesture makes money go out, planned or paid — the `Expenses` view's own filter.
+  spends,
+
+  /// The gesture brings money in, planned or received — the `Resources` view's own filter.
+  brings,
+}
+
 /// What the wizard's own step 2 asks for under a gesture, and the reason a gesture takes two steps
 /// or three: a gesture attaching to [none] has nothing to name before its own form, a gesture
 /// attaching to anything else names it first.
@@ -171,6 +181,34 @@ OcptBudgetGestureFamily ocptBudgetGestureFamilyOf(OcptBudgetGesture gesture) => 
   OcptBudgetGesture.planTaking => OcptBudgetGestureFamily.financingPlan,
   OcptBudgetGesture.defrayPerson => OcptBudgetGestureFamily.allowances,
   OcptBudgetGesture.addSharingParticipant => OcptBudgetGestureFamily.revenueSharing,
+};
+
+/// Which direction money moves under [gesture] — the semantic the `+ New` wizard filters by when it
+/// opens from a working view, **transverse to the families**: the `Expenses` view offers everything
+/// that makes money go out whatever family it sits in, the `Resources` view everything that brings
+/// money in. A gesture may do both ([OcptBudgetGesture.recordOtherMovement], whose direction the
+/// wizard still asks) or neither ([OcptBudgetGesture.defrayPerson] and
+/// [OcptBudgetGesture.addSharingParticipant], filed by their own view rather than a direction —
+/// `budget_mode.dart`'s own `_wizardGesturesForView`, and `budget.md`).
+Set<OcptBudgetGestureFlow> ocptBudgetGestureFlowsOf(OcptBudgetGesture gesture) => switch (gesture) {
+  OcptBudgetGesture.addQuoteLine => const {OcptBudgetGestureFlow.spends},
+  OcptBudgetGesture.addQuoteLinesFromBreakdown => const {OcptBudgetGestureFlow.spends},
+  OcptBudgetGesture.commitSpend => const {OcptBudgetGestureFlow.spends},
+  OcptBudgetGesture.recordExpense => const {OcptBudgetGestureFlow.spends},
+  OcptBudgetGesture.reimbursePerson => const {OcptBudgetGestureFlow.spends},
+  OcptBudgetGesture.payParticipantShare => const {OcptBudgetGestureFlow.spends},
+  OcptBudgetGesture.repayContribution => const {OcptBudgetGestureFlow.spends},
+  OcptBudgetGesture.recordFinancingReceipt => const {OcptBudgetGestureFlow.brings},
+  OcptBudgetGesture.recordTakingReceipt => const {OcptBudgetGestureFlow.brings},
+  OcptBudgetGesture.planSubsidy => const {OcptBudgetGestureFlow.brings},
+  OcptBudgetGesture.planContribution => const {OcptBudgetGestureFlow.brings},
+  OcptBudgetGesture.planTaking => const {OcptBudgetGestureFlow.brings},
+  OcptBudgetGesture.recordOtherMovement => const {
+    OcptBudgetGestureFlow.spends,
+    OcptBudgetGestureFlow.brings,
+  },
+  OcptBudgetGesture.defrayPerson => const {},
+  OcptBudgetGesture.addSharingParticipant => const {},
 };
 
 /// What the wizard's own step 2 asks for under [gesture] — every row of this answer is a decision

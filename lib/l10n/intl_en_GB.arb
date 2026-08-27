@@ -13777,6 +13777,25 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetNewGestureFilterTag": "Filtered on {label}",
+  "@budgetNewGestureFilterTag": {
+    "description": "Tag atop the + New wizard's own step 1, naming which view's gestures the list is narrowed to; sits beside the Show all action that lifts the filter",
+    "context": "Displayed above the gesture cards, OcptBudgetNewDialog's own step 1, while a view filter is in effect",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Expenses"
+      }
+    }
+  },
+  "budgetNewShowAllGesturesAction": "Show all",
+  "@budgetNewShowAllGesturesAction": {
+    "description": "Action beside the + New wizard's own filter tag that lifts the view filter and shows every gesture",
+    "context": "Displayed beside the filter tag, OcptBudgetNewDialog's own step 1",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetRevenueDialogCreateTitle": "New taking",
   "@budgetRevenueDialogCreateTitle": {
     "description": "Title of the revenue dialog while creating a new taking",

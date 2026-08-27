@@ -104,12 +104,17 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// null for the dashboard's own natural order, nothing pre-selected.
   final OcptBudgetGestureFamily? promotedFamily;
 
-  /// Whether the `Le devis` family stays the very first heading even while [promotedFamily] is
-  /// something else — the promoted family then sits **just below** the quote rather than above it,
-  /// still pre-selected. The resources route asks for this: its own financing group is the tab's own
-  /// document, but the quote reads as the source document a plan is drawn against, so it stays the
-  /// stable anchor at the top. Ignored while [promotedFamily] is null or is the quote family itself.
-  final bool keepsQuoteFirst;
+  /// The gestures step 1 offers, or null to offer them all — the semantic filter the route it was
+  /// opened from carries (`budget_mode.dart`'s own `_wizardGesturesForView`): the expenses route
+  /// hands the ones that spend, the resources route the ones that bring money in, each drawer page
+  /// its own family. A family with no offered gesture draws no heading at all, and the reader can
+  /// lift the filter whole from inside step 1 (`Show all`), after which every family is shown in the
+  /// natural order. Null everywhere step 1 is skipped, and on the dashboard, which filters nothing.
+  final Set<OcptBudgetGesture>? allowedGestures;
+
+  /// The word the filter tag names the current filter by — the route's own segment label, resolved
+  /// by the mode — or null while [allowedGestures] is null. Read only to draw the tag.
+  final String? filterLabel;
 
   /// The gesture step 1 opens with already selected, or null to open with nothing picked — read
   /// only while [entryPrefill] and [commitmentPrefill] are both null, per the class doc comment.
@@ -185,7 +190,8 @@ class OcptBudgetNewDialog extends StatefulWidget {
   const OcptBudgetNewDialog({
     super.key,
     this.promotedFamily,
-    this.keepsQuoteFirst = false,
+    this.allowedGestures,
+    this.filterLabel,
     this.initialGesture,
     this.entryPrefill,
     this.commitmentPrefill,
@@ -212,7 +218,8 @@ class OcptBudgetNewDialog extends StatefulWidget {
   static Future<OcptBudgetNewOutcome?> show(
     BuildContext context, {
     OcptBudgetGestureFamily? promotedFamily,
-    bool keepsQuoteFirst = false,
+    Set<OcptBudgetGesture>? allowedGestures,
+    String? filterLabel,
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
     OcptBudgetCommitmentFormFields? commitmentPrefill,
@@ -237,7 +244,8 @@ class OcptBudgetNewDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetNewDialog(
       promotedFamily: promotedFamily,
-      keepsQuoteFirst: keepsQuoteFirst,
+      allowedGestures: allowedGestures,
+      filterLabel: filterLabel,
       initialGesture: initialGesture,
       entryPrefill: entryPrefill,
       commitmentPrefill: commitmentPrefill,
@@ -275,6 +283,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
   /// The gesture currently selected on step 1, or in effect past it.
   OcptBudgetGesture? _gesture;
+
+  /// Whether the reader has lifted [OcptBudgetNewDialog.allowedGestures] with `Show all` — every
+  /// family then shows, in the natural order, exactly as the dashboard's own unfiltered step 1 does.
+  bool _showAll = false;
 
   // -----------------------------------------------------------------------------------------
   // Step 2's own answer — every field kept even while a different gesture is in effect, so
@@ -565,34 +577,38 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   // ===============================================================================================
 
   List<OcptBudgetGestureFamily> get _orderedFamilies {
-    final promoted = widget.promotedFamily;
+    // `Show all` drops the promotion too, so the lifted list reads in the plain natural order — the
+    // quote first, exactly the dashboard's own unfiltered step 1.
+    final promoted = _showAll ? null : widget.promotedFamily;
     if (promoted == null) {
       return _ocptNewNaturalFamilyOrder;
     }
-    if (widget.keepsQuoteFirst && promoted != OcptBudgetGestureFamily.quote) {
-      // The quote stays the top anchor; the promoted family follows it, then the rest in natural
-      // order — see [OcptBudgetNewDialog.keepsQuoteFirst].
-      return [
-        OcptBudgetGestureFamily.quote,
-        promoted,
-        for (final family in _ocptNewNaturalFamilyOrder)
-          if (family != promoted && family != OcptBudgetGestureFamily.quote) family,
-      ];
-    }
     return [promoted, for (final family in _ocptNewNaturalFamilyOrder) if (family != promoted) family];
+  }
+
+  /// [family]'s own gestures that step 1 currently offers — every one of them while the filter is
+  /// lifted or absent, only the offered ones otherwise. A family with none is drawn no heading.
+  List<OcptBudgetGesture> _visibleGesturesOf(OcptBudgetGestureFamily family) {
+    final allowed = _showAll ? null : widget.allowedGestures;
+    return [
+      for (final gesture in OcptBudgetGesture.values)
+        if (ocptBudgetGestureFamilyOf(gesture) == family && (allowed == null || allowed.contains(gesture)))
+          gesture,
+    ];
   }
 
   Widget _buildGestureStep(BuildContext context, Tr tr) => Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      for (final family in _orderedFamilies) ...[
-        Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 8),
-          child: _buildFamilyHeading(context, tr, family),
-        ),
-        for (final gesture in OcptBudgetGesture.values)
-          if (ocptBudgetGestureFamilyOf(gesture) == family)
+      if (!_showAll && widget.allowedGestures != null) _buildFilterTag(context, tr),
+      for (final family in _orderedFamilies)
+        if (_visibleGesturesOf(family).isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            child: _buildFamilyHeading(context, tr, family),
+          ),
+          for (final gesture in _visibleGesturesOf(family))
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _OcptBudgetNewGestureCard(
@@ -601,9 +617,31 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
                 onSelected: () => setState(() => _gesture = gesture),
               ),
             ),
-      ],
+        ],
     ],
   );
+
+  /// The filter tag atop a filtered step 1: what the list is narrowed to, and the `Show all` action
+  /// that lifts it whole. Drawn only while a filter is in effect — the mockup's own removable-tag
+  /// idiom the mode already uses for its poste filter.
+  Widget _buildFilterTag(BuildContext context, Tr tr) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            tr.budgetNewGestureFilterTag(widget.filterLabel ?? ""),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ),
+        TextButton(
+          key: const Key("ocptBudgetNewShowAllGesturesButton"),
+          onPressed: () => setState(() => _showAll = true),
+          child: Text(tr.budgetNewShowAllGesturesAction),
+        ),
+      ],
+    );
+  }
 
   Widget _buildFamilyHeading(BuildContext context, Tr tr, OcptBudgetGestureFamily family) {
     final theme = Theme.of(context);

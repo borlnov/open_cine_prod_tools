@@ -737,13 +737,22 @@ are all here, and this file is the whole record of them.
   place on all five routes — `dashboard` and `tools › cashFlow` included, which carried none before.
   The button opens step 1 with the current route's own document promoted to the top and its first
   answer pre-selected, so the frequent gesture is one click and everything else one scroll away; the
-  dashboard, working on no single document, promotes nothing and pre-selects nothing. **The
-  `resources` route is the one exception to "promoted to the top"** (`keepsQuoteFirst`): the quote
-  stays the first heading and the promoted financing group sits just below it, still pre-selected —
-  the quote reads as the source document a financing plan is drawn against, so it holds the top as a
-  stable anchor. The only
+  dashboard, working on no single document, promotes nothing and pre-selects nothing. The only
   creation control that stays out of the wizard is `+ Poste`, a poste being a container that carries
   no money of its own. Under a previewed version the button is withheld whole, never disabled.
+- **Step 1 is filtered by the route it opened from, by the direction money moves — transverse to
+  the families** (`_wizardGesturesForView`, `ocptBudgetGestureFlowsOf`). `Expenses` offers every
+  gesture that makes money go out whatever family it sits in — the quote's own three, the four
+  debits, and the free-direction `Autre mouvement`; `Resources` offers every gesture that brings
+  money in — the three planned incomes, the two receipts, and `Autre mouvement` again; the drawer's
+  `cashFlow` offers the whole `cashMovement` family, `regie` its defrayal and `sharing` its
+  participant. The **dashboard filters nothing**. A family with no offered gesture draws no heading,
+  and a **removable tag** at the top names the filter (`Filtré : <route>`) with a `Tout afficher`
+  action beside it — the mode's own poste-filter tag idiom — that **lifts the filter whole**, after
+  which every family is shown in the plain natural order, the quote first, exactly the dashboard's
+  own unfiltered step 1. `Autre mouvement` shows under `Expenses`, `Resources` and `cashFlow` alike,
+  since its direction is the reader's to pick. The promotion above still orders the filtered list:
+  the route's own family leads it, its first gesture pre-selected.
 - **Three steps, or two** (`ocptBudgetGestureStepCountOf`). Step 1 offers the **fifteen answers** of
   `OcptBudgetGesture`, grouped under the **five document headings** of `OcptBudgetGestureFamily` —
   `Le devis`, `L'argent qui a bougé`, `Le plan de financement`, `Les défraiements`, `Le partage des

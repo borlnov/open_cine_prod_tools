@@ -262,7 +262,8 @@ void main() {
   Future<Tr> pumpDialog(
     WidgetTester tester, {
     OcptBudgetGestureFamily? promotedFamily,
-    bool keepsQuoteFirst = false,
+    Set<OcptBudgetGesture>? allowedGestures,
+    String? filterLabel,
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
     List<OcptBudgetPoste> postes = const [],
@@ -280,7 +281,8 @@ void main() {
       _wrap(
         OcptBudgetNewDialog(
           promotedFamily: promotedFamily,
-          keepsQuoteFirst: keepsQuoteFirst,
+          allowedGestures: allowedGestures,
+          filterLabel: filterLabel,
           initialGesture: initialGesture,
           entryPrefill: entryPrefill,
           postes: postes,
@@ -307,34 +309,66 @@ void main() {
     return Tr.of(tester.element(find.byType(OcptBudgetNewDialog)));
   }
 
-  group("the resources route keeps the quote heading first", () {
-    testWidgets("promotes financing just below the quote, not above it", (tester) async {
+  group("the + New wizard filters its gestures by the view it opened from", () {
+    // The expenses route's own filter: everything that makes money go out, transverse to the
+    // families — the quote's three, the four debits and the free-direction `Autre mouvement`.
+    final spends = {
+      OcptBudgetGesture.addQuoteLine,
+      OcptBudgetGesture.addQuoteLinesFromBreakdown,
+      OcptBudgetGesture.commitSpend,
+      OcptBudgetGesture.recordExpense,
+      OcptBudgetGesture.reimbursePerson,
+      OcptBudgetGesture.payParticipantShare,
+      OcptBudgetGesture.repayContribution,
+      OcptBudgetGesture.recordOtherMovement,
+    };
+
+    testWidgets("shows only the families with an offered gesture", (tester) async {
       final tr = await pumpDialog(
         tester,
-        promotedFamily: OcptBudgetGestureFamily.financingPlan,
-        keepsQuoteFirst: true,
+        promotedFamily: OcptBudgetGestureFamily.quote,
+        allowedGestures: spends,
+        filterLabel: "Expenses",
+        initialGesture: OcptBudgetGesture.addQuoteLine,
       );
 
-      final quoteTop = tester.getTopLeft(find.text(tr.budgetNewFamilyQuoteLabel)).dy;
-      final financingTop = tester.getTopLeft(find.text(tr.budgetNewFamilyFinancingPlanLabel)).dy;
-      final cashTop = tester.getTopLeft(find.text(tr.budgetNewFamilyCashMovementLabel)).dy;
+      // The tag names the filter, and only the spending families draw a heading.
+      expect(find.text(tr.budgetNewGestureFilterTag("Expenses")), findsOneWidget);
+      expect(find.text(tr.budgetNewFamilyQuoteLabel), findsOneWidget);
+      expect(find.text(tr.budgetNewFamilyCashMovementLabel), findsOneWidget);
+      expect(find.text(tr.budgetNewFamilyFinancingPlanLabel), findsNothing);
+      expect(find.text(tr.budgetNewFamilyRevenueSharingLabel), findsNothing);
 
-      // The quote stays the top anchor; the promoted financing group follows it, above the cash
-      // movements it sits below in the natural order.
-      expect(quoteTop, lessThan(financingTop));
-      expect(financingTop, lessThan(cashTop));
+      // A bringing-in gesture is withheld; a spending one is offered.
+      expect(find.text(tr.budgetNewGestureRecordFinancingReceiptLabel), findsNothing);
+      expect(find.text(tr.budgetNewGestureRecordExpenseLabel), findsOneWidget);
     });
 
-    testWidgets("without the flag financing is promoted above the quote", (tester) async {
+    testWidgets("Show all lifts the filter and reveals every family, tag gone", (tester) async {
       final tr = await pumpDialog(
         tester,
-        promotedFamily: OcptBudgetGestureFamily.financingPlan,
+        promotedFamily: OcptBudgetGestureFamily.quote,
+        allowedGestures: spends,
+        filterLabel: "Expenses",
+        initialGesture: OcptBudgetGesture.addQuoteLine,
       );
 
-      final quoteTop = tester.getTopLeft(find.text(tr.budgetNewFamilyQuoteLabel)).dy;
-      final financingTop = tester.getTopLeft(find.text(tr.budgetNewFamilyFinancingPlanLabel)).dy;
+      expect(find.text(tr.budgetNewFamilyRevenueSharingLabel), findsNothing);
 
-      expect(financingTop, lessThan(quoteTop));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewShowAllGesturesButton")));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetNewFamilyRevenueSharingLabel), findsOneWidget);
+      expect(find.text(tr.budgetNewFamilyFinancingPlanLabel), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewShowAllGesturesButton")), findsNothing);
+    });
+
+    testWidgets("with no filter every family is shown and no tag is drawn", (tester) async {
+      final tr = await pumpDialog(tester);
+
+      expect(find.byKey(const Key("ocptBudgetNewShowAllGesturesButton")), findsNothing);
+      expect(find.text(tr.budgetNewFamilyRevenueSharingLabel), findsOneWidget);
+      expect(find.text(tr.budgetNewFamilyFinancingPlanLabel), findsOneWidget);
     });
   });
 

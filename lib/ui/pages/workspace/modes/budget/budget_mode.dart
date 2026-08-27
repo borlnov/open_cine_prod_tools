@@ -513,18 +513,58 @@ class _BudgetViewState extends State<_BudgetView> {
   OcptBudgetGesture _firstGestureOf(OcptBudgetGestureFamily family) =>
       OcptBudgetGesture.values.firstWhere((gesture) => ocptBudgetGestureFamilyOf(gesture) == family);
 
+  /// Which gestures the `+ New` wizard offers when opened from the current route — a semantic filter
+  /// by the direction money moves (`ocptBudgetGestureFlowsOf`), **transverse to the families**: the
+  /// expenses route offers everything that spends, the resources route everything that brings money
+  /// in, the drawer's cash-flow page its own movements, régie and sharing their own single family.
+  /// Null for the dashboard, which works on no document and filters nothing. The reader lifts it
+  /// from inside the wizard (`Show all`).
+  Set<OcptBudgetGesture>? _wizardGesturesForView(OcptBudgetState state) {
+    Set<OcptBudgetGesture> spending(OcptBudgetGestureFlow flow) => {
+      for (final gesture in OcptBudgetGesture.values)
+        if (ocptBudgetGestureFlowsOf(gesture).contains(flow)) gesture,
+    };
+    Set<OcptBudgetGesture> ofFamily(OcptBudgetGestureFamily family) => {
+      for (final gesture in OcptBudgetGesture.values)
+        if (ocptBudgetGestureFamilyOf(gesture) == family) gesture,
+    };
+
+    return switch ((state.view, state.toolsView)) {
+      (OcptBudgetView.dashboard, _) => null,
+      (OcptBudgetView.expenses, _) => spending(OcptBudgetGestureFlow.spends),
+      (OcptBudgetView.resources, _) => spending(OcptBudgetGestureFlow.brings),
+      (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) =>
+        ofFamily(OcptBudgetGestureFamily.cashMovement),
+      (OcptBudgetView.tools, OcptBudgetToolsView.regie) =>
+        ofFamily(OcptBudgetGestureFamily.allowances),
+      (OcptBudgetView.tools, OcptBudgetToolsView.sharing) =>
+        ofFamily(OcptBudgetGestureFamily.revenueSharing),
+    };
+  }
+
+  /// The word the wizard's own filter tag names the current filter by — the route's own header
+  /// segment label. Read only where [_wizardGesturesForView] is non-null.
+  String _wizardFilterLabelOf(Tr tr, OcptBudgetState state) => switch ((state.view, state.toolsView)) {
+    (OcptBudgetView.expenses, _) => tr.budgetHeaderExpensesSegmentLabel,
+    (OcptBudgetView.resources, _) => tr.budgetHeaderResourcesSegmentLabel,
+    (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashFlowSegmentLabel,
+    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieSegmentLabel,
+    (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingSegmentLabel,
+    (OcptBudgetView.dashboard, _) => "",
+  };
+
   /// Opens the capture wizard fresh — no step already answered — promoted and pre-selected per the
   /// current route, exactly as [_newButtonOf]'s own doc comment describes. Dispatches whatever
   /// [_handleNewOutcome] says once the wizard closes with something.
   Future<void> _handleNewRequested(BuildContext context, OcptBudgetState state) async {
     final bloc = context.read<OcptBudgetBloc>();
     final promotedFamily = _promotedGestureFamilyOf(state);
+    final allowedGestures = _wizardGesturesForView(state);
     final outcome = await OcptBudgetNewDialog.show(
       context,
       promotedFamily: promotedFamily,
-      // On the resources route the quote stays the top heading, the promoted financing group sitting
-      // just below it — the quote reads as the source document a financing plan is drawn against.
-      keepsQuoteFirst: state.view == OcptBudgetView.resources,
+      allowedGestures: allowedGestures,
+      filterLabel: allowedGestures == null ? null : _wizardFilterLabelOf(Tr.of(context), state),
       initialGesture: promotedFamily == null ? null : _firstGestureOf(promotedFamily),
       postes: state.postes,
       resources: state.resources,
