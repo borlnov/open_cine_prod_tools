@@ -404,6 +404,94 @@ void main() {
       expect(uncommittedLineId, "line-1");
 
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsNothing);
+      // Nothing has been paid at all: no payments section draws.
+      expect(find.text(tr.budgetFicheCommitmentPaymentsSectionTitle.toUpperCase()), findsNothing);
+    });
+
+    testWidgets(
+      "promoted, part-paid: Pay offers the outstanding, not the full commitment, and the "
+      "payments section lists the instalment",
+      (tester) async {
+        _useTallSurface(tester);
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetLineSelection("line-1"),
+              commitments: [_buildCommitment(lineId: "line-1")],
+              entries: [_buildEntry(debitCents: 400, commitmentId: "commitment-1")],
+              onLineSettleRequested: (_) {},
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        // Outstanding is 1000 - 400 = 600, not the commitment's own full 1000.
+        final payLabel = tr.budgetFichePayAction(ocptBudgetAmountLabel(600, "EUR"));
+        expect(find.widgetWithText(FilledButton, payLabel), findsOneWidget);
+        expect(find.text(ocptBudgetAmountLabel(600, "EUR")), findsWidgets);
+        expect(find.widgetWithText(FilledButton, tr.budgetFichePayAction(ocptBudgetAmountLabel(1000, "EUR"))), findsNothing);
+
+        // The payments section lists the one instalment paid so far.
+        expect(find.text(tr.budgetFicheCommitmentPaymentsSectionTitle.toUpperCase()), findsOneWidget);
+        expect(find.text(ocptBudgetAmountLabel(400, "EUR")), findsWidgets);
+      },
+    );
+
+    testWidgets("the payments section lists every instalment, oldest first", (tester) async {
+      _useTallSurface(tester);
+      final laterEntry = OcptBudgetEntry(
+        id: "entry-later",
+        date: DateTime(2026, 8, 20),
+        label: "Balance",
+        posteId: "poste-1",
+        debitCents: 200,
+        creditCents: 0,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+        voucherNumber: "J-002",
+        sortKey: "a1",
+        resourceId: null,
+        revenueId: null,
+        shareId: null,
+        commitmentId: "commitment-1",
+        personId: null,
+      );
+      final earlierEntry = OcptBudgetEntry(
+        id: "entry-earlier",
+        date: DateTime(2026, 8),
+        label: "Deposit",
+        posteId: "poste-1",
+        debitCents: 800,
+        creditCents: 0,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+        voucherNumber: "J-001",
+        sortKey: "a0",
+        resourceId: null,
+        revenueId: null,
+        shareId: null,
+        commitmentId: "commitment-1",
+        personId: null,
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          _fiche(
+            selection: const OcptBudgetLineSelection("line-1"),
+            commitments: [_buildCommitment(lineId: "line-1")],
+            // Handed in latest first, on purpose — the section must still draw them oldest first.
+            entries: [laterEntry, earlierEntry],
+          ),
+        ),
+      );
+
+      // The earlier, 8.00 € deposit sits above the later, 2.00 € balance — neither figure appears
+      // anywhere else on this settled commitment's own fiche (its quote, committed and paid
+      // figures all read 10.00 €), so each is found exactly once, in the payments section alone.
+      expect(
+        tester.getTopLeft(find.text(ocptBudgetAmountLabel(800, "EUR"))).dy,
+        lessThan(tester.getTopLeft(find.text(ocptBudgetAmountLabel(200, "EUR"))).dy),
+      );
     });
 
     testWidgets("promoted, settled: no primary, Delete is the only secondary", (

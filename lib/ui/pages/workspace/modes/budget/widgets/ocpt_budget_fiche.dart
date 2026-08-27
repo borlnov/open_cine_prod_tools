@@ -494,6 +494,24 @@ class OcptBudgetFiche extends StatelessWidget {
         ? null
         : ocptBudgetCommitmentPaidCentsOf(commitment, entries, projectVatRateBasisPoints: defaultVatRateBasisPoints)
               .amountCents;
+    // What this commitment still owes — the `Pay` action and the outstanding block below both read
+    // this, never [committedCents]' own full figure, so a partly-paid commitment offers back only
+    // what is actually left to pay (`docs/plans/budget-capture-wizard.md`'s "the pay action offers
+    // the outstanding amount rather than the total").
+    final outstandingCents = commitment == null
+        ? null
+        : ocptBudgetCommitmentOutstandingCentsOf(
+            commitment,
+            entries,
+            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+          );
+    // Every entry that has paid this commitment, oldest first — a commitment settled in
+    // instalments draws each one, `docs/plans/budget-capture-wizard.md`'s "The line fiche and the
+    // expenses tree learn to draw a commitment's own payments".
+    final payments = commitment == null
+        ? const <OcptBudgetEntry>[]
+        : (entries.where((entry) => entry.commitmentId == commitment.id).toList()
+            ..sort((a, b) => a.date.compareTo(b.date)));
 
     final elementName = line.elementId == null ? null : elementNameByElementId[line.elementId];
     final quantityText = ocptBudgetQuantityLabel(line.quantityMilli);
@@ -510,7 +528,7 @@ class OcptBudgetFiche extends StatelessWidget {
       outstandingValue = _amount(lineTotalCents);
     } else if (!isSettled) {
       outstandingLabel = tr.budgetCommittedOutstandingLabel;
-      outstandingValue = _amount(committedCents);
+      outstandingValue = _amount(outstandingCents);
     } else {
       outstandingLabel = tr.budgetCommittedOutstandingLabel;
       outstandingValue = null;
@@ -539,7 +557,7 @@ class OcptBudgetFiche extends StatelessWidget {
       primary = onLineSettleRequested == null
           ? null
           : _OcptBudgetFicheAction(
-              label: tr.budgetFichePayAction(_amount(committedCents)),
+              label: tr.budgetFichePayAction(_amount(outstandingCents)),
               onTap: () => onLineSettleRequested?.call(lineId),
             );
       if (onLineShowCommitmentRequested != null) {
@@ -595,6 +613,13 @@ class OcptBudgetFiche extends StatelessWidget {
       outstandingLabel: outstandingLabel,
       outstandingValue: outstandingValue,
       details: _lineEditableFields(context, line),
+      paymentsSection: payments.isEmpty
+          ? null
+          : _OcptBudgetCommitmentPayments(
+              payments: payments,
+              defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+              currencyCode: currencyCode,
+            ),
       primary: primary,
       secondaries: secondaries,
     );
@@ -1142,6 +1167,10 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
   /// The poste's or the line's own editable fields, or null while this variant carries none.
   final Widget? details;
 
+  /// A quote line's own list of the payments made against its commitment, one instalment per row —
+  /// null for every other variant, and for a line whose commitment has never been paid at all.
+  final Widget? paymentsSection;
+
   /// The one primary action, or null while withheld or none applies.
   final _OcptBudgetFicheAction? primary;
 
@@ -1163,6 +1192,7 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
     this.outstandingLabel,
     this.outstandingValue,
     this.details,
+    this.paymentsSection,
     required this.primary,
     required this.secondaries,
   });
@@ -1238,6 +1268,10 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
           ] else if (figures.isNotEmpty) ...[
             const SizedBox(height: 16),
             _OcptBudgetFicheFiguresRow(figures: figures),
+          ],
+          if (paymentsSection != null) ...[
+            const SizedBox(height: 16),
+            paymentsSection!,
           ],
           if (outstandingLabel != null) ...[
             const SizedBox(height: 16),
@@ -1523,6 +1557,66 @@ class _OcptBudgetFicheFiguresRow extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+/// A promoted quote line's own payments section: every entry that has paid its commitment, one
+/// instalment per row, date then amount — `docs/plans/budget-capture-wizard.md`'s "The line fiche
+/// and the expenses tree learn to draw a commitment's own payments". Read-only, like every other
+/// figure this fiche prints: there is no affordance here to withhold under a preview.
+class _OcptBudgetCommitmentPayments extends StatelessWidget {
+  /// The commitment's own payments, oldest first.
+  final List<OcptBudgetEntry> payments;
+
+  /// The project's default VAT rate, in basis points, or null — what a payment with no rate of its
+  /// own reads its debit under.
+  final int? defaultVatRateBasisPoints;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Class constructor
+  const _OcptBudgetCommitmentPayments({
+    required this.payments,
+    required this.defaultVatRateBasisPoints,
+    required this.currencyCode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(tr.budgetFicheCommitmentPaymentsSectionTitle.toUpperCase(), style: labelStyle),
+        const SizedBox(height: 4),
+        for (final payment in payments)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(DateFormat.yMMMd(locale).format(payment.date), style: theme.textTheme.bodySmall),
+                Text(_amountText(payment), style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// [payment]'s own debit, tax-inclusive, formatted in [currencyCode] — [ocptBudgetEmptyValue]
+  /// while its rate cannot be read.
+  String _amountText(OcptBudgetEntry payment) {
+    final debitCents = ocptBudgetEntryDebitCentsOf(
+      payment,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    return debitCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(debitCents, currencyCode);
   }
 }
 

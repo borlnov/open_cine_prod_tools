@@ -509,8 +509,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// A poste draws whenever it is live, whatever [expandedNodeIds] holds; its own children —
   /// [OcptBudgetPoste.lines], then its off-line commitments and entries — draw only while its own
   /// id is in [expandedNodeIds]. A quote line's own children — its commitments, and, for each one,
-  /// either the entry that settled it or the muted "no entry" hint — draw only while the line's own
-  /// id is in [expandedNodeIds] too.
+  /// either every entry that has paid it so far or the muted "no entry" hint while none has —
+  /// draw only while the line's own id is in [expandedNodeIds] too.
   ///
   /// **The off-quote row follows the last poste, drawn exactly as it always was — only while
   /// [offQuoteTotal] holds something ([OcptBudgetCoveredTotal.lineCount] above zero).** Its own
@@ -524,25 +524,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// payment that happens to also be a settlement.
   List<_OcptTreeRow> _buildRows() {
     final rows = <_OcptTreeRow>[];
-    // Every entry naming a **settled** commitment, wherever that commitment lives — an off-line
-    // entry list must never repeat one of these, since [_addCommitmentRows] already draws it nested
-    // under the very commitment it pays. An entry naming a commitment still owed is left out of this
-    // set on purpose: [_addCommitmentRows] draws the muted "no entry" hint for an unsettled
-    // commitment rather than its own partial payments at this milestone, so excluding such an entry
-    // here too would drop it from the tree entirely.
-    final settledCommitmentIds = {
-      for (final commitment in commitments)
-        if (ocptBudgetCommitmentIsSettledOf(
-          commitment,
-          entries,
-          projectVatRateBasisPoints: defaultVatRateBasisPoints,
-        ))
-          commitment.id,
-    };
-    final settlingEntryIds = {
-      for (final entry in entries)
-        if (settledCommitmentIds.contains(entry.commitmentId)) entry.id,
-    };
+    // Every entry naming a commitment at all, settled or still owed — an off-line entry list must
+    // never repeat one of these, since [_addCommitmentRows] already draws every one of them nested
+    // under the very commitment it pays, whether that commitment is settled yet or only part-paid.
+    final settlingEntryIds = {for (final entry in entries) if (entry.commitmentId != null) entry.id};
 
     for (final poste in postes) {
       final offLineCommitments = [
@@ -608,11 +593,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
   }
 
   /// Appends one row per commitment of [rowCommitments], each immediately followed by every entry
-  /// that pays it (found in [entries], through `OcptBudgetEntry.commitmentId`) while it is settled,
-  /// or by the muted "no entry" hint while it is not — all at [depth], siblings of the commitment
-  /// itself, never a level deeper. Ordinarily one entry, since the settle gesture still writes a
-  /// single instalment at this milestone, but drawing every one naming it is what already reads
-  /// correctly the moment a commitment is paid in more than one.
+  /// that pays it (found in [entries], through `OcptBudgetEntry.commitmentId`) whenever it has been
+  /// paid at all — settled or only part-paid, one row per instalment — or by the muted "no entry"
+  /// hint while genuinely none has paid it yet — all at [depth], siblings of the commitment itself,
+  /// never a level deeper.
   void _addCommitmentRows(
     List<_OcptTreeRow> rows,
     List<OcptBudgetCommitment> rowCommitments, {
@@ -621,18 +605,16 @@ class OcptBudgetCostTracking extends StatelessWidget {
     for (final commitment in rowCommitments) {
       rows.add(_OcptCommitmentTreeRow(commitment: commitment, depth: depth));
 
-      if (ocptBudgetCommitmentIsSettledOf(
-        commitment,
-        entries,
-        projectVatRateBasisPoints: defaultVatRateBasisPoints,
-      )) {
-        for (final entry in entries) {
-          if (entry.commitmentId == commitment.id) {
-            rows.add(_OcptEntryTreeRow(entry: entry, depth: depth));
-          }
-        }
-      } else {
+      final paymentEntries = [
+        for (final entry in entries)
+          if (entry.commitmentId == commitment.id) entry,
+      ];
+      if (paymentEntries.isEmpty) {
         rows.add(_OcptCommitmentHintTreeRow(depth: depth));
+      } else {
+        for (final entry in paymentEntries) {
+          rows.add(_OcptEntryTreeRow(entry: entry, depth: depth));
+        }
       }
     }
   }

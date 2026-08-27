@@ -1128,6 +1128,38 @@ void main() {
       expect(find.text(tr.budgetCostTrackingNoEntryHint), findsOneWidget);
     });
 
+    testWidgets("a commitment only part-paid draws its own instalment, not the no-entry hint", (
+      tester,
+    ) async {
+      final commitments = [
+        _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1"),
+      ];
+      final entries = [
+        _entry(
+          id: "entry-1",
+          posteId: "poste-1",
+          debitCents: 400,
+          label: "First instalment",
+          commitmentId: "commitment-1",
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            postes: [posteWithLine()],
+            commitments: commitments,
+            entries: entries,
+            expandedNodeIds: const {"poste-1", "line-1"},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(find.text("First instalment"), findsOneWidget);
+      expect(find.text(tr.budgetCostTrackingNoEntryHint), findsNothing);
+    });
+
     testWidgets("the poste's own off-line commitments and entries draw at a line's own "
         "indentation once the poste is expanded", (tester) async {
       final commitments = [

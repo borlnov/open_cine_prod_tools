@@ -1535,6 +1535,7 @@
   "budgetFicheCommitmentHint": "{status} · {dueDate}",
   "budgetFicheEntryHint": "{date} · {voucher}",
   "budgetFicheEntrySettlesLabel": "Solde : {name}",
+  "budgetFicheCommitmentPaymentsSectionTitle": "Versements",
   "budgetFichePayAction": "Payer {amount}",
   "budgetFicheReceiveAction": "Encaisser {amount}",
   "budgetFicheLineStillToCommitLabel": "Reste à engager",

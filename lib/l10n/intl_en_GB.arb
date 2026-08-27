@@ -11549,6 +11549,13 @@
       "name": {}
     }
   },
+  "budgetFicheCommitmentPaymentsSectionTitle": "Payments",
+  "@budgetFicheCommitmentPaymentsSectionTitle": {
+    "description": "Title of a promoted quote line's own payments section, listing every entry that has paid its commitment, one instalment per row",
+    "context": "Displayed under a quote line's own figures in the budget mode's fiche, only while its commitment has been paid at least once",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetFichePayAction": "Pay {amount}",
   "@budgetFichePayAction": {
     "description": "Primary action of a commitment's own fiche, or of a promoted quote line's own fiche, opening the entry dialog pre-filled with the amount",
