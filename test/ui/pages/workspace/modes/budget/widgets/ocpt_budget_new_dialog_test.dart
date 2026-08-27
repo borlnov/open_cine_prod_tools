@@ -262,6 +262,7 @@ void main() {
   Future<Tr> pumpDialog(
     WidgetTester tester, {
     OcptBudgetGestureFamily? promotedFamily,
+    bool keepsQuoteFirst = false,
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
     List<OcptBudgetPoste> postes = const [],
@@ -279,6 +280,7 @@ void main() {
       _wrap(
         OcptBudgetNewDialog(
           promotedFamily: promotedFamily,
+          keepsQuoteFirst: keepsQuoteFirst,
           initialGesture: initialGesture,
           entryPrefill: entryPrefill,
           postes: postes,
@@ -304,6 +306,37 @@ void main() {
 
     return Tr.of(tester.element(find.byType(OcptBudgetNewDialog)));
   }
+
+  group("the resources route keeps the quote heading first", () {
+    testWidgets("promotes financing just below the quote, not above it", (tester) async {
+      final tr = await pumpDialog(
+        tester,
+        promotedFamily: OcptBudgetGestureFamily.financingPlan,
+        keepsQuoteFirst: true,
+      );
+
+      final quoteTop = tester.getTopLeft(find.text(tr.budgetNewFamilyQuoteLabel)).dy;
+      final financingTop = tester.getTopLeft(find.text(tr.budgetNewFamilyFinancingPlanLabel)).dy;
+      final cashTop = tester.getTopLeft(find.text(tr.budgetNewFamilyCashMovementLabel)).dy;
+
+      // The quote stays the top anchor; the promoted financing group follows it, above the cash
+      // movements it sits below in the natural order.
+      expect(quoteTop, lessThan(financingTop));
+      expect(financingTop, lessThan(cashTop));
+    });
+
+    testWidgets("without the flag financing is promoted above the quote", (tester) async {
+      final tr = await pumpDialog(
+        tester,
+        promotedFamily: OcptBudgetGestureFamily.financingPlan,
+      );
+
+      final quoteTop = tester.getTopLeft(find.text(tr.budgetNewFamilyQuoteLabel)).dy;
+      final financingTop = tester.getTopLeft(find.text(tr.budgetNewFamilyFinancingPlanLabel)).dy;
+
+      expect(financingTop, lessThan(quoteTop));
+    });
+  });
 
   group("the step counter always tells the truth", () {
     testWidgets("reads sur 2 for a gesture that attaches to nothing", (tester) async {

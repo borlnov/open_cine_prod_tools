@@ -104,6 +104,13 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// null for the dashboard's own natural order, nothing pre-selected.
   final OcptBudgetGestureFamily? promotedFamily;
 
+  /// Whether the `Le devis` family stays the very first heading even while [promotedFamily] is
+  /// something else — the promoted family then sits **just below** the quote rather than above it,
+  /// still pre-selected. The resources route asks for this: its own financing group is the tab's own
+  /// document, but the quote reads as the source document a plan is drawn against, so it stays the
+  /// stable anchor at the top. Ignored while [promotedFamily] is null or is the quote family itself.
+  final bool keepsQuoteFirst;
+
   /// The gesture step 1 opens with already selected, or null to open with nothing picked — read
   /// only while [entryPrefill] and [commitmentPrefill] are both null, per the class doc comment.
   final OcptBudgetGesture? initialGesture;
@@ -178,6 +185,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
   const OcptBudgetNewDialog({
     super.key,
     this.promotedFamily,
+    this.keepsQuoteFirst = false,
     this.initialGesture,
     this.entryPrefill,
     this.commitmentPrefill,
@@ -204,6 +212,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
   static Future<OcptBudgetNewOutcome?> show(
     BuildContext context, {
     OcptBudgetGestureFamily? promotedFamily,
+    bool keepsQuoteFirst = false,
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
     OcptBudgetCommitmentFormFields? commitmentPrefill,
@@ -228,6 +237,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetNewDialog(
       promotedFamily: promotedFamily,
+      keepsQuoteFirst: keepsQuoteFirst,
       initialGesture: initialGesture,
       entryPrefill: entryPrefill,
       commitmentPrefill: commitmentPrefill,
@@ -558,6 +568,16 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     final promoted = widget.promotedFamily;
     if (promoted == null) {
       return _ocptNewNaturalFamilyOrder;
+    }
+    if (widget.keepsQuoteFirst && promoted != OcptBudgetGestureFamily.quote) {
+      // The quote stays the top anchor; the promoted family follows it, then the rest in natural
+      // order — see [OcptBudgetNewDialog.keepsQuoteFirst].
+      return [
+        OcptBudgetGestureFamily.quote,
+        promoted,
+        for (final family in _ocptNewNaturalFamilyOrder)
+          if (family != promoted && family != OcptBudgetGestureFamily.quote) family,
+      ];
     }
     return [promoted, for (final family in _ocptNewNaturalFamilyOrder) if (family != promoted) family];
   }

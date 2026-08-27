@@ -522,6 +522,9 @@ class _BudgetViewState extends State<_BudgetView> {
     final outcome = await OcptBudgetNewDialog.show(
       context,
       promotedFamily: promotedFamily,
+      // On the resources route the quote stays the top heading, the promoted financing group sitting
+      // just below it — the quote reads as the source document a financing plan is drawn against.
+      keepsQuoteFirst: state.view == OcptBudgetView.resources,
       initialGesture: promotedFamily == null ? null : _firstGestureOf(promotedFamily),
       postes: state.postes,
       resources: state.resources,
