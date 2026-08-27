@@ -223,9 +223,6 @@ class OcptBudgetRegie extends StatelessWidget {
   /// Called with the id of the person whose own sheet the reader asks to open.
   final ValueChanged<String> onPersonOpenRequested;
 
-  /// Called when the reader asks to record a new defrayal, or null while withheld.
-  final VoidCallback? onAllowanceCreationRequested;
-
   /// Called with the id of the defrayal the reader asks to edit, or null while withheld.
   final ValueChanged<String>? onAllowanceEditRequested;
 
@@ -275,7 +272,6 @@ class OcptBudgetRegie extends StatelessWidget {
     required this.onBreakdownFeedRequested,
     required this.onProjectSettingsRequested,
     required this.onPersonOpenRequested,
-    required this.onAllowanceCreationRequested,
     required this.onAllowanceEditRequested,
     required this.onAllowanceDeletionRequested,
     required this.onProvisionPosteSelected,
@@ -334,7 +330,6 @@ class OcptBudgetRegie extends StatelessWidget {
       isReadOnly: isReadOnly,
       tableHeight: tableHeight,
       onPersonOpenRequested: onPersonOpenRequested,
-      onCreationRequested: onAllowanceCreationRequested,
       onEditRequested: onAllowanceEditRequested,
       onDeletionRequested: onAllowanceDeletionRequested,
     );
@@ -844,8 +839,9 @@ class _OcptRegieCateringTotalRow extends StatelessWidget {
   }
 }
 
-/// The right column: the heading band with its caption and its own `Defrayal` button, then the
-/// defrayal table.
+/// The right column: the heading band with its caption, then the defrayal table — its own creation
+/// gesture removed, every defrayal now typed through the capture wizard's own `defrayPerson`
+/// gesture instead.
 class _OcptRegieAllowanceColumn extends StatelessWidget {
   /// See [OcptBudgetRegie]'s own fields of the same name.
   final List<OcptBudgetAllowance> allowances;
@@ -854,7 +850,6 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
   final String currencyCode;
   final bool isReadOnly;
   final ValueChanged<String> onPersonOpenRequested;
-  final VoidCallback? onCreationRequested;
   final ValueChanged<String>? onEditRequested;
   final ValueChanged<String>? onDeletionRequested;
 
@@ -871,7 +866,6 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
     required this.isReadOnly,
     required this.tableHeight,
     required this.onPersonOpenRequested,
-    required this.onCreationRequested,
     required this.onEditRequested,
     required this.onDeletionRequested,
   });
@@ -885,7 +879,6 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
       for (final role in roles)
         if (role.personId != null) role.personId!: role,
     };
-    final effectiveOnCreationRequested = isReadOnly ? null : onCreationRequested;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -894,22 +887,9 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
       children: [
         Text(tr.budgetRegieAllowancesSectionTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                tr.budgetRegieAllowancesHint,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-            if (effectiveOnCreationRequested != null)
-              FilledButton.icon(
-                onPressed: effectiveOnCreationRequested,
-                icon: const Icon(Icons.add, size: 16),
-                label: Text(tr.budgetRegieAllowanceCreationAction),
-              ),
-          ],
+        Text(
+          tr.budgetRegieAllowancesHint,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         _OcptRegieTablePane(

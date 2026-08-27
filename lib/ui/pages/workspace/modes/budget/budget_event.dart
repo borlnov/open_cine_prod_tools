@@ -299,10 +299,10 @@ class OcptBudgetLineCreatedEvent extends OcptBudgetEvent {
 }
 
 /// Creates a new quote line inside poste [posteId] **from** breakdown element [elementId], and
-/// expands it — dispatched by the poste inspector's own `+ From breakdown` action once
-/// `OcptBudgetElementPickerDialog` returned an element, mirroring `OcptBudgetLineCreatedEvent`'s own
-/// "written the moment it is dispatched" reading. See `OcptBudgetBloc._onLineCreatedFromElement`'s
-/// own doc comment for what this writes onto the fresh line beyond its label.
+/// expands it — dispatched by the capture wizard's own breakdown selector, once per row it creates,
+/// mirroring `OcptBudgetLineCreatedEvent`'s own "written the moment it is dispatched" reading. See
+/// `OcptBudgetBloc._onLineCreatedFromElement`'s own doc comment for what this writes onto the fresh
+/// line beyond its label.
 class OcptBudgetLineCreatedFromElementEvent extends OcptBudgetEvent {
   /// The id of the poste the new line belongs to.
   final String posteId;

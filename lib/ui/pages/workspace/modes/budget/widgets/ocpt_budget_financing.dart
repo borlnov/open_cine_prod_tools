@@ -165,10 +165,6 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// Called with a family's, a resource's or a revenue's own node id when its twisty is clicked.
   final ValueChanged<String> onNodeExpansionToggled;
 
-  /// Called with the kind picked when the creation footer's own menu asks to create a fresh
-  /// resource, or null while [isReadOnly].
-  final ValueChanged<OcptBudgetResourceGroupKind>? onResourceCreationRequested;
-
   /// Called with a resource's id when its row is clicked — selects it and opens the fiche.
   final ValueChanged<String> onResourceSelected;
 
@@ -193,10 +189,6 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// Called with a resource's id when its row's own `⋮` menu asks to delete it, or null while
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onResourceDeletionRequested;
-
-  /// Called when the creation footer's own menu asks to create a fresh taking, or null while
-  /// [isReadOnly].
-  final VoidCallback? onRevenueCreationRequested;
 
   /// Called with a revenue's id when its row is clicked — selects it and opens the fiche.
   final ValueChanged<String> onRevenueSelected;
@@ -240,13 +232,11 @@ class OcptBudgetFinancing extends StatelessWidget {
     required this.expandedNodeIds,
     required this.isReadOnly,
     required this.onNodeExpansionToggled,
-    required this.onResourceCreationRequested,
     required this.onResourceSelected,
     required this.onResourceEditRequested,
     required this.onResourceReceiptRequested,
     required this.onResourceReceiptUndoRequested,
     required this.onResourceDeletionRequested,
-    required this.onRevenueCreationRequested,
     required this.onRevenueSelected,
     required this.onRevenueEditRequested,
     required this.onRevenueReceiptRequested,
@@ -271,7 +261,6 @@ class OcptBudgetFinancing extends StatelessWidget {
       (sum, resource) =>
           sum + (resource.groupKind == OcptBudgetResourceGroupKind.inKind ? resource.amountCents : 0),
     );
-    final showFooter = !isReadOnly && (onResourceCreationRequested != null || onRevenueCreationRequested != null);
     final needs = _needsOf();
     final coverage = ocptBudgetResourcesCoverageOf(
       needs: needs,
@@ -316,11 +305,6 @@ class OcptBudgetFinancing extends StatelessWidget {
             ),
           ),
         ),
-        if (showFooter)
-          _OcptResourcesCreationFooter(
-            onResourceKindPicked: isReadOnly ? null : onResourceCreationRequested,
-            onRevenuePicked: isReadOnly ? null : onRevenueCreationRequested,
-          ),
         if (needs.amountCents > 0) ...[
           const SizedBox(height: 16),
           _OcptResourcesCoverageBand(
@@ -1408,70 +1392,6 @@ class _OcptResourcesTotalRow extends StatelessWidget {
               _ocptResourcesAmountCell(context, aggregates.receivedCents, currencyCode, style: boldStyle),
               _ocptResourcesAmountCell(context, aggregates.outstandingCents, currencyCode, style: boldStyle),
               const SizedBox(width: _ocptResourcesMenuColumnWidth),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The table's own creation footer: one control, mirroring `OcptBudgetCostTracking`'s own
-/// `+ Poste` footer's placement, opening a `MenuAnchor` naming the four creation gestures —
-/// `Subvention`, `Apport en numéraire`, `Apport en nature`, `Recette` — built the way
-/// `_OcptAddResourceButton` used to (never a `Wrap` of `MenuItemButton`s, `CLAUDE.md`'s own known
-/// pitfall).
-class _OcptResourcesCreationFooter extends StatelessWidget {
-  /// Called with the kind picked for the first three gestures, or null while every one of them is
-  /// withheld.
-  final ValueChanged<OcptBudgetResourceGroupKind>? onResourceKindPicked;
-
-  /// Called for the fourth gesture (a fresh taking), or null while withheld.
-  final VoidCallback? onRevenuePicked;
-
-  /// Class constructor
-  const _OcptResourcesCreationFooter({required this.onResourceKindPicked, required this.onRevenuePicked});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final onResourceKindPicked = this.onResourceKindPicked;
-    final onRevenuePicked = this.onRevenuePicked;
-
-    return MenuAnchor(
-      menuChildren: [
-        if (onResourceKindPicked != null) ...[
-          MenuItemButton(
-            onPressed: () => onResourceKindPicked(OcptBudgetResourceGroupKind.subsidy),
-            child: Text(tr.budgetFinancingAddSubsidyAction),
-          ),
-          MenuItemButton(
-            onPressed: () => onResourceKindPicked(OcptBudgetResourceGroupKind.cash),
-            child: Text(tr.budgetFinancingAddCashAction),
-          ),
-          MenuItemButton(
-            onPressed: () => onResourceKindPicked(OcptBudgetResourceGroupKind.inKind),
-            child: Text(tr.budgetFinancingAddInKindAction),
-          ),
-        ],
-        if (onRevenuePicked != null)
-          MenuItemButton(onPressed: onRevenuePicked, child: Text(tr.budgetFinancingAddRevenueAction)),
-      ],
-      builder: (context, controller, child) => InkWell(
-        onTap: () => controller.isOpen ? controller.close() : controller.open(),
-        mouseCursor: ocptClickableCursor,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
-              const SizedBox(width: 6),
-              Text(
-                tr.budgetFinancingCreationAction,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
-              ),
             ],
           ),
         ),

@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_entry_wizard_result.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_new_outcome.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
@@ -24,9 +24,8 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
@@ -43,7 +42,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_element_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financial_report_export_dialog.dart';
@@ -51,6 +49,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_quote_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
@@ -444,10 +443,11 @@ class _BudgetViewState extends State<_BudgetView> {
   /// [OcptBudgetState.view] names — see [_buildRoute].
   Widget _buildCentre(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
-    // Read once, here: null is both "this view offers no capture" and "a previewed version takes
-    // it away". `OcptBudgetHeader` draws nothing at all when it is null — withheld whole, never
-    // disabled, the standing rule.
-    final captureButton = state.isPreviewingVersion ? null : _captureButtonOf(context, state);
+    // Read once, here: null is "a previewed version takes it away" — the same label and gesture on
+    // every route now, so there is nothing left for a route to withhold on its own account.
+    // `OcptBudgetHeader` draws nothing at all when it is null — withheld whole, never disabled, the
+    // standing rule.
+    final newButton = state.isPreviewingVersion ? null : _newButtonOf(context, state);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -467,8 +467,8 @@ class _BudgetViewState extends State<_BudgetView> {
           filterPosteId: state.filterPosteId,
           onPosteFilterCleared: () => bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
           alertCount: state.alerts.length,
-          captureLabel: captureButton?.$1,
-          onCaptureRequested: captureButton?.$2,
+          captureLabel: newButton?.$1,
+          onCaptureRequested: newButton?.$2,
         ),
         const SizedBox(height: 12),
         Expanded(
@@ -482,112 +482,158 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// The header band's own trailing button under [OcptBudgetState.view] (and, while it is
-  /// [OcptBudgetView.tools], [OcptBudgetState.toolsView]), or null where the view offers no
-  /// capture at all — the trailing control mockups `4c` and `4d` both draw, pushed right:
-  ///
-  /// | View | Button | Opens |
-  /// | --- | --- | --- |
-  /// | `dashboard` | none | — |
-  /// | `expenses` | `+ Saisir une dépense` | the wizard, step 1, on [OcptBudgetEntryNature.expense] |
-  /// | `resources` | `+ Saisir un encaissement` | the wizard, step 1, on [OcptBudgetEntryNature.financing] |
-  /// | `tools › cashFlow` | none | — |
-  /// | `tools › regie` | `+ Saisir un défraiement` | `OcptBudgetAllowanceDialog`, unchanged |
-  /// | `tools › sharing` | `+ Verser une part` | the wizard, step 1, on [OcptBudgetEntryNature.payout] |
-  ///
-  /// **The régie's own button opens no wizard at all** — a defrayal is typed by hand into
-  /// `budget_allowances` and always was — and reuses [_handleAllowanceDialogRequested] verbatim,
-  /// the very handler `OcptBudgetRegie`'s own creation button already calls
-  /// ([_buildRegie]'s own `onAllowanceCreationRequested`). **Both doors stay**: the mockup is
-  /// explicit that the régie page's own body is unchanged, and its own creation button sits inside
-  /// the défraiements section, well clear of the header band — two doors to the same dialog, never
-  /// a centimetre apart.
-  ///
-  /// **The sharing button opens the wizard on [OcptBudgetEntryNature.payout] with no participant
-  /// named** — it is a page-level button and cannot know which participant is meant (Benoit's
-  /// ruling); the per-participant `⋮` menu's own [_handleSharePayoutRequested] stays untouched and
-  /// keeps pre-filling that participant, since it is the gesture that knows who.
-  (String, VoidCallback)? _captureButtonOf(BuildContext context, OcptBudgetState state) {
+  /// The header band's own trailing button, `+ Nouveau` — offered on all five routes now, including
+  /// [OcptBudgetView.dashboard] and `tools › cashFlow`, which carried none before this milestone.
+  /// Opens the capture wizard's own step 1, the current route's own document promoted to the top of
+  /// the list with its first answer pre-selected (`_promotedGestureFamilyOf`) — never on
+  /// [OcptBudgetView.dashboard], which works on no single document, so pre-answering for it would be
+  /// a guess: nothing is selected there, and `Continuer` stays withheld until a card is picked, the
+  /// very rule the wizard's own step 1 already applies whenever nothing is known yet.
+  (String, VoidCallback) _newButtonOf(BuildContext context, OcptBudgetState state) {
     final tr = Tr.of(context);
-    return switch ((state.view, state.toolsView)) {
-      (OcptBudgetView.expenses, _) => (
-        tr.budgetHeaderCaptureExpenseAction,
-        () => unawaited(_handleWizardEntryRequested(context, state, OcptBudgetEntryNature.expense)),
-      ),
-      (OcptBudgetView.resources, _) => (
-        tr.budgetHeaderCaptureFinancingAction,
-        () => unawaited(_handleWizardEntryRequested(context, state, OcptBudgetEntryNature.financing)),
-      ),
-      (OcptBudgetView.tools, OcptBudgetToolsView.regie) => (
-        tr.budgetHeaderCaptureAllowanceAction,
-        () => unawaited(_handleAllowanceDialogRequested(context, state, null)),
-      ),
-      (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => (
-        tr.budgetHeaderCapturePayoutAction,
-        () => unawaited(_handleWizardEntryRequested(context, state, OcptBudgetEntryNature.payout)),
-      ),
-      (OcptBudgetView.dashboard, _) || (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => null,
-    };
+    return (tr.budgetHeaderNewAction, () => unawaited(_handleNewRequested(context, state)));
   }
 
-  /// Opens the entry wizard, step 1, on [nature] already selected and no link named — the header
-  /// band's own `expenses`/`resources`/`tools › sharing` buttons all call this, differing only in
-  /// which [OcptBudgetEntryNature] they hand in. Dispatches whatever [_handleEntryWizardResult]
-  /// says once the wizard closes with something.
-  Future<void> _handleWizardEntryRequested(
-    BuildContext context,
-    OcptBudgetState state,
-    OcptBudgetEntryNature nature,
-  ) async {
+  /// Which [OcptBudgetGestureFamily] the current route promotes to the top of step 1 — the group
+  /// whose document the route works on — or null for [OcptBudgetView.dashboard], which works on no
+  /// single document.
+  OcptBudgetGestureFamily? _promotedGestureFamilyOf(OcptBudgetState state) =>
+      switch ((state.view, state.toolsView)) {
+        (OcptBudgetView.expenses, _) => OcptBudgetGestureFamily.quote,
+        (OcptBudgetView.resources, _) => OcptBudgetGestureFamily.financingPlan,
+        (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => OcptBudgetGestureFamily.cashMovement,
+        (OcptBudgetView.tools, OcptBudgetToolsView.regie) => OcptBudgetGestureFamily.allowances,
+        (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => OcptBudgetGestureFamily.revenueSharing,
+        (OcptBudgetView.dashboard, _) => null,
+      };
+
+  /// [family]'s own first answer, in [OcptBudgetGesture]'s own declared order — the promoted
+  /// group's own first card, which arrives pre-selected so the frequent gesture is one click.
+  OcptBudgetGesture _firstGestureOf(OcptBudgetGestureFamily family) =>
+      OcptBudgetGesture.values.firstWhere((gesture) => ocptBudgetGestureFamilyOf(gesture) == family);
+
+  /// Opens the capture wizard fresh — no step already answered — promoted and pre-selected per the
+  /// current route, exactly as [_newButtonOf]'s own doc comment describes. Dispatches whatever
+  /// [_handleNewOutcome] says once the wizard closes with something.
+  Future<void> _handleNewRequested(BuildContext context, OcptBudgetState state) async {
     final bloc = context.read<OcptBudgetBloc>();
-    final result = await OcptBudgetEntryDialog.show(
+    final promotedFamily = _promotedGestureFamilyOf(state);
+    final outcome = await OcptBudgetNewDialog.show(
       context,
-      existing: null,
-      initialNature: nature,
+      promotedFamily: promotedFamily,
+      initialGesture: promotedFamily == null ? null : _firstGestureOf(promotedFamily),
       postes: state.postes,
       resources: state.resources,
       revenues: state.revenues,
       shares: state.shares,
+      people: state.people,
+      unpricedElements: state.unpricedElements,
       commitments: state.commitments,
       entries: state.entries,
       allowances: state.allowances,
+      mileageRates: state.mileageRates,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
     );
-    if (result == null) {
+    if (outcome == null) {
       return;
     }
     if (!context.mounted) {
       return;
     }
 
-    _handleEntryWizardResult(bloc, state, result);
+    _handleNewOutcome(bloc, state, outcome);
   }
 
-  /// Turns a fresh [OcptBudgetEntryWizardResult] into a write — every door that **creates** an
-  /// entry through the wizard converges here, exactly as `docs/architecture/budget.md`'s own
-  /// "money is added in one way, reached through several doors" already argues.
+  /// Turns a fresh [OcptBudgetNewOutcome] into a write — every door that **creates** something
+  /// through the wizard converges here, one variant per [OcptBudgetGesture], each dispatching the
+  /// event that already exists for it. Nothing here writes to the project itself.
   ///
-  /// [OcptBudgetEntryWizardResult.acceptedSuggestion] null: an ordinary
-  /// [OcptBudgetEntryCreationConfirmedEvent]. Non-null: [_handleEntryWizardSuggestionAccepted]
-  /// turns [result]'s own draft and the accepted suggestion into whichever of the two events its
-  /// own kind calls for — see that method's own doc comment for the mapping, carried over from the
-  /// capture band this wizard replaces.
-  void _handleEntryWizardResult(
-    OcptBudgetBloc bloc,
+  /// [OcptBudgetEntryWizardResult]'s own [OcptBudgetEntryWizardResult.acceptedSuggestion] null: an
+  /// ordinary [OcptBudgetEntryCreationConfirmedEvent]. Non-null: [_handleEntryWizardSuggestionAccepted]
+  /// turns its own draft and the accepted suggestion into whichever of the two events its own kind
+  /// calls for — see that method's own doc comment for the mapping, carried over from the capture
+  /// band the wizard replaced in an earlier milestone.
+  void _handleNewOutcome(OcptBudgetBloc bloc, OcptBudgetState state, OcptBudgetNewOutcome outcome) {
+    switch (outcome) {
+      case OcptBudgetEntryWizardResult(:final fields, :final acceptedSuggestion):
+        if (acceptedSuggestion == null) {
+          bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
+        } else {
+          _handleEntryWizardSuggestionAccepted(bloc, state, acceptedSuggestion, fields);
+        }
+      case OcptBudgetNewLineOutcome(:final posteId, :final fields):
+        bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId, fields: fields));
+      case OcptBudgetNewLinesFromBreakdownOutcome(:final posteId, :final lines):
+        for (final line in lines) {
+          bloc.add(
+            OcptBudgetLineCreatedFromElementEvent(
+              posteId: posteId,
+              elementId: line.elementId,
+              quantityMilli: line.quantityMilli,
+            ),
+          );
+        }
+      case OcptBudgetNewCommitmentOutcome(:final fields, :final lineId):
+        bloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields, lineId: lineId));
+      case OcptBudgetNewResourceOutcome(:final fields):
+        bloc.add(OcptBudgetResourceCreationConfirmedEvent(fields: fields));
+      case OcptBudgetNewRevenueOutcome(:final fields):
+        bloc.add(OcptBudgetRevenueCreationConfirmedEvent(fields: fields));
+      case OcptBudgetNewAllowanceOutcome(:final fields):
+        bloc.add(OcptBudgetAllowanceCreationConfirmedEvent(fields: fields));
+      case OcptBudgetNewShareOutcome(:final fields):
+        bloc.add(OcptBudgetShareCreationConfirmedEvent(fields: fields));
+    }
+  }
+
+  /// Opens the capture wizard's own step 3 directly, on [gesture], pre-filled with [prefill] — steps
+  /// 1 and 2 both already answered — then dispatches whatever [_handleNewOutcome] says once it
+  /// closes with something. The one shared shape behind every contextual shortcut that pre-fills an
+  /// ordinary movement: a resource's or a taking's own `Receive`, a participant's own payout, a
+  /// contribution's own repayment — every one of them an [OcptBudgetEntryCreationConfirmedEvent] (or
+  /// whatever the lettrage strip's own accepted candidate calls for instead) with nothing further to
+  /// decide, unlike [_handleCommitmentSettleRequested], which dispatches a settlement instead of a
+  /// plain creation and so builds its own call to `OcptBudgetNewDialog.show` rather than sharing this
+  /// one.
+  Future<void> _handleWizardEntryShortcut(
+    BuildContext context,
     OcptBudgetState state,
-    OcptBudgetEntryWizardResult result,
-  ) {
-    final suggestion = result.acceptedSuggestion;
-    if (suggestion == null) {
-      bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: result.fields));
+    OcptBudgetGesture gesture,
+    OcptBudgetEntryFormFields prefill,
+  ) async {
+    final bloc = context.read<OcptBudgetBloc>();
+    final outcome = await OcptBudgetNewDialog.show(
+      context,
+      initialGesture: gesture,
+      entryPrefill: prefill,
+      postes: state.postes,
+      resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
+      people: state.people,
+      unpricedElements: state.unpricedElements,
+      commitments: state.commitments,
+      entries: state.entries,
+      allowances: state.allowances,
+      mileageRates: state.mileageRates,
+      receivedByResourceId: state.receivedByResourceId,
+      receivedByRevenueId: state.receivedByRevenueId,
+      currencyCode: state.currencyCode,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+      isSimplified: state.isSimplified,
+    );
+    if (outcome == null) {
+      return;
+    }
+    if (!context.mounted) {
       return;
     }
 
-    _handleEntryWizardSuggestionAccepted(bloc, state, suggestion, result.fields);
+    _handleNewOutcome(bloc, state, outcome);
   }
 
   /// `C'est ça`: turns the wizard's own accepted [suggestion] and its plain [fields] into the write
@@ -963,6 +1009,7 @@ class _BudgetViewState extends State<_BudgetView> {
       resources: state.resources,
       revenues: state.revenues,
       shares: state.shares,
+      people: state.people,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -974,7 +1021,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetEntryUpdateConfirmedEvent(entryId: entry.id, fields: result.fields));
+    bloc.add(OcptBudgetEntryUpdateConfirmedEvent(entryId: entry.id, fields: result));
   }
 
   /// Asks `OcptConfirmDialog` whether cash-journal entry [entryId] really is to be deleted, then
@@ -1049,10 +1096,12 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitmentId));
   }
 
-  /// Opens the entry dialog pre-filled from [commitment] (today's date, its own label, poste,
-  /// amount, tax basis and rate, as a debit), then dispatches the settlement if the user confirmed
-  /// it — see `OcptBudgetCommitmentSettlementConfirmedEvent`'s own doc comment for the combined
-  /// write this produces.
+  /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordExpense], pre-filled
+  /// from [commitment] (today's date, its own label, poste, amount, tax basis and rate, as a debit)
+  /// — steps 1 and 2 both already answered, exactly as `OcptBudgetEntryDialog`'s own prefill used to
+  /// skip them — then dispatches the settlement if the user confirmed it — see
+  /// `OcptBudgetCommitmentSettlementConfirmedEvent`'s own doc comment for the combined write this
+  /// produces.
   Future<void> _handleCommitmentSettleRequested(
     BuildContext context,
     OcptBudgetState state,
@@ -1076,24 +1125,27 @@ class _BudgetViewState extends State<_BudgetView> {
       isReceiptDetached: false,
     );
 
-    final result = await OcptBudgetEntryDialog.show(
+    final outcome = await OcptBudgetNewDialog.show(
       context,
-      existing: null,
-      prefill: prefill,
+      initialGesture: OcptBudgetGesture.recordExpense,
+      entryPrefill: prefill,
       postes: state.postes,
       resources: state.resources,
       revenues: state.revenues,
       shares: state.shares,
+      people: state.people,
+      unpricedElements: state.unpricedElements,
       commitments: state.commitments,
       entries: state.entries,
       allowances: state.allowances,
+      mileageRates: state.mileageRates,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
     );
-    if (result == null) {
+    if (outcome is! OcptBudgetEntryWizardResult) {
       return;
     }
     if (!context.mounted) {
@@ -1104,20 +1156,23 @@ class _BudgetViewState extends State<_BudgetView> {
     // rather than this very commitment) — accepting it takes precedence over the settlement this
     // gesture opened for, exactly as every other pre-filled door of this mode already lets a
     // suggestion outrank the prefill it was opened with.
-    final suggestion = result.acceptedSuggestion;
+    final suggestion = outcome.acceptedSuggestion;
     if (suggestion != null) {
-      _handleEntryWizardSuggestionAccepted(bloc, state, suggestion, result.fields);
+      _handleEntryWizardSuggestionAccepted(bloc, state, suggestion, outcome.fields);
       return;
     }
 
     bloc.add(
-      OcptBudgetCommitmentSettlementConfirmedEvent(commitmentId: commitment.id, fields: result.fields),
+      OcptBudgetCommitmentSettlementConfirmedEvent(
+        commitmentId: commitment.id,
+        fields: outcome.fields,
+      ),
     );
   }
 
   /// Builds the resources view: the nesting tree of subsidies, contributions and takings, and its
-  /// own coverage band. Every revenue callback — `_handleRevenueCreationRequested`,
-  /// `_handleRevenueEditRequested`, `_handleRevenueReceiptRequested`, `_revenueReorderedPosition`,
+  /// own coverage band. Every revenue callback — `_handleRevenueEditRequested`,
+  /// `_handleRevenueReceiptRequested`, `_revenueReorderedPosition`,
   /// `_handleRevenueDeletionRequested` — is this tree's own, the sharing view having lost its own
   /// copy of the takings.
   Widget _buildFinancing(BuildContext context, OcptBudgetState state) {
@@ -1138,10 +1193,6 @@ class _BudgetViewState extends State<_BudgetView> {
       expandedNodeIds: state.expandedNodeIds,
       isReadOnly: isReadOnly,
       onNodeExpansionToggled: (nodeId) => bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
-      onResourceCreationRequested: isReadOnly
-          ? null
-          : (groupKind) =>
-                unawaited(_handleResourceCreationRequested(context, state, groupKind)),
       onResourceSelected: (resourceId) =>
           bloc.add(OcptBudgetResourceSelectedEvent(resourceId: resourceId)),
       onResourceEditRequested: isReadOnly
@@ -1156,9 +1207,6 @@ class _BudgetViewState extends State<_BudgetView> {
       onResourceDeletionRequested: isReadOnly
           ? null
           : (resourceId) => unawaited(_handleResourceDeletionRequested(context, resourceId)),
-      onRevenueCreationRequested: isReadOnly
-          ? null
-          : () => unawaited(_handleRevenueCreationRequested(context, state)),
       onRevenueSelected: (revenueId) => bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId)),
       onRevenueEditRequested: isReadOnly
           ? null
@@ -1181,32 +1229,6 @@ class _BudgetViewState extends State<_BudgetView> {
       onExpensesRequested: () =>
           bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses)),
     );
-  }
-
-  /// Opens the resource dialog with nothing pre-filled but its own [groupKind] — the kind the
-  /// financing view's own three explicit creation gestures each already picked before this ever
-  /// opens — then dispatches the creation if the user confirmed it.
-  Future<void> _handleResourceCreationRequested(
-    BuildContext context,
-    OcptBudgetState state,
-    OcptBudgetResourceGroupKind groupKind,
-  ) async {
-    final bloc = context.read<OcptBudgetBloc>();
-    final fields = await OcptBudgetResourceDialog.show(
-      context,
-      existing: null,
-      groupKind: groupKind,
-      people: state.people,
-      currencyCode: state.currencyCode,
-    );
-    if (fields == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(OcptBudgetResourceCreationConfirmedEvent(fields: fields));
   }
 
   /// Opens the resource dialog pre-filled with [resource], then dispatches the update if the user
@@ -1257,18 +1279,17 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
   }
 
-  /// Opens the entry dialog pre-filled from [resource] (today's date, its own label, as a credit,
-  /// for whatever is still outstanding against it, the resource already named), then dispatches the
-  /// creation if the user confirmed it — mirrors `_handleCommitmentSettleRequested`'s own gesture:
-  /// see "A commitment settles by naming the entry that paid it" in `docs/architecture/budget.md`
-  /// for the reading this mirrors, a receipt naming the resource that earned it instead of a
-  /// commitment being paid.
+  /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordFinancingReceipt],
+  /// pre-filled from [resource] (today's date, its own label, as a credit, for whatever is still
+  /// outstanding against it, the resource already named) — mirrors
+  /// `_handleCommitmentSettleRequested`'s own gesture: see "A commitment settles by naming the entry
+  /// that paid it" in `docs/architecture/budget.md` for the reading this mirrors, a receipt naming
+  /// the resource that earned it instead of a commitment being paid.
   Future<void> _handleResourceReceiptRequested(
     BuildContext context,
     OcptBudgetState state,
     OcptBudgetResource resource,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
     final now = DateTime.now();
     final outstandingCents = ocptBudgetResourceOutstandingCents(
       amountCents: resource.amountCents,
@@ -1290,31 +1311,12 @@ class _BudgetViewState extends State<_BudgetView> {
       isReceiptDetached: false,
     );
 
-    final result = await OcptBudgetEntryDialog.show(
+    await _handleWizardEntryShortcut(
       context,
-      existing: null,
-      prefill: prefill,
-      postes: state.postes,
-      resources: state.resources,
-      revenues: state.revenues,
-      shares: state.shares,
-      commitments: state.commitments,
-      entries: state.entries,
-      allowances: state.allowances,
-      receivedByResourceId: state.receivedByResourceId,
-      receivedByRevenueId: state.receivedByRevenueId,
-      currencyCode: state.currencyCode,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      isSimplified: state.isSimplified,
+      state,
+      OcptBudgetGesture.recordFinancingReceipt,
+      prefill,
     );
-    if (result == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    _handleEntryWizardResult(bloc, state, result);
   }
 
   /// Resolves the most recently recorded live credit against [resource]
@@ -1406,9 +1408,6 @@ class _BudgetViewState extends State<_BudgetView> {
           ),
         ),
       ),
-      onAllowanceCreationRequested: isReadOnly
-          ? null
-          : () => unawaited(_handleAllowanceDialogRequested(context, state, null)),
       onAllowanceEditRequested: isReadOnly
           ? null
           : (allowanceId) => unawaited(
@@ -1593,9 +1592,6 @@ class _BudgetViewState extends State<_BudgetView> {
       currencyCode: state.currencyCode,
       selectedShareId: state.selectedShareId,
       isReadOnly: isReadOnly,
-      onShareCreationRequested: isReadOnly
-          ? null
-          : () => unawaited(_handleShareCreationRequested(context, state)),
       onShareSelected: (shareId) => bloc.add(OcptBudgetShareSelectedEvent(shareId: shareId)),
       onShareEditRequested: isReadOnly
           ? null
@@ -1637,7 +1633,6 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     OcptBudgetRepaymentLine line,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
     final now = DateTime.now();
 
     final resource = state.resources
@@ -1672,31 +1667,7 @@ class _BudgetViewState extends State<_BudgetView> {
       isReceiptDetached: false,
     );
 
-    final result = await OcptBudgetEntryDialog.show(
-      context,
-      existing: null,
-      prefill: prefill,
-      postes: state.postes,
-      resources: state.resources,
-      revenues: state.revenues,
-      shares: state.shares,
-      commitments: state.commitments,
-      entries: state.entries,
-      allowances: state.allowances,
-      receivedByResourceId: state.receivedByResourceId,
-      receivedByRevenueId: state.receivedByRevenueId,
-      currencyCode: state.currencyCode,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      isSimplified: state.isSimplified,
-    );
-    if (result == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    _handleEntryWizardResult(bloc, state, result);
+    await _handleWizardEntryShortcut(context, state, OcptBudgetGesture.repayContribution, prefill);
   }
 
   /// The 0-based position revenue [revenueId] moves to when its row's own `⋮` menu `▲`/`▼` entry
@@ -1708,25 +1679,6 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     return moveUp ? currentIndex - 1 : currentIndex + 1;
-  }
-
-  /// Opens the revenue dialog with nothing pre-filled, then dispatches the creation if the user
-  /// confirmed it.
-  Future<void> _handleRevenueCreationRequested(BuildContext context, OcptBudgetState state) async {
-    final bloc = context.read<OcptBudgetBloc>();
-    final fields = await OcptBudgetRevenueDialog.show(
-      context,
-      existing: null,
-      currencyCode: state.currencyCode,
-    );
-    if (fields == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(OcptBudgetRevenueCreationConfirmedEvent(fields: fields));
   }
 
   /// Opens the revenue dialog pre-filled with [revenue], then dispatches the update if the user
@@ -1775,16 +1727,16 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetRevenueDeletionConfirmedEvent(revenueId: revenueId));
   }
 
-  /// Opens the entry dialog pre-filled from [revenue] (today's date, its own label, as a credit,
-  /// for whatever is still outstanding against it, the taking already named), then dispatches the
-  /// creation if the user confirmed it — mirrors `_handleResourceReceiptRequested`'s own gesture: a
-  /// receipt can never exist as a figure with no movement behind it.
+  /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordTakingReceipt],
+  /// pre-filled from [revenue] (today's date, its own label, as a credit, for whatever is still
+  /// outstanding against it, the taking already named) — mirrors
+  /// `_handleResourceReceiptRequested`'s own gesture: a receipt can never exist as a figure with no
+  /// movement behind it.
   Future<void> _handleRevenueReceiptRequested(
     BuildContext context,
     OcptBudgetState state,
     OcptBudgetRevenue revenue,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
     final now = DateTime.now();
     final outstandingCents = ocptBudgetResourceOutstandingCents(
       amountCents: revenue.amountCents,
@@ -1806,31 +1758,7 @@ class _BudgetViewState extends State<_BudgetView> {
       isReceiptDetached: false,
     );
 
-    final result = await OcptBudgetEntryDialog.show(
-      context,
-      existing: null,
-      prefill: prefill,
-      postes: state.postes,
-      resources: state.resources,
-      revenues: state.revenues,
-      shares: state.shares,
-      commitments: state.commitments,
-      entries: state.entries,
-      allowances: state.allowances,
-      receivedByResourceId: state.receivedByResourceId,
-      receivedByRevenueId: state.receivedByRevenueId,
-      currencyCode: state.currencyCode,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      isSimplified: state.isSimplified,
-    );
-    if (result == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    _handleEntryWizardResult(bloc, state, result);
+    await _handleWizardEntryShortcut(context, state, OcptBudgetGesture.recordTakingReceipt, prefill);
   }
 
   /// The 0-based position share [shareId] moves to when its row's own `⋮` menu `▲`/`▼` entry is
@@ -1842,21 +1770,6 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     return moveUp ? currentIndex - 1 : currentIndex + 1;
-  }
-
-  /// Opens the share dialog with nothing pre-filled, then dispatches the creation if the user
-  /// confirmed it.
-  Future<void> _handleShareCreationRequested(BuildContext context, OcptBudgetState state) async {
-    final bloc = context.read<OcptBudgetBloc>();
-    final fields = await OcptBudgetShareDialog.show(context, existing: null, people: state.people);
-    if (fields == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(OcptBudgetShareCreationConfirmedEvent(fields: fields));
   }
 
   /// Opens the share dialog pre-filled with [share], then dispatches the update if the user
@@ -1901,17 +1814,16 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetShareDeletionConfirmedEvent(shareId: shareId));
   }
 
-  /// Opens the entry dialog pre-filled from [share] (today's date, its own label, as a debit, for
-  /// whatever the participant is still owed — its own due less what it has already been paid, the
-  /// share already named), then dispatches the creation if the user confirmed it — mirrors
-  /// `_handleRevenueReceiptRequested`'s own gesture: a payout can never exist as a figure with no
-  /// movement behind it.
+  /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.payParticipantShare],
+  /// pre-filled from [share] (today's date, its own label, as a debit, for whatever the participant
+  /// is still owed — its own due less what it has already been paid, the share already named) —
+  /// mirrors `_handleRevenueReceiptRequested`'s own gesture: a payout can never exist as a figure
+  /// with no movement behind it.
   Future<void> _handleSharePayoutRequested(
     BuildContext context,
     OcptBudgetState state,
     OcptBudgetShare share,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
     final now = DateTime.now();
     final split = state.shareSplits.firstWhere(
       (split) => split.share.id == share.id,
@@ -1942,35 +1854,12 @@ class _BudgetViewState extends State<_BudgetView> {
       isReceiptDetached: false,
     );
 
-    final result = await OcptBudgetEntryDialog.show(
-      context,
-      existing: null,
-      prefill: prefill,
-      postes: state.postes,
-      resources: state.resources,
-      revenues: state.revenues,
-      shares: state.shares,
-      commitments: state.commitments,
-      entries: state.entries,
-      allowances: state.allowances,
-      receivedByResourceId: state.receivedByResourceId,
-      receivedByRevenueId: state.receivedByRevenueId,
-      currencyCode: state.currencyCode,
-      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
-      isSimplified: state.isSimplified,
-    );
-    if (result == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    _handleEntryWizardResult(bloc, state, result);
+    await _handleWizardEntryShortcut(context, state, OcptBudgetGesture.payParticipantShare, prefill);
   }
 
-  /// Promotes quote line [lineId] into a commitment: opens `OcptBudgetCommitmentDialog` seeded
-  /// from the line, and dispatches the creation naming the line it came from.
+  /// Promotes quote line [lineId] into a commitment: opens the capture wizard's own step 3 directly,
+  /// on [OcptBudgetGesture.commitSpend], seeded from the line — steps 1 and 2 both already answered
+  /// — and dispatches the creation naming the line it came from.
   ///
   /// **A promotion, not a move.** The line stays in the quote, because comparing the estimate with
   /// what is actually owed is the whole use of having both — and nothing is counted twice either,
@@ -1993,10 +1882,9 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    final fields = await OcptBudgetCommitmentDialog.show(
+    final outcome = await OcptBudgetNewDialog.show(
       context,
-      existing: null,
-      prefill: OcptBudgetCommitmentFormFields(
+      commitmentPrefill: OcptBudgetCommitmentFormFields(
         dueDate: null,
         label: line.label,
         posteId: poste.id,
@@ -2005,19 +1893,31 @@ class _BudgetViewState extends State<_BudgetView> {
         vatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
         status: OcptBudgetCommitmentStatus.quoteAccepted,
       ),
+      commitmentPrefillLineId: lineId,
       postes: state.postes,
+      resources: state.resources,
+      revenues: state.revenues,
+      shares: state.shares,
+      people: state.people,
+      unpricedElements: state.unpricedElements,
+      commitments: state.commitments,
+      entries: state.entries,
+      allowances: state.allowances,
+      mileageRates: state.mileageRates,
+      receivedByResourceId: state.receivedByResourceId,
+      receivedByRevenueId: state.receivedByRevenueId,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
     );
-    if (fields == null) {
+    if (outcome == null) {
       return;
     }
     if (!context.mounted) {
       return;
     }
 
-    bloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields, lineId: lineId));
+    _handleNewOutcome(bloc, state, outcome);
   }
 
   /// Asks, through `OcptConfirmDialog`, before undoing line [lineId]'s own promotion — which
@@ -2175,12 +2075,6 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineVatRateInheritedRequested: isReadOnly
           ? null
           : (lineId) => bloc.add(OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId)),
-      onLineCreationRequested: isReadOnly
-          ? null
-          : (posteId) => bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId)),
-      onLineFromElementRequested: isReadOnly
-          ? null
-          : (posteId) => unawaited(_handleLineFromElementRequested(context, state, posteId)),
       onLineCommitRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineCommitRequested(context, state, lineId)),
@@ -2281,29 +2175,6 @@ class _BudgetViewState extends State<_BudgetView> {
       ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.tools))
       ..add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.cashFlow))
       ..add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitment.id));
-  }
-
-  /// Opens `OcptBudgetElementPickerDialog` over `OcptBudgetState.unpricedElements`, then dispatches
-  /// the creation if the user picked one.
-  Future<void> _handleLineFromElementRequested(
-    BuildContext context,
-    OcptBudgetState state,
-    String posteId,
-  ) async {
-    final bloc = context.read<OcptBudgetBloc>();
-    final element = await OcptBudgetElementPickerDialog.show(
-      context,
-      elements: state.unpricedElements,
-      currencyCode: state.currencyCode,
-    );
-    if (element == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: element.id));
   }
 
   /// Builds the band naming the version being previewed, or null while the working copy is on

@@ -139,14 +139,6 @@ class OcptBudgetFiche extends StatelessWidget {
   /// Called with a line's id when its own `Inherit` action is clicked, or null while [isReadOnly].
   final ValueChanged<String>? onLineVatRateInheritedRequested;
 
-  /// Called with a poste's id when its own `Add` action is clicked, or null while [isReadOnly] — the
-  /// poste variant's own primary action.
-  final ValueChanged<String>? onLineCreationRequested;
-
-  /// Called with a poste's id when its own `From breakdown` action is clicked, or null while
-  /// [isReadOnly] — the poste variant's own secondary action.
-  final ValueChanged<String>? onLineFromElementRequested;
-
   /// Called with a line's id when `Commit this line…` is clicked, or null while [isReadOnly].
   final ValueChanged<String>? onLineCommitRequested;
 
@@ -226,8 +218,6 @@ class OcptBudgetFiche extends StatelessWidget {
     required this.onPosteEstimateToCompleteDerivedRequested,
     required this.onLineTaxInclusiveChanged,
     required this.onLineVatRateInheritedRequested,
-    required this.onLineCreationRequested,
-    required this.onLineFromElementRequested,
     required this.onLineCommitRequested,
     required this.onLineSettleRequested,
     required this.onLineShowCommitmentRequested,
@@ -364,19 +354,11 @@ class OcptBudgetFiche extends StatelessWidget {
       outstandingLabel: tr.budgetInspectorFigureRemaining,
       outstandingValue: _amount(remainingCents),
       details: _posteEditableFields(context, poste),
-      primary: isReadOnly || onLineCreationRequested == null
-          ? null
-          : _OcptBudgetFicheAction(
-              label: tr.budgetLineCreationAction,
-              onTap: () => onLineCreationRequested?.call(poste.id),
-            ),
-      secondaries: [
-        if (!isReadOnly && onLineFromElementRequested != null)
-          _OcptBudgetFicheAction(
-            label: tr.budgetLineFromElementAction,
-            onTap: () => onLineFromElementRequested?.call(poste.id),
-          ),
-      ],
+      // The poste's own `Add`/`From breakdown` actions are gone: a fresh quote line is now typed
+      // through the capture wizard's own `addQuoteLine`/`addQuoteLinesFromBreakdown` gestures,
+      // reached from the header's own `+ Nouveau` button.
+      primary: null,
+      secondaries: const [],
     );
   }
 

@@ -110,10 +110,6 @@ class OcptBudgetSharing extends StatelessWidget {
   /// comment.
   final bool isReadOnly;
 
-  /// Called when the `Distribution` table's own `+ Add` footer is clicked, or null while
-  /// [isReadOnly].
-  final VoidCallback? onShareCreationRequested;
-
   /// Called with a share's id when its row is clicked — selects it, and only that.
   final ValueChanged<String> onShareSelected;
 
@@ -146,7 +142,6 @@ class OcptBudgetSharing extends StatelessWidget {
     required this.currencyCode,
     required this.selectedShareId,
     required this.isReadOnly,
-    required this.onShareCreationRequested,
     required this.onShareSelected,
     required this.onShareEditRequested,
     required this.onSharePayoutRequested,
@@ -175,7 +170,6 @@ class OcptBudgetSharing extends StatelessWidget {
       currencyCode: currencyCode,
       selectedShareId: selectedShareId,
       isReadOnly: isReadOnly,
-      onShareCreationRequested: onShareCreationRequested,
       onShareSelected: onShareSelected,
       onShareEditRequested: onShareEditRequested,
       onSharePayoutRequested: onSharePayoutRequested,
@@ -614,7 +608,6 @@ class _OcptSharingDistributionColumn extends StatelessWidget {
   final String currencyCode;
   final String? selectedShareId;
   final bool isReadOnly;
-  final VoidCallback? onShareCreationRequested;
   final ValueChanged<String> onShareSelected;
   final ValueChanged<OcptBudgetShare>? onShareEditRequested;
   final ValueChanged<OcptBudgetShare>? onSharePayoutRequested;
@@ -630,7 +623,6 @@ class _OcptSharingDistributionColumn extends StatelessWidget {
     required this.currencyCode,
     required this.selectedShareId,
     required this.isReadOnly,
-    required this.onShareCreationRequested,
     required this.onShareSelected,
     required this.onShareEditRequested,
     required this.onSharePayoutRequested,
@@ -715,11 +707,6 @@ class _OcptSharingDistributionColumn extends StatelessWidget {
                       ),
                       style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error),
                     ),
-                  ),
-                if (!isReadOnly && onShareCreationRequested != null)
-                  _OcptSharingCreationFooter(
-                    label: tr.budgetSharingShareCreationAction,
-                    onTap: onShareCreationRequested!,
                   ),
               ],
             ),
@@ -999,39 +986,6 @@ class _OcptSharingTotalRow extends StatelessWidget {
           Expanded(child: Text(label, style: boldStyle)),
           Text(valueText, style: boldStyle),
         ],
-      ),
-    );
-  }
-}
-
-/// The `+ Add` footer shared by both columns — mirrors `OcptBudgetCostTracking`'s own
-/// `_OcptCostTrackingCreationFooter`, generic over its own label.
-class _OcptSharingCreationFooter extends StatelessWidget {
-  /// The footer's own label.
-  final String label;
-
-  /// Called when the footer is clicked.
-  final VoidCallback onTap;
-
-  /// Class constructor
-  const _OcptSharingCreationFooter({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
       ),
     );
   }
