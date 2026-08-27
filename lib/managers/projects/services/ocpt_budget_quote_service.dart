@@ -233,6 +233,11 @@ class OcptBudgetQuoteService {
   /// `+ Add` footer already produces — rather than writing a figure that would read as a price typed
   /// on purpose, which nobody has typed.
   ///
+  /// [unit] is what a line born already filled — the entry wizard's own `addQuoteLine` gesture —
+  /// fills in alongside [label], [quantityMilli] and [unitAmountCents]; every other caller leaves
+  /// it at [Value.absent], reading `budget_lines.unit`'s own ordinary default exactly as before this
+  /// parameter existed.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createLine({
     required OcptProjectDatabase database,
@@ -240,6 +245,7 @@ class OcptBudgetQuoteService {
     required String label,
     Value<String?> elementId = const Value.absent(),
     Value<int> quantityMilli = const Value.absent(),
+    Value<String> unit = const Value.absent(),
     Value<int> unitAmountCents = const Value.absent(),
     Value<String?> provisionKey = const Value.absent(),
     Value<String?> provisionDigest = const Value.absent(),
@@ -260,6 +266,7 @@ class OcptBudgetQuoteService {
             label: label,
             elementId: elementId,
             quantityMilli: quantityMilli,
+            unit: unit,
             unitAmountCents: unitAmountCents,
             provisionKey: provisionKey,
             provisionDigest: provisionDigest,

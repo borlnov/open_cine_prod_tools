@@ -861,9 +861,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Creates a new, unnamed quote line inside poste `event.posteId`, appended at the end of its own
-  /// lines, and selects it, opening the right dock on the `Inspector` tab — a line is now selected
-  /// rather than expanded, mirroring [_onLineSelected].
+  /// Creates a new quote line inside poste `event.posteId`, appended at the end of its own lines,
+  /// and selects it, opening the right dock on the `Inspector` tab — a line is now selected rather
+  /// than expanded, mirroring [_onLineSelected].
+  ///
+  /// **`event.fields` null keeps this handler's own original write**: an unnamed line, every other
+  /// figure left at `OcptBudgetLinesTable`'s own defaults, for the tree's own inline editor to fill
+  /// in — see `OcptBudgetLineCreatedEvent`'s own doc comment. Non-null writes the line born filled,
+  /// in the one `createLine` call this handler has always made.
   Future<void> _onLineCreated(
     OcptBudgetLineCreatedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -873,10 +878,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
+    final fields = event.fields;
     final lineId = await _budgetQuoteService.createLine(
       database: project.database,
       posteId: event.posteId,
-      label: "",
+      label: fields?.label ?? "",
+      quantityMilli: fields == null ? const Value.absent() : Value(fields.quantityMilli),
+      unit: fields == null ? const Value.absent() : Value(fields.unit),
+      unitAmountCents: fields == null ? const Value.absent() : Value(fields.unitAmountCents),
     );
 
     await _applyBudgetSnapshot(emitter, project);

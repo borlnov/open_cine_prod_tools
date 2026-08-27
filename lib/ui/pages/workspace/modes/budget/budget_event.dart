@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_export_
 import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_line_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
@@ -273,19 +274,28 @@ class OcptBudgetReceiptSelectedEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, receiptId];
 }
 
-/// Creates a new, unnamed quote line inside poste [posteId], appended at the end of its own lines,
-/// and expands it — dispatched by the poste inspector's own `+ Add` action, mirroring
+/// Creates a new quote line inside poste [posteId], appended at the end of its own lines, and
+/// expands it — dispatched by the poste inspector's own `+ Add` action, mirroring
 /// `OcptBudgetPosteCreatedEvent`'s own "created empty" idiom.
+///
+/// **[fields] is nullable, and null keeps this event's own original reading exactly**: an unnamed,
+/// blank line, expanded for inline editing in the tree — the only shape the `+ Add` footer has ever
+/// produced. Non-null seeds the line already filled, `OcptBudgetLineFormBody`'s own small form
+/// being what the entry wizard's own `addQuoteLine` gesture ends on instead of that inline editor —
+/// see [OcptBudgetLineFormFields]'s own doc comment for exactly what a line can be born carrying.
 class OcptBudgetLineCreatedEvent extends OcptBudgetEvent {
   /// The id of the poste the new line belongs to.
   final String posteId;
 
+  /// The line's own fields, already typed, or null for a blank line — see the class doc comment.
+  final OcptBudgetLineFormFields? fields;
+
   /// Class constructor
-  const OcptBudgetLineCreatedEvent({required this.posteId});
+  const OcptBudgetLineCreatedEvent({required this.posteId, this.fields});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, posteId];
+  List<Object?> get props => [...super.props, posteId, fields];
 }
 
 /// Creates a new quote line inside poste [posteId] **from** breakdown element [elementId], and
