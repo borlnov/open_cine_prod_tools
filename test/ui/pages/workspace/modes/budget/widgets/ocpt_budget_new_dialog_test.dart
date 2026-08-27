@@ -728,6 +728,39 @@ void main() {
       final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
       expect(outcome.acceptedSuggestion, isNull);
     });
+
+    testWidgets("nothing is pre-selected: saving untouched reconciles against no one", (
+      tester,
+    ) async {
+      await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.recordExpense,
+        postes: [_poste(id: "p1", label: "Camera")],
+        commitments: [
+          _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
+        ],
+      );
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewOffQuoteChoice")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewLabelField")), "Atelier Verrier");
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "250.00");
+      await tester.pumpAndSettle();
+
+      // A same-amount candidate is on offer, but reconciliation is opt-in — saving without
+      // touching the strip records the movement as its own gesture says, settling no one.
+      expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsOneWidget);
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+      await tester.pumpAndSettle();
+
+      final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
+      expect(outcome.acceptedSuggestion, isNull);
+    });
   });
 
   group("the dashboard's own case", () {

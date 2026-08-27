@@ -342,7 +342,13 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
   /// Which of the lettrage strip's own ranked candidates is currently picked, by index into
   /// [_lettrageSuggestionsOf]'s own answer, or null for `Aucun`.
-  int? _selectedSuggestionIndex = 0;
+  ///
+  /// **Null by default — reconciliation is opt-in, never automatic.** Pre-selecting the top
+  /// candidate would silently reroute the movement into settling it: a repayment pre-filled against
+  /// a contribution would settle a same-amount défraiement instead, and a fresh taking would be
+  /// absorbed into an existing row rather than minting its own. The strip proposes; the reader
+  /// chooses, and until they do the movement is written exactly as its own gesture says.
+  int? _selectedSuggestionIndex;
 
   // -----------------------------------------------------------------------------------------
   // Step 3's own drafts for every gesture backed by an embeddable form body.

@@ -837,6 +837,13 @@ are all here, and this file is the whole record of them.
   `This entry will settle:` — each offer carries the reasons it was ranked (`same amount`, `same
   day`, a shared word), and **the other candidates are all reachable, `None of these` included**:
   proposing without allowing a different answer is being wrong in silence.
+- **Reconciliation is opt-in: nothing is pre-selected** (`_selectedSuggestionIndex` is null until the
+  reader picks). Pre-selecting the top candidate would reroute the movement into settling it the
+  moment the reader saved without looking — a repayment pre-filled against a contribution would settle
+  a same-amount défraiement instead, its debit then naming no resource so the sharing view's own
+  `repaid` never moves; a fresh taking would be absorbed into an existing row rather than minting its
+  own, invisible everywhere it should have appeared. The strip proposes; until the reader chooses, the
+  movement is written exactly as its own gesture says.
 - **Accepting an offer attaches it to the draft, it does not write.** The wizard returns the plain
   draft and the accepted suggestion together (`OcptBudgetNewOutcome`) rather than turning either into
   a write itself — see "Money is added in one way, reached through several doors" below for where the
