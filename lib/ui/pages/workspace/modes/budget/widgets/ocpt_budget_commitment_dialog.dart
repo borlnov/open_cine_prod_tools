@@ -22,22 +22,20 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// `OcptBudgetEntryDialog`'s own structure exactly, [show] and all: a [Form], an `AlertDialog` with
 /// `Cancel`/`Save` actions, dismissed through `OcptRouterManager.pop`, never `Navigator`.
 ///
-/// **Two fields gate `Save`, not one.** `Label` is the entry dialog's own only required field, but a
-/// commitment always prices a poste (`OcptBudgetCommitment.posteId`'s own doc comment), so `Poste`
-/// is required here too — the button is **withheld** (a null `onPressed`, this dialog's own
-/// discipline for a control that cannot yet be honoured) rather than merely shown disabled with no
-/// explanation, and a muted line under the actions names whichever of the two is still missing.
+/// **Reduced to a shell over [OcptBudgetCommitmentFormBody].** Every field, controller and
+/// validator this dialog used to hold moved to that widget so the capture wizard can draw the very
+/// same form under its own step counter and its own `Back`/`Save` buttons; this class keeps only
+/// the title and the two actions.
 ///
-/// **`Poste` is only pickable while creating.** `OcptBudgetJournalService.updateCommitment` carries
-/// no `posteId` parameter at all (`OcptBudgetCommitmentFormFields.posteId`'s own doc comment): once
-/// a commitment exists, its own poste is fixed, exactly as a quote line's is. Editing an existing
-/// commitment therefore shows its poste as a plain, muted label rather than a picker.
-///
-/// **The `VAT` field's empty reading agrees with `OcptBudgetEntryDialog`'s own, for the very same
-/// reason**: this dialog submits a whole record at once, through one explicit `Save` action, so an
-/// empty or unparseable field reads as "inherit the project's rate", never as "clear the override
-/// typed on purpose" — the stray-keystroke risk a keystroke-by-keystroke autosave would carry does
-/// not exist here.
+/// **`Save` is withheld here, not merely validated on press, and that is the one thing this shell
+/// cannot read off the body's draft alone.** [OcptBudgetCommitmentFormBody.onDraftChanged] answers
+/// null the moment the amount does not parse *or* a required field is missing, exactly the
+/// distinction this dialog used to blur with a single `_canSubmit` bool — a `Save` gated on the
+/// draft alone would grey out the button the instant `Amount` held something unparseable, hiding
+/// the field's own inline error a reader could otherwise see by pressing `Save` anyway. So the body
+/// also carries [OcptBudgetCommitmentFormBody.onMissingFieldsHintChanged], firing independently of
+/// the amount, and this shell gates `Save` and prints the muted hint off *that* signal alone —
+/// preserving the dialog's own pre-existing behaviour byte for byte.
 class OcptBudgetCommitmentDialog extends StatefulWidget {
   /// The commitment being edited, or null while creating a new one.
   final OcptBudgetCommitment? existing;
@@ -100,11 +98,162 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
   State<OcptBudgetCommitmentDialog> createState() => _OcptBudgetCommitmentDialogState();
 }
 
-/// The state of [OcptBudgetCommitmentDialog].
+/// The state of [OcptBudgetCommitmentDialog]: the form key it hands to
+/// [OcptBudgetCommitmentFormBody], the last draft that body reported, and the missing-fields hint
+/// that gates `Save` independently of it — see the class doc comment for why the two are separate.
 class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog> {
-  /// The form used to validate the entered amount.
+  /// The form [OcptBudgetCommitmentFormBody] validates against, owned here since this shell is the
+  /// one that decides when to validate it.
   final _formKey = GlobalKey<FormState>();
 
+  /// The fields [OcptBudgetCommitmentFormBody] would submit right now, or null while it cannot be
+  /// read at all — see [OcptBudgetCommitmentFormBody.onDraftChanged]'s own doc comment.
+  OcptBudgetCommitmentFormFields? _draft;
+
+  /// Which of the two required fields (or both) [OcptBudgetCommitmentFormBody] is still missing, or
+  /// null once both are filled — see [OcptBudgetCommitmentFormBody.onMissingFieldsHintChanged]'s
+  /// own doc comment.
+  String? _missingFieldsHint;
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+    final isEditing = widget.existing != null;
+    final missingFieldsHint = _missingFieldsHint;
+
+    return AlertDialog(
+      title: Text(isEditing ? tr.budgetCommitmentDialogEditTitle : tr.budgetCommitmentDialogCreateTitle),
+      content: OcptBudgetCommitmentFormBody(
+        existing: widget.existing,
+        prefill: widget.prefill,
+        postes: widget.postes,
+        currencyCode: widget.currencyCode,
+        defaultVatRateBasisPoints: widget.defaultVatRateBasisPoints,
+        isSimplified: widget.isSimplified,
+        formKey: _formKey,
+        onDraftChanged: (draft) => setState(() => _draft = draft),
+        onMissingFieldsHintChanged: (hint) => setState(() => _missingFieldsHint = hint),
+      ),
+      actions: [
+        if (missingFieldsHint != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text(
+              missingFieldsHint,
+              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        TextButton(
+          onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
+          child: Text(tr.budgetEntryDialogCancelAction),
+        ),
+        FilledButton(
+          onPressed: missingFieldsHint == null ? _submit : null,
+          child: Text(tr.budgetEntryDialogConfirmAction),
+        ),
+      ],
+    );
+  }
+
+  /// Validates the form and, if it passes, pops the dialog returning the last draft
+  /// [OcptBudgetCommitmentFormBody] reported — mirrors what this dialog's own `_submit` did before
+  /// it was split, `Save` already being withheld while [_missingFieldsHint] names something still
+  /// missing.
+  void _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final draft = _draft;
+    if (draft == null) {
+      return;
+    }
+
+    globalGetIt().get<OcptRouterManager>().pop<OcptBudgetCommitmentFormFields>(draft);
+  }
+}
+
+/// The whole of [OcptBudgetCommitmentDialog]'s own form, embeddable outside a dialog — the capture
+/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s `content`.
+///
+/// **Two fields gate `Save`, not one.** `Label` is the entry dialog's own only required field, but a
+/// commitment always prices a poste (`OcptBudgetCommitment.posteId`'s own doc comment), so `Poste`
+/// is required here too — [onMissingFieldsHintChanged] is how this body tells its host, since the
+/// host owns `Save` (see [OcptBudgetCommitmentDialog]'s own class doc comment for why that could not
+/// simply be read off [onDraftChanged] instead).
+///
+/// **`Poste` is only pickable while creating.** `OcptBudgetJournalService.updateCommitment` carries
+/// no `posteId` parameter at all (`OcptBudgetCommitmentFormFields.posteId`'s own doc comment): once
+/// a commitment exists, its own poste is fixed, exactly as a quote line's is. Editing an existing
+/// commitment therefore shows its poste as a plain, muted label rather than a picker.
+///
+/// **The `VAT` field's empty reading agrees with `OcptBudgetEntryDialog`'s own, for the very same
+/// reason**: this body submits a whole record at once, through one explicit `Save` action, so an
+/// empty or unparseable field reads as "inherit the project's rate", never as "clear the override
+/// typed on purpose" — the stray-keystroke risk a keystroke-by-keystroke autosave would carry does
+/// not exist here.
+///
+/// **The host owns the submit gesture.** [formKey] is put on this body's own [Form].
+/// [onDraftChanged] fires with the fields this body would submit right now — or null while `Amount`
+/// does not parse *or* `Label`/`Poste` is still missing — every time a field changes, `initState`
+/// included so a host that never touches a pre-filled edit still has a draft to submit. The host
+/// validates [formKey] and uses the last reported draft on its own `Save`; this body never pops
+/// anything itself.
+class OcptBudgetCommitmentFormBody extends StatefulWidget {
+  /// The commitment being edited, or null while creating a new one.
+  final OcptBudgetCommitment? existing;
+
+  /// Seeds a fresh commitment's own fields while [existing] is null, or null to start from this
+  /// body's own defaults.
+  final OcptBudgetCommitmentFormFields? prefill;
+
+  /// Every live poste of the project, offered by the `Poste` picker while creating.
+  final List<OcptBudgetPoste> postes;
+
+  /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
+  final String currencyCode;
+
+  /// The project's default VAT rate, in basis points, or null — what the `VAT` field's own hint
+  /// reads while it is left empty.
+  final int? defaultVatRateBasisPoints;
+
+  /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
+  /// exactly as every other view of this mode does.
+  final bool isSimplified;
+
+  /// The form this body's own [Form] validates against — the host's to create and to validate.
+  final GlobalKey<FormState> formKey;
+
+  /// Called with the fields this body would submit right now, or null while it cannot be read at
+  /// all — see the class doc comment.
+  final ValueChanged<OcptBudgetCommitmentFormFields?> onDraftChanged;
+
+  /// Called with which of `Label`/`Poste` is still missing, worded for a muted hint next to `Save`
+  /// — null once both are filled. See [OcptBudgetCommitmentDialog]'s own class doc comment for why
+  /// this travels apart from [onDraftChanged].
+  final ValueChanged<String?> onMissingFieldsHintChanged;
+
+  /// Class constructor
+  const OcptBudgetCommitmentFormBody({
+    super.key,
+    required this.existing,
+    this.prefill,
+    required this.postes,
+    required this.currencyCode,
+    required this.defaultVatRateBasisPoints,
+    required this.isSimplified,
+    required this.formKey,
+    required this.onDraftChanged,
+    required this.onMissingFieldsHintChanged,
+  });
+
+  @override
+  State<OcptBudgetCommitmentFormBody> createState() => _OcptBudgetCommitmentFormBodyState();
+}
+
+/// The state of [OcptBudgetCommitmentFormBody].
+class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormBody> {
   /// The controller of the label field.
   late final TextEditingController _labelController;
 
@@ -140,122 +289,136 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
     _status = existing?.status ?? prefill?.status ?? OcptBudgetCommitmentStatus.quoteAccepted;
 
     _labelController = TextEditingController(text: existing?.label ?? prefill?.label ?? "")
-      ..addListener(_onFieldsChanged);
+      ..addListener(_report);
     _amountController = TextEditingController(
       text: ocptCostTextOf(existing?.amount.amountCents ?? prefill?.amountCents),
-    );
+    )..addListener(_report);
     _vatRateController = TextEditingController(
       text: ocptVatRatePercentTextOf(
         existing?.amount.vatRateBasisPoints ?? prefill?.vatRateBasisPoints,
       ),
-    );
+    )..addListener(_report);
+
+    // The host's own `Save` may be reached before any field is touched — an edit left exactly as
+    // it opened — so the very first draft and hint have to travel without waiting on a keystroke.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _report();
+      }
+    });
   }
 
   @override
   void dispose() {
-    _labelController.removeListener(_onFieldsChanged);
     _labelController.dispose();
     _amountController.dispose();
     _vatRateController.dispose();
     super.dispose();
   }
 
-  /// Rebuilds so the `Save` action and its own missing-fields hint react to every keystroke of the
-  /// label, exactly as [_posteId] already does through `setState` on every pick.
-  void _onFieldsChanged() => setState(() {});
+  /// Reports both [_currentDraft] and [_missingFieldsHintOf] to the host — every controller
+  /// listener and every picker's own `onChanged` call this after applying its own change.
+  void _report() {
+    widget.onDraftChanged(_currentDraft);
+    widget.onMissingFieldsHintChanged(_missingFieldsHintOf());
+  }
 
-  /// Whether both of the dialog's own required fields are filled — see the class doc comment.
-  bool get _canSubmit => _labelController.text.trim().isNotEmpty && _posteId != null;
+  /// The fields this body would submit right now, or null while `Amount` does not parse or
+  /// `Label`/`Poste` is still missing.
+  OcptBudgetCommitmentFormFields? get _currentDraft {
+    final amountCents = ocptCostCentsOf(_amountController.text);
+    final posteId = _posteId;
+    final label = _labelController.text.trim();
+    if (amountCents == null || posteId == null || label.isEmpty) {
+      return null;
+    }
+
+    return OcptBudgetCommitmentFormFields(
+      dueDate: _dueDate,
+      label: label,
+      posteId: posteId,
+      amountCents: amountCents,
+      isTaxInclusive: _isTaxInclusive,
+      vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
+      status: _status,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final isEditing = widget.existing != null;
     final currencySymbol = NumberFormat.simpleCurrency(name: widget.currencyCode).currencySymbol;
     final vatRateHint = _effectiveDefaultVatRateHint(tr);
-    final missingFieldsHint = _missingFieldsHintOf(tr);
 
-    return AlertDialog(
-      title: Text(isEditing ? tr.budgetCommitmentDialogEditTitle : tr.budgetCommitmentDialogCreateTitle),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              OcptPersonSheetDateField(
-                label: tr.budgetCommitmentDialogDueDateFieldLabel,
-                value: _dueDate,
-                onChanged: (value) => setState(() => _dueDate = value),
+    return Form(
+      key: widget.formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            OcptPersonSheetDateField(
+              label: tr.budgetCommitmentDialogDueDateFieldLabel,
+              value: _dueDate,
+              onChanged: (value) {
+                setState(() => _dueDate = value);
+                _report();
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _labelController,
+              autofocus: true,
+              decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
+            ),
+            const SizedBox(height: 12),
+            _buildPosteField(tr),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _amountController,
+              decoration: InputDecoration(
+                labelText: tr.budgetEntryDialogAmountFieldLabel,
+                suffixText: currencySymbol,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _labelController,
-                autofocus: true,
-                decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
+              validator: (value) =>
+                  ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+            ),
+            const SizedBox(height: 12),
+            OcptBudgetBinaryChoice(
+              value: _isTaxInclusive,
+              trueLabel: tr.budgetLineTaxInclusiveOption,
+              falseLabel: tr.budgetLineTaxExclusiveOption,
+              onChanged: (value) {
+                setState(() => _isTaxInclusive = value);
+                _report();
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _vatRateController,
+              decoration: InputDecoration(
+                labelText: tr.budgetLineVatRateFieldLabel,
+                hintText: vatRateHint,
+                suffixText: tr.budgetLineVatRateSuffix,
               ),
-              const SizedBox(height: 12),
-              _buildPosteField(tr),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _amountController,
-                decoration: InputDecoration(
-                  labelText: tr.budgetEntryDialogAmountFieldLabel,
-                  suffixText: currencySymbol,
-                ),
-                validator: (value) =>
-                    ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
-              ),
-              const SizedBox(height: 12),
-              OcptBudgetBinaryChoice(
-                value: _isTaxInclusive,
-                trueLabel: tr.budgetLineTaxInclusiveOption,
-                falseLabel: tr.budgetLineTaxExclusiveOption,
-                onChanged: (value) => setState(() => _isTaxInclusive = value),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _vatRateController,
-                decoration: InputDecoration(
-                  labelText: tr.budgetLineVatRateFieldLabel,
-                  hintText: vatRateHint,
-                  suffixText: tr.budgetLineVatRateSuffix,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                tr.budgetCommitmentDialogStatusFieldLabel.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 4),
-              _OcptCommitmentStatusPicker(
-                value: _status,
-                onChanged: (value) => setState(() => _status = value),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        if (missingFieldsHint != null)
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Text(
-              missingFieldsHint,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              tr.budgetCommitmentDialogStatusFieldLabel.toUpperCase(),
               style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
-          ),
-        TextButton(
-          onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
-          child: Text(tr.budgetEntryDialogCancelAction),
+            const SizedBox(height: 4),
+            _OcptCommitmentStatusPicker(
+              value: _status,
+              onChanged: (value) {
+                setState(() => _status = value);
+                _report();
+              },
+            ),
+          ],
         ),
-        FilledButton(
-          onPressed: _canSubmit ? _submit : null,
-          child: Text(tr.budgetEntryDialogConfirmAction),
-        ),
-      ],
+      ),
     );
   }
 
@@ -276,7 +439,10 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
           child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified)),
         ),
     ],
-    onChanged: (value) => setState(() => _posteId = value),
+    onChanged: (value) {
+      setState(() => _posteId = value);
+      _report();
+    },
   );
 
   /// The `VAT` field's own hint while it is left empty — mirrors `OcptBudgetEntryDialog`'s own
@@ -291,9 +457,10 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
   }
 
   /// Which of the two required fields (or both) is still missing, worded for the muted hint next to
-  /// `Save` — null once both are filled, at which point [_canSubmit] is true and there is nothing
-  /// left to explain.
-  String? _missingFieldsHintOf(Tr tr) {
+  /// `Save` — null once both are filled, at which point [_currentDraft] no longer reads null for
+  /// want of either.
+  String? _missingFieldsHintOf() {
+    final tr = Tr.of(context);
     final missingLabel = _labelController.text.trim().isEmpty;
     final missingPoste = _posteId == null;
 
@@ -309,34 +476,9 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
 
     return null;
   }
-
-  /// Validates the form and, if it passes, pops the dialog returning every field collected.
-  void _submit() {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
-
-    final amountCents = ocptCostCentsOf(_amountController.text);
-    final posteId = _posteId;
-    if (amountCents == null || posteId == null) {
-      return;
-    }
-
-    globalGetIt().get<OcptRouterManager>().pop<OcptBudgetCommitmentFormFields>(
-      OcptBudgetCommitmentFormFields(
-        dueDate: _dueDate,
-        label: _labelController.text.trim(),
-        posteId: posteId,
-        amountCents: amountCents,
-        isTaxInclusive: _isTaxInclusive,
-        vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
-        status: _status,
-      ),
-    );
-  }
 }
 
-/// The commitment dialog's own `Status` picker: `OcptBudgetCommitmentStatus`'s own four values as a
+/// The commitment form's own `Status` picker: `OcptBudgetCommitmentStatus`'s own four values as a
 /// wrapped row of small, clickable chips — the same colour and word every badge of the
 /// committed-spending view itself paints them in (`ocptBudgetCommitmentStatusLabel`/
 /// `ocptBudgetCommitmentStatusAccentColor`), so picking one here and reading it back there never
