@@ -991,10 +991,9 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Opens the entry wizard on step 2 directly, its nature inferred from [entry] and a link back
-  /// to step 1, then dispatches the update if the user confirmed it. Editing draws no
-  /// reconciliation strip (`OcptBudgetEntryDialog`'s own class doc comment), so
-  /// [OcptBudgetEntryWizardResult.acceptedSuggestion] is always null here.
+  /// Opens `OcptBudgetEntryDialog` on [entry] — the one screen it has left, its nature inferred
+  /// silently off whichever of the entry's own links is set — then dispatches the update if the
+  /// user confirmed it.
   Future<void> _handleEntryEditRequested(
     BuildContext context,
     OcptBudgetState state,
