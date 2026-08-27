@@ -1852,7 +1852,7 @@
   "budgetNewCreateResourceAction": "Nouvelle ressource…",
   "budgetNewCreateParticipantAction": "Nouveau participant…",
   "budgetNewCreateLinesAction": "{count, plural, =1{Créer 1 ligne de devis} other{Créer {count} lignes de devis}}",
-  "budgetNewLettrageTitle": "Valider ceci soldera :",
+  "budgetNewLettrageTitle": "Cette écriture soldera :",
   "budgetNewLettrageNoneAction": "Aucun",
   "budgetNewLettrageReasonAmount": "même montant",
   "budgetNewLettrageReasonDate": "même jour",
