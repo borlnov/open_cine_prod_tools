@@ -1233,15 +1233,17 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     final fields = event.fields;
+    final resourceId = await _createNewResourceOf(project, fields);
     final revenueId = await _createNewRevenueOf(project, fields);
+    final shareId = await _createNewShareOf(project, fields);
     final entryId = await _budgetJournalService.createEntry(
       database: project.database,
       date: fields.date,
       label: fields.label,
       posteId: fields.posteId,
-      resourceId: fields.resourceId,
+      resourceId: resourceId ?? fields.resourceId,
       revenueId: revenueId ?? fields.revenueId,
-      shareId: fields.shareId,
+      shareId: shareId ?? fields.shareId,
       commitmentId: fields.commitmentId,
       personId: fields.personId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
@@ -1285,16 +1287,18 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     final voucherNumber = fields.voucherNumber;
     final commitmentId = fields.commitmentId;
     final personId = fields.personId;
+    final resourceId = await _createNewResourceOf(project, fields);
     final revenueId = await _createNewRevenueOf(project, fields);
+    final shareId = await _createNewShareOf(project, fields);
     await _budgetJournalService.updateEntry(
       database: project.database,
       entryId: event.entryId,
       date: Value(fields.date),
       label: Value(fields.label),
       posteId: Value(fields.posteId),
-      resourceId: Value(fields.resourceId),
+      resourceId: Value(resourceId ?? fields.resourceId),
       revenueId: Value(revenueId ?? fields.revenueId),
-      shareId: Value(fields.shareId),
+      shareId: Value(shareId ?? fields.shareId),
       commitmentId: commitmentId == null ? const Value.absent() : Value(commitmentId),
       personId: personId == null ? const Value.absent() : Value(personId),
       debitCents: Value(fields.isDebit ? fields.amountCents : 0),
@@ -1334,6 +1338,55 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     return revenueId;
+  }
+
+  /// Creates the financing resource `fields` carries as still-to-be-made
+  /// ([OcptBudgetEntryFormFields.newResource]) and answers its fresh id, or null while it carries
+  /// none — mirrors [_createNewRevenueOf] exactly, written the way [_onResourceCreationConfirmed]
+  /// writes one, so a resource born in the journal is indistinguishable from one born in the
+  /// financing plan.
+  Future<String?> _createNewResourceOf(
+    OcptOpenProjectModel project,
+    OcptBudgetEntryFormFields fields,
+  ) async {
+    final newResource = fields.newResource;
+    if (newResource == null) {
+      return null;
+    }
+
+    final resourceId = await _budgetFinancingService.createResource(
+      database: project.database,
+      label: newResource.label,
+    );
+    if (resourceId != null) {
+      await _writeResourceFields(project, resourceId, newResource);
+    }
+
+    return resourceId;
+  }
+
+  /// Creates the revenue-sharing participant `fields` carries as still-to-be-made
+  /// ([OcptBudgetEntryFormFields.newShare]) and answers its fresh id, or null while it carries none
+  /// — mirrors [_createNewRevenueOf] exactly, written the way [_onShareCreationConfirmed] writes
+  /// one.
+  Future<String?> _createNewShareOf(
+    OcptOpenProjectModel project,
+    OcptBudgetEntryFormFields fields,
+  ) async {
+    final newShare = fields.newShare;
+    if (newShare == null) {
+      return null;
+    }
+
+    final shareId = await _budgetSharingService.createShare(
+      database: project.database,
+      label: newShare.label,
+    );
+    if (shareId != null) {
+      await _writeShareFields(project, shareId, newShare);
+    }
+
+    return shareId;
   }
 
   /// Writes whatever `fields` collected about a journal entry's own voucher, once the entry itself

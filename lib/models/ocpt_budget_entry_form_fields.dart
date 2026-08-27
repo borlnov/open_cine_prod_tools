@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 
 /// What `OcptBudgetEntryDialog` collected, handed back to the mode that opened it — one shape for
@@ -64,6 +66,15 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// bloc creates this taking first and writes its fresh id where [revenueId] would have gone.
   final OcptBudgetRevenueFormFields? newRevenue;
 
+  /// A financing resource to **create and then attach** this entry to, or null — mirrors
+  /// [newRevenue] exactly, the same precedent followed for the capture wizard's own step 2 inline
+  /// creation: never meaningful at the same time as [resourceId].
+  final OcptBudgetResourceFormFields? newResource;
+
+  /// A revenue-sharing participant to **create and then attach** this entry to, or null — mirrors
+  /// [newRevenue]: never meaningful at the same time as [shareId].
+  final OcptBudgetShareFormFields? newShare;
+
   /// Whether [amountCents] left the account (`true`) or came into it (`false`).
   final bool isDebit;
 
@@ -119,6 +130,8 @@ class OcptBudgetEntryFormFields extends Equatable {
     this.commitmentId,
     this.personId,
     this.newRevenue,
+    this.newResource,
+    this.newShare,
     required this.isDebit,
     required this.amountCents,
     required this.isTaxInclusive,
@@ -146,6 +159,8 @@ class OcptBudgetEntryFormFields extends Equatable {
     commitmentId,
     personId,
     newRevenue,
+    newResource,
+    newShare,
     isDebit,
     amountCents,
     isTaxInclusive,
