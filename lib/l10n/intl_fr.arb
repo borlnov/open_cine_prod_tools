@@ -1675,6 +1675,7 @@
   "budgetResourceDialogCreateSubsidyTitle": "Nouvelle subvention",
   "budgetResourceDialogCreateCashTitle": "Nouvel apport en numéraire",
   "budgetResourceDialogCreateInKindTitle": "Nouvel apport en nature",
+  "budgetResourceDialogCreateContributionTitle": "Nouvel apport",
   "budgetResourceDialogEditTitle": "Modifier la ressource",
   "budgetResourceDialogGroupFieldLabel": "Groupe",
   "budgetResourceDialogValuedAtFieldLabel": "Valorisé à",
