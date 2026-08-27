@@ -1835,6 +1835,8 @@
   "budgetNewLettrageReasonDate": "même jour",
   "budgetNewLettrageReasonWording": "un mot en commun",
   "budgetNewBreakdownSceneCountHint": "{count, plural, =1{Apparaît dans 1 séquence} other{Apparaît dans {count} séquences}}",
+  "budgetNewBreakdownSetAllPosteLabel": "Tout mettre dans",
+  "budgetNewBreakdownPosteChooseHint": "Choisir un poste",
   "budgetRevenueDialogCreateTitle": "Nouvelle recette",
   "budgetRevenueDialogEditTitle": "Modifier la recette",
   "budgetShareDialogCreateTitle": "Nouvelle part",

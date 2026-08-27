@@ -82,19 +82,18 @@ class OcptBudgetNewLineOutcome extends OcptBudgetNewOutcome {
 /// `addQuoteLinesFromBreakdown`: several quote lines at once, each priced against a breakdown
 /// element the reader picked and, optionally, corrected the suggested quantity of.
 class OcptBudgetNewLinesFromBreakdownOutcome extends OcptBudgetNewOutcome {
-  /// The poste every line belongs to — the wizard's own step 2 answer.
-  final String posteId;
-
-  /// One entry per line to create: the breakdown element it prices, and the quantity to create it
-  /// with (the scene count the breakdown suggests, or whatever the reader corrected it to).
-  final List<({String elementId, int quantityMilli})> lines;
+  /// One entry per line to create: the breakdown element it prices, the poste the reader filed it
+  /// under — chosen per element on the selector's own step, so two elements of one selection can
+  /// land in two different postes — and the quantity to create it with (the scene count the
+  /// breakdown suggests, or whatever the reader corrected it to).
+  final List<({String elementId, String posteId, int quantityMilli})> lines;
 
   /// Class constructor
-  const OcptBudgetNewLinesFromBreakdownOutcome({required this.posteId, required this.lines});
+  const OcptBudgetNewLinesFromBreakdownOutcome({required this.lines});
 
   /// Object properties
   @override
-  List<Object?> get props => [posteId, lines];
+  List<Object?> get props => [lines];
 }
 
 /// `commitSpend`: a commitment, promoted from a quote line or hanging off a poste directly.

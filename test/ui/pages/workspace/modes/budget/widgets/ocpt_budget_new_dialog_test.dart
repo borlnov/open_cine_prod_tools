@@ -487,11 +487,9 @@ void main() {
         ],
       );
 
+      // The breakdown gesture no longer asks a poste up front: Continue lands straight on the
+      // selector, where a poste is picked per element instead.
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text("Set dressing"));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
       await tester.pumpAndSettle();
 
       // Nothing picked yet: the button is withheld (disabled), never invites a click that would
@@ -509,6 +507,19 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(tr.budgetNewCreateLinesAction(2)), findsOneWidget);
 
+      // Checked, but filed under no poste yet: the button stays withheld until every row resolves
+      // one.
+      createButton = tester.widget<FilledButton>(
+        find.byKey(const Key("ocptBudgetNewCreateLinesButton")),
+      );
+      expect(createButton.onPressed, isNull);
+
+      // `File all under` files every checked row under the one poste at once.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownSetAllPoste")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Set dressing").last);
+      await tester.pumpAndSettle();
+
       createButton = tester.widget<FilledButton>(
         find.byKey(const Key("ocptBudgetNewCreateLinesButton")),
       );
@@ -518,14 +529,55 @@ void main() {
       await tester.pumpAndSettle();
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewLinesFromBreakdownOutcome;
-      expect(outcome.posteId, "p1");
       expect(outcome.lines, hasLength(2));
+      // Every line was filed under the poste `File all under` named.
+      expect(outcome.lines.every((line) => line.posteId == "p1"), isTrue);
       // The suggested quantity is the scene count, in thousandths — a suggestion, corrected
       // nowhere in this test, but read back verbatim here.
       expect(
         outcome.lines.firstWhere((line) => line.elementId == "e1").quantityMilli,
         3000,
       );
+    });
+
+    testWidgets("files each element under the poste chosen for its own row", (tester) async {
+      await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.addQuoteLinesFromBreakdown,
+        postes: [
+          _poste(id: "p1", label: "Set dressing"),
+          _poste(id: "p2", label: "Transport"),
+        ],
+        unpricedElements: [
+          _element(id: "e1", name: "Vintage phone", sceneCount: 3),
+          _element(id: "e2", name: "Rostrum", sceneCount: 2),
+        ],
+      );
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownCheckbox-e1")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownCheckbox-e2")));
+      await tester.pumpAndSettle();
+
+      // e1 goes to Set dressing, e2 to Transport — two elements of one selection, two postes.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownPoste-e1")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Set dressing").last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownPoste-e2")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Transport").last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewCreateLinesButton")));
+      await tester.pumpAndSettle();
+
+      final outcome = routerManager.poppedValue! as OcptBudgetNewLinesFromBreakdownOutcome;
+      expect(outcome.lines.firstWhere((line) => line.elementId == "e1").posteId, "p1");
+      expect(outcome.lines.firstWhere((line) => line.elementId == "e2").posteId, "p2");
     });
   });
 

@@ -569,11 +569,11 @@ class _BudgetViewState extends State<_BudgetView> {
         }
       case OcptBudgetNewLineOutcome(:final posteId, :final fields):
         bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId, fields: fields));
-      case OcptBudgetNewLinesFromBreakdownOutcome(:final posteId, :final lines):
+      case OcptBudgetNewLinesFromBreakdownOutcome(:final lines):
         for (final line in lines) {
           bloc.add(
             OcptBudgetLineCreatedFromElementEvent(
-              posteId: posteId,
+              posteId: line.posteId,
               elementId: line.elementId,
               quantityMilli: line.quantityMilli,
             ),

@@ -178,7 +178,9 @@ OcptBudgetGestureFamily ocptBudgetGestureFamilyOf(OcptBudgetGesture gesture) => 
 OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gesture) =>
     switch (gesture) {
       OcptBudgetGesture.addQuoteLine => OcptBudgetGestureAttachment.poste,
-      OcptBudgetGesture.addQuoteLinesFromBreakdown => OcptBudgetGestureAttachment.poste,
+      // The breakdown selector picks a poste per element on its own step, so nothing is asked ahead
+      // of it: a single poste answered here would be the very question the per-row picker replaces.
+      OcptBudgetGesture.addQuoteLinesFromBreakdown => OcptBudgetGestureAttachment.none,
       OcptBudgetGesture.commitSpend => OcptBudgetGestureAttachment.posteAndLine,
       OcptBudgetGesture.recordExpense => OcptBudgetGestureAttachment.optionalPoste,
       OcptBudgetGesture.recordFinancingReceipt => OcptBudgetGestureAttachment.financingResource,

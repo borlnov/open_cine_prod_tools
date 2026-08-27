@@ -345,6 +345,14 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   final Map<String, TextEditingController> _breakdownQuantityControllers = {};
   String _breakdownQuery = "";
 
+  /// The poste every breakdown row inherits until it is given one of its own — the `File all under`
+  /// header's own answer, and the default half of [_breakdownPosteFor].
+  String? _breakdownBulkPosteId;
+
+  /// The poste a breakdown row was individually filed under, overriding [_breakdownBulkPosteId] —
+  /// keyed by element id, absent while the row still follows the bulk default.
+  final Map<String, String> _breakdownPosteOverrideByElementId = {};
+
   @override
   void initState() {
     super.initState();
@@ -1125,9 +1133,14 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     }
 
     if (gesture == OcptBudgetGesture.addQuoteLinesFromBreakdown) {
+      // Every checked element has to resolve to a poste — its own or the bulk default — before a
+      // line can be created for it: a line with no poste is a row the quote has nowhere to file.
+      final isReady =
+          _breakdownSelectedIds.isNotEmpty &&
+          _breakdownSelectedIds.every((elementId) => _breakdownPosteFor(elementId) != null);
       return FilledButton(
         key: const Key("ocptBudgetNewCreateLinesButton"),
-        onPressed: _breakdownSelectedIds.isEmpty ? null : _submitBreakdown,
+        onPressed: isReady ? _submitBreakdown : null,
         child: Text(tr.budgetNewCreateLinesAction(_breakdownSelectedIds.length)),
       );
     }
@@ -1729,6 +1742,29 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Row(
+          children: [
+            Text(
+              tr.budgetNewBreakdownSetAllPosteLabel,
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildBreakdownPosteDropdown(
+                key: const Key("ocptBudgetNewBreakdownSetAllPoste"),
+                value: _breakdownBulkPosteId,
+                enabled: true,
+                // `File all under X` is a promise about every row, so it also clears the per-row
+                // overrides: everything really lands in X, ready to be re-filed one by one after.
+                onChanged: (posteId) => setState(() {
+                  _breakdownBulkPosteId = posteId;
+                  _breakdownPosteOverrideByElementId.clear();
+                }),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         TextField(
           decoration: InputDecoration(
             hintText: tr.budgetLineFromElementSearchHint,
@@ -1794,8 +1830,23 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
               ],
             ),
           ),
+          const SizedBox(width: 8),
           SizedBox(
-            width: 72,
+            width: 132,
+            child: _buildBreakdownPosteDropdown(
+              key: Key("ocptBudgetNewBreakdownPoste-${element.id}"),
+              value: _breakdownPosteFor(element.id),
+              enabled: isSelected,
+              onChanged: (posteId) => setState(() {
+                if (posteId != null) {
+                  _breakdownPosteOverrideByElementId[element.id] = posteId;
+                }
+              }),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 60,
             child: TextField(
               key: Key("ocptBudgetNewBreakdownQuantity-${element.id}"),
               controller: controller,
@@ -1816,6 +1867,50 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     );
   }
 
+  /// A compact poste picker — the header's own `File all under` control and every row's own override
+  /// share it. [value] is the poste currently in effect (an override, or the bulk default), null
+  /// drawing the `Choose a poste` hint; [enabled] greys it while its row is unchecked.
+  Widget _buildBreakdownPosteDropdown({
+    required String? value,
+    required ValueChanged<String?> onChanged,
+    required bool enabled,
+    Key? key,
+  }) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return DropdownButton<String>(
+      key: key,
+      value: value,
+      isExpanded: true,
+      isDense: true,
+      underline: const SizedBox.shrink(),
+      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface),
+      hint: Text(
+        tr.budgetNewBreakdownPosteChooseHint,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+      onChanged: enabled ? onChanged : null,
+      items: [
+        for (final poste in widget.postes)
+          DropdownMenuItem<String>(
+            value: poste.id,
+            child: Text(
+              ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The poste breakdown row [elementId] will be filed under: its own override if it has one, else
+  /// the bulk default — null while neither has been chosen, which is what keeps its line from being
+  /// created (`_buildPrimaryFormAction`).
+  String? _breakdownPosteFor(String elementId) =>
+      _breakdownPosteOverrideByElementId[elementId] ?? _breakdownBulkPosteId;
+
   /// The quantity a fresh row of the breakdown selector is born with, in thousandths — the number
   /// of scenes [element] appears in. A suggestion, never a truth: right for a rostrum hired by the
   /// day, wrong for a backdrop built once, corrected in the table before creating rather than
@@ -1824,23 +1919,26 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       (element.sceneLinks.isEmpty ? 1 : element.sceneLinks.length) * 1000;
 
   void _submitBreakdown() {
-    final posteId = _posteId;
-    if (posteId == null || _breakdownSelectedIds.isEmpty) {
+    if (_breakdownSelectedIds.isEmpty) {
       return;
     }
 
-    _pop(
-      OcptBudgetNewLinesFromBreakdownOutcome(
+    final lines = <({String elementId, String posteId, int quantityMilli})>[];
+    for (final elementId in _breakdownSelectedIds) {
+      final posteId = _breakdownPosteFor(elementId);
+      // A row with no poste cannot be created — `_buildPrimaryFormAction` already withholds the
+      // button until every checked row resolves one, so this is the belt to that braces.
+      if (posteId == null) {
+        return;
+      }
+      lines.add((
+        elementId: elementId,
         posteId: posteId,
-        lines: [
-          for (final elementId in _breakdownSelectedIds)
-            (
-              elementId: elementId,
-              quantityMilli: _breakdownQuantityMilliByElementId[elementId] ?? 1000,
-            ),
-        ],
-      ),
-    );
+        quantityMilli: _breakdownQuantityMilliByElementId[elementId] ?? 1000,
+      ));
+    }
+
+    _pop(OcptBudgetNewLinesFromBreakdownOutcome(lines: lines));
   }
 }
 

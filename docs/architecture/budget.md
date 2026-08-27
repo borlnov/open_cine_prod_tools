@@ -750,6 +750,19 @@ are all here, and this file is the whole record of them.
   offering to create the missing object in place. A gesture attaching to nothing has no step 2, and
   **the step counter says so**: `Étape 1 sur 2` where that is the truth. Step 3 is the money, or the
   form.
+- **The breakdown selector files each element under its own poste, on step 3.** `From breakdown`
+  (`addQuoteLinesFromBreakdown`) attaches to nothing on step 2 — it is a **two-step** gesture —
+  because a single poste answered up front would be the very question its own selector replaces:
+  every checked element carries its own poste picker beside its quantity, so two elements of one
+  selection can land in two different postes. A `File all under` control at the selector's own head
+  fills every row at once — the common case, and what the old single-poste step used to do — and
+  clears any per-row override as it does, since "file all under X" is a promise about every row; a
+  row not given one of its own inherits that bulk default (`_breakdownPosteFor`). The `Create N
+  lines` button is withheld until **every** checked element resolves a poste, its own or the
+  default: a line with no poste is a row the quote has nowhere to file.
+  `OcptBudgetNewLinesFromBreakdownOutcome` carries the poste per line rather than one for the batch,
+  and `budget_mode.dart` dispatches one `OcptBudgetLineCreatedFromElementEvent` per line naming it —
+  the event always took its own `posteId`, so nothing downstream had to change.
 - **Step 3 speaks one label idiom throughout** — the label above, the field dense, the way the
   sheets already do — the fix for a row that used to mix an external label over a dense
   `InputDecorator`, a floating internal label and a bare external one, which is the whole reason

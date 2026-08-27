@@ -13763,6 +13763,20 @@
       }
     }
   },
+  "budgetNewBreakdownSetAllPosteLabel": "File all under",
+  "@budgetNewBreakdownSetAllPosteLabel": {
+    "description": "Label of the breakdown selector's own header control that files every element under one poste at once — the default each row inherits until it is given its own",
+    "context": "Displayed before the set-all poste dropdown, OcptBudgetNewDialog's own breakdown step",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetNewBreakdownPosteChooseHint": "Choose a poste",
+  "@budgetNewBreakdownPosteChooseHint": {
+    "description": "Placeholder shown in a breakdown element's own poste dropdown while no poste has been chosen for it — the row cannot be created until one is",
+    "context": "Displayed inside an empty per-element poste dropdown, OcptBudgetNewDialog's own breakdown step",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetRevenueDialogCreateTitle": "New taking",
   "@budgetRevenueDialogCreateTitle": {
     "description": "Title of the revenue dialog while creating a new taking",
