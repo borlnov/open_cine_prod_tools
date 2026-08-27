@@ -309,6 +309,27 @@ void main() {
     );
   });
 
+  testWidgets("commitSpend's own step 3 does not ask the poste a second time", (tester) async {
+    final tr = await pumpDialog(
+      tester,
+      initialGesture: OcptBudgetGesture.commitSpend,
+      postes: [_poste(id: "p1", label: "Camera")],
+    );
+
+    await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Camera"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("ocptBudgetNewNoLineChoice")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
+    await tester.pumpAndSettle();
+
+    // Step 2 already answered which poste this commitment prices — asking again on step 3 would
+    // be the very redundancy this wizard exists to remove.
+    expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
+  });
+
   group("the breakdown selector counts out loud", () {
     testWidgets("its own button names how many lines it will create", (tester) async {
       final tr = await pumpDialog(

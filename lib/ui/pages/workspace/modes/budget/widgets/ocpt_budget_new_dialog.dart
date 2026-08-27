@@ -995,6 +995,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         formKey: _formKey,
         onDraftChanged: (draft) => setState(() => _commitmentDraft = draft),
         onMissingFieldsHintChanged: (hint) => setState(() => _commitmentMissingHint = hint),
+        // Step 2 has already asked the poste (`posteAndLine`, or `commitmentPrefill`'s own
+        // shortcut) — drawing the picker again here would ask the same question twice.
+        posteAlreadyAnswered: true,
       ),
       OcptBudgetGesture.planSubsidy => OcptBudgetResourceFormBody(
         existing: null,

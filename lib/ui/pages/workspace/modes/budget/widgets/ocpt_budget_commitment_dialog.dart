@@ -183,10 +183,13 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
 /// host owns `Save` (see [OcptBudgetCommitmentDialog]'s own class doc comment for why that could not
 /// simply be read off [onDraftChanged] instead).
 ///
-/// **`Poste` is only pickable while creating.** `OcptBudgetJournalService.updateCommitment` carries
-/// no `posteId` parameter at all (`OcptBudgetCommitmentFormFields.posteId`'s own doc comment): once
-/// a commitment exists, its own poste is fixed, exactly as a quote line's is. Editing an existing
-/// commitment therefore shows its poste as a plain, muted label rather than a picker.
+/// **`Poste` is a picker whether creating or editing** — a production is free to reclassify a
+/// commitment against a different poste at any time
+/// (`OcptBudgetJournalService.updateCommitment`'s own doc comment). The one host that already
+/// knows the answer before this body even opens is the capture wizard's own step 3:
+/// [posteAlreadyAnswered] lets it withhold the field outright rather than ask the very question
+/// its own step 2 just answered one screen above — the poste still seeds from [prefill] either
+/// way, so the value already collected travels through untouched.
 ///
 /// **The `VAT` field's empty reading agrees with `OcptBudgetEntryDialog`'s own, for the very same
 /// reason**: this body submits a whole record at once, through one explicit `Save` action, so an
@@ -234,6 +237,10 @@ class OcptBudgetCommitmentFormBody extends StatefulWidget {
   /// this travels apart from [onDraftChanged].
   final ValueChanged<String?> onMissingFieldsHintChanged;
 
+  /// Withholds the `Poste` picker outright when true — see the class doc comment. Defaults to
+  /// false, [OcptBudgetCommitmentDialog]'s own reading, which always draws the picker.
+  final bool posteAlreadyAnswered;
+
   /// Class constructor
   const OcptBudgetCommitmentFormBody({
     super.key,
@@ -246,6 +253,7 @@ class OcptBudgetCommitmentFormBody extends StatefulWidget {
     required this.formKey,
     required this.onDraftChanged,
     required this.onMissingFieldsHintChanged,
+    this.posteAlreadyAnswered = false,
   });
 
   @override
@@ -373,8 +381,10 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
               decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
             ),
             const SizedBox(height: 12),
-            _buildPosteField(tr),
-            const SizedBox(height: 12),
+            if (!widget.posteAlreadyAnswered) ...[
+              _buildPosteField(tr),
+              const SizedBox(height: 12),
+            ],
             TextFormField(
               controller: _amountController,
               decoration: InputDecoration(
@@ -422,7 +432,8 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     );
   }
 
-  /// The `Poste` field: a picker, whether the dialog is creating a commitment or editing one.
+  /// The `Poste` field: a picker, drawn whenever [OcptBudgetCommitmentFormBody.posteAlreadyAnswered]
+  /// is false — whether the dialog is creating a commitment or editing one.
   ///
   /// **Editable in both, unlike a quote line's own poste** — see
   /// `OcptBudgetJournalService.updateCommitment`'s own doc comment: a commitment's poste is an
