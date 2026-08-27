@@ -76,6 +76,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
@@ -534,6 +535,7 @@ class _BudgetViewState extends State<_BudgetView> {
       mileageRates: state.mileageRates,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
+      reimbursedByPersonId: state.reimbursedByPersonId,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -622,6 +624,7 @@ class _BudgetViewState extends State<_BudgetView> {
       mileageRates: state.mileageRates,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
+      reimbursedByPersonId: state.reimbursedByPersonId,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -1140,6 +1143,7 @@ class _BudgetViewState extends State<_BudgetView> {
       mileageRates: state.mileageRates,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
+      reimbursedByPersonId: state.reimbursedByPersonId,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,
@@ -1386,6 +1390,9 @@ class _BudgetViewState extends State<_BudgetView> {
       mealPriceCents: state.mealPriceCents,
       buffetPriceCents: state.buffetPriceCents,
       allowances: state.allowances,
+      entries: state.entries,
+      reimbursedByPersonId: state.reimbursedByPersonId,
+      defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       postes: state.postes,
       provisionPosteId: state.provisionPosteId,
       provisionedTotalCents: _provisionedTotalCentsOf(state),
@@ -1395,6 +1402,8 @@ class _BudgetViewState extends State<_BudgetView> {
       breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,
       currencyCode: state.currencyCode,
       isReadOnly: isReadOnly,
+      expandedNodeIds: state.expandedNodeIds,
+      onNodeExpansionToggled: (nodeId) => bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
       onScheduleOpenRequested: () => _handleScheduleFeedRequested(context),
       onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
       onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
@@ -1419,6 +1428,9 @@ class _BudgetViewState extends State<_BudgetView> {
       onAllowanceDeletionRequested: isReadOnly
           ? null
           : (allowanceId) => unawaited(_handleAllowanceDeletionRequested(context, allowanceId)),
+      onPersonReimburseRequested: isReadOnly
+          ? null
+          : (personId) => unawaited(_handlePersonReimburseRequested(context, state, personId)),
       onProvisionPosteSelected: isReadOnly
           ? null
           : (posteId) => bloc.add(OcptBudgetProvisionPosteSelectedEvent(posteId: posteId)),
@@ -1524,6 +1536,44 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     bloc.add(OcptBudgetAllowanceDeletionConfirmedEvent(allowanceId: allowanceId));
+  }
+
+  /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.reimbursePerson],
+  /// pre-filled from [personId] (today's date, the person's own display name, as a debit, for
+  /// whatever is still owed them, the person already named) — mirrors
+  /// `_handleResourceReceiptRequested`'s own gesture: a reimbursement can never exist as a figure
+  /// with no movement behind it.
+  Future<void> _handlePersonReimburseRequested(
+    BuildContext context,
+    OcptBudgetState state,
+    String personId,
+  ) async {
+    final person = state.people.where((row) => row.id == personId).firstOrNull;
+    final now = DateTime.now();
+    final advancedCents = ocptBudgetPersonAdvancedCents(personId, state.allowances);
+    final reimbursedCents = state.reimbursedByPersonId[personId]?.amountCents ?? 0;
+    final outstandingCents = ocptBudgetPersonOutstandingCents(
+      advancedCents: advancedCents,
+      reimbursedCents: reimbursedCents,
+    );
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(now.year, now.month, now.day),
+      label: person?.displayName ?? "",
+      posteId: null,
+      resourceId: null,
+      revenueId: null,
+      shareId: null,
+      personId: personId,
+      isDebit: true,
+      amountCents: outstandingCents < 0 ? 0 : outstandingCents,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
+
+    await _handleWizardEntryShortcut(context, state, OcptBudgetGesture.reimbursePerson, prefill);
   }
 
   /// Computes what provisioning would do, puts those counts in front of the user through
@@ -1905,6 +1955,7 @@ class _BudgetViewState extends State<_BudgetView> {
       mileageRates: state.mileageRates,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
+      reimbursedByPersonId: state.reimbursedByPersonId,
       currencyCode: state.currencyCode,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       isSimplified: state.isSimplified,

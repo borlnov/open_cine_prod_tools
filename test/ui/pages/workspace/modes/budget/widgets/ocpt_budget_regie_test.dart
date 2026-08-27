@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -28,6 +29,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a wide band
 /// so the two columns draw side by side.
@@ -189,6 +191,31 @@ OcptBudgetAllowance _buildAllowance({
   sortKey: "a0",
 );
 
+/// A minimal debit entry reimbursing [personId], everything else neutral.
+OcptBudgetEntry _buildEntry({
+  required String id,
+  String? personId,
+  int debitCents = 0,
+  String label = "",
+  DateTime? date,
+}) => OcptBudgetEntry(
+  id: id,
+  date: date ?? DateTime(2026, 3),
+  label: label,
+  posteId: null,
+  debitCents: debitCents,
+  creditCents: 0,
+  isTaxInclusive: true,
+  vatRateBasisPoints: null,
+  voucherNumber: "J-001",
+  sortKey: "a0",
+  resourceId: null,
+  revenueId: null,
+  shareId: null,
+  commitmentId: null,
+  personId: personId,
+);
+
 /// A minimal poste holding no line, offered by the provisioning band's own picker.
 OcptBudgetPoste _buildPoste({required String id}) =>
     OcptBudgetPoste(id: id, code: "6", label: "Régie", simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: const []);
@@ -199,6 +226,9 @@ void main() {
     WidgetTester tester, {
     required List<OcptBudgetRegieDay> days,
     List<OcptBudgetAllowance> allowances = const [],
+    List<OcptBudgetEntry> entries = const [],
+    Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId = const {},
+    int? defaultVatRateBasisPoints,
     List<OcptBudgetPoste> postes = const [],
     String? provisionPosteId,
     int provisionedTotalCents = 0,
@@ -210,12 +240,15 @@ void main() {
     int breakdownPricedElementCount = 0,
     int breakdownUnpricedElementCount = 0,
     bool isReadOnly = false,
+    Set<String> expandedNodeIds = const {},
+    ValueChanged<String>? onNodeExpansionToggled,
     ValueChanged<String>? onPersonOpenRequested,
     VoidCallback? onScheduleOpenRequested,
     VoidCallback? onBreakdownFeedRequested,
     VoidCallback? onProjectSettingsRequested,
     ValueChanged<String>? onAllowanceEditRequested,
     ValueChanged<String>? onAllowanceDeletionRequested,
+    ValueChanged<String>? onPersonReimburseRequested,
     ValueChanged<String>? onProvisionPosteSelected,
     VoidCallback? onProvisionRequested,
     String? provisionNote,
@@ -239,6 +272,9 @@ void main() {
           mealPriceCents: mealPriceCents,
           buffetPriceCents: buffetPriceCents,
           allowances: allowances,
+          entries: entries,
+          reimbursedByPersonId: reimbursedByPersonId,
+          defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           postes: postes,
           provisionPosteId: provisionPosteId,
           provisionedTotalCents: provisionedTotalCents,
@@ -248,8 +284,11 @@ void main() {
           breakdownUnpricedElementCount: breakdownUnpricedElementCount,
           currencyCode: "EUR",
           isReadOnly: isReadOnly,
+          expandedNodeIds: expandedNodeIds,
+          onNodeExpansionToggled: onNodeExpansionToggled ?? (_) {},
           onAllowanceEditRequested: onAllowanceEditRequested ?? (_) {},
           onAllowanceDeletionRequested: onAllowanceDeletionRequested ?? (_) {},
+          onPersonReimburseRequested: onPersonReimburseRequested ?? (_) {},
           onProvisionPosteSelected: onProvisionPosteSelected ?? (_) {},
           onProvisionRequested: onProvisionRequested ?? () {},
           provisionNote: provisionNote,
@@ -540,13 +579,20 @@ void main() {
         _buildAllowance(id: "allowance-1", personId: "person-1", quantityMilli: 168000),
       ],
       people: [_buildPerson(id: "person-1", firstName: "Alex")],
+      // The person's own group row shows their name whether expanded or not; the defrayal's own
+      // nature, when and quantity sit in its own sub-row, which only draws once expanded.
+      expandedNodeIds: const {"person-1"},
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
     expect(find.text("Alex"), findsOneWidget);
-    expect(find.text(tr.budgetAllowanceKindTravelLabel), findsWidgets);
-    // 168 km at 0,529 €/km, the figure the published scale states.
+    // 168 km at 0,529 €/km, the figure the published scale states — read on the person group row's
+    // own `ADVANCED` cell and again on the defrayal sub-row's own.
     expect(find.text(ocptBudgetAmountLabel(8887, "EUR")), findsWidgets);
+    expect(
+      find.text("${tr.budgetAllowanceKindTravelLabel} · $ocptBudgetEmptyValue · ×168"),
+      findsOneWidget,
+    );
   });
 
   testWidgets("a defrayal naming nobody says so rather than reading blank", (tester) async {
@@ -577,9 +623,19 @@ void main() {
       buffetPriceCents: null,
     );
 
-    await pumpView(tester, days: days, allowances: [_buildAllowance(id: "allowance-1")]);
+    await pumpView(
+      tester,
+      days: days,
+      allowances: [_buildAllowance(id: "allowance-1", personId: "person-1")],
+      people: [_buildPerson(id: "person-1", firstName: "Alex")],
+      expandedNodeIds: const {"person-1"},
+    );
 
-    expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    expect(
+      find.text("${tr.budgetAllowanceKindTravelLabel} · $ocptBudgetEmptyValue · ×1"),
+      findsOneWidget,
+    );
   });
 
   testWidgets("tapping a defrayal reports its id, and its menu asks rather than deleting", (
@@ -620,6 +676,193 @@ void main() {
     await tester.pumpAndSettle();
     // The row asks; the mode is what opens `OcptConfirmDialog` over it.
     expect(deleted, "allowance-1");
+  });
+
+  group("the defrayal table is a tree grouped by person", () {
+    testWidgets(
+      "a person group row shows what they have advanced, been reimbursed and are owed",
+      (tester) async {
+        final days = ocptBudgetRegieDaysOf(
+          days: [_buildDay(id: "day-1")],
+          slotsByDayId: const {},
+          blocksByDayId: const {},
+          roleKindById: const {},
+          personIdByRoleId: const {},
+          mealPriceCents: null,
+          buffetPriceCents: null,
+        );
+
+        await pumpView(
+          tester,
+          days: days,
+          allowances: [
+            _buildAllowance(id: "a1", personId: "person-1", unitAmountMilliCents: 100000),
+          ],
+          entries: [_buildEntry(id: "e1", personId: "person-1", debitCents: 40)],
+          reimbursedByPersonId: const {
+            "person-1": OcptBudgetCoveredTotal(amountCents: 40, coveredLineCount: 1, lineCount: 1),
+          },
+          people: [_buildPerson(id: "person-1", firstName: "Alex")],
+        );
+
+        expect(find.text("Alex"), findsOneWidget);
+        // 100 cents advanced, 40 reimbursed, 60 still owed — the group row's own running account,
+        // read with no expansion needed.
+        expect(find.text(ocptBudgetAmountLabel(100, "EUR")), findsWidgets);
+        expect(find.text(ocptBudgetAmountLabel(40, "EUR")), findsWidgets);
+        expect(find.text(ocptBudgetAmountLabel(60, "EUR")), findsWidgets);
+      },
+    );
+
+    testWidgets("expanding a person reveals their own defrayals, then their own reimbursements", (
+      tester,
+    ) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+      final allowances = [
+        _buildAllowance(id: "a1", personId: "person-1", unitAmountMilliCents: 100000),
+      ];
+      final entries = [
+        _buildEntry(id: "e1", personId: "person-1", debitCents: 40, label: "Refund"),
+      ];
+      final people = [_buildPerson(id: "person-1", firstName: "Alex")];
+
+      await pumpView(tester, days: days, allowances: allowances, entries: entries, people: people);
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      // Collapsed: neither sub-row draws.
+      expect(find.textContaining(tr.budgetAllowanceKindTravelLabel), findsNothing);
+      expect(find.textContaining("Refund"), findsNothing);
+
+      await pumpView(
+        tester,
+        days: days,
+        allowances: allowances,
+        entries: entries,
+        people: people,
+        expandedNodeIds: const {"person-1"},
+      );
+
+      // Expanded: the defrayal's own detail line, then the reimbursement's own.
+      expect(
+        find.text("${tr.budgetAllowanceKindTravelLabel} · $ocptBudgetEmptyValue · ×1"),
+        findsOneWidget,
+      );
+      expect(find.textContaining("Refund"), findsOneWidget);
+    });
+
+    testWidgets("a defrayal naming nobody is its own group of one, with no running account", (
+      tester,
+    ) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+
+      await pumpView(
+        tester,
+        days: days,
+        allowances: [_buildAllowance(id: "a1", unitAmountMilliCents: 100000)],
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      // Its own wording, no twisty to expand onto.
+      expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
+      expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
+      expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
+      // ADVANCED alone — REIMBURSED/OWED read blank rather than a claimed zero, no running account
+      // named by a defrayal that belongs to nobody.
+      expect(find.text(ocptBudgetAmountLabel(100, "EUR")), findsWidgets);
+    });
+
+    testWidgets("the total row sums every person's own advanced, reimbursed and owed", (
+      tester,
+    ) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+
+      await pumpView(
+        tester,
+        days: days,
+        allowances: [
+          _buildAllowance(id: "a1", personId: "person-1", unitAmountMilliCents: 100000),
+          _buildAllowance(id: "a2", unitAmountMilliCents: 50000),
+        ],
+        entries: [_buildEntry(id: "e1", personId: "person-1", debitCents: 40)],
+        reimbursedByPersonId: const {
+          "person-1": OcptBudgetCoveredTotal(amountCents: 40, coveredLineCount: 1, lineCount: 1),
+        },
+        people: [_buildPerson(id: "person-1", firstName: "Alex")],
+      );
+
+      // 100 (person-1) + 50 (nobody) = 150 advanced, 40 reimbursed (the person-less defrayal names
+      // no running account), 150 − 40 = 110 owed.
+      // Note: neither the `TOTAL` label nor these figures are asserted `findsOneWidget` — the
+      // catering table's own `Total` column header reads identically once uppercased, and the
+      // provisioning band underneath both panes reads the very same computed total again, so more
+      // than one match is expected here.
+      expect(find.text(ocptBudgetAmountLabel(150, "EUR")), findsWidgets);
+      expect(find.text(ocptBudgetAmountLabel(40, "EUR")), findsWidgets);
+      expect(find.text(ocptBudgetAmountLabel(110, "EUR")), findsWidgets);
+    });
+
+    testWidgets("the person group row's own Rembourser is withheld under read-only", (
+      tester,
+    ) async {
+      final days = ocptBudgetRegieDaysOf(
+        days: [_buildDay(id: "day-1")],
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+        roleKindById: const {},
+        personIdByRoleId: const {},
+        mealPriceCents: null,
+        buffetPriceCents: null,
+      );
+      final allowances = [_buildAllowance(id: "a1", personId: "person-1")];
+      final people = [_buildPerson(id: "person-1", firstName: "Alex")];
+
+      await pumpView(tester, days: days, allowances: allowances, people: people);
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      await tester.ensureVisible(find.byType(PopupMenuButton<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(PopupMenuButton<String>).first);
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetRegieReimburseAction), findsOneWidget);
+
+      // Close the open menu before re-pumping read-only, so nothing from this pump lingers.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      await pumpView(tester, days: days, allowances: allowances, people: people, isReadOnly: true);
+
+      await tester.ensureVisible(find.byType(PopupMenuButton<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(PopupMenuButton<String>).first);
+      await tester.pumpAndSettle();
+      expect(find.text(tr.budgetRegieReimburseAction), findsNothing);
+      // Navigation, not a write: still offered under read-only.
+      expect(find.text(tr.budgetRegieAllowanceOpenPersonAction), findsOneWidget);
+    });
   });
 
   testWidgets("the provisioning band reads the gap between what is computed and what is quoted", (

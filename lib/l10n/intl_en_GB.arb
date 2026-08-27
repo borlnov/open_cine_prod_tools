@@ -12755,23 +12755,23 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnNature": "Nature",
-  "@budgetRegieColumnNature": {
-    "description": "Header of the defrayal table's own nature column",
+  "budgetRegieColumnAdvanced": "Advanced",
+  "@budgetRegieColumnAdvanced": {
+    "description": "Header of the defrayal person tree's own advanced column",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnWhen": "When",
-  "@budgetRegieColumnWhen": {
-    "description": "Header of the defrayal table's own date column",
+  "budgetRegieColumnReimbursed": "Reimbursed",
+  "@budgetRegieColumnReimbursed": {
+    "description": "Header of the defrayal person tree's own reimbursed column, and a reimbursement sub-row's own badge",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnQuantity": "Quantity",
-  "@budgetRegieColumnQuantity": {
-    "description": "Header of the defrayal table's own quantity column",
+  "budgetRegieColumnOwed": "Owed",
+  "@budgetRegieColumnOwed": {
+    "description": "Header of the defrayal person tree's own owed column",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
@@ -12786,6 +12786,13 @@
   "budgetRegieAllowanceOpenPersonAction": "Open this person's sheet",
   "@budgetRegieAllowanceOpenPersonAction": {
     "description": "Row menu entry of a defrayal naming somebody",
+    "context": "Displayed in the budget mode's own catering-and-defrayals view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetRegieReimburseAction": "Reimburse",
+  "@budgetRegieReimburseAction": {
+    "description": "Person group row menu entry opening the capture wizard pre-filled with what is owed them",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
