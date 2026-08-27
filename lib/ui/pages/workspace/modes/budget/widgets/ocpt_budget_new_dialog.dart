@@ -806,6 +806,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       groupKind: OcptBudgetResourceGroupKind.cash,
       people: widget.people,
       currencyCode: widget.currencyCode,
+      // Both gestures reaching this row (`recordFinancingReceipt`, `repayContribution`) move real
+      // money, so the resource missing here is a contribution — cash or in-kind, the one question
+      // left for its own dialog to ask.
+      offerCashOrInKindChoice: true,
     );
     if (fields == null || !mounted) {
       return;
@@ -1007,6 +1011,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         currencyCode: widget.currencyCode,
         formKey: _formKey,
         onDraftChanged: (draft) => setState(() => _resourceDraft = draft),
+        // `planContribution` collapses cash and in-kind into one gesture — the picker is the one
+        // question left for this step to ask, offering only the two.
+        offerCashOrInKindChoice: true,
       ),
       OcptBudgetGesture.planTaking => OcptBudgetRevenueFormBody(
         existing: null,

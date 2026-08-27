@@ -12590,6 +12590,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetResourceDialogCreateContributionTitle": "New contribution",
+  "@budgetResourceDialogCreateContributionTitle": {
+    "description": "Title of the resource dialog while creating a fresh contribution whose cash or in-kind kind is still to be picked",
+    "context": "Displayed at the top of OcptBudgetResourceDialog when offerCashOrInKindChoice is true",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetResourceDialogEditTitle": "Edit resource",
   "@budgetResourceDialogEditTitle": {
     "description": "Title of the resource dialog while editing an existing financing resource",

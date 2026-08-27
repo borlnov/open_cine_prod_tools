@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -261,6 +262,52 @@ void main() {
       expect(find.byType(OcptBudgetResourceDialog), findsOneWidget);
     },
   );
+
+  group("an in-kind contribution is reachable", () {
+    testWidgets("planContribution's own step 3 offers cash and in-kind, not subsidy", (
+      tester,
+    ) async {
+      final tr = await pumpDialog(tester, initialGesture: OcptBudgetGesture.planContribution);
+
+      // planContribution attaches to nothing, so step 1 (with the gesture already pre-selected)
+      // still has to be confirmed before step 3's own form draws.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.budgetFinancingGroupSubsidyLabel), findsNothing);
+      expect(find.text(tr.budgetFinancingGroupCashLabel), findsOneWidget);
+      expect(find.text(tr.budgetFinancingGroupInKindLabel), findsOneWidget);
+
+      await tester.enterText(find.byType(TextFormField).at(0), "Camera lent");
+      await tester.tap(find.text(tr.budgetFinancingGroupInKindLabel));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(1), "500");
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+      await tester.pumpAndSettle();
+
+      final outcome = routerManager.poppedValue! as OcptBudgetNewResourceOutcome;
+      expect(outcome.fields.groupKind, OcptBudgetResourceGroupKind.inKind);
+    });
+
+    testWidgets(
+      "step 2's own trailing create-resource row offers cash and in-kind too, not subsidy",
+      (tester) async {
+        await pumpDialog(tester, initialGesture: OcptBudgetGesture.recordFinancingReceipt);
+
+        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key("ocptBudgetNewCreateResourceChoice")));
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetResourceDialog)));
+        expect(find.text(tr.budgetFinancingGroupSubsidyLabel), findsNothing);
+        expect(find.text(tr.budgetFinancingGroupCashLabel), findsOneWidget);
+        expect(find.text(tr.budgetFinancingGroupInKindLabel), findsOneWidget);
+      },
+    );
+  });
 
   group("the breakdown selector counts out loud", () {
     testWidgets("its own button names how many lines it will create", (tester) async {
