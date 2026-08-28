@@ -157,11 +157,14 @@ const String _ocptCostTrackingOffQuoteNodeId = "off-quote";
 /// `Coût final` survives their removal exactly as before.
 ///
 /// **A quote line with no commitment and no entry under it draws no twisty at all** — an empty
-/// expansion is worse than none. A commitment or an entry sub-row draws no twisty of its own:
-/// `OcptBudgetState.expandedNodeIds` is keyed by poste and line ids alone, so a commitment's own
-/// child — the entry that settled it, or, while it is still owed, the muted
-/// `tr.budgetCostTrackingNoEntryHint` row — shows or hides wholesale with whichever line, or
-/// poste, it sits directly under.
+/// expansion is worse than none. A line-nested commitment or an entry sub-row draws no twisty of
+/// its own: such a commitment's own child — the entry that settled it, or, while it is still owed,
+/// the muted `tr.budgetCostTrackingNoEntryHint` row — shows or hides wholesale with whichever line,
+/// or poste, it sits directly under. **A poste's own off-line commitment is the exception**: with
+/// no quote line to nest under, a paid one is itself an expandable node, keyed in
+/// `OcptBudgetState.expandedNodeIds` by its own id, its payments drawn a level deeper only while it
+/// is expanded — so a settled off-line commitment reads as one row, not as itself beside a
+/// same-named payment.
 ///
 /// **A commitment sub-row prints its own amount in `Engagé` while unsettled, in `Payé` once
 /// settled, and the em dash in every other column; an entry sub-row prints its own debit in `Payé`
@@ -510,7 +513,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// [OcptBudgetPoste.lines], then its off-line commitments and entries — draw only while its own
   /// id is in [expandedNodeIds]. A quote line's own children — its commitments, and, for each one,
   /// either every entry that has paid it so far or the muted "no entry" hint while none has —
-  /// draw only while the line's own id is in [expandedNodeIds] too.
+  /// draw only while the line's own id is in [expandedNodeIds] too. **A poste's own off-line
+  /// commitment that has been paid is itself an expandable node**, keyed in [expandedNodeIds] by its
+  /// own id: collapsed it is one row, and its payments draw a level deeper only while it is
+  /// expanded — a line-less commitment owning its payments the way a line owns its commitments.
   ///
   /// **The off-quote row follows the last poste, drawn exactly as it always was — only while
   /// [offQuoteTotal] holds something ([OcptBudgetCoveredTotal.lineCount] above zero).** Its own
@@ -566,7 +572,32 @@ class OcptBudgetCostTracking extends StatelessWidget {
         _addCommitmentRows(rows, lineCommitments, depth: 2);
       }
 
-      _addCommitmentRows(rows, offLineCommitments, depth: 1);
+      // A poste's own off-line commitment has no quote line to nest under, so it is the expandable
+      // node itself: collapsed by default, it draws as one row, and its payments — drawn a level
+      // deeper, unlike a line-nested commitment's own siblings — show only once it is expanded, the
+      // way a quote line reveals its commitments. A commitment nobody has paid yet is not expandable
+      // (its status badge already says it is still owed, so an empty expansion would say nothing).
+      for (final commitment in offLineCommitments) {
+        final paymentEntries = [
+          for (final entry in entries)
+            if (entry.commitmentId == commitment.id) entry,
+        ];
+        final isCommitmentExpanded =
+            paymentEntries.isNotEmpty && expandedNodeIds.contains(commitment.id);
+        rows.add(
+          _OcptCommitmentTreeRow(
+            commitment: commitment,
+            depth: 1,
+            isExpandable: paymentEntries.isNotEmpty,
+            isExpanded: isCommitmentExpanded,
+          ),
+        );
+        if (isCommitmentExpanded) {
+          for (final entry in paymentEntries) {
+            rows.add(_OcptEntryTreeRow(entry: entry, depth: 2));
+          }
+        }
+      }
       for (final entry in offLineEntries) {
         rows.add(_OcptEntryTreeRow(entry: entry, depth: 1));
       }
@@ -597,6 +628,11 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// paid at all — settled or only part-paid, one row per instalment — or by the muted "no entry"
   /// hint while genuinely none has paid it yet — all at [depth], siblings of the commitment itself,
   /// never a level deeper.
+  ///
+  /// This is the **line-nested** path alone: a commitment shown under its own quote line, its
+  /// payments its siblings under that line. A poste's own off-line commitment is drawn by
+  /// [_buildRows] directly instead, as an expandable node owning its payments a level deeper — see
+  /// [_OcptCommitmentTreeRow.isExpandable].
   void _addCommitmentRows(
     List<_OcptTreeRow> rows,
     List<OcptBudgetCommitment> rowCommitments, {
@@ -656,9 +692,9 @@ class OcptBudgetCostTracking extends StatelessWidget {
       posteWidth: posteWidth,
       isSelected: _isCommitmentSelected(row.commitment.id),
       isSmall: true,
-      isExpandable: false,
-      isExpanded: false,
-      onTwistyTap: null,
+      isExpandable: row.isExpandable,
+      isExpanded: row.isExpanded,
+      onTwistyTap: row.isExpandable ? () => onNodeExpansionToggled(row.commitment.id) : null,
       onTap: () => onCommitmentSelected(row.commitment.id),
       builder: (context) {
         final tr = Tr.of(context);
@@ -1005,8 +1041,23 @@ class _OcptCommitmentTreeRow extends _OcptTreeRow {
   /// This row's own indentation, in steps from the poste.
   final int depth;
 
+  /// Whether this commitment is itself an expandable node, drawing its own twisty and its payments
+  /// only while it is expanded. **True only for a poste's own off-line commitment with at least one
+  /// payment** — with no quote line to nest under, it owns its payments the way a line owns its
+  /// commitments. A line-nested commitment is never one: its payments already show as its siblings
+  /// once the line is expanded.
+  final bool isExpandable;
+
+  /// Whether this commitment is currently expanded — only ever meaningful while [isExpandable].
+  final bool isExpanded;
+
   /// Class constructor
-  const _OcptCommitmentTreeRow({required this.commitment, required this.depth});
+  const _OcptCommitmentTreeRow({
+    required this.commitment,
+    required this.depth,
+    this.isExpandable = false,
+    this.isExpanded = false,
+  });
 }
 
 /// The muted "no entry" hint drawn under an unsettled commitment, at the very same indentation as

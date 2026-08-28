@@ -1190,6 +1190,71 @@ void main() {
       expect(find.text("Off-line entry"), findsOneWidget);
     });
 
+    testWidgets("a paid off-line commitment is collapsed by default, hiding its payment", (
+      tester,
+    ) async {
+      final commitments = [
+        _commitment(id: "commitment-1", posteId: "poste-1", amountCents: 890, label: "Green brief"),
+      ];
+      final entries = [
+        _entry(
+          id: "entry-1",
+          posteId: "poste-1",
+          debitCents: 890,
+          label: "Green brief invoice",
+          commitmentId: "commitment-1",
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            postes: [posteWithLine()],
+            commitments: commitments,
+            entries: entries,
+            expandedNodeIds: const {"poste-1"},
+          ),
+        ),
+      );
+
+      // The off-line commitment reads as one row — its payment folds away behind its own collapsed
+      // twisty rather than drawing as a second, same-level, same-named row beside it.
+      expect(find.text("Green brief"), findsOneWidget);
+      expect(find.text("Green brief invoice"), findsNothing);
+      // The poste is expanded (a down chevron), so the one right-facing chevron left is the
+      // commitment's own — proving a paid off-line commitment is itself an expandable node.
+      expect(find.byIcon(Icons.keyboard_arrow_right), findsOneWidget);
+    });
+
+    testWidgets("a paid off-line commitment reveals its payment once expanded", (tester) async {
+      final commitments = [
+        _commitment(id: "commitment-1", posteId: "poste-1", amountCents: 890, label: "Green brief"),
+      ];
+      final entries = [
+        _entry(
+          id: "entry-1",
+          posteId: "poste-1",
+          debitCents: 890,
+          label: "Green brief invoice",
+          commitmentId: "commitment-1",
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            postes: [posteWithLine()],
+            commitments: commitments,
+            entries: entries,
+            expandedNodeIds: const {"poste-1", "commitment-1"},
+          ),
+        ),
+      );
+
+      expect(find.text("Green brief"), findsOneWidget);
+      expect(find.text("Green brief invoice"), findsOneWidget);
+    });
+
     testWidgets("a commitment sub-row's own ⋮ menu offers Settle while unsettled, Undo "
         "settlement while settled, Edit and Delete", (tester) async {
       final unsettled = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");

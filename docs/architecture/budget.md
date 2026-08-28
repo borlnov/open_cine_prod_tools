@@ -572,10 +572,14 @@ are all here, and this file is the whole record of them.
   `ocptBudgetCommitmentStatusAccentColor`, worded with its settlement status; an entry's own in the
   accent colour, worded with its `voucherNumber`.
   **Expansion state is `OcptBudgetState.expandedNodeIds`**, a `Set<String>` keyed by **poste and
-  line ids alone** — a commitment or an entry sub-row draws no twisty of its own, so its own child
-  shows or hides wholesale with whichever line or poste it sits directly under — and it survives a
-  rebuild, since it lives in the state rather than in the widget. A quote line with nothing under it
-  draws no twisty at all: an empty expansion is worse than none.
+  line ids, plus the id of any paid off-line commitment** — a line-nested commitment or an entry
+  sub-row draws no twisty of its own, so its own child shows or hides wholesale with whichever line
+  or poste it sits directly under, and it survives a rebuild, since it lives in the state rather than
+  in the widget. A quote line with nothing under it draws no twisty at all: an empty expansion is
+  worse than none. **A poste's own off-line commitment is the one commitment that is itself an
+  expandable node**: with no quote line to nest under, a paid one draws collapsed as a single row and
+  reveals its payments a level deeper only when opened — so a settled off-line commitment reads as
+  one row rather than as itself beside a same-named payment.
   **A row's own `Rename` menu entry selects it and opens the fiche rather than editing its name in
   place.** This app has no precedent for renaming a record inline inside a plain list — the two
   inline-answer exceptions the confirm-dialog rule already carries (the `Versions` dock panel, the
