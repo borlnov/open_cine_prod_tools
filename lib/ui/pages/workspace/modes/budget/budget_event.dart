@@ -88,31 +88,46 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetEvent {
 /// Selects which of the mode's views is shown, dispatched by the header's own view switch, by the
 /// feed card's own catering row wherever it is drawn, and by every other gesture that used to open
 /// a document, a reading or a sub-page of its own.
+///
+/// [clearSelection] drops the fiche's own selection as the view changes — **true only for the
+/// header's own chip**, where the reader is leaving one document for another and the object they had
+/// open belonged to the one they are leaving, so the Inspector greets the new view empty rather than
+/// still showing a poste on the takings page. It is **false for every gesture that switches the view
+/// *and* selects something in one move** (`_handleDashboardPosteOpened`, `_handleLineShowCommitment`
+/// Requested), which would otherwise wipe the very selection it just made, whichever order the two
+/// events happen to run in.
 class OcptBudgetViewSelectedEvent extends OcptBudgetEvent {
   /// The view to select.
   final OcptBudgetView view;
 
+  /// Whether to drop the fiche's own selection as the view changes — see the class doc comment.
+  final bool clearSelection;
+
   /// Class constructor
-  const OcptBudgetViewSelectedEvent({required this.view});
+  const OcptBudgetViewSelectedEvent({required this.view, this.clearSelection = false});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, view];
+  List<Object?> get props => [...super.props, view, clearSelection];
 }
 
 /// Selects which of the tools drawer's own three pages is shown, dispatched by the header's own
 /// second segmented switch — mirrors [OcptBudgetViewSelectedEvent], the two events staying
-/// independent so picking one never clears the other.
+/// independent so picking one never clears the other. [clearSelection] reads exactly as it does
+/// there: true only for the header's own switch, false for a gesture that also selects something.
 class OcptBudgetToolsViewSelectedEvent extends OcptBudgetEvent {
   /// The tools page to select.
   final OcptBudgetToolsView toolsView;
 
+  /// Whether to drop the fiche's own selection as the tools page changes — see the class doc comment.
+  final bool clearSelection;
+
   /// Class constructor
-  const OcptBudgetToolsViewSelectedEvent({required this.toolsView});
+  const OcptBudgetToolsViewSelectedEvent({required this.toolsView, this.clearSelection = false});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, toolsView];
+  List<Object?> get props => [...super.props, toolsView, clearSelection];
 }
 
 /// Toggles the header's simplified/detailed switch. Session-only, never persisted, mirroring the

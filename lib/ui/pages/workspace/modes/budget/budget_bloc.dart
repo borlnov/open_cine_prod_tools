@@ -650,7 +650,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     // reads exactly like an app that ignores what it is told.
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(view: event.view));
+    emitter(state.copyWith(view: event.view, clearSelection: event.clearSelection));
   }
 
   /// Switches which of the tools drawer's own three pages is shown — dispatched by the header's
@@ -663,7 +663,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ) async {
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(toolsView: event.toolsView));
+    emitter(state.copyWith(toolsView: event.toolsView, clearSelection: event.clearSelection));
   }
 
   /// Toggles the header's simplified/detailed switch.

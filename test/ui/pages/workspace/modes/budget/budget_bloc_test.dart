@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -612,6 +613,60 @@ void main() {
       expect(switched.expandedNodeIds, contains(posteId));
       expect(switched.isSimplified, isTrue);
       expect(switched.taxBasis, OcptBudgetTaxBasis.excludingTax);
+    });
+
+    test("the header's own chip drops the selection, the filter and expansion untouched", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc
+        ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
+        ..add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId))
+        ..add(OcptBudgetRowExpansionToggledEvent(nodeId: posteId));
+      await waitForState(
+        bloc,
+        (state) =>
+            state.selectedPosteId == posteId &&
+            state.filterPosteId == posteId &&
+            state.expandedNodeIds.contains(posteId),
+      );
+
+      bloc.add(
+        const OcptBudgetViewSelectedEvent(view: OcptBudgetView.resources, clearSelection: true),
+      );
+      final switched = await waitForState(bloc, (state) => state.view == OcptBudgetView.resources);
+
+      // The fiche greets the new view empty — the object belonged to the view being left.
+      expect(switched.selection, isNull);
+      expect(switched.selectedPosteId, isNull);
+      // The filter and the expansion are the mode's, not the fiche's, so they survive the switch.
+      expect(switched.filterPosteId, posteId);
+      expect(switched.expandedNodeIds, contains(posteId));
+    });
+
+    test("the header's own tools switch drops the selection the same way", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+
+      bloc.add(
+        const OcptBudgetToolsViewSelectedEvent(
+          toolsView: OcptBudgetToolsView.sharing,
+          clearSelection: true,
+        ),
+      );
+      final switched = await waitForState(
+        bloc,
+        (state) => state.toolsView == OcptBudgetToolsView.sharing,
+      );
+
+      expect(switched.selection, isNull);
     });
   });
 

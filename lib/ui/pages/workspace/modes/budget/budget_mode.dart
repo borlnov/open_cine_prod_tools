@@ -456,10 +456,15 @@ class _BudgetViewState extends State<_BudgetView> {
       children: [
         OcptBudgetHeader(
           view: state.view,
-          onViewSelected: (view) => bloc.add(OcptBudgetViewSelectedEvent(view: view)),
+          // The header's own chips leave one document for another, so the fiche's own selection —
+          // an object that belonged to the view being left — is dropped, greeting the new view
+          // empty. Every gesture that switches the view *and* selects keeps `clearSelection` false.
+          onViewSelected: (view) =>
+              bloc.add(OcptBudgetViewSelectedEvent(view: view, clearSelection: true)),
           toolsView: state.toolsView,
-          onToolsViewSelected: (toolsView) =>
-              bloc.add(OcptBudgetToolsViewSelectedEvent(toolsView: toolsView)),
+          onToolsViewSelected: (toolsView) => bloc.add(
+            OcptBudgetToolsViewSelectedEvent(toolsView: toolsView, clearSelection: true),
+          ),
           isSimplified: state.isSimplified,
           onSimplifiedChanged: (value) =>
               bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),

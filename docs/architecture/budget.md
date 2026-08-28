@@ -731,6 +731,15 @@ are all here, and this file is the whole record of them.
 - A stored `Inspector` preference **is not overwritten** where it cannot be honoured: the dock
   draws `Help` instead and leaves `OcptBudgetState.rightDockTab` alone, so a reader who left a view
   on the inspector comes back to the inspector rather than to whatever the other view showed them.
+- **The header's own chip drops the fiche's own selection as it switches view**
+  (`OcptBudgetViewSelectedEvent.clearSelection`, true only there; the second segmented switch does
+  the same for the tools drawer). The object a reader had open belonged to the view they are
+  leaving, so the Inspector greets the new view empty (`OcptBudgetFiche`'s own `_emptyState`) rather
+  than still showing, say, a poste on the takings page. **Every gesture that switches the view *and*
+  selects in one move keeps `clearSelection` false** — `_handleDashboardPosteOpened`,
+  `_handleLineShowCommitmentRequested` — since clearing would otherwise wipe the very selection they
+  just made, whichever order the two events happen to run in. The filter (`filterPosteId`) and the
+  expansion (`expandedNodeIds`) are the mode's, not the fiche's, and are untouched by the switch.
 
 ## Selecting a poste and filtering by one are two different facts
 
