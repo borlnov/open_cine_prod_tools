@@ -13681,7 +13681,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetNewNoLineAnswer": "None — the commitment is against the poste",
+  "budgetNewNoLineAnswer": "On the poste, no quote line",
   "@budgetNewNoLineAnswer": {
     "description": "The posteAndLine attachment step's own third answer, a commitment hanging off the poste directly rather than one of its lines",
     "context": "Displayed as the last row of OcptBudgetNewDialog's own step 2, commitSpend gesture",

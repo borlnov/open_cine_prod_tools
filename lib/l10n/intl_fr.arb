@@ -1827,7 +1827,7 @@
   "budgetNewLinePickerHint": "{amount} — {status}",
   "budgetNewLineAlreadyCommittedHint": "déjà engagée",
   "budgetNewLineNotCommittedHint": "pas encore engagée",
-  "budgetNewNoLineAnswer": "Aucune — l'engagement porte sur le poste",
+  "budgetNewNoLineAnswer": "Sur le poste, sans ligne de devis",
   "budgetNewNoLineHint": "Pour une dépense engagée qui n'était pas au devis.",
   "budgetNewResourceChoiceHint": "Promis {promised} · Reçus {received} · Reste {outstanding}",
   "budgetNewRevenueChoiceHint": "Attendu {expected} · Encaissé {cashedIn}",
