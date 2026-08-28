@@ -644,11 +644,17 @@ class _BudgetViewState extends State<_BudgetView> {
   /// 1 and 2 both already answered — then dispatches whatever [_handleNewOutcome] says once it
   /// closes with something. The one shared shape behind every contextual shortcut that pre-fills an
   /// ordinary movement: a resource's or a taking's own `Receive`, a participant's own payout, a
-  /// contribution's own repayment — every one of them an [OcptBudgetEntryCreationConfirmedEvent] (or
-  /// whatever the lettrage strip's own accepted candidate calls for instead) with nothing further to
-  /// decide, unlike [_handleCommitmentSettleRequested], which dispatches a settlement instead of a
-  /// plain creation and so builds its own call to `OcptBudgetNewDialog.show` rather than sharing this
-  /// one.
+  /// contribution's own repayment — every one of them an [OcptBudgetEntryCreationConfirmedEvent] with
+  /// nothing further to decide, unlike [_handleCommitmentSettleRequested], which dispatches a
+  /// settlement instead of a plain creation and so builds its own call to `OcptBudgetNewDialog.show`
+  /// rather than sharing this one.
+  ///
+  /// **The lettrage strip is withheld here** (`offersLettrage: false`), exactly as
+  /// [_handleCommitmentSettleRequested] and [_handleLinePayDirectlyRequested] withhold it: the
+  /// movement already belongs to the resource, taking, person or share [prefill] names, so every
+  /// candidate the strip could rank is a *different* object, and offering to reroute onto one only
+  /// invites a rapprochement the reader never meant. The strip stays on in the generic `+` capture
+  /// alone, where the movement is free-typed.
   Future<void> _handleWizardEntryShortcut(
     BuildContext context,
     OcptBudgetState state,
@@ -660,6 +666,7 @@ class _BudgetViewState extends State<_BudgetView> {
       context,
       initialGesture: gesture,
       entryPrefill: prefill,
+      offersLettrage: false,
       postes: state.postes,
       resources: state.resources,
       revenues: state.revenues,
