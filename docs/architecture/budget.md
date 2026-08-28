@@ -314,10 +314,12 @@ are all here, and this file is the whole record of them.
   it draws its own settled sub-row under the line like any other — but **transparent to the reader**,
   who only ever quoted and paid. A **partial** payment leaves the commitment standing at its full
   amount with its own outstanding, read back off the link exactly as one made by hand.
-- A **lettrage suggestion accepted** in the wizard still outranks the direct pay, exactly as it does
-  when settling a commitment: a payment that actually matches an existing commitment or defrayal
-  settles that rather than minting a second, so the mode dispatches the suggestion's own settlement
-  instead of `OcptBudgetLinePaidDirectlyEvent`.
+- The **lettrage strip is withheld** on both explicit-payment doors — this direct pay and
+  `_handleCommitmentSettleRequested` — because the payment belongs to a line or a commitment the
+  reader has already named, so every candidate the strip could rank is a *different* object, and
+  offering to reroute onto one only invites a rapprochement they never meant (`offersLettrage:
+  false`, `OcptBudgetNewDialog`'s own field). The strip stays on in the generic `+` capture alone,
+  where the movement is free-typed and it is what stops the same euro being committed and paid.
 
 ## A commitment's poste is editable, a quote line's is not
 

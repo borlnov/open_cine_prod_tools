@@ -1207,6 +1207,11 @@ class _BudgetViewState extends State<_BudgetView> {
       context,
       initialGesture: OcptBudgetGesture.recordExpense,
       entryPrefill: prefill,
+      // The commitment being paid is explicitly designated, and the entry settles it below whatever
+      // the reader does — so every lettrage candidate the strip could rank is a *different* object,
+      // and offering to reroute the payment onto one only invites a rapprochement they never meant.
+      // The strip stays on in the generic `+` capture, where the movement is free-typed.
+      offersLettrage: false,
       postes: state.postes,
       resources: state.resources,
       revenues: state.revenues,
@@ -1231,16 +1236,8 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    // The strip may have offered something else entirely (the amount matching, say, a defrayal
-    // rather than this very commitment) — accepting it takes precedence over the settlement this
-    // gesture opened for, exactly as every other pre-filled door of this mode already lets a
-    // suggestion outrank the prefill it was opened with.
-    final suggestion = outcome.acceptedSuggestion;
-    if (suggestion != null) {
-      _handleEntryWizardSuggestionAccepted(bloc, state, suggestion, outcome.fields);
-      return;
-    }
-
+    // With the strip withheld the wizard can accept no suggestion, so settling this very commitment
+    // is the only outcome left — no `acceptedSuggestion` branch is reachable here.
     bloc.add(
       OcptBudgetCommitmentSettlementConfirmedEvent(
         commitmentId: commitment.id,
@@ -2049,9 +2046,9 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action, pre-filled
   /// from the line (its full quoted total, in the line's own tax basis and rate, as today's debit) —
   /// and, on confirm, dispatches [OcptBudgetLinePaidDirectlyEvent], which creates the commitment
-  /// behind the payment so the reader only ever quoted and paid. A lettrage suggestion accepted in
-  /// the wizard still outranks it, exactly as [_handleCommitmentSettleRequested] lets one: a payment
-  /// that actually matches an existing commitment settles that rather than minting a second.
+  /// behind the payment so the reader only ever quoted and paid. The lettrage strip is withheld
+  /// here, exactly as [_handleCommitmentSettleRequested] withholds it: the payment belongs to this
+  /// very line, so rerouting it onto a different object is a rapprochement the reader never meant.
   Future<void> _handleLinePayDirectlyRequested(
     BuildContext context,
     OcptBudgetState state,
