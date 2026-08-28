@@ -1242,7 +1242,7 @@ void main() {
   );
 
   testWidgets(
-    "a contextual shortcut lands directly on the form, trail intact, step counter honest",
+    "a contextual shortcut lands on the form, trail a summary alone, no way back",
     (tester) async {
       final poste = _poste(id: "p1", label: "Camera");
       final prefill = OcptBudgetEntryFormFields(
@@ -1271,11 +1271,50 @@ void main() {
       // Landed straight on the form step — recordExpense takes 3 steps, and this is the third,
       // step 1 and step 2 both already answered by the shortcut.
       expect(find.text(tr.budgetNewStepLabel(3, 3)), findsOneWidget);
-      // The trail recalls the poste step 2 would have asked, and still offers a way back to it.
+      // The trail recalls the poste step 2 would have asked, but offers no way back to a step the
+      // reader never chose, and the form's own first action is `Cancel`, not `Back`.
       expect(find.textContaining("Camera"), findsWidgets);
-      expect(find.byKey(const Key("ocptBudgetNewChangeGestureLink")), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewChangeGestureLink")), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetNewFormBackButton")), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetNewFormCancelButton")), findsOneWidget);
       // The form itself opened pre-filled, not blank.
       expect(find.text("Zoom lens repair"), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "the form's Cancel closes the wizard whole, returning no outcome",
+    (tester) async {
+      final prefill = OcptBudgetEntryFormFields(
+        date: DateTime(2026, 1, 5),
+        label: "Zoom lens repair",
+        posteId: "p1",
+        resourceId: null,
+        revenueId: null,
+        shareId: null,
+        isDebit: true,
+        amountCents: 15000,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+        voucherNumber: null,
+        pickedReceiptPath: null,
+        isReceiptDetached: false,
+      );
+
+      await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.recordExpense,
+        entryPrefill: prefill,
+        postes: [_poste(id: "p1", label: "Camera")],
+      );
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewFormCancelButton")));
+      await tester.pumpAndSettle();
+
+      // The wizard popped, and with no outcome — exactly a cancellation, never a step surfaced
+      // behind the form. (The recording router only records the pop; it mounts no route to remove.)
+      expect(routerManager.popped, isTrue);
+      expect(routerManager.poppedValue, isNull);
     },
   );
 }

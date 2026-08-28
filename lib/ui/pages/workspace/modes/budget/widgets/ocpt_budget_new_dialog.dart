@@ -524,16 +524,20 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
             style: mutedStyle,
           ),
         ),
-        Text(" · ", style: mutedStyle),
-        InkWell(
-          key: const Key("ocptBudgetNewChangeGestureLink"),
-          onTap: () => setState(() => _step = _OcptBudgetNewStep.gesture),
-          mouseCursor: ocptClickableCursor,
-          child: Text(
-            tr.budgetEntryWizardChangeNatureAction,
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
+        // A prefilled shortcut recalls what it answered for the reader, but offers no way back to a
+        // step 1 they never chose — see [_openedOnFormDirectly]. The trail is then a summary alone.
+        if (!_openedOnFormDirectly) ...[
+          Text(" · ", style: mutedStyle),
+          InkWell(
+            key: const Key("ocptBudgetNewChangeGestureLink"),
+            onTap: () => setState(() => _step = _OcptBudgetNewStep.gesture),
+            mouseCursor: ocptClickableCursor,
+            child: Text(
+              tr.budgetEntryWizardChangeNatureAction,
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -1118,6 +1122,14 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     return null;
   }
 
+  /// Whether the wizard opened straight on the form, a prefilled shortcut — a commitment's own
+  /// `Pay`, a receipt, a payout, a repayment, the direct pay of a quote line, or `Commit this
+  /// line…` — skipping steps 1 and 2 (`initState`). There is then no step behind the form to return
+  /// to, so it offers `Cancel`, which closes the wizard, rather than `Back`, and its own trail
+  /// carries no `changer` link either: the reader came to do one thing, and closes the view if they
+  /// no longer want it, rather than being walked back through steps they never saw.
+  bool get _openedOnFormDirectly => widget.entryPrefill != null || widget.commitmentPrefill != null;
+
   List<Widget> _buildFormActions(BuildContext context, Tr tr) {
     final gesture = _gesture;
     final attachment = gesture == null
@@ -1125,15 +1137,22 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         : ocptBudgetGestureAttachmentOf(gesture);
 
     return [
-      TextButton(
-        key: const Key("ocptBudgetNewFormBackButton"),
-        onPressed: () => setState(
-          () => _step = attachment == OcptBudgetGestureAttachment.none
-              ? _OcptBudgetNewStep.gesture
-              : _OcptBudgetNewStep.attachment,
+      if (_openedOnFormDirectly)
+        TextButton(
+          key: const Key("ocptBudgetNewFormCancelButton"),
+          onPressed: _handleCancel,
+          child: Text(tr.budgetEntryDialogCancelAction),
+        )
+      else
+        TextButton(
+          key: const Key("ocptBudgetNewFormBackButton"),
+          onPressed: () => setState(
+            () => _step = attachment == OcptBudgetGestureAttachment.none
+                ? _OcptBudgetNewStep.gesture
+                : _OcptBudgetNewStep.attachment,
+          ),
+          child: Text(tr.budgetEntryDialogBackAction),
         ),
-        child: Text(tr.budgetEntryDialogBackAction),
-      ),
       _buildPrimaryFormAction(context, tr),
     ];
   }
