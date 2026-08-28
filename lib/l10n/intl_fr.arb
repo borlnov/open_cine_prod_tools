@@ -1545,6 +1545,7 @@
   "budgetCashJournalSimpleEmptyHint": "Enregistrez une dépense que vous venez de payer, ou de l'argent qui vient d'arriver.",
   "budgetCashJournalEmptyHint": "Enregistrez un paiement ou une recette pour démarrer le journal de trésorerie.",
   "budgetCashJournalClosingBalanceLabel": "Solde en banque au {date}",
+  "budgetCashJournalShareableReminder": "Dont partageable, après remboursement des apports : {amount}",
   "budgetCashJournalCoverageReadOut": "sur {coveredCount} des {entryCount} écritures",
   "budgetCashJournalColumnDate": "Date",
   "budgetCashJournalColumnVoucher": "Pièce",

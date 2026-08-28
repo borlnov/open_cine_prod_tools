@@ -167,6 +167,19 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// dock's own fiche on it, it writes nothing.
   final ValueChanged<String>? onCommitmentSelected;
 
+  /// What the revenue sharing has to distribute, in cents — `OcptBudgetSharingPot.shareableCents`.
+  /// Drawn as a quiet reminder under the closing balance **only while it is above zero**, so a
+  /// reader does not mistake the bank balance for it: the two are computed differently (the balance
+  /// is cash on hand, the shareable pot is the takings less the contributions to repay), and a
+  /// production reading its account here reported taking the whole balance for what there was to
+  /// share. Nothing to share yet means nothing to clarify, so the line is withheld.
+  final int shareableCents;
+
+  /// Called when the shareable reminder's own link to the revenue-sharing view is clicked — never
+  /// withheld under [isReadOnly], since it only switches view and writes nothing. Null draws the
+  /// reminder without a link.
+  final VoidCallback? onOpenSharing;
+
   /// Class constructor
   const OcptBudgetCashJournal({
     super.key,
@@ -183,6 +196,8 @@ class OcptBudgetCashJournal extends StatelessWidget {
     required this.onEntryEditRequested,
     required this.onEntryDeletionRequested,
     required this.onCommitmentSelected,
+    required this.shareableCents,
+    required this.onOpenSharing,
   });
 
   @override
@@ -259,6 +274,14 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                         currencyCode: currencyCode,
                                       ),
                                     ),
+                                    if (shareableCents > 0)
+                                      SliverToBoxAdapter(
+                                        child: _OcptCashShareableReminder(
+                                          shareableCents: shareableCents,
+                                          currencyCode: currencyCode,
+                                          onOpenSharing: onOpenSharing,
+                                        ),
+                                      ),
                                     if (!totals.isComplete)
                                       SliverToBoxAdapter(
                                         child: Padding(
@@ -442,6 +465,74 @@ class _OcptCashStatementFooterRow extends StatelessWidget {
             const SizedBox(width: _ocptCashJournalMenuColumnWidth),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A quiet reminder drawn under the closing balance: how much of the account is actually shareable,
+/// so the bank balance right above it is not mistaken for the amount to distribute — the two are
+/// different figures ([shareableCents] is the takings less the contributions to repay, the balance
+/// is cash on hand), and a production reading its account here reported taking one for the other.
+///
+/// **Not a subtraction of the balance, a reference beside it.** The balance and the shareable pot
+/// diverge on two independent terms — production spending the balance carries and the pot ignores,
+/// contributions the pot deducts whole whether or not they have gone back — so no honest arithmetic
+/// turns one into the other in a line. This states the pot as its own figure, worded as *of which*,
+/// and points at the view that computes it, rather than pretending to break the balance down.
+///
+/// Drawn only while [shareableCents] is above zero (see [OcptBudgetCashJournal.shareableCents]).
+class _OcptCashShareableReminder extends StatelessWidget {
+  /// The shareable pot, in cents — `OcptBudgetSharingPot.shareableCents`, always above zero here.
+  final int shareableCents;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Called when the `Revenue sharing` link is clicked, or null to draw the reminder without one.
+  final VoidCallback? onOpenSharing;
+
+  /// Class constructor
+  const _OcptCashShareableReminder({
+    required this.shareableCents,
+    required this.currencyCode,
+    required this.onOpenSharing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final captionStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        children: [
+          Text(
+            tr.budgetCashJournalShareableReminder(ocptBudgetAmountLabel(shareableCents, currencyCode)),
+            style: captionStyle,
+          ),
+          if (onOpenSharing != null)
+            InkWell(
+              key: const Key("ocptBudgetCashShareableReminderLink"),
+              onTap: onOpenSharing,
+              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              mouseCursor: ocptClickableCursor,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Text(
+                  tr.budgetHeaderSharingSegmentLabel,
+                  style: captionStyle?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -1038,6 +1038,10 @@ class _BudgetViewState extends State<_BudgetView> {
       // nothing.
       onCommitmentSelected: (commitmentId) =>
           bloc.add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitmentId)),
+      shareableCents: state.sharingPot.shareableCents,
+      // Switching the drawer to the sharing page writes nothing, so it stands under a preview too.
+      onOpenSharing: () =>
+          bloc.add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.sharing)),
     );
   }
 

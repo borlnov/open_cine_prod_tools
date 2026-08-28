@@ -11628,6 +11628,18 @@
       }
     }
   },
+  "budgetCashJournalShareableReminder": "Of which shareable, once the contributions are repaid: {amount}",
+  "@budgetCashJournalShareableReminder": {
+    "description": "A reminder under the cash-flow closing balance, stating how much of it is shareable so the balance is not mistaken for the amount to distribute",
+    "context": "Displayed as a quiet line under the budget cash-flow statement's own closing balance, beside a link to the revenue-sharing view, only while there is something to share",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "description": "The shareable pot, already formatted as a currency figure for the reader's locale",
+        "type": "String"
+      }
+    }
+  },
   "budgetCashJournalCoverageReadOut": "over {coveredCount} of the {entryCount} entries",
   "@budgetCashJournalCoverageReadOut": {
     "description": "The cash statement's own coverage read-out, while some entries carry no known rate",

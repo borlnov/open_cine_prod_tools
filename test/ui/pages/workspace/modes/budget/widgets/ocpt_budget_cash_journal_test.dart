@@ -120,6 +120,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
@@ -157,6 +159,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
@@ -183,6 +187,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
@@ -210,6 +216,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: const [],
           postes: const [],
           receiptsByEntryId: const {},
@@ -232,6 +240,75 @@ void main() {
     expect(find.text(tr.budgetCashJournalEmptyHint), findsNothing);
   });
 
+  group("the shareable reminder under the closing balance", () {
+    testWidgets("states the shareable amount and links to sharing while there is one", (
+      tester,
+    ) async {
+      var opened = false;
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            shareableCents: 420000,
+            onOpenSharing: () => opened = true,
+            entries: [_entry(id: "e1", date: DateTime(2026, 3, 2), creditCents: 570000)],
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
+      expect(
+        find.text(tr.budgetCashJournalShareableReminder(ocptBudgetAmountLabel(420000, "EUR"))),
+        findsOneWidget,
+      );
+
+      // The link switches view rather than writing anything.
+      final link = find.byKey(const Key("ocptBudgetCashShareableReminderLink"));
+      await tester.ensureVisible(link);
+      await tester.pumpAndSettle();
+      await tester.tap(link);
+      await tester.pumpAndSettle();
+      expect(opened, isTrue);
+    });
+
+    testWidgets("is withheld whole while there is nothing to share", (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptBudgetCashJournal(
+            shareableCents: 0,
+            onOpenSharing: () {},
+            entries: [_entry(id: "e1", date: DateTime(2026, 3, 2), debitCents: 11000)],
+            postes: const [],
+            receiptsByEntryId: const {},
+            commitments: const [],
+            onCommitmentSelected: (_) {},
+            selection: null,
+            isSimplified: false,
+            defaultVatRateBasisPoints: null,
+            currencyCode: "EUR",
+            isReadOnly: false,
+            onEntrySelected: (_) {},
+            onEntryEditRequested: (_) {},
+            onEntryDeletionRequested: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key("ocptBudgetCashShareableReminderLink")), findsNothing);
+    });
+  });
+
   testWidgets(
     "the running balance is the whole journal's, never reset at a poste's own boundary",
     (tester) async {
@@ -248,6 +325,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Grant")],
             receiptsByEntryId: const {},
@@ -292,6 +371,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -323,6 +404,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
@@ -370,6 +453,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -431,6 +516,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
@@ -467,6 +554,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: entries,
           postes: const [],
           receiptsByEntryId: const {},
@@ -491,6 +580,8 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
           entries: [
             entries[0],
             _entry(
@@ -533,6 +624,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: postes,
             receiptsByEntryId: const {},
@@ -571,6 +664,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -612,6 +707,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -652,6 +749,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -683,6 +782,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -715,6 +816,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: tempFile.path)},
@@ -747,6 +850,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: "/nowhere/facture.pdf")},
@@ -781,6 +886,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -809,6 +916,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -851,6 +960,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: postes,
             receiptsByEntryId: const {},
@@ -882,6 +993,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -915,6 +1028,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -948,6 +1063,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -988,6 +1105,8 @@ void main() {
         await tester.pumpWidget(
           _wrap(
             OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
               entries: entries,
               postes: const [],
               receiptsByEntryId: const {},
@@ -1013,6 +1132,8 @@ void main() {
         await tester.pumpWidget(
           _wrap(
             OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
               entries: entries,
               postes: const [],
               receiptsByEntryId: const {},
@@ -1051,6 +1172,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1082,6 +1205,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1120,6 +1245,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1161,6 +1288,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
+          shareableCents: 0,
+          onOpenSharing: null,
             entries: const [],
             postes: const [],
             receiptsByEntryId: const {},
