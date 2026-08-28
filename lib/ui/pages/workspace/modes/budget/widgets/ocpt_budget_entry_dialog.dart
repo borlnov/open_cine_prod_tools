@@ -330,16 +330,29 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
       ),
       const SizedBox(width: 12),
       Expanded(
-        child: TextFormField(
-          key: const Key("ocptBudgetEntryWizardAmountField"),
-          controller: _amountController,
-          decoration: InputDecoration(
-            labelText: tr.budgetEntryDialogAmountFieldLabel,
-            suffixText: currencySymbol,
-          ),
-          validator: (value) =>
-              ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
-          onChanged: (_) => setState(() {}),
+        // `Amount`'s own label sits above the field, dense, exactly as `Date` and `Base` carry
+        // theirs — a `labelText` inside the decoration would float the label into the box and drop
+        // the field lower than its two `CrossAxisAlignment.start` siblings, which is what left the
+        // three misaligned.
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr.budgetEntryDialogAmountFieldLabel.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            TextFormField(
+              key: const Key("ocptBudgetEntryWizardAmountField"),
+              controller: _amountController,
+              decoration: InputDecoration(isDense: true, suffixText: currencySymbol),
+              validator: (value) =>
+                  ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
         ),
       ),
       const SizedBox(width: 12),
