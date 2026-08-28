@@ -180,6 +180,13 @@ class OcptBudgetFiche extends StatelessWidget {
   /// [isReadOnly].
   final ValueChanged<String>? onCommitmentDeletionRequested;
 
+  /// Called when the off-line banner's own `Add to the quote` action is clicked, on the commitment
+  /// currently shown, or null while [isReadOnly] — `ocptBudgetCommitmentIsOffLine` says which
+  /// commitment draws the banner at all. Promotes the commitment into a quote line it is then linked
+  /// to (`docs/architecture/budget.md`'s "A quote line is paid directly" — this is that same shape,
+  /// run the other way round, on a commitment that already exists).
+  final VoidCallback? onCommitmentPromoteToQuoteRequested;
+
   /// Called with an entry when its own `Edit` action is clicked, or null while [isReadOnly].
   final ValueChanged<OcptBudgetEntry>? onEntryEditRequested;
 
@@ -250,6 +257,7 @@ class OcptBudgetFiche extends StatelessWidget {
     required this.onCommitmentSettleRequested,
     required this.onCommitmentEditRequested,
     required this.onCommitmentDeletionRequested,
+    required this.onCommitmentPromoteToQuoteRequested,
     required this.onEntryEditRequested,
     required this.onEntryDeletionRequested,
     required this.onEntryPromoteToQuoteRequested,
@@ -803,6 +811,42 @@ class OcptBudgetFiche extends StatelessWidget {
         ? tr.budgetCommittedNoDueDateLabel
         : DateFormat.yMMMd(locale).format(commitment.dueDate!);
 
+    Widget? offLineBanner;
+    if (ocptBudgetCommitmentIsOffLine(commitment)) {
+      var bannerMessage = tr.budgetFicheCommitmentOffLineBannerText;
+      if (poste != null) {
+        final posteQuoted = ocptBudgetTotalOf(
+          poste.lines,
+          basis: taxBasis,
+          projectVatRateBasisPoints: defaultVatRateBasisPoints,
+        );
+        final postePaidCents = _paidCentsOf(poste.id);
+        final posteCommittedCents = _committedCentsOf(poste.id);
+        final posteStrain = ocptBudgetPosteStrainOf(
+          quotedAmountCents: posteQuoted.amountCents,
+          paidCents: postePaidCents,
+          committedCents: posteCommittedCents,
+        );
+        if (posteStrain == OcptBudgetPosteStrain.over) {
+          final varianceCents = ocptBudgetVarianceCents(
+            quotedAmountCents: posteQuoted.amountCents,
+            paidCents: postePaidCents,
+            committedCents: posteCommittedCents,
+          );
+          bannerMessage = tr.budgetFicheCommitmentOffLineBannerOverQuoteText(_amount(varianceCents));
+        }
+      }
+      // A commitment always names a poste, so it offers only `Add to the quote` — no `Move
+      // off-quote`, unlike an off-line debit entry's own banner.
+      offLineBanner = _OcptBudgetOffLineBanner(
+        message: bannerMessage,
+        promoteLabel: tr.budgetFichePromoteToQuoteAction,
+        moveOffQuoteLabel: null,
+        onPromoteToQuoteRequested: isReadOnly ? null : onCommitmentPromoteToQuoteRequested,
+        onMoveOffQuoteRequested: null,
+      );
+    }
+
     return _OcptBudgetFicheScaffold(
       breadcrumb: [
         if (poste != null) "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
@@ -825,6 +869,7 @@ class OcptBudgetFiche extends StatelessWidget {
       ],
       outstandingLabel: tr.budgetCommittedOutstandingLabel,
       outstandingValue: isSettled ? null : _amount(outstandingCents),
+      banner: offLineBanner,
       primary: isReadOnly || isSettled || onCommitmentSettleRequested == null
           ? null
           : _OcptBudgetFicheAction(
@@ -931,9 +976,9 @@ class OcptBudgetFiche extends StatelessWidget {
           bannerMessage = tr.budgetFicheEntryOffLineBannerOverQuoteText(_amount(varianceCents));
         }
       }
-      offLineDebitBanner = _OcptBudgetOffLineDebitBanner(
+      offLineDebitBanner = _OcptBudgetOffLineBanner(
         message: bannerMessage,
-        promoteLabel: tr.budgetFicheEntryPromoteToQuoteAction,
+        promoteLabel: tr.budgetFichePromoteToQuoteAction,
         moveOffQuoteLabel: tr.budgetFicheEntryMoveOffQuoteAction,
         onPromoteToQuoteRequested: isReadOnly ? null : onEntryPromoteToQuoteRequested,
         onMoveOffQuoteRequested: isReadOnly ? null : onEntryMoveOffQuoteRequested,
@@ -1237,8 +1282,8 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
   final Widget? paymentsSection;
 
   /// A card drawn just above the primary action button, or null for every variant but an off-line
-  /// debit entry's own — the fiche's own `Add to the quote`/`Move off-quote` banner
-  /// (`_OcptBudgetOffLineDebitBanner`).
+  /// debit entry's or an off-line commitment's own — the fiche's own `Add to the quote`/`Move
+  /// off-quote` banner (`_OcptBudgetOffLineBanner`).
   final Widget? banner;
 
   /// The one primary action, or null while withheld or none applies.
@@ -1442,35 +1487,38 @@ class _OcptBudgetFicheBadge extends StatelessWidget {
   );
 }
 
-/// An off-line debit entry's own banner (`_OcptBudgetFicheScaffold.banner`): a short, neutral,
-/// factual [message], and two ways to reconcile the entry with the quote it never went through —
-/// `Add to the quote` (promotes it into a quote line and a settled commitment naming it) and `Move
-/// off-quote` (clears its own poste) — `docs/architecture/budget.md`'s "Off-quote spending is
-/// named, never hidden". Either action clears the banner in one click, so it carries no warning
-/// colour of its own: the message states the fact, and, while the poste is currently over its
-/// quote, by how much, but the banner itself is neither an alert nor a verdict.
+/// An off-line record's own banner (`_OcptBudgetFicheScaffold.banner`): a short, neutral, factual
+/// [message], and one or two ways to reconcile the record with the quote it never went through.
+/// `Add to the quote` ([promoteLabel]) is always the first, and `Move off-quote` ([moveOffQuoteLabel],
+/// null for a record that has no such reconciliation) the optional second —
+/// `docs/architecture/budget.md`'s "Off-quote spending is named, never hidden". An off-line debit
+/// entry offers both (promote into a quote line and a settled commitment, or clear its own poste);
+/// an off-line commitment offers only the first, since a commitment always names a poste and cannot
+/// be moved off-quote. Either action clears the banner in one click, so it carries no warning colour
+/// of its own: the message states the fact, and, while the poste is currently over its quote, by how
+/// much, but the banner itself is neither an alert nor a verdict.
 ///
 /// **Withheld, not disabled** (`AGENTS.md`): a null action is simply not drawn, rather than a
-/// button greyed out — `OcptBudgetFiche`'s own two callbacks arrive null under a previewed version,
-/// and the text stands alone.
-class _OcptBudgetOffLineDebitBanner extends StatelessWidget {
+/// button greyed out — `OcptBudgetFiche`'s own callbacks arrive null under a previewed version, and
+/// the text stands alone.
+class _OcptBudgetOffLineBanner extends StatelessWidget {
   /// The banner's own explanatory text.
   final String message;
 
   /// `Add to the quote`'s own label.
   final String promoteLabel;
 
-  /// `Move off-quote`'s own label.
-  final String moveOffQuoteLabel;
+  /// `Move off-quote`'s own label, or null for a record that offers no such action.
+  final String? moveOffQuoteLabel;
 
   /// Called when `Add to the quote` is pressed, or null while withheld.
   final VoidCallback? onPromoteToQuoteRequested;
 
-  /// Called when `Move off-quote` is pressed, or null while withheld.
+  /// Called when `Move off-quote` is pressed, or null while withheld or the record offers none.
   final VoidCallback? onMoveOffQuoteRequested;
 
   /// Class constructor
-  const _OcptBudgetOffLineDebitBanner({
+  const _OcptBudgetOffLineBanner({
     required this.message,
     required this.promoteLabel,
     required this.moveOffQuoteLabel,
@@ -1483,6 +1531,7 @@ class _OcptBudgetOffLineDebitBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final onPromoteToQuoteRequested = this.onPromoteToQuoteRequested;
     final onMoveOffQuoteRequested = this.onMoveOffQuoteRequested;
+    final moveOffQuoteLabel = this.moveOffQuoteLabel;
 
     return Card(
       child: Padding(
@@ -1505,9 +1554,11 @@ class _OcptBudgetOffLineDebitBanner extends StatelessWidget {
                         child: Text(promoteLabel),
                       ),
                     ),
-                  if (onPromoteToQuoteRequested != null && onMoveOffQuoteRequested != null)
+                  if (onPromoteToQuoteRequested != null &&
+                      onMoveOffQuoteRequested != null &&
+                      moveOffQuoteLabel != null)
                     const SizedBox(width: 8),
-                  if (onMoveOffQuoteRequested != null)
+                  if (onMoveOffQuoteRequested != null && moveOffQuoteLabel != null)
                     Expanded(
                       child: OutlinedButton(
                         onPressed: onMoveOffQuoteRequested,

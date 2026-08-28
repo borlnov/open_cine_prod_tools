@@ -1624,6 +1624,119 @@ void main() {
     });
   });
 
+  group("promoting an off-line commitment into the quote", () {
+    test("mints a line and re-points the very same commitment at it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      // An off-line commitment (no lineId) against a poste with no quote yet — over its (empty)
+      // quote by construction.
+      bloc.add(
+        OcptBudgetCommitmentCreationConfirmedEvent(
+          fields: OcptBudgetCommitmentFormFields(
+            dueDate: DateTime(2026, 6),
+            label: "Green brief",
+            posteId: posteId,
+            amountCents: 890,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            status: OcptBudgetCommitmentStatus.quoteAccepted,
+          ),
+        ),
+      );
+      final withCommitment = await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+      final commitmentId = withCommitment.commitments.single.id;
+      expect(withCommitment.commitments.single.lineId, isNull);
+      expect(
+        ocptBudgetVarianceCents(
+          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(withCommitment.postes.first),
+          paidCents: withCommitment.paidCentsOf(posteId),
+          committedCents: withCommitment.committedCentsOf(posteId),
+        ),
+        890,
+      );
+
+      bloc.add(OcptBudgetCommitmentPromotedToQuoteEvent(commitmentId: commitmentId));
+      final state = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+
+      // One line, mirroring the commitment exactly.
+      expect(state.postes.first.lines, hasLength(1));
+      final line = state.postes.first.lines.single;
+      expect(line.label, "Green brief");
+      expect(line.quantityMilli, 1000);
+      expect(line.unitPrice.amountCents, 890);
+      expect(line.unitPrice.isTaxInclusive, isTrue);
+
+      // The very same commitment now names that line — never a second commitment.
+      expect(state.commitments, hasLength(1));
+      expect(state.commitments.single.id, commitmentId);
+      expect(state.commitments.single.lineId, line.id);
+
+      // The overrun is gone: the quote now covers what was committed.
+      expect(
+        ocptBudgetVarianceCents(
+          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(state.postes.first),
+          paidCents: state.paidCentsOf(posteId),
+          committedCents: state.committedCentsOf(posteId),
+        ),
+        0,
+      );
+    });
+
+    test("does nothing on a commitment that already names a line", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetLineCreatedEvent(
+          posteId: posteId,
+          fields: const OcptBudgetLineFormFields(
+            label: "Camera",
+            quantityMilli: 1000,
+            unit: "u",
+            unitAmountCents: 1000,
+          ),
+        ),
+      );
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+
+      bloc.add(
+        OcptBudgetLinePaidDirectlyEvent(
+          lineId: lineId,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 6),
+            label: "Camera",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 1000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withCommitment = await waitForState(bloc, (state) => state.commitments.isNotEmpty);
+      final commitmentId = withCommitment.commitments.single.id;
+
+      bloc.add(OcptBudgetCommitmentPromotedToQuoteEvent(commitmentId: commitmentId));
+      await pumpEventQueue();
+
+      // No second line minted: the guard bailed on an already line-nested commitment.
+      expect(bloc.state.postes.first.lines, hasLength(1));
+      expect(bloc.state.commitments, hasLength(1));
+    });
+  });
+
   group("moving an off-line debit entry off-quote", () {
     test("clears the entry's own poste and nothing else", () async {
       final bloc = buildBloc();

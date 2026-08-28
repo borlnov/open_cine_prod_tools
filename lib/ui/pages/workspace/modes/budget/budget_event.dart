@@ -656,6 +656,28 @@ class OcptBudgetEntryMovedOffQuoteEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
+/// Promotes off-line commitment [commitmentId] into the quote — the fiche's own banner and its
+/// `Add to the quote` action, offered on a commitment that names a poste but no quote line
+/// (`ocptBudgetCommitmentIsOffLine`). This is [OcptBudgetLinePaidDirectlyEvent] run the other way
+/// round: the bloc creates a quote line from the commitment (`OcptBudgetQuoteService.createLine`,
+/// the commitment's own label, quantity `1.0`, its amount and tax basis), then **re-points the
+/// commitment at that fresh line** (`OcptBudgetJournalService.updateCommitment`, `lineId` alone).
+/// The entry that settles the commitment is untouched — it already names the commitment, so the
+/// chain simply gains the quote line it lacked, and the poste's quote grows by the amount that made
+/// it overrun. A commitment always names a poste, so there is no "move off-quote" counterpart, the
+/// way an off-line debit has one.
+class OcptBudgetCommitmentPromotedToQuoteEvent extends OcptBudgetEvent {
+  /// The id of the off-line commitment to promote.
+  final String commitmentId;
+
+  /// Class constructor
+  const OcptBudgetCommitmentPromotedToQuoteEvent({required this.commitmentId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, commitmentId];
+}
+
 /// Undoes commitment [commitmentId]'s own settlement, dispatched by its row's own `Undo settlement`
 /// action — clears `commitmentId` back to null on **every** live entry naming it, each entry itself
 /// left untouched otherwise. `Undo settlement`'s own label promises the commitment is not paid, and

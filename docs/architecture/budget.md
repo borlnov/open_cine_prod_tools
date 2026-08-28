@@ -673,7 +673,15 @@ are all here, and this file is the whole record of them.
   - A **commitment**'s primary action is `Pay {amount}` (`onCommitmentSettleRequested`), opening the
     capture wizard on its own money step pre-filled from it — the amount still outstanding, in the
     commitment's own tax basis (see "A commitment settles when the ledger says it is paid" above) —
-    and null once settled.
+    and null once settled. **A commitment naming no quote line (`ocptBudgetCommitmentIsOffLine`) draws
+    the same reconciliation banner an off-line debit entry does** (`_OcptBudgetOffLineBanner`, shared
+    between them), above the primary action, stating the fact and the poste's own overrun the same
+    way — but with a **single** action, `Add to the quote` (`onCommitmentPromoteToQuoteRequested`):
+    it mints a quote line from the commitment and **re-points the commitment at it**
+    (`OcptBudgetJournalService.updateCommitment`, `lineId` alone), the entry that settles it left
+    untouched. There is no `Move off-quote` counterpart, because a commitment always names a poste
+    (`budget_commitments.posteId` is non-nullable) and so can never be off-quote — the one asymmetry
+    with the entry banner. Under a previewed version the text stays but the action is withheld.
   - An **entry**'s stepper is always fully reached; its primary action is `Edit`, its secondary
     `Delete`. **A debit naming a poste but no commitment draws a banner above the primary
     action** — `entry.debitCents > 0 && entry.posteId != null && entry.commitmentId == null`, an

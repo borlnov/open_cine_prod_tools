@@ -27,6 +27,14 @@ int? ocptBudgetCommitmentCashCentsOf(
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
+/// Whether [commitment] names no quote line — an off-line commitment, a cost committed against a
+/// poste that no quote line prices. It always names a poste ([OcptBudgetCommitment.posteId] is
+/// non-nullable), so, unlike a poste-less debit (`ocptBudgetEntryIsOffLineDebit`), it can only ever
+/// be reconciled one way: promoted into a quote line, never moved off-quote. The fiche's own banner
+/// reads this to offer `Add to the quote` on such a commitment, and the bloc's own handler reads it
+/// again as a defensive guard (`OcptBudgetCommitmentPromotedToQuoteEvent`).
+bool ocptBudgetCommitmentIsOffLine(OcptBudgetCommitment commitment) => commitment.lineId == null;
+
 /// What has been paid against each commitment, given the project's own
 /// [projectVatRateBasisPoints]: per commitment, the tax-inclusive sum of every `budget_entries`
 /// debit naming it through `budget_entries.commitmentId`.

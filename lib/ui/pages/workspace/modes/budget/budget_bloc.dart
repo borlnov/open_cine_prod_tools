@@ -54,6 +54,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
@@ -281,6 +282,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetLinePaidDirectlyEvent>(_onLinePaidDirectly);
     on<OcptBudgetEntryPromotedToQuoteEvent>(_onEntryPromotedToQuote);
     on<OcptBudgetEntryMovedOffQuoteEvent>(_onEntryMovedOffQuote);
+    on<OcptBudgetCommitmentPromotedToQuoteEvent>(_onCommitmentPromotedToQuote);
     on<OcptBudgetCommitmentUnsettleRequestedEvent>(_onCommitmentUnsettleRequested);
     on<OcptBudgetResourceSelectedEvent>(_onResourceSelected);
     on<OcptBudgetAllowanceCreationConfirmedEvent>(_onAllowanceCreationConfirmed);
@@ -1724,6 +1726,52 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       database: project.database,
       entryId: entry.id,
       posteId: const Value(null),
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Promotes off-line commitment `event.commitmentId` into the quote — the fiche's own banner and
+  /// its `Add to the quote` action, offered on a commitment that names a poste but no quote line
+  /// ([OcptBudgetCommitmentPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates
+  /// a quote line from the commitment (`createLine`, quantity `1.0`, its own label, amount and tax
+  /// basis), then **re-points the commitment itself at that fresh line** (`updateCommitment`,
+  /// `lineId` alone). The entry that settles the commitment is left untouched — it already names the
+  /// commitment — so the chain gains only the quote line it lacked, and the poste's quote grows by
+  /// the amount that made it overrun.
+  Future<void> _onCommitmentPromotedToQuote(
+    OcptBudgetCommitmentPromotedToQuoteEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final commitment = state.commitments
+        .where((commitment) => commitment.id == event.commitmentId)
+        .firstOrNull;
+    if (commitment == null || !ocptBudgetCommitmentIsOffLine(commitment)) {
+      return;
+    }
+
+    final lineId = await _budgetQuoteService.createLine(
+      database: project.database,
+      posteId: commitment.posteId,
+      label: commitment.label,
+      quantityMilli: const Value(1000),
+      unitAmountCents: Value(commitment.amount.amountCents),
+      isTaxInclusive: Value(commitment.amount.isTaxInclusive),
+      vatRateBasisPoints: Value(commitment.amount.vatRateBasisPoints),
+    );
+    if (lineId == null) {
+      return;
+    }
+
+    await _budgetJournalService.updateCommitment(
+      database: project.database,
+      commitmentId: commitment.id,
+      lineId: Value(lineId),
     );
 
     await _applyBudgetSnapshot(emitter, project);

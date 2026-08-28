@@ -2246,6 +2246,10 @@ class _BudgetViewState extends State<_BudgetView> {
       OcptBudgetReceiptSelection(:final receiptId) => receiptId,
       _ => null,
     };
+    final selectedCommitmentId = switch (state.selection) {
+      OcptBudgetCommitmentSelection(:final commitmentId) => commitmentId,
+      _ => null,
+    };
 
     return OcptBudgetFiche(
       selection: state.selection,
@@ -2306,6 +2310,11 @@ class _BudgetViewState extends State<_BudgetView> {
       onCommitmentDeletionRequested: isReadOnly
           ? null
           : (commitmentId) => unawaited(_handleCommitmentDeletionRequested(context, commitmentId)),
+      onCommitmentPromoteToQuoteRequested: isReadOnly || selectedCommitmentId == null
+          ? null
+          : () => bloc.add(
+              OcptBudgetCommitmentPromotedToQuoteEvent(commitmentId: selectedCommitmentId),
+            ),
       onEntryEditRequested: isReadOnly
           ? null
           : (entry) => unawaited(_handleEntryEditRequested(context, state, entry)),

@@ -11564,10 +11564,10 @@
       }
     }
   },
-  "budgetFicheEntryPromoteToQuoteAction": "Add to the quote",
-  "@budgetFicheEntryPromoteToQuoteAction": {
-    "description": "Banner action promoting an off-line debit entry into a quote line and a settled commitment naming this very entry",
-    "context": "Displayed on an off-line debit entry's own fiche in the budget mode",
+  "budgetFichePromoteToQuoteAction": "Add to the quote",
+  "@budgetFichePromoteToQuoteAction": {
+    "description": "Banner action promoting an off-line record — a debit entry or a commitment — into a quote line",
+    "context": "Displayed on an off-line debit entry's or an off-line commitment's own fiche in the budget mode",
     "type": "text",
     "placeholders": {}
   },
@@ -11577,6 +11577,24 @@
     "context": "Displayed on an off-line debit entry's own fiche in the budget mode",
     "type": "text",
     "placeholders": {}
+  },
+  "budgetFicheCommitmentOffLineBannerText": "This commitment is not tied to this poste's quote.",
+  "@budgetFicheCommitmentOffLineBannerText": {
+    "description": "Neutral, factual explanation shown on a commitment that names a poste but no quote line — the banner offering to add it to the quote",
+    "context": "Displayed above the primary action on an off-line commitment's own fiche in the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheCommitmentOffLineBannerOverQuoteText": "This commitment is not tied to this poste's quote, which is currently {varianceAmount} over.",
+  "@budgetFicheCommitmentOffLineBannerOverQuoteText": {
+    "description": "Same banner as budgetFicheCommitmentOffLineBannerText, with the poste's own overrun stated, while it is over its quote",
+    "context": "Displayed above the primary action on an off-line commitment's own fiche in the budget mode",
+    "type": "text",
+    "placeholders": {
+      "varianceAmount": {
+        "type": "String"
+      }
+    }
   },
   "budgetExportPanelTitle": "Export the budget",
   "@budgetExportPanelTitle": {

@@ -434,6 +434,7 @@ class OcptBudgetJournalService {
     Value<bool> isTaxInclusive = const Value.absent(),
     Value<int?> vatRateBasisPoints = const Value.absent(),
     Value<OcptBudgetCommitmentStatus> status = const Value.absent(),
+    Value<String?> lineId = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateCommitment")) {
       return;
@@ -450,6 +451,7 @@ class OcptBudgetJournalService {
         isTaxInclusive: isTaxInclusive,
         vatRateBasisPoints: vatRateBasisPoints,
         status: status,
+        lineId: lineId,
       ),
     );
   }

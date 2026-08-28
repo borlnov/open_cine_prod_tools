@@ -178,6 +178,7 @@ OcptBudgetFiche _fiche({
   ValueChanged<OcptBudgetCommitment>? onCommitmentSettleRequested,
   ValueChanged<OcptBudgetCommitment>? onCommitmentEditRequested,
   ValueChanged<String>? onCommitmentDeletionRequested,
+  VoidCallback? onCommitmentPromoteToQuoteRequested,
   ValueChanged<OcptBudgetEntry>? onEntryEditRequested,
   ValueChanged<String>? onEntryDeletionRequested,
   VoidCallback? onEntryPromoteToQuoteRequested,
@@ -218,6 +219,7 @@ OcptBudgetFiche _fiche({
   onCommitmentSettleRequested: onCommitmentSettleRequested,
   onCommitmentEditRequested: onCommitmentEditRequested,
   onCommitmentDeletionRequested: onCommitmentDeletionRequested,
+  onCommitmentPromoteToQuoteRequested: onCommitmentPromoteToQuoteRequested,
   onEntryEditRequested: onEntryEditRequested,
   onEntryDeletionRequested: onEntryDeletionRequested,
   onEntryPromoteToQuoteRequested: onEntryPromoteToQuoteRequested,
@@ -711,7 +713,7 @@ void main() {
 
           expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsOneWidget);
 
-          await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetFicheEntryPromoteToQuoteAction));
+          await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction));
           expect(promoted, isTrue);
 
           await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetFicheEntryMoveOffQuoteAction));
@@ -758,7 +760,7 @@ void main() {
         final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
         expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsOneWidget);
-        expect(find.widgetWithText(OutlinedButton, tr.budgetFicheEntryPromoteToQuoteAction), findsNothing);
+        expect(find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction), findsNothing);
         expect(find.widgetWithText(OutlinedButton, tr.budgetFicheEntryMoveOffQuoteAction), findsNothing);
         expect(written, isFalse);
       });
@@ -813,6 +815,92 @@ void main() {
         final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
         expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsNothing);
+      });
+    });
+
+    group("the off-line-commitment banner", () {
+      testWidgets("shows on a commitment naming no line, and dispatches its promote action", (
+        tester,
+      ) async {
+        _useTallSurface(tester);
+        var promoted = false;
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetCommitmentSelection("commitment-1"),
+              // 1,000, matching the poste's own 1,000 quote — not over, so no overrun clause.
+              commitments: [_buildCommitment()],
+              onCommitmentPromoteToQuoteRequested: () => promoted = true,
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsOneWidget);
+        // The one thing a commitment cannot do: it always names a poste, so no Move off-quote.
+        expect(find.widgetWithText(OutlinedButton, tr.budgetFicheEntryMoveOffQuoteAction), findsNothing);
+
+        await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction));
+        expect(promoted, isTrue);
+      });
+
+      testWidgets("states the poste's own overrun once it is over its quote", (tester) async {
+        _useTallSurface(tester);
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetCommitmentSelection("commitment-1"),
+              // 5,000 committed against the poste's own 1,000 quote — 4,000 over.
+              commitments: [_buildCommitment(amountCents: 5000)],
+              onCommitmentPromoteToQuoteRequested: () {},
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        expect(
+          find.text(
+            tr.budgetFicheCommitmentOffLineBannerOverQuoteText(ocptBudgetAmountLabel(4000, "EUR")),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsNothing);
+      });
+
+      testWidgets("withholds its action under a previewed version, the text stays", (tester) async {
+        _useTallSurface(tester);
+        var written = false;
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetCommitmentSelection("commitment-1"),
+              commitments: [_buildCommitment()],
+              isReadOnly: true,
+              onCommitmentPromoteToQuoteRequested: () => written = true,
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsOneWidget);
+        expect(find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction), findsNothing);
+        expect(written, isFalse);
+      });
+
+      testWidgets("does not show once the commitment already names a line", (tester) async {
+        _useTallSurface(tester);
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetCommitmentSelection("commitment-1"),
+              commitments: [_buildCommitment(lineId: "line-1")],
+              onCommitmentPromoteToQuoteRequested: () {},
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsNothing);
       });
     });
   });
