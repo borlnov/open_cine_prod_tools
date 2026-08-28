@@ -29,21 +29,29 @@ the persistence, the project versions, the sync-ready data model and the read-on
   List<OcptEpisode> episodes, String? selectedEpisodeId }` — it owns *which* production mode is
   active and *which episode* it shows, nothing about that mode's own content.
   `OcptWorkspaceMode { screenplay, breakdown, shotList, resources, schedule, budget }` is ordered by
-  the order the work happens in (write, break down, shoot-list, resource, schedule) with the one
-  unimplemented mode last, and is persisted through `OcptPropertiesManager.workspaceMode` by
-  **name** rather than by index (modelled on `editorMode`), so opening a project restores the last
-  mode used and reordering the enum is safe. The modes are `EditorPage` (screenplay, under
-  `lib/ui/pages/editor/`), `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode` and
-  `OcptScheduleMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc),
-  plus the stateless `OcptBudgetMode` rendering the shared empty state — no bloc, no data, "coming
-  in a future version".
+  the order the work happens in (write, break down, shoot-list, resource, schedule) with `budget`
+  last since it is the one mode that reads every other mode's own figures rather than one anybody
+  starts from, and is persisted through `OcptPropertiesManager.workspaceMode` by **name** rather
+  than by index (modelled on `editorMode`), so opening a project restores the last mode used and
+  reordering the enum is safe. The modes are `EditorPage` (screenplay, under `lib/ui/pages/editor/`),
+  `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
+  `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc) —
+  `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
+  bare `true` so a mode shipped ahead of its own content (the way `budget` itself once sat here,
+  rendering the shared "coming in a future version" empty state) has a single, obvious place to be
+  left out of again.
   `OcptWorkspaceShell` is a stateless slot widget (title, toolbar actions, overflow entries, left
   panel, right panel, centre, status bar, dock controller) built by whichever mode is active. The
   end of the toolbar is the shell's own chrome rather than a mode's actions, so its order can't
   drift from one mode to the next: the mode label, the `Export` control (`onExportRequested`), the
   two dock toggles (`isLeftDockOpen`/`onToggleLeftDock`, same pair for the right), the save control
-  (`onSave`/`isSaving`, spinner while in flight), then the `⋮` menu — each rendered only when the
-  mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's own
+  (`onSave`/`isSaving`, spinner while in flight), the project settings action
+  (`onProjectSettingsRequested`), the `Help` action (`onHelpRequested`), then the `⋮` menu — each
+  rendered only when the mode wired it, so a mode with no dock, nothing to save, nothing to open
+  there, or no help panel of its own simply shows fewer of them. `onHelpRequested` is never withheld
+  under a version preview the way `onProjectSettingsRequested` is: only the budget mode wires it in
+  today, opening its own right dock onto a `Help` tab that only ever reads (`budget.md`), so a
+  preview has nothing about it to protect. A mode's own
   `toolbarActions` sit before that group, and the **episode selector** is the shell's own chrome at
   the *other* end, right after the project title, for the same reason (below). Two further slots
   serve the read-only preview of a project version: `isReadOnly`, which swaps the unsaved-changes
@@ -70,10 +78,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   The **selector** is built by `OcptWorkspaceShell` itself from `episodes`/`selectedEpisodeId`/
   `onEpisodeSelected`, so the gesture cannot drift from one mode to the next, and its nullable
   callback is the whole of its conditional behaviour: **no control is drawn at all** — never a
-  disabled one, the budget mode's missing `Export` button being the precedent — for a project with
-  a single episode, and for the **schedule mode**, which reads every episode at once and would
-  otherwise show a selector that either does nothing or lies. The menu only ever *chooses*; its last
-  entry, `Manage episodes…`, lands on `OcptProjectSettingsPage`.
+  disabled one, the very idiom the toolbar's own slots already carry (`onExportRequested`, the two
+  dock toggles, each rendered only when the mode wired it, above) — for a project with a single
+  episode, and for the **schedule** mode, which reads every episode at once and would otherwise show
+  a selector that either does nothing or lies, and the **budget** mode, whose catalogue names no
+  episode at all (`budget.md`) and would show one filtering a read that was never split by episode
+  to begin with. The menu only ever *chooses*; its last entry, `Manage episodes…`, lands on
+  `OcptProjectSettingsPage`.
   That one toolbar slot holds **either** the selector **or**, for a project with a single episode,
   the screenplay mode's `Add an episode…` button (`onAddEpisodeRequested`, wired by that mode alone)
   — the only thing naming an episode on a project that has one, and the answer to a feature nobody
@@ -253,12 +264,16 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v24 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v29 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the fifteen resources tables (`role_candidates`, `role_elements` and
-  `role_episodes` among them), `breakdown_tags`, `scene_breakdowns`, the eight schedule tables,
+  `role_episodes` among them), `breakdown_tags`, `scene_breakdowns`, the eight schedule tables, the
+  eight budget tables (`budget_postes`, `budget_lines`, `budget_entries`, `budget_commitments`,
+  `budget_resources`, `budget_mileage_rates`, `budget_revenues`, `budget_shares`),
   `project_dictionary_words`, `row_field_versions`, `project_versions`),
   `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene number → exact
-  heading → relative order). v24 creates `shooting_block_candidates`, the candidacies an audition
+  heading → relative order). v25 to v28 are the budget mode's own four steps, every one of them
+  additive — `budget.md` for what they hold. v24 creates `shooting_block_candidates`, the
+  candidacies an audition
   block sees (ADR 0024), and v20 created `role_candidates`, who was seen for a part — both additive
   with nothing to backfill. v23 and v24 also **drop** four things no released build ever wrote, all
   of them written by intermediate versions of the branch that landed them: `shooting_days.kind`,
@@ -267,7 +282,15 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `_dropColumnIfPresent`/`_dropTableIfPresent` — the two helpers in this file that **ask the file
   what it holds** rather than deducing it from the version it states, because a version number says
   nothing about whether a file was made against an unmerged build — and nothing is carried over: a
-  slot-wide convocation names no hour, so there is no block to attach it to. v19 adds
+  slot-wide convocation names no hour, so there is no block to attach it to. **The budget's own
+  four steps deliberately do not do the same**, and the asymmetry is a decision rather than an
+  oversight: renumbering v20-v23 to v25-v28 made the number 23 mean two different things — the
+  casting step to a released file, the whole budget mode to a file written by this branch before it
+  merged — and such a file now dies on `duplicate column name: default_vat_rate_basis_points`
+  rather than opening. Defensive `if absent` guards on all four steps would have saved those files,
+  and they were weighed and refused: no released build ever wrote one, only the two machines this
+  mode was developed on hold any, and four permanently non-standard migration steps are a poor
+  price for files their own authors can recreate. v19 adds
   `project_info.screenplayLanguage` (nullable, no backfill: "nobody has said" is as true after the
   migration as before it) and creates `project_dictionary_words`, both additive. v18 is the
   multi-episode migration: `screenplays` gains `number` and `sortKey`, `role_episodes` is added, and
@@ -281,7 +304,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   with build_runner. A schema number is allocated **at merge time, not at branch time** (ADR 0007):
   of two branches in flight, whichever merges second renumbers, and the migration test pins what
   `onCreate` produces against what every upgrade path produces, so a table declared and forgotten in
-  `onUpgrade` fails there rather than on a user's file.
+  `onUpgrade` fails there rather than on a user's file. The budget mode is what proved that rule:
+  it was built against v20 to v23 and payload formats 16 to 19, found the casting work already
+  merged onto both ranges, and renumbered to v25 to v28 and formats 21 to 24 on its way in.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
@@ -304,9 +329,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
   The `_payloadUpgrades` map brings an older payload onto the current shape, and every entry is one
   of **four kinds**, each argued in its own doc comment — read them before writing a fifth. A
   **materialised** value states what was true at capture: an empty list for a table that did not
-  exist yet, or a column's own default. Restoring such a version therefore tombstones every row
-  added since, which is the truthful reading of "this project had none" — an edit like any other
-  restore, not a no-op that leaves that half of the project alone. A **null** says nobody had
+  exist yet, or a column's own default — `budgetPostes` and `budgetLines` join that kind at payload
+  format 16, materialising as empty lists for every version sealed before this milestone existed
+  (`budget.md`). Restoring such a version therefore tombstones every row added since, which is the
+  truthful reading of "this project had none" — an edit like any other restore, not a no-op that
+  leaves that half of the project alone. A **null** says nobody had
   recorded that figure, and is written back like any other changed column; the currency is the one
   exception, its column having never been nullable, so *its* null alone means "leave the live value
   untouched". A **removal** drops a list or a column the project has no concept for any more: unlike

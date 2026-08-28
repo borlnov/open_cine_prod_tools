@@ -15,9 +15,10 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 
 /// This is the bloc class for the project settings page.
 ///
-/// It loads the current project's currency, page format, minimum rest, screenplay language,
-/// episodes and learned dictionary words from [OcptProjectsManager] on entry, and writes each
-/// field back to the project the moment it changes — there is no
+/// It loads the current project's currency, page format, minimum rest, default VAT rate, meal and
+/// buffet prices, screenplay language, episodes and learned dictionary words from
+/// [OcptProjectsManager] on entry, and writes each field back to the project the moment it changes
+/// — there is no
 /// separate save step, exactly like the appearance and language sections of the app-wide settings
 /// page. The page format is written through the very same
 /// `OcptProjectsManager.saveCurrentProjectPageFormat` the screenplay editor's own page-setup
@@ -28,7 +29,10 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 /// `OcptProjectsManager.projectDictionaryService` the identical way, but only ever from
 /// [_onDictionaryEdited]: unlike every other field here, the dictionary is *read* by
 /// `OcptProjectSettingsDictionarySection` but *edited* in `OcptProjectDictionaryDialog`, which
-/// only reports its diff back for this bloc to apply.
+/// only reports its diff back for this bloc to apply. The mileage rates' own CRUD is reached
+/// through `OcptProjectsManager.budgetFinancingService`, the very service the budget mode's own
+/// financing plan will read from later — this page is simply where a production types the rates
+/// into it.
 class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// The manager used to read and write the current project's settings.
   final OcptProjectsManager _projectsManager;
@@ -52,6 +56,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsCurrencyChangedEvent>(_onCurrencyChanged);
     on<OcptProjectSettingsPageFormatChangedEvent>(_onPageFormatChanged);
     on<OcptProjectSettingsMinimumRestMinutesChangedEvent>(_onMinimumRestMinutesChanged);
+    on<OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent>(
+      _onDefaultVatRateBasisPointsChanged,
+    );
+    on<OcptProjectSettingsMealPriceCentsChangedEvent>(_onMealPriceCentsChanged);
+    on<OcptProjectSettingsBuffetPriceCentsChangedEvent>(_onBuffetPriceCentsChanged);
     on<OcptProjectSettingsScreenplayLanguageChangedEvent>(_onScreenplayLanguageChanged);
     on<OcptProjectSettingsDictionaryEditedEvent>(_onDictionaryEdited);
     on<OcptProjectSettingsEpisodeAddedEvent>(_onEpisodeAdded);
@@ -59,6 +68,10 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsEpisodeNumberChangedEvent>(_onEpisodeNumberChanged);
     on<OcptProjectSettingsEpisodeMovedEvent>(_onEpisodeMoved);
     on<OcptProjectSettingsEpisodeDeletionConfirmedEvent>(_onEpisodeDeletionConfirmed);
+    on<OcptProjectSettingsMileageRateAddedEvent>(_onMileageRateAdded);
+    on<OcptProjectSettingsMileageRateLabelChangedEvent>(_onMileageRateLabelChanged);
+    on<OcptProjectSettingsMileageRateAmountChangedEvent>(_onMileageRateAmountChanged);
+    on<OcptProjectSettingsMileageRateDeletionConfirmedEvent>(_onMileageRateDeletionConfirmed);
   }
 
   /// Loads the current project's currency, page format, minimum rest, screenplay language,
@@ -74,8 +87,17 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
     final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+    final defaultVatRateBasisPoints = await _projectsManager
+        .loadCurrentProjectDefaultVatRateBasisPoints();
+    final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
+    // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
+    // own name, but what it prices is the buffet, never a snack in the trade's own words.
+    final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
@@ -87,9 +109,16 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
         minimumRestMinutes: minimumRestMinutes,
         clearMinimumRestMinutes: minimumRestMinutes == null,
+        defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+        clearDefaultVatRateBasisPoints: defaultVatRateBasisPoints == null,
+        mealPriceCents: mealPriceCents,
+        clearMealPriceCents: mealPriceCents == null,
+        buffetPriceCents: buffetPriceCents,
+        clearBuffetPriceCents: buffetPriceCents == null,
         screenplayLanguage: screenplayLanguage,
         clearScreenplayLanguage: screenplayLanguage == null,
         episodes: episodes,
+        mileageRates: mileageRates,
         dictionaryWords: dictionaryWords,
       ),
     );
@@ -127,6 +156,57 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       state.copyWith(
         minimumRestMinutes: event.minutes,
         clearMinimumRestMinutes: event.minutes == null,
+        hasChanged: true,
+      ),
+    );
+  }
+
+  /// Writes the newly committed default VAT rate to the project, then reflects it in the state.
+  ///
+  /// `event.basisPoints` is written whichever it is, including null and including `0` — the same
+  /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field, `0` being as real a
+  /// figure here as any other (`OcptProjectSettingsBudgetSection`'s own doc comment).
+  Future<void> _onDefaultVatRateBasisPointsChanged(
+    OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(event.basisPoints);
+    emitter(
+      state.copyWith(
+        defaultVatRateBasisPoints: event.basisPoints,
+        clearDefaultVatRateBasisPoints: event.basisPoints == null,
+        hasChanged: true,
+      ),
+    );
+  }
+
+  /// Writes the newly committed meal price to the project, then reflects it in the state.
+  Future<void> _onMealPriceCentsChanged(
+    OcptProjectSettingsMealPriceCentsChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectMealPriceCents(event.cents);
+    emitter(
+      state.copyWith(
+        mealPriceCents: event.cents,
+        clearMealPriceCents: event.cents == null,
+        hasChanged: true,
+      ),
+    );
+  }
+
+  /// Writes the newly committed buffet price to the project, then reflects it in the state —
+  /// [_onMealPriceCentsChanged]'s sibling. Still written through
+  /// `saveCurrentProjectSnackPriceCents`, the schema column's own name.
+  Future<void> _onBuffetPriceCentsChanged(
+    OcptProjectSettingsBuffetPriceCentsChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
+    emitter(
+      state.copyWith(
+        buffetPriceCents: event.cents,
+        clearBuffetPriceCents: event.cents == null,
         hasChanged: true,
       ),
     );
@@ -265,5 +345,75 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
     await _projectsManager.recordCurrentProjectEpisodeCount();
     emitter(state.copyWith(episodes: episodes, hasChanged: deleted ? true : null));
+  }
+
+  /// Appends a new, blank mileage rate, then re-reads the project's rates so the card shows what
+  /// the database now holds.
+  Future<void> _onMileageRateAdded(
+    OcptProjectSettingsMileageRateAddedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    final id = await _projectsManager.budgetFinancingService.createMileageRate(
+      database: _database,
+      label: "",
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: id != null ? true : null));
+  }
+
+  /// Writes the newly committed label of mileage rate `event.rateId`, then re-reads the project's
+  /// rates.
+  Future<void> _onMileageRateLabelChanged(
+    OcptProjectSettingsMileageRateLabelChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.budgetFinancingService.updateMileageRate(
+      database: _database,
+      rateId: event.rateId,
+      label: Value(event.label),
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+  }
+
+  /// Writes the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-reads
+  /// the project's rates.
+  Future<void> _onMileageRateAmountChanged(
+    OcptProjectSettingsMileageRateAmountChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.budgetFinancingService.updateMileageRate(
+      database: _database,
+      rateId: event.rateId,
+      ratePerKmMilliCents: Value(event.ratePerKmMilliCents),
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+  }
+
+  /// Deletes `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-reads
+  /// the project's remaining rates.
+  ///
+  /// `OcptBudgetFinancingService.deleteMileageRate` tombstones the row rather than erasing it
+  /// (ADR 0010): a live person may still name it through `people.mileageRateId`, and that foreign
+  /// key stays satisfied either way, since the row itself is still there — only marked deleted.
+  Future<void> _onMileageRateDeletionConfirmed(
+    OcptProjectSettingsMileageRateDeletionConfirmedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.budgetFinancingService.deleteMileageRate(
+      database: _database,
+      rateId: event.rateId,
+    );
+    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      database: _database,
+    );
+    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
   }
 }

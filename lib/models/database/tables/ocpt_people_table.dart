@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_mileage_rates_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 
 /// Converts a [OcptImageRightsStatus] to and from the text stored in the
@@ -223,6 +224,20 @@ class OcptPeopleTable extends Table {
 
   /// Free-form notes about this person.
   TextColumn get notes => text().withDefault(const Constant(''))();
+
+  /// This person's **one-way** commute to set, in **thousandths of a kilometre** — `1,484 km` is
+  /// `1484000` — for the same reason `budget_lines.quantityMilli` is: a distance the catering-and-
+  /// travel pass crosses with the presence grid has to be said exactly.
+  ///
+  /// **Nullable, and deliberately so: null means "nobody has recorded a distance", never "this
+  /// person travels nothing"** — the same reading [maxDailyPresenceMinutes] already carries.
+  IntColumn get commuteKmMilli => integer().nullable()();
+
+  /// Which of the project's own `budget_mileage_rates` applies to this person, or null.
+  /// → [OcptBudgetMileageRatesTable]
+  ///
+  /// Nullable because somebody who does not drive claims nothing.
+  TextColumn get mileageRateId => text().nullable().references(OcptBudgetMileageRatesTable, #id)();
 
   /// {@macro drift.Table.primaryKey}
   @override

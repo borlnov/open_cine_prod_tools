@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
@@ -22,6 +23,19 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// (`project_info.minimumRestMinutes`), or null while nobody has recorded one.
   final int? minimumRestMinutes;
 
+  /// The current project's default VAT rate, in basis points
+  /// (`project_info.defaultVatRateBasisPoints`), or null while nobody has recorded one.
+  final int? defaultVatRateBasisPoints;
+
+  /// The current project's price of one meal, in cents (`project_info.mealPriceCents`), or null
+  /// while nobody has recorded one.
+  final int? mealPriceCents;
+
+  /// The current project's price of the buffet, in cents (`project_info.snackPriceCents` — the
+  /// column keeps the schema's own name, though what it prices is the buffet, not a snack, in the
+  /// trade's own words), or null while nobody has recorded one.
+  final int? buffetPriceCents;
+
   /// The current project's screenplay language (`project_info.screenplayLanguage`), or null while
   /// nobody has recorded one.
   final OcptScreenplayLanguage? screenplayLanguage;
@@ -29,6 +43,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// The project's live episodes, in `sortKey` order — what the `Episodes` card lists, re-read
   /// after every mutation it makes so the card always shows what the database holds.
   final List<OcptEpisode> episodes;
+
+  /// The project's own mileage rates (`budget_mileage_rates`), in `sortKey` order — what the
+  /// `Mileage rates` card lists, re-read after every mutation it makes so the card always shows
+  /// what the database holds. Empty on a fresh project: nothing seeds it
+  /// (`OcptBudgetFinancingService`'s own doc comment).
+  final List<OcptBudgetMileageRate> mileageRates;
 
   /// The project's currently learned words (`project_dictionary_words`, tombstones filtered out),
   /// sorted case-insensitively — what the dictionary section's count line and
@@ -54,8 +74,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.currencyCode,
     required this.pageFormat,
     required this.minimumRestMinutes,
+    required this.defaultVatRateBasisPoints,
+    required this.mealPriceCents,
+    required this.buffetPriceCents,
     required this.screenplayLanguage,
     required this.episodes,
+    required this.mileageRates,
     required this.dictionaryWords,
     required this.hasChanged,
   });
@@ -68,8 +92,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       currencyCode = "",
       pageFormat = OcptPageFormat.usLetter,
       minimumRestMinutes = null,
+      defaultVatRateBasisPoints = null,
+      mealPriceCents = null,
+      buffetPriceCents = null,
       screenplayLanguage = null,
       episodes = const [],
+      mileageRates = const [],
       dictionaryWords = const [],
       hasChanged = false;
 
@@ -80,7 +108,8 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// parameter, which could never tell "leave it alone" apart from "clear it".
   /// [screenplayLanguage] carries exactly the same problem — picking "None" in the dropdown is as
   /// real a gesture as clearing the rest field is — so it gets the same treatment,
-  /// [clearScreenplayLanguage].
+  /// [clearScreenplayLanguage]. [defaultVatRateBasisPoints], [mealPriceCents] and [buffetPriceCents]
+  /// all get the identical treatment for the identical reason, one clearing flag each.
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,
@@ -88,9 +117,16 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     OcptPageFormat? pageFormat,
     int? minimumRestMinutes,
     bool clearMinimumRestMinutes = false,
+    int? defaultVatRateBasisPoints,
+    bool clearDefaultVatRateBasisPoints = false,
+    int? mealPriceCents,
+    bool clearMealPriceCents = false,
+    int? buffetPriceCents,
+    bool clearBuffetPriceCents = false,
     OcptScreenplayLanguage? screenplayLanguage,
     bool clearScreenplayLanguage = false,
     List<OcptEpisode>? episodes,
+    List<OcptBudgetMileageRate>? mileageRates,
     List<String>? dictionaryWords,
     bool? hasChanged,
   }) => OcptProjectSettingsState(
@@ -100,10 +136,16 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     minimumRestMinutes: clearMinimumRestMinutes
         ? null
         : (minimumRestMinutes ?? this.minimumRestMinutes),
+    defaultVatRateBasisPoints: clearDefaultVatRateBasisPoints
+        ? null
+        : (defaultVatRateBasisPoints ?? this.defaultVatRateBasisPoints),
+    mealPriceCents: clearMealPriceCents ? null : (mealPriceCents ?? this.mealPriceCents),
+    buffetPriceCents: clearBuffetPriceCents ? null : (buffetPriceCents ?? this.buffetPriceCents),
     screenplayLanguage: clearScreenplayLanguage
         ? null
         : (screenplayLanguage ?? this.screenplayLanguage),
     episodes: episodes ?? this.episodes,
+    mileageRates: mileageRates ?? this.mileageRates,
     dictionaryWords: dictionaryWords ?? this.dictionaryWords,
     hasChanged: hasChanged ?? this.hasChanged,
   );
@@ -116,8 +158,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     currencyCode,
     pageFormat,
     minimumRestMinutes,
+    defaultVatRateBasisPoints,
+    mealPriceCents,
+    buffetPriceCents,
     screenplayLanguage,
     episodes,
+    mileageRates,
     dictionaryWords,
     hasChanged,
   ];

@@ -22,9 +22,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart'
 /// The controls every mode ends its toolbar with are built here rather than handed in, so their
 /// order is the shell's guarantee and no mode can break it: the [modeLabel], the `Export` control
 /// ([onExportRequested]), the dock toggles ([onToggleLeftDock]/[onToggleRightDock]), the save
-/// control ([onSave]), then the project settings action ([onProjectSettingsRequested]) — each
-/// rendered only when the mode wired it, so a mode with nothing to print, no dock, nothing to
-/// save, or nothing to open there simply shows fewer of them.
+/// control ([onSave]), the project settings action ([onProjectSettingsRequested]), then the `Help`
+/// action ([onHelpRequested]) — each rendered only when the mode wired it, so a mode with nothing
+/// to print, no dock, nothing to save, nothing to open there, or no help panel of its own simply
+/// shows fewer of them.
 ///
 /// The episode control sits at the *other* end of the toolbar, right after the title and its
 /// dirty marker / `Read only` pill, since it qualifies *which content* is on screen — exactly what
@@ -138,6 +139,15 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// follows (see `OcptOpenProjectModel.isReadOnly`).
   final VoidCallback? onProjectSettingsRequested;
 
+  /// Called when the toolbar's `Help` action is clicked, or null when the mode has no help panel to
+  /// open — no control is rendered at all then, rather than a disabled one.
+  ///
+  /// Unlike [onProjectSettingsRequested], this one is never withheld under a version preview: a
+  /// help panel only reads, it never writes, so there is nothing about it a preview needs to
+  /// protect. Only the budget mode wires it in today (`docs/architecture/budget.md`), opening its
+  /// own right dock on its `Help` tab rather than a dialog.
+  final VoidCallback? onHelpRequested;
+
   /// The full-width band shown between the toolbar and the docks row, or null when there is
   /// nothing to announce.
   ///
@@ -192,6 +202,7 @@ class OcptWorkspaceShell extends StatelessWidget {
     this.onSave,
     this.isSaving = false,
     this.onProjectSettingsRequested,
+    this.onHelpRequested,
     this.banner,
     this.leftPanel,
     this.rightPanel,
@@ -219,6 +230,7 @@ class OcptWorkspaceShell extends StatelessWidget {
         dockToggles: _buildDockToggles(context),
         saveAction: _buildSaveAction(context),
         projectSettingsAction: _buildProjectSettingsAction(context),
+        helpAction: _buildHelpAction(context),
         overflowEntries: overflowEntries,
       ),
       if (banner != null) banner!,
@@ -502,6 +514,21 @@ class OcptWorkspaceShell extends StatelessWidget {
       tooltip: Tr.of(context).workspaceProjectSettingsTooltip,
       style: OcptWorkspaceToolbar.chromeButtonStyle,
       onPressed: onProjectSettingsRequested,
+    );
+  }
+
+  /// Builds the toolbar's `Help` action, or null when the mode withheld it.
+  Widget? _buildHelpAction(BuildContext context) {
+    final onHelpRequested = this.onHelpRequested;
+    if (onHelpRequested == null) {
+      return null;
+    }
+
+    return IconButton(
+      icon: const Icon(Icons.help_outline, size: 20),
+      tooltip: Tr.of(context).workspaceHelpTooltip,
+      style: OcptWorkspaceToolbar.chromeButtonStyle,
+      onPressed: onHelpRequested,
     );
   }
 

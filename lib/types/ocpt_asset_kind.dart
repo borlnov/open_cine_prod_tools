@@ -19,4 +19,8 @@ enum OcptAssetKind {
 
   /// A document: a signed image rights release, a filming permit, or similar paperwork.
   document,
+
+  /// A till receipt, an invoice PDF or a bank slip standing as the voucher of a journal entry
+  /// (`budget_entries`).
+  receipt,
 }

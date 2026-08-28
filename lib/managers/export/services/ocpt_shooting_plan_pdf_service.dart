@@ -120,7 +120,7 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
 /// geometry): a shoot is wide, and a grid silently cropped to whatever a portrait page holds would
 /// be worse than one that runs the columns on. The locations, sequences and crew-and-cast grids'
 /// own columns are **one per slot, grouped under its day** — a decision already taken
-/// (`docs/plans/schedule-mode.md` §4.2): the reference document's own day-parts are exactly what a
+/// (`docs/architecture/schedule.md`): the reference document's own day-parts are exactly what a
 /// slot is in this app. When more columns exist than [_maxGridColumnsPerPage] holds, a grid's own
 /// rows repeat over as many chunked pages as it takes; the detailed day agendas that follow stay
 /// portrait, so one document mixes both orientations.

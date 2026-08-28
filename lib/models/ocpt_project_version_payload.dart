@@ -141,6 +141,40 @@ class OcptProjectVersionPayload extends Equatable {
   /// must come back un-learned on restore, exactly as any other deleted row does.
   final List<OcptProjectDictionaryWordRow> projectDictionaryWords;
 
+  /// The `budget_postes` rows of the project: the budget mode's own catalogue, tombstones included.
+  final List<OcptBudgetPosteRow> budgetPostes;
+
+  /// The `budget_lines` rows of the project: the quote lines inside each poste.
+  final List<OcptBudgetLineRow> budgetLines;
+
+  /// The `budget_entries` rows of the project: the cash journal's own movements, tombstones
+  /// included.
+  final List<OcptBudgetEntryRow> budgetEntries;
+
+  /// The `budget_commitments` rows of the project: money committed against a poste but not yet
+  /// paid.
+  final List<OcptBudgetCommitmentRow> budgetCommitments;
+
+  /// The `budget_resources` rows of the project: the financing plan — subsidies, cash and in-kind
+  /// contributions — tombstones included.
+  final List<OcptBudgetResourceRow> budgetResources;
+
+  /// The `budget_mileage_rates` rows of the project: the per-kilometre rates the production names
+  /// for itself, tombstones included.
+  final List<OcptBudgetMileageRateRow> budgetMileageRates;
+
+  /// The `budget_revenues` rows of the project: the takings the production expects, tombstones
+  /// included.
+  final List<OcptBudgetRevenueRow> budgetRevenues;
+
+  /// The `budget_shares` rows of the project: the participants splitting what the takings bring
+  /// in, tombstones included.
+  final List<OcptBudgetShareRow> budgetShares;
+
+  /// Every `budget_allowances` row of the project at the moment this payload was sealed,
+  /// tombstones included.
+  final List<OcptBudgetAllowanceRow> budgetAllowances;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -192,6 +226,34 @@ class OcptProjectVersionPayload extends Equatable {
   /// value alone — the reading [minimumRestMinutes] gets on restore, not the currency's.
   final OcptScreenplayLanguage? screenplayLanguage;
 
+  /// The `project_info.defaultVatRateBasisPoints` of the project, or null.
+  ///
+  /// **Unlike [currencyCode], and like [minimumRestMinutes], a null here is a truthful "this
+  /// version recorded none"** — the column is nullable by design, not something every payload from
+  /// a certain format on always carries a real value for, so there is no format boundary to read
+  /// the null against. `OcptProjectVersionsService.restoreVersion` writes it back onto the working
+  /// copy like any other changed column, including when it is null, rather than leaving the live
+  /// value alone — the reading [minimumRestMinutes] gets on restore, not the currency's.
+  final int? defaultVatRateBasisPoints;
+
+  /// The `project_info.mealPriceCents` of the project, or null — [defaultVatRateBasisPoints]'s
+  /// sibling, read the same way and for the same reason.
+  final int? mealPriceCents;
+
+  /// The `project_info.snackPriceCents` of the project, or null — [mealPriceCents]'s sibling.
+  final int? snackPriceCents;
+
+  /// The `project_info.isBudgetSimplified` of the project, or null.
+  ///
+  /// **Unlike [currencyCode], and like [minimumRestMinutes], a null here is a truthful "nobody has
+  /// chosen"** — the column is nullable by design, not something every payload from a certain
+  /// format on always carries a real value for, so there is no format boundary to read the null
+  /// against, and the mode opens detailed for it exactly as it does for a project that has never
+  /// been opened at all. `OcptProjectVersionsService.restoreVersion` writes it back onto the
+  /// working copy like any other changed column, including when it is null, rather than leaving the
+  /// live value alone — the reading [minimumRestMinutes] gets on restore, not the currency's.
+  final bool? isBudgetSimplified;
+
   /// Class constructor
   const OcptProjectVersionPayload({
     required this.screenplays,
@@ -225,12 +287,25 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingSlotGuests,
     required this.shootingDayEvents,
     required this.projectDictionaryWords,
+    required this.budgetPostes,
+    required this.budgetLines,
+    required this.budgetEntries,
+    required this.budgetCommitments,
+    required this.budgetResources,
+    required this.budgetMileageRates,
+    required this.budgetRevenues,
+    required this.budgetShares,
+    required this.budgetAllowances,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
     required this.currencyCode,
     required this.minimumRestMinutes,
     required this.screenplayLanguage,
+    required this.defaultVatRateBasisPoints,
+    required this.mealPriceCents,
+    required this.snackPriceCents,
+    required this.isBudgetSimplified,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -255,9 +330,18 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
       "projectDictionaryWords: ${projectDictionaryWords.length}, "
+      "budgetPostes: ${budgetPostes.length}, budgetLines: ${budgetLines.length}, "
+      "budgetEntries: ${budgetEntries.length}, budgetCommitments: ${budgetCommitments.length}, "
+      "budgetResources: ${budgetResources.length}, "
+      "budgetMileageRates: ${budgetMileageRates.length}, "
+      "budgetRevenues: ${budgetRevenues.length}, budgetShares: ${budgetShares.length}, "
+      "budgetAllowances: ${budgetAllowances.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
-      "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage)";
+      "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage, "
+      "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, "
+      "mealPriceCents: $mealPriceCents, snackPriceCents: $snackPriceCents, "
+      "isBudgetSimplified: $isBudgetSimplified)";
 
   /// Object properties
   @override
@@ -293,11 +377,24 @@ class OcptProjectVersionPayload extends Equatable {
     shootingSlotGuests,
     shootingDayEvents,
     projectDictionaryWords,
+    budgetPostes,
+    budgetLines,
+    budgetEntries,
+    budgetCommitments,
+    budgetResources,
+    budgetMileageRates,
+    budgetRevenues,
+    budgetShares,
+    budgetAllowances,
     rowFieldVersions,
     pageSetup,
     settingsJson,
     currencyCode,
     minimumRestMinutes,
     screenplayLanguage,
+    defaultVatRateBasisPoints,
+    mealPriceCents,
+    snackPriceCents,
+    isBudgetSimplified,
   ];
 }

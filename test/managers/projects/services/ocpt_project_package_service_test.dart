@@ -109,6 +109,15 @@ void main() {
       shootingSlotGuests: const [],
       shootingDayEvents: const [],
       projectDictionaryWords: const [],
+      budgetPostes: const [],
+      budgetLines: const [],
+      budgetEntries: const [],
+      budgetCommitments: const [],
+      budgetResources: const [],
+      budgetMileageRates: const [],
+      budgetRevenues: const [],
+      budgetShares: const [],
+      budgetAllowances: const [],
       rowFieldVersions: const [],
       pageSetup: const OcptPageSetup(
         format: OcptPageFormat.a4,
@@ -124,6 +133,10 @@ void main() {
       minimumRestMinutes: null,
       screenplayLanguage: null,
       shootingBlockCandidates: const [],
+      defaultVatRateBasisPoints: null,
+      mealPriceCents: null,
+      snackPriceCents: null,
+      isBudgetSimplified: null,
     ),
   );
 

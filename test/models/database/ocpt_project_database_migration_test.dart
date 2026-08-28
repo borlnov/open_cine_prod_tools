@@ -6,10 +6,15 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -339,6 +344,127 @@ const _v22ShootingSlotCandidatesDdl = '''
 CREATE TABLE "shooting_slot_candidates" ("id" TEXT NOT NULL, "slot_id" TEXT NOT NULL REFERENCES shooting_slots (id), "role_candidate_id" TEXT NOT NULL REFERENCES role_candidates (id), "sort_key" TEXT NOT NULL DEFAULT '', "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
 ''';
 
+// The one table schema version 24 adds on top of [_v19Ddl]/[_v20RoleCandidatesDdl]:
+// `shooting_block_candidates`, the candidacies an `audition` block sees. Composed for the same
+// reason [_v20RoleCandidatesDdl] is — a plain `createTable`, nothing reshaped — rather than
+// captured whole: `'$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl'` is exactly the
+// shape a file that genuinely reached version 24 carries, and what every budget milestone below is
+// composed onto in turn.
+const _v24ShootingBlockCandidatesDdl = '''
+CREATE TABLE "shooting_block_candidates" ("id" TEXT NOT NULL, "block_id" TEXT NOT NULL REFERENCES shooting_day_blocks (id), "role_candidate_id" TEXT NOT NULL REFERENCES role_candidates (id), "sort_key" TEXT NOT NULL DEFAULT '', "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+''';
+
+// The two tables and the three `project_info` columns schema version 25 adds on top of the shape
+// above: the budget mode's foundations — [OcptBudgetPostesTable]/[OcptBudgetLinesTable], the
+// seeded-then-editable CNC nomenclature and its quote lines, and
+// `defaultVatRateBasisPoints`/`mealPriceCents`/`snackPriceCents`. Composed rather than captured
+// whole, for the same reason [_v20RoleCandidatesDdl] is: plain `createTable`s and unconditional
+// `addColumn`s, nothing reshaped. This is what `'upgraded_from_v25.ocpt'` below is built from, and
+// what the dedicated `a v25 database migrates on…` test below uses as its own starting shape.
+const _v25BudgetFoundationsDdl = '''
+CREATE TABLE "budget_postes" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "code" TEXT NOT NULL DEFAULT '', "label" TEXT NOT NULL, "simple_label" TEXT NULL, PRIMARY KEY ("id"));
+CREATE TABLE "budget_lines" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "poste_id" TEXT NOT NULL REFERENCES budget_postes (id), "label" TEXT NOT NULL, "quantity_milli" INTEGER NOT NULL DEFAULT 1000, "unit" TEXT NOT NULL DEFAULT '', "unit_amount_cents" INTEGER NOT NULL DEFAULT 0, "is_tax_inclusive" INTEGER NOT NULL DEFAULT 1 CHECK ("is_tax_inclusive" IN (0, 1)), "vat_rate_basis_points" INTEGER NULL, "element_id" TEXT NULL REFERENCES elements (id), "notes" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+ALTER TABLE "project_info" ADD COLUMN "default_vat_rate_basis_points" INTEGER NULL;
+ALTER TABLE "project_info" ADD COLUMN "meal_price_cents" INTEGER NULL;
+ALTER TABLE "project_info" ADD COLUMN "snack_price_cents" INTEGER NULL;
+''';
+
+// The two tables and the one column schema version 26 adds on top of the shape above: the budget
+// mode's cash journal — [OcptBudgetEntriesTable]/[OcptBudgetCommitmentsTable] and
+// `assets.budgetEntryId`. Composed for the same reason [_v25BudgetFoundationsDdl] is. This is what
+// `'upgraded_from_v26.ocpt'` below is built from, and what the dedicated `a v26 database migrates
+// on…` test below uses as its own starting shape.
+const _v26CashJournalDdl = '''
+CREATE TABLE "budget_entries" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "date" TEXT NOT NULL, "label" TEXT NOT NULL, "poste_id" TEXT NULL REFERENCES budget_postes (id), "debit_cents" INTEGER NOT NULL DEFAULT 0, "credit_cents" INTEGER NOT NULL DEFAULT 0, "is_tax_inclusive" INTEGER NOT NULL DEFAULT 1 CHECK ("is_tax_inclusive" IN (0, 1)), "vat_rate_basis_points" INTEGER NULL, "voucher_number" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+CREATE TABLE "budget_commitments" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "due_date" TEXT NULL, "label" TEXT NOT NULL, "poste_id" TEXT NOT NULL REFERENCES budget_postes (id), "amount_cents" INTEGER NOT NULL DEFAULT 0, "is_tax_inclusive" INTEGER NOT NULL DEFAULT 1 CHECK ("is_tax_inclusive" IN (0, 1)), "vat_rate_basis_points" INTEGER NULL, "status" TEXT NOT NULL DEFAULT 'quoteAccepted', "settled_entry_id" TEXT NULL REFERENCES budget_entries (id), PRIMARY KEY ("id"));
+ALTER TABLE "assets" ADD COLUMN "budget_entry_id" TEXT NULL REFERENCES budget_entries (id);
+''';
+
+// The two tables and the three columns schema version 27 adds on top of the shape above: the
+// budget mode's financing plan — [OcptBudgetMileageRatesTable]/[OcptBudgetResourcesTable],
+// `budget_entries.resourceId` and `people.commuteKmMilli`/`.mileageRateId`. Composed for the same
+// reason [_v25BudgetFoundationsDdl] is. This is what `'upgraded_from_v27.ocpt'` below is built
+// from, and what the dedicated `a v26 database migrates on…` test below uses as its own starting
+// shape.
+const _v27FinancingDdl = '''
+CREATE TABLE "budget_mileage_rates" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "label" TEXT NOT NULL, "rate_per_km_milli_cents" INTEGER NOT NULL DEFAULT 0, PRIMARY KEY ("id"));
+CREATE TABLE "budget_resources" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "group_kind" TEXT NOT NULL DEFAULT 'subsidy', "label" TEXT NOT NULL, "amount_cents" INTEGER NOT NULL DEFAULT 0, "status" TEXT NOT NULL DEFAULT 'applied', "is_reimbursable" INTEGER NOT NULL DEFAULT 0 CHECK ("is_reimbursable" IN (0, 1)), "notes" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+ALTER TABLE "budget_entries" ADD COLUMN "resource_id" TEXT NULL REFERENCES budget_resources (id);
+ALTER TABLE "people" ADD COLUMN "commute_km_milli" INTEGER NULL;
+ALTER TABLE "people" ADD COLUMN "mileage_rate_id" TEXT NULL REFERENCES budget_mileage_rates (id);
+''';
+
+// The two tables and the two columns schema version 28 adds on top of the shape above: the budget
+// mode's revenue sharing — [OcptBudgetRevenuesTable]/[OcptBudgetSharesTable] and
+// `budget_entries.revenueId`/`.shareId`. Composed for the same reason [_v25BudgetFoundationsDdl]
+// is. This is what `'upgraded_from_v28.ocpt'` below is built from, and what the dedicated `a v28
+// database migrates on…` test below uses as its own starting shape.
+const _v28RevenueSharingDdl = '''
+CREATE TABLE "budget_revenues" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "date" TEXT NOT NULL, "label" TEXT NOT NULL, "amount_cents" INTEGER NOT NULL DEFAULT 0, "status" TEXT NOT NULL DEFAULT 'expected', "notes" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+CREATE TABLE "budget_shares" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "person_id" TEXT NULL REFERENCES people (id), "label" TEXT NOT NULL, "share_permille" INTEGER NOT NULL DEFAULT 0, "reinvest_permille" INTEGER NOT NULL DEFAULT 0, "notes" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+ALTER TABLE "budget_entries" ADD COLUMN "revenue_id" TEXT NULL REFERENCES budget_revenues (id);
+ALTER TABLE "budget_entries" ADD COLUMN "share_id" TEXT NULL REFERENCES budget_shares (id);
+''';
+
+// The two nullable columns schema version 29 adds on top of the shape above:
+// `budget_resources.personId` — the person a financing resource comes from — and
+// `project_info.isBudgetSimplified`, the budget header's own simplified/detailed toggle. Composed
+// for the same reason [_v25BudgetFoundationsDdl] is. This is what `'upgraded_from_v29.ocpt'` below
+// is built from, and what the dedicated `a v29 database migrates on…` test below uses as its own
+// starting shape.
+const _v29ColumnsDdl = '''
+ALTER TABLE "budget_resources" ADD COLUMN "person_id" TEXT NULL REFERENCES people (id);
+ALTER TABLE "project_info" ADD COLUMN "is_budget_simplified" INTEGER NULL CHECK ("is_budget_simplified" IN (0, 1));
+''';
+
+// The rebuild schema version 30 runs on `budget_resources.status`: still named `status`, but now
+// `NOT NULL DEFAULT 'pending'`, the three-step vocabulary `OcptBudgetResourceStatusConverter`
+// reads strictly rather than the four words the four groups used to share. The very statements
+// `onUpgrade`'s own `from < 30` block runs, since there is no other way to land on exactly the
+// shape `onCreate` writes. Composed for the same reason [_v25BudgetFoundationsDdl] is. This is
+// what the dedicated `a v33 database migrates on…` test below uses as part of its own starting
+// shape.
+const _v30StatusStepDdl = '''
+ALTER TABLE "budget_resources" ADD COLUMN "status_step" TEXT NOT NULL DEFAULT 'pending';
+UPDATE "budget_resources" SET status_step = CASE status WHEN 'applied' THEN 'pending' WHEN 'notified' THEN 'agreed' WHEN 'secured' THEN 'confirmed' WHEN 'valued' THEN 'agreed' ELSE status END;
+ALTER TABLE "budget_resources" DROP COLUMN "status";
+ALTER TABLE "budget_resources" RENAME COLUMN "status_step" TO "status";
+''';
+
+// The one table schema version 31 adds on top of the shape above: [OcptBudgetAllowancesTable], the
+// régie's own defrayals. Composed for the same reason [_v25BudgetFoundationsDdl] is. This is what
+// the dedicated `a v33 database migrates on…` test below uses as part of its own starting shape.
+const _v31AllowancesDdl = '''
+CREATE TABLE "budget_allowances" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "person_id" TEXT NULL REFERENCES people (id), "kind" TEXT NOT NULL DEFAULT 'travel', "label" TEXT NOT NULL DEFAULT '', "date" TEXT NULL, "end_date" TEXT NULL, "quantity_milli" INTEGER NOT NULL DEFAULT 0, "unit_amount_milli_cents" INTEGER NOT NULL DEFAULT 0, "notes" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+''';
+
+// The two nullable columns schema version 32 adds on top of the shape above:
+// `budget_lines.provisionKey`/`.provisionDigest`, what the régie provisioning last wrote into a
+// line. Composed for the same reason [_v25BudgetFoundationsDdl] is. This is what the dedicated `a
+// v33 database migrates on…` test below uses as part of its own starting shape.
+const _v32ProvisionDdl = '''
+ALTER TABLE "budget_lines" ADD COLUMN "provision_key" TEXT NULL;
+ALTER TABLE "budget_lines" ADD COLUMN "provision_digest" TEXT NULL;
+''';
+
+// The one nullable column schema version 33 adds on top of the shape above:
+// `budget_commitments.lineId`, the quote line a commitment was promoted from. Composed for the
+// same reason [_v25BudgetFoundationsDdl] is. This is what the dedicated `a v33 database migrates
+// on…` test below uses as its own starting shape, alongside [_v30StatusStepDdl],
+// [_v31AllowancesDdl] and [_v32ProvisionDdl].
+const _v33LineIdDdl = '''
+ALTER TABLE "budget_commitments" ADD COLUMN "line_id" TEXT NULL REFERENCES budget_lines (id);
+''';
+
+// The one nullable column schema version 34 adds on top of the shape above:
+// `budget_postes.estimateToCompleteCents`, null meaning "derive it". Composed for the same reason
+// [_v25BudgetFoundationsDdl] is. This is what the dedicated `a v34 database migrates on…` test
+// below uses as its own starting shape, alongside [_v30StatusStepDdl], [_v31AllowancesDdl],
+// [_v32ProvisionDdl] and [_v33LineIdDdl].
+const _v34EstimateToCompleteDdl = '''
+ALTER TABLE "budget_postes" ADD COLUMN "estimate_to_complete_cents" INTEGER NULL;
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -485,10 +611,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 24.
+    // anything but version 29.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 24);
+    expect(await readSchemaVersion(freshDatabase), 35);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -531,6 +657,15 @@ void main() {
       'shooting_block_candidates',
       'shooting_day_events',
       'project_dictionary_words',
+      'budget_postes',
+      'budget_lines',
+      'budget_entries',
+      'budget_commitments',
+      'budget_mileage_rates',
+      'budget_resources',
+      'budget_revenues',
+      'budget_shares',
+      'budget_allowances',
     });
 
     // And every file an earlier version could have left behind, brought up by `onUpgrade`: each
@@ -604,6 +739,35 @@ void main() {
         '$_v19Ddl$_v20RoleCandidatesDdl$_v21ShootingDayKindDdl',
         21,
       ),
+      (
+        'upgraded_from_v25.ocpt',
+        '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl',
+        25,
+      ),
+      (
+        'upgraded_from_v26.ocpt',
+        '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+            '$_v26CashJournalDdl',
+        26,
+      ),
+      (
+        'upgraded_from_v27.ocpt',
+        '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+            '$_v26CashJournalDdl$_v27FinancingDdl',
+        27,
+      ),
+      (
+        'upgraded_from_v28.ocpt',
+        '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+            '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl',
+        28,
+      ),
+      (
+        'upgraded_from_v29.ocpt',
+        '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+            '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl$_v29ColumnsDdl',
+        29,
+      ),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -621,7 +785,7 @@ void main() {
             "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       await database.close();
     }
@@ -709,7 +873,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 9.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -818,7 +982,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -874,7 +1038,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -908,7 +1072,7 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1050,7 +1214,7 @@ void main() {
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1101,7 +1265,7 @@ void main() {
     expect(availability.isDeleted, isFalse);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1135,7 +1299,7 @@ void main() {
     expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1226,7 +1390,7 @@ void main() {
     );
 
     // (e) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1280,7 +1444,7 @@ void main() {
     ]);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1409,7 +1573,7 @@ void main() {
       expect(block.shotId, "shot-a");
 
       // (e) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       await database.close();
     },
@@ -1558,7 +1722,7 @@ void main() {
       expect(shape.containsKey('shooting_presences'), isFalse);
 
       // (f) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       await database.close();
     },
@@ -1632,7 +1796,7 @@ void main() {
       expect(cast.roleId, "role1");
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       await database.close();
     },
@@ -1693,7 +1857,7 @@ void main() {
       expect(slotsById['slotNight']!.anchorSlotId, isNull);
 
       // (c) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       await database.close();
     },
@@ -1754,7 +1918,7 @@ void main() {
     expect(link.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1804,7 +1968,7 @@ void main() {
       expect(updated.maxDailyPresenceMinutes, 480);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       await database.close();
     },
@@ -1885,7 +2049,7 @@ void main() {
     expect(event.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -1982,7 +2146,7 @@ void main() {
       );
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       await database.close();
     },
@@ -2073,7 +2237,7 @@ void main() {
       );
 
       // (h) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 24);
+      expect(await readSchemaVersion(database), 35);
 
       // (i) `project_info.screenplay_language` didn't exist at version 17: the migration adds it
       // unconditionally, and gets no backfill, so a file that never named a language reads exactly
@@ -2085,6 +2249,460 @@ void main() {
       // creates it fresh, empty — a project migrating onto this version has taught its spell
       // checker nothing yet.
       expect(await database.select(database.ocptProjectDictionaryWordsTable).get(), isEmpty);
+
+      // (k) neither did `budget_postes`/`budget_lines`, or the three budget columns of
+      // `project_info`: a project migrating onto this version has no budget yet, and has recorded
+      // none of the three figures — "nobody has said", exactly as (i) already reads for the
+      // screenplay language.
+      expect(await database.select(database.ocptBudgetPostesTable).get(), isEmpty);
+      expect(await database.select(database.ocptBudgetLinesTable).get(), isEmpty);
+      expect(projectInfo.defaultVatRateBasisPoints, isNull);
+      expect(projectInfo.mealPriceCents, isNull);
+      expect(projectInfo.snackPriceCents, isNull);
+
+      // (l) and both new tables are usable, foreign keys included: a poste, then a line pointing at
+      // it and, optionally, at an element.
+      await database
+          .into(database.ocptBudgetPostesTable)
+          .insert(
+            OcptBudgetPostesTableCompanion.insert(
+              id: "poste1",
+              label: "Personnel",
+              code: const Value("2"),
+              sortKey: const Value("V"),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetLinesTable)
+          .insert(
+            OcptBudgetLinesTableCompanion.insert(
+              id: "line1",
+              posteId: "poste1",
+              label: "First assistant camera",
+              sortKey: const Value("V"),
+            ),
+          );
+      final poste = await database.select(database.ocptBudgetPostesTable).getSingle();
+      expect(poste.label, "Personnel");
+      expect(poste.isDeleted, isFalse);
+      final line = await database.select(database.ocptBudgetLinesTable).getSingle();
+      expect(line.posteId, "poste1");
+      expect(line.quantityMilli, 1000);
+      expect(line.isTaxInclusive, isTrue);
+      expect(line.vatRateBasisPoints, isNull);
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(
+            const OcptProjectInfoTableCompanion(
+              defaultVatRateBasisPoints: Value(2000),
+              mealPriceCents: Value(1250),
+              snackPriceCents: Value(350),
+            ),
+          );
+      final updatedProjectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(updatedProjectInfo.defaultVatRateBasisPoints, 2000);
+      expect(updatedProjectInfo.mealPriceCents, 1250);
+      expect(updatedProjectInfo.snackPriceCents, 350);
+
+      await database.close();
+    },
+  );
+
+  test(
+    'a v25 database migrates on, gaining the cash journal',
+    () async {
+      final filePath = p.join(tempDir.path, 'legacy_v25.ocpt');
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(_v19Ddl);
+      legacyDb.execute(_v20RoleCandidatesDdl);
+      legacyDb.execute(_v24ShootingBlockCandidatesDdl);
+      legacyDb.execute(_v25BudgetFoundationsDdl);
+      legacyDb.execute('PRAGMA user_version = 25;');
+      seedCommonRows(legacyDb);
+
+      // A poste, a line pricing it, and an asset already referencing a person — all rows the
+      // migration must carry through untouched, so the new tables and column can be checked
+      // against a file that already held real data rather than an empty one.
+      legacyDb.execute(
+        "INSERT INTO budget_postes (id, sort_key, code, label) VALUES "
+        "('poste1', 'V', '2', 'Personnel');",
+      );
+      legacyDb.execute(
+        "INSERT INTO budget_lines (id, sort_key, poste_id, label) VALUES "
+        "('line1', 'V', 'poste1', 'Ingénieur du son');",
+      );
+      legacyDb.execute(
+        "INSERT INTO assets (id, kind, path, added_at) VALUES "
+        "('asset1', 'document', '/tmp/permit.pdf', '2026-01-01T00:00:00.000Z');",
+      );
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+
+      // (a) every row the file already held survived.
+      await expectCommonRowsSurvived(database);
+      final poste = await database.select(database.ocptBudgetPostesTable).getSingle();
+      expect(poste.label, "Personnel");
+      final line = await database.select(database.ocptBudgetLinesTable).getSingle();
+      expect(line.posteId, "poste1");
+      final asset = await database.select(database.ocptAssetsTable).getSingle();
+      expect(asset.path, "/tmp/permit.pdf");
+
+      // (b) `budget_entries`/`budget_commitments` didn't exist before this version: the migration
+      // creates them fresh, empty — a project migrating onto this version has recorded no cash
+      // movement and owes nothing yet.
+      expect(await database.select(database.ocptBudgetEntriesTable).get(), isEmpty);
+      expect(await database.select(database.ocptBudgetCommitmentsTable).get(), isEmpty);
+
+      // (c) the file's one asset gained a null `budget_entry_id`: it predates the column, and
+      // nothing here is reconstructed onto it — a document asset stays a document, naming no
+      // journal entry.
+      expect(asset.budgetEntryId, isNull);
+
+      // (d) the file now says the current schema version.
+      expect(await readSchemaVersion(database), 35);
+
+      // (e) and both new tables are usable, foreign keys included: a commitment against the poste
+      // already carried, then an entry pointing at the same poste and naming the commitment it
+      // pays.
+      await database
+          .into(database.ocptBudgetCommitmentsTable)
+          .insert(
+            OcptBudgetCommitmentsTableCompanion.insert(
+              id: "commitment1",
+              posteId: "poste1",
+              label: "Assurance",
+              amountCents: const Value(15000),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry1",
+              date: DateTime.utc(2026, 3, 10),
+              label: "Location camion",
+              posteId: const Value("poste1"),
+              commitmentId: const Value("commitment1"),
+              debitCents: const Value(15000),
+            ),
+          );
+
+      final entry = await database.select(database.ocptBudgetEntriesTable).getSingle();
+      expect(entry.debitCents, 15000);
+      expect(entry.isTaxInclusive, isTrue);
+      expect(entry.voucherNumber, "");
+      expect(entry.commitmentId, "commitment1");
+
+      final commitment = await database.select(database.ocptBudgetCommitmentsTable).getSingle();
+      expect(commitment.status, OcptBudgetCommitmentStatus.quoteAccepted);
+
+      // (f) and a fresh asset can now name that entry as the voucher it stands for.
+      await database
+          .into(database.ocptAssetsTable)
+          .insert(
+            OcptAssetsTableCompanion.insert(
+              id: "asset2",
+              kind: OcptAssetKind.receipt,
+              path: "/tmp/facture.pdf",
+              addedAt: DateTime.utc(2026, 3, 10),
+              budgetEntryId: const Value("entry1"),
+            ),
+          );
+      final receiptAsset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals("asset2"))).getSingle();
+      expect(receiptAsset.budgetEntryId, "entry1");
+
+      await database.close();
+    },
+  );
+
+  test(
+    'a v26 database migrates on, gaining the financing plan',
+    () async {
+      final filePath = p.join(tempDir.path, 'legacy_v26.ocpt');
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(_v19Ddl);
+      legacyDb.execute(_v20RoleCandidatesDdl);
+      legacyDb.execute(_v24ShootingBlockCandidatesDdl);
+      legacyDb.execute(_v25BudgetFoundationsDdl);
+      legacyDb.execute(_v26CashJournalDdl);
+      legacyDb.execute('PRAGMA user_version = 26;');
+      seedCommonRows(legacyDb);
+
+      // A poste, an entry against it and a person already on the address book — all rows the
+      // migration must carry through untouched, so the new tables and columns can be checked
+      // against a file that already held real data rather than an empty one.
+      legacyDb.execute(
+        "INSERT INTO budget_postes (id, sort_key, code, label) VALUES "
+        "('poste1', 'V', '2', 'Personnel');",
+      );
+      legacyDb.execute(
+        "INSERT INTO budget_entries (id, sort_key, date, label, poste_id, debit_cents, "
+        "voucher_number) VALUES "
+        "('entry1', 'V', '2026-03-10T00:00:00.000Z', 'Location camion', 'poste1', 15000, 'J-001');",
+      );
+      legacyDb.execute(
+        "INSERT INTO people (id, sort_key, first_name) VALUES ('person1', 'V', 'Clara');",
+      );
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+
+      // (a) every row the file already held survived.
+      await expectCommonRowsSurvived(database);
+      final entry = await database.select(database.ocptBudgetEntriesTable).getSingle();
+      expect(entry.label, "Location camion");
+      final person = await database.select(database.ocptPeopleTable).getSingle();
+      expect(person.firstName, "Clara");
+
+      // (b) `budget_mileage_rates`/`budget_resources` didn't exist before this version: the
+      // migration creates them fresh, empty — a project migrating onto this version names no rate
+      // of its own and has no financing plan yet.
+      expect(await database.select(database.ocptBudgetMileageRatesTable).get(), isEmpty);
+      expect(await database.select(database.ocptBudgetResourcesTable).get(), isEmpty);
+
+      // (c) the file's existing entry and person both gained null new columns: nothing here is
+      // reconstructed onto them — an entry settles no resource it never named, and a person claims
+      // no commute or rate they never recorded.
+      expect(entry.resourceId, isNull);
+      expect(person.commuteKmMilli, isNull);
+      expect(person.mileageRateId, isNull);
+
+      // (d) the file now says the current schema version.
+      expect(await readSchemaVersion(database), 35);
+
+      // (e) and every new table and column is usable, foreign keys included: a mileage rate, a
+      // resource, an entry naming that resource, and the existing person naming both.
+      await database
+          .into(database.ocptBudgetMileageRatesTable)
+          .insert(
+            OcptBudgetMileageRatesTableCompanion.insert(
+              id: "rate1",
+              label: "Voiture personnelle",
+              ratePerKmMilliCents: const Value(52900),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetResourcesTable)
+          .insert(
+            OcptBudgetResourcesTableCompanion.insert(
+              id: "resource1",
+              label: "Région Île-de-France",
+              amountCents: const Value(500000),
+            ),
+          );
+      await (database.update(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry1"))).write(
+        const OcptBudgetEntriesTableCompanion(resourceId: Value("resource1")),
+      );
+      await (database.update(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person1"))).write(
+        const OcptPeopleTableCompanion(
+          commuteKmMilli: Value(1484000),
+          mileageRateId: Value("rate1"),
+        ),
+      );
+
+      final rate = await database.select(database.ocptBudgetMileageRatesTable).getSingle();
+      expect(rate.ratePerKmMilliCents, 52900);
+
+      final resource = await database.select(database.ocptBudgetResourcesTable).getSingle();
+      expect(resource.amountCents, 500000);
+      expect(resource.status, OcptBudgetResourceStatus.pending);
+      expect(resource.groupKind, OcptBudgetResourceGroupKind.subsidy);
+
+      final updatedEntry = await database.select(database.ocptBudgetEntriesTable).getSingle();
+      expect(updatedEntry.resourceId, "resource1");
+
+      final updatedPerson = await database.select(database.ocptPeopleTable).getSingle();
+      expect(updatedPerson.commuteKmMilli, 1484000);
+      expect(updatedPerson.mileageRateId, "rate1");
+
+      await database.close();
+    },
+  );
+
+  test(
+    'a v27 database migrates on, gaining the sharing view',
+    () async {
+      final filePath = p.join(tempDir.path, 'legacy_v27.ocpt');
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(_v19Ddl);
+      legacyDb.execute(_v20RoleCandidatesDdl);
+      legacyDb.execute(_v24ShootingBlockCandidatesDdl);
+      legacyDb.execute(_v25BudgetFoundationsDdl);
+      legacyDb.execute(_v26CashJournalDdl);
+      legacyDb.execute(_v27FinancingDdl);
+      legacyDb.execute('PRAGMA user_version = 27;');
+      seedCommonRows(legacyDb);
+
+      // A poste, an entry against it and a person already on the address book — all rows the
+      // migration must carry through untouched, so the new tables and columns can be checked
+      // against a file that already held real data rather than an empty one.
+      legacyDb.execute(
+        "INSERT INTO budget_postes (id, sort_key, code, label) VALUES "
+        "('poste1', 'V', '2', 'Personnel');",
+      );
+      legacyDb.execute(
+        "INSERT INTO budget_entries (id, sort_key, date, label, poste_id, debit_cents, "
+        "voucher_number) VALUES "
+        "('entry1', 'V', '2026-03-10T00:00:00.000Z', 'Location camion', 'poste1', 15000, 'J-001');",
+      );
+      legacyDb.execute(
+        "INSERT INTO people (id, sort_key, first_name) VALUES ('person1', 'V', 'Clara');",
+      );
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+
+      // (a) every row the file already held survived.
+      await expectCommonRowsSurvived(database);
+      final entry = await database.select(database.ocptBudgetEntriesTable).getSingle();
+      expect(entry.label, "Location camion");
+      final person = await database.select(database.ocptPeopleTable).getSingle();
+      expect(person.firstName, "Clara");
+
+      // (b) `budget_revenues`/`budget_shares` didn't exist before this version: the migration
+      // creates them fresh, empty — a project migrating onto this version names no taking and no
+      // participant yet.
+      expect(await database.select(database.ocptBudgetRevenuesTable).get(), isEmpty);
+      expect(await database.select(database.ocptBudgetSharesTable).get(), isEmpty);
+
+      // (c) the file's existing entry gained two null new columns: nothing here is reconstructed
+      // onto it — an entry names no taking and pays no share it never recorded.
+      expect(entry.revenueId, isNull);
+      expect(entry.shareId, isNull);
+
+      // (d) the file now says the current schema version.
+      expect(await readSchemaVersion(database), 35);
+
+      // (e) and every new table and column is usable, foreign keys included: a revenue, a share
+      // naming the existing person, and the existing entry naming both.
+      await database
+          .into(database.ocptBudgetRevenuesTable)
+          .insert(
+            OcptBudgetRevenuesTableCompanion.insert(
+              id: "revenue1",
+              date: DateTime.utc(2026, 5, 15),
+              label: "Vente VOD",
+              amountCents: const Value(80000),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetSharesTable)
+          .insert(
+            OcptBudgetSharesTableCompanion.insert(
+              id: "share1",
+              personId: const Value("person1"),
+              label: "Réalisatrice",
+              sharePermille: const Value(300),
+            ),
+          );
+      await (database.update(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry1"))).write(
+        const OcptBudgetEntriesTableCompanion(
+          revenueId: Value("revenue1"),
+          shareId: Value("share1"),
+        ),
+      );
+
+      final revenue = await database.select(database.ocptBudgetRevenuesTable).getSingle();
+      expect(revenue.amountCents, 80000);
+      expect(revenue.status, OcptBudgetRevenueStatus.expected);
+
+      final share = await database.select(database.ocptBudgetSharesTable).getSingle();
+      expect(share.personId, "person1");
+      expect(share.sharePermille, 300);
+      expect(share.reinvestPermille, 0);
+
+      final updatedEntry = await database.select(database.ocptBudgetEntriesTable).getSingle();
+      expect(updatedEntry.revenueId, "revenue1");
+      expect(updatedEntry.shareId, "share1");
+
+      await database.close();
+    },
+  );
+
+  test(
+    'a v28 database migrates on, gaining budget_resources.personId and '
+    'project_info.isBudgetSimplified',
+    () async {
+      final filePath = p.join(tempDir.path, 'legacy_v28.ocpt');
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(_v19Ddl);
+      legacyDb.execute(_v20RoleCandidatesDdl);
+      legacyDb.execute(_v24ShootingBlockCandidatesDdl);
+      legacyDb.execute(_v25BudgetFoundationsDdl);
+      legacyDb.execute(_v26CashJournalDdl);
+      legacyDb.execute(_v27FinancingDdl);
+      legacyDb.execute(_v28RevenueSharingDdl);
+      legacyDb.execute('PRAGMA user_version = 28;');
+      seedCommonRows(legacyDb);
+
+      // A resource and the person it comes from — both rows the migration must carry through
+      // untouched, so the new column can be checked against a file that already held real data
+      // rather than an empty one.
+      legacyDb.execute(
+        "INSERT INTO people (id, sort_key, first_name) VALUES ('person1', 'V', 'Marie');",
+      );
+      legacyDb.execute(
+        "INSERT INTO budget_resources (id, sort_key, group_kind, label, amount_cents) VALUES "
+        "('resource1', 'V', 'cash', 'Avance Marie', 10000);",
+      );
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+
+      // (a) every row the file already held survived.
+      await expectCommonRowsSurvived(database);
+      final person = await database.select(database.ocptPeopleTable).getSingle();
+      expect(person.firstName, "Marie");
+      final resource = await database.select(database.ocptBudgetResourcesTable).getSingle();
+      expect(resource.label, "Avance Marie");
+
+      // (b) the file's existing resource gained a null personId: nothing here is reconstructed —
+      // a resource recorded before this column existed named nobody, exactly as truthfully after
+      // the migration as before it.
+      expect(resource.personId, isNull);
+
+      // (c) `project_info` gained a null isBudgetSimplified: nobody has ever chosen between the
+      // simplified and the detailed header on this project, so the mode still opens detailed.
+      final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(projectInfo.isBudgetSimplified, isNull);
+
+      // (d) the file now says the current schema version.
+      expect(await readSchemaVersion(database), 35);
+
+      // (e) and both are usable, foreign keys included: the existing resource can be made to name
+      // the person, and the project's own toggle can be recorded.
+      await (database.update(
+        database.ocptBudgetResourcesTable,
+      )..where((table) => table.id.equals("resource1"))).write(
+        const OcptBudgetResourcesTableCompanion(personId: Value("person1")),
+      );
+      await (database.update(
+        database.ocptProjectInfoTable,
+      )..where((table) => table.id.equals(1))).write(
+        const OcptProjectInfoTableCompanion(isBudgetSimplified: Value(true)),
+      );
+
+      final updatedResource = await database
+          .select(database.ocptBudgetResourcesTable)
+          .getSingle();
+      expect(updatedResource.personId, "person1");
+
+      final updatedProjectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(updatedProjectInfo.isBudgetSimplified, isTrue);
 
       await database.close();
     },
@@ -2138,7 +2756,7 @@ void main() {
     expect(candidate.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -2215,7 +2833,7 @@ void main() {
     );
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
@@ -2284,10 +2902,259 @@ void main() {
     // (c) and the table that replaces it is there, hanging off the audition that survived.
     expect(await database.select(database.ocptShootingBlockCandidatesTable).get(), isEmpty);
 
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });
+
+  test('a v29 database migrates on, its financing statuses re-read as steps', () async {
+    // The one migration of this file that rewrites **values** rather than a shape: a financing
+    // resource's status stopped naming one of four words the three groups shared and started
+    // naming one of three steps whose word is the group's.
+    final filePath = p.join(tempDir.path, 'legacy_v29.ocpt');
+
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(
+      '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+      '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl$_v29ColumnsDdl',
+    );
+    legacyDb.execute('PRAGMA user_version = 29;');
+    seedCommonRows(legacyDb);
+
+    for (final (id, groupKind, word) in [
+      ('r1', 'subsidy', 'applied'),
+      ('r2', 'subsidy', 'notified'),
+      ('r3', 'cash', 'secured'),
+      // The one word that was already a group's rather than a step's, and the case the product
+      // owner reported: a cash contribution marked "valued", which reads as nonsense for money.
+      ('r4', 'cash', 'valued'),
+    ]) {
+      legacyDb.execute(
+        "INSERT INTO budget_resources (id, sort_key, is_deleted, group_kind, label, amount_cents, "
+        "status, is_reimbursable, notes) VALUES "
+        "('$id', '$id', 0, '$groupKind', '$id', 1000, '$word', 0, '');",
+      );
+    }
+
+    legacyDb.execute(
+      "INSERT INTO budget_postes (id, sort_key, is_deleted, code, label) VALUES "
+      "('p1', 'a0', 0, '1', 'Artistic rights');",
+    );
+    legacyDb.execute(
+      "INSERT INTO budget_commitments (id, sort_key, is_deleted, label, poste_id, amount_cents, "
+      "is_tax_inclusive, status) VALUES ('c1', 'a0', 0, 'Camera deposit', 'p1', 5000, 1, "
+      "'quoteAccepted');",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived.
+    await expectCommonRowsSurvived(database);
+
+    // (b) each old word landed on the step it already stated — `valued` included, which said a
+    // figure was on the resource and nothing signed. No row changed group, none moved a step.
+    final byId = {
+      for (final row in await database.select(database.ocptBudgetResourcesTable).get())
+        row.id: (row.status, row.groupKind),
+    };
+    expect(byId['r1'], (OcptBudgetResourceStatus.pending, OcptBudgetResourceGroupKind.subsidy));
+    expect(byId['r2'], (OcptBudgetResourceStatus.agreed, OcptBudgetResourceGroupKind.subsidy));
+    expect(byId['r3'], (OcptBudgetResourceStatus.confirmed, OcptBudgetResourceGroupKind.cash));
+    expect(byId['r4'], (OcptBudgetResourceStatus.agreed, OcptBudgetResourceGroupKind.cash));
+
+    // (c) a resource created *after* the upgrade stands at the new first step too: the column was
+    // rebuilt rather than merely refilled, so this file's own DEFAULT names the new first step and
+    // not the retired word it used to name. `createAllowance` leaves the column out, so this reads
+    // the rebuilt default back.
+    final createdId = await const OcptBudgetFinancingService().createResource(
+      database: database,
+      label: "Created after the upgrade",
+    );
+    final created =
+        await (database.select(
+          database.ocptBudgetResourcesTable,
+        )..where((table) => table.id.equals(createdId!))).getSingle();
+    expect(created.status, OcptBudgetResourceStatus.pending);
+
+    // (d) the defrayals arrived, empty: nothing is invented out of a schedule this migration does
+    // not read, and what the régie view used to compute was stored nowhere to carry over.
+    expect(await database.select(database.ocptBudgetAllowancesTable).get(), isEmpty);
+
+    // (e) every quote line the file already held was typed by somebody, which is what a null
+    // provisioning key says — the provisioning cannot claim a line it never wrote.
+    final lines = await database.select(database.ocptBudgetLinesTable).get();
+    expect(lines.map((row) => row.provisionKey), everyElement(isNull));
+    expect(lines.map((row) => row.provisionDigest), everyElement(isNull));
+
+    // (f) every commitment the file already held was typed from scratch, which is what a null
+    // `lineId` says: not one of them could have been promoted from a quote line, there being no
+    // promotion. A restored version must not claim a provenance it never had.
+    final commitments = await database.select(database.ocptBudgetCommitmentsTable).get();
+    expect(commitments, hasLength(1));
+    expect(commitments.single.lineId, isNull);
+    expect(commitments.single.label, "Camera deposit");
+
+    expect(await readSchemaVersion(database), 35);
+
+    await database.close();
+  });
+
+  test('a v33 database migrates on, its postes gaining an estimate to complete', () async {
+    // The one column this file's own `from < 34` block adds: `budget_postes.estimateToCompleteCents`,
+    // nullable, meaning "derive it" — never a stand-in for zero.
+    final filePath = p.join(tempDir.path, 'legacy_v33.ocpt');
+
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(
+      '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+      '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl$_v29ColumnsDdl'
+      '$_v30StatusStepDdl$_v31AllowancesDdl$_v32ProvisionDdl$_v33LineIdDdl',
+    );
+    legacyDb.execute('PRAGMA user_version = 33;');
+    seedCommonRows(legacyDb);
+
+    legacyDb.execute(
+      "INSERT INTO budget_postes (id, sort_key, is_deleted, code, label) VALUES "
+      "('p1', 'a0', 0, '7', 'Technical equipment');",
+    );
+    legacyDb.execute(
+      "INSERT INTO budget_lines (id, sort_key, is_deleted, poste_id, label, quantity_milli, "
+      "unit, unit_amount_cents, is_tax_inclusive) VALUES "
+      "('l1', 'a0', 0, 'p1', 'Camera rental', 5000, 'day', 12000, 1);",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived.
+    await expectCommonRowsSurvived(database);
+
+    final lines = await database.select(database.ocptBudgetLinesTable).get();
+    expect(lines, hasLength(1));
+    expect(lines.single.id, "l1");
+    expect(lines.single.posteId, "p1");
+    expect(lines.single.label, "Camera rental");
+
+    // (b) the poste the file already held reads a **null** estimate to complete: nobody has ever
+    // judged it, there being no way to before this column existed, and the migration must not
+    // invent a judgement nobody made, nor write a zero, which would be one.
+    final postes = await database.select(database.ocptBudgetPostesTable).get();
+    expect(postes, hasLength(1));
+    expect(postes.single.id, "p1");
+    expect(postes.single.label, "Technical equipment");
+    expect(postes.single.estimateToCompleteCents, isNull);
+
+    // (c) a poste created *after* the upgrade also reads null: the column has no default other
+    // than absent, and nothing about a freshly created poste lets this migration or `onCreate`
+    // guess what a human has not yet typed.
+    await database
+        .into(database.ocptBudgetPostesTable)
+        .insert(
+          OcptBudgetPostesTableCompanion.insert(
+            id: "p2",
+            code: const Value("8"),
+            label: "Laboratory and post-production",
+          ),
+        );
+    final created = await (database.select(
+      database.ocptBudgetPostesTable,
+    )..where((table) => table.id.equals("p2"))).getSingle();
+    expect(created.estimateToCompleteCents, isNull);
+
+    expect(await readSchemaVersion(database), 35);
+
+    await database.close();
+  });
+
+  test(
+    'a v34 database migrates on, a settled commitment folding into the entry that paid it',
+    () async {
+      // The step this file's own `from < 35` block runs: `budget_entries` gains `commitmentId` and
+      // `personId`, and `budget_commitments` loses `settledEntryId` — carried onto the entry it
+      // named first, so a payment recorded as one instalment before this step reads as exactly one
+      // after it too.
+      final filePath = p.join(tempDir.path, 'legacy_v34.ocpt');
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(
+        '$_v19Ddl$_v20RoleCandidatesDdl$_v24ShootingBlockCandidatesDdl$_v25BudgetFoundationsDdl'
+        '$_v26CashJournalDdl$_v27FinancingDdl$_v28RevenueSharingDdl$_v29ColumnsDdl'
+        '$_v30StatusStepDdl$_v31AllowancesDdl$_v32ProvisionDdl$_v33LineIdDdl'
+        '$_v34EstimateToCompleteDdl',
+      );
+      legacyDb.execute('PRAGMA user_version = 34;');
+      seedCommonRows(legacyDb);
+
+      legacyDb.execute(
+        "INSERT INTO budget_postes (id, sort_key, is_deleted, code, label) VALUES "
+        "('p1', 'a0', 0, '1', 'Artistic rights');",
+      );
+      legacyDb.execute(
+        "INSERT INTO budget_entries (id, sort_key, is_deleted, date, label, poste_id, "
+        "debit_cents, credit_cents, is_tax_inclusive, voucher_number) VALUES "
+        "('e1', 'a0', 0, '2026-03-10T00:00:00.000', 'Camera deposit', 'p1', 5000, 0, 1, 'J-001');",
+      );
+      // A second entry, naming no commitment at all — nothing must be invented for it.
+      legacyDb.execute(
+        "INSERT INTO budget_entries (id, sort_key, is_deleted, date, label, poste_id, "
+        "debit_cents, credit_cents, is_tax_inclusive, voucher_number) VALUES "
+        "('e2', 'a1', 0, '2026-03-11T00:00:00.000', 'Essence', 'p1', 2000, 0, 1, 'J-002');",
+      );
+      legacyDb.execute(
+        "INSERT INTO budget_commitments (id, sort_key, is_deleted, label, poste_id, amount_cents, "
+        "is_tax_inclusive, status, settled_entry_id) VALUES "
+        "('c1', 'a0', 0, 'Camera deposit', 'p1', 5000, 1, 'quoteAccepted', 'e1');",
+      );
+      // A commitment that named no settling entry — nothing must be invented for it either.
+      legacyDb.execute(
+        "INSERT INTO budget_commitments (id, sort_key, is_deleted, label, poste_id, amount_cents, "
+        "is_tax_inclusive, status, settled_entry_id) VALUES "
+        "('c2', 'a1', 0, 'Insurance', 'p1', 3000, 1, 'quoteAccepted', NULL);",
+      );
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+
+      // (a) every row the file already held survived.
+      await expectCommonRowsSurvived(database);
+
+      // (b) the settled commitment's own settling entry now names it back, through the entry's own
+      // freshly added `commitmentId` — the very fact `settled_entry_id` used to state, read the
+      // other way round.
+      final entries = {
+        for (final row in await database.select(database.ocptBudgetEntriesTable).get()) row.id: row,
+      };
+      expect(entries, hasLength(2));
+      expect(entries['e1']!.commitmentId, 'c1');
+      expect(entries['e1']!.personId, isNull);
+
+      // (c) an entry no commitment ever named carries nothing over.
+      expect(entries['e2']!.commitmentId, isNull);
+      expect(entries['e2']!.personId, isNull);
+
+      // (d) a commitment that named no settling entry is left exactly as unpaid as it already was.
+      final commitments = {
+        for (final row in await database.select(database.ocptBudgetCommitmentsTable).get())
+          row.id: row,
+      };
+      expect(commitments, hasLength(2));
+      expect(commitments['c1']!.label, 'Camera deposit');
+      expect(commitments['c2']!.label, 'Insurance');
+
+      // (e) `settled_entry_id` itself is gone from `budget_commitments` — dropped, not merely
+      // ignored: a file this old lands on exactly the same shape a fresh one does.
+      final shape = await readSchemaShape(database);
+      expect(
+        shape['budget_commitments']!.any((column) => column.startsWith('settled_entry_id ')),
+        isFalse,
+      );
+
+      expect(await readSchemaVersion(database), 35);
+
+      await database.close();
+    },
+  );
 
   test('a project with no schedule opens unchanged at the current schema', () async {
     // A file written by the very build that adds the schedule mode: `onCreate` alone, no upgrade
@@ -2326,7 +3193,7 @@ void main() {
     final screenplay = await database.select(database.ocptScreenplaysTable).getSingle();
     expect(screenplay.title, "Draft");
 
-    expect(await readSchemaVersion(database), 24);
+    expect(await readSchemaVersion(database), 35);
 
     await database.close();
   });

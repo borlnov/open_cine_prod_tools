@@ -59,6 +59,9 @@ class OcptPeopleService {
   /// [OcptImageRightsStatus.notApplicable] for the one enum column) in this single write.
   /// `maxDailyPresenceMinutes` is blanked with them: it is personal data of the same nature as
   /// `minorNotes`, the two constraints being thought about together on the sheet.
+  /// `commuteKmMilli`/`mileageRateId` are blanked for the same reason: a one-way commute distance
+  /// says roughly where somebody lives, which is exactly the kind of fact this erasure exists to
+  /// take out of the file.
   static const _erasureCompanion = OcptPeopleTableCompanion(
     isDeleted: Value(true),
     firstName: Value(''),
@@ -92,6 +95,8 @@ class OcptPeopleService {
     imageRightsAssetId: Value(null),
     photoAssetId: Value(null),
     notes: Value(''),
+    commuteKmMilli: Value(null),
+    mileageRateId: Value(null),
   );
 
   /// Loads every live person of [database], in `sortKey` order, each joined with its live
@@ -235,6 +240,8 @@ class OcptPeopleService {
     Value<String?> imageRightsAssetId = const Value.absent(),
     Value<String?> photoAssetId = const Value.absent(),
     Value<String> notes = const Value.absent(),
+    Value<int?> commuteKmMilli = const Value.absent(),
+    Value<String?> mileageRateId = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updatePerson")) {
       return;
@@ -276,6 +283,8 @@ class OcptPeopleService {
         imageRightsAssetId: imageRightsAssetId,
         photoAssetId: photoAssetId,
         notes: notes,
+        commuteKmMilli: commuteKmMilli,
+        mileageRateId: mileageRateId,
       ),
     );
   }

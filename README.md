@@ -102,14 +102,51 @@ somebody convoked on a day their own availability says they are away.
 
 ![The presence grid, eleven people against three shooting days, one cell flagged in red](docs/screenshots/schedule-presence.png)
 
+The budget mode opens on the whole production at a glance: four figures - what has been quoted,
+what pays for it, what has left the account and what the bank still holds - then the film's needs
+against its resources. Under them is what needs a decision: a poste already past its own quote, a
+balance the commitments will take below zero. An alert is not a notification to dismiss, it is a
+fact that stays true until the figures change, so each one is a way into the data it is about, and
+the chip carries the count of them from every other page.
+
+![The budget dashboard, four tiles over the needs-against-resources band and two standing alerts](docs/screenshots/budget-dashboard.png)
+
+What the film costs, poste by poste: one row per poste of the CNC nomenclature, opening on its own
+quote lines, and a line opening in turn on the commitment it became and on the payments that settle
+it - in one instalment or several. Spending that names no poste is not hidden - it lands in a row of
+its own, and counts in the total. `+ New`, the one button every page carries, opens a short wizard:
+first what you are doing, in the words a production actually uses, then - where it is needed - what
+the movement attaches to, and last the amount.
+
+![The expenses view, a poste opened down to its commitment and its payments](docs/screenshots/budget-expenses.png)
+
+What pays for it, read the same way: subsidies, contributions and takings, each with the paperwork
+it is held on - which never means the money has arrived - and, at the foot, whether all of it
+covers the film. A contribution in kind is valued and never collected, so both of its cash columns
+read an em dash rather than a zero.
+
+![The resources view, three families with their paperwork and the coverage band](docs/screenshots/budget-resources.png)
+
+The tools drawer holds what re-reads those two rather than adding to them. The cash flow page is
+the account itself: every movement in date order, the balance the bank shows on the last of them,
+and, underneath, what is committed and still owed - all postes together, by due date - with the
+balance all of it leaves once it has fallen due.
+
+![The cash flow page, the statement closing on its balance above the commitments still to fall due](docs/screenshots/budget-cash-flow.png)
+
+And what the film earns, once it earns something: the reimbursable contributions come off the top
+in full, and only what is left is divided by the agreed shares.
+
+![The revenue sharing page, what each person put in beside the distribution](docs/screenshots/budget-sharing.png)
+
 ## Features
 
 What the app does today:
 
 - A workspace shell around the open project - toolbar, resizable side docks, status bar - with a
-  bottom mode switcher for the production tools. Screenplay, breakdown, shot list, resources and
-  schedule are implemented; the budget is still an empty state (see [Roadmap](#roadmap)). Dock sizes
-  and the mode you were last in come back with the project.
+  bottom mode switcher for the production tools. Screenplay, breakdown, shot list, resources,
+  schedule and budget are all implemented. Dock sizes and the mode you were last in come back with
+  the project.
 - One project, several episodes: a series is one `.ocpt` file, with one screenplay per episode and
   one address book, one set of locations and one schedule shared between them. The modes work on the
   episode the workspace has selected; the schedule reads them all at once, a shooting day regularly
@@ -166,6 +203,23 @@ What the app does today:
   than the production says it owes, a filming permit that does not cover the date. Exports the seven
   documents a shoot runs on: the general call sheet and one sheet per recipient, the shooting plan
   as a PDF and as a workbook, the Day Out of Days, the one-line schedule and the day's sides.
+- A budget mode, on four pages: an overview, what the film costs, what pays for it, and a drawer of
+  tools that re-read those rather than adding to them. The quote against the CNC nomenclature, read
+  as the cost report a production actually works from - quote, committed, paid, remaining, final
+  cost and variance, poste by poste - and a poste opens on its quote lines, a line on the
+  commitment it became and the entry that settled it. Recording a movement is two questions: what
+  you are doing, in the words a production actually uses, and then only the fields that answer
+  belongs to, direction included. Once the amount and the date are typed the app ranks what the
+  movement could be settling and one click writes it, so a sum that already exists is never typed a
+  second time. The financing plan says what covers the film and keeps the paperwork apart from the
+  money, because a subsidy on paper is not a subsidy in the account; a contribution in kind is
+  valued without ever pretending cash will move for it. In the drawer, the cash flow page reads the
+  account itself - every movement in date order, the balance it closes on, and what is committed
+  and still owed under it - the catering each shooting day costs is read off the schedule rather
+  than typed again beside the travel defrayals, typed row by row and provisioned into the quote,
+  and the revenue sharing takes the reimbursable contributions off the top before dividing what is
+  left. Exports the quote, the financing plan, the cash journal as a workbook and the financial
+  report.
 - Project versions: named, permanent checkpoints of the whole project, previewed read-only before
   you commit to anything and restored as an edit rather than a reset - the state a restore replaces
   is itself kept as a version, so going back is never a one-way door.
@@ -193,7 +247,6 @@ What the app does today:
 Planned production tools, in priority order:
 
 - Call sheets beyond the ones the schedule mode already prints
-- Budget
 - Script supervisor reports
 - Storyboard
 - Casting tracker

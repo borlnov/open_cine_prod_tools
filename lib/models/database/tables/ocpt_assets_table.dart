@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
@@ -32,19 +33,25 @@ class OcptAssetKindConverter extends TypeConverter<OcptAssetKind, String> {
 /// an error, and the UI shows the reference with a "file not found" marker rather than treating the
 /// absence as a failure to report.
 ///
-/// Exactly one of [personId], [locationId], [elementId] is set, naming this asset's subject; which
-/// one tells a reader what kind of thumbnail to attempt alongside [kind].
+/// Exactly one of [personId], [locationId], [elementId] or [budgetEntryId] is set, naming this
+/// asset's subject; which one tells a reader what kind of thumbnail to attempt alongside [kind].
+/// [budgetEntryId] is the odd one of the four in one respect: the row it names is not a subject
+/// with a photo of its own, but the journal movement this document evidences — a receipt asset's
+/// "subject" is the entry it is the voucher *for*.
 ///
-/// **Expect noise from `build_runner`.** Those three columns point back at tables that themselves
-/// point here (`people.photoAssetId`, `locations.permitAssetId`, `elements.photoAssetId`), so the
-/// schema holds a genuine foreign-key cycle. `drift_dev` logs an `Internal error while
-/// deserializing … This is a bug in drift_dev!` for each one, then recovers and emits correct code:
-/// a generation from a cold cache produces a database every test and every migration path passes
-/// against. SQLite has no objection either — it only checks a foreign key at the write that would
-/// violate it, never at `CREATE TABLE`, which is also what lets the migration create these tables in
-/// any order. Do not try to break the cycle by dropping one side: an asset has to know its subject
-/// for a location's fourteen scouting photos to be listable, and a person has to name *which* of
-/// their assets is the headshot.
+/// **Expect noise from `build_runner`.** The first three of those columns point back at tables that
+/// themselves point here (`people.photoAssetId`, `locations.permitAssetId`,
+/// `elements.photoAssetId`), so the schema holds a genuine foreign-key cycle. `drift_dev` logs an
+/// `Internal error while deserializing … This is a bug in drift_dev!` for each one, then recovers
+/// and emits correct code: a generation from a cold cache produces a database every test and every
+/// migration path passes against. SQLite has no objection either — it only checks a foreign key at
+/// the write that would violate it, never at `CREATE TABLE`, which is also what lets the migration
+/// create these tables in any order. Do not try to break the cycle by dropping one side: an asset
+/// has to know its subject for a location's fourteen scouting photos to be listable, and a person
+/// has to name *which* of their assets is the headshot. [budgetEntryId] closes no cycle of its
+/// own — `budget_entries` never references `assets` back — but the same `CREATE TABLE`-time
+/// leniency is what lets it exist regardless of which of the two tables the migration or `onCreate`
+/// happens to create first.
 @DataClassName('OcptAssetRow')
 class OcptAssetsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptAssetsTable}
@@ -83,6 +90,13 @@ class OcptAssetsTable extends Table {
 
   /// The element this asset belongs to, or null.
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
+
+  /// The journal entry this asset is the voucher for, or null. → [OcptBudgetEntriesTable]
+  ///
+  /// Set on an `OcptAssetKind.receipt` asset, and left null on every other kind — see the class doc
+  /// comment for why this is different in nature from [personId]/[locationId]/[elementId] even
+  /// though it fills the same "exactly one of four" slot.
+  TextColumn get budgetEntryId => text().nullable().references(OcptBudgetEntriesTable, #id)();
 
   /// The date this asset's document becomes valid, or null. Meaningful for a document with a
   /// validity window — a filming permit runs from a date to a date — and meaningless for a photo,

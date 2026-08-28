@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -83,6 +84,12 @@ class OcptPersonSheet extends StatelessWidget {
   /// Called with the newly picked image rights date, or null to clear it.
   final ValueChanged<DateTime?> onImageRightsDateChanged;
 
+  /// The project's own mileage rates, offered by the logistics card's rate picker.
+  final List<OcptBudgetMileageRate> mileageRates;
+
+  /// Called with the newly picked mileage rate's id, or null for "no rate".
+  final ValueChanged<String?> onMileageRateChanged;
+
   /// Called when `+ Add a function` is clicked, appending a new, blank assignment.
   final VoidCallback onPositionAdded;
 
@@ -147,6 +154,8 @@ class OcptPersonSheet extends StatelessWidget {
     required this.onTransportAutonomyChanged,
     required this.onImageRightsStatusChanged,
     required this.onImageRightsDateChanged,
+    required this.mileageRates,
+    required this.onMileageRateChanged,
     required this.onPositionAdded,
     required this.onPositionUpdated,
     required this.onPositionRemoved,
@@ -264,6 +273,9 @@ class OcptPersonSheet extends StatelessWidget {
               fieldValueOf: fieldValueOf,
               onFieldChanged: isReadOnly ? null : onFieldChanged,
               onTransportAutonomyChanged: isReadOnly ? null : onTransportAutonomyChanged,
+              mileageRates: mileageRates,
+              mileageRateId: person.mileageRateId,
+              onMileageRateChanged: isReadOnly ? null : onMileageRateChanged,
             ),
           ),
         ],

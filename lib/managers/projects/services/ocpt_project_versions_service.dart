@@ -73,6 +73,14 @@ class OcptProjectVersionsService {
     'shooting_block_candidates',
     'shooting_day_events',
     'project_dictionary_words',
+    'budget_postes',
+    'budget_lines',
+    'budget_entries',
+    'budget_commitments',
+    'budget_resources',
+    'budget_mileage_rates',
+    'budget_revenues',
+    'budget_shares',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -341,6 +349,11 @@ class OcptProjectVersionsService {
             // The same `minimumRestMinutes` reading, not the currency's: see
             // `OcptProjectVersionPayload.screenplayLanguage`.
             screenplayLanguage: Value(payload.screenplayLanguage),
+            // Same reading again: `OcptProjectVersionPayload.defaultVatRateBasisPoints`,
+            // `.mealPriceCents` and `.snackPriceCents`.
+            defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
+            mealPriceCents: Value(payload.mealPriceCents),
+            snackPriceCents: Value(payload.snackPriceCents),
           ),
         );
 
@@ -351,6 +364,10 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptShotsTable, payload.shots)
         ..insertAll(database.ocptShotCharactersTable, payload.shotCharacters)
         ..insertAll(database.ocptShotCoveragesTable, payload.shotCoverages)
+        // `budget_mileage_rates` references nothing, and must be inserted before `people`, which
+        // may name one through `mileageRateId` — the same reason `budget_resources` is inserted
+        // before `budget_entries`, further below.
+        ..insertAll(database.ocptBudgetMileageRatesTable, payload.budgetMileageRates)
         ..insertAll(database.ocptPeopleTable, payload.people)
         ..insertAll(database.ocptPersonPositionsTable, payload.personPositions)
         ..insertAll(database.ocptPersonSkillsTable, payload.personSkills)
@@ -386,6 +403,32 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptShootingDayBlocksTable, payload.shootingDayBlocks)
         ..insertAll(database.ocptShootingDayEventsTable, payload.shootingDayEvents)
         ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
+        // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
+        // (just above) and, optionally, `elements` (already inserted above): neither is a forward
+        // reference. `budget_commitments` references `budget_postes` too, and, optionally,
+        // `budget_lines` (just above it) — and `assets.budgetEntryId`, inserted well above this,
+        // names a `budget_entries` row inserted only further below: a genuine forward reference, but
+        // `insertAll` defers foreign-key checking to the end of this batch's own transaction,
+        // exactly what already lets the person/location/element trio point at an `assets` row
+        // inserted after them.
+        ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
+        ..insertAll(database.ocptBudgetLinesTable, payload.budgetLines)
+        // `budget_resources` references nothing, and must be inserted before `budget_entries`,
+        // which may name one through `resourceId`. `budget_revenues` references nothing either,
+        // and `budget_shares` only optionally names a `people` row already inserted well above —
+        // both must still land before `budget_entries`, which may name either through `revenueId`/
+        // `shareId`.
+        ..insertAll(database.ocptBudgetResourcesTable, payload.budgetResources)
+        ..insertAll(database.ocptBudgetRevenuesTable, payload.budgetRevenues)
+        ..insertAll(database.ocptBudgetSharesTable, payload.budgetShares)
+        // `budget_allowances` only optionally names a `people` row already inserted well above,
+        // and nothing references it, so it may land anywhere after `people`.
+        ..insertAll(database.ocptBudgetAllowancesTable, payload.budgetAllowances)
+        // `budget_commitments`, inserted just above, before `budget_entries`, which may now name
+        // one through `commitmentId` — reversed from the order these two used to insert in, back
+        // when a commitment named its own settling entry rather than the other way round.
+        ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
+        ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -453,11 +496,11 @@ class OcptProjectVersionsService {
   ///
   /// The currency is written here too, **except when the payload doesn't carry one** — a version
   /// captured before currencies existed — in which case the project's own currency is left exactly
-  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest, and the
-  /// screenplay language with it, are written **unconditionally**, null included: unlike the
-  /// currency, a null here is never "this payload predates the column" — both columns are nullable
-  /// by design and null is one of their truthful values on a live capture too — so there is no live
-  /// value to leave alone.
+  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest, the screenplay
+  /// language, the default VAT rate and the two catering prices are all written
+  /// **unconditionally**, null included: unlike the currency, a null here is never "this payload
+  /// predates the column" — every one of these five columns is nullable by design and null is one
+  /// of their truthful values on a live capture too — so there is no live value to leave alone.
   ///
   /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
   /// **A restore is an edit, not a reset**, and that distinction is what the whole of
@@ -541,6 +584,9 @@ class OcptProjectVersionsService {
                 },
                 minimumRestMinutes: Value(payload.minimumRestMinutes),
                 screenplayLanguage: Value(payload.screenplayLanguage),
+                defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
+                mealPriceCents: Value(payload.mealPriceCents),
+                snackPriceCents: Value(payload.snackPriceCents),
                 currentVersionId: Value(id),
               ),
             );
@@ -632,12 +678,25 @@ class OcptProjectVersionsService {
       projectDictionaryWords: await database
           .select(database.ocptProjectDictionaryWordsTable)
           .get(),
+      budgetPostes: await database.select(database.ocptBudgetPostesTable).get(),
+      budgetLines: await database.select(database.ocptBudgetLinesTable).get(),
+      budgetEntries: await database.select(database.ocptBudgetEntriesTable).get(),
+      budgetCommitments: await database.select(database.ocptBudgetCommitmentsTable).get(),
+      budgetResources: await database.select(database.ocptBudgetResourcesTable).get(),
+      budgetMileageRates: await database.select(database.ocptBudgetMileageRatesTable).get(),
+      budgetRevenues: await database.select(database.ocptBudgetRevenuesTable).get(),
+      budgetShares: await database.select(database.ocptBudgetSharesTable).get(),
+      budgetAllowances: await database.select(database.ocptBudgetAllowancesTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
       currencyCode: info.currencyCode,
       minimumRestMinutes: info.minimumRestMinutes,
       screenplayLanguage: info.screenplayLanguage,
+      defaultVatRateBasisPoints: info.defaultVatRateBasisPoints,
+      mealPriceCents: info.mealPriceCents,
+      snackPriceCents: info.snackPriceCents,
+      isBudgetSimplified: info.isBudgetSimplified,
     );
   }
 
@@ -665,6 +724,11 @@ class OcptProjectVersionsService {
   /// doesn't carry is tombstoned rather than deleted, for the reason `OcptScenesTable.isDeleted`
   /// gives — the tombstoned shots and coverages still left over from the working copy reference it,
   /// and `PRAGMA foreign_keys` is on.
+  ///
+  /// `budget_mileage_rates` is restored **before** the twelve resources tables below, for the one
+  /// reason it has to be: `people.mileageRateId` may name one of its rows, and a row the payload
+  /// doesn't hold there would otherwise be a genuine forward reference this ordering could avoid
+  /// paying for — unlike the asset trio further down, which cannot avoid it.
   ///
   /// The twelve resources tables follow, in the same dependency order the schema's own migration
   /// creates them in: `people` (and its `person_positions`/`person_skills`/
@@ -713,9 +777,36 @@ class OcptProjectVersionsService {
   /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
   /// needs, not this group.
   ///
-  /// `project_dictionary_words` is restored last of all, and could just as well go anywhere else:
-  /// it references nothing, and nothing else in the schema references it back, so there is no
+  /// `project_dictionary_words` is restored next, and could just as well go anywhere else: it
+  /// references nothing, and nothing else in the schema references it back, so there is no
   /// dependency order for it to respect.
+  ///
+  /// `budget_postes` and `budget_lines` are restored next: `budget_postes` references nothing, and
+  /// `budget_lines` references `budget_postes` (restored immediately above it) and, optionally,
+  /// `elements` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — so
+  /// neither is a forward reference, and this pair closes no cycle of its own either.
+  ///
+  /// `budget_resources` is restored next: it references nothing, and `budget_entries`, restored
+  /// right after it, may name one of its rows through `resourceId` — the same reason
+  /// `budget_mileage_rates` above is restored before `people`.
+  ///
+  /// `budget_revenues` and `budget_shares` follow, for the same reason again: `budget_revenues`
+  /// references nothing, `budget_shares` only optionally references `people` (restored well above,
+  /// inside the asset trio's own deferred-foreign-key cycle), and `budget_entries`, restored right
+  /// after both, may name either of their rows through `revenueId`/`shareId`.
+  ///
+  /// `budget_commitments` and `budget_entries` are restored last, in that order: `budget_commitments`
+  /// references only `budget_postes` (restored well above) and, optionally, `budget_lines` (restored
+  /// well above too), so it closes no cycle of its own. `budget_entries` follows it — reversed from
+  /// the order these two used to restore in, back when a commitment named its own settling entry
+  /// rather than the other way round — since it may now name a commitment through `commitmentId`,
+  /// beside `budget_postes`, `budget_resources`, `budget_revenues`, `budget_shares` (all restored
+  /// above it already) and `people` (through `personId`, restored well above, inside the asset
+  /// trio's own deferred-foreign-key cycle). None of these is a forward reference either.
+  /// `assets.budgetEntryId`, restored well above this pair, names a
+  /// `budget_entries` row that only exists once this method reaches here: a genuine forward
+  /// reference, closed the same way the asset trio's own cycle is, by this whole
+  /// restore running under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
   /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
@@ -776,6 +867,17 @@ class OcptProjectVersionsService {
       database: database,
       table: database.ocptShotCoveragesTable,
       payloadRows: payload.shotCoverages,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    // `budget_mileage_rates` references nothing, and `people`, restored right after it, may name
+    // one of its rows through `mileageRateId`.
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetMileageRatesTable,
+      payloadRows: payload.budgetMileageRates,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -1020,6 +1122,86 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    // `budget_postes` references nothing, and `budget_lines` references `budget_postes` (restored
+    // just above) and, optionally, `elements` (restored well above, inside the asset trio's own
+    // deferred-foreign-key cycle) — neither is a forward reference.
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetPostesTable,
+      payloadRows: payload.budgetPostes,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetLinesTable,
+      payloadRows: payload.budgetLines,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    // `budget_resources` references nothing, and `budget_entries`, restored right after it, may
+    // name one of its rows through `resourceId`.
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetResourcesTable,
+      payloadRows: payload.budgetResources,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    // `budget_revenues` references nothing, and `budget_shares` only optionally references
+    // `people` (restored well above): `budget_entries`, restored right after both, may name either
+    // of their rows through `revenueId`/`shareId`.
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetRevenuesTable,
+      payloadRows: payload.budgetRevenues,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetSharesTable,
+      payloadRows: payload.budgetShares,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetAllowancesTable,
+      payloadRows: payload.budgetAllowances,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetCommitmentsTable,
+      payloadRows: payload.budgetCommitments,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptBudgetEntriesTable,
+      payloadRows: payload.budgetEntries,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await stamps.flush(database);
   }
 
@@ -1157,20 +1339,49 @@ class OcptProjectVersionsService {
       // A dictionary word names no person — only the word itself and its tombstone — so there is
       // nothing here for this scrub to reach either.
       projectDictionaryWords: payload.projectDictionaryWords,
+      // Neither a budget poste nor a budget line names a person: a line points at a poste and,
+      // optionally, an element, never at the address book. Both travel through unchanged.
+      budgetPostes: payload.budgetPostes,
+      budgetLines: payload.budgetLines,
+      // Nor does a journal entry or a commitment: an entry points at a poste and, at most, a
+      // resource, and a commitment at a poste and, at most, at the entry that settled it — never at
+      // the address book. Both travel through unchanged too.
+      budgetEntries: payload.budgetEntries,
+      budgetCommitments: payload.budgetCommitments,
+      // A mileage rate names no person at all: a label and a rate. A financing resource may,
+      // through `personId`, exactly the way `roles.personId`/`budget_shares.personId` do above and
+      // below: the row it points at is blanked, not dropped, so the link itself still resolves and
+      // there is nothing here for this scrub to rewrite. Both travel through unchanged.
+      budgetResources: payload.budgetResources,
+      budgetMileageRates: payload.budgetMileageRates,
+      // Nor does a revenue name a person at all. A share may, through `personId`, exactly the way
+      // `roles.personId` does above: the row it points at is blanked, not dropped, so the link
+      // itself still resolves and there is nothing here for this scrub to rewrite.
+      budgetRevenues: payload.budgetRevenues,
+      budgetShares: payload.budgetShares,
+      // A defrayal may name a person, through `personId`, exactly as a share does just above:
+      // the row it points at is blanked, not dropped, so the link still resolves and there is
+      // nothing here for this scrub to rewrite.
+      budgetAllowances: payload.budgetAllowances,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,
       currencyCode: payload.currencyCode,
       minimumRestMinutes: payload.minimumRestMinutes,
       screenplayLanguage: payload.screenplayLanguage,
+      defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+      mealPriceCents: payload.mealPriceCents,
+      snackPriceCents: payload.snackPriceCents,
+      isBudgetSimplified: payload.isBudgetSimplified,
     );
   }
 
   /// [row], blanked exactly as `OcptPeopleService.deletePerson`'s own erasure blanks a live row:
   /// every column held something about the person except `id`, `sortKey`, `isDeleted` (set to true
   /// here rather than left alone) and `colorIndex`. `maxDailyPresenceMinutes` is blanked with the
-  /// rest, being personal data of the same nature as `minorNotes`. See [_scrubErasedPeople] for why
-  /// the two must stay in step by hand.
+  /// rest, being personal data of the same nature as `minorNotes`, and `commuteKmMilli`/
+  /// `mileageRateId` are blanked for the same reason: a one-way commute distance says roughly where
+  /// somebody lives. See [_scrubErasedPeople] for why the two must stay in step by hand.
   static OcptPersonRow _erasedPersonRow(OcptPersonRow row) => row.copyWith(
     isDeleted: true,
     firstName: '',
@@ -1204,6 +1415,8 @@ class OcptProjectVersionsService {
     imageRightsAssetId: const Value(null),
     photoAssetId: const Value(null),
     notes: '',
+    commuteKmMilli: const Value(null),
+    mileageRateId: const Value(null),
   );
 
   /// Snapshots the text of every screenplay [payload] is about to overwrite in [database].

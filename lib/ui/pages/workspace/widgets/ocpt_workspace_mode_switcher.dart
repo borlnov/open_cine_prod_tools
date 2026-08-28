@@ -14,8 +14,11 @@ const _entryWidth = 110.0;
 /// entry per [OcptWorkspaceMode], icon over label, the active one tinted `primary` over a soft
 /// wash, the others `onSurfaceVariant` over transparent.
 ///
-/// Every mode is selectable, including the three not implemented yet (decision: a disabled bar
-/// reads as a bug); those instead carry a discreet "coming soon" marker next to their icon.
+/// Every mode is selectable (decision: a disabled bar reads as a bug), and every one of them is
+/// implemented today. The "coming soon" corner marker [_OcptWorkspaceModeIcon] carries is dormant
+/// rather than removed: [OcptWorkspaceMode.isImplemented] stays an explicit, extensible check
+/// rather than a bare `true` for exactly this reason, so a mode added ahead of its own content
+/// finds the marker already wired rather than having to reinvent it.
 class OcptWorkspaceModeSwitcher extends StatelessWidget {
   /// The currently active mode.
   final OcptWorkspaceMode activeMode;

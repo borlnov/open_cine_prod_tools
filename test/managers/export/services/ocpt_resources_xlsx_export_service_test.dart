@@ -136,6 +136,8 @@ OcptPerson _buildPerson({
   photoAssetId: null,
   photo: null,
   notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
   positions: positions,
   skills: skills,
   unavailabilities: unavailabilities,

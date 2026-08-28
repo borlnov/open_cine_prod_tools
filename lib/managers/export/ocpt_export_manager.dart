@@ -13,6 +13,10 @@ import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_sheets_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_cash_journal_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_financial_report_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_financing_plan_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_quote_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_contact_list_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
@@ -31,6 +35,11 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_ser
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
@@ -49,6 +58,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:path/path.dart' as p;
@@ -71,15 +81,20 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// whole-shoot shooting plan (a PDF and, reading the very same
 /// [OcptShootingPlanPdfService]'s own [OcptShootingPlanGrids], a five-sheet XLSX workbook), as its
 /// cast's own *Day Out of Days*, as the compact one-line schedule, as a day's own sides booklet,
-/// and its crew and cast as a standalone, whole-production contact list.
+/// its crew and cast as a standalone, whole-production contact list, and its budget as the quote (a
+/// PDF, poste by poste with its lines), the financing plan (a PDF, its in-kind contributions kept
+/// apart), the cash journal (an XLSX workbook, every entry in its own chronological order) and the
+/// financial report (a PDF, the quote read against what has actually moved).
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [scriptImportService], [pdfExportService], [shotListXlsxExportService],
 /// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
 /// [breakdownXlsxExportService], [callSheetPdfService], [shootingPlanPdfService],
 /// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService],
-/// [sidesPdfService] and [contactListPdfService], and the "save as"/"choose a folder" location
-/// picking to [saveLocationService] — the sixteen services this manager owns (RFL18).
+/// [sidesPdfService], [contactListPdfService], [budgetQuotePdfService],
+/// [budgetFinancingPlanPdfService], [budgetCashJournalXlsxExportService] and
+/// [budgetFinancialReportPdfService], and the "save as"/"choose a folder" location picking to
+/// [saveLocationService] — the twenty services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -130,6 +145,18 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service rendering the whole-production contact list PDF.
   final OcptContactListPdfService contactListPdfService;
 
+  /// The service rendering the budget's own quote PDF.
+  final OcptBudgetQuotePdfService budgetQuotePdfService;
+
+  /// The service rendering the budget's own financing plan PDF.
+  final OcptBudgetFinancingPlanPdfService budgetFinancingPlanPdfService;
+
+  /// The service building the budget's own cash journal XLSX workbook.
+  final OcptBudgetCashJournalXlsxExportService budgetCashJournalXlsxExportService;
+
+  /// The service rendering the budget's own financial report PDF.
+  final OcptBudgetFinancialReportPdfService budgetFinancialReportPdfService;
+
   /// The service showing the native "save as"/"choose a folder" dialog and resolving the chosen
   /// path.
   final OcptSaveLocationService saveLocationService;
@@ -167,6 +194,10 @@ class OcptExportManager extends AbsWithLifeCycle {
        oneLineSchedulePdfService = OcptOneLineSchedulePdfService(fontsLoader: fontsLoader),
        sidesPdfService = OcptSidesPdfService(fontsLoader: fontsLoader),
        contactListPdfService = OcptContactListPdfService(fontsLoader: fontsLoader),
+       budgetQuotePdfService = OcptBudgetQuotePdfService(fontsLoader: fontsLoader),
+       budgetFinancingPlanPdfService = OcptBudgetFinancingPlanPdfService(fontsLoader: fontsLoader),
+       budgetFinancialReportPdfService = OcptBudgetFinancialReportPdfService(fontsLoader: fontsLoader),
+       budgetCashJournalXlsxExportService = const OcptBudgetCashJournalXlsxExportService(),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
@@ -358,6 +389,138 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     return _writeToPickedLocation(
       suggestedFileName: contactListPdfService.contactListFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Renders the quote of [snapshot] via [budgetQuotePdfService] and shows the native save dialog
+  /// to write it out.
+  ///
+  /// [elementNameById] names every breakdown element a quote line prices
+  /// (`OcptBudgetLine.elementId`), resolved by the caller — this manager has no `Tr` of its own.
+  /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
+  /// the native dialog needs. Returns the path of the written file, or null if the user cancelled
+  /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
+  /// user).
+  Future<String?> exportBudgetQuote({
+    required OcptBudgetSnapshot snapshot,
+    required Map<String, String> elementNameById,
+    required OcptPageSetup pageSetup,
+    required OcptBudgetTaxBasis taxBasis,
+    required OcptBudgetQuoteLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await budgetQuotePdfService.generate(
+      snapshot: snapshot,
+      elementNameById: elementNameById,
+      pageSetup: pageSetup,
+      taxBasis: taxBasis,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: budgetQuotePdfService.quoteFileName(projectName: projectName, suffix: labels.fileNameSuffix),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Renders the financing plan of [snapshot] via [budgetFinancingPlanPdfService] and shows the
+  /// native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
+  /// the native dialog needs. Returns the path of the written file, or null if the user cancelled
+  /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
+  /// user).
+  Future<String?> exportBudgetFinancingPlan({
+    required OcptBudgetSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBudgetFinancingPlanLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await budgetFinancingPlanPdfService.generate(
+      snapshot: snapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: budgetFinancingPlanPdfService.financingPlanFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Builds the cash journal's own XLSX workbook of [snapshot] via
+  /// [budgetCashJournalXlsxExportService] and shows the native save dialog to write it out.
+  ///
+  /// [linkLabelByEntryId] is the "what this entry settles" column's own text, keyed by
+  /// `OcptBudgetEntry.id` and resolved by the caller — this manager has no `Tr` of its own, and
+  /// this service resolves nothing itself either (`OcptBudgetCashJournalXlsxExportService`'s own
+  /// doc comment). [labels] carries every localized string the sheet itself holds and
+  /// [fileTypeLabel] the one the native dialog needs. Returns the path of the written file, or null
+  /// if the user cancelled or the save failed (failures are logged; the OS dialog already reported
+  /// a cancellation to the user).
+  Future<String?> exportBudgetCashJournalXlsx({
+    required OcptBudgetSnapshot snapshot,
+    required Map<String, String> linkLabelByEntryId,
+    required OcptBudgetCashJournalXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: budgetCashJournalXlsxExportService.xlsxFileName(projectName: projectName),
+    fileTypeLabel: fileTypeLabel,
+    extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
+    bytes: budgetCashJournalXlsxExportService.generate(
+      snapshot: snapshot,
+      linkLabelByEntryId: linkLabelByEntryId,
+      labels: labels,
+    ),
+  );
+
+  /// Renders the financial report of [snapshot] via [budgetFinancialReportPdfService] and shows the
+  /// native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
+  /// the native dialog needs. Returns the path of the written file, or null if the user cancelled
+  /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
+  /// user).
+  Future<String?> exportBudgetFinancialReport({
+    required OcptBudgetSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBudgetFinancialReportLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await budgetFinancialReportPdfService.generate(
+      snapshot: snapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: budgetFinancialReportPdfService.financialReportFileName(
         projectName: projectName,
         suffix: labels.fileNameSuffix,
       ),

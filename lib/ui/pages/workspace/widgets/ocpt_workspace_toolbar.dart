@@ -23,8 +23,8 @@ const double _dirtyMarkerSize = 6;
 /// open project's title (with a dot marking unsaved changes, or the `Read only` pill while
 /// [isReadOnly]), the [episodeControl] right after it, a trailing slot for the active mode's own
 /// controls ([actions]), then the shell's own chrome — the active mode's name ([modeLabel]), the
-/// [exportAction], the [dockToggles], the [saveAction], the [projectSettingsAction] and an
-/// overflow `⋮` menu built from [overflowEntries].
+/// [exportAction], the [dockToggles], the [saveAction], the [projectSettingsAction], the
+/// [helpAction] and an overflow `⋮` menu built from [overflowEntries].
 ///
 /// Everything mode-specific (format controls, tab selectors, an editing-mode toggle, export
 /// entries…) is the active mode's own job to build and hand in through [actions] /
@@ -71,8 +71,10 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   final String? modeLabel;
 
   /// The `Export` control, shown after [modeLabel] and before [dockToggles], or null when the mode
-  /// prints nothing — no control is rendered at all then, rather than a disabled one (the budget
-  /// mode's whole answer here, it having neither bloc nor data).
+  /// prints nothing — no control is rendered at all then, rather than a disabled one. Every
+  /// implemented mode wires it today, the budget mode included: even at M1, before it prints a
+  /// document of its own, the panel it opens still offers the project package export every mode's
+  /// panel carries as its own standing card (`OcptWorkspaceExportDialog`'s own doc comment).
   final Widget? exportAction;
 
   /// The dock toggles, shown after [exportAction]. An empty list renders none of them (a mode with
@@ -86,6 +88,18 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// while a project version is being previewed, since a preview has nothing here that may be
   /// written.
   final Widget? projectSettingsAction;
+
+  /// The `Help` control, shown after [projectSettingsAction] and before the `⋮` menu, or null when
+  /// the mode has no help panel to open — no control is rendered at all then, rather than a
+  /// disabled one. It sits at the far end of the chrome, beside the settings action, because
+  /// reaching for it is the outlier gesture on this toolbar: nobody clicks it while doing the
+  /// mode's own routine work, unlike the dock toggles or the save control, and pairing it with
+  /// settings is where a reader already expects a "what is this" affordance to live.
+  ///
+  /// Only the budget mode wires this in for now (`docs/architecture/budget.md`); every other mode
+  /// leaves it null, and it opens onto that mode's own right dock rather than a dialog, so it
+  /// never asks for anything to be withheld under a version preview — a help panel writes nothing.
+  final Widget? helpAction;
 
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
@@ -115,6 +129,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     this.dockToggles = const [],
     this.saveAction,
     this.projectSettingsAction,
+    this.helpAction,
     this.overflowEntries = const [],
   });
 
@@ -169,6 +184,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                     ...dockToggles,
                     if (saveAction != null) saveAction!,
                     if (projectSettingsAction != null) projectSettingsAction!,
+                    if (helpAction != null) helpAction!,
                     if (overflowEntries.isNotEmpty)
                       PopupMenuButton<void>(
                         icon: const Icon(Icons.more_vert, size: 20),

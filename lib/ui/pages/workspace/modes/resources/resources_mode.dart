@@ -51,6 +51,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
@@ -494,6 +495,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onImageRightsStatusChanged: (status) => bloc.add(
         OcptResourcesPersonImageRightsStatusChangedEvent(personId: selectedPerson.id, status: status),
       ),
+      mileageRates: state.mileageRates,
+      onMileageRateChanged: (mileageRateId) => bloc.add(
+        OcptResourcesPersonMileageRateChangedEvent(
+          personId: selectedPerson.id,
+          mileageRateId: mileageRateId,
+        ),
+      ),
       onImageRightsDateChanged: (date) => bloc.add(
         OcptResourcesPersonImageRightsDateChangedEvent(personId: selectedPerson.id, date: date),
       ),
@@ -583,6 +591,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
         person.maxDailyPresenceMinutes,
       ),
+      OcptPersonField.commuteKmMilli => person.commuteKmMilli == null
+          ? ""
+          : ocptBudgetQuantityLabel(person.commuteKmMilli!),
       OcptPersonField.accommodationNotes => person.accommodationNotes,
       OcptPersonField.travelNotes => person.travelNotes,
       OcptPersonField.dietaryNotes => person.dietaryNotes,

@@ -84,6 +84,8 @@ OcptRoleCandidate _buildCandidacy({
     birthDate: null,
     minorNotes: "",
     maxDailyPresenceMinutes: null,
+    commuteKmMilli: null,
+    mileageRateId: null,
     isTransportAutonomous: null,
     accommodationNotes: "",
     travelNotes: "",

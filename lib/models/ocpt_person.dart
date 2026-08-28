@@ -244,6 +244,13 @@ class OcptPerson extends Equatable {
   /// Free-form notes about this person.
   final String notes;
 
+  /// This person's one-way commute to set, in thousandths of a kilometre, or null while nobody has
+  /// recorded a distance. See `OcptPeopleTable.commuteKmMilli`.
+  final int? commuteKmMilli;
+
+  /// Which of the project's own `budget_mileage_rates` applies to this person, or null.
+  final String? mileageRateId;
+
   /// The crew positions this person holds on the film, in display order.
   final List<OcptPersonPosition> positions;
 
@@ -290,6 +297,8 @@ class OcptPerson extends Equatable {
     required this.photo,
     required this.imageRightsDocument,
     required this.notes,
+    required this.commuteKmMilli,
+    required this.mileageRateId,
     required this.positions,
     required this.skills,
     required this.unavailabilities,
@@ -340,6 +349,8 @@ class OcptPerson extends Equatable {
     photo: photo,
     imageRightsDocument: imageRightsDocument,
     notes: row.notes,
+    commuteKmMilli: row.commuteKmMilli,
+    mileageRateId: row.mileageRateId,
     positions: positions,
     skills: skills,
     unavailabilities: unavailabilities,
@@ -421,6 +432,8 @@ class OcptPerson extends Equatable {
     photo,
     imageRightsDocument,
     notes,
+    commuteKmMilli,
+    mileageRateId,
     positions,
     skills,
     unavailabilities,

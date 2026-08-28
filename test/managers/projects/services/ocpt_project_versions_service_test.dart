@@ -885,6 +885,15 @@ void main() {
                   shootingSlotGuests: payload.shootingSlotGuests,
                   shootingDayEvents: payload.shootingDayEvents,
                   projectDictionaryWords: payload.projectDictionaryWords,
+                  budgetPostes: payload.budgetPostes,
+                  budgetLines: payload.budgetLines,
+                  budgetEntries: payload.budgetEntries,
+                  budgetCommitments: payload.budgetCommitments,
+                  budgetResources: payload.budgetResources,
+                  budgetMileageRates: payload.budgetMileageRates,
+                  budgetRevenues: payload.budgetRevenues,
+                  budgetShares: payload.budgetShares,
+                  budgetAllowances: payload.budgetAllowances,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -892,6 +901,10 @@ void main() {
                   minimumRestMinutes: payload.minimumRestMinutes,
                   screenplayLanguage: payload.screenplayLanguage,
                   shootingBlockCandidates: const [],
+                  defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
+                  mealPriceCents: payload.mealPriceCents,
+                  snackPriceCents: payload.snackPriceCents,
+                  isBudgetSimplified: payload.isBudgetSimplified,
                 ),
               ),
               summaryJson: "{}",
@@ -981,6 +994,272 @@ void main() {
         database.ocptPeopleTable,
       )..where((table) => table.id.equals("person-2"))).getSingle();
       expect(restoredPerson2.isDeleted, isTrue);
+    });
+
+    test("the cash journal comes back, and a movement recorded since is tombstoned", () async {
+      await database
+          .into(database.ocptBudgetPostesTable)
+          .insert(OcptBudgetPostesTableCompanion.insert(id: "poste-1", label: "Personnel"));
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry-1",
+              date: DateTime.utc(2026, 3, 12),
+              label: "Gaffer tape",
+              posteId: const Value("poste-1"),
+              debitCents: const Value(1250),
+              voucherNumber: const Value("J-001"),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetCommitmentsTable)
+          .insert(
+            OcptBudgetCommitmentsTableCompanion.insert(
+              id: "commitment-1",
+              posteId: "poste-1",
+              label: "Camera deposit",
+              amountCents: const Value(45000),
+            ),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured entry is edited, and a second one is recorded since.
+      await (database.update(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-1"))).write(
+        const OcptBudgetEntriesTableCompanion(debitCents: Value(9999)),
+      );
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry-2",
+              date: DateTime.utc(2026, 4),
+              label: "Recorded later",
+              voucherNumber: const Value("J-002"),
+            ),
+          );
+      await (database.update(
+        database.ocptBudgetCommitmentsTable,
+      )..where((table) => table.id.equals("commitment-1"))).write(
+        const OcptBudgetCommitmentsTableCompanion(amountCents: Value(1)),
+      );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // The amount comes back exactly as it was typed, to the cent.
+      final restoredEntry = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-1"))).getSingle();
+      expect(restoredEntry.debitCents, 1250);
+      expect(restoredEntry.voucherNumber, "J-001");
+
+      final restoredCommitment = await (database.select(
+        database.ocptBudgetCommitmentsTable,
+      )..where((table) => table.id.equals("commitment-1"))).getSingle();
+      expect(restoredCommitment.amountCents, 45000);
+
+      // The movement the version never held is tombstoned, not deleted.
+      final laterEntry = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-2"))).getSingle();
+      expect(laterEntry.isDeleted, isTrue);
+    });
+
+    test(
+      "a financing resource, a mileage rate and a person's commute come back too",
+      () async {
+        await database
+            .into(database.ocptBudgetMileageRatesTable)
+            .insert(
+              OcptBudgetMileageRatesTableCompanion.insert(
+                id: "rate-1",
+                label: "Voiture personnelle",
+                ratePerKmMilliCents: const Value(52900),
+              ),
+            );
+        await database
+            .into(database.ocptBudgetResourcesTable)
+            .insert(
+              OcptBudgetResourcesTableCompanion.insert(
+                id: "resource-1",
+                label: "Région Île-de-France",
+                amountCents: const Value(500000),
+              ),
+            );
+        await database
+            .into(database.ocptBudgetEntriesTable)
+            .insert(
+              OcptBudgetEntriesTableCompanion.insert(
+                id: "entry-3",
+                date: DateTime.utc(2026, 5, 4),
+                label: "Acompte région",
+                creditCents: const Value(200000),
+                voucherNumber: const Value("J-003"),
+                resourceId: const Value("resource-1"),
+              ),
+            );
+        await database
+            .into(database.ocptPeopleTable)
+            .insert(
+              OcptPeopleTableCompanion.insert(
+                id: "person-3",
+                firstName: const Value("Théo"),
+                commuteKmMilli: const Value(1484000),
+                mileageRateId: const Value("rate-1"),
+              ),
+            );
+
+        final version = await createVersion();
+
+        // Diverge: everything just captured is edited, and a fresh resource is recorded since.
+        await (database.update(
+          database.ocptBudgetMileageRatesTable,
+        )..where((table) => table.id.equals("rate-1"))).write(
+          const OcptBudgetMileageRatesTableCompanion(ratePerKmMilliCents: Value(1)),
+        );
+        await (database.update(
+          database.ocptBudgetResourcesTable,
+        )..where((table) => table.id.equals("resource-1"))).write(
+          const OcptBudgetResourcesTableCompanion(amountCents: Value(1)),
+        );
+        await (database.update(
+          database.ocptBudgetEntriesTable,
+        )..where((table) => table.id.equals("entry-3"))).write(
+          const OcptBudgetEntriesTableCompanion(resourceId: Value(null)),
+        );
+        await (database.update(
+          database.ocptPeopleTable,
+        )..where((table) => table.id.equals("person-3"))).write(
+          const OcptPeopleTableCompanion(commuteKmMilli: Value(1), mileageRateId: Value(null)),
+        );
+        await database
+            .into(database.ocptBudgetResourcesTable)
+            .insert(
+              OcptBudgetResourcesTableCompanion.insert(id: "resource-2", label: "Recorded later"),
+            );
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        final restoredRate = await database.select(database.ocptBudgetMileageRatesTable).getSingle();
+        expect(restoredRate.ratePerKmMilliCents, 52900);
+
+        final restoredResource = await (database.select(
+          database.ocptBudgetResourcesTable,
+        )..where((table) => table.id.equals("resource-1"))).getSingle();
+        expect(restoredResource.amountCents, 500000);
+
+        final restoredEntry = await (database.select(
+          database.ocptBudgetEntriesTable,
+        )..where((table) => table.id.equals("entry-3"))).getSingle();
+        expect(restoredEntry.resourceId, "resource-1");
+
+        final restoredPerson = await (database.select(
+          database.ocptPeopleTable,
+        )..where((table) => table.id.equals("person-3"))).getSingle();
+        expect(restoredPerson.commuteKmMilli, 1484000);
+        expect(restoredPerson.mileageRateId, "rate-1");
+
+        // The resource the version never held is tombstoned, not deleted.
+        final laterResource = await (database.select(
+          database.ocptBudgetResourcesTable,
+        )..where((table) => table.id.equals("resource-2"))).getSingle();
+        expect(laterResource.isDeleted, isTrue);
+      },
+    );
+
+    test("the sharing comes back, and a taking recorded since is tombstoned", () async {
+      await database
+          .into(database.ocptBudgetRevenuesTable)
+          .insert(
+            OcptBudgetRevenuesTableCompanion.insert(
+              id: "revenue-1",
+              date: DateTime.utc(2026, 2, 2),
+              label: "Clermont-Ferrand — audience award",
+              amountCents: const Value(300000),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetSharesTable)
+          .insert(
+            OcptBudgetSharesTableCompanion.insert(
+              id: "share-1",
+              label: "Director",
+              sharePermille: const Value(400),
+              reinvestPermille: const Value(1000),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry-1",
+              date: DateTime.utc(2026, 2, 20),
+              label: "Award paid in",
+              creditCents: const Value(300000),
+              voucherNumber: const Value("J-001"),
+              revenueId: const Value("revenue-1"),
+            ),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured taking is edited, its share is renamed, and a second taking is
+      // recorded since.
+      await (database.update(
+        database.ocptBudgetRevenuesTable,
+      )..where((table) => table.id.equals("revenue-1"))).write(
+        const OcptBudgetRevenuesTableCompanion(amountCents: Value(1)),
+      );
+      await (database.update(
+        database.ocptBudgetSharesTable,
+      )..where((table) => table.id.equals("share-1"))).write(
+        const OcptBudgetSharesTableCompanion(sharePermille: Value(999)),
+      );
+      await database
+          .into(database.ocptBudgetRevenuesTable)
+          .insert(
+            OcptBudgetRevenuesTableCompanion.insert(
+              id: "revenue-2",
+              date: DateTime.utc(2026, 5, 30),
+              label: "Recorded later",
+            ),
+          );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // The amount comes back exactly as it was typed, to the cent.
+      final restoredRevenue = await (database.select(
+        database.ocptBudgetRevenuesTable,
+      )..where((table) => table.id.equals("revenue-1"))).getSingle();
+      expect(restoredRevenue.amountCents, 300000);
+
+      final restoredShare = await (database.select(
+        database.ocptBudgetSharesTable,
+      )..where((table) => table.id.equals("share-1"))).getSingle();
+      expect(restoredShare.sharePermille, 400);
+      expect(restoredShare.reinvestPermille, 1000);
+
+      // The link an entry carries onto a taking survives the round trip: without it the sharing
+      // would read the takings as never having brought anything in.
+      final restoredEntry = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-1"))).getSingle();
+      expect(restoredEntry.revenueId, "revenue-1");
+
+      // The taking the version never held is tombstoned, not deleted.
+      final laterRevenue = await (database.select(
+        database.ocptBudgetRevenuesTable,
+      )..where((table) => table.id.equals("revenue-2"))).getSingle();
+      expect(laterRevenue.isDeleted, isTrue);
     });
 
     test("a role's things come back, and a link made since is tombstoned", () async {

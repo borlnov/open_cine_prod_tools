@@ -11,8 +11,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 /// The project settings page's "Currency" section card: a single dropdown over
 /// [ocptCurrencyCodes].
 ///
-/// A card of its own, the way the budget mode's own settings (not shipped yet) are expected to
-/// join it later: currency is a budget concern before it is anything else.
+/// A card of its own, immediately followed by `OcptProjectSettingsBudgetSection`: currency is a
+/// budget concern before it is anything else.
 class OcptProjectSettingsCurrencySection extends StatelessWidget {
   /// The currency code currently selected, an ISO 4217 code.
   final String currencyCode;

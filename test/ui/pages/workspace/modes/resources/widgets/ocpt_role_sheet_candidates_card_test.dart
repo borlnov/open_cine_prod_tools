@@ -31,6 +31,8 @@ OcptPerson _person({required String id, String firstName = "", String lastName =
   birthDate: null,
   minorNotes: "",
   maxDailyPresenceMinutes: null,
+  commuteKmMilli: null,
+  mileageRateId: null,
   isTransportAutonomous: null,
   accommodationNotes: "",
   travelNotes: "",

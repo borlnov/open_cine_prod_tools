@@ -55,6 +55,8 @@ OcptPerson _person({
   photoAssetId: null,
   photo: null,
   notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
   positions: positions,
   skills: const [],
   unavailabilities: const [],

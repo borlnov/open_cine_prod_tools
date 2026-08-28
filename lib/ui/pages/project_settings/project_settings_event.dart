@@ -60,6 +60,50 @@ class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSetti
   List<Object?> get props => [...super.props, minutes];
 }
 
+/// Reports that the user committed a new default VAT rate, in basis points, or cleared it —
+/// whether by submitting the field empty, submitting it negative, or tapping the card's own
+/// `No rate` button; [basisPoints] null meaning "not recorded", a real gesture as much as recording
+/// `0` (an explicit exemption) is.
+class OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent extends OcptProjectSettingsEvent {
+  /// The newly committed rate, in basis points, or null to clear it.
+  final int? basisPoints;
+
+  /// Class constructor
+  const OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent({required this.basisPoints});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, basisPoints];
+}
+
+/// Reports that the user committed a new meal price, in cents, or cleared it — [cents] null meaning
+/// the field was submitted empty, a real gesture as much as typing a figure is.
+class OcptProjectSettingsMealPriceCentsChangedEvent extends OcptProjectSettingsEvent {
+  /// The newly committed price, in cents, or null to clear it.
+  final int? cents;
+
+  /// Class constructor
+  const OcptProjectSettingsMealPriceCentsChangedEvent({required this.cents});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, cents];
+}
+
+/// Reports that the user committed a new buffet price, in cents, or cleared it —
+/// [OcptProjectSettingsMealPriceCentsChangedEvent]'s sibling.
+class OcptProjectSettingsBuffetPriceCentsChangedEvent extends OcptProjectSettingsEvent {
+  /// The newly committed price, in cents, or null to clear it.
+  final int? cents;
+
+  /// Class constructor
+  const OcptProjectSettingsBuffetPriceCentsChangedEvent({required this.cents});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, cents];
+}
+
 /// Reports that the user picked a different screenplay language in the dropdown, including "None"
 /// (null) — a real gesture, turning the checker off for this screenplay, as much as picking one of
 /// the two bundled languages is.
@@ -171,4 +215,67 @@ class OcptProjectSettingsEpisodeDeletionConfirmedEvent extends OcptProjectSettin
   /// Object properties
   @override
   List<Object?> get props => [...super.props, screenplayId];
+}
+
+/// Reports that the `Mileage rates` card's `Add a rate` action was tapped, appending a new,
+/// blank rate.
+class OcptProjectSettingsMileageRateAddedEvent extends OcptProjectSettingsEvent {
+  /// Class constructor
+  const OcptProjectSettingsMileageRateAddedEvent();
+}
+
+/// Reports that the user committed a new label for mileage rate [rateId] — the empty string is a
+/// legal label, exactly as an episode's title is.
+class OcptProjectSettingsMileageRateLabelChangedEvent extends OcptProjectSettingsEvent {
+  /// The id of the mileage rate whose label was committed.
+  final String rateId;
+
+  /// The newly committed label, or the empty string.
+  final String label;
+
+  /// Class constructor
+  const OcptProjectSettingsMileageRateLabelChangedEvent({required this.rateId, required this.label});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, rateId, label];
+}
+
+/// Reports that the user committed a new per-kilometre rate for mileage rate [rateId], in
+/// thousandths of a cent.
+class OcptProjectSettingsMileageRateAmountChangedEvent extends OcptProjectSettingsEvent {
+  /// The id of the mileage rate whose amount was committed.
+  final String rateId;
+
+  /// The newly committed rate, in thousandths of a cent.
+  final int ratePerKmMilliCents;
+
+  /// Class constructor
+  const OcptProjectSettingsMileageRateAmountChangedEvent({
+    required this.rateId,
+    required this.ratePerKmMilliCents,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, rateId, ratePerKmMilliCents];
+}
+
+/// Reports that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
+/// card), deleting mileage rate [rateId].
+///
+/// This tombstones the row (`OcptBudgetFinancingService.deleteMileageRate`, ADR 0010) rather than
+/// erasing it: a live person may still name it through `people.mileageRateId`, and the FK stays
+/// satisfied either way — the travel reading of such a person then finds no live rate and reads
+/// "no rate", exactly the honest state a person who never named one reads as.
+class OcptProjectSettingsMileageRateDeletionConfirmedEvent extends OcptProjectSettingsEvent {
+  /// The id of the mileage rate to delete.
+  final String rateId;
+
+  /// Class constructor
+  const OcptProjectSettingsMileageRateDeletionConfirmedEvent({required this.rateId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, rateId];
 }

@@ -55,6 +55,8 @@ void main() {
     imageRightsAssetId: "asset-1",
     photoAssetId: "asset-2",
     notes: "Lead actress",
+    commuteKmMilli: 1484000,
+    mileageRateId: "rate-1",
   );
 
   /// A payload holding [richPerson], everything hanging off them, and one row that is somebody
@@ -198,6 +200,15 @@ void main() {
     shootingSlotGuests: const [],
     shootingDayEvents: const [],
     projectDictionaryWords: const [],
+    budgetPostes: const [],
+    budgetLines: const [],
+    budgetEntries: const [],
+    budgetCommitments: const [],
+    budgetResources: const [],
+    budgetMileageRates: const [],
+    budgetRevenues: const [],
+    budgetShares: const [],
+    budgetAllowances: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup(
       format: OcptPageFormat.a4,
@@ -213,6 +224,10 @@ void main() {
     minimumRestMinutes: null,
     screenplayLanguage: null,
     shootingBlockCandidates: const [],
+    defaultVatRateBasisPoints: null,
+    mealPriceCents: null,
+    snackPriceCents: null,
+    isBudgetSimplified: null,
   );
 
   /// [payload] as the stored JSON of a version, which is what the scrub actually reads.
@@ -356,6 +371,7 @@ void main() {
       final person = personOf(scrubbed.payload, "person-1");
       expect(person["photoAssetId"], isNull);
       expect(person["imageRightsAssetId"], isNull);
+      expect(person["mileageRateId"], isNull);
     });
 
     test("a scrubbed payload still decodes, and the person comes back blank", () {

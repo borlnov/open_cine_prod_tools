@@ -41,6 +41,8 @@ OcptPerson _person(String id) => OcptPerson(
   birthDate: null,
   minorNotes: "",
   maxDailyPresenceMinutes: null,
+  commuteKmMilli: null,
+  mileageRateId: null,
   isTransportAutonomous: null,
   accommodationNotes: "",
   travelNotes: "",

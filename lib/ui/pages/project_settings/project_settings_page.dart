@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
@@ -17,9 +18,11 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_dictionary_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_budget_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_dictionary_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_mileage_rates_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_screenplay_language_section.dart';
@@ -121,6 +124,30 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
                       OcptProjectSettingsCurrencySection(
                         currencyCode: state.currencyCode,
                         onCurrencyCodeChanged: (code) => _onCurrencyChanged(context, code),
+                      ),
+                      const SizedBox(height: 16),
+                      OcptProjectSettingsBudgetSection(
+                        defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
+                        onDefaultVatRateBasisPointsChanged: (basisPoints) =>
+                            _onDefaultVatRateBasisPointsChanged(context, basisPoints),
+                        mealPriceCents: state.mealPriceCents,
+                        onMealPriceCentsChanged: (cents) => _onMealPriceCentsChanged(context, cents),
+                        buffetPriceCents: state.buffetPriceCents,
+                        onBuffetPriceCentsChanged: (cents) =>
+                            _onBuffetPriceCentsChanged(context, cents),
+                        currencyCode: state.currencyCode,
+                      ),
+                      const SizedBox(height: 16),
+                      OcptProjectSettingsMileageRatesSection(
+                        mileageRates: state.mileageRates,
+                        currencyCode: state.currencyCode,
+                        onRateAdded: () => _onMileageRateAdded(context),
+                        onRateLabelChanged: (rateId, label) =>
+                            _onMileageRateLabelChanged(context, rateId, label),
+                        onRateAmountChanged: (rateId, ratePerKmMilliCents) =>
+                            _onMileageRateAmountChanged(context, rateId, ratePerKmMilliCents),
+                        onRateDeletionRequested: (rate) =>
+                            unawaited(_onMileageRateDeletionRequested(context, rate)),
                       ),
                       const SizedBox(height: 16),
                       OcptProjectSettingsPageFormatSection(
@@ -266,6 +293,28 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
+  /// Dispatches the event that writes the newly committed default VAT rate to the project, or
+  /// clears it — whether that comes from the field's own submission or the card's `No rate` button.
+  void _onDefaultVatRateBasisPointsChanged(BuildContext context, int? basisPoints) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent(basisPoints: basisPoints),
+    );
+  }
+
+  /// Dispatches the event that writes the newly committed meal price to the project.
+  void _onMealPriceCentsChanged(BuildContext context, int? cents) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsMealPriceCentsChangedEvent(cents: cents),
+    );
+  }
+
+  /// Dispatches the event that writes the newly committed buffet price to the project.
+  void _onBuffetPriceCentsChanged(BuildContext context, int? cents) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsBuffetPriceCentsChangedEvent(cents: cents),
+    );
+  }
+
   /// Dispatches the event that appends a new episode.
   void _onEpisodeAdded(BuildContext context) {
     context.read<OcptProjectSettingsBloc>().add(const OcptProjectSettingsEpisodeAddedEvent());
@@ -318,5 +367,55 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     }
 
     bloc.add(OcptProjectSettingsEpisodeDeletionConfirmedEvent(screenplayId: episode.id));
+  }
+
+  /// Dispatches the event that appends a new, blank mileage rate.
+  void _onMileageRateAdded(BuildContext context) {
+    context.read<OcptProjectSettingsBloc>().add(const OcptProjectSettingsMileageRateAddedEvent());
+  }
+
+  /// Dispatches the event that writes a mileage rate's newly committed label.
+  void _onMileageRateLabelChanged(BuildContext context, String rateId, String label) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsMileageRateLabelChangedEvent(rateId: rateId, label: label),
+    );
+  }
+
+  /// Dispatches the event that writes a mileage rate's newly committed per-kilometre amount.
+  void _onMileageRateAmountChanged(BuildContext context, String rateId, int ratePerKmMilliCents) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsMileageRateAmountChangedEvent(
+        rateId: rateId,
+        ratePerKmMilliCents: ratePerKmMilliCents,
+      ),
+    );
+  }
+
+  /// Asks `OcptConfirmDialog` whether [rate] really is to be deleted, naming it and stating that a
+  /// person who already names it will simply read no rate at all, then dispatches the deletion if
+  /// the user confirmed it.
+  Future<void> _onMileageRateDeletionRequested(
+    BuildContext context,
+    OcptBudgetMileageRate rate,
+  ) async {
+    final bloc = context.read<OcptProjectSettingsBloc>();
+    final tr = Tr.of(context);
+    final label = rate.label.isEmpty ? tr.projectSettingsUnnamedMileageRate : rate.label;
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.projectSettingsDeleteMileageRateConfirmTitle(label),
+      message: tr.projectSettingsDeleteMileageRateConfirmMessage,
+      cancelLabel: tr.projectSettingsDeleteMileageRateConfirmCancelAction,
+      confirmLabel: tr.projectSettingsDeleteMileageRateConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptProjectSettingsMileageRateDeletionConfirmedEvent(rateId: rate.id));
   }
 }

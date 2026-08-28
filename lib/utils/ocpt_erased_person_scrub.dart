@@ -51,6 +51,8 @@ const ocptErasedPersonNulledKeys = {
   "imageRightsDate",
   "imageRightsAssetId",
   "photoAssetId",
+  "commuteKmMilli",
+  "mileageRateId",
 };
 
 /// The value the `imageRightsStatus` key takes on an erased person: the same

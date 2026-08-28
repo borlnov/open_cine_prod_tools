@@ -12,6 +12,7 @@ import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
@@ -37,8 +38,9 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// visibility preference, its spell-check visibility preference, the last used workspace mode,
 /// the shot list mode's own dock fractions, visible table columns and last right dock tab, the
 /// resources mode's own dock fractions, the breakdown mode's own dock fractions and last right
-/// dock tab, the schedule mode's own dock fractions and last right dock tab, and the id
-/// identifying this replica of the app ([loadOrCreateDeviceId]).
+/// dock tab, the schedule mode's own dock fractions and last right dock tab, the budget mode's own
+/// right dock fraction and last right dock tab, and the id identifying this replica of the app
+/// ([loadOrCreateDeviceId]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -209,6 +211,25 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   final scheduleLastRightDockTab = SharedPrefsItemWithParser<OcptScheduleRightDockTab, String>(
     "SCHEDULE_LAST_RIGHT_DOCK_TAB",
     parser: _parseScheduleRightDockTab,
+    castTo: (value) => value.name,
+  );
+
+  /// This is the key used to store the budget mode's right (inspector/versions) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from every other mode's own dock-fraction key for the same reason those are
+  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
+  /// equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final budgetRightDockFraction = SharedPreferencesItem<double>("BUDGET_RIGHT_DOCK_FRACTION");
+
+  /// This is the key used to store the tab the budget mode's right dock last showed, so reopening
+  /// the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptBudgetRightDockTab.inspector].
+  final budgetLastRightDockTab = SharedPrefsItemWithParser<OcptBudgetRightDockTab, String>(
+    "BUDGET_LAST_RIGHT_DOCK_TAB",
+    parser: _parseBudgetRightDockTab,
     castTo: (value) => value.name,
   );
 
@@ -450,6 +471,21 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     }
 
     appLogger().w("The schedule right dock tab stored in the local storage: $value, isn't a "
+        "known tab, we can't convert it");
+    return null;
+  }
+
+  /// Parse the [value] stored in the local storage to the wanted [OcptBudgetRightDockTab].
+  ///
+  /// Returns null if the [value] doesn't match any of the [OcptBudgetRightDockTab] values.
+  static OcptBudgetRightDockTab? _parseBudgetRightDockTab(String value) {
+    for (final tab in OcptBudgetRightDockTab.values) {
+      if (tab.name == value) {
+        return tab;
+      }
+    }
+
+    appLogger().w("The budget right dock tab stored in the local storage: $value, isn't a "
         "known tab, we can't convert it");
     return null;
   }

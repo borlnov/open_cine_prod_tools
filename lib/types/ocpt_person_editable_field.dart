@@ -9,9 +9,12 @@
 ///
 /// Every case maps onto one `OcptPeopleService.updatePerson` argument of the same name. The
 /// discrete fields of `people` — `colorIndex`, `birthDate`, `isTransportAutonomous`,
-/// `imageRightsStatus`, `imageRightsDate` — are deliberately absent from this enum: a colour
-/// swatch, a date picker and a status dropdown are each a single action rather than typing, so
-/// they are written immediately by their own bloc events instead. The sub-lists (positions,
+/// `imageRightsStatus`, `imageRightsDate`, `mileageRateId` — are deliberately absent from this
+/// enum: a colour swatch, a date picker, a status dropdown and a rate picker are each a single
+/// action rather than typing, so they are written immediately by their own bloc events instead.
+/// `mileageRateId` in particular picks from a project-wide catalogue rather than accepting free
+/// text, exactly the reason a status dropdown is discrete rather than typed. The sub-lists
+/// (positions,
 /// skills, unavailabilities) are absent for the same reason `shotSize` alone, not a shot's
 /// characters, is in `OcptShotListEditableField`: they are a different shape of edit (add/update/
 /// remove a row) with their own events.
@@ -56,6 +59,15 @@ enum OcptPersonField {
   /// (`ocptMaxDailyPresenceMinutesOf`) and writes null for anything it cannot, so a half-typed
   /// figure never blocks the field and never lands as a maximum either. The sheet flags it instead.
   maxDailyPresenceMinutes,
+
+  /// Maps to `updatePerson`'s `commuteKmMilli`.
+  ///
+  /// Typed but not stored as text, mirroring [maxDailyPresenceMinutes]: the bloc reads what was
+  /// typed as a distance in thousandths of a kilometre (`ocptBudgetQuantityMilliOf`,
+  /// `lib/ui/utils/ocpt_budget_labels.dart` — the very parser the quote lines' own quantity field
+  /// already uses) and writes null for anything it cannot, so a half-typed figure never blocks the
+  /// field and never lands as a distance either.
+  commuteKmMilli,
 
   /// Maps to `updatePerson`'s `accommodationNotes`.
   accommodationNotes,
