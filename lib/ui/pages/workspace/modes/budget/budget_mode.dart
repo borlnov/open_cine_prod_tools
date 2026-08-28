@@ -2083,6 +2083,10 @@ class _BudgetViewState extends State<_BudgetView> {
       context,
       initialGesture: OcptBudgetGesture.recordExpense,
       entryPrefill: prefill,
+      // The line has not been promoted, so every lettrage candidate would be a different object —
+      // rerouting the payment onto one is exactly the confusion this direct pay avoids. The strip
+      // stays on in the generic `+` capture, where the movement is free-typed.
+      offersLettrage: false,
       postes: state.postes,
       resources: state.resources,
       revenues: state.revenues,
@@ -2107,12 +2111,8 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    final suggestion = outcome.acceptedSuggestion;
-    if (suggestion != null) {
-      _handleEntryWizardSuggestionAccepted(bloc, state, suggestion, outcome.fields);
-      return;
-    }
-
+    // With the strip withheld the wizard can accept no suggestion, so the direct pay is the only
+    // outcome left — no `acceptedSuggestion` branch is reachable here.
     bloc.add(OcptBudgetLinePaidDirectlyEvent(lineId: lineId, fields: outcome.fields));
   }
 

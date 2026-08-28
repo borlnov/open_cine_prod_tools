@@ -265,6 +265,7 @@ void main() {
     String? filterLabel,
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
+    bool offersLettrage = true,
     List<OcptBudgetPoste> postes = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
@@ -284,6 +285,7 @@ void main() {
           filterLabel: filterLabel,
           initialGesture: initialGesture,
           entryPrefill: entryPrefill,
+          offersLettrage: offersLettrage,
           postes: postes,
           resources: resources,
           revenues: revenues,
@@ -761,6 +763,46 @@ void main() {
       final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
       expect(outcome.acceptedSuggestion, isNull);
     });
+
+    testWidgets(
+      "offersLettrage false withholds the strip even where a candidate would match",
+      (tester) async {
+        // The direct pay of a quote line opens the wizard exactly this way — pre-filled on step 3
+        // with the line's own label and amount, offersLettrage off. A commitment sharing that
+        // amount would ordinarily be offered; here the strip is withheld whole.
+        final prefill = OcptBudgetEntryFormFields(
+          date: DateTime(2026, 1, 5),
+          label: "Atelier Verrier",
+          posteId: "p1",
+          resourceId: null,
+          revenueId: null,
+          shareId: null,
+          isDebit: true,
+          amountCents: 25000,
+          isTaxInclusive: true,
+          vatRateBasisPoints: null,
+          voucherNumber: null,
+          pickedReceiptPath: null,
+          isReceiptDetached: false,
+        );
+
+        final tr = await pumpDialog(
+          tester,
+          initialGesture: OcptBudgetGesture.recordExpense,
+          entryPrefill: prefill,
+          offersLettrage: false,
+          postes: [_poste(id: "p1", label: "Camera")],
+          commitments: [
+            _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
+          ],
+        );
+
+        // Landed on the form with the matching amount typed, yet no strip and no candidate row.
+        expect(find.text(tr.budgetNewLettrageTitle), findsNothing);
+        expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsNothing);
+        expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsNothing);
+      },
+    );
   });
 
   group("the dashboard's own case", () {

@@ -136,6 +136,14 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// prefill itself.
   final String? commitmentPrefillLineId;
 
+  /// Whether step 3 offers the lettrage strip at all. **True everywhere but the direct pay of a
+  /// quote line**, which opens the wizard on an amount and a wording that necessarily belong to no
+  /// existing commitment — the line has not been promoted — so every candidate the strip could rank
+  /// is a *different* object, and offering to reroute the payment onto one only asks the reader to
+  /// reject a rapprochement they never meant. The generic `+` capture keeps it: there, the movement
+  /// is free-typed and the strip is what stops the same euro being both committed and paid.
+  final bool offersLettrage;
+
   /// Every live poste of the project.
   final List<OcptBudgetPoste> postes;
 
@@ -197,6 +205,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     this.entryPrefill,
     this.commitmentPrefill,
     this.commitmentPrefillLineId,
+    this.offersLettrage = true,
     required this.postes,
     required this.resources,
     required this.revenues,
@@ -225,6 +234,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     OcptBudgetEntryFormFields? entryPrefill,
     OcptBudgetCommitmentFormFields? commitmentPrefill,
     String? commitmentPrefillLineId,
+    bool offersLettrage = true,
     required List<OcptBudgetPoste> postes,
     required List<OcptBudgetResource> resources,
     required List<OcptBudgetRevenue> revenues,
@@ -251,6 +261,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
       entryPrefill: entryPrefill,
       commitmentPrefill: commitmentPrefill,
       commitmentPrefillLineId: commitmentPrefillLineId,
+      offersLettrage: offersLettrage,
       postes: postes,
       resources: resources,
       revenues: revenues,
@@ -1455,6 +1466,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   }
 
   List<OcptBudgetMatchSuggestion> _lettrageSuggestionsOf() {
+    if (!widget.offersLettrage) {
+      return const [];
+    }
+
     final draft = _saveableDraft;
     if (draft == null) {
       return const [];
