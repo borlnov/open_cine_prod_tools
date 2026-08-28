@@ -8,6 +8,16 @@ import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 
+/// Whether [entry] is a debit that names a poste but no commitment — an off-line spend against a
+/// poste's own quote, never reconciled with it. The fiche's own banner reads this to offer `Add to
+/// the quote`/`Move off-quote` on such an entry (`OcptBudgetFiche`), and the bloc's own two
+/// handlers answering those actions read it again as a defensive guard
+/// (`OcptBudgetEntryPromotedToQuoteEvent`, `OcptBudgetEntryMovedOffQuoteEvent`) — both actions
+/// naturally clear it, one by setting [OcptBudgetEntry.commitmentId], the other by nulling
+/// [OcptBudgetEntry.posteId].
+bool ocptBudgetEntryIsOffLineDebit(OcptBudgetEntry entry) =>
+    entry.debitCents > 0 && entry.posteId != null && entry.commitmentId == null;
+
 /// [entry]'s own [OcptBudgetEntry.debitCents], read **tax-inclusive**, given the project's own
 /// [projectVatRateBasisPoints] — or null when that reading is impossible.
 ///

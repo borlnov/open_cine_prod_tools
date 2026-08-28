@@ -53,6 +53,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_even
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
@@ -278,6 +279,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetCommitmentDeletionConfirmedEvent>(_onCommitmentDeletionConfirmed);
     on<OcptBudgetCommitmentSettlementConfirmedEvent>(_onCommitmentSettlementConfirmed);
     on<OcptBudgetLinePaidDirectlyEvent>(_onLinePaidDirectly);
+    on<OcptBudgetEntryPromotedToQuoteEvent>(_onEntryPromotedToQuote);
+    on<OcptBudgetEntryMovedOffQuoteEvent>(_onEntryMovedOffQuote);
     on<OcptBudgetCommitmentUnsettleRequestedEvent>(_onCommitmentUnsettleRequested);
     on<OcptBudgetResourceSelectedEvent>(_onResourceSelected);
     on<OcptBudgetAllowanceCreationConfirmedEvent>(_onAllowanceCreationConfirmed);
@@ -1633,6 +1636,95 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     if (entryId != null) {
       await _writeEntryReceiptChange(project, entryId, fields);
     }
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Promotes off-line debit entry `event.entryId` into the quote — the fiche's own banner and its
+  /// `Add to the quote` action, offered on a debit that names a poste but no commitment
+  /// ([OcptBudgetEntryPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates a
+  /// quote line from the entry first (`createLine`, quantity `1.0`, the entry's own label and tax
+  /// basis), then a commitment from that line exactly as [_onLinePaidDirectly] does
+  /// (`createCommitment`, naming it through `lineId`) — and finally **re-points the entry itself at
+  /// that fresh commitment** (`updateEntry`, `commitmentId` alone) rather than creating a second
+  /// entry: the debit that settles the commitment is the very one already on the ledger. Skipping
+  /// the relink would leave the commitment unsettled, adding to the poste's committed total on top
+  /// of what is already paid — the exact double-count this whole mode refuses everywhere else.
+  Future<void> _onEntryPromotedToQuote(
+    OcptBudgetEntryPromotedToQuoteEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final entry = state.entries.where((entry) => entry.id == event.entryId).firstOrNull;
+    final posteId = entry?.posteId;
+    if (entry == null || posteId == null || !ocptBudgetEntryIsOffLineDebit(entry)) {
+      return;
+    }
+
+    final lineId = await _budgetQuoteService.createLine(
+      database: project.database,
+      posteId: posteId,
+      label: entry.label,
+      quantityMilli: const Value(1000),
+      unitAmountCents: Value(entry.debitCents),
+      isTaxInclusive: Value(entry.isTaxInclusive),
+      vatRateBasisPoints: Value(entry.vatRateBasisPoints),
+    );
+    if (lineId == null) {
+      return;
+    }
+
+    final commitmentId = await _budgetJournalService.createCommitment(
+      database: project.database,
+      posteId: posteId,
+      label: entry.label,
+      amountCents: entry.debitCents,
+      isTaxInclusive: entry.isTaxInclusive,
+      vatRateBasisPoints: entry.vatRateBasisPoints,
+      lineId: lineId,
+    );
+    if (commitmentId == null) {
+      return;
+    }
+
+    await _budgetJournalService.updateEntry(
+      database: project.database,
+      entryId: entry.id,
+      commitmentId: Value(commitmentId),
+    );
+
+    await _applyBudgetSnapshot(emitter, project);
+  }
+
+  /// Detaches off-line debit entry `event.entryId` from its poste — the fiche's own banner and its
+  /// `Move off-quote` action, the other way to reconcile the very entry
+  /// [_onEntryPromotedToQuote] promotes: rather than folding the spend into the quote, this admits
+  /// it was never quoted at all. Clears `posteId` back to null and nothing else, so the entry reads
+  /// as an honest off-quote spend from then on ([OcptBudgetEntryMovedOffQuoteEvent]'s own doc
+  /// comment).
+  Future<void> _onEntryMovedOffQuote(
+    OcptBudgetEntryMovedOffQuoteEvent event,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final entry = state.entries.where((entry) => entry.id == event.entryId).firstOrNull;
+    if (entry == null || !ocptBudgetEntryIsOffLineDebit(entry)) {
+      return;
+    }
+
+    await _budgetJournalService.updateEntry(
+      database: project.database,
+      entryId: entry.id,
+      posteId: const Value(null),
+    );
 
     await _applyBudgetSnapshot(emitter, project);
   }

@@ -669,7 +669,22 @@ are all here, and this file is the whole record of them.
     commitment's own tax basis (see "A commitment settles when the ledger says it is paid" above) —
     and null once settled.
   - An **entry**'s stepper is always fully reached; its primary action is `Edit`, its secondary
-    `Delete`.
+    `Delete`. **A debit naming a poste but no commitment draws a banner above the primary
+    action** — `entry.debitCents > 0 && entry.posteId != null && entry.commitmentId == null`, an
+    off-quote spend against a poste's own quote that pushes it over with no guided way back. The
+    banner states the fact plainly, and, while the poste is currently over its quote, by how much
+    (`ocptBudgetPosteStrainOf`/`ocptBudgetVarianceCents`, the same reading the poste variant's own
+    proportion bar uses), and offers two ways to reconcile it, both of which clear the banner in
+    one click: `Add to the quote` (`onEntryPromoteToQuoteRequested`) is "A quote line is paid
+    directly, the commitment made for it" run the other way round — a quote line and a settled
+    commitment are minted from the entry, and the entry itself is **re-pointed** at the fresh
+    commitment (`OcptBudgetJournalService.updateEntry`, `commitmentId` alone) rather than a second
+    entry being created, since the debit that settles the commitment is the one already on the
+    ledger; skipping that relink would leave the commitment unsettled, adding to the poste's
+    committed total on top of what is already paid, exactly the double-count this whole mode
+    refuses everywhere else. `Move off-quote` (`onEntryMoveOffQuoteRequested`) clears the entry's
+    own poste instead, admitting the spend was never quoted at all ("Off-quote spending is named,
+    never hidden" above). Under a previewed version the text stays but both actions are withheld.
   - A **resource**'s stepper reads `Promised · Received`, its badge the `Dossier` fact held apart
     from the money; its primary action is `Receive {outstanding}` (`onResourceReceiptRequested`),
     withheld for an in-kind resource or once it is fully received.

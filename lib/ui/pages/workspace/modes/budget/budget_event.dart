@@ -613,6 +613,49 @@ class OcptBudgetLinePaidDirectlyEvent extends OcptBudgetEvent {
   List<Object?> get props => [...super.props, lineId, fields];
 }
 
+/// Promotes off-line debit entry [entryId] into the quote it never went through — the banner's own
+/// `Add to the quote` action, dispatched on an entry that names a poste but no commitment (a till
+/// receipt for something the quote never anticipated). The bloc creates a quote line from the entry
+/// first (`OcptBudgetQuoteService.createLine`, the entry's own label, quantity `1.0`, unit price and
+/// tax basis), then a commitment from that line exactly as [OcptBudgetLinePaidDirectlyEvent] does
+/// (`OcptBudgetJournalService.createCommitment`, seeded from the line, naming it through `lineId`),
+/// and finally **re-points [entryId] at that fresh commitment**
+/// (`OcptBudgetJournalService.updateEntry`, `commitmentId` alone) rather than minting a second entry
+/// — the entry already exists, so the debit that settles the commitment is the very one this event
+/// promotes. Skipping the relink would leave the commitment unsettled, adding to the poste's
+/// committed total on top of what is already paid: the exact double-count this whole mode refuses
+/// everywhere else.
+class OcptBudgetEntryPromotedToQuoteEvent extends OcptBudgetEvent {
+  /// The id of the off-line debit entry to promote.
+  final String entryId;
+
+  /// Class constructor
+  const OcptBudgetEntryPromotedToQuoteEvent({required this.entryId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, entryId];
+}
+
+/// Detaches off-line debit entry [entryId] from its poste — the banner's own `Move off-quote`
+/// action, dispatched on the very same kind of entry [OcptBudgetEntryPromotedToQuoteEvent] promotes,
+/// the other way to reconcile it: rather than folding the spend into the quote, this admits it was
+/// never quoted at all. Clears `posteId` back to null
+/// (`OcptBudgetJournalService.updateEntry`) and nothing else, so the entry becomes an honest
+/// off-quote spend, read by `ocptBudgetOffQuotePaidTotalOf` like any other
+/// (`docs/architecture/budget.md`'s "Off-quote spending is named, never hidden").
+class OcptBudgetEntryMovedOffQuoteEvent extends OcptBudgetEvent {
+  /// The id of the off-line debit entry to detach from its poste.
+  final String entryId;
+
+  /// Class constructor
+  const OcptBudgetEntryMovedOffQuoteEvent({required this.entryId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, entryId];
+}
+
 /// Undoes commitment [commitmentId]'s own settlement, dispatched by its row's own `Undo settlement`
 /// action — clears `commitmentId` back to null on **every** live entry naming it, each entry itself
 /// left untouched otherwise. `Undo settlement`'s own label promises the commitment is not paid, and

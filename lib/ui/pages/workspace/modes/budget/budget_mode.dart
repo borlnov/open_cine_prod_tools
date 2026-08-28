@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -2240,6 +2241,14 @@ class _BudgetViewState extends State<_BudgetView> {
     final elementNameByElementId = {
       for (final element in state.elements) element.id: element.name,
     };
+    // The off-line-debit banner's own two actions read the very same entry a receipt's own fiche
+    // shares with an ordinary entry's — `OcptBudgetReceiptSelection` names the same `budget_entries`
+    // row as `OcptBudgetEntrySelection`, only through a different field.
+    final selectedEntryId = switch (state.selection) {
+      OcptBudgetEntrySelection(:final entryId) => entryId,
+      OcptBudgetReceiptSelection(:final receiptId) => receiptId,
+      _ => null,
+    };
 
     return OcptBudgetFiche(
       selection: state.selection,
@@ -2306,6 +2315,12 @@ class _BudgetViewState extends State<_BudgetView> {
       onEntryDeletionRequested: isReadOnly
           ? null
           : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
+      onEntryPromoteToQuoteRequested: isReadOnly || selectedEntryId == null
+          ? null
+          : () => bloc.add(OcptBudgetEntryPromotedToQuoteEvent(entryId: selectedEntryId)),
+      onEntryMoveOffQuoteRequested: isReadOnly || selectedEntryId == null
+          ? null
+          : () => bloc.add(OcptBudgetEntryMovedOffQuoteEvent(entryId: selectedEntryId)),
       onResourceReceiptRequested: isReadOnly
           ? null
           : (resource) => unawaited(_handleResourceReceiptRequested(context, state, resource)),

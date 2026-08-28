@@ -11546,6 +11546,38 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetFicheEntryOffLineBannerText": "This spend is not tied to this poste's quote.",
+  "@budgetFicheEntryOffLineBannerText": {
+    "description": "Neutral, factual explanation shown on a debit entry that names a poste but no commitment — the banner offering to add it to the quote or move it off-quote",
+    "context": "Displayed above the primary action on an off-line debit entry's own fiche in the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheEntryOffLineBannerOverQuoteText": "This spend is not tied to this poste's quote, which is currently {varianceAmount} over.",
+  "@budgetFicheEntryOffLineBannerOverQuoteText": {
+    "description": "Same banner as budgetFicheEntryOffLineBannerText, with the poste's own overrun stated, while it is over its quote",
+    "context": "Displayed above the primary action on an off-line debit entry's own fiche in the budget mode",
+    "type": "text",
+    "placeholders": {
+      "varianceAmount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetFicheEntryPromoteToQuoteAction": "Add to the quote",
+  "@budgetFicheEntryPromoteToQuoteAction": {
+    "description": "Banner action promoting an off-line debit entry into a quote line and a settled commitment naming this very entry",
+    "context": "Displayed on an off-line debit entry's own fiche in the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetFicheEntryMoveOffQuoteAction": "Move off-quote",
+  "@budgetFicheEntryMoveOffQuoteAction": {
+    "description": "Banner action clearing an off-line debit entry's own poste, so it reads as an honest off-quote spend",
+    "context": "Displayed on an off-line debit entry's own fiche in the budget mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetExportPanelTitle": "Export the budget",
   "@budgetExportPanelTitle": {
     "description": "Title of the budget mode's own export panel",

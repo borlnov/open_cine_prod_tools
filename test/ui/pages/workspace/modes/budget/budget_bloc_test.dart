@@ -46,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -1488,6 +1489,232 @@ void main() {
       expect(state.commitments.single.amount.amountCents, 1000);
       expect(state.entries.single.debitCents, 400);
       expect(state.entries.single.commitmentId, state.commitments.single.id);
+    });
+  });
+
+  group("promoting an off-line debit entry into the quote", () {
+    test("mints a line and a settled commitment, re-pointing the very same entry", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      // An off-line debit against a poste with no quote yet — over its (empty) quote by
+      // construction.
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 4),
+            label: "Generator rental",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withEntry = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+      final entryId = withEntry.entries.single.id;
+      expect(
+        ocptBudgetVarianceCents(
+          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(withEntry.postes.first),
+          paidCents: withEntry.paidCentsOf(posteId),
+          committedCents: withEntry.committedCentsOf(posteId),
+        ),
+        5000,
+      );
+
+      bloc.add(OcptBudgetEntryPromotedToQuoteEvent(entryId: entryId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.postes.first.lines.isNotEmpty && state.commitments.isNotEmpty,
+      );
+
+      // One line, mirroring the entry exactly.
+      expect(state.postes.first.lines, hasLength(1));
+      final line = state.postes.first.lines.single;
+      expect(line.label, "Generator rental");
+      expect(line.quantityMilli, 1000);
+      expect(line.unitPrice.amountCents, 5000);
+      expect(line.unitPrice.isTaxInclusive, isTrue);
+
+      // One commitment, made from that line, naming it.
+      expect(state.commitments, hasLength(1));
+      final commitment = state.commitments.single;
+      expect(commitment.lineId, line.id);
+      expect(commitment.amount.amountCents, 5000);
+
+      // The very same entry now settles it — never a second one.
+      expect(state.entries, hasLength(1));
+      final entry = state.entries.single;
+      expect(entry.id, entryId);
+      expect(entry.commitmentId, commitment.id);
+      expect(entry.debitCents, 5000);
+
+      // The overrun is gone: quoted, paid and committed now agree.
+      expect(
+        ocptBudgetVarianceCents(
+          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(state.postes.first),
+          paidCents: state.paidCentsOf(posteId),
+          committedCents: state.committedCentsOf(posteId),
+        ),
+        0,
+      );
+    });
+
+    test("does nothing on an entry that already names a commitment", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetLineCreatedEvent(
+          posteId: posteId,
+          fields: const OcptBudgetLineFormFields(
+            label: "Camera",
+            quantityMilli: 1000,
+            unit: "u",
+            unitAmountCents: 1000,
+          ),
+        ),
+      );
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+
+      bloc.add(
+        OcptBudgetLinePaidDirectlyEvent(
+          lineId: lineId,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 6),
+            label: "Camera",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 1000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withCommitment = await waitForState(
+        bloc,
+        (state) => state.commitments.isNotEmpty && state.entries.isNotEmpty,
+      );
+      final entryId = withCommitment.entries.single.id;
+
+      bloc.add(OcptBudgetEntryPromotedToQuoteEvent(entryId: entryId));
+      await pumpEventQueue();
+
+      // No second line, no second commitment: the guard bailed.
+      expect(bloc.state.postes.first.lines, hasLength(1));
+      expect(bloc.state.commitments, hasLength(1));
+    });
+  });
+
+  group("moving an off-line debit entry off-quote", () {
+    test("clears the entry's own poste and nothing else", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetEntryCreationConfirmedEvent(
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 4),
+            label: "Generator rental",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 5000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withEntry = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+      final entryId = withEntry.entries.single.id;
+
+      bloc.add(OcptBudgetEntryMovedOffQuoteEvent(entryId: entryId));
+      final state = await waitForState(bloc, (state) => state.entries.single.posteId == null);
+
+      final entry = state.entries.single;
+      expect(entry.id, entryId);
+      expect(entry.posteId, isNull);
+      expect(entry.debitCents, 5000);
+      expect(entry.commitmentId, isNull);
+      // Nothing was promoted: the poste's own quote is untouched.
+      expect(state.postes.first.lines, isEmpty);
+    });
+
+    test("does nothing on an entry that already names a commitment", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetLineCreatedEvent(
+          posteId: posteId,
+          fields: const OcptBudgetLineFormFields(
+            label: "Camera",
+            quantityMilli: 1000,
+            unit: "u",
+            unitAmountCents: 1000,
+          ),
+        ),
+      );
+      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final lineId = withLine.postes.first.lines.single.id;
+
+      bloc.add(
+        OcptBudgetLinePaidDirectlyEvent(
+          lineId: lineId,
+          fields: OcptBudgetEntryFormFields(
+            date: DateTime(2026, 6),
+            label: "Camera",
+            posteId: posteId,
+            resourceId: null,
+            revenueId: null,
+            shareId: null,
+            isDebit: true,
+            amountCents: 1000,
+            isTaxInclusive: true,
+            vatRateBasisPoints: null,
+            voucherNumber: null,
+            pickedReceiptPath: null,
+            isReceiptDetached: false,
+          ),
+        ),
+      );
+      final withCommitment = await waitForState(
+        bloc,
+        (state) => state.commitments.isNotEmpty && state.entries.isNotEmpty,
+      );
+      final entryId = withCommitment.entries.single.id;
+
+      bloc.add(OcptBudgetEntryMovedOffQuoteEvent(entryId: entryId));
+      await pumpEventQueue();
+
+      expect(bloc.state.entries.single.posteId, posteId);
     });
   });
 

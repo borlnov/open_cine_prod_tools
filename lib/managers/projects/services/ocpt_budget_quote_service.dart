@@ -238,6 +238,12 @@ class OcptBudgetQuoteService {
   /// it at [Value.absent], reading `budget_lines.unit`'s own ordinary default exactly as before this
   /// parameter existed.
   ///
+  /// [isTaxInclusive] and [vatRateBasisPoints] are what the fiche's own `Add to the quote` banner
+  /// action fills in — a line promoted from an off-line journal entry, its own tax basis mirrored
+  /// exactly rather than left to the ordinary line default — and what every other caller leaves at
+  /// [Value.absent], reading `budget_lines`' own ordinary defaults exactly as before these two
+  /// parameters existed.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createLine({
     required OcptProjectDatabase database,
@@ -247,6 +253,8 @@ class OcptBudgetQuoteService {
     Value<int> quantityMilli = const Value.absent(),
     Value<String> unit = const Value.absent(),
     Value<int> unitAmountCents = const Value.absent(),
+    Value<bool> isTaxInclusive = const Value.absent(),
+    Value<int?> vatRateBasisPoints = const Value.absent(),
     Value<String?> provisionKey = const Value.absent(),
     Value<String?> provisionDigest = const Value.absent(),
   }) async {
@@ -268,6 +276,8 @@ class OcptBudgetQuoteService {
             quantityMilli: quantityMilli,
             unit: unit,
             unitAmountCents: unitAmountCents,
+            isTaxInclusive: isTaxInclusive,
+            vatRateBasisPoints: vatRateBasisPoints,
             provisionKey: provisionKey,
             provisionDigest: provisionDigest,
             sortKey: Value(
