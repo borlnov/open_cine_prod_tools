@@ -63,7 +63,7 @@ void main() {
       locationsService: locationsService,
       deviceId: _testDeviceId,
     ),
-    scheduleService: OcptScheduleService(),
+    scheduleService: OcptScheduleService(deviceId: _testDeviceId),
     deviceId: _testDeviceId,
   );
   const screenplayId = "screenplay-1";

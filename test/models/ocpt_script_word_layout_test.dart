@@ -506,7 +506,7 @@ void main() {
         locationsService: locationsService,
         deviceId: testDeviceId,
       ),
-      scheduleService: const OcptScheduleService(),
+      scheduleService: OcptScheduleService(deviceId: testDeviceId),
       deviceId: testDeviceId,
     );
     const screenplayId = "screenplay-1";

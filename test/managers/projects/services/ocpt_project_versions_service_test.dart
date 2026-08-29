@@ -55,7 +55,7 @@ void main() {
     assetsService: assetsService,
     roleCandidatesService: roleCandidatesService,
   );
-  const scheduleService = OcptScheduleService();
+  final scheduleService = OcptScheduleService(deviceId: testDeviceId);
   final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
   final locationsService = OcptLocationsService(
     assetsService: assetsService,

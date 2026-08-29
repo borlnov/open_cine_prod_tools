@@ -174,7 +174,7 @@ void main() {
     assetsService: assetsService,
     roleCandidatesService: roleCandidatesService,
   );
-  const scheduleService = OcptScheduleService();
+  final scheduleService = OcptScheduleService(deviceId: deviceId);
   const budgetQuoteService = OcptBudgetQuoteService();
   final budgetJournalService = OcptBudgetJournalService(assetsService: assetsService);
   const budgetFinancingService = OcptBudgetFinancingService();

@@ -435,7 +435,11 @@ class OcptScreenplayService {
         sceneIds: sceneIds,
         stamps: stamps,
       );
-      await _scheduleService.tombstoneShotBlocks(database: database, shotIds: shotIds);
+      await _scheduleService.tombstoneShotBlocks(
+        database: database,
+        shotIds: shotIds,
+        stamps: stamps,
+      );
       await _roleIndexService.tombstoneEpisodeLinks(
         database: database,
         screenplayId: screenplayId,

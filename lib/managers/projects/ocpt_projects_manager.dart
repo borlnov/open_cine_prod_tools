@@ -294,7 +294,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
              ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
-           scheduleService: const OcptScheduleService(),
+           scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
        ),
@@ -325,7 +325,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
            ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
-         scheduleService: const OcptScheduleService(),
+         scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        peopleService = OcptPeopleService(
@@ -378,7 +378,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          ),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       scheduleService = const OcptScheduleService();
+       scheduleService = OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager));
 
   /// The project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;

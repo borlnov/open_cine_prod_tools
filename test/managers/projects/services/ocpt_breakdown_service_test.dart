@@ -54,7 +54,7 @@ void main() {
     shotCoverageService: OcptShotCoverageService(deviceId: testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
-    scheduleService: const OcptScheduleService(),
+    scheduleService: OcptScheduleService(deviceId: testDeviceId),
     deviceId: testDeviceId,
   );
   const screenplayId = "screenplay-1";

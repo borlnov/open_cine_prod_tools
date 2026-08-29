@@ -131,7 +131,7 @@ class _RecordingScreenplayService extends OcptScreenplayService {
           ),
           deviceId: _testDeviceId,
         ),
-        scheduleService: const OcptScheduleService(),
+        scheduleService: const OcptScheduleService(deviceId: _testDeviceId),
         deviceId: _testDeviceId,
       );
 

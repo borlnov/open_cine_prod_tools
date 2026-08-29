@@ -50,7 +50,7 @@ void main() {
     locationsService: locationsService,
     deviceId: testDeviceId,
   );
-  const scheduleService = OcptScheduleService();
+  final scheduleService = OcptScheduleService(deviceId: testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
   final shotListService = OcptShotListService(deviceId: testDeviceId);
   final shotCoverageService = OcptShotCoverageService(deviceId: testDeviceId);
