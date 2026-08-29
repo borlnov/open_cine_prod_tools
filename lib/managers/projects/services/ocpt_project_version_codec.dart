@@ -81,11 +81,11 @@ class OcptProjectVersionCodec {
   /// own freeze.
   static const currentPayloadFormat = 1;
 
-  /// The highest payload format a stable release has frozen — `0` until one has.
+  /// The highest payload format a stable release has frozen.
   ///
   /// See [currentPayloadFormat]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStablePayloadFormat = 0;
+  static const lastStablePayloadFormat = 1;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";

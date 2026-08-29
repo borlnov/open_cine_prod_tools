@@ -7,13 +7,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "editorPageTitle": "Editor",
-  "@editorPageTitle": {
-    "description": "Title shown on the editor page",
-    "context": "Displayed at the center of the editor page",
-    "type": "text",
-    "placeholders": {}
-  },
   "editorScenesPanelTitle": "Scenes",
   "@editorScenesPanelTitle": {
     "description": "Title of the editor's scene panel",
@@ -398,13 +391,6 @@
   "@editorToggleUnderlineTooltip": {
     "description": "Tooltip of the toolbar action that toggles underline on the selection",
     "context": "Displayed on hover over the underline toggle of the editor toolbar, in styled mode",
-    "type": "text",
-    "placeholders": {}
-  },
-  "editorMoreActionsTooltip": "More actions",
-  "@editorMoreActionsTooltip": {
-    "description": "Tooltip of the toolbar's overflow menu action",
-    "context": "Displayed on hover over the overflow (⋮) menu button of the editor toolbar",
     "type": "text",
     "placeholders": {}
   },
@@ -2349,13 +2335,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListInspectorPlannedTakesLabel": "Planned takes",
-  "@shotListInspectorPlannedTakesLabel": {
-    "description": "Label of the planned takes field",
-    "context": "Displayed in the shot inspector's production section",
-    "type": "text",
-    "placeholders": {}
-  },
   "shotListDifficultyAxisActing": "Acting",
   "@shotListDifficultyAxisActing": {
     "description": "Label of the acting difficulty axis",
@@ -4233,13 +4212,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRoleKindFieldLabel": "Kind",
-  "@resourcesRoleKindFieldLabel": {
-    "description": "Label of the expanded row's role kind picker",
-    "context": "Displayed in the resources mode's role sheet",
-    "type": "text",
-    "placeholders": {}
-  },
   "resourcesRoleCastingNotesLabel": "Casting notes",
   "@resourcesRoleCastingNotesLabel": {
     "description": "Label of a role's casting notes field",
@@ -4250,13 +4222,6 @@
   "resourcesRoleCastingNotesHint": "Availability, agent contact, audition notes…",
   "@resourcesRoleCastingNotesHint": {
     "description": "Placeholder shown in a role's empty casting notes field",
-    "context": "Displayed in the resources mode's role sheet",
-    "type": "text",
-    "placeholders": {}
-  },
-  "resourcesRoleNameLabel": "Name",
-  "@resourcesRoleNameLabel": {
-    "description": "Label of a role's name field, or of its read-only note for a role reconciled from the screenplay",
     "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
@@ -4940,13 +4905,6 @@
   "@resourcesPhotoSlotPhotoOnlyTooltip": {
     "description": "Tooltip of a photo slot whose record has no colour of its own",
     "context": "Displayed on hover over the element sheet's photo slot",
-    "type": "text",
-    "placeholders": {}
-  },
-  "resourcesImageRightsDocumentLabel": "Signed release",
-  "@resourcesImageRightsDocumentLabel": {
-    "description": "Label of the referenced image rights release document",
-    "context": "Displayed in the resources mode's person sheet, image rights card",
     "type": "text",
     "placeholders": {}
   },
@@ -7546,27 +7504,6 @@
   "@scheduleAgendaModeMonth": {
     "description": "Label of the month agenda presentation",
     "context": "Displayed in the schedule mode's header segmented control",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleAgendaWeekComingHint": "The week grid is coming in a future update.",
-  "@scheduleAgendaWeekComingHint": {
-    "description": "Placeholder shown for the week agenda presentation, not built in this milestone",
-    "context": "Displayed in the schedule mode's centre area",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleAgendaMonthComingHint": "The month grid is coming in a future update.",
-  "@scheduleAgendaMonthComingHint": {
-    "description": "Placeholder shown for the month agenda presentation, not built in this milestone",
-    "context": "Displayed in the schedule mode's centre area",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleDayViewComingHint": "The day view is coming in a future update.",
-  "@scheduleDayViewComingHint": {
-    "description": "Placeholder shown for the day view, not built in this milestone",
-    "context": "Displayed in the schedule mode's centre area",
     "type": "text",
     "placeholders": {}
   },
@@ -13753,20 +13690,6 @@
         "type": "String"
       },
       "outstanding": {
-        "type": "String"
-      }
-    }
-  },
-  "budgetNewRevenueChoiceHint": "Expected {expected} · Cashed in {cashedIn}",
-  "@budgetNewRevenueChoiceHint": {
-    "description": "Hint of a taking offered by the capture wizard's own taking attachment step",
-    "context": "Displayed muted under a taking's own row, OcptBudgetNewDialog's own step 2",
-    "type": "text",
-    "placeholders": {
-      "expected": {
-        "type": "String"
-      },
-      "cashedIn": {
         "type": "String"
       }
     }

@@ -267,14 +267,14 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// open, so a change **overwrites** that top file in place instead. [currentSchemaVersion] is
   /// always one of those two values. Freezing a stable release is the one line
   /// `lastStableSchemaVersion = currentSchemaVersion`, done at release prep (see
-  /// `docs/RELEASING.md`, to be added later).
+  /// `docs/RELEASING.md`).
   static const currentSchemaVersion = 1;
 
-  /// The highest schema version a stable release has frozen — `0` until one has.
+  /// The highest schema version a stable release has frozen.
   ///
   /// See [currentSchemaVersion]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStableSchemaVersion = 0;
+  static const lastStableSchemaVersion = 1;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override

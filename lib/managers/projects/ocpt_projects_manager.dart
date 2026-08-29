@@ -137,7 +137,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   // ignore: do_not_use_environment
   static const _appVersion = String.fromEnvironment(
     "APP_VERSION",
-    defaultValue: "0.1.0-alpha.1",
+    defaultValue: "0.1.0",
   );
 
   /// The properties manager used to persist the recently opened projects list.

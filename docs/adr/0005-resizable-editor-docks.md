@@ -23,19 +23,20 @@ between every dock and the centre, remembered widths, and several panels sharing
 ## Decision
 
 Dock widths are stored as **fractions of the editing row's width**, not pixels, so they survive a
-window resize or a move to another monitor. `OcptEditorDock.resolveDockWidths` (a pure, static,
-unit-tested function in `lib/ui/pages/editor/widgets/ocpt_editor_dock.dart`) turns the two
+window resize or a move to another monitor. `OcptWorkspaceDock.resolveDockWidths` (a pure, static,
+unit-tested function in `lib/ui/pages/workspace/widgets/ocpt_workspace_dock.dart`) turns the two
 fractions into pixel widths for a given row width, clamping each dock between its minimum pixel
 width and maximum fraction, and enforcing a 320 px centre floor: when the row is too narrow to
 honour both docks' current widths plus that floor, the right dock gives up width first, then the
-left one. `OcptDockDivider` is a small `MouseRegion`/`GestureDetector` pair (no third-party
-splitter dependency), reporting raw pixel deltas; the caller converts them to fractions.
+left one. `OcptWorkspaceDockDivider` is a small `MouseRegion`/`GestureDetector` pair (no
+third-party splitter dependency), reporting raw pixel deltas; the caller converts them to
+fractions.
 
 A drag must not emit a bloc state per frame, or the editing subtrees underneath would rebuild on
-every frame of a resize. `OcptEditorDockLayoutController extends ChangeNotifier`
-(`lib/ui/pages/editor/ocpt_editor_dock_layout_controller.dart`), owned by the page's state, holds
-the two live fractions during a drag and notifies only the `ListenableBuilder` that resolves
-widths; the bloc only receives one `OcptEditorDockFractionsChangedEvent` on
+every frame of a resize. `OcptWorkspaceDockLayoutController extends ChangeNotifier`
+(`lib/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart`), owned by the
+page's state, holds the two live fractions during a drag and notifies only the `ListenableBuilder`
+that resolves widths; the bloc only receives one `OcptEditorDockFractionsChangedEvent` on
 `onHorizontalDragEnd`, which persists the final fraction through
 `OcptPropertiesManager.editorLeftDockFraction`/`editorRightDockFraction`. The editor page builds
 the scene panel, the editor and the preview into local variables once, before the

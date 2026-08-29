@@ -85,13 +85,14 @@ What the app does today:
 - A resources mode: who shoots the film, where, and with what. An address book where one person is
   one entry whatever they do on the film, the cast reconciled against the screenplay's own speaking
   characters (a character who leaves the script keeps their casting and is flagged rather than
-  dropped), the locations with their sets, their filming permit, their access notes and the windows
-  they may be shot in, and a catalogue of everything that has to be on set and is not a person -
-  props, costumes, vehicles, equipment - with who owns it, who brings it and whether it is secured,
-  ready or already back. Scenes are linked to the sets they are shot in and to the elements they
-  need. Elements and sets carry a code the app mints itself (`PRP-3`, `A`) rather than one you have
-  to type and keep unique. Photos and signed documents are referenced by path rather than copied
-  into the project file. Exports to XLSX, one sheet per tab.
+  dropped), casting candidates gathered and weighed per role, the locations with their sets, their
+  filming permit, their access notes and the windows they may be shot in, and a catalogue of
+  everything that has to be on set and is not a person - props, costumes, vehicles, equipment - with
+  who owns it, who brings it and whether it is secured, ready or already back. Scenes are linked to
+  the sets they are shot in and to the elements they need. Elements and sets carry a code the app
+  mints itself (`PRP-3`, `A`) rather than one you have to type and keep unique. Photos and signed
+  documents are referenced by path rather than copied into the project file. Exports to XLSX, one
+  sheet per tab.
 - A schedule mode (plan de travail): when the film is shot. Dated shooting days, each split into
   slots, a slot being a working unit with its own location, set, crew and cast - a real day
   regularly has two. Each slot carries its own timetable, whose hours are computed rather than
@@ -137,7 +138,7 @@ What the app does today:
 - A scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage each shot covers, the passages no shot covers washed grey, and optional
   legend and summary pages - so you can see, page by page, what your découpage still leaves out.
-- `.fountain` import and export.
+- Screenplay import from Fountain, Final Draft (`.fdx`) and Celtx (`.celtx`); Fountain export.
 - PDF export with an options dialog, page numbers, optional scene numbers, and embedded Courier
   Prime.
 - Page setup: page format and margins, a per-project currency, and the language the screenplays
@@ -153,7 +154,6 @@ Planned production tools, in priority order:
 - Call sheets beyond the ones the schedule mode already prints
 - Script supervisor reports
 - Storyboard
-- Casting tracker
 
 ## Platforms
 
@@ -250,6 +250,7 @@ Code and `gh` auth, git worktrees, GUI forwarding).
 ```text
 lib/                   Application source
 packages/fountain_kit/ Pure-Dart Fountain parser, serializer and layout metrics
+packages/script_import_kit/ Pure-Dart Final Draft and Celtx readers, emitting Fountain
 packages/spell_kit/    Pure-Dart hunspell reader, spell checker and suggester
 actlibs/               ACT Flutter packages (git submodule)
 assets/                Config, fonts, branding, dictionaries and other bundled assets
@@ -267,6 +268,7 @@ docs/                  Architecture, plans and decision records
 - [Architecture decision records](docs/adr/) - the reasoning behind structural choices.
 - [CI documentation](.github/ci-doc.md) - build, test and release pipeline.
 - [fountain_kit README](packages/fountain_kit/README.md) - the standalone Fountain package.
+- [script_import_kit README](packages/script_import_kit/README.md) - Final Draft and Celtx import.
 - [spell_kit README](packages/spell_kit/README.md) - the standalone spell-checking package.
 
 ## Contributing

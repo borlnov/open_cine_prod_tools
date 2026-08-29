@@ -110,9 +110,6 @@ const double ocptToolbarHeight = 44;
 /// group reads as slightly weightier than whatever the active mode puts before it.
 const double ocptToolbarChromeButtonSize = 30;
 
-/// The height of the shell's bottom status bar band.
-const double ocptStatusBarHeight = 26;
-
 /// The height of the shell's bottom mode-switcher band.
 const double ocptModeSwitcherHeight = 64;
 
