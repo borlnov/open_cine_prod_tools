@@ -281,6 +281,12 @@ void main() {
   });
 
   group("opening a project file from another build", () {
+    // The older-file case can't be exercised at schema version 1: ADR 0029 squashed the pre-stable
+    // chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0, which reads
+    // as an unreadable/foreign file, not an older one). The older test skips until a stable cycle
+    // raises currentSchemaVersion to 2+, when it reactivates on its own.
+    const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
+
     /// Writes a project file at [filePath] stating [userVersion], and puts it on the home page as
     /// a recent project.
     ///
@@ -327,7 +333,7 @@ void main() {
         reason: "the promise the dialog makes is the very path the open then writes to",
       );
       expect(find.text(Tr.of(context).homeMigrateProjectConfirmAction), findsOneWidget);
-    });
+    }, skip: olderFileFlowSkip);
 
     testWidgets("a newer one is refused, naming the build that wrote it", (tester) async {
       final filePath = p.join(tempDir.path, "movie.ocpt");

@@ -1541,104 +1541,6 @@ void main() {
       expect(stamps["people/person-1/firstName"]?.deviceId, deviceId);
     });
 
-    test("restoring a format-1 payload tombstones the resources the working copy has", () async {
-      // A literal fixture of a version captured before the resources mode existed: none of the
-      // eleven resources keys are present at all, matching exactly what a real payload written in
-      // that format looked like on disk.
-      await database
-          .into(database.ocptProjectVersionsTable)
-          .insert(
-            OcptProjectVersionsTableCompanion.insert(
-              id: "version-format1",
-              name: "v0 — Before resources",
-              createdAt: DateTime.utc(2026),
-              appVersion: "0.1.0",
-              payloadFormat: 1,
-              payload:
-                  '{"payloadFormat":1,"screenplays":[{"id":"$screenplayId","title":"Draft",'
-                  '"fountainText":"${capturedText.replaceAll('\n', r'\n')}",'
-                  '"updatedAt":"2026-01-05T00:00:00.000Z",'
-                  '"isDeleted":false}],"scenes":[],"shots":[],"shotCharacters":[],'
-                  '"shotCoverages":[],"rowFieldVersions":[],'
-                  '"projectSettings":{"pageFormat":"a4","settingsJson":null},'
-                  '"pageMargins":{"leftInches":1.5,"rightInches":1,"topInches":0.75,'
-                  '"bottomInches":1.25}}',
-              summaryJson: "{}",
-              createdByDeviceId: deviceId,
-            ),
-          );
-
-      await database
-          .into(database.ocptPeopleTable)
-          .insert(
-            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
-          );
-
-      final result = await restore("version-format1");
-
-      expect(result.status, OcptProjectRestoreStatus.ok);
-
-      // The format-1 payload says "this project had no resources" — a truthful statement about
-      // that moment — so the restore tombstones what the working copy has, rather than leaving it.
-      final person = await (database.select(
-        database.ocptPeopleTable,
-      )..where((table) => table.id.equals("person-1"))).getSingle();
-      expect(person.isDeleted, isTrue);
-    });
-
-    test(
-      "restoring a format-5 payload tombstones the schedule the working copy has planned since",
-      () async {
-        // A literal fixture of a version captured before milestone M1: none of the six schedule
-        // tables are present at all, matching exactly what a real payload written in that format
-        // looked like on disk.
-        await database
-            .into(database.ocptProjectVersionsTable)
-            .insert(
-              OcptProjectVersionsTableCompanion.insert(
-                id: "version-format5",
-                name: "v0 — Before the schedule",
-                createdAt: DateTime.utc(2026),
-                appVersion: "0.1.0",
-                payloadFormat: 5,
-                payload:
-                    '{"payloadFormat":5,"screenplays":[{"id":"$screenplayId","title":"Draft",'
-                    '"fountainText":"${capturedText.replaceAll('\n', r'\n')}",'
-                    '"updatedAt":"2026-01-05T00:00:00.000Z",'
-                    '"isDeleted":false}],"scenes":[],"shots":[],"shotCharacters":[],'
-                    '"shotCoverages":[],"people":[],"personPositions":[],"personSkills":[],'
-                    '"personUnavailabilities":[],"roles":[],"locations":[],'
-                    '"locationAvailabilities":[],"sets":[],"sceneSets":[],"elements":[],'
-                    '"sceneElements":[],"assets":[],"breakdownTags":[],"sceneBreakdowns":[],'
-                    '"rowFieldVersions":[],'
-                    '"projectSettings":{"pageFormat":"a4","settingsJson":null,'
-                    '"currencyCode":"EUR"},'
-                    '"pageMargins":{"leftInches":1.5,"rightInches":1,"topInches":0.75,'
-                    '"bottomInches":1.25}}',
-                summaryJson: "{}",
-                createdByDeviceId: deviceId,
-              ),
-            );
-
-        await insertShootingDay(id: "day-1");
-
-        final result = await restore("version-format5");
-
-        expect(result.status, OcptProjectRestoreStatus.ok);
-
-        // The format-5 payload says "this project had not been scheduled yet" — a truthful
-        // statement about that moment — so the restore tombstones what the working copy planned
-        // since, exactly as a format-1 payload does for the resources tables above. Note this is
-        // the plan's own §12 wording ("a version captured before M1 restores without touching the
-        // schedule") read loosely: the schedule *is* touched here, tombstoned rather than left —
-        // which is the empty-list upgrade's own, deliberately truthful, behaviour.
-        final day = await (database.select(
-          database.ocptShootingDaysTable,
-        )..where((table) => table.id.equals("day-1"))).getSingle();
-        expect(day.isDeleted, isTrue);
-      },
-    );
-
     test(
       "restores a schedule captured after M1 exactly, tombstones and sort keys included",
       () async {
@@ -1772,73 +1674,6 @@ void main() {
       },
     );
 
-    test(
-      "restoring a format-11 payload succeeds, dropping the presence overrides it held with "
-      "nothing reconstructed",
-      () async {
-        await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
-        await database
-            .into(database.ocptPeopleTable)
-            .insert(
-              OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
-            );
-
-        final version = await createVersion(name: "v1 — Presence set");
-
-        // A literal fixture of what that very capture would have looked like at payload format 11:
-        // `shooting_presences` genuinely existed from format 6 through format 11 (it shipped with
-        // the rest of the schedule mode's six tables), so this is a real row a user's own click
-        // minted, not merely an absent key.
-        final storedRow = await (database.select(
-          database.ocptProjectVersionsTable,
-        )..where((table) => table.id.equals(version.id))).getSingle();
-        final oldFormatJson = jsonDecode(storedRow.payload) as Map<String, dynamic>
-          ..["payloadFormat"] = 11
-          ..["shootingPresences"] = [
-            {
-              "id": "presence-1",
-              "shootingDayId": "day-1",
-              "personId": "person-1",
-              "code": "travelling",
-              "isDeleted": false,
-            },
-          ];
-        await database
-            .into(database.ocptProjectVersionsTable)
-            .insert(
-              OcptProjectVersionsTableCompanion.insert(
-                id: "version-format11",
-                name: "v0 — Presence set (format 11)",
-                createdAt: DateTime.utc(2026),
-                appVersion: "0.1.0",
-                payloadFormat: 11,
-                payload: jsonEncode(oldFormatJson),
-                summaryJson: "{}",
-                createdByDeviceId: deviceId,
-              ),
-            );
-
-        // Diverge: the day is tombstoned in the working copy.
-        await (database.update(
-          database.ocptShootingDaysTable,
-        )..where((table) => table.id.equals("day-1"))).write(
-          const OcptShootingDaysTableCompanion(isDeleted: Value(true)),
-        );
-
-        final result = await restore("version-format11");
-
-        expect(result.status, OcptProjectRestoreStatus.ok);
-
-        // The rest of the schedule the version genuinely held restores exactly. The presence
-        // override dropped alongside it is a decode-time fact with nowhere left in the schema to
-        // land — there is no table this restore could have written it back into, and nothing here
-        // stands in for one.
-        final restoredDay = await (database.select(
-          database.ocptShootingDaysTable,
-        )..where((table) => table.id.equals("day-1"))).getSingle();
-        expect(restoredDay.isDeleted, isFalse);
-      },
-    );
 
     test("stamps a schedule column it changed, above what it already held", () async {
       await insertShootingDay(id: "day-1");
@@ -1886,36 +1721,26 @@ void main() {
     });
 
     test("restoring a payload with no currency leaves the project's own currency untouched", () async {
-      // A literal fixture of a version captured before currencies existed (payload format 3):
-      // `projectSettings` carries no `currencyCode` key at all.
-      await database
-          .into(database.ocptProjectVersionsTable)
-          .insert(
-            OcptProjectVersionsTableCompanion.insert(
-              id: "version-format3",
-              name: "v0 — Before currencies",
-              createdAt: DateTime.utc(2026),
-              appVersion: "0.1.0",
-              payloadFormat: 3,
-              payload:
-                  '{"payloadFormat":3,"screenplays":[],"scenes":[],"shots":[],'
-                  '"shotCharacters":[],"shotCoverages":[],"people":[],"personPositions":[],'
-                  '"personSkills":[],"personUnavailabilities":[],"roles":[],"locations":[],'
-                  '"locationAvailabilities":[],"sets":[],"sceneSets":[],"elements":[],'
-                  '"sceneElements":[],"assets":[],"rowFieldVersions":[],'
-                  '"projectSettings":{"pageFormat":"a4","settingsJson":null},'
-                  '"pageMargins":{"leftInches":1.5,"rightInches":1,"topInches":0.75,'
-                  '"bottomInches":1.25}}',
-              summaryJson: "{}",
-              createdByDeviceId: deviceId,
-            ),
-          );
+      // A live capture always states a real `currencyCode` ("restores the currency the version
+      // was captured with" above): a null one is reachable only by hand-editing the stored payload,
+      // which is exactly what this does — everything else about the capture stays genuine.
+      final version = await createVersion();
+      final storedRow = await (database.select(
+        database.ocptProjectVersionsTable,
+      )..where((table) => table.id.equals(version.id))).getSingle();
+      final withNoCurrency = jsonDecode(storedRow.payload) as Map<String, dynamic>;
+      (withNoCurrency["projectSettings"] as Map<String, dynamic>)["currencyCode"] = null;
+      await (database.update(
+        database.ocptProjectVersionsTable,
+      )..where((table) => table.id.equals(version.id))).write(
+        OcptProjectVersionsTableCompanion(payload: Value(jsonEncode(withNoCurrency))),
+      );
 
       await database
           .update(database.ocptProjectInfoTable)
           .write(const OcptProjectInfoTableCompanion(currencyCode: Value("GBP")));
 
-      final result = await restore("version-format3");
+      final result = await restore(version.id);
 
       expect(result.status, OcptProjectRestoreStatus.ok);
       final info = await database.select(database.ocptProjectInfoTable).getSingle();

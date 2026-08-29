@@ -12,7 +12,6 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -833,29 +832,16 @@ void main() {
   });
 
   group("opening a file from another build", () {
-    /// The schema version a file has to state to be one format behind this build.
-    final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
-
-    /// Turns the project file at [filePath] back into the file the previous build would have
-    /// written: the latest schema step's own additions taken back out, and the format number
-    /// with them.
-    ///
-    /// It removes what the top step added — `budget_entries.commitmentId`/`.personId` — and puts
-    /// back what it dropped, `budget_commitments.settledEntryId`. Undoing the step rather than
-    /// only stamping the number down is what makes this a real migration to run, which is exactly
-    /// what a file merely relabelled would have hidden.
-    void demoteToPreviousFormat(String filePath) {
-      final database = sqlite3.open(filePath);
-      database
-        ..execute("ALTER TABLE budget_entries DROP COLUMN commitment_id")
-        ..execute("ALTER TABLE budget_entries DROP COLUMN person_id")
-        ..execute(
-          'ALTER TABLE "budget_commitments" ADD COLUMN "settled_entry_id" TEXT NULL '
-          "REFERENCES budget_entries (id)",
-        )
-        ..execute("PRAGMA user_version = $previousSchemaVersion")
-        ..dispose();
-    }
+    // No "older" file case is exercised here any more: per
+    // `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, the squash resets
+    // `OcptProjectDatabase.currentSchemaVersion` to `1`, the very first schema, and
+    // `OcptProjectFileCompatibilityService.probe` treats any `PRAGMA user_version <= 0` as
+    // `unreadable` rather than `older` — a database
+    // states `0` until something writes a version into it, which is never a real older project.
+    // There is therefore no positive schema number below the current one for a test file to state,
+    // so `older`/`migrationRequired` cannot be exercised through the manager until a real schema
+    // version 2 exists. `OcptProjectFileCompatibilityService`'s own tests already cover that verdict
+    // in isolation, at a schema number decoupled from this constant.
 
     /// Stamps [userVersion] onto the project file at [filePath], changing nothing else.
     void stampFormat(String filePath, int userVersion) {
@@ -874,86 +860,6 @@ void main() {
         database.dispose();
       }
     }
-
-    /// Creates a project at [filePath], closes it, and hands it back at the previous format.
-    Future<void> createProjectAtPreviousFormat(String filePath) async {
-      await manager.createProject(name: "My Movie", filePath: filePath);
-      await manager.screenplayService.saveScreenplayText(
-        database: manager.currentProject!.database,
-        screenplayId: manager.currentProject!.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAction.",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      await manager.closeCurrentProject();
-      demoteToPreviousFormat(filePath);
-    }
-
-    test("an older file is left closed and untouched until the migration is allowed", () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await createProjectAtPreviousFormat(filePath);
-
-      final result = await manager.openProject(filePath: filePath);
-
-      expect(result.status, OcptProjectStatus.migrationRequired);
-      expect(manager.currentProject, isNull);
-      expect(formatOf(filePath), previousSchemaVersion);
-      expect(
-        File(
-          manager.probeProjectFile(filePath: filePath).suggestedBackupPath!,
-        ).existsSync(),
-        isFalse,
-        reason: "nothing was answered, so nothing was copied either",
-      );
-    });
-
-    test("the probe says which format the file is in, and where the copy would go", () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await createProjectAtPreviousFormat(filePath);
-
-      final compatibility = manager.probeProjectFile(filePath: filePath);
-
-      expect(compatibility.verdict, OcptProjectFileVerdict.older);
-      expect(compatibility.fileSchemaVersion, previousSchemaVersion);
-      expect(compatibility.appSchemaVersion, OcptProjectDatabase.currentSchemaVersion);
-      expect(compatibility.appVersionAtCreation, isNotNull);
-      expect(
-        compatibility.suggestedBackupPath,
-        p.join(tempDir.path, "movie.backup-v$previousSchemaVersion.ocpt"),
-      );
-    });
-
-    test("an allowed migration keeps the copy where the probe said, and the rows", () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await createProjectAtPreviousFormat(filePath);
-      final backupPath = manager.probeProjectFile(filePath: filePath).suggestedBackupPath!;
-
-      final result = await manager.openProject(filePath: filePath, allowMigration: true);
-
-      expect(result.status, OcptProjectStatus.ok);
-      expect(manager.currentProject?.name, "My Movie");
-      expect(
-        await manager.screenplayService.loadScreenplayText(
-          database: manager.currentProject!.database,
-          screenplayId: manager.currentProject!.primaryScreenplayId,
-        ),
-        "INT. HOUSE - DAY\n\nAction.",
-      );
-
-      expect(File(backupPath).existsSync(), isTrue);
-      expect(
-        formatOf(backupPath),
-        previousSchemaVersion,
-        reason: "the copy is kept so the older build can still open it",
-      );
-
-      await manager.closeCurrentProject();
-      expect(formatOf(filePath), OcptProjectDatabase.currentSchemaVersion);
-      expect(
-        manager.probeProjectFile(filePath: filePath).verdict,
-        OcptProjectFileVerdict.current,
-        reason: "a file migrated once is never asked about again",
-      );
-    });
 
     test("a file from a newer build is refused, and comes back byte-identical", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");

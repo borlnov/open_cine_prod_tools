@@ -394,6 +394,14 @@ void main() {
   });
 
   group("a project file from another build", () {
+    // The older-file migration flow can't be exercised at schema version 1: ADR 0029 squashed the
+    // pre-stable chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0,
+    // which reads as an unreadable/foreign file, not an older one). The two tests that need an
+    // older file therefore skip until a stable cycle raises currentSchemaVersion to 2+ — at which
+    // point createProjectAtPreviousFormat must undo that new step's own additions again, and the
+    // auto-reactivated tests fail loudly until it does.
+    const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
+
     /// The format a file one step behind this build states.
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
@@ -450,7 +458,7 @@ void main() {
       expect(projectsManager.currentProject, isNull);
 
       await bloc.close();
-    });
+    }, skip: olderFileFlowSkip);
 
     test("answering the question opens it, and the copy is where it was promised", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
@@ -480,7 +488,7 @@ void main() {
       expect(File(backupPath).existsSync(), isTrue);
 
       await bloc.close();
-    });
+    }, skip: olderFileFlowSkip);
 
     test("a newer one is raised as a refusal, and nothing is opened", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");

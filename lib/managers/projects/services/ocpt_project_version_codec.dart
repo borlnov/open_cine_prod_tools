@@ -37,7 +37,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// The single place that knows the shape of `project_versions.payload`: it turns an
@@ -46,27 +45,47 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 /// Reading the rows out of a project and writing them back into one is
 /// `OcptProjectVersionsService`'s job; this class never touches a database. What it owns is the
 /// **format**, and the format outlives the app build that wrote it: a payload sits in a user's
-/// `.ocpt` for as long as the version does, so [decode] is a migration path rather than only a
-/// guard —
+/// `.ocpt` for as long as the version does, so [decode] is written as a migration path rather than
+/// only a guard, ready for the day a stable release has actually shipped one —
 ///
-/// - a payload written in an **older** format is upgraded, in memory, step by step, up to
+/// - a payload written in an **older** format would be upgraded, in memory, step by step, up to
 ///   [currentPayloadFormat]; the stored text is never rewritten, so a version stays byte-identical
-///   to what was captured;
+///   to what was captured. Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no
+///   stable release has shipped yet, so there is no older format to upgrade from today — [decode]
+///   reads a payload directly at [currentPayloadFormat];
 /// - a payload written in a **newer** format — the file has been opened by a later build of the
 ///   app — is refused with [OcptProjectVersionPayloadStatus.unsupportedFutureFormat] rather than
 ///   half-restored.
 ///
 /// The column lists below are a **hand-written mirror of the schema**: a synchronised table gaining
 /// a column means this codec, and very probably [currentPayloadFormat], need looking at. When that
-/// day comes, add a named upgrade step to [_payloadUpgrades] and keep a fixture of the retired
-/// format in the tests — the point of the format field is lost if nothing ever exercises the old
-/// branch.
+/// day comes, once a stable release has frozen [lastStablePayloadFormat], add a named upgrade step
+/// and keep a fixture of the retired format in the tests — the point of the format field is lost if
+/// nothing ever exercises the old branch.
 class OcptProjectVersionCodec {
   /// The payload format this build writes, and the highest one it can read.
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 31;
+  ///
+  /// A payload format owes the same promise a schema version does, and [currentPayloadFormat] /
+  /// [lastStablePayloadFormat] drive the same overwrite-vs-create rule
+  /// [OcptProjectDatabase.currentSchemaVersion]'s own doc comment states
+  /// (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`): when
+  /// `currentPayloadFormat == lastStablePayloadFormat`, the format is frozen, so a change to what
+  /// [encode] writes bumps [currentPayloadFormat] and adds a fresh upgrade step for [decode]; when
+  /// `currentPayloadFormat == lastStablePayloadFormat + 1`, a development cycle is already open, so
+  /// a change is folded into the current format in place instead. [currentPayloadFormat] is always
+  /// one of those two values. Freezing a stable release sets
+  /// `lastStablePayloadFormat = currentPayloadFormat`, done at release prep alongside the schema's
+  /// own freeze.
+  static const currentPayloadFormat = 1;
+
+  /// The highest payload format a stable release has frozen — `0` until one has.
+  ///
+  /// See [currentPayloadFormat]'s own doc comment for the overwrite-vs-create rule these two
+  /// constants drive together.
+  static const lastStablePayloadFormat = 0;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -145,10 +164,6 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse the `shooting_days` rows from a JSON object
   static const _shootingDaysKey = "shootingDays";
 
-  /// The key a payload of format 7 stored the `shooting_day_groups` rows under — read only by
-  /// [_upgradeFormat7To8], which drops it: the table itself is gone from format 8 on.
-  static const _shootingDayGroupsKey = "shootingDayGroups";
-
   /// This is the key used to stringify or parse the `shooting_slots` rows from a JSON object
   static const _shootingSlotsKey = "shootingSlots";
 
@@ -161,19 +176,8 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse the `shooting_day_blocks` rows from a JSON object
   static const _shootingDayBlocksKey = "shootingDayBlocks";
 
-  /// The key a payload of format 11 (or earlier) stored the `shooting_presences` rows under — read
-  /// only by [_upgradeFormat11To12], which drops it: the table itself is gone from format 12 on,
-  /// exactly as [_shootingDayGroupsKey] is for [_upgradeFormat7To8].
-  static const _shootingPresencesKey = "shootingPresences";
-
   /// This is the key used to stringify or parse the `shooting_slot_guests` rows from a JSON object
   static const _shootingSlotGuestsKey = "shootingSlotGuests";
-
-  /// This is the key used to stringify or parse the `shooting_slot_candidates` rows from a JSON
-  /// object: which candidate each slot convoked, from payload format 18. Written by no version any
-  /// more, and read only by [_upgradeFormat19To20], which drops it — the table itself is gone from
-  /// format 20 on, exactly as [_shootingDayGroupsKey] is for [_upgradeFormat7To8].
-  static const _shootingSlotCandidatesKey = "shootingSlotCandidates";
 
   /// This is the key used to stringify or parse the `shooting_block_candidates` rows from a JSON
   /// object: which candidacies each audition block sees, from payload format 20.
@@ -490,12 +494,8 @@ class OcptProjectVersionCodec {
   static const _slotKey = "slot";
 
   /// This is the key used to stringify or parse a `startMinute` column (an unavailability's or a
-  /// location availability's) from a JSON object.
-  ///
-  /// Payload formats 7 and 8 also stored `shooting_slots.startMinute` under it, back when a slot
-  /// owned one typed start and nothing else; from format 9 on that column is
-  /// [_anchorMinuteKey]/[_anchorEdgeKey]/[_anchorSlotIdKey], and this key is read for a slot only
-  /// by [_upgradeFormat8To9], which renames it.
+  /// location availability's) from a JSON object. A `shooting_slots` row reads its own start off
+  /// [_anchorMinuteKey]/[_anchorEdgeKey]/[_anchorSlotIdKey] instead.
   static const _startMinuteKey = "startMinute";
 
   /// This is the key used to stringify or parse an unavailability's `endMinute` column from a JSON
@@ -723,15 +723,6 @@ class OcptProjectVersionCodec {
   /// object
   static const _weatherNoteKey = "weatherNote";
 
-  /// This is the key used to stringify or parse `shooting_slots.crewCallMinute`, a format-6-or-
-  /// earlier payload's own name for what [_startMinuteKey] reads from here on — the only one of the
-  /// six retired minute keys [_upgradeFormat6To7] still has to read; `crewWrapMinute`,
-  /// `castCallMinute`, `castWrapMinute` (both `shooting_slots` and `shooting_slot_cast`),
-  /// `shooting_slot_crew.callMinute`/`wrapMinute` and `shooting_slot_cast.arrivalMinute` are all
-  /// simply dropped columns from here on, computed rather than carried forward (ADR 0017), so
-  /// nothing needs their own key named.
-  static const _crewCallMinuteKey = "crewCallMinute";
-
   /// This is the key used to stringify or parse a `shooting_day_blocks.durationMinutes` column from
   /// a JSON object
   static const _durationMinutesKey = "durationMinutes";
@@ -740,17 +731,6 @@ class OcptProjectVersionCodec {
   /// `shooting_day_blocks`', the minute a block is pinned to, or (from payload format 9) a
   /// `shooting_slots`', the hour its own anchored edge is pinned to — from a JSON object
   static const _anchorMinuteKey = "anchorMinute";
-
-  /// The key a `shooting_slot_crew`/`shooting_slot_cast` row of payload format 7 stored its
-  /// `groupId` column under: the `shooting_day_groups` row a convocation briefly could belong to.
-  /// Read by [_upgradeFormat6To7], which writes it as null, and by [_upgradeFormat7To8], which
-  /// drops it again — the column itself is gone from format 8 on.
-  static const _groupIdKey = "groupId";
-
-  /// The key a payload-format-7 row (`shooting_slot_crew` or `shooting_slot_cast`) stored its
-  /// `leadMinutes` column under. Read by [_upgradeFormat6To7], which writes it as null, and by
-  /// [_upgradeFormat7To8], which drops it again — the column itself is gone from format 8 on.
-  static const _leadMinutesKey = "leadMinutes";
 
   /// This is the key used to stringify or parse a `shooting_slots.anchorEdge` column from a JSON
   /// object
@@ -888,13 +868,6 @@ class OcptProjectVersionCodec {
   /// payload format 18, a `budget_resources.amountCents` column, from a JSON object
   static const _amountCentsKey = "amountCents";
 
-  /// The key a payload-format-30 `budget_commitments` row stored its `settledEntryId` column
-  /// under — the `budget_entries` row it named as the one that settled it. Read only by
-  /// [_upgradeFormat30To31], which carries the fact it stated onto [_commitmentIdKey] on the entry
-  /// it named, before dropping it: the column itself is gone from format 31 on, settlement read off
-  /// `OcptBudgetEntriesTable.commitmentId` instead.
-  static const _settledEntryIdKey = "settledEntryId";
-
   /// This is the key used to stringify or parse a `budget_entries.commitmentId` column from a JSON
   /// object, from payload format 31: which commitment a debit actually pays.
   static const _commitmentIdKey = "commitmentId";
@@ -982,911 +955,6 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the bottom page margin from a JSON object
   static const _marginBottomKey = "bottomInches";
-
-  /// The upgrade steps [decode] replays, keyed by the format each one upgrades **from**: the entry
-  /// at `n` turns a format `n` JSON object into a format `n + 1` one.
-  ///
-  /// The map has to cover every format from the oldest readable one up to
-  /// `currentPayloadFormat - 1`, without a hole, or [decode] refuses the payload rather than
-  /// guessing.
-  static const _payloadUpgrades = <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{
-    1: _upgradeFormat1To2,
-    2: _upgradeFormat2To3,
-    3: _upgradeFormat3To4,
-    4: _upgradeFormat4To5,
-    5: _upgradeFormat5To6,
-    6: _upgradeFormat6To7,
-    7: _upgradeFormat7To8,
-    8: _upgradeFormat8To9,
-    9: _upgradeFormat9To10,
-    10: _upgradeFormat10To11,
-    11: _upgradeFormat11To12,
-    12: _upgradeFormat12To13,
-    13: _upgradeFormat13To14,
-    14: _upgradeFormat14To15,
-    15: _upgradeFormat15To16,
-    16: _upgradeFormat16To17,
-    17: _upgradeFormat17To18,
-    18: _upgradeFormat18To19,
-    19: _upgradeFormat19To20,
-    20: _upgradeFormat20To21,
-    21: _upgradeFormat21To22,
-    22: _upgradeFormat22To23,
-    23: _upgradeFormat23To24,
-    24: _upgradeFormat24To25,
-    25: _upgradeFormat25To26,
-    26: _upgradeFormat26To27,
-    27: _upgradeFormat27To28,
-    28: _upgradeFormat28To29,
-    29: _upgradeFormat29To30,
-    30: _upgradeFormat30To31,
-  };
-
-  /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
-  /// (`people` down to `assets`) simply didn't exist yet, so this materialises them as **empty
-  /// lists** rather than special-casing their absence anywhere else.
-  ///
-  /// A version written in format 1 predates the resources mode entirely, so a payload with no
-  /// resources keys at all is a *truthful* statement about that moment: the project had no people,
-  /// no locations, no elements. Once this step has run, [_payloadFromJson] sees the same eleven
-  /// empty lists it would see for a project that genuinely never had any resources, and
-  /// `OcptProjectVersionsService._restoreTable` already tombstones, on restore, every row the
-  /// payload doesn't hold — so a restore of a format-1 version correctly wipes whatever resources
-  /// the working copy had accumulated since, with no special case written for it.
-  static Map<String, dynamic> _upgradeFormat1To2(Map<String, dynamic> json) => {
-    ...json,
-    _peopleKey: const <dynamic>[],
-    _personPositionsKey: const <dynamic>[],
-    _personSkillsKey: const <dynamic>[],
-    _personUnavailabilitiesKey: const <dynamic>[],
-    _rolesKey: const <dynamic>[],
-    _locationsKey: const <dynamic>[],
-    _setsKey: const <dynamic>[],
-    _sceneSetsKey: const <dynamic>[],
-    _elementsKey: const <dynamic>[],
-    _sceneElementsKey: const <dynamic>[],
-    _assetsKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**2** JSON object into a format-**3** one: `location_availabilities` did not
-  /// exist yet, so this materialises it as an **empty list**, exactly as [_upgradeFormat1To2] does
-  /// for the tables that predate it.
-  ///
-  /// That empty list is truthful: a version written in format 2 was captured when no location could
-  /// carry a window at all. `OcptProjectVersionsService._restoreTable` tombstones, on restore, every
-  /// row the payload doesn't hold, so restoring one correctly drops the windows entered since.
-  static Map<String, dynamic> _upgradeFormat2To3(Map<String, dynamic> json) => {
-    ...json,
-    _locationAvailabilitiesKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**3** JSON object into a format-**4** one: `project_info.currencyCode` didn't
-  /// exist yet, so [_projectSettingsKey] gains a **null** [_currencyCodeKey] rather than a guessed
-  /// one.
-  ///
-  /// Null is the truthful reading here, unlike the empty lists [_upgradeFormat1To2] and
-  /// [_upgradeFormat2To3] materialise: those tables genuinely held nothing yet, whereas a project
-  /// captured in format 3 or earlier *did* have a currency — the column has never been nullable —
-  /// this payload simply never recorded which one. `OcptProjectVersionsService.restoreVersion`
-  /// reads that null as "leave the project's currency untouched" rather than as "there was none",
-  /// which is the whole reason [OcptProjectVersionPayload.currencyCode] is nullable at all.
-  static Map<String, dynamic> _upgradeFormat3To4(Map<String, dynamic> json) {
-    final projectSettings = Map<String, dynamic>.from(
-      json[_projectSettingsKey] as Map<String, dynamic>? ?? const {},
-    );
-    projectSettings[_currencyCodeKey] = null;
-
-    return {...json, _projectSettingsKey: projectSettings};
-  }
-
-  /// Turns a format-**4** JSON object into a format-**5** one: two things, done together because
-  /// the same moment in the schema's history left both undone — the breakdown pass's two tables and
-  /// the `elements.status` column it leans on all arrived in schema v9, so a payload written before
-  /// that carries none of the three.
-  ///
-  /// - [_breakdownTagsKey]/[_sceneBreakdownsKey] materialise as **empty lists**, exactly as
-  ///   [_upgradeFormat1To2] and [_upgradeFormat2To3] do for the tables that predate them: a payload
-  ///   that never reached format 5 predates the breakdown pass entirely, so "no tags, no scene
-  ///   statuses" is a truthful statement about that moment, and
-  ///   `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
-  ///   doesn't hold — so restoring one correctly drops whatever breakdown work has happened since,
-  ///   with no special case written for it;
-  /// - every `elements` row gains a [_statusKey] of [OcptElementStatus.toFind] — **unlike**
-  ///   [_upgradeFormat3To4]'s currency, which upgrades to *null* and means "leave the project's own
-  ///   value alone": a version that never reached format 5 was captured before `elements.status`
-  ///   existed at all, so there is no live value anywhere to leave alone — the column's own default
-  ///   is the honest reading of "nobody has ever recorded a status for this element", not a guess.
-  ///   This is also what lets [_elementFromJson] read [_statusKey] strictly rather than defaulting
-  ///   it itself: by the time a JSON object reaches that method it has already been upgraded to
-  ///   [currentPayloadFormat], where the column is never absent.
-  static Map<String, dynamic> _upgradeFormat4To5(Map<String, dynamic> json) => {
-    ...json,
-    _elementsKey: [
-      for (final element in _rows(json, _elementsKey))
-        {...element, _statusKey: OcptElementStatus.toFind.name},
-    ],
-    _breakdownTagsKey: const <dynamic>[],
-    _sceneBreakdownsKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**5** JSON object into a format-**6** one: the six tables of the schedule mode
-  /// (`shootingDays` down to `shootingPresences`) didn't exist yet, so this materialises all six as
-  /// **empty lists**, exactly as [_upgradeFormat1To2] and [_upgradeFormat2To3] do for the tables
-  /// that predate them.
-  ///
-  /// This is the **empty-list** kind of upgrade, not the *null* kind [_upgradeFormat3To4] uses for
-  /// the currency — and deliberately so. The currency upgrades to null because a project captured
-  /// in format 3 or earlier *did* have one (the column has never been nullable): the payload simply
-  /// never recorded which, so overwriting the working copy's own value on restore would be a guess,
-  /// and leaving it untouched is the fail-safe reading. A shooting day carries no equivalent
-  /// "unknown, but it existed" state to fall back on: `shooting_days.date` is **never null** (§6 of
-  /// the plan this ships under is the same reasoning applied to the schema's own migration, which
-  /// erases `shots.shootingDay`'s legacy free text rather than guess a date for it), so there is no
-  /// value to leave alone — a payload that never reached format 6 is a truthful statement that the
-  /// project it was captured from had not been scheduled yet: no days, no slots, no convocations, no
-  /// blocks, no presence overrides. `OcptProjectVersionsService._restoreTable` tombstones, on
-  /// restore, every row the payload doesn't hold, so restoring a version this old correctly drops
-  /// whatever schedule has been planned since, with no special case written for it anywhere.
-  static Map<String, dynamic> _upgradeFormat5To6(Map<String, dynamic> json) => {
-    ...json,
-    _shootingDaysKey: const <dynamic>[],
-    _shootingSlotsKey: const <dynamic>[],
-    _shootingSlotCrewKey: const <dynamic>[],
-    _shootingSlotCastKey: const <dynamic>[],
-    _shootingDayBlocksKey: const <dynamic>[],
-    _shootingPresencesKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**6** JSON object into a format-**7** one: per-slot timetables and computed
-  /// convocations reshaped four of the six schedule tables and added a seventh, so this is the
-  /// payload's own half of the schema's v11-to-v12 migration, and for the same reasons.
-  ///
-  /// - [_shootingDayGroupsKey] materialises as an **empty list** — the plain kind of upgrade, like
-  ///   [_upgradeFormat5To6], not the *null* kind [_upgradeFormat3To4] uses for the currency: a
-  ///   payload that never reached format 7 predates groups entirely, so "no groups" is a truthful
-  ///   statement about that moment.
-  /// - Each `shootingSlots` row gains [_startMinuteKey] read from its old [_crewCallMinuteKey];
-  ///   `crewWrapMinute`/`castCallMinute`/`castWrapMinute` are simply no longer read.
-  /// - Each `shootingSlotCrew`/`shootingSlotCast` row gains a **null** [_groupIdKey] and a **null**
-  ///   [_leadMinutesKey] — their old minute columns are simply no longer read. Nothing reconstructs
-  ///   a lead time out of the dropped clocks, for the same reason the schema migration doesn't: a
-  ///   figure guessed from a timetable that has since moved would be worse than the zero every row
-  ///   starts at.
-  /// - Each `shootingDayBlocks` row gains a **null** [_sceneIdKey]: a `hold` names the sequence it
-  ///   holds through that column from here on, and the free-text `label` a format-6 payload carries
-  ///   is not a scene id — so nothing is resolved out of it, and such a block names no role until
-  ///   somebody says which sequence it is for.
-  /// - Each `shootingDayBlocks` row that is an **orphan** — its [_slotIdKey] null, *or* naming a
-  ///   slot that isn't live in this same payload — gains the [_slotIdKey] of its day's first live
-  ///   slot (lowest `sortKey`, ties broken by `id`), the same reading the schema's own
-  ///   `_assignOrphanBlocksToFirstSlot` takes; a block whose day carries no live slot at all is
-  ///   **dropped from the list**, the payload's own half of the migration's rule, and for the same
-  ///   reason: the column is non-null from here on.
-  static Map<String, dynamic> _upgradeFormat6To7(Map<String, dynamic> json) {
-    final slots = [
-      for (final slot in _rows(json, _shootingSlotsKey))
-        {...slot, _startMinuteKey: slot[_crewCallMinuteKey]},
-    ];
-
-    final crew = [
-      for (final row in _rows(json, _shootingSlotCrewKey))
-        {...row, _groupIdKey: null, _leadMinutesKey: null},
-    ];
-
-    final cast = [
-      for (final row in _rows(json, _shootingSlotCastKey))
-        {...row, _groupIdKey: null, _leadMinutesKey: null},
-    ];
-
-    final liveSlotIds = <String>{};
-    final firstSlotIdByDay = <String, String>{};
-    final liveSlotsByDay = <String, List<Map<String, dynamic>>>{};
-    for (final slot in slots) {
-      if (slot[_isDeletedKey] == true) {
-        continue;
-      }
-      liveSlotIds.add(slot[_idKey] as String);
-      liveSlotsByDay.putIfAbsent(slot[_shootingDayIdKey] as String, () => []).add(slot);
-    }
-    for (final entry in liveSlotsByDay.entries) {
-      final ordered = [...entry.value]
-        ..sort((a, b) {
-          final sortKeyComparison = (a[_sortKeyKey] as String).compareTo(b[_sortKeyKey] as String);
-          return sortKeyComparison != 0
-              ? sortKeyComparison
-              : (a[_idKey] as String).compareTo(b[_idKey] as String);
-        });
-      firstSlotIdByDay[entry.key] = ordered.first[_idKey] as String;
-    }
-
-    final blocks = <Map<String, dynamic>>[];
-    for (final block in _rows(json, _shootingDayBlocksKey)) {
-      final withScene = {...block, _sceneIdKey: null};
-      final slotId = block[_slotIdKey] as String?;
-      if (slotId != null && liveSlotIds.contains(slotId)) {
-        blocks.add(withScene);
-        continue;
-      }
-
-      final firstSlotId = firstSlotIdByDay[block[_shootingDayIdKey]];
-      if (firstSlotId == null) {
-        continue;
-      }
-
-      blocks.add({...withScene, _slotIdKey: firstSlotId});
-    }
-
-    return {
-      ...json,
-      _shootingDayGroupsKey: const <dynamic>[],
-      _shootingSlotsKey: slots,
-      _shootingSlotCrewKey: crew,
-      _shootingSlotCastKey: cast,
-      _shootingDayBlocksKey: blocks,
-    };
-  }
-
-  /// Turns a format-**8** JSON object into a format-**9** one: `shooting_slots.startMinute` becomes
-  /// the anchored-edge trio, the payload's own half of the schema's v13-to-v14 migration.
-  ///
-  /// This is a **rename**, the kind [_upgradeFormat6To7] already shows for `crewCallMinute`, and
-  /// neither of the other two kinds: nothing materialises (the column existed and held a real
-  /// value), and nothing is removed (that value is exactly what the new columns say). Every slot
-  /// comes back anchored **by its start, at the hour it already had** — [_anchorEdgeKey] the
-  /// literal `start`, [_anchorMinuteKey] the old [_startMinuteKey], [_anchorSlotIdKey] null —
-  /// which is what every slot of a format-8 payload meant, so restoring one draws the day it drew
-  /// when it was captured. Nothing is guessed the other way round: no slot becomes end-anchored
-  /// because its last block happened to land on a round hour, and no link is invented between two
-  /// slots that merely met.
-  ///
-  /// The retired [_startMinuteKey] is left on the row rather than removed, exactly as
-  /// [_upgradeFormat6To7] leaves `crewCallMinute` on one: [_shootingSlotFromJson] reads the keys it
-  /// knows and ignores the rest, and an upgrade step that also tidied would be doing two things.
-  static Map<String, dynamic> _upgradeFormat8To9(Map<String, dynamic> json) => {
-    ...json,
-    _shootingSlotsKey: [
-      for (final slot in _rows(json, _shootingSlotsKey))
-        {
-          ...slot,
-          _anchorEdgeKey: OcptShootingSlotAnchorEdge.start.name,
-          _anchorMinuteKey: slot[_startMinuteKey],
-          _anchorSlotIdKey: null,
-        },
-    ],
-  };
-
-  /// Turns a format-**9** JSON object into a format-**10** one: `role_elements` — what a role
-  /// wears, carries and is made up with — did not exist yet, so this materialises it as an **empty
-  /// list**.
-  ///
-  /// Back to the plainest of the three kinds, [_upgradeFormat5To6]'s: a version written in format 9
-  /// was captured when nothing in the app could say a role wore a coat, so "this role had no
-  /// things" is a truthful statement about that moment — unlike [_upgradeFormat3To4]'s null, which
-  /// means "leave the live value alone", and unlike [_upgradeFormat7To8]'s removal, which makes no
-  /// claim about the capture at all. `OcptProjectVersionsService._restoreTable` tombstones, on
-  /// restore, every row the payload doesn't hold, so restoring one correctly drops every link made
-  /// since, exactly as restoring a pre-schedule version drops the days planned since.
-  static Map<String, dynamic> _upgradeFormat9To10(Map<String, dynamic> json) => {
-    ...json,
-    _roleElementsKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**10** JSON object into a format-**11** one: `people.maxDailyPresenceMinutes`
-  /// didn't exist yet, so every `people` row gains a **null** value for it.
-  ///
-  /// This null is the same kind [_upgradeFormat6To7] writes for a crew or cast row's `groupId`/
-  /// `leadMinutes`, not [_upgradeFormat3To4]'s currency: the currency's null means "leave the
-  /// working copy's own value alone" because the column has never itself been nullable — a project
-  /// captured before format 4 *did* have a currency, the payload simply never recorded which. Here
-  /// the column is nullable by design (see `OcptPeopleTable.maxDailyPresenceMinutes`'s own doc
-  /// comment) and null is its own truthful state: a payload that never reached format 11 was
-  /// captured when nobody could record a maximum for anybody, so "nobody has said" is exactly what
-  /// every row of it means, restored or not. `OcptProjectVersionsService.restoreVersion` therefore
-  /// writes this null onto the working copy like any other changed column, rather than skipping it
-  /// the way it skips the currency's — and, as with every materialised value this codec writes,
-  /// **nothing is guessed**: no figure is invented from a legal maximum this build happens to know
-  /// about, which is the whole reason the column exists rather than a hard-coded one.
-  static Map<String, dynamic> _upgradeFormat10To11(Map<String, dynamic> json) => {
-    ...json,
-    _peopleKey: [
-      for (final person in _rows(json, _peopleKey))
-        {...person, _maxDailyPresenceMinutesKey: null},
-    ],
-  };
-
-  /// Turns a format-**11** JSON object into a format-**12** one, doing all three kinds of change at
-  /// once:
-  ///
-  /// - `shooting_slot_guests` and `shooting_day_events` didn't exist yet, so this materialises both
-  ///   as **empty lists** — the plainest of the three kinds, [_upgradeFormat5To6]'s and
-  ///   [_upgradeFormat9To10]'s: a version written in format 11 was captured when nothing in the app
-  ///   could say a day had a guest or an event of its own — a slot convoked crew and cast alone, and
-  ///   a day's timetable was the only thing it could say happened on it — so "this day had neither"
-  ///   is a truthful statement about that moment. `OcptProjectVersionsService._restoreTable`
-  ///   tombstones, on restore, every row the payload doesn't hold, so restoring a format-11 version
-  ///   correctly drops every guest and every event recorded since — the reading, not a bug, exactly
-  ///   as restoring a pre-schedule version drops the days planned since.
-  /// - Each `shootingDayBlocks` row gains an **empty string** [_crewNoteKey], and each `assets` row
-  ///   a **null** [_validFromKey]/[_validUntilKey], and [_projectSettingsKey] a **null**
-  ///   [_minimumRestMinutesKey] — [_upgradeFormat10To11]'s kind, not [_upgradeFormat3To4]'s: every
-  ///   one of the three columns is nullable or defaulted by design, so a version captured in format
-  ///   11 truthfully recorded nothing for any of them, and that nothing is written back onto the
-  ///   working copy on restore like any other changed column, rather than being skipped the way the
-  ///   currency's null is.
-  /// - [_shootingPresencesKey] is **dropped**, [_upgradeFormat7To8]'s kind — the second entry in
-  ///   this codec that removes rather than materialises. Read that step's own doc comment first: a
-  ///   format-11 version genuinely *did* carry presence overrides, typed by a user who is owed an
-  ///   honest account of what became of them, so this is not the empty-list bullet above wearing a
-  ///   different name. The project being restored into has no concept for them any more — schema
-  ///   version 17 drops `shooting_presences` outright — so they come back as nothing at all, and, as
-  ///   everywhere else, **nothing is reconstructed**: an override that said `travelling` does not
-  ///   become a slot nobody asked for, exactly as a format-7 payload's dropped lead times do not
-  ///   become one either.
-  static Map<String, dynamic> _upgradeFormat11To12(Map<String, dynamic> json) {
-    final blocks = [
-      for (final row in _rows(json, _shootingDayBlocksKey)) {...row, _crewNoteKey: ""},
-    ];
-
-    final assets = [
-      for (final row in _rows(json, _assetsKey))
-        {...row, _validFromKey: null, _validUntilKey: null},
-    ];
-
-    final projectSettings = {
-      ..._object(json, _projectSettingsKey),
-      _minimumRestMinutesKey: null,
-    };
-
-    final upgraded = {...json}..remove(_shootingPresencesKey);
-
-    return {
-      ...upgraded,
-      _shootingDayBlocksKey: blocks,
-      _assetsKey: assets,
-      _projectSettingsKey: projectSettings,
-      _shootingSlotGuestsKey: const <dynamic>[],
-      _shootingDayEventsKey: const <dynamic>[],
-    };
-  }
-
-  /// Turns a format-**12** JSON object into a format-**13** one: the payload's own half of schema
-  /// version 18, which makes a `screenplays` row an episode
-  /// (`docs/adr/0019-one-project-several-episodes.md`, §3.2 of the plan this ships under). It does
-  /// **four** kinds of thing, one of which is new to this codec — read the third bullet below in
-  /// full before ever adding a fifth.
-  ///
-  /// - Every `screenplays` row gains [_numberKey] and [_sortKeyKey]. This is [_upgradeFormat4To5]'s
-  ///   kind (`elements.status` filled with [OcptElementStatus.toFind]), **not**
-  ///   [_upgradeFormat3To4]'s currency null: a payload captured in format 12 held exactly one
-  ///   screenplay, so "this project had one episode, and it was the first" is the truthful reading
-  ///   of that moment — there is no live value anywhere to leave alone, unlike the currency, which
-  ///   the column has never itself been nullable for. Every **live** row is numbered `1..n` in
-  ///   `id` order and keyed with [ocptFractionalKeySequence] — the same rule, for the same
-  ///   determinism reason (two replicas restoring the same version must land on the same
-  ///   numbering), that `OcptProjectDatabase._numberExistingScreenplays` follows for the schema's
-  ///   own migration; the two **must** agree, since a payload restored into a freshly migrated file
-  ///   has to describe the same episode the file itself already settled on. A tombstoned row is left
-  ///   at the columns' own defaults (`1` and `""`), mirroring that same method: a deleted screenplay
-  ///   was never going to be episode anything.
-  /// - [_roleEpisodesKey] is derived from the very `roles.screenplayId` the next bullet drops. This
-  ///   is a **fourth kind of change, and the only lossless one in the whole codec**: every other
-  ///   upgrade step in this file either materialises a value that was never recorded (the bullet
-  ///   above) or discards one the app has no concept for any more (the bullet below) — this one
-  ///   instead rewrites a fact the payload already carries in full, into the shape the new table
-  ///   holds it in from here on, exactly as `OcptProjectDatabase._deriveRoleEpisodes` does for the
-  ///   schema's own migration and for the same reason. **This is the only entry that may do this —
-  ///   read it again before adding a fifth kind of upgrade step to this codec.** The link's `id` is
-  ///   **the role's own id**: a role has exactly one episode at format 12, which is what makes reuse
-  ///   safe (the id is unique here) and useful (it is deterministic, so two replicas restoring the
-  ///   same version produce the same `role_episodes` row rather than two a later merge would have
-  ///   to reconcile) — `_deriveRoleEpisodes`'s own doc comment, and
-  ///   `docs/adr/0019-one-project-several-episodes.md`, give the same reasoning for the same choice.
-  ///   Derived from **live** `roles` rows only, matching that same migration: a tombstoned role
-  ///   named no episode worth carrying forward, tombstoned or not.
-  /// - `roles.screenplayId` and `shooting_days.screenplayId` are **dropped** from every row, whether
-  ///   or not it is a tombstone. This is [_upgradeFormat7To8]'s and [_upgradeFormat11To12]'s kind:
-  ///   unlike the first bullet's empty-then-filled column it makes no claim about the moment of
-  ///   capture, and unlike the currency's null it leaves no live value alone — there is nothing
-  ///   truthful left to say through either column once the project being restored into has dropped
-  ///   the very idea each one named. A shooting day comes back with everything else it held, simply
-  ///   belonging to no episode any more: nothing here is reconstructed, exactly as a format-7
-  ///   payload's dropped lead times are not turned into a slot nobody asked for.
-  ///
-  /// The consequence, stated in the plan and in the ADR and worth restating here where a future
-  /// reader of this step will actually be looking: restoring a format-12 version into a
-  /// multi-episode project **tombstones every episode but the first**, along with its scenes, its
-  /// shots and its breakdown — the truthful reading of "this project had one episode when this
-  /// version was sealed", an edit like any other restore, undoable through the restore's own safety
-  /// version. **No role loses its casting** on the way through, since a role is no longer a
-  /// script's: only the link the second bullet derives says where it used to speak.
-  static Map<String, dynamic> _upgradeFormat12To13(Map<String, dynamic> json) {
-    final liveScreenplayIds = [
-      for (final screenplay in _rows(json, _screenplaysKey))
-        if (screenplay[_isDeletedKey] != true) screenplay[_idKey] as String,
-    ]..sort();
-    final freshKeys = ocptFractionalKeySequence(liveScreenplayIds.length);
-    final numberById = <String, int>{
-      for (var i = 0; i < liveScreenplayIds.length; i++) liveScreenplayIds[i]: i + 1,
-    };
-    final sortKeyById = <String, String>{
-      for (var i = 0; i < liveScreenplayIds.length; i++) liveScreenplayIds[i]: freshKeys[i],
-    };
-
-    final screenplays = [
-      for (final screenplay in _rows(json, _screenplaysKey))
-        {
-          ...screenplay,
-          _numberKey: numberById[screenplay[_idKey]] ?? 1,
-          _sortKeyKey: sortKeyById[screenplay[_idKey]] ?? "",
-        },
-    ];
-
-    final roleEpisodes = [
-      for (final role in _rows(json, _rolesKey))
-        if (role[_isDeletedKey] != true)
-          {
-            _idKey: role[_idKey],
-            _roleIdKey: role[_idKey],
-            _screenplayIdKey: role[_screenplayIdKey],
-            _isDeletedKey: false,
-          },
-    ];
-
-    final roles = [
-      for (final role in _rows(json, _rolesKey)) ({...role}..remove(_screenplayIdKey)),
-    ];
-
-    final shootingDays = [
-      for (final day in _rows(json, _shootingDaysKey)) ({...day}..remove(_screenplayIdKey)),
-    ];
-
-    return {
-      ...json,
-      _screenplaysKey: screenplays,
-      _rolesKey: roles,
-      _roleEpisodesKey: roleEpisodes,
-      _shootingDaysKey: shootingDays,
-    };
-  }
-
-  /// Turns a format-**13** JSON object into a format-**14** one: `project_info.screenplayLanguage`
-  /// didn't exist yet, so [_projectSettingsKey] gains a **null** [_screenplayLanguageKey].
-  ///
-  /// [_upgradeFormat11To12]'s kind, not [_upgradeFormat3To4]'s currency: the column is nullable by
-  /// design, so a version captured in format 13 or earlier truthfully recorded nothing for it, and
-  /// that nothing is written back onto the working copy on restore like any other changed column —
-  /// see [OcptProjectVersionPayload.screenplayLanguage].
-  static Map<String, dynamic> _upgradeFormat13To14(Map<String, dynamic> json) {
-    final projectSettings = {
-      ..._object(json, _projectSettingsKey),
-      _screenplayLanguageKey: null,
-    };
-
-    return {...json, _projectSettingsKey: projectSettings};
-  }
-
-  /// Turns a format-**14** JSON object into a format-**15** one: `project_dictionary_words` didn't
-  /// exist yet, so this materialises it as an **empty list** — [_upgradeFormat1To2]'s kind, not
-  /// [_upgradeFormat13To14]'s null: a version captured this early truthfully taught the spell
-  /// checker nothing at all, which is exactly what an empty list says, and
-  /// `OcptProjectVersionsService._restoreTable` already tombstones, on restore, every row the
-  /// payload doesn't hold — so a restore of a format-14 version correctly un-learns whatever the
-  /// working copy had been taught since, with no special case written for it.
-  static Map<String, dynamic> _upgradeFormat14To15(Map<String, dynamic> json) => {
-    ...json,
-    _projectDictionaryWordsKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**15** JSON object into a format-**16** one: `role_candidates` — who was seen
-  /// for a part — didn't exist yet, so this materialises it as an **empty list**.
-  ///
-  /// [_upgradeFormat14To15]'s kind, and [_upgradeFormat9To10]'s before it: a version captured this
-  /// early genuinely held nobody seen for any part, which is exactly what an empty list says, and
-  /// `OcptProjectVersionsService._restoreTable` already tombstones, on restore, every row the
-  /// payload doesn't hold — so restoring a format-15 version correctly takes back the candidates
-  /// entered since, with no special case written for it. The `roles.personId` such a restore writes
-  /// back is the payload's own, which is the honest answer: it is the cast the project actually had
-  /// at the moment the version was captured.
-  static Map<String, dynamic> _upgradeFormat15To16(Map<String, dynamic> json) => {
-    ...json,
-    _roleCandidatesKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**16** JSON object into a format-**17** one: each `shootingDays` row gains a
-  /// [_kindKey] of `"shoot"`.
-  ///
-  /// [_upgradeFormat11To12]'s kind, not [_upgradeFormat1To2]'s empty lists nor
-  /// [_upgradeFormat3To4]'s null: the column is defaulted by design, and a version captured before
-  /// this app could say a day did anything but shoot recorded a schedule every day of which shot —
-  /// so `"shoot"` is not a stand-in for a missing value, it is the value. It is written back onto
-  /// the working copy on restore like any other column, and, as everywhere else in this codec,
-  /// **nothing is reconstructed**: a day whose timetable happens to hold nothing but a `hold` block
-  /// does not become a rehearsal nobody declared.
-  static Map<String, dynamic> _upgradeFormat16To17(Map<String, dynamic> json) => {
-    ...json,
-    _shootingDaysKey: [
-      // The literal must match `OcptShootingDayKind.shoot.name`, for the same reason the column's
-      // own default has to.
-      for (final row in _rows(json, _shootingDaysKey)) {...row, _kindKey: "shoot"},
-    ],
-  };
-
-  /// Turns a format-**17** JSON object into a format-**18** one: `shooting_slot_candidates` — which
-  /// candidate each slot convokes — didn't exist yet, so this materialises it as an **empty list**,
-  /// and each `shootingDayBlocks` row gains a **null** [_roleIdKey] and a **null**
-  /// [_roleCandidateIdKey].
-  ///
-  /// Both halves of [_upgradeFormat15To16]'s and [_upgradeFormat3To4]'s kinds at once, and neither
-  /// is a stand-in: a version captured before this app could plan an audition genuinely convoked no
-  /// candidate anywhere and held no block naming one, which is exactly what an empty list and two
-  /// nulls say. Nothing is reconstructed either, as everywhere else in this codec — a block whose
-  /// label happens to read *"Camille, 14h"* does not become an audition nobody declared.
-  static Map<String, dynamic> _upgradeFormat17To18(Map<String, dynamic> json) => {
-    ...json,
-    _shootingSlotCandidatesKey: const <dynamic>[],
-    _shootingDayBlocksKey: [
-      for (final row in _rows(json, _shootingDayBlocksKey))
-        {...row, _roleIdKey: null, _roleCandidateIdKey: null},
-    ],
-  };
-
-  /// Turns a format-**18** JSON object into a format-**19** one: `shootingDays` rows lose their
-  /// [_kindKey] and `shootingDayBlocks` rows their [_roleCandidateIdKey].
-  ///
-  /// [_upgradeFormat7To8]'s kind — a step that **removes** — and for a close cousin of its reason. A
-  /// day was briefly given a kind (shoot, casting, rehearsal) and an audition block was briefly
-  /// given the candidacy it saw; both were dropped, because a real day mixes those activities and
-  /// says so through its **blocks**: a production auditions in the morning and rehearses in the
-  /// afternoon, and rehearses on the morning of a day it shoots. What a day is for is read off what
-  /// it holds, so neither column has anything left to say.
-  ///
-  /// Both keys are stripped rather than left to be ignored: [contentDigest] hashes what this codec
-  /// writes, and a key nothing writes any more must not linger in one payload and not the next.
-  static Map<String, dynamic> _upgradeFormat18To19(Map<String, dynamic> json) => {
-    ...json,
-    _shootingDaysKey: [
-      for (final row in _rows(json, _shootingDaysKey)) {...row}..remove(_kindKey),
-    ],
-    _shootingDayBlocksKey: [
-      for (final row in _rows(json, _shootingDayBlocksKey)) {...row}..remove(_roleCandidateIdKey),
-    ],
-  };
-
-  /// Turns a format-**19** JSON object into a format-**20** one: `shootingSlotCandidates` and every
-  /// `shootingDayBlocks` row's [_roleIdKey] are dropped, and `shootingBlockCandidates` — which
-  /// candidacies each audition block sees — is materialised as an **empty list**.
-  ///
-  /// [_upgradeFormat7To8]'s kind and [_upgradeFormat5To6]'s at once, and neither is a stand-in. What
-  /// goes was written only by intermediate builds of one unmerged branch: a candidate convoked on
-  /// the whole slot, and an audition block naming the single part it saw. Both were taken back out
-  /// because a candidate is expected at twenty past ten rather than "on the unit today", and a block
-  /// reading two actors of two different parts could never have named one part (ADR 0024). What
-  /// arrives is genuinely empty: a version captured before this app could name a candidacy on a
-  /// block named none anywhere. **Nothing is carried over** — a slot-wide convocation names no hour,
-  /// so there is no block for this step to attach it to, and inventing one would put somebody in a
-  /// running order nobody planned.
-  ///
-  /// Both retired keys are stripped rather than left to be ignored: [contentDigest] hashes what this
-  /// codec writes, and a key nothing writes any more must not linger in one payload and not the
-  /// next.
-  static Map<String, dynamic> _upgradeFormat19To20(Map<String, dynamic> json) =>
-      {
-        ...json,
-        _shootingBlockCandidatesKey: const <dynamic>[],
-        _shootingDayBlocksKey: [
-          for (final row in _rows(json, _shootingDayBlocksKey)) {...row}..remove(_roleIdKey),
-        ],
-      }..remove(_shootingSlotCandidatesKey);
-  /// Turns a format-**20** JSON object into a format-**21** one: the budget mode's foundations,
-  /// doing both of the two kinds `docs/architecture/foundations.md` documents at once.
-  ///
-  /// - [_budgetPostesKey] and [_budgetLinesKey] materialise as **empty lists**
-  ///   ([_upgradeFormat1To2]'s kind, the first of the codec's two kinds a table can arrive by): a
-  ///   version written in format 20 predates the budget mode entirely, so "this project had no
-  ///   postes, no lines" is a truthful statement about that moment, and
-  ///   `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
-  ///   doesn't hold — so restoring a format-20 version correctly drops whatever budget has been
-  ///   typed since, with no special case written for it;
-  /// - [_projectSettingsKey] gains a **null** [_defaultVatRateBasisPointsKey],
-  ///   [_mealPriceCentsKey] and [_snackPriceCentsKey] — [_upgradeFormat13To14]'s kind (the second of
-  ///   the two, not the currency's "leave the live value alone" one): all three columns are
-  ///   nullable by design, so a version captured in format 20 or earlier truthfully recorded
-  ///   nothing for any of them, and that nothing is written back onto the working copy on restore
-  ///   like any other changed column.
-  static Map<String, dynamic> _upgradeFormat20To21(Map<String, dynamic> json) {
-    final projectSettings = {
-      ..._object(json, _projectSettingsKey),
-      _defaultVatRateBasisPointsKey: null,
-      _mealPriceCentsKey: null,
-      _snackPriceCentsKey: null,
-    };
-
-    return {
-      ...json,
-      _budgetPostesKey: const <dynamic>[],
-      _budgetLinesKey: const <dynamic>[],
-      _projectSettingsKey: projectSettings,
-    };
-  }
-
-  /// Turns a format-**21** JSON object into a format-**22** one: the cash journal didn't exist yet,
-  /// so [_budgetEntriesKey] and [_budgetCommitmentsKey] materialise as **empty lists**
-  /// ([_upgradeFormat1To2]'s kind): a version written in format 21 predates the journal entirely, so
-  /// "this project had no entries, no commitments" is a truthful statement about that moment, and
-  /// `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
-  /// doesn't hold — so restoring a format-21 version correctly drops whatever cash movement has been
-  /// typed since, with no special case written for it.
-  ///
-  /// Every `assets` row also gains a **null** [_budgetEntryIdKey]: no asset could name a journal
-  /// entry that didn't exist yet, so null is the only truthful reading — [_upgradeFormat3To4]'s
-  /// kind, not the empty-list one, since `assets` rows themselves are not new here.
-  static Map<String, dynamic> _upgradeFormat21To22(Map<String, dynamic> json) {
-    final assets = [
-      for (final row in _rows(json, _assetsKey)) {...row, _budgetEntryIdKey: null},
-    ];
-
-    return {
-      ...json,
-      _budgetEntriesKey: const <dynamic>[],
-      _budgetCommitmentsKey: const <dynamic>[],
-      _assetsKey: assets,
-    };
-  }
-
-  /// Turns a format-**22** JSON object into a format-**23** one: the financing plan didn't exist
-  /// yet, so [_budgetResourcesKey] and [_budgetMileageRatesKey] materialise as **empty lists**
-  /// ([_upgradeFormat1To2]'s kind): a version written in format 22 predates the financing plan
-  /// entirely, so "this project named no resource, no rate" is a truthful statement about that
-  /// moment, and `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the
-  /// payload doesn't hold — so restoring a format-22 version correctly drops whatever financing has
-  /// been typed since, with no special case written for it.
-  ///
-  /// Every `budget_entries` row also gains a **null** [_resourceIdKey], and every `people` row a
-  /// **null** [_commuteKmMilliKey]/[_mileageRateIdKey] — [_upgradeFormat3To4]'s kind, not the
-  /// empty-list one, since neither table is new here: no entry could yet name a resource that
-  /// didn't exist, and no person could yet claim a distance or a rate this project had nowhere to
-  /// record.
-  static Map<String, dynamic> _upgradeFormat22To23(Map<String, dynamic> json) {
-    final entries = [
-      for (final row in _rows(json, _budgetEntriesKey)) {...row, _resourceIdKey: null},
-    ];
-
-    final people = [
-      for (final row in _rows(json, _peopleKey))
-        {...row, _commuteKmMilliKey: null, _mileageRateIdKey: null},
-    ];
-
-    return {
-      ...json,
-      _budgetResourcesKey: const <dynamic>[],
-      _budgetMileageRatesKey: const <dynamic>[],
-      _budgetEntriesKey: entries,
-      _peopleKey: people,
-    };
-  }
-
-  /// Turns a format-**23** JSON object into a format-**24** one: the revenue sharing didn't exist
-  /// yet, so [_budgetRevenuesKey] and [_budgetSharesKey] materialise as **empty lists**
-  /// ([_upgradeFormat1To2]'s kind): a version written in format 23 predates the sharing view
-  /// entirely, so "this project named no taking, no participant" is a truthful statement about that
-  /// moment, and `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the
-  /// payload doesn't hold — so restoring a format-23 version correctly drops whatever sharing has
-  /// been typed since, with no special case written for it.
-  ///
-  /// Every `budget_entries` row also gains a **null** [_revenueIdKey]/[_shareIdKey] —
-  /// [_upgradeFormat3To4]'s kind, not the empty-list one, since the table itself is not new here: no
-  /// entry could yet name a taking or a participant this project had nowhere to record.
-  static Map<String, dynamic> _upgradeFormat23To24(Map<String, dynamic> json) {
-    final entries = [
-      for (final row in _rows(json, _budgetEntriesKey))
-        {...row, _revenueIdKey: null, _shareIdKey: null},
-    ];
-
-    return {
-      ...json,
-      _budgetRevenuesKey: const <dynamic>[],
-      _budgetSharesKey: const <dynamic>[],
-      _budgetEntriesKey: entries,
-    };
-  }
-
-  /// Turns a format-**24** JSON object into a format-**25** one: `budget_resources.personId` and
-  /// `project_info.isBudgetSimplified` didn't exist yet, so every `budgetResources` row gains a
-  /// **null** [_personIdKey] and [_projectSettingsKey] gains a **null** [_isBudgetSimplifiedKey] —
-  /// [_upgradeFormat3To4]'s kind twice over, not the empty-list one: neither `budget_resources` nor
-  /// `project_info` is new here, so no resource could yet name the person it comes from, and
-  /// nobody has ever chosen between the simplified and the detailed header on a project captured
-  /// this early — the mode opens detailed for it today for exactly that reason.
-  static Map<String, dynamic> _upgradeFormat24To25(Map<String, dynamic> json) {
-    final resources = [
-      for (final row in _rows(json, _budgetResourcesKey)) {...row, _personIdKey: null},
-    ];
-
-    final projectSettings = {
-      ..._object(json, _projectSettingsKey),
-      _isBudgetSimplifiedKey: null,
-    };
-
-    return {
-      ...json,
-      _budgetResourcesKey: resources,
-      _projectSettingsKey: projectSettings,
-    };
-  }
-
-  /// Turns a format-**25** JSON object into a format-**26** one: every `budgetResources` row's
-  /// [_statusKey] is **rewritten**, from one of the four words the four groups used to share
-  /// (`applied`, `notified`, `secured`, `valued`) to one of the three steps that replaced them
-  /// (`pending`, `agreed`, `confirmed`).
-  ///
-  /// **A fourth kind of upgrade step**, alongside [_upgradeFormat1To2]'s empty list,
-  /// [_upgradeFormat3To4]'s null and [_upgradeFormat7To8]'s removal: nothing arrives and nothing
-  /// goes, one column simply stops meaning what it meant. It has to happen here rather than being
-  /// tolerated at read time, because [_budgetResourceFromJson] reads [_statusKey] **strictly**
-  /// through `OcptBudgetResourceStatus.values.asNameMap()` — a payload still saying `applied` would
-  /// be refused outright, not defaulted, exactly as [_upgradeFormat4To5] had to write an element's
-  /// status in for the same reason.
-  ///
-  /// **Nothing is reconstructed**, as everywhere else in this codec. Each old word lands on the
-  /// step it already stated, `valued` included: it said a figure was on the resource and nothing
-  /// signed, which is `agreed`. No row changes group, none moves forward or back a step, and a
-  /// status a user typed is never replaced by a default — the very same mapping the v29-to-v30
-  /// schema migration applies to the working copy, so a version restored across that boundary and
-  /// the project it is restored into say the same thing about the same resource.
-  static Map<String, dynamic> _upgradeFormat25To26(Map<String, dynamic> json) {
-    const steps = <String, String>{
-      "applied": "pending",
-      "notified": "agreed",
-      "secured": "confirmed",
-      "valued": "agreed",
-    };
-
-    final resources = [
-      for (final row in _rows(json, _budgetResourcesKey))
-        {...row, _statusKey: steps[row[_statusKey]] ?? row[_statusKey]},
-    ];
-
-    return {...json, _budgetResourcesKey: resources};
-  }
-
-  /// Turns a format-**26** JSON object into a format-**27** one: the defrayals didn't exist yet,
-  /// so [_budgetAllowancesKey] materialises as an **empty list** ([_upgradeFormat1To2]'s kind).
-  ///
-  /// A version written in format 26 predates the table entirely, and "this project defrayed nobody"
-  /// is a truthful statement about that moment rather than a stand-in: what the régie view then
-  /// showed was a *computation* — one return trip per day of presence — held in memory and stored
-  /// nowhere, so there is no earlier figure for this step to carry over, and inventing rows out of
-  /// a schedule this codec does not read would put money in a budget nobody typed.
-  /// `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
-  /// doesn't hold, so restoring a format-26 version correctly drops whatever defrayals have been
-  /// typed since, with no special case written for it.
-  static Map<String, dynamic> _upgradeFormat26To27(Map<String, dynamic> json) => {
-    ...json,
-    _budgetAllowancesKey: const <dynamic>[],
-  };
-
-  /// Turns a format-**27** JSON object into a format-**28** one: every `budgetLines` row gains a
-  /// **null** [_provisionKeyKey] and [_provisionDigestKey] — [_upgradeFormat3To4]'s kind, the
-  /// table itself being far from new here.
-  ///
-  /// Null is the truthful reading rather than a stand-in: no line of any project was ever written
-  /// by the régie provisioning, since there was none, so every line a format-27 payload holds was
-  /// typed by somebody — which is exactly what a null key says, and exactly what keeps the
-  /// provisioning from claiming a line it never wrote.
-  static Map<String, dynamic> _upgradeFormat27To28(Map<String, dynamic> json) => {
-    ...json,
-    _budgetLinesKey: [
-      for (final row in _rows(json, _budgetLinesKey))
-        {...row, _provisionKeyKey: null, _provisionDigestKey: null},
-    ],
-  };
-
-  /// Turns a format-**28** JSON object into a format-**29** one: every `budget_commitments` row
-  /// gains a **null** [_commitmentLineIdKey] — [_upgradeFormat3To4]'s kind, the table itself being
-  /// far from new here.
-  ///
-  /// Null is the truthful reading rather than a stand-in: no commitment of any project was ever
-  /// promoted from a quote line, since nothing could be, so every commitment a format-28 payload
-  /// holds was typed from scratch — which is exactly what a null says, and exactly what keeps a
-  /// restored version from claiming a provenance it never had.
-  static Map<String, dynamic> _upgradeFormat28To29(Map<String, dynamic> json) => {
-    ...json,
-    _budgetCommitmentsKey: [
-      for (final row in _rows(json, _budgetCommitmentsKey)) {...row, _commitmentLineIdKey: null},
-    ],
-  };
-
-  /// Turns a format-**29** JSON object into a format-**30** one: every `budget_postes` row gains a
-  /// **null** [_estimateToCompleteCentsKey] — [_upgradeFormat28To29]'s kind, the table itself being
-  /// far from new here.
-  ///
-  /// Null is the truthful reading rather than a stand-in: a version captured before this column
-  /// existed was captured at a moment when nobody could have judged a poste's estimate to
-  /// complete, so null states exactly what was true then — not an empty list, which would claim the
-  /// poste itself was new, and not zero, which would be a judgement nobody made.
-  static Map<String, dynamic> _upgradeFormat29To30(Map<String, dynamic> json) => {
-    ...json,
-    _budgetPostesKey: [
-      for (final row in _rows(json, _budgetPostesKey)) {...row, _estimateToCompleteCentsKey: null},
-    ],
-  };
-
-  /// Turns a format-**30** JSON object into a format-**31** one: every `budgetCommitments` row's
-  /// own [_settledEntryIdKey], the one `budgetEntries` row it named as having settled it, is carried
-  /// onto that very entry's own new [_commitmentIdKey] before the key is dropped from the
-  /// commitment — the payload's own half of the schema's own settlement rework, which reads it the
-  /// other way round from here on: an entry names the commitment it pays, never a commitment naming
-  /// the entry that paid it. Every `budgetEntries` row also gains a **null** [_personIdKey] —
-  /// [_upgradeFormat3To4]'s kind, nobody having ever been named as reimbursed by a movement before
-  /// this column existed to name one.
-  ///
-  /// **Neither a materialisation, a null nor a removal on its own — a fifth kind of upgrade step**,
-  /// carrying a fact from one row of one table onto a *different* row of a *different* table rather
-  /// than reshaping a table in place. Nothing is reconstructed and nothing is invented: a commitment
-  /// that named no settling entry carries nothing over, an entry no commitment ever named stays
-  /// exactly as untouched as it already was, and the fold is a plain lookup by id — the very same
-  /// carry-over the schema's own `from < 35` migration step performs on the working copy, so a
-  /// version restored across this boundary and the project it is restored into agree about which
-  /// entry paid which commitment.
-  static Map<String, dynamic> _upgradeFormat30To31(Map<String, dynamic> json) {
-    final settlingEntryIdByCommitmentId = {
-      for (final row in _rows(json, _budgetCommitmentsKey))
-        if (_nullableString(row, _settledEntryIdKey) case final entryId?)
-          _string(row, _idKey): entryId,
-    };
-    final commitmentIdByEntryId = {
-      for (final entry in settlingEntryIdByCommitmentId.entries) entry.value: entry.key,
-    };
-
-    return {
-      ...json,
-      _budgetEntriesKey: [
-        for (final row in _rows(json, _budgetEntriesKey))
-          {
-            ...row,
-            _commitmentIdKey: commitmentIdByEntryId[_string(row, _idKey)],
-            _personIdKey: null,
-          },
-      ],
-      _budgetCommitmentsKey: [
-        for (final row in _rows(json, _budgetCommitmentsKey)) ({...row}..remove(_settledEntryIdKey)),
-      ],
-    };
-  }
-
-  /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
-  /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
-  /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
-  /// a role is linked to from here on, never offset by a typed lead time.
-  ///
-  /// This is the first upgrade step that **removes rather than materialises**, and it is a third
-  /// kind of change alongside the two the earlier steps already show: [_upgradeFormat5To6]
-  /// materialises an **empty list** for a table that genuinely held nothing at the moment it was
-  /// captured, and [_upgradeFormat3To4] writes a **null** for a value that did exist but was never
-  /// recorded, to be left untouched on restore. Here there is no working-copy value to leave
-  /// untouched and no truthful "there were none" to state about the moment of capture — a version
-  /// captured in format 7 genuinely *did* carry groups and lead times, typed by a user who is owed
-  /// an honest account of what became of them. **Nothing is reconstructed**: a lead time is not
-  /// turned into a slot nobody asked for, exactly as the v11-to-v12 schema migration reconstructed
-  /// nothing out of the typed clocks it dropped. A version restored from a format-7 payload
-  /// therefore comes back with every crew and cast row it held, simply carrying no lead time and no
-  /// group any more, because the project being restored into no longer has a concept for either to
-  /// mean anything.
-  static Map<String, dynamic> _upgradeFormat7To8(Map<String, dynamic> json) {
-    final crew = [
-      for (final row in _rows(json, _shootingSlotCrewKey))
-        ({...row}..remove(_groupIdKey)..remove(_leadMinutesKey)),
-    ];
-
-    final cast = [
-      for (final row in _rows(json, _shootingSlotCastKey))
-        ({...row}..remove(_groupIdKey)..remove(_leadMinutesKey)),
-    ];
-
-    final upgraded = {...json}..remove(_shootingDayGroupsKey);
-
-    return {...upgraded, _shootingSlotCrewKey: crew, _shootingSlotCastKey: cast};
-  }
 
   /// Class constructor
   const OcptProjectVersionCodec();
@@ -1979,8 +1047,12 @@ class OcptProjectVersionCodec {
     },
   });
 
-  /// Parses [payloadJson], the text stored in `project_versions.payload`, upgrading it from an
-  /// older format when needed.
+  /// Parses [payloadJson], the text stored in `project_versions.payload`.
+  ///
+  /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release has ever
+  /// shipped, so there is no older payload format to upgrade from yet: a payload is read directly
+  /// at [currentPayloadFormat]. The first upgrade step is added once a stable release has frozen
+  /// [lastStablePayloadFormat] and a later format is needed.
   ///
   /// Never throws: every failure comes back as an [OcptProjectVersionPayloadStatus], because the
   /// caller of a decode is always about to tell the user why a version can't be opened.
@@ -2005,10 +1077,7 @@ class OcptProjectVersionCodec {
         );
       }
 
-      return ResultWithStatus(
-        status: OcptProjectVersionPayloadStatus.ok,
-        value: _payloadFromJson(_upgraded(decoded, payloadFormat)),
-      );
+      return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: _payloadFromJson(decoded));
     } on _OcptPayloadFormatError catch (error) {
       appLogger().e("The project version payload can't be read: ${error.reason}");
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
@@ -2333,26 +1402,7 @@ class OcptProjectVersionCodec {
     return [for (final row in sortedRows) SplayTreeMap<String, dynamic>.of(toJson(row))];
   }
 
-  /// Replays the [_payloadUpgrades] steps that take [json], written in [payloadFormat], up to
-  /// [currentPayloadFormat].
-  ///
-  /// Returns [json] itself when it is already current, which is the only case that exists so far.
-  static Map<String, dynamic> _upgraded(Map<String, dynamic> json, int payloadFormat) {
-    var upgraded = json;
-
-    for (var format = payloadFormat; format < currentPayloadFormat; format++) {
-      final upgrade = _payloadUpgrades[format];
-      if (upgrade == null) {
-        throw _OcptPayloadFormatError("no upgrade step knows how to read the format $format");
-      }
-
-      upgraded = upgrade(upgraded);
-    }
-
-    return upgraded;
-  }
-
-  /// Builds the payload described by [json], already upgraded to [currentPayloadFormat].
+  /// Builds the payload described by [json], read directly at [currentPayloadFormat].
   static OcptProjectVersionPayload _payloadFromJson(Map<String, dynamic> json) {
     final projectSettings = _object(json, _projectSettingsKey);
     final pageMargins = _object(json, _pageMarginsKey);
