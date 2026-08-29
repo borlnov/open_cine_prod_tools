@@ -4,9 +4,11 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -481,14 +483,27 @@ void main() {
     final shotListService = OcptShotListService(deviceId: testDeviceId);
     final coverageService = OcptShotCoverageService(deviceId: testDeviceId);
     const sceneIndexService = OcptSceneIndexService();
+    final assetsService = OcptAssetsService(deviceId: testDeviceId);
+    final elementsService = OcptElementsService(
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    );
+    final locationsService = OcptLocationsService(
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    );
     final screenplayService = OcptScreenplayService(
       sceneIndexService: sceneIndexService,
       shotListService: shotListService,
       shotCoverageService: coverageService,
-      roleIndexService: const OcptRoleIndexService(),
-      breakdownService: const OcptBreakdownService(
-        elementsService: OcptElementsService(),
-        locationsService: OcptLocationsService(),
+      roleIndexService: OcptRoleIndexService(
+        elementsService: elementsService,
+        roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+        deviceId: testDeviceId,
+      ),
+      breakdownService: OcptBreakdownService(
+        elementsService: elementsService,
+        locationsService: locationsService,
       ),
       scheduleService: const OcptScheduleService(),
       deviceId: testDeviceId,

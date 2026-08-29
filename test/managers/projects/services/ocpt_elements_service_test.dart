@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
@@ -18,7 +19,9 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const elementsService = OcptElementsService();
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
 
@@ -41,6 +44,13 @@ void main() {
   Future<OcptElementRow> readElement(String id) => (database.select(
     database.ocptElementsTable,
   )..where((row) => row.id.equals(id))).getSingle();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   Future<String> createElement(String name) => elementsService
       .createElement(
@@ -628,7 +638,11 @@ void main() {
         elementId: otherId,
       );
 
-      await elementsService.tombstoneRoleLinksOfRole(database: database, roleId: "role-1");
+      await elementsService.tombstoneRoleLinksOfRole(
+        database: database,
+        roleId: "role-1",
+        stamps: null,
+      );
 
       final elements = await elementsService.loadElements(database: database);
       final byId = {for (final element in elements) element.id: element};
@@ -652,6 +666,106 @@ void main() {
       expect(await preview.select(preview.ocptRoleElementsTable).get(), isEmpty);
 
       await preview.close();
+    });
+  });
+
+  group("row-field-version stamps", () {
+    /// Inserts the role [id] named "CLARA" directly, for the tests below that link an element to
+    /// one — `role_elements.roleId` is a foreign key, and this group's own database starts with no
+    /// role at all.
+    Future<void> insertRole(String id) => database
+        .into(database.ocptRolesTable)
+        .insert(
+          OcptRolesTableCompanion.insert(
+            id: id,
+            name: "CLARA",
+            kind: OcptRoleKind.speaking,
+            sortKey: const Value("a"),
+          ),
+        );
+
+    test("createElement stamps every column of the new row", () async {
+      final elementId = await createElement("Manteau rouge");
+
+      final stamps = await readStamps();
+      final element = await readElement(elementId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("elements/$elementId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(element.toJson().length));
+      for (final column in element.toJson().keys) {
+        final stamp = ownStamps["elements/$elementId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateElement stamps only the columns that actually changed", () async {
+      final elementId = await createElement("Manteau rouge");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await elementsService.updateElement(
+        database: database,
+        elementId: elementId,
+        name: const Value("Manteau bleu"),
+        notes: const Value("Taché à la séquence 12"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("elements/$elementId/")).toSet();
+      expect(ownKeys, {"elements/$elementId/name", "elements/$elementId/notes"});
+
+      // Writing the same values again touches nothing: there is nothing left to stamp.
+      await elementsService.updateElement(
+        database: database,
+        elementId: elementId,
+        name: const Value("Manteau bleu"),
+      );
+      expect(await readStamps(), stamps);
+    });
+
+    test("deleteElement stamps isDeleted on the element and its role_elements links", () async {
+      final elementId = await createElement("Manteau rouge");
+      await insertRole("role-1");
+      final linkId = (await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await elementsService.deleteElement(database: database, elementId: elementId);
+
+      final stamps = await readStamps();
+      expect(stamps["elements/$elementId/isDeleted"]!.version, 1);
+      expect(stamps["role_elements/$linkId/isDeleted"]!.version, 1);
+    });
+
+    test("addRoleElement stamps every column of the new link", () async {
+      final elementId = await createElement("Manteau rouge");
+      await insertRole("role-1");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final linkId = (await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals(linkId))).getSingle();
+
+      for (final column in row.toJson().keys) {
+        expect(
+          stamps["role_elements/$linkId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
     });
   });
 }

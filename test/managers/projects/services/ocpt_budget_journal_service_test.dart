@@ -18,8 +18,9 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptBudgetJournalService();
-  const assetsService = OcptAssetsService();
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final service = OcptBudgetJournalService(assetsService: assetsService);
   const quoteService = OcptBudgetQuoteService();
 
   late OcptProjectDatabase database;
@@ -269,6 +270,7 @@ void main() {
         kind: OcptAssetKind.receipt,
         path: "/tmp/receipt.pdf",
         budgetEntryId: entryId,
+        stamps: null,
       );
 
       await service.deleteEntry(database: database, entryId: entryId);

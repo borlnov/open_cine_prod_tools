@@ -5,9 +5,11 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -28,15 +30,23 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const elementsService = OcptElementsService();
-  const locationsService = OcptLocationsService();
-  const roleIndexService = OcptRoleIndexService();
-  const breakdownService = OcptBreakdownService(
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
+  final roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+    deviceId: testDeviceId,
+  );
+  final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
   );
   const sceneIndexService = OcptSceneIndexService();
-  Future<String> testDeviceId() async => "test-device";
   final screenplayService = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
     shotListService: OcptShotListService(deviceId: testDeviceId),

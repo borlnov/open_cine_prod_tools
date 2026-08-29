@@ -9,12 +9,14 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -44,17 +46,30 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const codec = OcptProjectVersionCodec();
-  const peopleService = OcptPeopleService();
+  const deviceId = "device-1";
+  Future<String> testDeviceId() async => deviceId;
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(deviceId: testDeviceId);
+  final peopleService = OcptPeopleService(
+    deviceId: testDeviceId,
+    assetsService: assetsService,
+    roleCandidatesService: roleCandidatesService,
+  );
   const scheduleService = OcptScheduleService();
-  const roleIndexService = OcptRoleIndexService();
-  const elementsService = OcptElementsService();
-  const locationsService = OcptLocationsService();
-  const breakdownService = OcptBreakdownService(
+  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
+  final roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: roleCandidatesService,
+    deviceId: testDeviceId,
+  );
+  final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
   );
-  const deviceId = "device-1";
-  Future<String> testDeviceId() async => deviceId;
   // Used directly by the breakdown restore tests below, to seed a real scene index and a real
   // reconciled role — separate from the one `service` builds for its own screenplay-snapshotting
   // needs, but a stateless collaborator over the same database, so the two never disagree.

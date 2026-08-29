@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -18,7 +19,11 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const service = OcptBudgetQuoteService();
-  const elementsService = OcptElementsService();
+  Future<String> testDeviceId() async => "test-device";
+  final elementsService = OcptElementsService(
+    assetsService: OcptAssetsService(deviceId: testDeviceId),
+    deviceId: testDeviceId,
+  );
 
   late OcptProjectDatabase database;
 

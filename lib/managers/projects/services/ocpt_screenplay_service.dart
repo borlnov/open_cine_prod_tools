@@ -226,6 +226,7 @@ class OcptScreenplayService {
         database: database,
         screenplayId: screenplayId,
         document: document,
+        stamps: stamps,
       );
 
       await _shotCoverageService.refreshStaleness(
@@ -430,7 +431,11 @@ class OcptScreenplayService {
 
       await _breakdownService.tombstoneBreakdownOfScenes(database: database, sceneIds: sceneIds);
       await _scheduleService.tombstoneShotBlocks(database: database, shotIds: shotIds);
-      await _roleIndexService.tombstoneEpisodeLinks(database: database, screenplayId: screenplayId);
+      await _roleIndexService.tombstoneEpisodeLinks(
+        database: database,
+        screenplayId: screenplayId,
+        stamps: stamps,
+      );
 
       await (database.update(
         database.ocptScreenplaySnapshotsTable,

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
@@ -17,7 +18,13 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const peopleService = OcptPeopleService();
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final peopleService = OcptPeopleService(
+    deviceId: testDeviceId,
+    assetsService: assetsService,
+    roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+  );
 
   late OcptProjectDatabase database;
 
@@ -46,6 +53,13 @@ void main() {
 
   /// Whether the asset row [id] has been tombstoned.
   Future<bool> readAssetIsDeleted(String id) async => (await readAsset(id)).isDeleted;
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   group("people CRUD and ordering", () {
     test("createPerson appends at the end and loadPeople reads it back", () async {
@@ -363,7 +377,7 @@ void main() {
         path: "/photos/clara.jpg",
       ))!;
 
-      await const OcptAssetsService().removeAsset(database: database, assetId: assetId);
+      await assetsService.removeAsset(database: database, assetId: assetId);
 
       // The column still names the row; the row is gone, and "no photo" is what that means.
       expect((await readPerson(id)).photoAssetId, assetId);
@@ -519,6 +533,99 @@ void main() {
       await peopleService.removeUnavailability(database: database, id: id);
       people = await peopleService.loadPeople(database: database);
       expect(people.single.unavailabilities, isEmpty);
+    });
+  });
+
+  group("row-field-version stamps", () {
+    test("createPerson stamps every column of the new row", () async {
+      final personId = (await peopleService.createPerson(database: database))!;
+
+      final stamps = await readStamps();
+      final person = await readPerson(personId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("people/$personId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(person.toJson().length));
+      for (final column in person.toJson().keys) {
+        final stamp = ownStamps["people/$personId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updatePerson stamps only the columns that actually changed", () async {
+      final personId = (await peopleService.createPerson(database: database))!;
+      // Clears what `createPerson` itself stamped, so only `updatePerson`'s own stamps remain.
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await peopleService.updatePerson(
+        database: database,
+        personId: personId,
+        firstName: const Value("Camille"),
+        lastName: const Value("Ferrand"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("people/$personId/")).toSet();
+      expect(ownKeys, {"people/$personId/firstName", "people/$personId/lastName"});
+      expect(stamps["people/$personId/firstName"]!.version, 1);
+      expect(stamps["people/$personId/lastName"]!.version, 1);
+
+      // Writing the same values again touches nothing: there is nothing left to stamp.
+      await peopleService.updatePerson(
+        database: database,
+        personId: personId,
+        firstName: const Value("Camille"),
+      );
+      expect(await readStamps(), stamps);
+    });
+
+    test("deletePerson stamps isDeleted along with every blanked column", () async {
+      final personId = (await peopleService.createPerson(database: database))!;
+      await peopleService.updatePerson(
+        database: database,
+        personId: personId,
+        firstName: const Value("Camille"),
+        email: const Value("camille@example.com"),
+      );
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await peopleService.deletePerson(database: database, personId: personId);
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("people/$personId/")).toSet();
+      expect(ownKeys, containsAll(["people/$personId/isDeleted", "people/$personId/firstName"]));
+      expect(stamps["people/$personId/isDeleted"]!.version, 1);
+      // A column already blank (never set) is left unchanged, and is therefore not restamped.
+      expect(ownKeys.contains("people/$personId/city"), isFalse);
+    });
+
+    test("addPosition stamps every column of the new row", () async {
+      final personId = (await peopleService.createPerson(database: database))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final positionId = (await peopleService.addPosition(
+        database: database,
+        personId: personId,
+        positionId: "director",
+        customLabel: "",
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptPersonPositionsTable,
+      )..where((table) => table.id.equals(positionId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("person_positions/$positionId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        expect(ownStamps["person_positions/$positionId/$column"], isNotNull);
+      }
     });
   });
 }

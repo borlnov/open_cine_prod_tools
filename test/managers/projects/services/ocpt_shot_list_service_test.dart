@@ -6,9 +6,11 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -38,14 +40,27 @@ void main() {
 
   const shotListService = OcptShotListService(deviceId: _testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
+  const assetsService = OcptAssetsService(deviceId: _testDeviceId);
+  const elementsService = OcptElementsService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
+  const locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
   const screenplayService = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
     shotListService: shotListService,
     shotCoverageService: OcptShotCoverageService(deviceId: _testDeviceId),
-    roleIndexService: OcptRoleIndexService(),
+    roleIndexService: OcptRoleIndexService(
+      elementsService: elementsService,
+      roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+      deviceId: _testDeviceId,
+    ),
     breakdownService: OcptBreakdownService(
-      elementsService: OcptElementsService(),
-      locationsService: OcptLocationsService(),
+      elementsService: elementsService,
+      locationsService: locationsService,
     ),
     scheduleService: OcptScheduleService(),
     deviceId: _testDeviceId,

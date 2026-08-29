@@ -5,9 +5,11 @@
 import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -30,16 +32,25 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const screenplayId = "screenplay-1";
-  const roleIndexService = OcptRoleIndexService();
-  const elementsService = OcptElementsService();
-  const locationsService = OcptLocationsService();
-  const breakdownService = OcptBreakdownService(
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(deviceId: testDeviceId);
+  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
+  final roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: roleCandidatesService,
+    deviceId: testDeviceId,
+  );
+  final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
   );
   const scheduleService = OcptScheduleService();
   const sceneIndexService = OcptSceneIndexService();
-  Future<String> testDeviceId() async => "test-device";
   final shotListService = OcptShotListService(deviceId: testDeviceId);
   final shotCoverageService = OcptShotCoverageService(deviceId: testDeviceId);
   final service = OcptScreenplayService(
@@ -234,8 +245,6 @@ void main() {
 
   test('a save whose screenplay drops a character orphans that role, keeping its casting',
       () async {
-    const roleIndexService = OcptRoleIndexService();
-
     await database
         .into(database.ocptPeopleTable)
         .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
@@ -276,8 +285,6 @@ void main() {
   });
 
   test('a hand-added role survives a save mentioning none of its character', () async {
-    const roleIndexService = OcptRoleIndexService();
-
     final handAddedId = await roleIndexService.addRole(
       database: database,
       screenplayId: screenplayId,

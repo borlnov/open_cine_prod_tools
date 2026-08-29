@@ -51,7 +51,7 @@ class OcptBudgetJournalService {
   final OcptAssetsService _assetsService;
 
   /// Class constructor
-  const OcptBudgetJournalService({OcptAssetsService assetsService = const OcptAssetsService()})
+  const OcptBudgetJournalService({required OcptAssetsService assetsService})
     : _assetsService = assetsService;
 
   /// Loads every live entry of [database], in `date` order, `sortKey` breaking a tie between two
@@ -317,11 +317,14 @@ class OcptBudgetJournalService {
     return database.transaction(() async {
       await _tombstoneEntryReceipt(database: database, entryId: entryId);
 
+      // `budget_entries` and the assets it references stay unstamped for now: the budget family
+      // gets its own row-stamping commit, matching the resources family's own here.
       return _assetsService.insertAsset(
         database: database,
         kind: OcptAssetKind.receipt,
         budgetEntryId: entryId,
         path: path,
+        stamps: null,
       );
     });
   }
@@ -358,7 +361,7 @@ class OcptBudgetJournalService {
             ))
             .get();
     for (final voucher in vouchers) {
-      await _assetsService.tombstoneAsset(database: database, assetId: voucher.id);
+      await _assetsService.tombstoneAsset(database: database, assetId: voucher.id, stamps: null);
     }
   }
 

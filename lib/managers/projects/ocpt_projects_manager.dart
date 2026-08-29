@@ -273,10 +273,25 @@ class OcptProjectsManager extends AbsWithLifeCycle {
            shotCoverageService: OcptShotCoverageService(
              deviceId: _resolveDeviceId(propertiesManager),
            ),
-           roleIndexService: const OcptRoleIndexService(),
-           breakdownService: const OcptBreakdownService(
-             elementsService: OcptElementsService(),
-             locationsService: OcptLocationsService(),
+           roleIndexService: OcptRoleIndexService(
+             elementsService: OcptElementsService(
+               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             roleCandidatesService: OcptRoleCandidatesService(
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           breakdownService: OcptBreakdownService(
+             elementsService: OcptElementsService(
+               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             locationsService: OcptLocationsService(
+               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
            ),
            scheduleService: const OcptScheduleService(),
            deviceId: _resolveDeviceId(propertiesManager),
@@ -288,31 +303,77 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          shotCoverageService: OcptShotCoverageService(
            deviceId: _resolveDeviceId(propertiesManager),
          ),
-         roleIndexService: const OcptRoleIndexService(),
-         breakdownService: const OcptBreakdownService(
-           elementsService: OcptElementsService(),
-           locationsService: OcptLocationsService(),
+         roleIndexService: OcptRoleIndexService(
+           elementsService: OcptElementsService(
+             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           roleCandidatesService: OcptRoleCandidatesService(
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         breakdownService: OcptBreakdownService(
+           elementsService: OcptElementsService(
+             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           locationsService: OcptLocationsService(
+             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
          ),
          scheduleService: const OcptScheduleService(),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       peopleService = const OcptPeopleService(),
-       roleIndexService = const OcptRoleIndexService(),
-       roleCandidatesService = const OcptRoleCandidatesService(),
-       locationsService = const OcptLocationsService(),
-       elementsService = const OcptElementsService(),
+       peopleService = OcptPeopleService(
+         deviceId: _resolveDeviceId(propertiesManager),
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         roleCandidatesService: OcptRoleCandidatesService(
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+       ),
+       roleIndexService = OcptRoleIndexService(
+         elementsService: OcptElementsService(
+           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         roleCandidatesService: OcptRoleCandidatesService(
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       roleCandidatesService = OcptRoleCandidatesService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       locationsService = OcptLocationsService(
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       elementsService = OcptElementsService(
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
        budgetQuoteService = const OcptBudgetQuoteService(),
-       budgetJournalService = const OcptBudgetJournalService(),
+       budgetJournalService = OcptBudgetJournalService(
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+       ),
        budgetFinancingService = const OcptBudgetFinancingService(),
        budgetAllowancesService = const OcptBudgetAllowancesService(),
        budgetSharingService = const OcptBudgetSharingService(),
-       assetsService = const OcptAssetsService(),
+       assetsService = OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
        projectDictionaryService = const OcptProjectDictionaryService(),
        projectPackageService = const OcptProjectPackageService(),
        projectFileCompatibilityService = const OcptProjectFileCompatibilityService(),
-       breakdownService = const OcptBreakdownService(
-         elementsService: OcptElementsService(),
-         locationsService: OcptLocationsService(),
+       breakdownService = OcptBreakdownService(
+         elementsService: OcptElementsService(
+           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         locationsService: OcptLocationsService(
+           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
        ),
        scheduleService = const OcptScheduleService();
 
