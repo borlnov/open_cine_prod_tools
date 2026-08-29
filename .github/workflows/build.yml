@@ -59,6 +59,54 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION"
 
+  verify-stable-schema-frozen:
+    name: Verify stable schema is frozen
+    runs-on: ubuntu-latest
+    # Runs on every tag push (like create-release), but only *asserts* on a stable tag — one whose
+    # name carries no pre-release suffix. A stable release must have run the ADR 0029 freeze step,
+    # bringing lastStableSchemaVersion up to currentSchemaVersion (and the payload-format pair with
+    # it). A forgotten freeze fails here and blocks the release, rather than shipping a schema the
+    # next stable build would no longer recognise. See docs/RELEASING.md.
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Assert the freeze on a stable tag
+        run: |
+          set -euo pipefail
+
+          # A semver pre-release tag carries a hyphenated suffix ('v0.2.0-rc.1'), a final one never
+          # does ('v0.2.0'): only the latter owes the freeze.
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            echo "Pre-release tag ${GITHUB_REF_NAME}: no freeze owed, nothing to check."
+            exit 0
+          fi
+
+          db="lib/models/database/ocpt_project_database.dart"
+          codec="lib/managers/projects/services/ocpt_project_version_codec.dart"
+          read_const() { grep -oP "static const $2 = \K[0-9]+" "$1"; }
+
+          current_schema=$(read_const "$db" currentSchemaVersion)
+          last_schema=$(read_const "$db" lastStableSchemaVersion)
+          current_payload=$(read_const "$codec" currentPayloadFormat)
+          last_payload=$(read_const "$codec" lastStablePayloadFormat)
+
+          echo "schema:  current=$current_schema  last-stable=$last_schema"
+          echo "payload: current=$current_payload  last-stable=$last_payload"
+
+          status=0
+          if [[ "$current_schema" != "$last_schema" ]]; then
+            echo "::error::Stable tag ${GITHUB_REF_NAME} but lastStableSchemaVersion ($last_schema) != currentSchemaVersion ($current_schema): run the ADR 0029 freeze step (docs/RELEASING.md) before tagging."
+            status=1
+          fi
+          if [[ "$current_payload" != "$last_payload" ]]; then
+            echo "::error::Stable tag ${GITHUB_REF_NAME} but lastStablePayloadFormat ($last_payload) != currentPayloadFormat ($current_payload): run the ADR 0029 freeze step (docs/RELEASING.md) before tagging."
+            status=1
+          fi
+          exit $status
+
   build-linux:
     name: Linux build
     runs-on: ubuntu-latest
@@ -387,6 +435,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs:
       - get-version
+      - verify-stable-schema-frozen
       - build-linux
       - build-windows
       - build-macos

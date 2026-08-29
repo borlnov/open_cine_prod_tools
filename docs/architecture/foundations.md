@@ -264,49 +264,32 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v29 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, the fifteen resources tables (`role_candidates`, `role_elements` and
-  `role_episodes` among them), `breakdown_tags`, `scene_breakdowns`, the eight schedule tables, the
-  eight budget tables (`budget_postes`, `budget_lines`, `budget_entries`, `budget_commitments`,
-  `budget_resources`, `budget_mileage_rates`, `budget_revenues`, `budget_shares`),
-  `project_dictionary_words`, `row_field_versions`, `project_versions`),
-  `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene number → exact
-  heading → relative order). v25 to v28 are the budget mode's own four steps, every one of them
-  additive — `budget.md` for what they hold. v24 creates `shooting_block_candidates`, the
-  candidacies an audition
-  block sees (ADR 0024), and v20 created `role_candidates`, who was seen for a part — both additive
-  with nothing to backfill. v23 and v24 also **drop** four things no released build ever wrote, all
-  of them written by intermediate versions of the branch that landed them: `shooting_days.kind`,
-  `shooting_day_blocks.roleCandidateId`, `shooting_day_blocks.roleId` and the whole
-  `shooting_slot_candidates` table. They are dropped **defensively**, through
-  `_dropColumnIfPresent`/`_dropTableIfPresent` — the two helpers in this file that **ask the file
-  what it holds** rather than deducing it from the version it states, because a version number says
-  nothing about whether a file was made against an unmerged build — and nothing is carried over: a
-  slot-wide convocation names no hour, so there is no block to attach it to. **The budget's own
-  four steps deliberately do not do the same**, and the asymmetry is a decision rather than an
-  oversight: renumbering v20-v23 to v25-v28 made the number 23 mean two different things — the
-  casting step to a released file, the whole budget mode to a file written by this branch before it
-  merged — and such a file now dies on `duplicate column name: default_vat_rate_basis_points`
-  rather than opening. Defensive `if absent` guards on all four steps would have saved those files,
-  and they were weighed and refused: no released build ever wrote one, only the two machines this
-  mode was developed on hold any, and four permanently non-standard migration steps are a poor
-  price for files their own authors can recreate. v19 adds
-  `project_info.screenplayLanguage` (nullable, no backfill: "nobody has said" is as true after the
-  migration as before it) and creates `project_dictionary_words`, both additive. v18 is the
-  multi-episode migration: `screenplays` gains `number` and `sortKey`, `role_episodes` is added, and
-  `roles.screenplayId` and `shooting_days.screenplayId` are **dropped** — the fifth time ADR 0007's
-  additive-only rule is set aside for a column drop, through drift's own
-  `Migrator.alterTable`/`TableMigration` recipe. It reconstructs nothing: the single screenplay a
-  file holds is numbered 1 and given a key, every live `roles` row gets the `role_episodes` row its
-  own `screenplayId` already stated (**minted with the role's own id**, so two replicas migrating
-  the same file produce the same rows), and a shooting day is not given an episode on the way out —
-  it simply stops having one. `**/*.g.dart` is git-ignored (documented deviation); CI regenerates
-  with build_runner. A schema number is allocated **at merge time, not at branch time** (ADR 0007):
-  of two branches in flight, whichever merges second renumbers, and the migration test pins what
-  `onCreate` produces against what every upgrade path produces, so a table declared and forgotten in
-  `onUpgrade` fails there rather than on a user's file. The budget mode is what proved that rule:
-  it was built against v20 to v23 and payload formats 16 to 19, found the casting work already
-  merged onto both ranges, and renumbered to v25 to v28 and formats 21 to 24 on its way in.
+- Persistence: drift schema v1 (ADR 0029). `onCreate` creates the whole schema at once —
+  `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot list tables, the
+  fifteen resources tables (`role_candidates`, `role_elements` and `role_episodes` among them),
+  `breakdown_tags`, `scene_breakdowns`, the eight schedule tables, the nine budget tables
+  (`budget_postes`, `budget_lines`, `budget_entries`, `budget_commitments`, `budget_resources`,
+  `budget_mileage_rates`, `budget_revenues`, `budget_shares`, `budget_allowances`),
+  `project_dictionary_words`, `row_field_versions`, `project_versions` — with
+  `storeDateTimeAsText: true`, `beforeOpen` turning SQLite's `foreign_keys` pragma on, and scene
+  reconciliation in 3 passes (explicit scene number → exact heading → relative order). No stable
+  release has ever shipped, so the schema carries **no pre-stable migration history**: the 34
+  migration steps four alpha tags accumulated — a column added, renamed and dropped again while a
+  feature was designed — were pre-release workshop churn, owed to nobody because none reached a
+  user's disk, and were squashed to this one fresh schema (ADR 0029). `onUpgrade` therefore has
+  nothing to do yet (a real `.ocpt` is never below v1), and the first step is written only once a
+  stable release has frozen the schema. Two constants govern that: `currentSchemaVersion` (1) and
+  `lastStableSchemaVersion` (0, none frozen yet). While `current == lastStable + 1` a cycle is open
+  and the pending step is rewritten in place; while `current == lastStable` the top step is frozen,
+  so the next schema change creates a new one. Freezing sets `lastStableSchemaVersion` to
+  `currentSchemaVersion` at release (`docs/RELEASING.md`), which a fail-closed CI guard on a stable
+  tag enforces — a forgotten freeze blocks the release, an incorrect one fails the migration test.
+  ADR 0007's additive-only guidance still governs how a single step is written; its
+  allocate-at-merge rule is amended — a cycle no longer takes a number per merge. The migration
+  test is the harness pinning each frozen stable's upgrade path (a verbatim DDL fixture per stable,
+  proving `onCreate` == every stable upgrade path), so a table declared and forgotten fails there
+  rather than on a user's file; it holds none yet. `**/*.g.dart` is git-ignored (documented
+  deviation); CI regenerates with build_runner.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
@@ -321,36 +304,17 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
   thirty-one captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
-  `payloadFormat` — independent of the schema version, upgraded on decode when older, refused when
-  newer. It is **a hand-written mirror of the schema**, and a new synchronised table has to be added
-  to all three of it, `contentDigest` and `_applyPayload`: leave it out of the payload and a restore
-  rewinds half the project, out of the digest and the working copy claims not to have drifted, out
-  of `_applyPayload` and it is never written back.
-  The `_payloadUpgrades` map brings an older payload onto the current shape, and every entry is one
-  of **four kinds**, each argued in its own doc comment — read them before writing a fifth. A
-  **materialised** value states what was true at capture: an empty list for a table that did not
-  exist yet, or a column's own default — `budgetPostes` and `budgetLines` join that kind at payload
-  format 16, materialising as empty lists for every version sealed before this milestone existed
-  (`budget.md`). Restoring such a version therefore tombstones every row added since, which is the
-  truthful reading of "this project had none" — an edit like any other restore, not a no-op that
-  leaves that half of the project alone. A **null** says nobody had
-  recorded that figure, and is written back like any other changed column; the currency is the one
-  exception, its column having never been nullable, so *its* null alone means "leave the live value
-  untouched". A **removal** drops a list or a column the project has no concept for any more: unlike
-  an empty list it makes no claim about the moment of capture, and unlike the currency's null it
-  leaves no live value alone. A **derived** value is format 13's own, and the **only lossless step
-  in the codec**: `role_episodes` is rewritten out of the `roles.screenplayId` that same step
-  removes, the payload already carrying, on every role row, exactly the fact the new table records.
-  It is allowed there and nowhere else — only because the column being dropped and the table being
-  added say the same thing — and it mints each link with the role's own id, deterministically, so
-  restoring one version twice writes one set of links rather than two for a later merge to
-  reconcile. Across all four, **nothing is ever reconstructed** — a dropped lead time does not
-  become a preparation slot nobody asked for. Counters shown on a card
-  (`OcptProjectVersionSummary`) are measured once, at creation. Restoring a format-12 version into a
-  multi-episode project therefore **tombstones every episode but the first**, with its scenes, its
-  shots and its breakdown, that being the truthful reading of "this project had one episode when
-  this version was sealed"; **no role loses its casting** on the way through, a role no longer being
-  a script's.
+  `payloadFormat`, which follows the same freeze discipline the schema does (ADR 0029):
+  `currentPayloadFormat` (1) advances only at a stable release, `lastStablePayloadFormat` (0) tracks
+  the last one frozen, and a payload written in a newer format than this build knows is **refused**,
+  not half-read. Like the schema, the pre-stable format ladder was squashed away — no payload older
+  than format 1 exists, so a decode reads it directly with nothing to upgrade — and the first
+  upgrade step is written only once a stable release has frozen a format. It is **a hand-written
+  mirror of the schema**, and a new synchronised table has to be added to all three of it,
+  `contentDigest` and `_applyPayload`: leave it out of the payload and a restore rewinds half the
+  project, out of the digest and the working copy claims not to have drifted, out of `_applyPayload`
+  and it is never written back. Counters shown on a card (`OcptProjectVersionSummary`) are measured
+  once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
   out, since the stamps change on every restore and the margins are an app-wide preference. It is
@@ -454,10 +418,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
   (fixed name, the display name living in the manifest) and `assets/<assetId>/<file name>`, written
   and read by `OcptProjectPackageService` (`lib/managers/projects/services/`) through
   `package:archive`, streamed to disk (`ZipFileEncoder`/`InputFileStream`) and never assembled in
-  memory. The manifest is versioned by **`packageFormat`** independently of the schema, exactly as
-  `OcptProjectVersionCodec`'s `payloadFormat` is — older upgraded on read
-  (`_packageManifestUpgrades`, empty at format 1), newer refused
-  (`OcptProjectPackageStatus.unsupportedPackageFormat`).
+  memory. The manifest is versioned by **`packageFormat`** independently of the schema: an older
+  manifest is upgraded on read (`_packageManifestUpgrades`, empty at format 1) and a newer one
+  refused (`OcptProjectPackageStatus.unsupportedPackageFormat`) — the same seam
+  `OcptProjectVersionCodec`'s `payloadFormat` keeps, though the codec's own upgrade ladder was
+  squashed away with the schema (ADR 0029).
   **Everything on this path works from a file path and never from an open database**, and nothing in
   the service imports drift: one code path therefore serves a project open in a mode and a project
   card on the home page, and a package built from an older file does not migrate it on the way out.
@@ -486,20 +451,31 @@ the persistence, the project versions, the sync-ready data model and the read-on
 - Opening a project file from another build (ADR 0022): **no `.ocpt` reaches drift before it has
   been read.** `OcptProjectFileCompatibilityService` (`lib/managers/projects/services/`) probes it
   through raw `sqlite3` opened **read-only** — `PRAGMA user_version`, plus
-  `project_info.app_version_at_creation` when `sqlite_master` says that table is there — and answers
-  an `OcptProjectFileCompatibility` (`lib/models/`) whose `verdict` is
-  `current | older | newer | unreadable`. `OcptProjectsManager.probeProjectFile` is that probe and
-  `openProject`'s `_gateOnFileFormat` is what acts on it, **before** the currently open project is
-  closed, so a refusal never costs the user the project they already had: a **newer** file is
-  refused with `OcptProjectStatus.newerFormat` — not opened, not touched, not added to the recent
-  list, since handing it to drift stamps its `user_version` back *down* while leaving the newer
-  build's tables in place — an **older** one returns `OcptProjectStatus.migrationRequired` unless
-  the caller passes `allowMigration: true`, and `current`/`unreadable` open exactly as they did
-  before the gate existed. The default of `false` is deliberate: forgetting the gate fails as a
-  refusal, never as a silent migration.
+  `project_info.app_version_at_creation` and `project_info.migrated_by_app_version` when
+  `sqlite_master` says that table is there — and answers an `OcptProjectFileCompatibility`
+  (`lib/models/`) whose `verdict` is `current | older | newer | unreadable | foreignDevBuild`. The
+  probe also takes the running build's own `appVersion`, because ADR 0029 makes the gate compare a
+  **pair**: the file's schema version *and* the app version that last wrote it, against this build's
+  schema *and* version. `OcptProjectsManager.probeProjectFile` is that probe and `openProject`'s
+  `_gateOnFileFormat` is what acts on it, **before** the currently open project is closed, so a
+  refusal never costs the user the project they already had. A **newer**-schema file is refused with
+  `OcptProjectStatus.newerFormat` — not opened, not touched, not added to the recent list, since
+  handing it to drift stamps its `user_version` back *down* while leaving the newer build's tables in
+  place. A file at this build's **own** schema but last written by a **pre-release build that is not
+  this exact build** is refused just the same, as `foreignDevBuild` /
+  `OcptProjectStatus.foreignDevBuildFormat`: its shape is not guaranteed to match the frozen release,
+  the one corruption ADR 0029 exists to prevent — while two stable builds sharing a schema, or the
+  same build reopening its own file, open normally. An **older**-schema file returns
+  `OcptProjectStatus.migrationRequired` unless the caller passes `allowMigration: true`, and
+  `current`/`unreadable` open exactly as they did before the gate existed. The default of `false` is
+  deliberate: forgetting the gate fails as a refusal, never as a silent migration.
   The migration is confirmed by `OcptConfirmDialog` like every other irreversible action, worded by
-  the *page* (`OcptHomePage._stateFileCompatibility`) and never by the bloc, and it names the two
-  format numbers and **where the copy will be kept**; the refusal is `OcptProjectFileNewerDialog`.
+  the *page* (`OcptHomePage._stateFileCompatibility`) and never by the bloc; it names the two format
+  numbers and **where the copy will be kept**, and when *this* build is a pre-release
+  (`isRunningBuildPreRelease`) it warns that migrating with a development build is at the user's own
+  risk. Both refusals — the newer file and the foreign development build — are stated by
+  `OcptProjectFileNewerDialog`, which picks its title and message from the verdict and, for a
+  development build, names the build that wrote the file.
   The copy is `<name>.backup-v<n>.ocpt` beside the original (a counter appended rather than an
   existing backup overwritten), taken with `VACUUM INTO` from a read-only connection, at the very
   path `OcptProjectFileCompatibility.suggestedBackupPath` named — the promise and the write cannot
