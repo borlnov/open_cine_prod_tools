@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
@@ -82,10 +83,6 @@ class OcptProjectVersionsService {
     'budget_revenues',
     'budget_shares',
   ];
-
-  /// The name, as the Dart side of the schema spells it, of the tombstone column every
-  /// synchronised table carries: the one column a restore stamps on a row the payload doesn't hold.
-  static const _isDeletedColumnName = "isDeleted";
 
   /// The codec turning the captured state into the text stored in `project_versions.payload`.
   final OcptProjectVersionCodec _codec;
@@ -819,11 +816,8 @@ class OcptProjectVersionsService {
     required OcptProjectVersionPayload payload,
     required String deviceId,
   }) async {
-    final stamps = await _OcptRestoreStamps.of(
-      database: database,
-      payload: payload,
-      deviceId: deviceId,
-    );
+    final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
+    stamps.raiseFloor(payload.rowFieldVersions);
 
     await _snapshotScreenplaysAboutToChange(database: database, payload: payload);
 
@@ -1467,13 +1461,17 @@ class OcptProjectVersionsService {
   /// `row_field_versions.rowId`, so a composite primary key goes through
   /// [ocptCompositeRowStampKey]. [tombstonedOf] returns the row as its own tombstone — returning it
   /// unchanged is how a table with no tombstone column would opt out.
+  ///
+  /// The per-row write and stamp itself — insert, update or tombstone-in-place alike — is
+  /// [OcptRowStampService.writeAndStamp]: the machinery shared with whatever, later, writes an
+  /// ordinary domain-service edit into `row_field_versions` the same way.
   Future<void> _restoreTable<D extends DataClass>({
     required OcptProjectDatabase database,
     required TableInfo<Table, D> table,
     required List<D> payloadRows,
     required String Function(D row) rowIdOf,
     required D Function(D row) tombstonedOf,
-    required _OcptRestoreStamps? stamps,
+    required OcptRowStampService? stamps,
   }) async {
     final leftovers = {
       for (final row in await database.select(table).get()) rowIdOf(row): row,
@@ -1483,19 +1481,14 @@ class OcptProjectVersionsService {
       final rowId = rowIdOf(row);
       final current = leftovers.remove(rowId);
 
-      if (current == null) {
-        await database.into(table).insert(_insertable(row));
-        stamps?.stamp(table: table, rowId: rowId, columnNames: row.toJson().keys);
-        continue;
-      }
-
-      final changedColumnNames = _changedColumnNames(from: current, to: row);
-      if (changedColumnNames.isEmpty) {
-        continue;
-      }
-
-      await database.into(table).insertOnConflictUpdate(_insertable(row));
-      stamps?.stamp(table: table, rowId: rowId, columnNames: changedColumnNames);
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: table,
+        rowId: rowId,
+        current: current,
+        next: row,
+        stamps: stamps,
+      );
     }
 
     for (final leftover in leftovers.entries) {
@@ -1504,124 +1497,15 @@ class OcptProjectVersionsService {
         continue;
       }
 
-      await database.into(table).insertOnConflictUpdate(_insertable(tombstone));
-      stamps?.stamp(
+      await OcptRowStampService.writeAndStamp(
+        database: database,
         table: table,
         rowId: leftover.key,
-        columnNames: const [_isDeletedColumnName],
+        current: leftover.value,
+        next: tombstone,
+        stamps: stamps,
       );
     }
-  }
-
-  /// [row] seen as what drift's generator always makes a data class — an `Insertable` of its own
-  /// type — which [DataClass] itself doesn't declare.
-  ///
-  /// Generic code over a table's rows needs both halves of that pair: [DataClass] to read a row's
-  /// columns back ([_changedColumnNames]), and `Insertable` to write it. Every generated row class
-  /// implements the two; only their common supertype doesn't say so.
-  static Insertable<D> _insertable<D extends DataClass>(D row) => row as Insertable<D>;
-
-  /// The names of the columns [to] holds a different value in than [from], as the Dart side of the
-  /// schema spells them — which is exactly how `row_field_versions.columnName` spells them too.
-  ///
-  /// Read off the rows' own JSON representation rather than compared field by field per table: a
-  /// column added to a synchronised table is then stamped by a restore without anybody having to
-  /// remember to add it here. (The payload's column list is the hand-written mirror of the schema,
-  /// and one such list is enough — see [OcptProjectVersionCodec].)
-  static List<String> _changedColumnNames({required DataClass from, required DataClass to}) {
-    final before = from.toJson();
-
-    return [
-      for (final column in to.toJson().entries)
-        if (before[column.key] != column.value) column.key,
-    ];
-  }
-}
-
-/// The per-column version stamps one restore writes, accumulated as it walks the tables and written
-/// in one batch at the end of its transaction.
-///
-/// A stamp says, per column, *whose* value wins a merge and *when* it was written, so a restore has
-/// to leave every column it changed carrying a version strictly above the one that column already
-/// held, under this replica's own device id: anything less and the next merge would treat the
-/// restored value as older than the edit the restore was meant to supersede — undoing it, minutes
-/// later, from a machine nobody touched.
-///
-/// The payload's own stamps are a **floor**, not the values written: they describe the state the
-/// restore comes back to, so a column whose payload stamp is somehow above the working copy's still
-/// ends up strictly above both. What they never do is get written as they stand — that would be the
-/// exact failure above, spelled with more steps.
-class _OcptRestoreStamps {
-  /// The device id every stamp this restore writes carries: this replica's own.
-  final String deviceId;
-
-  /// The highest version known for each `(table, row, column)`, whether it comes from the working
-  /// copy, from the payload's floor, or from a stamp this restore has already handed out.
-  final Map<(String, String, String), int> _versions;
-
-  /// The stamps written so far, waiting for [flush].
-  final _pending = <OcptRowFieldVersionsTableCompanion>[];
-
-  /// Class constructor
-  _OcptRestoreStamps._({required this.deviceId, required Map<(String, String, String), int> versions})
-    : _versions = versions;
-
-  /// Reads the stamps the project in [database] currently holds, raised to the floor [payload]
-  /// carries for the same columns.
-  static Future<_OcptRestoreStamps> of({
-    required OcptProjectDatabase database,
-    required OcptProjectVersionPayload payload,
-    required String deviceId,
-  }) async {
-    final versions = <(String, String, String), int>{};
-
-    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get()) {
-      versions[(stamp.targetTableName, stamp.rowId, stamp.columnName)] = stamp.version;
-    }
-
-    for (final stamp in payload.rowFieldVersions) {
-      final key = (stamp.targetTableName, stamp.rowId, stamp.columnName);
-      final known = versions[key];
-      if (known == null || known < stamp.version) {
-        versions[key] = stamp.version;
-      }
-    }
-
-    return _OcptRestoreStamps._(deviceId: deviceId, versions: versions);
-  }
-
-  /// Stamps [columnNames] of the row [rowId] of [table] as written, now, by this replica.
-  void stamp({
-    required TableInfo<Table, DataClass> table,
-    required String rowId,
-    required Iterable<String> columnNames,
-  }) {
-    for (final columnName in columnNames) {
-      final key = (table.actualTableName, rowId, columnName);
-      final version = (_versions[key] ?? 0) + 1;
-      _versions[key] = version;
-
-      _pending.add(
-        OcptRowFieldVersionsTableCompanion.insert(
-          targetTableName: table.actualTableName,
-          rowId: rowId,
-          columnName: columnName,
-          version: version,
-          deviceId: deviceId,
-        ),
-      );
-    }
-  }
-
-  /// Writes every stamp handed out since this object was built into [database].
-  Future<void> flush(OcptProjectDatabase database) async {
-    if (_pending.isEmpty) {
-      return;
-    }
-
-    await database.batch(
-      (batch) => batch.insertAllOnConflictUpdate(database.ocptRowFieldVersionsTable, _pending),
-    );
   }
 }
 
