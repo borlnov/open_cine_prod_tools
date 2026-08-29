@@ -281,6 +281,14 @@ void main() {
   });
 
   group("opening a project file from another build", () {
+    // The older-file case can't be exercised at schema version 1: ADR 0029 squashed the pre-stable
+    // chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0, which reads
+    // as an unreadable/foreign file, not an older one). The older test skips until a stable cycle
+    // raises currentSchemaVersion to 2+, when it reactivates on its own. The same limitation is why
+    // the pre-release "at your own risk" migration wording has no test here: it only replaces the
+    // migration message, which this skip already keeps untested.
+    const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
+
     /// Writes a project file at [filePath] stating [userVersion], and puts it on the home page as
     /// a recent project.
     ///
@@ -327,7 +335,7 @@ void main() {
         reason: "the promise the dialog makes is the very path the open then writes to",
       );
       expect(find.text(Tr.of(context).homeMigrateProjectConfirmAction), findsOneWidget);
-    });
+    }, skip: olderFileFlowSkip);
 
     testWidgets("a newer one is refused, naming the build that wrote it", (tester) async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
@@ -348,6 +356,50 @@ void main() {
         reason: "there is nothing to confirm: this build cannot open that file at all",
       );
     });
+
+    testWidgets(
+      "a file at this build's own format but written by another development build is refused, "
+      "naming that build",
+      (tester) async {
+        final filePath = p.join(tempDir.path, "movie.ocpt");
+        final database = sqlite3.open(filePath);
+        database
+          ..execute(
+            "CREATE TABLE project_info (name TEXT, app_version_at_creation TEXT, "
+            "migrated_by_app_version TEXT)",
+          )
+          ..execute(
+            "INSERT INTO project_info (name, app_version_at_creation, migrated_by_app_version) "
+            "VALUES (?, ?, ?)",
+            ["My Movie", "9.9.9", "0.9.0-alpha.7"],
+          )
+          ..execute("PRAGMA user_version = ${OcptProjectDatabase.currentSchemaVersion}")
+          ..dispose();
+        await propertiesManager.addRecentProject(
+          OcptRecentProjectModel(path: filePath, name: "My Movie", lastOpenedAt: DateTime.now()),
+        );
+
+        await _pumpHome(tester, const HomePage());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(ValueKey(filePath)));
+        await tester.pumpAndSettle();
+
+        final context = tester.element(find.byType(HomePage));
+        expect(find.byType(OcptProjectFileNewerDialog), findsOneWidget);
+        expect(find.text(Tr.of(context).homeProjectFileForeignDevBuildTitle), findsOneWidget);
+        expect(
+          find.text(Tr.of(context).homeProjectFileForeignDevBuildMessage("0.9.0-alpha.7")),
+          findsOneWidget,
+          reason: "the message names the exact development build that wrote the file",
+        );
+        expect(
+          find.byType(OcptConfirmDialog),
+          findsNothing,
+          reason: "there is nothing to confirm: this build cannot open that file at all",
+        );
+      },
+    );
   });
   group("importing a project package", () {
     /// The navigator the pumped app builds, which [_NavigatorKeyRouterManager] closes the dialogs

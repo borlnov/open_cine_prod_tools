@@ -8,7 +8,11 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR-0029](0029-schema-versions-frozen-at-stable-releases.md): a number is no
+longer allocated per merge inside a development cycle — the cycle's schema changes accumulate into a
+single pending step, rewritten in place, and are frozen only when a stable release ships. The
+additive-only guidance and the merge-time reasoning for two branches in flight still hold for how a
+single step is written.
 
 ## Context
 

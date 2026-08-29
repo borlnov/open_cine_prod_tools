@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -394,6 +395,16 @@ void main() {
   });
 
   group("a project file from another build", () {
+    // The older-file migration flow can't be exercised at schema version 1: ADR 0029 squashed the
+    // pre-stable chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0,
+    // which reads as an unreadable/foreign file, not an older one). The two tests that need an
+    // older file therefore skip until a stable cycle raises currentSchemaVersion to 2+ — at which
+    // point createProjectAtPreviousFormat must undo that new step's own additions again, and the
+    // auto-reactivated tests fail loudly until it does. The same limitation is why the pre-release
+    // "at your own risk" migration wording has no test here: it only replaces the migration
+    // message, which these two skips already keep untested.
+    const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
+
     /// The format a file one step behind this build states.
     final previousSchemaVersion = OcptProjectDatabase.currentSchemaVersion - 1;
 
@@ -450,7 +461,7 @@ void main() {
       expect(projectsManager.currentProject, isNull);
 
       await bloc.close();
-    });
+    }, skip: olderFileFlowSkip);
 
     test("answering the question opens it, and the copy is where it was promised", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
@@ -480,7 +491,7 @@ void main() {
       expect(File(backupPath).existsSync(), isTrue);
 
       await bloc.close();
-    });
+    }, skip: olderFileFlowSkip);
 
     test("a newer one is raised as a refusal, and nothing is opened", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
@@ -501,6 +512,71 @@ void main() {
 
       await bloc.close();
     });
+
+    /// Creates a project at [filePath], then stamps a different development build's version onto
+    /// its writer identity column, leaving the schema version exactly at this build's own — which
+    /// is all a file written by another pre-release has to state to be refused. This does not need
+    /// an older schema to exist, unlike the two tests above.
+    Future<void> createProjectWrittenByAnotherDevBuild(String filePath) async {
+      await projectsManager.createProject(name: "My Movie", filePath: filePath);
+      await projectsManager.closeCurrentProject();
+
+      final database = sqlite3.open(filePath);
+      database
+        ..execute("UPDATE project_info SET migrated_by_app_version = ?", ["0.9.0-alpha.7"])
+        ..dispose();
+    }
+
+    test("a foreign development build is raised as a refusal naming it", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectWrittenByAnotherDevBuild(filePath);
+      await propertiesManager.deleteAll();
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(
+        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
+      );
+      final state = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
+
+      final compatibility = state.pendingFileCompatibility!;
+      expect(compatibility.verdict, OcptProjectFileVerdict.foreignDevBuild);
+      expect(compatibility.migratedByAppVersion, "0.9.0-alpha.7");
+      expect(state.error, isNull, reason: "a refusal is stated by the dialog, not by a SnackBar");
+      expect(projectsManager.currentProject, isNull);
+      expect(routerManager.pushedRoute, isNull);
+
+      await bloc.close();
+    });
+
+    test(
+      "the manager's own re-check reports the foreign-dev-build status rather than migrating it",
+      () async {
+        final filePath = p.join(tempDir.path, "movie.ocpt");
+        await createProjectWrittenByAnotherDevBuild(filePath);
+        final bloc = buildBloc();
+
+        // `allowMigration: true` is what the page dispatches once a genuinely *older* file's
+        // migration has been confirmed; the bloc's own gate only stands in front of a plain open,
+        // so this is what exercises `OcptProjectsManager.openProject`'s own re-check for a file
+        // that turns out to be a foreign development build instead — feasible without an actually
+        // older schema, unlike the migration wording itself (still gated by `olderFileFlowSkip`
+        // above).
+        bloc.add(
+          OcptHomeOpenProjectRequestedEvent(
+            filePath: filePath,
+            fileTypeLabel: "Project",
+            allowMigration: true,
+          ),
+        );
+        final state = await waitForState(bloc, (state) => state.error != null);
+
+        expect(state.error, OcptProjectStatus.foreignDevBuildFormat);
+        expect(projectsManager.currentProject, isNull);
+
+        await bloc.close();
+      },
+    );
 
     test("the question is cleared once the page has stated it", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");

@@ -43,6 +43,30 @@ class OcptProjectFileCompatibility extends Equatable {
   /// can still open, which is the whole reason for taking it.
   final String? suggestedBackupPath;
 
+  /// The app version stamped into `project_info.migratedByAppVersion` — the file's writer
+  /// identity — or null when there is nothing to read (a file from before the column existed, one
+  /// that never migrated, or one that isn't a project at all).
+  ///
+  /// Carried so a refusal of [OcptProjectFileVerdict.foreignDevBuild] can name the exact build the
+  /// file was written by, which is the one build guaranteed to open it again.
+  final String? migratedByAppVersion;
+
+  /// Whether the running build's own version — not the file's — is a pre-release, per
+  /// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`.
+  ///
+  /// Carried rather than left to the caller to re-parse, so the page can word an
+  /// [OcptProjectFileVerdict.older] migration as a "development build, at your own risk" warning
+  /// instead of the stable wording.
+  final bool isRunningBuildPreRelease;
+
+  /// The running build's own version string — not the file's.
+  ///
+  /// Carried so the "development build, at your own risk" warning
+  /// [isRunningBuildPreRelease] triggers can name the very build the user is running, without the
+  /// page reaching past this model for a version string read a different way (e.g. the platform's
+  /// own package info, which does not carry the CI-derived pre-release suffix this ADR compares).
+  final String runningAppVersion;
+
   /// What this file's format means for the build about to open it.
   final OcptProjectFileVerdict verdict;
 
@@ -54,6 +78,9 @@ class OcptProjectFileCompatibility extends Equatable {
     required this.verdict,
     this.appVersionAtCreation,
     this.suggestedBackupPath,
+    this.migratedByAppVersion,
+    required this.isRunningBuildPreRelease,
+    required this.runningAppVersion,
   });
 
   /// Object properties
@@ -64,6 +91,9 @@ class OcptProjectFileCompatibility extends Equatable {
     appSchemaVersion,
     appVersionAtCreation,
     suggestedBackupPath,
+    migratedByAppVersion,
+    isRunningBuildPreRelease,
+    runningAppVersion,
     verdict,
   ];
 }

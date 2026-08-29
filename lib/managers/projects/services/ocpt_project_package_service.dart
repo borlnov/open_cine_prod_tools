@@ -83,8 +83,7 @@ class OcptProjectPackageService {
   static const _fallbackImportedProjectFolderName = "Imported project";
 
   /// The upgrade steps [_upgradedManifest] replays, keyed by the format each one upgrades **from**
-  /// — the entry at `n` turns a format-`n` manifest JSON object into a format-`n + 1` one, on the
-  /// model of `OcptProjectVersionCodec._payloadUpgrades`.
+  /// — the entry at `n` turns a format-`n` manifest JSON object into a format-`n + 1` one.
   ///
   /// Empty today, because [ocptCurrentPackageFormat] is `1`, the only format this service has ever
   /// written: there is nothing older to upgrade from yet. The seam exists so that the day a

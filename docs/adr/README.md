@@ -85,6 +85,7 @@ number is a stable identifier other documents and commits can reference.
 | [0026](0026-the-budget-reads-the-other-modes.md) | The budget reads the other modes, it does not copy them | Accepted |
 | [0027](0027-the-budget-states-no-regulatory-figure.md) | The budget states no regulatory figure and asks for no threshold | Accepted |
 | [0028](0028-a-nomenclature-seeded-not-frozen.md) | A nomenclature seeded, not frozen | Accepted |
+| [0029](0029-schema-versions-frozen-at-stable-releases.md) | Schema versions frozen at stable releases | Accepted |
 
 ## Candidates
 

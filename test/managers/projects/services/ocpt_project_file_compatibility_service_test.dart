@@ -23,6 +23,10 @@ void main() {
   // of what is being tested, and it must not stop testing it the day that number moves.
   const appSchemaVersion = 19;
 
+  // The version the build under test is pretending to be: a stable release, so most cases don't
+  // have to think about the writer identity at all.
+  const appVersion = "0.2.0";
+
   late Directory workspace;
 
   /// Writes a SQLite file called [name] stating [userVersion], and returns its path.
@@ -33,18 +37,30 @@ void main() {
     String name, {
     required int userVersion,
     String? appVersionAtCreation,
+    String? migratedByAppVersion,
     bool withProjectInfo = true,
+    bool withMigratedByColumn = true,
   }) {
     final path = p.join(workspace.path, name);
     final database = sqlite3.open(path);
 
     if (withProjectInfo) {
-      database
-        ..execute("CREATE TABLE project_info (name TEXT, app_version_at_creation TEXT)")
-        ..execute("INSERT INTO project_info (name, app_version_at_creation) VALUES (?, ?)", [
-          "Les Vagues",
-          appVersionAtCreation,
-        ]);
+      final migratedByColumn = withMigratedByColumn ? ", migrated_by_app_version TEXT" : "";
+      database.execute(
+        "CREATE TABLE project_info (name TEXT, app_version_at_creation TEXT$migratedByColumn)",
+      );
+      if (withMigratedByColumn) {
+        database.execute(
+          "INSERT INTO project_info (name, app_version_at_creation, migrated_by_app_version) "
+          "VALUES (?, ?, ?)",
+          ["Les Vagues", appVersionAtCreation, migratedByAppVersion],
+        );
+      } else {
+        database.execute(
+          "INSERT INTO project_info (name, app_version_at_creation) VALUES (?, ?)",
+          ["Les Vagues", appVersionAtCreation],
+        );
+      }
     } else {
       database.execute("CREATE TABLE notes (line TEXT)");
     }
@@ -66,19 +82,30 @@ void main() {
   });
 
   group("probing a file's format", () {
-    test("opens a file at this build's own format as it is", () {
+    test("opens a file at this build's own format as it is, unstamped", () {
       final path = writeDatabase(
         "movie.ocpt",
         userVersion: appSchemaVersion,
         appVersionAtCreation: "0.1.0",
       );
 
-      final compatibility = service.probe(filePath: path, appSchemaVersion: appSchemaVersion);
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
 
       expect(compatibility.verdict, OcptProjectFileVerdict.current);
       expect(compatibility.fileSchemaVersion, appSchemaVersion);
       expect(compatibility.appSchemaVersion, appSchemaVersion);
       expect(compatibility.appVersionAtCreation, "0.1.0");
+      expect(
+        compatibility.migratedByAppVersion,
+        isNull,
+        reason: "an unstamped file falls back to schema-only, and opens as before",
+      );
+      expect(compatibility.isRunningBuildPreRelease, isFalse);
+      expect(compatibility.runningAppVersion, appVersion);
       expect(
         compatibility.suggestedBackupPath,
         isNull,
@@ -86,20 +113,128 @@ void main() {
       );
     });
 
+    test("opens a file at this build's own format, written by this exact build", () {
+      final path = writeDatabase(
+        "movie.ocpt",
+        userVersion: appSchemaVersion,
+        migratedByAppVersion: appVersion,
+      );
+
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
+
+      expect(compatibility.verdict, OcptProjectFileVerdict.current);
+      expect(compatibility.migratedByAppVersion, appVersion);
+    });
+
+    test("opens a file at this build's own format when both builds are stable", () {
+      final path = writeDatabase(
+        "movie.ocpt",
+        userVersion: appSchemaVersion,
+        migratedByAppVersion: "0.1.0",
+      );
+
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: "0.2.1",
+      );
+
+      expect(
+        compatibility.verdict,
+        OcptProjectFileVerdict.current,
+        reason: "a same-schema patch release changed no schema: same number, same frozen shape",
+      );
+      expect(compatibility.migratedByAppVersion, "0.1.0");
+      expect(compatibility.isRunningBuildPreRelease, isFalse);
+    });
+
+    test("refuses a file at this build's own format written by a different pre-release build", () {
+      final path = writeDatabase(
+        "movie.ocpt",
+        userVersion: appSchemaVersion,
+        migratedByAppVersion: "0.2.0-alpha.1",
+      );
+
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: "0.2.0-alpha.2",
+      );
+
+      expect(compatibility.verdict, OcptProjectFileVerdict.foreignDevBuild);
+      expect(compatibility.migratedByAppVersion, "0.2.0-alpha.1");
+      expect(compatibility.isRunningBuildPreRelease, isTrue);
+      expect(compatibility.runningAppVersion, "0.2.0-alpha.2");
+      expect(
+        compatibility.suggestedBackupPath,
+        isNull,
+        reason: "a refused file is never migrated, so there is nothing to copy",
+      );
+    });
+
+    test(
+      "refuses a file at this build's own format written by a pre-release when this build is "
+      "stable",
+      () {
+        final path = writeDatabase(
+          "movie.ocpt",
+          userVersion: appSchemaVersion,
+          migratedByAppVersion: "0.2.0-alpha.1",
+        );
+
+        final compatibility = service.probe(
+          filePath: path,
+          appSchemaVersion: appSchemaVersion,
+          appVersion: appVersion,
+        );
+
+        expect(compatibility.verdict, OcptProjectFileVerdict.foreignDevBuild);
+        expect(compatibility.migratedByAppVersion, "0.2.0-alpha.1");
+        expect(compatibility.isRunningBuildPreRelease, isFalse);
+      },
+    );
+
     test("asks for a migration on an older file, and says where the copy goes", () {
       final path = writeDatabase("movie.ocpt", userVersion: 18, appVersionAtCreation: "0.1.0");
 
-      final compatibility = service.probe(filePath: path, appSchemaVersion: appSchemaVersion);
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
 
       expect(compatibility.verdict, OcptProjectFileVerdict.older);
       expect(compatibility.fileSchemaVersion, 18);
       expect(compatibility.suggestedBackupPath, p.join(workspace.path, "movie.backup-v18.ocpt"));
+      expect(compatibility.isRunningBuildPreRelease, isFalse);
+    });
+
+    test("carries the pre-release flag of a dev build migrating an older file", () {
+      final path = writeDatabase("movie.ocpt", userVersion: 18, appVersionAtCreation: "0.1.0");
+
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: "0.2.0-3-g87a9b8d",
+      );
+
+      expect(compatibility.verdict, OcptProjectFileVerdict.older);
+      expect(compatibility.isRunningBuildPreRelease, isTrue);
+      expect(compatibility.runningAppVersion, "0.2.0-3-g87a9b8d");
     });
 
     test("refuses a file from a newer build, and names the build that made it", () {
       final path = writeDatabase("movie.ocpt", userVersion: 42, appVersionAtCreation: "0.9.0");
 
-      final compatibility = service.probe(filePath: path, appSchemaVersion: appSchemaVersion);
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
 
       expect(compatibility.verdict, OcptProjectFileVerdict.newer);
       expect(compatibility.fileSchemaVersion, 42);
@@ -114,17 +249,44 @@ void main() {
     test("still reads both formats when there is no project_info to read a version from", () {
       final path = writeDatabase("movie.ocpt", userVersion: 42, withProjectInfo: false);
 
-      final compatibility = service.probe(filePath: path, appSchemaVersion: appSchemaVersion);
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
 
       expect(compatibility.verdict, OcptProjectFileVerdict.newer);
       expect(compatibility.fileSchemaVersion, 42);
       expect(compatibility.appVersionAtCreation, isNull);
+      expect(compatibility.migratedByAppVersion, isNull);
+    });
+
+    test("still reads both formats when project_info predates the writer identity column", () {
+      final path = writeDatabase(
+        "movie.ocpt",
+        userVersion: appSchemaVersion,
+        appVersionAtCreation: "0.1.0",
+        withMigratedByColumn: false,
+      );
+
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
+
+      expect(compatibility.verdict, OcptProjectFileVerdict.current);
+      expect(compatibility.migratedByAppVersion, isNull);
     });
 
     test("states nothing about a database carrying no format of its own", () {
       final path = writeDatabase("fresh.ocpt", userVersion: 0);
 
-      final compatibility = service.probe(filePath: path, appSchemaVersion: appSchemaVersion);
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
 
       expect(
         compatibility.verdict,
@@ -138,7 +300,11 @@ void main() {
       final path = p.join(workspace.path, "notes.txt");
       File(path).writeAsStringSync("this is not a database");
 
-      final compatibility = service.probe(filePath: path, appSchemaVersion: appSchemaVersion);
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
 
       expect(compatibility.verdict, OcptProjectFileVerdict.unreadable);
       expect(compatibility.filePath, path);
@@ -148,6 +314,7 @@ void main() {
       final compatibility = service.probe(
         filePath: p.join(workspace.path, "gone.ocpt"),
         appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
       );
 
       expect(compatibility.verdict, OcptProjectFileVerdict.unreadable);

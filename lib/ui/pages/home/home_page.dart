@@ -238,11 +238,13 @@ class _HomeView extends StatelessWidget {
   }
 
   /// Puts [compatibility] in front of the user: the migration to answer for an older file, the
-  /// refusal for a newer one.
+  /// refusal for a newer one or for one at this build's own schema but written by a different
+  /// development build.
   ///
   /// The migration is confirmed through [OcptConfirmDialog] like every other irreversible action of
   /// this app, and it is the *page* that opens it — the bloc raised the question, it never words
-  /// it.
+  /// it. When the running build is itself a pre-release, the message warns that updating the
+  /// project is at the user's own risk instead of the stable wording.
   /// Confirming re-dispatches the very open that stopped here, this time allowed to migrate; the
   /// file's own path travels with the verdict, so the file that is updated is the one that was
   /// asked about.
@@ -262,11 +264,18 @@ class _HomeView extends StatelessWidget {
         final confirmed = await OcptConfirmDialog.show(
           context,
           title: tr.homeMigrateProjectTitle,
-          message: tr.homeMigrateProjectMessage(
-            compatibility.fileSchemaVersion,
-            compatibility.appSchemaVersion,
-            compatibility.suggestedBackupPath ?? "",
-          ),
+          message: compatibility.isRunningBuildPreRelease
+              ? tr.homeMigrateProjectPreReleaseMessage(
+                  compatibility.fileSchemaVersion,
+                  compatibility.appSchemaVersion,
+                  compatibility.suggestedBackupPath ?? "",
+                  compatibility.runningAppVersion,
+                )
+              : tr.homeMigrateProjectMessage(
+                  compatibility.fileSchemaVersion,
+                  compatibility.appSchemaVersion,
+                  compatibility.suggestedBackupPath ?? "",
+                ),
           cancelLabel: tr.homeMigrateProjectCancelAction,
           confirmLabel: tr.homeMigrateProjectConfirmAction,
           isDestructive: false,
@@ -283,6 +292,9 @@ class _HomeView extends StatelessWidget {
           ),
         );
       case OcptProjectFileVerdict.newer:
+      case OcptProjectFileVerdict.foreignDevBuild:
+        // One dialog answers both: neither is anything this build can do anything about, and
+        // OcptProjectFileNewerDialog itself picks the wording the verdict calls for.
         await OcptProjectFileNewerDialog.show(context, compatibility: compatibility);
       case OcptProjectFileVerdict.current:
       case OcptProjectFileVerdict.unreadable:
@@ -301,6 +313,7 @@ class _HomeView extends StatelessWidget {
       OcptProjectStatus.corruptedFile => tr.homeErrorCorruptedFile,
       OcptProjectStatus.migrationRequired => tr.homeErrorMigrationRequired,
       OcptProjectStatus.newerFormat => tr.homeErrorNewerFormat,
+      OcptProjectStatus.foreignDevBuildFormat => tr.homeErrorForeignDevBuildFormat,
       OcptProjectStatus.alreadyOpen => tr.homeErrorAlreadyOpen,
       OcptProjectStatus.ioError => tr.homeErrorIoError,
     };

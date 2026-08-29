@@ -11,9 +11,8 @@ class OcptBudgetCncPoste {
   /// `OcptBudgetQuoteService` seeds these ten rows on the first read of an empty `budget_postes`
   /// table, on whichever replica gets there first; a random id per replica would mean two of them
   /// seeding the same project independently produce twenty rows for a merge to reconcile instead of
-  /// ten it recognises as the same ones. This is the same device schema version 18 uses to derive
-  /// `role_episodes.id` from the role it links (`OcptProjectDatabase._deriveRoleEpisodes`): a
-  /// deterministic id is what lets two replicas agree without talking to each other first.
+  /// ten it recognises as the same ones: a deterministic id is what lets two replicas agree without
+  /// talking to each other first.
   ///
   /// **Never renamed once shipped**, for the reason `OcptCrewPosition.id`'s own doc comment gives
   /// its own: `budget_lines.posteId` and any project version payload captured before a rename would

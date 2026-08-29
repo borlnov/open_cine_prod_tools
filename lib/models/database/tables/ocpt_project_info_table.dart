@@ -68,6 +68,15 @@ class OcptProjectInfoTable extends Table {
   /// The version of Open Cine Prod Tools that created this project file.
   TextColumn get appVersionAtCreation => text()();
 
+  /// The app version that last created or migrated this project file (semver; a pre-release build
+  /// carries a suffix), or null when this build never wrote it.
+  ///
+  /// This is the writer identity `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`
+  /// describes, read by the file-compatibility gate to tell a stable release's file apart from a
+  /// pre-release build's: nullable because a file this build never wrote has none, exactly the
+  /// reading [minimumRestMinutes]'s own doc comment gives its own null.
+  TextColumn get migratedByAppVersion => text().nullable()();
+
   /// The physical page format used to paginate this project's screenplays.
   TextColumn get pageFormat => text().map(const OcptPageFormatConverter())();
 

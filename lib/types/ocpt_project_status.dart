@@ -33,6 +33,16 @@ enum OcptProjectStatus with MixinResultStatus {
   /// Nothing this build can do makes this work — the answer is the newer build.
   newerFormat(isSuccess: false, canBeRetried: false),
 
+  /// The project file is at this build's own schema version, but was last written by a
+  /// **pre-release** build that isn't this exact build, and is refused rather than opened: nothing
+  /// was opened, nothing was touched, and it doesn't reach the recent projects list.
+  ///
+  /// A pending schema is rewritten in place as a development cycle's features land
+  /// (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`), so two files sharing this
+  /// schema number under two different pre-releases aren't guaranteed to share the same shape. The
+  /// answer is the exact build that wrote the file.
+  foreignDevBuildFormat(isSuccess: false, canBeRetried: false),
+
   /// Another create/open/close operation is already in progress on this manager.
   alreadyOpen(isSuccess: false, canBeRetried: true),
 
