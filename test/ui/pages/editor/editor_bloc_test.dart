@@ -50,6 +50,9 @@ import 'package:spell_kit/spell_kit.dart';
 /// screenplay language never depends on the machine the tests run on.
 String _testAppLanguageCode() => "en";
 
+/// The fixed device id every stamping service built in this file uses.
+Future<String> _testDeviceId() async => "test-device";
+
 /// A screenplay service whose saves always fail, to exercise the bloc's save error path. Loads
 /// still go through the real implementation.
 class _FailingScreenplayService extends OcptScreenplayService {
@@ -57,14 +60,15 @@ class _FailingScreenplayService extends OcptScreenplayService {
   const _FailingScreenplayService()
     : super(
         sceneIndexService: const OcptSceneIndexService(),
-        shotListService: const OcptShotListService(),
-        shotCoverageService: const OcptShotCoverageService(),
+        shotListService: const OcptShotListService(deviceId: _testDeviceId),
+        shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
         roleIndexService: const OcptRoleIndexService(),
         breakdownService: const OcptBreakdownService(
           elementsService: OcptElementsService(),
           locationsService: OcptLocationsService(),
         ),
         scheduleService: const OcptScheduleService(),
+        deviceId: _testDeviceId,
       );
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}

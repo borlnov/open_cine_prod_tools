@@ -158,20 +158,22 @@ void main() {
     elementsService: elementsService,
     locationsService: locationsService,
   );
-  const shotListService = OcptShotListService();
+  Future<String> deviceId() async => "seed-device";
+  final shotListService = OcptShotListService(deviceId: deviceId);
   const peopleService = OcptPeopleService();
   const scheduleService = OcptScheduleService();
   const budgetQuoteService = OcptBudgetQuoteService();
   const budgetJournalService = OcptBudgetJournalService();
   const budgetFinancingService = OcptBudgetFinancingService();
   const budgetSharingService = OcptBudgetSharingService();
-  const screenplayService = OcptScreenplayService(
-    sceneIndexService: OcptSceneIndexService(),
+  final screenplayService = OcptScreenplayService(
+    sceneIndexService: const OcptSceneIndexService(),
     shotListService: shotListService,
-    shotCoverageService: OcptShotCoverageService(),
+    shotCoverageService: OcptShotCoverageService(deviceId: deviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,
+    deviceId: deviceId,
   );
 
   test("seed the demonstration project", () async {

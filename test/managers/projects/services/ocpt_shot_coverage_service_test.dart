@@ -25,13 +25,18 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 /// The digest [OcptShotCoverageService] is expected to compute for [text].
 String _digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
 
+/// The fixed device id every stamp this file's writes carry.
+const _deviceId = "device-1";
+
+Future<String> _testDeviceId() async => _deviceId;
+
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const coverageService = OcptShotCoverageService();
-  const shotListService = OcptShotListService();
+  const coverageService = OcptShotCoverageService(deviceId: _testDeviceId);
+  const shotListService = OcptShotListService(deviceId: _testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
   const screenplayService = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
@@ -43,6 +48,7 @@ void main() {
       locationsService: OcptLocationsService(),
     ),
     scheduleService: OcptScheduleService(),
+    deviceId: _testDeviceId,
   );
   const screenplayId = "screenplay-1";
 
@@ -77,6 +83,13 @@ void main() {
 
   /// The one live coverage range, failing if there is anything but exactly one.
   Future<OcptShotCoverageRow> readSingleRange() async => (await readRanges()).single;
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptProjectVersionsService`'s own tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   Future<List<OcptSceneRow>> readScenes() =>
       (database.select(database.ocptScenesTable)
@@ -502,6 +515,7 @@ Action two three.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: newText,
+        stamps: null,
       );
 
       final rangeAfter = await readSingleRange();
@@ -573,6 +587,7 @@ Action TWO three.
       database: database,
       screenplayId: screenplayId,
       currentFountainText: newText,
+      stamps: null,
     );
 
     final shot = await readShot(shotId);
@@ -693,6 +708,7 @@ Action two four.
       database: database,
       screenplayId: screenplayId,
       currentFountainText: newText,
+      stamps: null,
     );
 
     final shot = await readShot(shotId);
@@ -761,6 +777,7 @@ Action two.
       database: database,
       screenplayId: screenplayId,
       currentFountainText: newText,
+      stamps: null,
     );
 
     final newStreetScene = (await readScenes()).firstWhere(
@@ -832,6 +849,7 @@ Action TWO three.
       database: database,
       screenplayId: screenplayId,
       currentFountainText: editedText,
+      stamps: null,
     );
     expect((await readShot(shotId)).needsCheck, isTrue);
 
@@ -853,6 +871,7 @@ Action TWO three.
       database: database,
       screenplayId: screenplayId,
       currentFountainText: editedText,
+      stamps: null,
     );
     final shotAfterSecondRefresh = await readShot(shotId);
     expect(shotAfterSecondRefresh.needsCheck, isFalse);
@@ -1113,6 +1132,7 @@ Action four five six.
       database: preview,
       screenplayId: screenplayId,
       currentFountainText: "EXT. STREET - NIGHT",
+      stamps: null,
     );
 
     // A version the user is only reading isn't editable, and it is the service that says so: a UI
@@ -1128,5 +1148,150 @@ Action four five six.
     final shot = await preview.select(preview.ocptShotsTable).getSingle();
     expect(shot.needsCheck, isTrue);
     expect(shot.checkReason, OcptShotCheckReason.coveredTextChanged);
+  });
+
+  group("row-field-version stamps", () {
+    /// A shot on a fresh, single-scene screenplay, and that scene's own current text — ready for a
+    /// test to add a coverage range against.
+    Future<(String shotId, OcptSceneRow scene, String sceneText)> insertShotWithScene() async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one two three.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      ))!;
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+
+      // Every stamp the save and the shot creation themselves left is irrelevant to what follows.
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      return (shotId, scene, sceneText);
+    }
+
+    test("addRange stamps every column of the new coverage row", () async {
+      final (shotId, scene, sceneText) = await insertShotWithScene();
+      final offset = sceneText.indexOf("one");
+
+      final rangeId = (await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: offset,
+        endOffset: offset + "one".length,
+        sceneText: sceneText,
+      ))!;
+
+      final stamps = await readStamps();
+      final range = await readSingleRange();
+      for (final column in range.toJson().keys) {
+        final stamp = stamps["shot_coverages/$rangeId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+        expect(stamp.deviceId, _deviceId);
+      }
+      expect(stamps.keys, hasLength(range.toJson().length));
+    });
+
+    test("a merge stamps the absorbed range's tombstone and the surviving range's columns", () async {
+      final (shotId, scene, sceneText) = await insertShotWithScene();
+      final oneOffset = sceneText.indexOf("one");
+      final twoOffset = sceneText.indexOf("two");
+      final threeEnd = sceneText.indexOf("three.") + "three.".length;
+
+      final firstId = (await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: oneOffset,
+        endOffset: twoOffset + "two".length,
+        sceneText: sceneText,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final mergedId = (await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: twoOffset,
+        endOffset: threeEnd,
+        sceneText: sceneText,
+      ))!;
+
+      final stamps = await readStamps();
+      expect(stamps["shot_coverages/$firstId/isDeleted"]!.version, 1);
+      final mergedRange = await readSingleRange();
+      for (final column in mergedRange.toJson().keys) {
+        expect(stamps["shot_coverages/$mergedId/$column"], isNotNull, reason: column);
+      }
+    });
+
+    test("removeRange stamps isDeleted, like any other column", () async {
+      final (shotId, scene, sceneText) = await insertShotWithScene();
+      final offset = sceneText.indexOf("one");
+      final rangeId = (await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: offset,
+        endOffset: offset + "one".length,
+        sceneText: sceneText,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await coverageService.removeRange(database: database, rangeId: rangeId);
+
+      final stamps = await readStamps();
+      expect(stamps.keys.toSet(), {"shot_coverages/$rangeId/isDeleted"});
+      expect(stamps["shot_coverages/$rangeId/isDeleted"]!.version, 1);
+    });
+
+    test("markAsChecked stamps only the digest it actually re-stamps", () async {
+      final (shotId, scene, sceneText) = await insertShotWithScene();
+      final offset = sceneText.indexOf("one");
+      final rangeId = (await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: offset,
+        endOffset: offset + "one".length,
+        sceneText: sceneText,
+      ))!;
+      await coverageService.refreshStaleness(
+        database: database,
+        screenplayId: screenplayId,
+        currentFountainText: (await database.select(database.ocptScreenplaysTable).getSingle())
+            .fountainText
+            .replaceFirst("one", "won"),
+        stamps: null,
+      );
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await coverageService.markAsChecked(
+        database: database,
+        shotId: shotId,
+        currentFountainText: (await database.select(database.ocptScreenplaysTable).getSingle())
+            .fountainText
+            .replaceFirst("one", "won"),
+      );
+
+      final stamps = await readStamps();
+      expect(stamps.keys.toSet(), {
+        "shot_coverages/$rangeId/coveredTextDigest",
+        "shots/$shotId/needsCheck",
+        "shots/$shotId/checkReason",
+      });
+    });
   });
 }

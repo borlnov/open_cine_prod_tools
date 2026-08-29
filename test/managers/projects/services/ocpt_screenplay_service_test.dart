@@ -39,15 +39,17 @@ void main() {
   );
   const scheduleService = OcptScheduleService();
   const sceneIndexService = OcptSceneIndexService();
-  const shotListService = OcptShotListService();
-  const shotCoverageService = OcptShotCoverageService();
-  const service = OcptScreenplayService(
+  Future<String> testDeviceId() async => "test-device";
+  final shotListService = OcptShotListService(deviceId: testDeviceId);
+  final shotCoverageService = OcptShotCoverageService(deviceId: testDeviceId);
+  final service = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
     shotListService: shotListService,
     shotCoverageService: shotCoverageService,
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,
+    deviceId: testDeviceId,
   );
 
   late OcptProjectDatabase database;

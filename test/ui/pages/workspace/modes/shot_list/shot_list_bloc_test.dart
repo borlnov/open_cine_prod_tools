@@ -78,10 +78,13 @@ class _CountingProjectsManager extends OcptProjectsManager {
   }
 }
 
+/// The fixed device id every stamping test double in this file uses.
+Future<String> _testDeviceId() async => "test-device";
+
 /// A shot list service whose [createShot] always fails, to exercise the bloc's write error path.
 class _FailingShotListService extends OcptShotListService {
   /// Class constructor
-  const _FailingShotListService();
+  const _FailingShotListService() : super(deviceId: _testDeviceId);
 
   @override
   Future<String> createShot({
@@ -95,7 +98,7 @@ class _FailingShotListService extends OcptShotListService {
 /// error path.
 class _FailingShotCoverageService extends OcptShotCoverageService {
   /// Class constructor
-  const _FailingShotCoverageService();
+  const _FailingShotCoverageService() : super(deviceId: _testDeviceId);
 
   @override
   Future<String> addRange({

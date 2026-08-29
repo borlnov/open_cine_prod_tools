@@ -7,6 +7,13 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_diff.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_version.dart';
 
+/// Resolves the device id a domain service's own writes stamp with, once per write rather than
+/// baked in at construction: `OcptPropertiesManager.loadOrCreateDeviceId` is the only
+/// implementation the app ships, injected into a service exactly the way it already takes every
+/// other collaborator — a constructor parameter, defaulting to nothing so a caller can never
+/// forget to wire it — and a test hands in a fixed id instead.
+typedef OcptDeviceIdGetter = Future<String> Function();
+
 /// Writes a row into a synchronised table and stamps exactly the columns it actually changed, from
 /// inside an already-open transaction.
 ///
@@ -98,7 +105,7 @@ class OcptRowStampService {
     required OcptRowStampService? stamps,
   }) async {
     if (current == null) {
-      await database.into(table).insert(_insertable(next));
+      await database.into(table).insert(_fullyPresentCompanion(next));
       stamps?._stamp(table: table, rowId: rowId, columnNames: next.toJson().keys);
       return;
     }
@@ -108,7 +115,7 @@ class OcptRowStampService {
       return;
     }
 
-    await database.into(table).insertOnConflictUpdate(_insertable(next));
+    await database.into(table).insertOnConflictUpdate(_fullyPresentCompanion(next));
     stamps?._stamp(table: table, rowId: rowId, columnNames: changedColumnNames);
   }
 
@@ -146,11 +153,19 @@ class OcptRowStampService {
     );
   }
 
-  /// [row] seen as what drift's generator always makes a data class — an `Insertable` of its own
-  /// type — which [DataClass] itself doesn't declare.
+  /// [row] seen as an `UpdateCompanion` with every column marked present — even the null ones —
+  /// which every generated row class provides as `toCompanion(false)` but which, like the
+  /// `Insertable` cast it replaces, [DataClass] itself doesn't declare, so calling it generically
+  /// still needs a dynamic invocation.
   ///
-  /// Generic code over a table's rows needs both halves of that pair: [DataClass] to read a row's
-  /// columns back (through `toJson()`), and `Insertable` to write it. Every generated row class
-  /// implements the two; only their common supertype doesn't say so.
-  static Insertable<D> _insertable<D extends DataClass>(D row) => row as Insertable<D>;
+  /// This is what [writeAndStamp] writes through rather than [row] itself: `insertOnConflictUpdate`
+  /// reads a plain `DataClass`'s null columns as *absent*, not as `null` — its own doc comment
+  /// says as much, "columns from the old row that are not present on entity are unchanged" — so a
+  /// column [row] means to clear would silently keep whatever the row being replaced already held.
+  /// A companion built with `toCompanion(false)` has no such ambiguity: every column is `Value(x)`,
+  /// `Value(null)` included, never `Value.absent()`. The same holds for a fresh insert, so a column
+  /// [row] leaves null is written as `NULL`, never left for a column default to fill in behind its
+  /// back.
+  static UpdateCompanion<D> _fullyPresentCompanion<D extends DataClass>(D row) =>
+      (row as dynamic).toCompanion(false) as UpdateCompanion<D>;
 }

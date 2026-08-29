@@ -97,6 +97,9 @@ class _RecordingStyledEditorControllerDelegate implements OcptStyledEditorContro
   void redo() {}
 }
 
+/// The fixed device id every stamping service built in this file uses.
+Future<String> _testDeviceId() async => "test-device";
+
 /// A screenplay service that records every [saveScreenplayText] call instead of touching the
 /// database, so a test can assert a save happened (and with which text) without depending on real
 /// persistence timing.
@@ -105,14 +108,15 @@ class _RecordingScreenplayService extends OcptScreenplayService {
   const _RecordingScreenplayService({required this.savedTexts})
     : super(
         sceneIndexService: const OcptSceneIndexService(),
-        shotListService: const OcptShotListService(),
-        shotCoverageService: const OcptShotCoverageService(),
+        shotListService: const OcptShotListService(deviceId: _testDeviceId),
+        shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
         roleIndexService: const OcptRoleIndexService(),
         breakdownService: const OcptBreakdownService(
           elementsService: OcptElementsService(),
           locationsService: OcptLocationsService(),
         ),
         scheduleService: const OcptScheduleService(),
+        deviceId: _testDeviceId,
       );
 
   /// Every Fountain text this service was asked to save, in call order.

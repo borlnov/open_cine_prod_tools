@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
@@ -36,8 +37,13 @@ import 'package:uuid/uuid.dart';
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 class OcptShotCoverageService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [refreshStaleness] never calls it: it writes inside a caller's own
+  /// transaction, and takes that caller's own [OcptRowStampService] instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptShotCoverageService();
+  const OcptShotCoverageService({required this.deviceId});
 
   /// Adds a coverage range covering the scene-relative `[startOffset, endOffset)` of scene
   /// [sceneId] to shot [shotId], **merged with every range of that shot it joins**, and returns
@@ -120,27 +126,41 @@ class OcptShotCoverageService {
         }
       }
 
-      if (absorbedIds.isNotEmpty) {
-        await (database.update(
-          database.ocptShotCoveragesTable,
-        )..where((table) => table.id.isIn(absorbedIds))).write(
-          const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      for (final range in existing) {
+        if (!absorbedIds.contains(range.id)) {
+          continue;
+        }
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCoveragesTable,
+          rowId: range.id,
+          current: range,
+          next: range.copyWith(isDeleted: true),
+          stamps: stamps,
         );
       }
 
       final clampedEnd = mergedEnd > sceneText.length ? sceneText.length : mergedEnd;
-      await database
-          .into(database.ocptShotCoveragesTable)
-          .insert(
-            OcptShotCoveragesTableCompanion.insert(
-              id: id,
-              shotId: shotId,
-              sceneId: sceneId,
-              startOffset: mergedStart,
-              endOffset: mergedEnd,
-              coveredTextDigest: digestOf(sceneText.substring(mergedStart, clampedEnd)),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotCoveragesTable,
+        rowId: id,
+        current: null,
+        next: OcptShotCoverageRow(
+          id: id,
+          shotId: shotId,
+          sceneId: sceneId,
+          startOffset: mergedStart,
+          endOffset: mergedEnd,
+          coveredTextDigest: digestOf(sceneText.substring(mergedStart, clampedEnd)),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+
+      await stamps.flush(database);
     });
 
     return id;
@@ -182,11 +202,27 @@ class OcptShotCoverageService {
       return;
     }
 
-    await (database.update(
-      database.ocptShotCoveragesTable,
-    )..where((table) => table.id.equals(rangeId))).write(
-      const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current =
+          await (database.select(
+                database.ocptShotCoveragesTable,
+              )..where((table) => table.id.equals(rangeId) & table.isDeleted.not()))
+              .getSingleOrNull();
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotCoveragesTable,
+        rowId: rangeId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes every coverage range of shot [shotId]: the inspector's `Clear all` action.
@@ -202,11 +238,29 @@ class OcptShotCoverageService {
       return;
     }
 
-    await (database.update(
-      database.ocptShotCoveragesTable,
-    )..where((table) => table.shotId.equals(shotId))).write(
-      const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final rows =
+          await (database.select(
+                database.ocptShotCoveragesTable,
+              )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not()))
+              .get();
+      if (rows.isEmpty) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      for (final row in rows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCoveragesTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+      await stamps.flush(database);
+    });
   }
 
   /// Re-checks every coverage range of screenplay [screenplayId] against [currentFountainText] (the
@@ -227,11 +281,15 @@ class OcptShotCoverageService {
   /// digest mismatch, and without this rule would quietly downgrade a still-unaddressed
   /// [OcptShotCheckReason.coverageOutOfBounds] to [OcptShotCheckReason.coveredTextChanged].
   ///
+  /// Called from inside `OcptScreenplayService.saveScreenplayText`'s own transaction, and stamps
+  /// through [stamps] — that caller's own instance — rather than resolving a device id of its own.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> refreshStaleness({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String currentFountainText,
+    required OcptRowStampService? stamps,
   }) async {
     if (database.refusesUserWrite("refreshStaleness")) {
       return;
@@ -266,6 +324,7 @@ class OcptShotCoverageService {
       for (final row in shotRows)
         if (row.needsCheck && row.checkReason != null) row.id: row.checkReason!,
     };
+    final shotById = {for (final row in shotRows) row.id: row};
 
     await database.transaction(() async {
       for (final range in coverageRows) {
@@ -295,10 +354,13 @@ class OcptShotCoverageService {
         }
 
         if (outOfBounds) {
-          await (database.update(
-            database.ocptShotCoveragesTable,
-          )..where((table) => table.id.equals(range.id))).write(
-            OcptShotCoveragesTableCompanion(startOffset: Value(start), endOffset: Value(end)),
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShotCoveragesTable,
+            rowId: range.id,
+            current: range,
+            next: range.copyWith(startOffset: start, endOffset: end),
+            stamps: stamps,
           );
           _upgradeReason(reasonByShotId, range.shotId, OcptShotCheckReason.coverageOutOfBounds);
           continue;
@@ -313,10 +375,17 @@ class OcptShotCoverageService {
       }
 
       for (final entry in reasonByShotId.entries) {
-        await (database.update(
-          database.ocptShotsTable,
-        )..where((table) => table.id.equals(entry.key))).write(
-          OcptShotsTableCompanion(needsCheck: const Value(true), checkReason: Value(entry.value)),
+        final shot = shotById[entry.key];
+        if (shot == null) {
+          continue;
+        }
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotsTable,
+          rowId: entry.key,
+          current: shot,
+          next: shot.copyWith(needsCheck: true, checkReason: Value(entry.value)),
+          stamps: stamps,
         );
       }
     });
@@ -336,6 +405,8 @@ class OcptShotCoverageService {
     }
 
     await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       final ranges =
           await (database.select(database.ocptShotCoveragesTable)..where(
                 (table) => table.shotId.equals(shotId) & table.isDeleted.not(),
@@ -353,18 +424,33 @@ class OcptShotCoverageService {
         final absoluteEnd = scene.charStart + range.endOffset;
         final substring = currentFountainText.substring(absoluteStart, absoluteEnd);
 
-        await (database.update(
-          database.ocptShotCoveragesTable,
-        )..where((table) => table.id.equals(range.id))).write(
-          OcptShotCoveragesTableCompanion(coveredTextDigest: Value(digestOf(substring))),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCoveragesTable,
+          rowId: range.id,
+          current: range,
+          next: range.copyWith(coveredTextDigest: digestOf(substring)),
+          stamps: stamps,
         );
       }
 
-      await (database.update(
-        database.ocptShotsTable,
-      )..where((table) => table.id.equals(shotId))).write(
-        const OcptShotsTableCompanion(needsCheck: Value(false), checkReason: Value(null)),
-      );
+      final shot =
+          await (database.select(
+                database.ocptShotsTable,
+              )..where((table) => table.id.equals(shotId)))
+              .getSingleOrNull();
+      if (shot != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotsTable,
+          rowId: shotId,
+          current: shot,
+          next: shot.copyWith(needsCheck: false, checkReason: const Value(null)),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 

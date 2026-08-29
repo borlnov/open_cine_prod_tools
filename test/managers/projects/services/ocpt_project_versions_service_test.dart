@@ -53,20 +53,22 @@ void main() {
     elementsService: elementsService,
     locationsService: locationsService,
   );
+  const deviceId = "device-1";
+  Future<String> testDeviceId() async => deviceId;
   // Used directly by the breakdown restore tests below, to seed a real scene index and a real
   // reconciled role — separate from the one `service` builds for its own screenplay-snapshotting
   // needs, but a stateless collaborator over the same database, so the two never disagree.
-  const screenplayService = OcptScreenplayService(
-    sceneIndexService: OcptSceneIndexService(),
-    shotListService: OcptShotListService(),
-    shotCoverageService: OcptShotCoverageService(),
+  final screenplayService = OcptScreenplayService(
+    sceneIndexService: const OcptSceneIndexService(),
+    shotListService: OcptShotListService(deviceId: testDeviceId),
+    shotCoverageService: OcptShotCoverageService(deviceId: testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,
+    deviceId: testDeviceId,
   );
-  const service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
+  final service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
   const screenplayId = "screenplay-1";
-  const deviceId = "device-1";
   const appVersion = "0.1.0";
   const margins = FountainPageMargins(
     leftInches: 1.5,

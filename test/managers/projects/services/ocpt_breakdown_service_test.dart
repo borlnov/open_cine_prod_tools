@@ -36,13 +36,15 @@ void main() {
     locationsService: locationsService,
   );
   const sceneIndexService = OcptSceneIndexService();
-  const screenplayService = OcptScreenplayService(
+  Future<String> testDeviceId() async => "test-device";
+  final screenplayService = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
-    shotListService: OcptShotListService(),
-    shotCoverageService: OcptShotCoverageService(),
+    shotListService: OcptShotListService(deviceId: testDeviceId),
+    shotCoverageService: OcptShotCoverageService(deviceId: testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
-    scheduleService: OcptScheduleService(),
+    scheduleService: const OcptScheduleService(),
+    deviceId: testDeviceId,
   );
   const screenplayId = "screenplay-1";
 

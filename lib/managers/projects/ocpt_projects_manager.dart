@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -260,32 +261,40 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
        sceneIndexService = const OcptSceneIndexService(),
-       shotListService = const OcptShotListService(),
-       shotCoverageService = const OcptShotCoverageService(),
-       projectVersionsService = const OcptProjectVersionsService(
-         codec: OcptProjectVersionCodec(),
+       shotListService = OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+       shotCoverageService = OcptShotCoverageService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       projectVersionsService = OcptProjectVersionsService(
+         codec: const OcptProjectVersionCodec(),
          screenplayService: OcptScreenplayService(
-           sceneIndexService: OcptSceneIndexService(),
-           shotListService: OcptShotListService(),
-           shotCoverageService: OcptShotCoverageService(),
-           roleIndexService: OcptRoleIndexService(),
-           breakdownService: OcptBreakdownService(
+           sceneIndexService: const OcptSceneIndexService(),
+           shotListService: OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+           shotCoverageService: OcptShotCoverageService(
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           roleIndexService: const OcptRoleIndexService(),
+           breakdownService: const OcptBreakdownService(
              elementsService: OcptElementsService(),
              locationsService: OcptLocationsService(),
            ),
-           scheduleService: OcptScheduleService(),
+           scheduleService: const OcptScheduleService(),
+           deviceId: _resolveDeviceId(propertiesManager),
          ),
        ),
-       screenplayService = const OcptScreenplayService(
-         sceneIndexService: OcptSceneIndexService(),
-         shotListService: OcptShotListService(),
-         shotCoverageService: OcptShotCoverageService(),
-         roleIndexService: OcptRoleIndexService(),
-         breakdownService: OcptBreakdownService(
+       screenplayService = OcptScreenplayService(
+         sceneIndexService: const OcptSceneIndexService(),
+         shotListService: OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+         shotCoverageService: OcptShotCoverageService(
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         roleIndexService: const OcptRoleIndexService(),
+         breakdownService: const OcptBreakdownService(
            elementsService: OcptElementsService(),
            locationsService: OcptLocationsService(),
          ),
-         scheduleService: OcptScheduleService(),
+         scheduleService: const OcptScheduleService(),
+         deviceId: _resolveDeviceId(propertiesManager),
        ),
        peopleService = const OcptPeopleService(),
        roleIndexService = const OcptRoleIndexService(),
@@ -1349,6 +1358,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// nothing needs that manager registered until a project is actually created.
   static String _localesManagerLanguageCode() =>
       globalGetIt().get<LocalesManager>().currentLocale.languageCode;
+
+  /// The [OcptDeviceIdGetter] every stamping service this manager builds is given: [propertiesManager]
+  /// when the constructor received one (a test's own double), [globalGetIt]'s singleton otherwise —
+  /// the same fallback [_propertiesManager] itself resolves, repeated here rather than read off that
+  /// field because a constructor initializer list cannot see `this`.
+  static OcptDeviceIdGetter _resolveDeviceId(OcptPropertiesManager? propertiesManager) =>
+      (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId;
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

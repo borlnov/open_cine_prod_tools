@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -77,6 +78,13 @@ class OcptScreenplayService {
   /// this way.
   final OcptScheduleService _scheduleService;
 
+  /// Resolves the device id every stamp [saveScreenplayText] and [deleteEpisode] make on the shot
+  /// list carries — see [OcptDeviceIdGetter]. `screenplays` itself is not stamped by this class:
+  /// this is only for the single [OcptRowStampService] each of those two seeds for its own
+  /// transaction and hands to [_shotListService]/[_shotCoverageService], the collaborators whose
+  /// tables (`shots`, `shot_characters`, `shot_coverages`) are.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
   const OcptScreenplayService({
     required OcptSceneIndexService sceneIndexService,
@@ -85,6 +93,7 @@ class OcptScreenplayService {
     required OcptRoleIndexService roleIndexService,
     required OcptBreakdownService breakdownService,
     required OcptScheduleService scheduleService,
+    required this.deviceId,
   }) : _sceneIndexService = sceneIndexService,
        _shotListService = shotListService,
        _shotCoverageService = shotCoverageService,
@@ -175,6 +184,11 @@ class OcptScreenplayService {
     }
 
     await database.transaction(() async {
+      // Seeded once for the whole save, and flushed once at the end: `detachShotsFromDeletedScenes`
+      // and `refreshStaleness` both stamp into it below, and a version's own floor is never folded
+      // in here — that is `OcptProjectVersionsService.raiseFloor`'s job, not an ordinary save's.
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       final previousText = await loadScreenplayText(
         database: database,
         screenplayId: screenplayId,
@@ -204,6 +218,7 @@ class OcptScreenplayService {
         onScenesDeleted: (scenesAboutToBeDeleted) => _shotListService.detachShotsFromDeletedScenes(
           database: database,
           scenesAboutToBeDeleted: scenesAboutToBeDeleted,
+          stamps: stamps,
         ),
       );
 
@@ -217,6 +232,7 @@ class OcptScreenplayService {
         database: database,
         screenplayId: screenplayId,
         currentFountainText: fountainText,
+        stamps: stamps,
       );
 
       await _breakdownService.reconcileTags(
@@ -226,6 +242,8 @@ class OcptScreenplayService {
       );
 
       await _pruneSnapshots(database: database, screenplayId: screenplayId);
+
+      await stamps.flush(database);
     });
   }
 
@@ -398,6 +416,8 @@ class OcptScreenplayService {
         return false;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       final sceneIds = await _sceneIndexService.tombstoneScenesOfScreenplay(
         database: database,
         screenplayId: screenplayId,
@@ -405,6 +425,7 @@ class OcptScreenplayService {
       final shotIds = await _shotListService.tombstoneShotsOfScreenplay(
         database: database,
         screenplayId: screenplayId,
+        stamps: stamps,
       );
 
       await _breakdownService.tombstoneBreakdownOfScenes(database: database, sceneIds: sceneIds);
@@ -422,6 +443,8 @@ class OcptScreenplayService {
       )..where((table) => table.id.equals(screenplayId))).write(
         const OcptScreenplaysTableCompanion(isDeleted: Value(true)),
       );
+
+      await stamps.flush(database);
 
       return true;
     });
