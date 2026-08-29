@@ -4,6 +4,8 @@
 
 name: open_cine_prod_tools
 description: "Open-source production tools for film making."
+homepage: https://borlnov.github.io/open_cine_prod_tools/
+repository: https://github.com/borlnov/open_cine_prod_tools
 publish_to: none
 
 version: 0.1.0
