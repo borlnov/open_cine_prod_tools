@@ -371,7 +371,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        assetsService = OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-       projectDictionaryService = const OcptProjectDictionaryService(),
+       projectDictionaryService = OcptProjectDictionaryService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
        projectPackageService = const OcptProjectPackageService(),
        projectFileCompatibilityService = const OcptProjectFileCompatibilityService(),
        breakdownService = OcptBreakdownService(
