@@ -59,8 +59,8 @@ de pièce (J-001, J-002…). Son solde est toujours celui du compte entier.
   pas prévu apparaît dans une ligne *Hors devis*, pour que votre total dépensé colle au réel.
 - Un **engagement** est une dette : quelque chose commandé et dû mais pas encore payé. Il se
   **solde tout seul** dès que les paiements qui le nomment atteignent le montant dû — pas de
-  case « payé » à cocher. La plupart du temps, le bouton d'une ligne est simplement **Payer
-  {total}** : l'engagement est créé de façon invisible derrière le paiement. On peut aussi
+  case « payé » à cocher. La plupart du temps, le bouton d'une ligne est simplement **Payer**,
+  suivi du total dû : l'engagement est créé de façon invisible derrière le paiement. On peut aussi
   **Engager cette ligne…** d'abord, et payer par échéances.
 
 Le rapport de coût d'un poste montre cinq lectures : **Devis, Engagé, Payé, Reste à dépenser**
