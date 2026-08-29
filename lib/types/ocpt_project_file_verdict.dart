@@ -23,6 +23,18 @@ enum OcptProjectFileVerdict {
   /// and not added to the recent projects list.
   newer,
 
+  /// The file is at this build's own schema version, but was last written by a **pre-release**
+  /// build that is not this exact build.
+  ///
+  /// ADR 0029's schema freeze is a promise stable releases make to each other, not one a
+  /// mid-cycle build owes: two files sharing a schema number under two different pre-releases may
+  /// not share the same shape, since the pending step is rewritten in place as a cycle's features
+  /// land. Taking a workshop shape for the frozen one is the one corruption that promise exists to
+  /// prevent, so the file is refused rather than opened — not migrated, not touched, not added to
+  /// the recent projects list — and the message names the exact build that wrote it as the one to
+  /// use instead.
+  foreignDevBuild,
+
   /// The file could not be read as a project at all — it is not a SQLite database, it cannot be
   /// opened, or it states no schema version of its own (a brand-new or foreign database).
   ///

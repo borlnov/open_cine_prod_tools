@@ -283,6 +283,10 @@ class _HomeView extends StatelessWidget {
           ),
         );
       case OcptProjectFileVerdict.newer:
+      // The dedicated wording for a foreign pre-release build's file is a later commit; for now it
+      // is refused through the same dialog a newer file gets, since neither is anything this build
+      // can do anything about.
+      case OcptProjectFileVerdict.foreignDevBuild:
         await OcptProjectFileNewerDialog.show(context, compatibility: compatibility);
       case OcptProjectFileVerdict.current:
       case OcptProjectFileVerdict.unreadable:
@@ -301,6 +305,9 @@ class _HomeView extends StatelessWidget {
       OcptProjectStatus.corruptedFile => tr.homeErrorCorruptedFile,
       OcptProjectStatus.migrationRequired => tr.homeErrorMigrationRequired,
       OcptProjectStatus.newerFormat => tr.homeErrorNewerFormat,
+      // No dedicated wording yet (a later commit); the newer-file sentence at least tells the user
+      // the file was refused rather than opened.
+      OcptProjectStatus.foreignDevBuildFormat => tr.homeErrorNewerFormat,
       OcptProjectStatus.alreadyOpen => tr.homeErrorAlreadyOpen,
       OcptProjectStatus.ioError => tr.homeErrorIoError,
     };

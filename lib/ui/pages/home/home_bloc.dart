@@ -248,6 +248,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     switch (compatibility.verdict) {
       case OcptProjectFileVerdict.older:
       case OcptProjectFileVerdict.newer:
+      case OcptProjectFileVerdict.foreignDevBuild:
         emitter(state.copyWith(isBusy: false, pendingFileCompatibility: compatibility));
         return true;
       case OcptProjectFileVerdict.current:

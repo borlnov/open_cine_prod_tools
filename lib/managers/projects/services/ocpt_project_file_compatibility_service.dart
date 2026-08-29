@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_app_version.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
@@ -38,13 +39,32 @@ class OcptProjectFileCompatibilityService {
   const OcptProjectFileCompatibilityService();
 
   /// Reads the format of the project file at [filePath] without opening it as a project, and says
-  /// what that means for a build writing [appSchemaVersion].
+  /// what that means for a build writing [appSchemaVersion] as [appVersion].
+  ///
+  /// The verdict is decided over the **pair** of the file's own schema version and writer identity
+  /// against this build's schema version and version string, per
+  /// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`:
+  /// - a schema mismatch is [OcptProjectFileVerdict.newer] or [OcptProjectFileVerdict.older], as
+  ///   before;
+  /// - at the **same** schema version, an unstamped file or one written by this exact build opens
+  ///   as [OcptProjectFileVerdict.current], as does one written by another **stable** build when
+  ///   [appVersion] is itself stable — two stable releases sharing a schema number share the same
+  ///   frozen shape;
+  /// - anything else at the same schema version — a pre-release involved on either side, and the
+  ///   writer isn't this exact build — is [OcptProjectFileVerdict.foreignDevBuild]: refused, since
+  ///   its shape isn't guaranteed to match.
   ///
   /// Never throws: a file that cannot be read at all comes back as
   /// [OcptProjectFileVerdict.unreadable], which is not a refusal — it is this gate saying it has
   /// nothing to state, leaving the open to report whatever it finds, exactly as it did before this
   /// existed.
-  OcptProjectFileCompatibility probe({required String filePath, required int appSchemaVersion}) {
+  OcptProjectFileCompatibility probe({
+    required String filePath,
+    required int appSchemaVersion,
+    required String appVersion,
+  }) {
+    final isRunningBuildPreRelease = OcptAppVersion.parse(appVersion).isPreRelease;
+
     try {
       final database = sqlite3.open(filePath, mode: OpenMode.readOnly);
       try {
@@ -58,21 +78,27 @@ class OcptProjectFileCompatibilityService {
             filePath: filePath,
             fileSchemaVersion: 0,
             appSchemaVersion: appSchemaVersion,
+            isRunningBuildPreRelease: isRunningBuildPreRelease,
             verdict: OcptProjectFileVerdict.unreadable,
           );
         }
 
-        final verdict = switch (fileSchemaVersion) {
-          _ when fileSchemaVersion > appSchemaVersion => OcptProjectFileVerdict.newer,
-          _ when fileSchemaVersion < appSchemaVersion => OcptProjectFileVerdict.older,
-          _ => OcptProjectFileVerdict.current,
-        };
+        final migratedByAppVersion = _migratedByAppVersion(database);
+
+        final verdict = _verdictFor(
+          fileSchemaVersion: fileSchemaVersion,
+          appSchemaVersion: appSchemaVersion,
+          fileWriter: migratedByAppVersion,
+          appVersion: appVersion,
+        );
 
         return OcptProjectFileCompatibility(
           filePath: filePath,
           fileSchemaVersion: fileSchemaVersion,
           appSchemaVersion: appSchemaVersion,
           appVersionAtCreation: _appVersionAtCreation(database),
+          migratedByAppVersion: migratedByAppVersion,
+          isRunningBuildPreRelease: isRunningBuildPreRelease,
           suggestedBackupPath: verdict == OcptProjectFileVerdict.older
               ? backupPathFor(filePath: filePath, fileSchemaVersion: fileSchemaVersion)
               : null,
@@ -87,9 +113,45 @@ class OcptProjectFileCompatibilityService {
         filePath: filePath,
         fileSchemaVersion: 0,
         appSchemaVersion: appSchemaVersion,
+        isRunningBuildPreRelease: isRunningBuildPreRelease,
         verdict: OcptProjectFileVerdict.unreadable,
       );
     }
+  }
+
+  /// The decision function ADR 0029 states: compares the pair (file schema, file writer) against
+  /// (this build's schema, this build's version) once [fileSchemaVersion] is already known to be a
+  /// real one ([fileSchemaVersion] `> 0`).
+  OcptProjectFileVerdict _verdictFor({
+    required int fileSchemaVersion,
+    required int appSchemaVersion,
+    required String? fileWriter,
+    required String appVersion,
+  }) {
+    if (fileSchemaVersion > appSchemaVersion) {
+      return OcptProjectFileVerdict.newer;
+    }
+    if (fileSchemaVersion < appSchemaVersion) {
+      return OcptProjectFileVerdict.older;
+    }
+
+    // Same schema version: an unstamped file, or one written by this exact build, opens exactly as
+    // it always has.
+    if (fileWriter == null || fileWriter == appVersion) {
+      return OcptProjectFileVerdict.current;
+    }
+
+    // Two stable builds sharing a schema number share the same frozen shape — e.g. a patch release
+    // that changed no schema opening a file the previous stable release wrote.
+    final fileWriterVersion = OcptAppVersion.parse(fileWriter);
+    final runningVersion = OcptAppVersion.parse(appVersion);
+    if (!fileWriterVersion.isPreRelease && !runningVersion.isPreRelease) {
+      return OcptProjectFileVerdict.current;
+    }
+
+    // A pre-release is involved on either side, and the writer isn't this exact build: the shape
+    // isn't guaranteed to match the frozen release, so the file is refused.
+    return OcptProjectFileVerdict.foreignDevBuild;
   }
 
   /// Where the copy of the project file at [filePath], still in format [fileSchemaVersion], is to
@@ -165,6 +227,35 @@ class OcptProjectFileCompatibilityService {
     }
 
     return rows.first["app_version_at_creation"] as String?;
+  }
+
+  /// The app version stamped into [database]'s `project_info.migrated_by_app_version` — the
+  /// file's writer identity — or null when there is no such column or row to read.
+  ///
+  /// Guarded exactly like [_appVersionAtCreation]: this runs against a file at *any* format,
+  /// including one from before `project_info` existed at all, and one from before that column was
+  /// added to it.
+  String? _migratedByAppVersion(Database database) {
+    final hasProjectInfo = database.select(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'",
+    ).isNotEmpty;
+    if (!hasProjectInfo) {
+      return null;
+    }
+
+    final hasColumn = database
+        .select("PRAGMA table_info(project_info)")
+        .any((row) => row["name"] == "migrated_by_app_version");
+    if (!hasColumn) {
+      return null;
+    }
+
+    final rows = database.select("SELECT migrated_by_app_version FROM project_info LIMIT 1");
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    return rows.first["migrated_by_app_version"] as String?;
   }
 
   /// The `PRAGMA user_version` of [database]: the schema version the file states about itself.

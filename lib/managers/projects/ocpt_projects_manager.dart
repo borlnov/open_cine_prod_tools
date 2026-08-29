@@ -437,6 +437,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       projectFileCompatibilityService.probe(
         filePath: filePath,
         appSchemaVersion: OcptProjectDatabase.currentSchemaVersion,
+        appVersion: _appVersion,
       );
 
   /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
@@ -451,6 +452,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   ///   touched and doesn't reach the recent projects list. Handing it to drift would stamp its
   ///   `user_version` back down to this build's number while leaving the newer build's tables in
   ///   place, which is not a failure the user could ever undo;
+  /// - a file at this build's own schema, but last written by a **pre-release build that isn't
+  ///   this exact build**, is refused the same way, with [OcptProjectStatus.foreignDevBuildFormat]:
+  ///   its shape isn't guaranteed to match the frozen release
+  ///   (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`);
   /// - an **older** format returns [OcptProjectStatus.migrationRequired] unless [allowMigration] is
   ///   true, which is the caller saying the user has been told what is about to happen. Only then is
   ///   the copy written — at the path the probe named, so the promise and the write cannot drift
@@ -568,6 +573,14 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           "opened",
         );
         return (status: OcptProjectStatus.newerFormat, isMigrating: false);
+      case OcptProjectFileVerdict.foreignDevBuild:
+        appLogger().w(
+          "The project file at $filePath is at this build's own format "
+          "(${compatibility.fileSchemaVersion}), but was last written by "
+          "${compatibility.migratedByAppVersion}, a pre-release build that isn't this one: it's "
+          "refused, not opened",
+        );
+        return (status: OcptProjectStatus.foreignDevBuildFormat, isMigrating: false);
       case OcptProjectFileVerdict.older:
         final backupPath = compatibility.suggestedBackupPath;
         if (!allowMigration || backupPath == null) {

@@ -878,6 +878,15 @@ void main() {
       }
     }
 
+    /// Stamps [migratedByAppVersion] onto the project file at [filePath]'s `project_info` row,
+    /// changing nothing else — the writer identity a real migration would have left behind.
+    void stampWriter(String filePath, String migratedByAppVersion) {
+      final database = sqlite3.open(filePath);
+      database
+        ..execute("UPDATE project_info SET migrated_by_app_version = ?", [migratedByAppVersion])
+        ..dispose();
+    }
+
     test("a file from a newer build is refused, and comes back byte-identical", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await manager.createProject(name: "From The Future", filePath: filePath);
@@ -914,6 +923,45 @@ void main() {
         OcptProjectStatus.newerFormat,
       );
       expect(manager.currentProject?.path, openPath);
+    });
+
+    test(
+      "a file at the current schema written by a different pre-release build is refused, "
+      "leaving any already-open project alone",
+      () async {
+        final openPath = p.join(tempDir.path, "current.ocpt");
+        await manager.createProject(name: "Current", filePath: openPath);
+
+        final foreignPath = p.join(tempDir.path, "foreign.ocpt");
+        await manager.createProject(name: "From Another Workshop", filePath: foreignPath);
+        await manager.closeCurrentProject();
+        // A pre-release different from the manager's own fallback ("0.1.0-alpha.1" under
+        // `flutter test`, per `OcptProjectsManager._appVersion`) — same schema, foreign writer.
+        stampWriter(foreignPath, "0.1.0-alpha.99");
+
+        // Reopen "Current" since createProject above closed it to open "foreign.ocpt".
+        await manager.openProject(filePath: openPath);
+
+        final result = await manager.openProject(filePath: foreignPath);
+
+        expect(result.status, OcptProjectStatus.foreignDevBuildFormat);
+        expect(manager.currentProject?.path, openPath);
+      },
+    );
+
+    test("a file stamped with this exact build's own version opens normally", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+      await manager.closeCurrentProject();
+      // The manager's own local/dev fallback under `flutter test` — see
+      // `OcptProjectsManager._appVersion`. Already stamped by createProject, but stamped again
+      // explicitly here to state exactly what this test is about.
+      stampWriter(filePath, "0.1.0-alpha.1");
+
+      final result = await manager.openProject(filePath: filePath);
+
+      expect(result.status, OcptProjectStatus.ok);
+      expect(manager.currentProject?.path, filePath);
     });
   });
 }
