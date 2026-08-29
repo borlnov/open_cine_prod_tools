@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Dependencies
+/node_modules
+
+# Production build
+/build
+
+# Generated Docusaurus files
+.docusaurus
+.cache-loader
+
+# The lockfile is produced by the CI's `npm install` and is not committed while the site is scaffolded
+# without a local Node toolchain; add it once a reviewed install can be generated.
+package-lock.json
+
+# Misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

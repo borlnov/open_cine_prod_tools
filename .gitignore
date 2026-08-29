@@ -71,3 +71,15 @@ app.*.map.json
 
 # Contains some files used for debugging
 debug/
+
+# Docusaurus user-guide site build artefacts
+
+# The guide under docs-site/ is built by Node tooling absent from the devcontainer; its generated
+# output and dependencies never belong in the tree. docs-site/.gitignore repeats these for a Node
+# run started from inside that folder; they are listed here too so the repository-wide reuse and
+# markdown checks never trip over a stray local build.
+/docs-site/node_modules/
+/docs-site/build/
+/docs-site/.docusaurus/
+/docs-site/.cache-loader/
+/docs-site/package-lock.json

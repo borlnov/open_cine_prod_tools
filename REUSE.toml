@@ -90,3 +90,19 @@ SPDX-License-Identifier = "MPL-2.0"
 path = ["assets/dictionaries/en_GB/**"]
 SPDX-FileCopyrightText = "2000-2018 Kevin Atkinson <kevina@gnu.org> and the SCOWL contributors"
 SPDX-License-Identifier = "LicenseRef-SCOWL"
+
+[[annotations]]
+# The Docusaurus user-guide site's package manifest and TypeScript configuration are plain JSON with
+# no comment syntax reuse recognizes, so their licensing information is declared here instead of
+# inline. They are site tooling, hence Apache-2.0 like the rest of the code.
+path = ["docs-site/package.json", "docs-site/tsconfig.json"]
+SPDX-FileCopyrightText = "2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+# The Docusaurus i18n translation files are plain JSON carrying guide content with no comment syntax
+# reuse recognizes, so their licensing information is declared here instead of inline. They are guide
+# content, hence CC-BY-4.0 like the Markdown pages.
+path = ["docs-site/i18n/**/*.json"]
+SPDX-FileCopyrightText = "2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>"
+SPDX-License-Identifier = "CC-BY-4.0"
