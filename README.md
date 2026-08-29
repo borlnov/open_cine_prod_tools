@@ -85,13 +85,14 @@ What the app does today:
 - A resources mode: who shoots the film, where, and with what. An address book where one person is
   one entry whatever they do on the film, the cast reconciled against the screenplay's own speaking
   characters (a character who leaves the script keeps their casting and is flagged rather than
-  dropped), the locations with their sets, their filming permit, their access notes and the windows
-  they may be shot in, and a catalogue of everything that has to be on set and is not a person -
-  props, costumes, vehicles, equipment - with who owns it, who brings it and whether it is secured,
-  ready or already back. Scenes are linked to the sets they are shot in and to the elements they
-  need. Elements and sets carry a code the app mints itself (`PRP-3`, `A`) rather than one you have
-  to type and keep unique. Photos and signed documents are referenced by path rather than copied
-  into the project file. Exports to XLSX, one sheet per tab.
+  dropped), casting candidates gathered and weighed per role, the locations with their sets, their
+  filming permit, their access notes and the windows they may be shot in, and a catalogue of
+  everything that has to be on set and is not a person - props, costumes, vehicles, equipment - with
+  who owns it, who brings it and whether it is secured, ready or already back. Scenes are linked to
+  the sets they are shot in and to the elements they need. Elements and sets carry a code the app
+  mints itself (`PRP-3`, `A`) rather than one you have to type and keep unique. Photos and signed
+  documents are referenced by path rather than copied into the project file. Exports to XLSX, one
+  sheet per tab.
 - A schedule mode (plan de travail): when the film is shot. Dated shooting days, each split into
   slots, a slot being a working unit with its own location, set, crew and cast - a real day
   regularly has two. Each slot carries its own timetable, whose hours are computed rather than
@@ -153,7 +154,6 @@ Planned production tools, in priority order:
 - Call sheets beyond the ones the schedule mode already prints
 - Script supervisor reports
 - Storyboard
-- Casting tracker
 
 ## Platforms
 
