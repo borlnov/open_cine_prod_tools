@@ -79,6 +79,23 @@ void main() {
     expect(recents?.first.episodeCount, 1);
   });
 
+  test(
+    "createProject stamps project_info.migratedByAppVersion with the manager's own app version",
+    () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+
+      final info = await manager.currentProject!.database
+          .select(manager.currentProject!.database.ocptProjectInfoTable)
+          .getSingle();
+
+      // Under `flutter test` no `--dart-define=APP_VERSION=...` is passed, so this is the
+      // manager's own local/dev fallback — see `OcptProjectsManager._appVersion`.
+      expect(info.migratedByAppVersion, "0.1.0-alpha.1");
+      expect(info.appVersionAtCreation, info.migratedByAppVersion);
+    },
+  );
+
   test('createProject while a project is already open closes the previous one first', () async {
     await manager.createProject(name: "First", filePath: p.join(tempDir.path, "first.ocpt"));
 

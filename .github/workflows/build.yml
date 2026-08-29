@@ -90,6 +90,7 @@ jobs:
         uses: ./.github/actions/flutter-build
         with:
           target-platform: linux
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
 
       - name: Build Debian package
         id: deb
@@ -151,6 +152,7 @@ jobs:
         uses: ./.github/actions/flutter-build
         with:
           target-platform: windows
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
 
       - name: Build Windows installer
         id: installer
@@ -239,6 +241,7 @@ jobs:
           build-args: >-
             --build-name=${{ steps.bundle-version.outputs.build-name }}
             --build-number=${{ steps.bundle-version.outputs.build-number }}
+            --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
 
       - name: Sign the application bundle
         if: env.APPLE_CERTIFICATE != ''

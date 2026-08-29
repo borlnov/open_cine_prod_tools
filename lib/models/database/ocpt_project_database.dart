@@ -100,7 +100,8 @@ part 'ocpt_project_database.g.dart';
 /// The per-project SQLite database backing a single `.ocpt` project file.
 ///
 /// Every Open Cine Prod Tools project is one such database. It holds: the project metadata
-/// ([OcptProjectInfoTable]); its screenplay(s) ([OcptScreenplaysTable]) and safety copies of their
+/// ([OcptProjectInfoTable], including the app version that last created or migrated the file);
+/// its screenplay(s) ([OcptScreenplaysTable]) and safety copies of their
 /// text ([OcptScreenplaySnapshotsTable]); the reconciled scene index ([OcptScenesTable]) and the
 /// shot list built on top of it ([OcptShotsTable], [OcptShotCharactersTable],
 /// [OcptShotCoveragesTable]); the resources mode's catalogue — the address book

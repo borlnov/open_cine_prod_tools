@@ -120,12 +120,25 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// could drift from the file this manager actually writes.
   static const projectFileExtension = ocptProjectFileExtension;
 
-  /// The app version stored in newly created projects' `project_info.appVersionAtCreation`.
+  /// The app version stamped into newly created and migrated projects' `project_info` (see
+  /// [createProject] and [_gateOnFileFormat]).
   ///
-  /// This is a literal instead of being read from the platform (e.g. via a package-info plugin)
-  /// so this manager stays fully testable with `flutter test`, without a platform channel: keep
-  /// it in sync with the `version` entry of `pubspec.yaml`.
-  static const _appVersion = "0.1.0";
+  /// Read from a `--dart-define=APP_VERSION=...` the CI passes at build time
+  /// (`.github/workflows/build.yml`'s `get-version` job, itself derived from `git describe` on the
+  /// git tag), so a build off a stable tag carries a bare semver and every other build carries a
+  /// pre-release suffix, per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`. The
+  /// default is the local/dev fallback used whenever no such define is passed — `flutter test`
+  /// included — and must be kept in sync with the `version` entry of `pubspec.yaml`. It stays a
+  /// compile-time const (rather than read from the platform, e.g. via a package-info plugin) so
+  /// this manager stays fully testable with `flutter test`, without a platform channel.
+  // This is precisely the one legitimate use the lint's own rationale carves out: a build-time
+  // value the CI passes deliberately (`--dart-define=APP_VERSION=...`), with a documented,
+  // version-controlled default for every build that doesn't pass one.
+  // ignore: do_not_use_environment
+  static const _appVersion = String.fromEnvironment(
+    "APP_VERSION",
+    defaultValue: "0.1.0-alpha.1",
+  );
 
   /// The properties manager used to persist the recently opened projects list.
   final OcptPropertiesManager _propertiesManager;
@@ -369,6 +382,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
               pageFormat: _defaultPageFormatForPlatformLocale(),
               currencyCode: Value(_defaultCurrencyCodeForPlatformLocale()),
               screenplayLanguage: Value(_defaultScreenplayLanguageForAppLocale()),
+              migratedByAppVersion: const Value(_appVersion),
             ),
           );
 
@@ -458,8 +472,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       }
 
       final formatGate = _gateOnFileFormat(filePath: filePath, allowMigration: allowMigration);
-      if (formatGate != null) {
-        return ResultWithStatus(status: formatGate);
+      if (formatGate.status != null) {
+        return ResultWithStatus(status: formatGate.status!);
       }
 
       if (currentProject != null) {
@@ -480,6 +494,18 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         );
         await database.close();
         return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
+      }
+
+      // Stamp the writer identity only when a real migration just ran (the file was `older`, and
+      // drift's `onUpgrade` has now brought it up to `currentSchemaVersion` through the query
+      // above). A plain open of an already-current file must NOT touch this column: doing so would
+      // lose the freeze guarantee ADR 0029 relies on — that a file at the build's own stable schema
+      // still names the stable build that actually produced its shape, not whichever later build
+      // happened to open it since.
+      if (formatGate.isMigrating) {
+        await database
+            .update(database.ocptProjectInfoTable)
+            .write(const OcptProjectInfoTableCompanion(migratedByAppVersion: Value(_appVersion)));
       }
 
       final project = OcptOpenProjectModel(
@@ -521,12 +547,17 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   }
 
   /// Answers whether the file at [filePath] may be handed to drift, and takes the backup when a
-  /// migration is going ahead: null to go on, or the status to report back instead.
+  /// migration is going ahead: `status` is null to go on, or the status to report back instead;
+  /// `isMigrating` tells [openProject] whether drift is about to run a real `onUpgrade` on this
+  /// file, which is what decides whether the writer identity gets stamped once it has.
   ///
   /// Split out of [openProject] because it is the one part of opening a project that must happen
   /// **before anything else does** — before the currently open project is closed, and before drift
   /// ever sees the file.
-  OcptProjectStatus? _gateOnFileFormat({required String filePath, required bool allowMigration}) {
+  ({OcptProjectStatus? status, bool isMigrating}) _gateOnFileFormat({
+    required String filePath,
+    required bool allowMigration,
+  }) {
     final compatibility = probeProjectFile(filePath: filePath);
 
     switch (compatibility.verdict) {
@@ -536,11 +567,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           "this build (format ${compatibility.appSchemaVersion}) can't read: it's refused, not "
           "opened",
         );
-        return OcptProjectStatus.newerFormat;
+        return (status: OcptProjectStatus.newerFormat, isMigrating: false);
       case OcptProjectFileVerdict.older:
         final backupPath = compatibility.suggestedBackupPath;
         if (!allowMigration || backupPath == null) {
-          return OcptProjectStatus.migrationRequired;
+          return (status: OcptProjectStatus.migrationRequired, isMigrating: false);
         }
 
         if (!projectFileCompatibilityService.writeBackup(
@@ -549,7 +580,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         )) {
           // The migration is irreversible, and it was allowed on the promise that a copy would be
           // kept: no copy, no migration.
-          return OcptProjectStatus.ioError;
+          return (status: OcptProjectStatus.ioError, isMigrating: false);
         }
 
         appLogger().i(
@@ -557,10 +588,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           "${compatibility.fileSchemaVersion} to ${compatibility.appSchemaVersion}; a copy of it "
           "was kept at $backupPath",
         );
-        return null;
+        return (status: null, isMigrating: true);
       case OcptProjectFileVerdict.current:
       case OcptProjectFileVerdict.unreadable:
-        return null;
+        return (status: null, isMigrating: false);
     }
   }
 
