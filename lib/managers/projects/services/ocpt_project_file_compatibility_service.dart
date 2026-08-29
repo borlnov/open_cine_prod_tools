@@ -79,6 +79,7 @@ class OcptProjectFileCompatibilityService {
             fileSchemaVersion: 0,
             appSchemaVersion: appSchemaVersion,
             isRunningBuildPreRelease: isRunningBuildPreRelease,
+            runningAppVersion: appVersion,
             verdict: OcptProjectFileVerdict.unreadable,
           );
         }
@@ -99,6 +100,7 @@ class OcptProjectFileCompatibilityService {
           appVersionAtCreation: _appVersionAtCreation(database),
           migratedByAppVersion: migratedByAppVersion,
           isRunningBuildPreRelease: isRunningBuildPreRelease,
+          runningAppVersion: appVersion,
           suggestedBackupPath: verdict == OcptProjectFileVerdict.older
               ? backupPathFor(filePath: filePath, fileSchemaVersion: fileSchemaVersion)
               : null,
@@ -114,6 +116,7 @@ class OcptProjectFileCompatibilityService {
         fileSchemaVersion: 0,
         appSchemaVersion: appSchemaVersion,
         isRunningBuildPreRelease: isRunningBuildPreRelease,
+        runningAppVersion: appVersion,
         verdict: OcptProjectFileVerdict.unreadable,
       );
     }

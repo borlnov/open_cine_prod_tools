@@ -105,6 +105,7 @@ void main() {
         reason: "an unstamped file falls back to schema-only, and opens as before",
       );
       expect(compatibility.isRunningBuildPreRelease, isFalse);
+      expect(compatibility.runningAppVersion, appVersion);
       expect(
         compatibility.suggestedBackupPath,
         isNull,
@@ -167,6 +168,7 @@ void main() {
       expect(compatibility.verdict, OcptProjectFileVerdict.foreignDevBuild);
       expect(compatibility.migratedByAppVersion, "0.2.0-alpha.1");
       expect(compatibility.isRunningBuildPreRelease, isTrue);
+      expect(compatibility.runningAppVersion, "0.2.0-alpha.2");
       expect(
         compatibility.suggestedBackupPath,
         isNull,
@@ -222,6 +224,7 @@ void main() {
 
       expect(compatibility.verdict, OcptProjectFileVerdict.older);
       expect(compatibility.isRunningBuildPreRelease, isTrue);
+      expect(compatibility.runningAppVersion, "0.2.0-3-g87a9b8d");
     });
 
     test("refuses a file from a newer build, and names the build that made it", () {

@@ -1345,6 +1345,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeErrorForeignDevBuildFormat": "This project was written by a development build of the app and can't be opened here.",
+  "@homeErrorForeignDevBuildFormat": {
+    "description": "Error shown when the project file is at this build's own schema but was last written by a different development build",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeMigrateProjectTitle": "Bring this project up to date?",
   "@homeMigrateProjectTitle": {
     "description": "Title of the dialog asking to migrate a project file saved in an older format",
@@ -1365,6 +1372,26 @@
         "type": "int"
       },
       "backupPath": {
+        "type": "String"
+      }
+    }
+  },
+  "homeMigrateProjectPreReleaseMessage": "This project is saved in format {fileFormat}, and this version of the app uses format {appFormat}. Opening it updates the file for good. A copy in its current format is kept at {backupPath}. This is a development build ({appVersion}), so updating your project with it is at your own risk.",
+  "@homeMigrateProjectPreReleaseMessage": {
+    "description": "Message stating which format the file is in, which one it is brought to, that it cannot be undone, where the copy is kept, and that this build is a development one",
+    "context": "Displayed in a confirm dialog on the home page, before the project file is opened, in place of homeMigrateProjectMessage when the running build is a pre-release",
+    "type": "text",
+    "placeholders": {
+      "fileFormat": {
+        "type": "int"
+      },
+      "appFormat": {
+        "type": "int"
+      },
+      "backupPath": {
+        "type": "String"
+      },
+      "appVersion": {
         "type": "String"
       }
     }
@@ -1416,6 +1443,24 @@
       "appFormat": {
         "type": "int"
       },
+      "appVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "homeProjectFileForeignDevBuildTitle": "This project was updated by a development build",
+  "@homeProjectFileForeignDevBuildTitle": {
+    "description": "Title of the dialog refusing a project file at this build's own schema but last written by a different development build",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeProjectFileForeignDevBuildMessage": "This project was last written by a development build of the app ({appVersion}). Its format isn't final, so this build won't open it. Open it with that development build, or start the project again.",
+  "@homeProjectFileForeignDevBuildMessage": {
+    "description": "Message naming the development build that last wrote the file, and the two ways forward",
+    "context": "Displayed in a dialog on the home page; the file is not opened",
+    "type": "text",
+    "placeholders": {
       "appVersion": {
         "type": "String"
       }

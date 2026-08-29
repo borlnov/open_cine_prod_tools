@@ -59,6 +59,14 @@ class OcptProjectFileCompatibility extends Equatable {
   /// instead of the stable wording.
   final bool isRunningBuildPreRelease;
 
+  /// The running build's own version string — not the file's.
+  ///
+  /// Carried so the "development build, at your own risk" warning
+  /// [isRunningBuildPreRelease] triggers can name the very build the user is running, without the
+  /// page reaching past this model for a version string read a different way (e.g. the platform's
+  /// own package info, which does not carry the CI-derived pre-release suffix this ADR compares).
+  final String runningAppVersion;
+
   /// What this file's format means for the build about to open it.
   final OcptProjectFileVerdict verdict;
 
@@ -72,6 +80,7 @@ class OcptProjectFileCompatibility extends Equatable {
     this.suggestedBackupPath,
     this.migratedByAppVersion,
     required this.isRunningBuildPreRelease,
+    required this.runningAppVersion,
   });
 
   /// Object properties
@@ -84,6 +93,7 @@ class OcptProjectFileCompatibility extends Equatable {
     suggestedBackupPath,
     migratedByAppVersion,
     isRunningBuildPreRelease,
+    runningAppVersion,
     verdict,
   ];
 }
