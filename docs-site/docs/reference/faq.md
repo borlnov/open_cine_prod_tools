@@ -1,10 +1,10 @@
+# Frequently asked questions
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Frequently asked questions
 
 ## Does my data go to a server?
 

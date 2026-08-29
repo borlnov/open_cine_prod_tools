@@ -1,10 +1,10 @@
+# Fountain cheat sheet
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Fountain cheat sheet
 
 **Fountain** formats a screenplay from plain text. In styled mode the editor applies these rules
 for you; in raw mode you type them directly. Here are the most common elements. The editor also

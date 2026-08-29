@@ -1,10 +1,10 @@
+# Open Cine Prod Tools
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Open Cine Prod Tools
 
 Welcome to the guide for **Open Cine Prod Tools**, the open-source suite of film-production
 tools. This guide is for the people who *make* films — directing, producing, on-set

@@ -1,10 +1,10 @@
+# Screenplay
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Screenplay
 
 The Screenplay mode is where you write the screenplay of the selected episode. The application
 works in **Fountain** (a plain-text screenplay format), but you never have to think in "code":

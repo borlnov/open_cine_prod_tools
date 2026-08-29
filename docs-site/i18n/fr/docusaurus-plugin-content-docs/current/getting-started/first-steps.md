@@ -1,10 +1,10 @@
+# Premiers pas
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Premiers pas
 
 Au lancement, l'application ouvre son **écran d'accueil** : la porte d'entrée vers vos projets.
 

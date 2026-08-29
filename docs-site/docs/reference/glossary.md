@@ -1,10 +1,10 @@
+# Glossary
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Glossary
 
 The vocabulary used in this guide and in the application.
 

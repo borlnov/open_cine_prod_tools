@@ -1,10 +1,10 @@
+# L'espace de travail
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# L'espace de travail
 
 Dès qu'un projet est ouvert, vous êtes dans l'**espace de travail** : le même cadre autour de
 chaque outil de production. Il se compose de quatre zones.

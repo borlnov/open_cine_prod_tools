@@ -1,10 +1,10 @@
+# Spell check and the project dictionary
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Spell check and the project dictionary
 
 ## How spell checking works
 

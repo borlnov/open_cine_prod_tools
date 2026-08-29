@@ -1,10 +1,10 @@
+# Exporting, in short
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Exporting, in short
 
 ## One gesture, everywhere
 

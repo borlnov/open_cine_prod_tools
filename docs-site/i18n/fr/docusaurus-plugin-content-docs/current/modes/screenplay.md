@@ -1,10 +1,10 @@
+# Scénario
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Scénario
 
 Le mode Scénario est là où vous écrivez le scénario de l'épisode sélectionné. L'application
 travaille en **Fountain** (un format de scénario en texte simple), mais vous n'avez jamais à

@@ -1,10 +1,10 @@
+# Fountain, the source of truth
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Fountain, the source of truth
 
 ## What Fountain is
 

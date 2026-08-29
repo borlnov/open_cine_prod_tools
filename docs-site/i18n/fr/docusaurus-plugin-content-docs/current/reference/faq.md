@@ -1,10 +1,10 @@
+# Foire aux questions
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Foire aux questions
 
 ## Mes données partent-elles sur un serveur ?
 
