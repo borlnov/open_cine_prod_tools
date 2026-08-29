@@ -504,6 +504,7 @@ void main() {
       breakdownService: OcptBreakdownService(
         elementsService: elementsService,
         locationsService: locationsService,
+        deviceId: testDeviceId,
       ),
       scheduleService: const OcptScheduleService(),
       deviceId: testDeviceId,

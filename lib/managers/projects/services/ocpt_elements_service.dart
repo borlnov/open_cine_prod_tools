@@ -293,11 +293,21 @@ class OcptElementsService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      await (database.update(
-        database.ocptSceneElementsTable,
-      )..where((table) => table.elementId.equals(elementId))).write(
-        const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
-      );
+      final sceneElementRows =
+          await (database.select(
+                database.ocptSceneElementsTable,
+              )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not()))
+              .get();
+      for (final row in sceneElementRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneElementsTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
 
       final roleElementRows =
           await (database.select(
@@ -533,28 +543,39 @@ class OcptElementsService {
         droppedLink ??= link;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (droppedLink != null) {
-        await (database.update(
-          database.ocptSceneElementsTable,
-        )..where((table) => table.id.equals(droppedLink!.id))).write(
-          const OcptSceneElementsTableCompanion(isDeleted: Value(false)),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneElementsTable,
+          rowId: droppedLink.id,
+          current: droppedLink,
+          next: droppedLink.copyWith(isDeleted: false),
+          stamps: stamps,
         );
+        await stamps.flush(database);
 
         return droppedLink.id;
       }
 
       final id = const Uuid().v4();
-      await database
-          .into(database.ocptSceneElementsTable)
-          .insert(
-            OcptSceneElementsTableCompanion.insert(
-              id: id,
-              sceneId: sceneId,
-              elementId: elementId,
-              quantity: Value(quantity),
-              notes: Value(notes),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: id,
+        current: null,
+        next: OcptSceneElementRow(
+          id: id,
+          sceneId: sceneId,
+          elementId: elementId,
+          quantity: quantity,
+          notes: notes,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -574,11 +595,28 @@ class OcptElementsService {
       return;
     }
 
-    await (database.update(
-      database.ocptSceneElementsTable,
-    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptSceneElementsTableCompanion(quantity: quantity, notes: notes),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWithCompanion(
+          OcptSceneElementsTableCompanion(quantity: quantity, notes: notes),
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes the scene ↔ element link [id].
@@ -594,11 +632,26 @@ class OcptElementsService {
       return;
     }
 
-    await (database.update(
-      database.ocptSceneElementsTable,
-    )..where((table) => table.id.equals(id))).write(
-      const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Links role [roleId] to element [elementId], with optional [notes], and returns the id of the
@@ -781,22 +834,35 @@ class OcptElementsService {
   ///
   /// **Unguarded**, exactly as [tombstoneRoleLinksOfRole] is: its only caller has already refused
   /// the write on a preview connection and is already inside the transaction removing the episode,
-  /// so a second guard here would only be able to disagree with the first.
+  /// so a second guard here would only be able to disagree with the first. Stamps through [stamps]
+  /// — that caller's own instance — rather than resolving a device id of its own.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> tombstoneSceneElementsOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,
+    required OcptRowStampService? stamps,
   }) async {
     if (sceneIds.isEmpty) {
       return;
     }
 
-    await (database.update(
-      database.ocptSceneElementsTable,
-    )..where((table) => table.sceneId.isIn(sceneIds))).write(
-      const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
-    );
+    final rows =
+        await (database.select(
+              database.ocptSceneElementsTable,
+            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
   }
 
   /// Every live `scene_elements` row of scene [sceneId].

@@ -292,6 +292,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
                assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
+             deviceId: _resolveDeviceId(propertiesManager),
            ),
            scheduleService: const OcptScheduleService(),
            deviceId: _resolveDeviceId(propertiesManager),
@@ -322,6 +323,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
              assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
+           deviceId: _resolveDeviceId(propertiesManager),
          ),
          scheduleService: const OcptScheduleService(),
          deviceId: _resolveDeviceId(propertiesManager),
@@ -374,6 +376,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
            assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
+         deviceId: _resolveDeviceId(propertiesManager),
        ),
        scheduleService = const OcptScheduleService();
 

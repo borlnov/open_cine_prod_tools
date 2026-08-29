@@ -166,6 +166,7 @@ void main() {
   final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
+    deviceId: deviceId,
   );
   final shotListService = OcptShotListService(deviceId: deviceId);
   final peopleService = OcptPeopleService(

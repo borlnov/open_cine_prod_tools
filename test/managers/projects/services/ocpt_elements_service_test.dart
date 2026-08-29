@@ -767,5 +767,98 @@ void main() {
         );
       }
     });
+
+    /// Inserts screenplay `screenplay-1` and one live scene `scene-1`, for the tests below that
+    /// link an element to it — `scene_elements.sceneId` is a foreign key, and this group's own
+    /// database starts with no screenplay at all.
+    Future<void> insertScene() async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "screenplay-1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
+      await database
+          .into(database.ocptScenesTable)
+          .insert(
+            OcptScenesTableCompanion.insert(
+              id: "scene-1",
+              screenplayId: "screenplay-1",
+              position: 0,
+              heading: "INT. CUISINE - DAY",
+              charStart: 0,
+              charEnd: 10,
+            ),
+          );
+    }
+
+    test("addSceneElement stamps every column of the new link", () async {
+      await insertScene();
+      final elementId = await createElement("Valise");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final linkId = (await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+        quantity: "2",
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.id.equals(linkId))).getSingle();
+
+      for (final column in row.toJson().keys) {
+        expect(
+          stamps["scene_elements/$linkId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("updateSceneElement stamps only the columns that actually changed", () async {
+      await insertScene();
+      final elementId = await createElement("Valise");
+      final linkId = (await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+        quantity: "1",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await elementsService.updateSceneElement(
+        database: database,
+        id: linkId,
+        notes: const Value("Sur la table"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("scene_elements/$linkId/"))
+          .toSet();
+      expect(ownKeys, {"scene_elements/$linkId/notes"});
+    });
+
+    test("removeSceneElement stamps isDeleted on the link", () async {
+      await insertScene();
+      final elementId = await createElement("Valise");
+      final linkId = (await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await elementsService.removeSceneElement(database: database, id: linkId);
+
+      final stamps = await readStamps();
+      expect(stamps["scene_elements/$linkId/isDeleted"]!.version, 1);
+    });
   });
 }

@@ -45,6 +45,7 @@ void main() {
   final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
+    deviceId: testDeviceId,
   );
   const sceneIndexService = OcptSceneIndexService();
   final screenplayService = OcptScreenplayService(
@@ -103,6 +104,13 @@ void main() {
   Future<OcptSceneBreakdownRow?> readSceneBreakdown(String sceneId) =>
       (database.select(database.ocptSceneBreakdownsTable)..where((row) => row.sceneId.equals(sceneId)))
           .getSingleOrNull();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   /// Saves [fountainText] as the screenplay's only content and returns its single resulting scene.
   Future<OcptSceneRow> saveSingleScene(String fountainText) async {
@@ -420,6 +428,7 @@ void main() {
         database: database,
         screenplayId: screenplayId,
         currentFountainText: newText,
+        stamps: null,
       );
       expect((await readTag(tagId)).needsCheck, isTrue);
 
@@ -909,6 +918,7 @@ Action two.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText,
+        stamps: null,
       );
 
       expect(await readTag(tagId), before);
@@ -941,6 +951,7 @@ Action two.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: newText,
+        stamps: null,
       );
 
       final newScene = (await readScenes()).single;
@@ -1000,6 +1011,7 @@ Action two three.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: newText,
+        stamps: null,
       );
 
       final tag = await readTag(tagId);
@@ -1035,6 +1047,7 @@ Action two three.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: newText,
+        stamps: null,
       );
 
       final tag = await readTag(tagId);
@@ -1072,6 +1085,7 @@ Action two three.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: newText,
+        stamps: null,
       );
 
       final tag = await readTag(tagId);
@@ -1107,6 +1121,7 @@ Action two three.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: goneText,
+        stamps: null,
       );
       expect((await readTag(tagId)).needsCheck, isTrue);
 
@@ -1121,6 +1136,7 @@ Action two three.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: originalText,
+        stamps: null,
       );
 
       final tag = await readTag(tagId);
@@ -1167,11 +1183,169 @@ Action two three.
         database: database,
         screenplayId: screenplayId,
         currentFountainText: newText,
+        stamps: null,
       );
 
       final tag = await readTag(tagId);
       expect(tag.isDeleted, isTrue);
     });
+  });
+
+  group("row-field-version stamps", () {
+    test("createTag stamps every column of the new row", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+      final roleId = await createRole();
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final tagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: 0,
+        endOffset: 3,
+        taggedText: "one",
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      ))!;
+
+      final stamps = await readStamps();
+      final tag = await readTag(tagId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("breakdown_tags/$tagId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(tag.toJson().length));
+      for (final column in tag.toJson().keys) {
+        expect(ownStamps["breakdown_tags/$tagId/$column"], isNotNull, reason: "$column should be stamped");
+      }
+    });
+
+    test("deleteTag stamps isDeleted on the tag", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+      final roleId = await createRole();
+      final tagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: 0,
+        endOffset: 3,
+        taggedText: "one",
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await breakdownService.deleteTag(database: database, tagId: tagId);
+
+      final stamps = await readStamps();
+      expect(stamps["breakdown_tags/$tagId/isDeleted"]!.version, 1);
+    });
+
+    test("updateSceneBreakdown stamps every column of the new row", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: scene.id,
+        status: const Value(OcptBreakdownSceneStatus.inProgress),
+      );
+
+      final row = (await readSceneBreakdown(scene.id))!;
+      final stamps = await readStamps();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("scene_breakdowns/${row.id}/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        expect(
+          ownStamps["scene_breakdowns/${row.id}/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("updateSceneBreakdown stamps only the columns that actually changed", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+      await breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: scene.id,
+        status: const Value(OcptBreakdownSceneStatus.inProgress),
+      );
+      final row = (await readSceneBreakdown(scene.id))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: scene.id,
+        notes: const Value("Needs a period lamp"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("scene_breakdowns/${row.id}/")).toSet();
+      expect(ownKeys, {"scene_breakdowns/${row.id}/notes"});
+    });
+
+    test(
+      "deleteEpisode stamps isDeleted on breakdown_tags, scene_breakdowns, scene_elements and "
+      "scene_sets",
+      () async {
+        final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+        final elementId = (await elementsService.createElement(
+          database: database,
+          name: "Desk lamp",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        ))!;
+        final tagId = (await breakdownService.createTag(
+          database: database,
+          sceneId: scene.id,
+          startOffset: 0,
+          endOffset: 3,
+          taggedText: "one",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId,
+        ))!;
+        final sceneElementId = (await readLiveSceneElements()).single.id;
+        await breakdownService.updateSceneBreakdown(
+          database: database,
+          sceneId: scene.id,
+          status: const Value(OcptBreakdownSceneStatus.inProgress),
+        );
+        final sceneBreakdownId = (await readSceneBreakdown(scene.id))!.id;
+        final setId = await createSet();
+        final setTagId = (await breakdownService.createTag(
+          database: database,
+          sceneId: scene.id,
+          startOffset: 3,
+          endOffset: 5,
+          taggedText: " ",
+          targetKind: OcptBreakdownTargetKind.set,
+          targetId: setId,
+        ))!;
+        final sceneSetId = (await readLiveSceneSets()).single.id;
+
+        // A second, unrelated episode so this one is not the project's last live one.
+        await screenplayService.createEpisode(database: database, title: "Episode 2");
+
+        await database.delete(database.ocptRowFieldVersionsTable).go();
+
+        final deleted = await screenplayService.deleteEpisode(
+          database: database,
+          screenplayId: screenplayId,
+        );
+        expect(deleted, isTrue);
+
+        final stamps = await readStamps();
+        expect(stamps["breakdown_tags/$tagId/isDeleted"]!.version, 1);
+        expect(stamps["breakdown_tags/$setTagId/isDeleted"]!.version, 1);
+        expect(stamps["scene_breakdowns/$sceneBreakdownId/isDeleted"]!.version, 1);
+        expect(stamps["scene_elements/$sceneElementId/isDeleted"]!.version, 1);
+        expect(stamps["scene_sets/$sceneSetId/isDeleted"]!.version, 1);
+      },
+    );
   });
 
   test("every write handed the read-only database of a previewed version is refused", () async {
@@ -1262,6 +1436,7 @@ Action two three.
       database: preview,
       screenplayId: screenplayId,
       currentFountainText: "EXT. STREET - NIGHT\n\nSomething else.\n",
+      stamps: null,
     );
 
     expect(createdTagId, isNull);

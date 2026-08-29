@@ -61,6 +61,7 @@ void main() {
     breakdownService: OcptBreakdownService(
       elementsService: elementsService,
       locationsService: locationsService,
+      deviceId: _testDeviceId,
     ),
     scheduleService: OcptScheduleService(),
     deviceId: _testDeviceId,

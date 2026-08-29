@@ -81,6 +81,7 @@ class _FailingScreenplayService extends OcptScreenplayService {
             assetsService: OcptAssetsService(deviceId: _testDeviceId),
             deviceId: _testDeviceId,
           ),
+          deviceId: _testDeviceId,
         ),
         scheduleService: const OcptScheduleService(),
         deviceId: _testDeviceId,

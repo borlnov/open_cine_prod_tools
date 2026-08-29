@@ -69,6 +69,7 @@ void main() {
   final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
+    deviceId: testDeviceId,
   );
   // Used directly by the breakdown restore tests below, to seed a real scene index and a real
   // reconciled role — separate from the one `service` builds for its own screenplay-snapshotting
@@ -2142,6 +2143,11 @@ void main() {
         );
 
         final versionB = await createVersion(name: "v2 — Locked");
+
+        // Cleared so the stamps read below are the restore's own: OcptBreakdownService's writes
+        // above (createTag, updateSceneBreakdown) now stamp on their own account too, and that is
+        // not what this assertion is about.
+        await database.delete(database.ocptRowFieldVersionsTable).go();
 
         // Restore A: the breakdown must read exactly as it did at that moment.
         final resultA = await restore(versionA.id);

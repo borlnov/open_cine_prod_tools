@@ -240,6 +240,7 @@ class OcptScreenplayService {
         database: database,
         screenplayId: screenplayId,
         currentFountainText: fountainText,
+        stamps: stamps,
       );
 
       await _pruneSnapshots(database: database, screenplayId: screenplayId);
@@ -429,7 +430,11 @@ class OcptScreenplayService {
         stamps: stamps,
       );
 
-      await _breakdownService.tombstoneBreakdownOfScenes(database: database, sceneIds: sceneIds);
+      await _breakdownService.tombstoneBreakdownOfScenes(
+        database: database,
+        sceneIds: sceneIds,
+        stamps: stamps,
+      );
       await _scheduleService.tombstoneShotBlocks(database: database, shotIds: shotIds);
       await _roleIndexService.tombstoneEpisodeLinks(
         database: database,

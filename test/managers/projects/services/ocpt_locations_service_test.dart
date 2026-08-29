@@ -971,5 +971,79 @@ void main() {
         expect(ownStamps["sets/$setId/$column"], isNotNull, reason: "$column should be stamped");
       }
     });
+
+    /// Inserts screenplay `screenplay-1` and one live scene `scene-1`, for the tests below that
+    /// link a scene to a set — `scene_sets.sceneId` is a foreign key, and this group's own
+    /// database starts with no screenplay at all.
+    Future<void> insertScreenplayAndScene() async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "screenplay-1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
+      await insertScene(id: "scene-1", position: 0, heading: "INT. CUISINE - JOUR");
+    }
+
+    test("assignSceneToSet stamps every column of the new link", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptSceneSetsTable,
+      )..where((table) => table.id.equals(linkId))).getSingle();
+
+      for (final column in row.toJson().keys) {
+        expect(
+          stamps["scene_sets/$linkId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("removeSceneFromSet stamps isDeleted on the link", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.removeSceneFromSet(database: database, sceneId: "scene-1", setId: setId);
+
+      final stamps = await readStamps();
+      expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);
+    });
+
+    test("deleteSet stamps isDeleted on its scene_sets links", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.deleteSet(database: database, setId: setId);
+
+      final stamps = await readStamps();
+      expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);
+      expect(stamps["sets/$setId/isDeleted"]!.version, 1);
+    });
   });
 }

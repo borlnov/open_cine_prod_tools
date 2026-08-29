@@ -48,6 +48,7 @@ void main() {
   final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
+    deviceId: testDeviceId,
   );
   const scheduleService = OcptScheduleService();
   const sceneIndexService = OcptSceneIndexService();
