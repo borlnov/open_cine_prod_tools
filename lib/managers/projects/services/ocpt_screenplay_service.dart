@@ -78,11 +78,17 @@ class OcptScreenplayService {
   /// this way.
   final OcptScheduleService _scheduleService;
 
-  /// Resolves the device id every stamp [saveScreenplayText] and [deleteEpisode] make on the shot
-  /// list carries — see [OcptDeviceIdGetter]. `screenplays` itself is not stamped by this class:
-  /// this is only for the single [OcptRowStampService] each of those two seeds for its own
-  /// transaction and hands to [_shotListService]/[_shotCoverageService], the collaborators whose
-  /// tables (`shots`, `shot_characters`, `shot_coverages`) are.
+  /// Resolves the device id every stamp this class' own writes carry, and every stamp its
+  /// collaborators make from the single [OcptRowStampService] a top-level method here seeds for its
+  /// own transaction — see [OcptDeviceIdGetter]. [saveScreenplayText] and [deleteEpisode] hand that
+  /// one instance to [_shotListService]/[_shotCoverageService]/[_roleIndexService]/
+  /// [_breakdownService]/[_scheduleService] as well as stamping `screenplays` and
+  /// `screenplay_snapshots` themselves with it; every other method that writes either table
+  /// ([createEpisode], [updateEpisode], [reorderEpisode], [snapshotOnProjectOpen]) seeds and flushes
+  /// its own, since none of them run inside another method's transaction. [snapshotBeforeRestore] is
+  /// the one exception: it always runs inside `OcptProjectVersionsService._applyPayload`'s own
+  /// already-seeded transaction, so it takes that caller's instance instead of resolving a device id
+  /// of its own.
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
@@ -113,7 +119,9 @@ class OcptScreenplayService {
     return row.fountainText;
   }
 
-  /// Takes the project-open safety snapshot of the screenplay [screenplayId] in [database].
+  /// Takes the project-open safety snapshot of the screenplay [screenplayId] in [database]: unlike
+  /// [snapshotBeforeRestore], nothing has already opened a transaction or seeded an
+  /// [OcptRowStampService] around this call, so [_snapshotCurrentText] seeds and flushes its own.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   ///
@@ -126,15 +134,19 @@ class OcptScreenplayService {
     screenplayId: screenplayId,
     reason: OcptSnapshotReason.open,
     operation: "snapshotOnProjectOpen",
+    stamps: null,
   );
 
   /// Takes the safety snapshot of the screenplay [screenplayId] in [database] that a project
   /// version's restore owes the merge, right before that restore writes the version's own text
   /// over it.
   ///
-  /// Called by `OcptProjectVersionsService.restoreVersion`, from inside the restore's own
+  /// Called by `OcptProjectVersionsService._applyPayload`, from inside the restore's own
   /// transaction, and by nothing else: unlike every other snapshot here, this one is not about
-  /// recovering from a mistake — see [OcptSnapshotReason.restore] for what it is about.
+  /// recovering from a mistake — see [OcptSnapshotReason.restore] for what it is about. It hands
+  /// [_snapshotCurrentText] [stamps] — that caller's own, already-seeded [OcptRowStampService] —
+  /// rather than one seeded here, so the snapshot it takes stamps into the very same instance the
+  /// restore itself flushes once, at the end.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   ///
@@ -142,11 +154,13 @@ class OcptScreenplayService {
   Future<void> snapshotBeforeRestore({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required OcptRowStampService stamps,
   }) => _snapshotCurrentText(
     database: database,
     screenplayId: screenplayId,
     reason: OcptSnapshotReason.restore,
     operation: "snapshotBeforeRestore",
+    stamps: stamps,
   );
 
   /// Saves [fountainText] as the new text of the screenplay [screenplayId] in [database].
@@ -189,26 +203,26 @@ class OcptScreenplayService {
       // in here — that is `OcptProjectVersionsService.raiseFloor`'s job, not an ordinary save's.
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final previousText = await loadScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final currentScreenplay = await (database.select(database.ocptScreenplaysTable)
+            ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
+          .getSingle();
 
       await _createSnapshot(
         database: database,
         screenplayId: screenplayId,
-        fountainText: previousText,
+        fountainText: currentScreenplay.fountainText,
         reason: snapshotReason,
+        stamps: stamps,
       );
 
-      await (database.update(database.ocptScreenplaysTable)
-            ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
-          .write(
-            OcptScreenplaysTableCompanion(
-              fountainText: Value(fountainText),
-              updatedAt: Value(DateTime.now()),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptScreenplaysTable,
+        rowId: screenplayId,
+        current: currentScreenplay,
+        next: currentScreenplay.copyWith(fountainText: fountainText, updatedAt: DateTime.now()),
+        stamps: stamps,
+      );
 
       final document = _fountainParser.parse(fountainText);
       await _sceneIndexService.reconcile(
@@ -243,7 +257,7 @@ class OcptScreenplayService {
         stamps: stamps,
       );
 
-      await _pruneSnapshots(database: database, screenplayId: screenplayId);
+      await _pruneSnapshots(database: database, screenplayId: screenplayId, stamps: stamps);
 
       await stamps.flush(database);
     });
@@ -280,20 +294,31 @@ class OcptScreenplayService {
 
     final existing = await _liveEpisodeRows(database: database);
     final id = const Uuid().v4();
+    // Every column `OcptScreenplaysTable` declares a default for is spelled out here to match it
+    // exactly: `OcptRowStampService.writeAndStamp` stamps a fresh insert from the full row it is
+    // handed, never from what SQLite would fill in on its own.
+    final row = OcptScreenplayRow(
+      id: id,
+      title: title,
+      fountainText: "",
+      updatedAt: DateTime.now(),
+      number: number ?? (existing.isEmpty ? 1 : existing.last.number + 1),
+      sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+      isDeleted: false,
+    );
 
-    await database
-        .into(database.ocptScreenplaysTable)
-        .insert(
-          OcptScreenplaysTableCompanion.insert(
-            id: id,
-            title: title,
-            updatedAt: DateTime.now(),
-            number: Value(number ?? (existing.isEmpty ? 1 : existing.last.number + 1)),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptScreenplaysTable,
+        rowId: id,
+        current: null,
+        next: row,
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -317,11 +342,28 @@ class OcptScreenplayService {
       return;
     }
 
-    await (database.update(
-      database.ocptScreenplaysTable,
-    )..where((table) => table.id.equals(screenplayId) & table.isDeleted.not())).write(
-      OcptScreenplaysTableCompanion(title: title, number: number),
-    );
+    final companion = OcptScreenplaysTableCompanion(title: title, number: number);
+
+    await database.transaction(() async {
+      final current =
+          await (database.select(database.ocptScreenplaysTable)
+                ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
+              .getSingleOrNull();
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptScreenplaysTable,
+        rowId: screenplayId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves episode [screenplayId] to [newPosition] (0-based) among the project's live episodes, by
@@ -344,8 +386,19 @@ class OcptScreenplayService {
     }
 
     await database.transaction(() async {
-      final others = (await _liveEpisodeRows(database: database))
-        ..removeWhere((row) => row.id == screenplayId);
+      final all = await _liveEpisodeRows(database: database);
+      OcptScreenplayRow? current;
+      for (final row in all) {
+        if (row.id == screenplayId) {
+          current = row;
+          break;
+        }
+      }
+      if (current == null) {
+        return;
+      }
+
+      final others = all..removeWhere((row) => row.id == screenplayId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -356,11 +409,16 @@ class OcptScreenplayService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptScreenplaysTable,
-      )..where((table) => table.id.equals(screenplayId))).write(
-        OcptScreenplaysTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptScreenplaysTable,
+        rowId: screenplayId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -408,7 +466,14 @@ class OcptScreenplayService {
 
     return database.transaction(() async {
       final liveEpisodes = await _liveEpisodeRows(database: database);
-      if (!liveEpisodes.any((row) => row.id == screenplayId)) {
+      OcptScreenplayRow? episode;
+      for (final row in liveEpisodes) {
+        if (row.id == screenplayId) {
+          episode = row;
+          break;
+        }
+      }
+      if (episode == null) {
         return false;
       }
 
@@ -446,16 +511,27 @@ class OcptScreenplayService {
         stamps: stamps,
       );
 
-      await (database.update(
+      final snapshotRows = await (database.select(
         database.ocptScreenplaySnapshotsTable,
-      )..where((table) => table.screenplayId.equals(screenplayId))).write(
-        const OcptScreenplaySnapshotsTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.screenplayId.equals(screenplayId))).get();
+      for (final snapshotRow in snapshotRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptScreenplaySnapshotsTable,
+          rowId: snapshotRow.id,
+          current: snapshotRow,
+          next: snapshotRow.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
 
-      await (database.update(
-        database.ocptScreenplaysTable,
-      )..where((table) => table.id.equals(screenplayId))).write(
-        const OcptScreenplaysTableCompanion(isDeleted: Value(true)),
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptScreenplaysTable,
+        rowId: screenplayId,
+        current: episode,
+        next: episode.copyWith(isDeleted: true),
+        stamps: stamps,
       );
 
       await stamps.flush(database);
@@ -467,12 +543,17 @@ class OcptScreenplayService {
   /// Snapshots the text the screenplay [screenplayId] currently holds in [database], tagged
   /// [reason], and prunes the older snapshots — both within one transaction.
   ///
-  /// [operation] is what the preview guard names in the log when it refuses the write.
+  /// [operation] is what the preview guard names in the log when it refuses the write. [stamps] is
+  /// `null` for [snapshotOnProjectOpen], which has nothing else seeded yet, so a fresh
+  /// [OcptRowStampService] is seeded and flushed around the whole transaction here; it is the
+  /// caller's own, already-seeded instance for [snapshotBeforeRestore], which stamps into it and
+  /// leaves flushing it to that caller.
   Future<void> _snapshotCurrentText({
     required OcptProjectDatabase database,
     required String screenplayId,
     required OcptSnapshotReason reason,
     required String operation,
+    required OcptRowStampService? stamps,
   }) async {
     if (database.refusesUserWrite(operation)) {
       return;
@@ -481,38 +562,54 @@ class OcptScreenplayService {
     final currentText = await loadScreenplayText(database: database, screenplayId: screenplayId);
 
     await database.transaction(() async {
+      final ownStamps =
+          stamps ?? await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       await _createSnapshot(
         database: database,
         screenplayId: screenplayId,
         fountainText: currentText,
         reason: reason,
+        stamps: ownStamps,
       );
-      await _pruneSnapshots(database: database, screenplayId: screenplayId);
+      await _pruneSnapshots(database: database, screenplayId: screenplayId, stamps: ownStamps);
+
+      if (stamps == null) {
+        await ownStamps.flush(database);
+      }
     });
   }
 
-  /// Inserts a new snapshot row for [screenplayId] in [database], capturing [fountainText].
+  /// Inserts a new snapshot row for [screenplayId] in [database], capturing [fountainText], and
+  /// stamps every column of it through [stamps].
   Future<void> _createSnapshot({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String fountainText,
     required OcptSnapshotReason reason,
+    required OcptRowStampService? stamps,
   }) async {
-    await database
-        .into(database.ocptScreenplaySnapshotsTable)
-        .insert(
-          OcptScreenplaySnapshotsTableCompanion.insert(
-            id: const Uuid().v4(),
-            screenplayId: screenplayId,
-            createdAt: DateTime.now(),
-            reason: reason,
-            fountainText: fountainText,
-          ),
-        );
+    final id = const Uuid().v4();
+
+    await OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptScreenplaySnapshotsTable,
+      rowId: id,
+      current: null,
+      next: OcptScreenplaySnapshotRow(
+        id: id,
+        screenplayId: screenplayId,
+        createdAt: DateTime.now(),
+        reason: reason,
+        fountainText: fountainText,
+        isDeleted: false,
+      ),
+      stamps: stamps,
+    );
   }
 
   /// Prunes the snapshots of [screenplayId] in [database] beyond the
-  /// [maxSnapshotsPerScreenplay] most recent ones.
+  /// [maxSnapshotsPerScreenplay] most recent ones, stamping each pruned row through [stamps].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -524,6 +621,7 @@ class OcptScreenplayService {
   Future<void> _pruneSnapshots({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required OcptRowStampService? stamps,
   }) async {
     final snapshots =
         await (database.select(database.ocptScreenplaySnapshotsTable)
@@ -535,19 +633,16 @@ class OcptScreenplayService {
       return;
     }
 
-    final idsToPrune = snapshots
-        .skip(maxSnapshotsPerScreenplay)
-        .map((snapshot) => snapshot.id)
-        .toList(growable: false);
-
-    await (database.update(
-      database.ocptScreenplaySnapshotsTable,
-    )..where((table) => table.id.isIn(idsToPrune))).write(
-      const OcptScreenplaySnapshotsTableCompanion(
-        fountainText: Value(""),
-        isDeleted: Value(true),
-      ),
-    );
+    for (final snapshot in snapshots.skip(maxSnapshotsPerScreenplay)) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptScreenplaySnapshotsTable,
+        rowId: snapshot.id,
+        current: snapshot,
+        next: snapshot.copyWith(fountainText: "", isDeleted: true),
+        stamps: stamps,
+      );
+    }
   }
 
   /// Every live episode (`screenplays` row) of the project in [database], in `sortKey` order — the

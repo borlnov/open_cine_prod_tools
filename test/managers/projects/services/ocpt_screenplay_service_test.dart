@@ -94,6 +94,13 @@ void main() {
     database.ocptScreenplaySnapshotsTable,
   )..orderBy([(row) => OrderingTerm.asc(row.createdAt)])).get();
 
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
+
   test('loadScreenplayText returns the empty text of a freshly created screenplay', () async {
     final text = await service.loadScreenplayText(database: database, screenplayId: screenplayId);
     expect(text, "");
@@ -984,5 +991,154 @@ Action two three.
         expect(maryLinks.map((link) => link.screenplayId), [otherScreenplayId]);
       },
     );
+  });
+
+  group('stamping', () {
+    // Same fix-up as the `episodes` group's own `setUp`, needed here too by `reorderEpisode`'s own
+    // stamping test: the outer `setUp`'s raw default sortKey (the empty string) is a valid lower
+    // bound but not a valid upper one.
+    setUp(() async {
+      await (database.update(
+        database.ocptScreenplaysTable,
+      )..where((table) => table.id.equals(screenplayId))).write(
+        OcptScreenplaysTableCompanion(sortKey: Value(ocptFractionalKeyBetween())),
+      );
+    });
+
+    test('saveScreenplayText stamps fountainText and updatedAt of the screenplay row', () async {
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final stamps = await readStamps();
+      expect(stamps["screenplays/$screenplayId/fountainText"]!.version, 1);
+      expect(stamps["screenplays/$screenplayId/updatedAt"]!.version, 1);
+    });
+
+    test('saveScreenplayText stamps every column of the pre-save snapshot it inserts', () async {
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: "first version",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final snapshotId = (await readSnapshots()).single.id;
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptScreenplaySnapshotsTable,
+      )..where((table) => table.id.equals(snapshotId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("screenplay_snapshots/$snapshotId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["screenplay_snapshots/$snapshotId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test('a pruned snapshot has its isDeleted and fountainText columns stamped', () async {
+      for (var i = 0; i < 35; i++) {
+        await service.saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: "version $i",
+          snapshotReason: OcptSnapshotReason.timer,
+        );
+      }
+
+      final pruned = (await readSnapshotsIncludingTombstones())
+          .where((row) => row.isDeleted)
+          .first;
+
+      final stamps = await readStamps();
+      expect(stamps["screenplay_snapshots/${pruned.id}/isDeleted"], isNotNull);
+      expect(stamps["screenplay_snapshots/${pruned.id}/fountainText"], isNotNull);
+    });
+
+    test('snapshotOnProjectOpen stamps every column of the snapshot it takes', () async {
+      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId);
+
+      final snapshotId = (await readSnapshots()).single.id;
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("screenplay_snapshots/$snapshotId/"))
+          .toSet();
+      final row = await (database.select(
+        database.ocptScreenplaySnapshotsTable,
+      )..where((table) => table.id.equals(snapshotId))).getSingle();
+      expect(ownKeys, hasLength(row.toJson().length));
+    });
+
+    test('createEpisode stamps every column of the new episode', () async {
+      final id = (await service.createEpisode(database: database, title: "Ep 2"))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptScreenplaysTable,
+      )..where((table) => table.id.equals(id))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("screenplays/$id/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["screenplays/$id/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test('updateEpisode stamps only the columns that actually changed', () async {
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateEpisode(
+        database: database,
+        screenplayId: screenplayId,
+        title: const Value("Pilot"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("screenplays/$screenplayId/")).toSet();
+      expect(ownKeys, {"screenplays/$screenplayId/title"});
+    });
+
+    test('reorderEpisode stamps only sortKey', () async {
+      final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.reorderEpisode(database: database, screenplayId: secondId, newPosition: 0);
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("screenplays/$secondId/")).toSet();
+      expect(ownKeys, {"screenplays/$secondId/sortKey"});
+    });
+
+    test('deleteEpisode stamps isDeleted on the screenplay and its snapshots', () async {
+      final otherScreenplayId = (await service.createEpisode(
+        database: database,
+        title: "Episode 2",
+      ))!;
+      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId);
+      final snapshotId = (await readSnapshots()).single.id;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final deleted = await service.deleteEpisode(database: database, screenplayId: screenplayId);
+      expect(deleted, isTrue);
+
+      final stamps = await readStamps();
+      expect(stamps["screenplays/$screenplayId/isDeleted"]!.version, 1);
+      expect(stamps["screenplay_snapshots/$snapshotId/isDeleted"]!.version, 1);
+      // The surviving episode is left alone.
+      expect(stamps.containsKey("screenplays/$otherScreenplayId/isDeleted"), isFalse);
+    });
   });
 }

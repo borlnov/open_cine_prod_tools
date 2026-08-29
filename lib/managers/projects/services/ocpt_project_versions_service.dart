@@ -819,7 +819,7 @@ class OcptProjectVersionsService {
     final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
     stamps.raiseFloor(payload.rowFieldVersions);
 
-    await _snapshotScreenplaysAboutToChange(database: database, payload: payload);
+    await _snapshotScreenplaysAboutToChange(database: database, payload: payload, stamps: stamps);
 
     await _restoreTable(
       database: database,
@@ -1419,9 +1419,14 @@ class OcptProjectVersionsService {
   /// and it has to happen before a single character of `screenplays.fountainText` changes. Only the
   /// screenplays whose text actually differs are snapshotted: a restore that changes nothing must
   /// not push thirty real snapshots out of the rolling window for nothing.
+  ///
+  /// [stamps] is [_applyPayload]'s own instance, already seeded and floor-raised: passed straight
+  /// through to `OcptScreenplayService.snapshotBeforeRestore`, which stamps the snapshot it takes
+  /// into it rather than seeding one of its own.
   Future<void> _snapshotScreenplaysAboutToChange({
     required OcptProjectDatabase database,
     required OcptProjectVersionPayload payload,
+    required OcptRowStampService stamps,
   }) async {
     final currentRows = {
       for (final row in await database.select(database.ocptScreenplaysTable).get()) row.id: row,
@@ -1439,6 +1444,7 @@ class OcptProjectVersionsService {
       await _screenplayService.snapshotBeforeRestore(
         database: database,
         screenplayId: screenplay.id,
+        stamps: stamps,
       );
     }
   }
