@@ -274,7 +274,7 @@ are all here, and this file is the whole record of them.
   production that pays before its paperwork catches up is not a state this enum has to pretend
   cannot happen.
 - **A commitment can be paid in instalments**, which is the whole reason `settledEntryId` — the one
-  stored link that used to *be* settlement — is gone (schema v35, "The schema" below). An order paid
+  stored link that used to *be* settlement — is gone (see "The schema" below). An order paid
   by a deposit and a balance is two debits naming the one commitment, never two commitments standing
   in for one line; a quote line still carries **at most one commitment**, so its
   `Estimated → Committed → Paid` chain keeps meaning what it means. A settled commitment is excluded
@@ -360,140 +360,74 @@ are all here, and this file is the whole record of them.
 
 ## The schema
 
-- Two synchronised tables (`isDeleted`, `sortKey`, tombstones filtered back out on every read, ADR
-  0010): `budget_postes` (`code`, `label`, a nullable `simpleLabel` reading exactly as
+- The pre-stable migration ladder was squashed (ADR 0029, `docs/RELEASING.md`): every table and
+  column this mode ever added now sits in the single, frozen **schema v1** that `onCreate` builds in
+  one pass, and `OcptProjectVersionCodec` captures every one of them, in all three of its required
+  places — the payload, `contentDigest` and `_applyPayload` — at the single **payload format 1**.
+  There is no per-table upgrade step left to narrate and no "restoring a version sealed before this
+  table existed" case to reason about: every version a project file holds is at v1 and carries every
+  table below, so what follows is what the schema *is*, not how it got there.
+  Two synchronised tables (`isDeleted`, `sortKey`, tombstones filtered back out on every read, ADR
+  0010) hold the quote: `budget_postes` (`code`, `label`, a nullable `simpleLabel` reading exactly as
   `vatRateBasisPoints` does — null falls back to `label` rather than meaning "no name at all") and
   `budget_lines` (`posteId`, `label`, `quantityMilli`, `unit`, the money triple on the unit price, a
   nullable `elementId` naming the breakdown element this line prices, and free-form `notes`).
   `budget_postes` orders flat by its own `sortKey`, like `OcptElementsService`'s catalogue;
   `budget_lines` orders by `sortKey` **within its own `posteId`**, like a shot within a scene — a
   line only ever competes for a position against the other lines of the very poste it prices.
-  `project_info` gains three nullable columns read the same way `minimumRestMinutes` already is —
+  `project_info` carries three nullable columns read the same way `minimumRestMinutes` already is —
   null means "nobody has recorded a figure," never a claim about the figure's absence:
   `defaultVatRateBasisPoints`, `mealPriceCents` and `snackPriceCents`, the last two read by no view
-  before the catering pass existed. This is schema **v25**. `OcptProjectVersionCodec` gains both
-  tables and
-  the three columns in all three of its required places — the payload, `contentDigest` and
-  `_applyPayload` — under **payload format 21**, whose upgrade from every earlier format
-  **materialises** `budgetPostes` and `budgetLines` as empty lists and the three project columns as
-  null: a version sealed before this milestone existed truthfully had no budget at all, so restoring
-  it tombstones every poste and line added since, exactly the same reading a restore already gives a
-  dropped column or an episode a version predates.
-  Two more synchronised tables follow the same rule: `budget_entries` (`date`, `label`, a nullable
+  before the catering pass.
+  Two more synchronised tables hold the ledger: `budget_entries` (`date`, `label`, a nullable
   `posteId` — money coming in prices no poste, so this is a real fact rather than an omission — the
-  money triple, and `voucherNumber`) and `budget_commitments` (`dueDate?`, `label`, a **non-nullable**
-  `posteId` — a commitment is always a cost against the quote — the money triple, `status` and a
-  nullable `settledEntryId` referencing `budget_entries`). `assets` gains one column,
-  `budgetEntryId`, and one kind, `OcptAssetKind.receipt`, for a voucher file — see "The voucher"
-  below. This is schema **v26**. `OcptProjectVersionCodec`
-  gains both tables and the `assets` column in all three of its required places under **payload
-  format 22**, whose upgrade from format 21 **materialises** `budgetEntries` and `budgetCommitments`
-  as empty lists and every `assets` row's `budgetEntryId` as null — a version sealed before the
-  journal existed truthfully had no entry and no commitment, and no asset could yet reference one
-  that didn't exist, exactly the reading format 21's own upgrade already gives the tables it
-  materialises.
-  Two last synchronised tables complete the plan: `budget_resources` (`groupKind` — a subsidy, a
-  cash contribution or a contribution in kind — `label`, `amountCents`, `status`, `isReimbursable`
-  and `notes`) and `budget_mileage_rates` (`label` and `ratePerKmMilliCents`). Neither carries the
-  money triple, and `budget_resources` carries **no `receivedCents` counter**: see "A resource is
-  received by being named, and a rate is nobody's to seed" below for both arguments. `budget_entries`
-  gains the `resourceId` it was always going to gain, a nullable foreign key onto `budget_resources`
-  added with `Migrator.addColumn` exactly the way `budget_entries.posteId` was added onto an
-  already-existing `budget_postes`; and `people` gains `commuteKmMilli` — a **one-way** commute, in
-  thousandths of a kilometre, for the reason `budget_lines.quantityMilli` is in thousandths — and
-  `mileageRateId`, the rate that applies to that person. Both are **personal data**: a one-way
-  commute says roughly where somebody lives, so both are nulled by every one of the three erasure
-  paths a person's row travels (`ocpt_erased_person_scrub.dart`, `OcptPeopleService`'s own live
-  erasure, and `OcptProjectVersionsService`'s own on a restored payload), beside
-  `maxDailyPresenceMinutes`. This is schema **v27**. `OcptProjectVersionCodec` gains both tables and
-  all three columns in all three of its required places under **payload format 23**, whose upgrade
-  from format 22 **materialises** `budgetResources` and `budgetMileageRates` as empty lists and every
-  `budget_entries.resourceId`, `people.commuteKmMilli` and `people.mileageRateId` as null — a version
-  sealed before the financing plan existed truthfully named no resource and no rate, and no entry
-  could name a resource that did not exist, exactly the reading format 22's own upgrade already
-  gives what it materialises.
-  Two last synchronised tables close the mode: `budget_revenues` (`date`, `label`, `amountCents`,
+  money triple, `voucherNumber`, and the nullable `resourceId`, `commitmentId`, `personId`,
+  `revenueId` and `shareId` foreign keys described below, none of which a given movement need name)
+  and `budget_commitments` (`dueDate?`, `label`, a **non-nullable** `posteId` — a commitment is
+  always a cost against the quote — the money triple, `status`, and the nullable `lineId` a quote
+  line is promoted through — see "A quote line can be promoted into a commitment" below). A
+  commitment carries **no `settledEntryId` of its own** — settlement is read off `budget_entries`,
+  each debit naming, through its own `commitmentId`, the commitment it pays, so several instalments
+  can settle one commitment — see "A commitment settles when the ledger says it is paid" above.
+  `assets` carries one column, `budgetEntryId`, and one kind, `OcptAssetKind.receipt`, for a voucher
+  file — see "The voucher" below.
+  Two synchronised tables hold the financing plan: `budget_resources` (`groupKind` — a subsidy, a
+  cash contribution or a contribution in kind — `label`, `amountCents`, `status`, `isReimbursable`,
+  `notes`, and a nullable `personId`, the person a resource comes from, so several separate
+  contributions from one lender can be added up; a subsidy names nobody, which is why it stays
+  nullable, the same reading `budget_shares.personId` carries) and `budget_mileage_rates` (`label`
+  and `ratePerKmMilliCents`). Neither carries the money triple, and `budget_resources` carries **no
+  `receivedCents` counter**: see "A resource is received by being named, and a rate is nobody's to
+  seed" below for both arguments. **`budget_resources.personId` is a link to a person, not a fact
+  about them** — the honest comparison is `roles.personId`, not `people.commuteKmMilli`: none of the
+  three erasure paths a person's row travels (`ocpt_erased_person_scrub.dart`, `OcptPeopleService`'s
+  own live erasure, `OcptProjectVersionsService`'s own on a restored payload) touches it, exactly as
+  none of them touches `roles.personId` or `budget_shares.personId` either. Erasing a person blanks
+  and tombstones their own `people` row; the resource that named them keeps naming that now-blanked
+  row, the link itself staying valid, which is what lets a reader still see that *someone* lent this
+  money even once that someone's own data is gone. `people` carries `commuteKmMilli` — a **one-way**
+  commute, in thousandths of a kilometre, for the reason `budget_lines.quantityMilli` is in
+  thousandths — and `mileageRateId`, the rate that applies to that person. Both are **personal
+  data**: a one-way commute says roughly where somebody lives, so both are nulled by every one of
+  the three erasure paths a person's row travels, beside `maxDailyPresenceMinutes`.
+  Two synchronised tables hold the sharing: `budget_revenues` (`date`, `label`, `amountCents`,
   `status`, `notes`) and `budget_shares` (a nullable `personId`, `label`, `sharePermille`,
   `reinvestPermille`, `notes`), both ordered flat by their own `sortKey` like `budget_resources`.
   Neither stores what has moved — see "A taking is received by being named, a participant is paid
   the same way" below — and `budget_shares` carries **no constraint that its shares sum to
   `1000`**: a sharing plan still being negotiated legitimately does not add up yet, and refusing the
-  write over it would make the app unusable while the plan is being built. `budget_entries` gains
-  the last two nullable foreign keys it was ever going to gain, `revenueId` and `shareId`, added
-  with `Migrator.addColumn` exactly the way `resourceId` was. This is schema **v28**.
-  `OcptProjectVersionCodec` gains both tables and both columns in all three of its required places
-  under **payload format 24**, whose upgrade from format 23 **materialises** `budgetRevenues` and
-  `budgetShares` as empty lists and every `budget_entries.revenueId` and `.shareId` as null — a
-  version sealed before the sharing existed truthfully named no taking and no participant, exactly
-  the reading format 23's own upgrade already gives what it materialises.
-  Two last nullable columns close the mode's own schema, neither adding a table: `budget_resources`
-  gains `personId`, declared the way `budget_shares.personId` already is — the person a financing
-  resource comes from, so several separate contributions from one lender can be added up (a subsidy
-  names nobody, which is why it stays nullable, the same reading `budget_shares.personId` already
-  carries) — and `project_info` gains `isBudgetSimplified`, the header's simplified/detailed toggle,
-  until now held in memory alone and lost on every close. Null means "nobody has ever chosen", and
-  the mode opens **detailed** for it, exactly what it already does today before this column existed
-  at all. **`budget_resources.personId` is a link to a person, not a fact about them** — the honest
-  comparison is `roles.personId`, not `people.commuteKmMilli`: none of the three erasure paths a
-  person's row travels (`ocpt_erased_person_scrub.dart`, `OcptPeopleService`'s own live erasure,
-  `OcptProjectVersionsService`'s own on a restored payload) touches it, exactly as none of them
-  touches `roles.personId` or `budget_shares.personId` either. Erasing a person blanks and
-  tombstones their own `people` row; the resource that named them keeps naming that now-blanked row,
-  the link itself staying valid, which is what lets a reader still see that *someone* lent this
-  money even once that someone's own data is gone. This is schema **v29**. `OcptProjectVersionCodec`
-  gains both columns in all three of its required places under **payload format 25**, whose upgrade
-  from format 24 gives every `budgetResources` row a **null** `personId` and the project settings a
-  **null** `isBudgetSimplified` — a version sealed before either column existed truthfully named no
-  lender for any resource and had never chosen between the two header views, exactly the reading
-  format 24's own upgrade already gives what it materialises.
-  One last change touches no table and no column: `budget_resources.status` stops naming a *word*
-  and starts naming a *step*. The four values the three groups used to share (`applied`, `notified`,
-  `secured`, `valued`) become three (`pending`, `agreed`, `confirmed`), whose word is resolved from
-  the group the row sits in — see "The word a status is called is the group's" below. The migration
-  is the **first in the file that rewrites values rather than a shape**, and it rebuilds the column
-  rather than only refilling it: the retired words also live in the column's own `DEFAULT`, which
-  SQLite gives no way to alter in place, so a file that kept `DEFAULT 'applied'` would write a
-  retired word onto the next resource created in it and `OcptBudgetResourceStatusConverter` reads
-  the column strictly. Adding the column afresh, filling it from the old one, dropping that one and
-  taking its name is the whole of it — four statements against a column nothing references, landing
-  an upgraded file on exactly the declaration `onCreate` writes, which is what the migration test's
-  own shape comparison checks. This is schema **v30**. `OcptProjectVersionCodec` reads the same
-  column under **payload format 26**, whose upgrade from format 25 maps each retired word onto the
-  step it already stated — a **fourth kind** of upgrade step beside the empty list, the null and the
-  removal: nothing arrives and nothing goes, one column simply stops meaning what it meant. It has
-  to happen there rather than being tolerated at read time, because the codec reads the key
-  strictly: a payload still saying `applied` would be refused outright, not defaulted. **Nothing is
-  invented** on either side — `valued`, the one word that was already a group's rather than a step's,
-  lands on `agreed`, which is exactly what it said: a figure is on this resource, nothing is signed.
-  Four steps follow, each documented where the reader meets its reason rather than here: schema
-  **v31**, `budget_allowances` — see "A defrayal is typed, never deduced" below; schema **v32**,
-  `budget_lines.provisionKey`/`.provisionDigest` — see "The régie provisions into the quote" below;
-  schema **v33**, `budget_commitments.lineId` — see "A quote line can be promoted into a commitment"
-  below. One nullable column closes the mode's own schema for now: `budget_postes` gains
-  `estimateToCompleteCents`, null meaning "derive it" — see "The estimate to complete, and two
-  variances that answer different questions" above. This is schema **v34**.
-  `OcptProjectVersionCodec` gains the column in all three of its required places under **payload
-  format 30**, whose upgrade from format 29 (`_upgradeFormat29To30`) **materialises** every
-  `budget_postes` row's `estimateToCompleteCents` as **null** — a version sealed before the column
-  existed was captured at a moment when nobody could have judged a poste's estimate to complete, so
-  null states exactly what was true then, not an empty list, which would claim the poste itself was
-  new, and not zero, which would be a judgement nobody made.
-  One migration folds the ledger's own last two exceptions in, adding no table: `budget_entries`
-  gains `commitmentId` (→ `budget_commitments`) and `personId` (→ `people`), both nullable exactly
-  as `resourceId` is — most movements name neither — and `budget_commitments` **loses**
-  `settledEntryId`, the single stored link that used to *be* a commitment's settlement (see "A
-  commitment settles when the ledger says it is paid" above). The migration carries the data over
-  before the column goes: every commitment that named a settling entry writes `commitmentId` onto
-  that entry first, so a settlement recorded under the old single-link scheme reads identically
-  under the new sum-of-debits one. This is schema **v35**. `OcptProjectVersionCodec` moves in the
-  same commit under **payload format 31** (`_upgradeFormat30To31`), whose upgrade from format 30
-  performs the very same fold — it maps each commitment's own settled-entry link onto `commitmentId`
-  on the entry it named, materialises `personId` as null and drops `settledEntryId` from every
-  commitment — so a version sealed while settlement was a stored link restores as one read off the
-  ledger, naming no person and losing nothing but a link the mode no longer keeps. We are in alpha
-  and no stable release ever put an earlier schema on anybody's disk, so no upgrade path here needs
-  carrying forever ([issue 60](https://github.com/borlnov/open_cine_prod_tools/issues/60)); the
-  eventual squash is its own job, not done here.
+  write over it would make the app unusable while the plan is being built.
+  `project_info` carries `isBudgetSimplified`, the header's simplified/detailed toggle. Null means
+  "nobody has ever chosen", and the mode opens **detailed** for it.
+  `budget_resources.status` names a *step*, never a *word*: the three values a resource can hold
+  (`pending`, `agreed`, `confirmed`) are shared across all three groups, and the word a reader sees
+  is resolved from the group the row sits in — a subsidy that is `agreed` reads "notified", a
+  contribution that is `agreed` reads "agreed", a lent asset that is `agreed` reads "valued" — see
+  "The word a status is called is the group's" below.
+  `budget_allowances` — see "A defrayal is typed, never deduced" below — and `budget_lines` carries
+  `provisionKey`/`provisionDigest` — see "The régie provisions into the quote" below.
+  `budget_postes` carries one more nullable column, `estimateToCompleteCents`, null meaning "derive
+  it" — see "The estimate to complete, and two variances that answer different questions" above.
 
 ## The mode's own shape
 
@@ -1075,11 +1009,8 @@ are all here, and this file is the whole record of them.
 - `budget_allowances` is therefore a **synchronised table of typed rows** — a person (nullable, the
   way `budget_shares.personId` is), a nature (`OcptBudgetAllowanceKind`: travel, accommodation,
   meal, other), a wording, a date and an optional end date for a stay, a `quantityMilli` and a
-  `unitAmountMilliCents`. This is schema **v31**, and `OcptProjectVersionCodec` reads it under
-  **payload format 27**, whose upgrade from format 26 materialises an **empty list**: a version
-  sealed before the table truthfully defrayed nobody, and what the view then showed was a
-  computation held in memory and stored nowhere, so there is no earlier figure to carry over and
-  nothing for the upgrade to invent.
+  `unitAmountMilliCents`. `OcptProjectVersionCodec` captures it in all three of its required
+  places, at payload format 1, like every other synchronised table.
 - **The mileage scale did not become useless, it became a pre-fill.** Opening the dialog on a
   person whose `commuteKmMilli` and `mileageRateId` are known offers that distance and that rate
   already filled in; changing either is an ordinary edit, and neither is read again afterwards. The
@@ -1293,9 +1224,7 @@ are all here, and this file is the whole record of them.
 - **A provisioning that would do nothing is withheld, and the band says why in its place.** The
   same plan is computed for the band as for the gesture, so the reason — the quote already holds
   everything, or every line it would touch has been edited by hand — sits beside the figures rather
-  than behind a click that answers "no". This is schema **v32** and **payload format 28**, whose
-  upgrade nulls both columns on every existing line: no line of any project was ever written by a
-  provisioning that did not exist.
+  than behind a click that answers "no".
 
 ## A quote line can be promoted into a commitment, and the line stays
 
@@ -1308,7 +1237,7 @@ are all here, and this file is the whole record of them.
   the 1,450 € actually owed is the whole use of having both, and losing the estimate at the moment
   it becomes useful would be the wrong trade. Nothing is double-counted either — a poste's `Quote`
   column reads its lines and its `Committed` column reads commitments; the two were never summed.
-- `budget_commitments.lineId` records the provenance (schema 33, payload format 29). **Nothing is
+- `budget_commitments.lineId` records the provenance. **Nothing is
   ever read back off the line through it**: the commitment's amount, wording and due date are its
   own from creation, and correcting the estimate afterwards leaves the debt alone. The column buys
   exactly two behaviours — a line already promoted says so instead of silently making a second debt

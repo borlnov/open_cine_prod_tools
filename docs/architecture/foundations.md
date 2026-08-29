@@ -291,7 +291,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   rather than on a user's file; it holds none yet. `**/*.g.dart` is git-ignored (documented
   deviation); CI regenerates with build_runner.
 
-- Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
+- Project versions (`project_versions` + `project_info.currentVersionId`, schema v1): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
   `screenplay_snapshots` (automatic, screenplay-only, pruned past 30). The table is **local and
   never synchronised** — no tombstone, no `sortKey`, no stamps, and `OcptProjectVersionsService`
@@ -302,10 +302,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  thirty-one captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  forty captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat`, which follows the same freeze discipline the schema does (ADR 0029):
-  `currentPayloadFormat` (1) advances only at a stable release, `lastStablePayloadFormat` (0) tracks
+  `currentPayloadFormat` (1) advances only at a stable release, `lastStablePayloadFormat` (1) tracks
   the last one frozen, and a payload written in a newer format than this build knows is **refused**,
   not half-read. Like the schema, the pre-stable format ladder was squashed away — no payload older
   than format 1 exists, so a decode reads it directly with nothing to upgrade — and the first
