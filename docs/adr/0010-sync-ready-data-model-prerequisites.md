@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 

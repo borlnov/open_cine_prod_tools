@@ -66,7 +66,7 @@ number is a stable identifier other documents and commits can reference.
 | [0007](0007-schema-migration-policy.md) | Schema migration policy | Accepted |
 | [0008](0008-excel-community-for-the-shot-list-export.md) | excel_community for the shot list export | Accepted |
 | [0009](0009-offline-first-sync-through-a-domain-blind-relay.md) | Offline-first sync through a domain-blind relay | Proposed |
-| [0010](0010-sync-ready-data-model-prerequisites.md) | Sync-ready data model prerequisites | Proposed |
+| [0010](0010-sync-ready-data-model-prerequisites.md) | Sync-ready data model prerequisites | Accepted |
 | [0011](0011-macos-distribution-outside-the-app-store.md) | macOS distribution outside the App Store | Accepted |
 | [0012](0012-source-provenance-in-the-paginator.md) | Source provenance in the paginator | Accepted |
 | [0013](0013-binary-assets-referenced-by-path.md) | Binary assets referenced by path | Accepted |
