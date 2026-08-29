@@ -1,0 +1,26 @@
+{
+  "version.label": {
+    "message": "Prochaine version",
+    "description": "The label for version current"
+  },
+  "sidebar.guideSidebar.category.Getting started": {
+    "message": "Prise en main",
+    "description": "The label for category Getting started in sidebar guideSidebar"
+  },
+  "sidebar.guideSidebar.category.Core concepts": {
+    "message": "Notions essentielles",
+    "description": "The label for category Core concepts in sidebar guideSidebar"
+  },
+  "sidebar.guideSidebar.category.Production modes": {
+    "message": "Modes de production",
+    "description": "The label for category Production modes in sidebar guideSidebar"
+  },
+  "sidebar.guideSidebar.category.Exporting your work": {
+    "message": "Exporter votre travail",
+    "description": "The label for category Exporting your work in sidebar guideSidebar"
+  },
+  "sidebar.guideSidebar.category.Reference": {
+    "message": "Référence",
+    "description": "The label for category Reference in sidebar guideSidebar"
+  }
+}

@@ -18,7 +18,6 @@ SPDX-License-Identifier: Apache-2.0
 - [Table of contents](#table-of-contents)
 - [Introduction](#introduction)
 - [About this project](#about-this-project)
-- [Screenshots](#screenshots)
 - [Features](#features)
 - [Roadmap](#roadmap)
 - [Platforms](#platforms)
@@ -35,109 +34,14 @@ Open Cine Prod Tools is an open-source suite of film-production tools. The first
 built is a Fountain screenplay editor; more production tools will follow. Projects are stored
 locally, one `.ocpt` file each, and everything stays exportable to human-readable formats.
 
+📖 **[Read the user guide](https://borlnov.github.io/open_cine_prod_tools/)** — a walkthrough of
+every mode, in English and French, with screenshots.
+
 ## About this project
 
 This project is a test for me, it's built through vibe coding with Claude. I want to see if I can
 build a full-featured application without writing a single line of code (but with guidelines and
 linting already written). And if the result at the end is good enough to be used in production.
-
-## Screenshots
-
-The styled screenplay mode: the real page layout, the scene dock, and the live statistics in the
-status bar.
-
-![The screenplay editor showing a formatted screenplay, with a scene list docked on the left](docs/screenshots/screenplay-editor.png)
-
-The raw Fountain mode, with the paper-simulated preview beside it.
-
-![The Fountain source on the left, its rendered screenplay preview on the right](docs/screenshots/fountain-source-and-preview.png)
-
-The breakdown mode: the script read as a page, every word clickable, and each tagged passage
-highlighted in the colour of the category it belongs to.
-
-![The breakdown script view, with tagged passages highlighted in their category's colour](docs/screenshots/breakdown-script.png)
-
-The same pass seen as a table: one row per element, character or set, one column per scene.
-
-![The breakdown recap, a cross-table of every tagged target against the four scenes](docs/screenshots/breakdown-recap.png)
-
-The resources mode, on the catalogue the breakdown fills: each element with its code, where it
-comes from, and the scenes that need it.
-
-![The elements tab of the resources mode, coded elements listed on the left](docs/screenshots/resources-elements.png)
-
-The shot list mode: one sequence per scene, and a shot table whose columns you choose.
-
-![The shot list showing four shots with their characters, shot size, framing and camera move](docs/screenshots/shot-list.png)
-
-The schedule mode, on the day being built: a card per working unit, and the timetable it carries.
-Every hour on it is computed from the durations and the one edge you pinned - here 07:00 - so
-moving a block re-times the rest of the day instead of asking you to retype it.
-
-![The schedule day view, a slot card for the cafe unit above its computed timetable](docs/screenshots/schedule-day.png)
-
-The same shoot read as a strip board: what each day carries, where it is shot, when it starts and
-when it ends.
-
-![The strip agenda, three shooting days tinted by location, each listing the shots placed on it](docs/screenshots/schedule-agenda.png)
-
-Or as an hour grid, one lane per unit and the daylight shaded behind it, so a day running two units
-at once - or a night running past midnight - draws where it belongs.
-
-![The week agenda, three shooting days over an hour grid, two lanes on the days that run two units](docs/screenshots/schedule-week.png)
-
-The day's whole call, in the right dock: arrival, the band between the first and the last shooting
-block, departure - all read off the slots each person is linked to, never typed. Guests get a group
-of their own, and no band: they are on the day, they are not waiting to shoot.
-
-![The convocations panel, one card per person: arrival, band, departure](docs/screenshots/schedule-convocations.png)
-
-Which position is covered by whom, unit by unit: the script supervisor is on the cafe in the
-morning and not on the pier in the afternoon, and that is read here and nowhere else.
-
-![The positions matrix, one column per unit grouped under its day, one row per position held](docs/screenshots/schedule-positions.png)
-
-Who is working which day, computed from the schedule and from the address book. The red mark is
-somebody convoked on a day their own availability says they are away.
-
-![The presence grid, eleven people against three shooting days, one cell flagged in red](docs/screenshots/schedule-presence.png)
-
-The budget mode opens on the whole production at a glance: four figures - what has been quoted,
-what pays for it, what has left the account and what the bank still holds - then the film's needs
-against its resources. Under them is what needs a decision: a poste already past its own quote, a
-balance the commitments will take below zero. An alert is not a notification to dismiss, it is a
-fact that stays true until the figures change, so each one is a way into the data it is about, and
-the chip carries the count of them from every other page.
-
-![The budget dashboard, four tiles over the needs-against-resources band and two standing alerts](docs/screenshots/budget-dashboard.png)
-
-What the film costs, poste by poste: one row per poste of the CNC nomenclature, opening on its own
-quote lines, and a line opening in turn on the commitment it became and on the payments that settle
-it - in one instalment or several. Spending that names no poste is not hidden - it lands in a row of
-its own, and counts in the total. `+ New`, the one button every page carries, opens a short wizard:
-first what you are doing, in the words a production actually uses, then - where it is needed - what
-the movement attaches to, and last the amount.
-
-![The expenses view, a poste opened down to its commitment and its payments](docs/screenshots/budget-expenses.png)
-
-What pays for it, read the same way: subsidies, contributions and takings, each with the paperwork
-it is held on - which never means the money has arrived - and, at the foot, whether all of it
-covers the film. A contribution in kind is valued and never collected, so both of its cash columns
-read an em dash rather than a zero.
-
-![The resources view, three families with their paperwork and the coverage band](docs/screenshots/budget-resources.png)
-
-The tools drawer holds what re-reads those two rather than adding to them. The cash flow page is
-the account itself: every movement in date order, the balance the bank shows on the last of them,
-and, underneath, what is committed and still owed - all postes together, by due date - with the
-balance all of it leaves once it has fallen due.
-
-![The cash flow page, the statement closing on its balance above the commitments still to fall due](docs/screenshots/budget-cash-flow.png)
-
-And what the film earns, once it earns something: the reimbursable contributions come off the top
-in full, and only what is left is divided by the agreed shares.
-
-![The revenue sharing page, what each person put in beside the distribution](docs/screenshots/budget-sharing.png)
 
 ## Features
 
@@ -357,6 +261,8 @@ docs/                  Architecture, plans and decision records
 
 ## Documentation
 
+- [User guide](https://borlnov.github.io/open_cine_prod_tools/) - the end-user guide for
+  filmmakers, in English and French (source under [`docs-site/`](docs-site/)).
 - [Architecture](docs/architecture/) - what the code does, one file per area.
 - [Architecture decision records](docs/adr/) - the reasoning behind structural choices.
 - [CI documentation](.github/ci-doc.md) - build, test and release pipeline.
