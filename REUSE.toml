@@ -44,14 +44,6 @@ SPDX-FileCopyrightText = "2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-# The README screenshots are captures of this application running, taken against a demonstration
-# screenplay written for the purpose. Binary images have no comment syntax reuse recognizes, so
-# their licensing information is declared here instead of inline.
-path = ["docs/screenshots/**"]
-SPDX-FileCopyrightText = "2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>"
-SPDX-License-Identifier = "Apache-2.0"
-
-[[annotations]]
 # The Courier Prime TTFs are fetched verbatim from Google Fonts (itself mirroring
 # https://github.com/quoteunquoteapps/CourierPrime), used to typeset the screenplay editor's
 # preview in the traditional screenplay font. Binary font files have no comment syntax reuse
