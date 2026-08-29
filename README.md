@@ -357,6 +357,8 @@ docs/                  Architecture, plans and decision records
 
 ## Documentation
 
+- [User guide](https://borlnov.github.io/open_cine_prod_tools/) - the end-user guide for
+  filmmakers, in English and French (source under [`docs-site/`](docs-site/)).
 - [Architecture](docs/architecture/) - what the code does, one file per area.
 - [Architecture decision records](docs/adr/) - the reasoning behind structural choices.
 - [CI documentation](.github/ci-doc.md) - build, test and release pipeline.
