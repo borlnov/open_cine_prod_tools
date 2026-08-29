@@ -38,9 +38,9 @@ const sidebars: SidebarsConfig = {
       label: 'Production modes',
       items: [
         'modes/screenplay',
+        'modes/breakdown',
         'modes/shot-list',
         'modes/resources',
-        'modes/breakdown',
         'modes/schedule',
         'modes/budget',
       ],

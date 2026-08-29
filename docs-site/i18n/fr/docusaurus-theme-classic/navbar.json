@@ -1,0 +1,18 @@
+{
+  "title": {
+    "message": "Open Cine Prod Tools",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "Logo d’Open Cine Prod Tools",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.Guide": {
+    "message": "Guide",
+    "description": "Navbar item with label Guide"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  }
+}
