@@ -1,10 +1,10 @@
+# Ressources
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Ressources
 
 Le mode Ressources répond à la question : « qui tourne le film, où, et avec quoi ? » Il
 s'organise en quatre onglets dans le panneau de gauche — **Personnes**, **Rôles** (le casting),

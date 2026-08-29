@@ -1,10 +1,10 @@
+# The workspace
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# The workspace
 
 As soon as a project is open, you are in the **workspace**: the same frame around every
 production tool. It has four zones.

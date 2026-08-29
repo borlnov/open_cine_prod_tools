@@ -1,10 +1,10 @@
+# Aide-mémoire de la syntaxe Fountain
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Aide-mémoire de la syntaxe Fountain
 
 Le **Fountain** met en forme un scénario à partir de texte simple. En mode stylé, l'éditeur
 applique ces règles pour vous ; en mode brut, vous les tapez directement. Voici les éléments les

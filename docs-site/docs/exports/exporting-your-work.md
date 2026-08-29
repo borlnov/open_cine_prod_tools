@@ -1,10 +1,10 @@
+# Exporting your work
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Exporting your work
 
 This page gathers, mode by mode, every document the application can produce. The general
 principle — the **Export** control, the panel of cards, the "Save As" dialog — is described in

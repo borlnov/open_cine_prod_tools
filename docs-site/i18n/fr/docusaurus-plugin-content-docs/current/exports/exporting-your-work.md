@@ -1,10 +1,10 @@
+# Exporter votre travail
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Exporter votre travail
 
 Cette page rassemble, mode par mode, tous les documents que l'application sait produire. Le
 principe général — la commande **Exporter**, le panneau de cartes, le dialogue « Enregistrer

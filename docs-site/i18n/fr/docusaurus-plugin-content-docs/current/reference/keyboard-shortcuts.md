@@ -1,10 +1,10 @@
+# Raccourcis clavier
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Raccourcis clavier
 
 Les raccourcis les plus utiles se trouvent dans le mode Scénario, où l'on passe le plus de temps
 au clavier.

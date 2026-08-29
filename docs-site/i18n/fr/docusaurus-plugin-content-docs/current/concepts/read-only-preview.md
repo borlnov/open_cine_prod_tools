@@ -1,10 +1,10 @@
+# L'aperçu en lecture seule
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# L'aperçu en lecture seule
 
 ## Quand il s'active
 

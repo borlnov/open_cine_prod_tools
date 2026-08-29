@@ -1,10 +1,10 @@
+# Correction orthographique et dictionnaire de projet
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Correction orthographique et dictionnaire de projet
 
 ## Comment fonctionne la correction
 

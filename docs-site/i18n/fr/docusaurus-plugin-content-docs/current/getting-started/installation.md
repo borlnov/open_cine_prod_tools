@@ -1,10 +1,10 @@
+# Installation
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Installation
 
 Open Cine Prod Tools est une application de bureau. On l'installe en téléchargeant le fichier
 correspondant à son système, puis en l'ouvrant. Cette page décrit chaque plateforme.

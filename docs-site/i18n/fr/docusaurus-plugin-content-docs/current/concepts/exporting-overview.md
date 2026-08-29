@@ -1,10 +1,10 @@
+# Exporter, en bref
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Exporter, en bref
 
 ## Un seul geste, partout
 

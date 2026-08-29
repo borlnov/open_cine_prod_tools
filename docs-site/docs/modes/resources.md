@@ -1,10 +1,10 @@
+# Resources
+
 <!--
 SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
-
-# Resources
 
 The Resources mode answers the question "who shoots the film, where, and with what?" It is
 organised into four tabs in the left panel — **People**, **Roles** (the cast), **Locations** and
