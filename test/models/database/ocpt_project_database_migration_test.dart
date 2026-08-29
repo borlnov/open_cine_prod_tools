@@ -5,14 +5,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 
-// This file is the harness that will pin each future stable release's upgrade path: once
-// `OcptProjectDatabase.lastStableSchemaVersion` is first raised above 0
-// (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`), an `onUpgrade` step exists for
-// the first time, and this file gains a verbatim `CREATE TABLE` DDL fixture for the schema that
-// release froze plus a test that migrating that fixture onto the current schema lands on exactly
-// what `onCreate` produces — proving `onCreate == every stable upgrade path` the way ADR 0029
-// requires. Today `lastStableSchemaVersion == 0`: no stable release has shipped, so there is no
-// frozen schema to pin yet, and the tests below only cover what always holds regardless.
+// This file is the harness that will pin each future stable release's upgrade path
+// (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`). The 0.1.0 release froze the
+// schema at v1, so `lastStableSchemaVersion == currentSchemaVersion == 1`: that release squashed
+// every pre-release migration into a single `onCreate` baseline, so there is still no `onUpgrade`
+// step and no frozen-schema DDL fixture to pin yet. The first schema change *after* 0.1.0 will bump
+// `currentSchemaVersion` to 2, add the first `onUpgrade` step, and this file will then gain a
+// verbatim `CREATE TABLE` DDL fixture for the v1 schema plus a test that migrating that fixture
+// onto the current schema lands on exactly what `onCreate` produces — proving
+// `onCreate == every stable upgrade path` the way ADR 0029 requires. The tests below only cover
+// what always holds regardless.
 
 void main() {
   test(
