@@ -137,7 +137,7 @@ What the app does today:
 - A scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage each shot covers, the passages no shot covers washed grey, and optional
   legend and summary pages - so you can see, page by page, what your découpage still leaves out.
-- `.fountain` import and export.
+- Screenplay import from Fountain, Final Draft (`.fdx`) and Celtx (`.celtx`); Fountain export.
 - PDF export with an options dialog, page numbers, optional scene numbers, and embedded Courier
   Prime.
 - Page setup: page format and margins, a per-project currency, and the language the screenplays
@@ -250,6 +250,7 @@ Code and `gh` auth, git worktrees, GUI forwarding).
 ```text
 lib/                   Application source
 packages/fountain_kit/ Pure-Dart Fountain parser, serializer and layout metrics
+packages/script_import_kit/ Pure-Dart Final Draft and Celtx readers, emitting Fountain
 packages/spell_kit/    Pure-Dart hunspell reader, spell checker and suggester
 actlibs/               ACT Flutter packages (git submodule)
 assets/                Config, fonts, branding, dictionaries and other bundled assets
@@ -267,6 +268,7 @@ docs/                  Architecture, plans and decision records
 - [Architecture decision records](docs/adr/) - the reasoning behind structural choices.
 - [CI documentation](.github/ci-doc.md) - build, test and release pipeline.
 - [fountain_kit README](packages/fountain_kit/README.md) - the standalone Fountain package.
+- [script_import_kit README](packages/script_import_kit/README.md) - Final Draft and Celtx import.
 - [spell_kit README](packages/spell_kit/README.md) - the standalone spell-checking package.
 
 ## Contributing
