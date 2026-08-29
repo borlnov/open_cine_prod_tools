@@ -356,13 +356,20 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       budgetQuoteService = const OcptBudgetQuoteService(),
+       budgetQuoteService = OcptBudgetQuoteService(deviceId: _resolveDeviceId(propertiesManager)),
        budgetJournalService = OcptBudgetJournalService(
          assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         deviceId: _resolveDeviceId(propertiesManager),
        ),
-       budgetFinancingService = const OcptBudgetFinancingService(),
-       budgetAllowancesService = const OcptBudgetAllowancesService(),
-       budgetSharingService = const OcptBudgetSharingService(),
+       budgetFinancingService = OcptBudgetFinancingService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       budgetAllowancesService = OcptBudgetAllowancesService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       budgetSharingService = OcptBudgetSharingService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
        assetsService = OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
        projectDictionaryService = const OcptProjectDictionaryService(),
        projectPackageService = const OcptProjectPackageService(),

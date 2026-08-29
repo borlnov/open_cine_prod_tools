@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
@@ -50,8 +51,13 @@ class OcptBudgetJournalService {
   /// The service used to mint and tombstone the `assets` rows referencing a voucher file.
   final OcptAssetsService _assetsService;
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [_tombstoneEntryReceipt] never calls it: it writes inside a caller's own
+  /// transaction, and takes that caller's own [OcptRowStampService] instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptBudgetJournalService({required OcptAssetsService assetsService})
+  const OcptBudgetJournalService({required OcptAssetsService assetsService, required this.deviceId})
     : _assetsService = assetsService;
 
   /// Loads every live entry of [database], in `date` order, `sortKey` breaking a tie between two
@@ -145,29 +151,33 @@ class OcptBudgetJournalService {
       final id = const Uuid().v4();
       final voucherNumber = await _nextVoucherNumber(database);
 
-      await database
-          .into(database.ocptBudgetEntriesTable)
-          .insert(
-            OcptBudgetEntriesTableCompanion.insert(
-              id: id,
-              date: date,
-              label: label,
-              posteId: Value(posteId),
-              resourceId: Value(resourceId),
-              revenueId: Value(revenueId),
-              shareId: Value(shareId),
-              commitmentId: Value(commitmentId),
-              personId: Value(personId),
-              debitCents: Value(debitCents),
-              creditCents: Value(creditCents),
-              isTaxInclusive: Value(isTaxInclusive),
-              vatRateBasisPoints: Value(vatRateBasisPoints),
-              voucherNumber: Value(voucherNumber),
-              sortKey: Value(
-                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-              ),
-            ),
-          );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetEntriesTable,
+        rowId: id,
+        current: null,
+        next: OcptBudgetEntryRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          date: date,
+          label: label,
+          posteId: posteId,
+          resourceId: resourceId,
+          revenueId: revenueId,
+          shareId: shareId,
+          commitmentId: commitmentId,
+          personId: personId,
+          debitCents: debitCents,
+          creditCents: creditCents,
+          isTaxInclusive: isTaxInclusive,
+          vatRateBasisPoints: vatRateBasisPoints,
+          voucherNumber: voucherNumber,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -201,25 +211,39 @@ class OcptBudgetJournalService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetEntriesTable,
-    )..where((table) => table.id.equals(entryId) & table.isDeleted.not())).write(
-      OcptBudgetEntriesTableCompanion(
-        date: date,
-        label: label,
-        posteId: posteId,
-        resourceId: resourceId,
-        revenueId: revenueId,
-        shareId: shareId,
-        commitmentId: commitmentId,
-        personId: personId,
-        debitCents: debitCents,
-        creditCents: creditCents,
-        isTaxInclusive: isTaxInclusive,
-        vatRateBasisPoints: vatRateBasisPoints,
-        voucherNumber: voucherNumber,
-      ),
+    final companion = OcptBudgetEntriesTableCompanion(
+      date: date,
+      label: label,
+      posteId: posteId,
+      resourceId: resourceId,
+      revenueId: revenueId,
+      shareId: shareId,
+      commitmentId: commitmentId,
+      personId: personId,
+      debitCents: debitCents,
+      creditCents: creditCents,
+      isTaxInclusive: isTaxInclusive,
+      vatRateBasisPoints: vatRateBasisPoints,
+      voucherNumber: voucherNumber,
     );
+
+    await database.transaction(() async {
+      final current = await _liveEntryRowOrNull(database: database, entryId: entryId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetEntriesTable,
+        rowId: entryId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves entry [entryId] to [newPosition] (0-based) within the journal's own flat `sortKey`
@@ -241,6 +265,11 @@ class OcptBudgetJournalService {
     }
 
     await database.transaction(() async {
+      final current = await _liveEntryRowOrNull(database: database, entryId: entryId);
+      if (current == null) {
+        return;
+      }
+
       final others = (await _liveEntryRows(database))..removeWhere((row) => row.id == entryId);
 
       final clampedPosition = newPosition < 0
@@ -252,11 +281,16 @@ class OcptBudgetJournalService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptBudgetEntriesTable,
-      )..where((table) => table.id.equals(entryId))).write(
-        OcptBudgetEntriesTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetEntriesTable,
+        rowId: entryId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -281,13 +315,23 @@ class OcptBudgetJournalService {
     }
 
     await database.transaction(() async {
-      await _tombstoneEntryReceipt(database: database, entryId: entryId);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      await (database.update(
-        database.ocptBudgetEntriesTable,
-      )..where((table) => table.id.equals(entryId))).write(
-        const OcptBudgetEntriesTableCompanion(isDeleted: Value(true)),
-      );
+      await _tombstoneEntryReceipt(database: database, entryId: entryId, stamps: stamps);
+
+      final current = await _liveEntryRowOrNull(database: database, entryId: entryId);
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptBudgetEntriesTable,
+          rowId: entryId,
+          current: current,
+          next: current.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -315,17 +359,20 @@ class OcptBudgetJournalService {
     }
 
     return database.transaction(() async {
-      await _tombstoneEntryReceipt(database: database, entryId: entryId);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      // `budget_entries` and the assets it references stay unstamped for now: the budget family
-      // gets its own row-stamping commit, matching the resources family's own here.
-      return _assetsService.insertAsset(
+      await _tombstoneEntryReceipt(database: database, entryId: entryId, stamps: stamps);
+
+      final id = await _assetsService.insertAsset(
         database: database,
         kind: OcptAssetKind.receipt,
         budgetEntryId: entryId,
         path: path,
-        stamps: null,
+        stamps: stamps,
       );
+
+      await stamps.flush(database);
+      return id;
     });
   }
 
@@ -343,17 +390,23 @@ class OcptBudgetJournalService {
       return;
     }
 
-    await _tombstoneEntryReceipt(database: database, entryId: entryId);
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await _tombstoneEntryReceipt(database: database, entryId: entryId, stamps: stamps);
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt` voucher —
   /// shared by [deleteEntry]'s own cascade, [setEntryReceipt] (replacing one) and
   /// [clearEntryReceipt] (dropping one outright). Unguarded, like `OcptLocationsService
   /// ._tombstonePermitDocument`: every caller has already refused the write on a previewed
-  /// database itself, or is running inside [deleteEntry]'s own transaction.
+  /// database itself, or is running inside another guarded method's own transaction. Stamps through
+  /// [stamps] — the caller's own instance — rather than resolving a device id of its own.
   Future<void> _tombstoneEntryReceipt({
     required OcptProjectDatabase database,
     required String entryId,
+    required OcptRowStampService? stamps,
   }) async {
     final vouchers =
         await (database.select(database.ocptAssetsTable)..where(
@@ -361,7 +414,7 @@ class OcptBudgetJournalService {
             ))
             .get();
     for (final voucher in vouchers) {
-      await _assetsService.tombstoneAsset(database: database, assetId: voucher.id, stamps: null);
+      await _assetsService.tombstoneAsset(database: database, assetId: voucher.id, stamps: stamps);
     }
   }
 
@@ -387,24 +440,30 @@ class OcptBudgetJournalService {
     final existing = await _liveCommitmentRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptBudgetCommitmentsTable)
-        .insert(
-          OcptBudgetCommitmentsTableCompanion.insert(
-            id: id,
-            posteId: posteId,
-            label: label,
-            dueDate: Value(dueDate),
-            amountCents: Value(amountCents),
-            isTaxInclusive: Value(isTaxInclusive),
-            vatRateBasisPoints: Value(vatRateBasisPoints),
-            status: Value(status),
-            lineId: Value(lineId),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetCommitmentsTable,
+        rowId: id,
+        current: null,
+        next: OcptBudgetCommitmentRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          posteId: posteId,
+          label: label,
+          dueDate: dueDate,
+          amountCents: amountCents,
+          isTaxInclusive: isTaxInclusive,
+          vatRateBasisPoints: vatRateBasisPoints,
+          status: status,
+          lineId: lineId,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -443,20 +502,34 @@ class OcptBudgetJournalService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetCommitmentsTable,
-    )..where((table) => table.id.equals(commitmentId) & table.isDeleted.not())).write(
-      OcptBudgetCommitmentsTableCompanion(
-        dueDate: dueDate,
-        label: label,
-        posteId: posteId,
-        amountCents: amountCents,
-        isTaxInclusive: isTaxInclusive,
-        vatRateBasisPoints: vatRateBasisPoints,
-        status: status,
-        lineId: lineId,
-      ),
+    final companion = OcptBudgetCommitmentsTableCompanion(
+      dueDate: dueDate,
+      label: label,
+      posteId: posteId,
+      amountCents: amountCents,
+      isTaxInclusive: isTaxInclusive,
+      vatRateBasisPoints: vatRateBasisPoints,
+      status: status,
+      lineId: lineId,
     );
+
+    await database.transaction(() async {
+      final current = await _liveCommitmentRowOrNull(database: database, commitmentId: commitmentId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetCommitmentsTable,
+        rowId: commitmentId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves commitment [commitmentId] to [newPosition] (0-based) within the commitment list's own
@@ -474,6 +547,11 @@ class OcptBudgetJournalService {
     }
 
     await database.transaction(() async {
+      final current = await _liveCommitmentRowOrNull(database: database, commitmentId: commitmentId);
+      if (current == null) {
+        return;
+      }
+
       final others =
           (await _liveCommitmentRows(database))..removeWhere((row) => row.id == commitmentId);
 
@@ -486,11 +564,16 @@ class OcptBudgetJournalService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptBudgetCommitmentsTable,
-      )..where((table) => table.id.equals(commitmentId))).write(
-        OcptBudgetCommitmentsTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetCommitmentsTable,
+        rowId: commitmentId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -508,11 +591,23 @@ class OcptBudgetJournalService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetCommitmentsTable,
-    )..where((table) => table.id.equals(commitmentId))).write(
-      const OcptBudgetCommitmentsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await _liveCommitmentRowOrNull(database: database, commitmentId: commitmentId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetCommitmentsTable,
+        rowId: commitmentId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// The next voucher number [createEntry] mints: one above the highest number parsed off any
@@ -553,10 +648,26 @@ class OcptBudgetJournalService {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
+  /// The live entry row [entryId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetEntryRow?> _liveEntryRowOrNull({
+    required OcptProjectDatabase database,
+    required String entryId,
+  }) => (database.select(database.ocptBudgetEntriesTable)
+        ..where((table) => table.id.equals(entryId) & table.isDeleted.not()))
+      .getSingleOrNull();
+
   /// Every live commitment row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetCommitmentRow>> _liveCommitmentRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetCommitmentsTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// The live commitment row [commitmentId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetCommitmentRow?> _liveCommitmentRowOrNull({
+    required OcptProjectDatabase database,
+    required String commitmentId,
+  }) => (database.select(database.ocptBudgetCommitmentsTable)
+        ..where((table) => table.id.equals(commitmentId) & table.isDeleted.not()))
+      .getSingleOrNull();
 }

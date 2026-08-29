@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
@@ -27,8 +28,12 @@ import 'package:uuid/uuid.dart';
 /// `OcptShotListService`'s shots within a scene: a line only ever competes for a position against
 /// the other lines of the very poste it prices.
 class OcptBudgetQuoteService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptBudgetQuoteService();
+  const OcptBudgetQuoteService({required this.deviceId});
 
   /// Loads every live poste of [database], in `sortKey` order, each joined with its own live
   /// `budget_lines` rows (themselves in their own `sortKey` order) — seeding [seed] first if the
@@ -76,21 +81,29 @@ class OcptBudgetQuoteService {
         return;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       final keys = ocptFractionalKeySequence(seed.length);
       for (var i = 0; i < seed.length; i++) {
         final posteSeed = seed[i];
-        await database
-            .into(database.ocptBudgetPostesTable)
-            .insert(
-              OcptBudgetPostesTableCompanion.insert(
-                id: posteSeed.id,
-                code: Value(posteSeed.code),
-                label: posteSeed.label,
-                simpleLabel: Value(posteSeed.simpleLabel),
-                sortKey: Value(keys[i]),
-              ),
-            );
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptBudgetPostesTable,
+          rowId: posteSeed.id,
+          current: null,
+          next: OcptBudgetPosteRow(
+            id: posteSeed.id,
+            sortKey: keys[i],
+            isDeleted: false,
+            code: posteSeed.code,
+            label: posteSeed.label,
+            simpleLabel: posteSeed.simpleLabel,
+          ),
+          stamps: stamps,
+        );
       }
+
+      await stamps.flush(database);
     });
   }
 
@@ -109,17 +122,24 @@ class OcptBudgetQuoteService {
     final existing = await _livePosteRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptBudgetPostesTable)
-        .insert(
-          OcptBudgetPostesTableCompanion.insert(
-            id: id,
-            label: label,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetPostesTable,
+        rowId: id,
+        current: null,
+        next: OcptBudgetPosteRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          code: '',
+          label: label,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -141,16 +161,30 @@ class OcptBudgetQuoteService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetPostesTable,
-    )..where((table) => table.id.equals(posteId) & table.isDeleted.not())).write(
-      OcptBudgetPostesTableCompanion(
-        code: code,
-        label: label,
-        simpleLabel: simpleLabel,
-        estimateToCompleteCents: estimateToCompleteCents,
-      ),
+    final companion = OcptBudgetPostesTableCompanion(
+      code: code,
+      label: label,
+      simpleLabel: simpleLabel,
+      estimateToCompleteCents: estimateToCompleteCents,
     );
+
+    await database.transaction(() async {
+      final current = await _livePosteRowOrNull(database: database, posteId: posteId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetPostesTable,
+        rowId: posteId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves poste [posteId] to [newPosition] (0-based) within the catalogue's flat `sortKey` order,
@@ -168,6 +202,11 @@ class OcptBudgetQuoteService {
     }
 
     await database.transaction(() async {
+      final current = await _livePosteRowOrNull(database: database, posteId: posteId);
+      if (current == null) {
+        return;
+      }
+
       final others = (await _livePosteRows(database))..removeWhere((row) => row.id == posteId);
 
       final clampedPosition = newPosition < 0
@@ -179,11 +218,16 @@ class OcptBudgetQuoteService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptBudgetPostesTable,
-      )..where((table) => table.id.equals(posteId))).write(
-        OcptBudgetPostesTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetPostesTable,
+        rowId: posteId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -202,17 +246,33 @@ class OcptBudgetQuoteService {
     }
 
     await database.transaction(() async {
-      await (database.update(
-        database.ocptBudgetLinesTable,
-      )..where((table) => table.posteId.equals(posteId))).write(
-        const OcptBudgetLinesTableCompanion(isDeleted: Value(true)),
-      );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      await (database.update(
-        database.ocptBudgetPostesTable,
-      )..where((table) => table.id.equals(posteId))).write(
-        const OcptBudgetPostesTableCompanion(isDeleted: Value(true)),
-      );
+      final lineRows = await _liveLineRowsOfPoste(database, posteId: posteId);
+      for (final row in lineRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptBudgetLinesTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final poste = await _livePosteRowOrNull(database: database, posteId: posteId);
+      if (poste != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptBudgetPostesTable,
+          rowId: posteId,
+          current: poste,
+          next: poste.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -265,26 +325,33 @@ class OcptBudgetQuoteService {
     final existing = await _liveLineRowsOfPoste(database, posteId: posteId);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptBudgetLinesTable)
-        .insert(
-          OcptBudgetLinesTableCompanion.insert(
-            id: id,
-            posteId: posteId,
-            label: label,
-            elementId: elementId,
-            quantityMilli: quantityMilli,
-            unit: unit,
-            unitAmountCents: unitAmountCents,
-            isTaxInclusive: isTaxInclusive,
-            vatRateBasisPoints: vatRateBasisPoints,
-            provisionKey: provisionKey,
-            provisionDigest: provisionDigest,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetLinesTable,
+        rowId: id,
+        current: null,
+        next: OcptBudgetLineRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          posteId: posteId,
+          label: label,
+          quantityMilli: quantityMilli.present ? quantityMilli.value : 1000,
+          unit: unit.present ? unit.value : '',
+          unitAmountCents: unitAmountCents.present ? unitAmountCents.value : 0,
+          isTaxInclusive: !isTaxInclusive.present || isTaxInclusive.value,
+          vatRateBasisPoints: vatRateBasisPoints.present ? vatRateBasisPoints.value : null,
+          elementId: elementId.present ? elementId.value : null,
+          provisionKey: provisionKey.present ? provisionKey.value : null,
+          provisionDigest: provisionDigest.present ? provisionDigest.value : null,
+          notes: '',
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -313,22 +380,36 @@ class OcptBudgetQuoteService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetLinesTable,
-    )..where((table) => table.id.equals(lineId) & table.isDeleted.not())).write(
-      OcptBudgetLinesTableCompanion(
-        label: label,
-        quantityMilli: quantityMilli,
-        unit: unit,
-        unitAmountCents: unitAmountCents,
-        isTaxInclusive: isTaxInclusive,
-        vatRateBasisPoints: vatRateBasisPoints,
-        elementId: elementId,
-        provisionKey: provisionKey,
-        provisionDigest: provisionDigest,
-        notes: notes,
-      ),
+    final companion = OcptBudgetLinesTableCompanion(
+      label: label,
+      quantityMilli: quantityMilli,
+      unit: unit,
+      unitAmountCents: unitAmountCents,
+      isTaxInclusive: isTaxInclusive,
+      vatRateBasisPoints: vatRateBasisPoints,
+      elementId: elementId,
+      provisionKey: provisionKey,
+      provisionDigest: provisionDigest,
+      notes: notes,
     );
+
+    await database.transaction(() async {
+      final current = await _liveLineRowOrNull(database: database, lineId: lineId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetLinesTable,
+        rowId: lineId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves line [lineId] to [newPosition] (0-based) within its own poste's `sortKey` order, by
@@ -363,11 +444,16 @@ class OcptBudgetQuoteService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptBudgetLinesTable,
-      )..where((table) => table.id.equals(lineId))).write(
-        OcptBudgetLinesTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetLinesTable,
+        rowId: lineId,
+        current: line,
+        next: line.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -381,11 +467,23 @@ class OcptBudgetQuoteService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetLinesTable,
-    )..where((table) => table.id.equals(lineId))).write(
-      const OcptBudgetLinesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await _liveLineRowOrNull(database: database, lineId: lineId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetLinesTable,
+        rowId: lineId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Writes [entries] onto poste [posteId], one quote line per nature — the régie view's own
@@ -403,7 +501,9 @@ class OcptBudgetQuoteService {
   ///   retouched by hand, which this app does not silently correct.
   ///
   /// Every write happens in one transaction: a provisioning that fails halfway would leave a quote
-  /// stating a total nobody could account for.
+  /// stating a total nobody could account for. [createLine] and [updateLine] each seed and flush
+  /// their own [OcptRowStampService] inside this outer transaction, one per entry, exactly as they
+  /// do for any other caller.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> applyProvision({
@@ -452,6 +552,14 @@ class OcptBudgetQuoteService {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
+  /// The live poste row [posteId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetPosteRow?> _livePosteRowOrNull({
+    required OcptProjectDatabase database,
+    required String posteId,
+  }) => (database.select(database.ocptBudgetPostesTable)
+        ..where((table) => table.id.equals(posteId) & table.isDeleted.not()))
+      .getSingleOrNull();
+
   /// Every live line row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetLineRow>> _liveLineRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetLinesTable)
@@ -468,4 +576,12 @@ class OcptBudgetQuoteService {
             ..where((table) => table.posteId.equals(posteId) & table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// The live line row [lineId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetLineRow?> _liveLineRowOrNull({
+    required OcptProjectDatabase database,
+    required String lineId,
+  }) => (database.select(database.ocptBudgetLinesTable)
+        ..where((table) => table.id.equals(lineId) & table.isDeleted.not()))
+      .getSingleOrNull();
 }

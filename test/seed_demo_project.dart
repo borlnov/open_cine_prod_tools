@@ -175,10 +175,13 @@ void main() {
     roleCandidatesService: roleCandidatesService,
   );
   final scheduleService = OcptScheduleService(deviceId: deviceId);
-  const budgetQuoteService = OcptBudgetQuoteService();
-  final budgetJournalService = OcptBudgetJournalService(assetsService: assetsService);
-  const budgetFinancingService = OcptBudgetFinancingService();
-  const budgetSharingService = OcptBudgetSharingService();
+  final budgetQuoteService = OcptBudgetQuoteService(deviceId: deviceId);
+  final budgetJournalService = OcptBudgetJournalService(
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
+  final budgetFinancingService = OcptBudgetFinancingService(deviceId: deviceId);
+  final budgetSharingService = OcptBudgetSharingService(deviceId: deviceId);
   final screenplayService = OcptScreenplayService(
     sceneIndexService: const OcptSceneIndexService(),
     shotListService: shotListService,
