@@ -14,6 +14,8 @@ screenplay becomes a row; inside it, you author the shots you plan to film, desc
 scène** (directing) notes and the characters present. You also record each shot's **coverage**:
 which exact passages of the written scene that shot films.
 
+![The shot list, with the shot table](/img/screenshots/shot-list.png)
+
 ## The screen layout
 
 Three zones, all resizable (the **⋮** menu → **Reset panel layout** restores the defaults):

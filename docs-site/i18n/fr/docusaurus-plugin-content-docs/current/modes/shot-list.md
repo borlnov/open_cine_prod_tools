@@ -14,6 +14,8 @@ décrivant l'image (valeur de plan, cadre, mouvement de caméra, optique, format
 le son, vos notes de **mise en scène** et les personnages présents. Vous notez aussi la
 **couverture** de chaque plan : quels passages exacts de la séquence écrite ce plan filme.
 
+![Le mode Découpage et le tableau des plans](/img/screenshots/shot-list.png)
+
 ## La disposition de l'écran
 
 Trois zones, toutes redimensionnables (le menu **⋮** → **Réinitialiser la disposition**

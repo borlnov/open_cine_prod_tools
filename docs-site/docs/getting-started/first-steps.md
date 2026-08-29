@@ -8,6 +8,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 On launch, the application opens its **home screen**: the doorway to your projects.
 
+![The home screen with a recent project card](/img/screenshots/home.png)
+
 ## The home screen
 
 The home screen shows a **grid of cards**, one per recent project (up to ten). Each card wears a

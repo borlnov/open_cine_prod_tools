@@ -11,6 +11,8 @@ s'organise en quatre onglets dans le panneau de gauche — **Personnes**, **Rôl
 **Décors** et **Éléments**. Sélectionner une fiche ouvre au centre sa feuille éditable (qui est
 elle-même l'inspecteur), avec un onglet **Versions** partagé à droite.
 
+![Le mode Ressources et une fiche de personne](/img/screenshots/resources.png)
+
 ## Le carnet d'adresses (Personnes)
 
 Personnes est votre liste de contacts maîtresse. Une personne n'apparaît qu'**une fois**, quel

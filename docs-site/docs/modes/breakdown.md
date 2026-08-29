@@ -13,6 +13,8 @@ provide**: roles, sets, props, costumes, and more. It sits between the Screenpla
 list, because it is what **fills the catalogues** of the Resources mode: tagging a passage is how
 an element, a role or a set gets attached to a scene.
 
+![The breakdown mode, with tagged passages](/img/screenshots/breakdown.png)
+
 The mode works on the selected episode, while the catalogues you fill belong to the whole
 production. Each scene also carries a **progress status** you set by hand — **To do / In progress
 / Done** — because a scene may need nothing yet still have been read.

@@ -20,6 +20,8 @@ paperwork, and a small crew keeping a plain account book. It holds four things s
 The mode is organised into four tabs: **Dashboard**, **Expenses**, **Resources** and **Tools** (a
 drawer with three helpers: Cash flow, Régie, Sharing).
 
+![The budget dashboard](/img/screenshots/budget.png)
+
 ## The money rule
 
 Every amount is stored **exactly as you typed it** and is never quietly changed. A few visible

@@ -22,6 +22,8 @@ comptes. Il tient quatre choses côte à côte :
 Le mode s'organise en quatre onglets : **Tableau de bord**, **Dépenses**, **Ressources** et
 **Outils** (un tiroir avec trois utilitaires : Flux de trésorerie, Régie, Partage).
 
+![Le tableau de bord du budget](/img/screenshots/budget.png)
+
 ## La règle de l'argent
 
 Chaque montant est stocké **exactement tel que vous l'avez tapé** et n'est jamais changé en

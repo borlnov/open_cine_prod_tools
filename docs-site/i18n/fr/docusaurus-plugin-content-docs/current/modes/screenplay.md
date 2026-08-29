@@ -11,6 +11,8 @@ travaille en **Fountain** (un format de scénario en texte simple), mais vous n'
 penser en « code » : vous écrivez sur une page mise en forme, ou vous éditez le texte Fountain
 brut avec un aperçu à côté.
 
+![Le mode Scénario et sa page mise en forme](/img/screenshots/screenplay.png)
+
 ## Les deux modes d'édition
 
 - **Éditeur stylé** — une surface qui montre le scénario tel qu'il s'imprimera. Chaque

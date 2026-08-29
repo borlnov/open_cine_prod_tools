@@ -14,6 +14,8 @@ entre le Scénario et le Découpage, car c'est lui qui **remplit les catalogues*
 Ressources : étiqueter un passage, c'est rattacher un élément, un rôle ou un décor à une
 séquence.
 
+![Le mode Dépouillement et ses passages étiquetés](/img/screenshots/breakdown.png)
+
 Le mode travaille sur l'épisode sélectionné, tandis que les catalogues que vous remplissez
 appartiennent à toute la production. Chaque séquence porte aussi un **état d'avancement** que
 vous posez à la main — **À faire / En cours / Fait** — car une séquence peut n'avoir besoin de

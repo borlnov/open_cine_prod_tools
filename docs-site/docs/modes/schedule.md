@@ -12,6 +12,8 @@ The Schedule is where you decide **when** the film is shot. It comes after the s
 what you place on a day is a shot. It answers the production office's question: which scenes,
 which crew, which cast and which locations come together on which dates, and at what times.
 
+![The schedule mode, showing a shooting day](/img/screenshots/schedule.png)
+
 It is the one mode that looks at **the whole project at once** — every episode together — hence
 the absence of an episode selector. A single day routinely covers scenes from two episodes at one
 location.

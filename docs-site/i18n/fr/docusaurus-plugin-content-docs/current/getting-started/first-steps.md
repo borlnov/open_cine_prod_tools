@@ -8,6 +8,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Au lancement, l'application ouvre son **écran d'accueil** : la porte d'entrée vers vos projets.
 
+![L'écran d'accueil et une carte de projet récent](/img/screenshots/home.png)
+
 ## L'écran d'accueil
 
 L'accueil présente une **grille de cartes**, une par projet récent (jusqu'à dix). Chaque carte

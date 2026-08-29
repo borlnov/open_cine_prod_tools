@@ -11,6 +11,8 @@ organised into four tabs in the left panel — **People**, **Roles** (the cast),
 **Elements**. Selecting a record opens its editable sheet in the centre (which is itself the
 inspector), with a shared **Versions** tab on the right.
 
+![The resources mode, showing a person sheet](/img/screenshots/resources.png)
+
 ## The address book (People)
 
 People is your master contact list. A person appears only **once**, whatever number of hats they

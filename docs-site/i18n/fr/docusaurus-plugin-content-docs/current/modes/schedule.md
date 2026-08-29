@@ -13,6 +13,8 @@ découpage, car ce que l'on place sur une journée, c'est un plan. Il répond à
 bureau de production : quelles séquences, quelle équipe, quel casting et quels décors se
 retrouvent à quelles dates, et à quelles heures.
 
+![Le mode Plan de travail et une journée](/img/screenshots/schedule.png)
+
 C'est le seul mode qui regarde **tout le projet à la fois** — tous les épisodes ensemble — d'où
 l'absence de sélecteur d'épisode. Une même journée couvre couramment des séquences de deux
 épisodes dans un décor.

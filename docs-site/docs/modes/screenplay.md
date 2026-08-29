@@ -10,6 +10,8 @@ The Screenplay mode is where you write the screenplay of the selected episode. T
 works in **Fountain** (a plain-text screenplay format), but you never have to think in "code":
 you write on a formatted page, or you edit the raw Fountain text with a preview beside it.
 
+![The screenplay mode, showing the styled page](/img/screenshots/screenplay.png)
+
 ## The two editing modes
 
 - **Styled editor** — a surface that shows the screenplay the way it will print. Each paragraph
