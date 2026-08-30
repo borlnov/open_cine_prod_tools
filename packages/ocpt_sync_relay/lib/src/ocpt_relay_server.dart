@@ -15,9 +15,9 @@ import 'package:shelf_web_socket/shelf_web_socket.dart' as shelf_web_socket;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// The relay's HTTP surface over an [OcptRelayStore]: the five routes a replica's
-/// `OcptRemoteStorage` transport speaks against, each behind a bearer-token check. The `bin/`
-/// entrypoint that serves [handler] over a real socket is a later commit — this class only
-/// assembles the handler.
+/// `OcptRemoteStorage` transport speaks against, each behind a bearer-token check. This class only
+/// assembles [handler] — `bin/ocpt_sync_relay.dart` is what serves it over a real socket, built on
+/// `buildRelayServerFromEnvironment`.
 ///
 /// ## Routes and their wire shapes
 ///
