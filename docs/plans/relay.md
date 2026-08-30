@@ -40,10 +40,11 @@ the seam was drawn wrong.
 
 ## The decomposition
 
-Twelve logical commits in three phases, numbered from 1 within each phase. The server package
-(Phase A) and the client transport (Phase B) carry no new UI and can be delegated as soon as this
-plan is approved; the two UI surfaces (Phase C)
-need Benoit's design direction first (see *Design decisions* below) and are held until it lands.
+Logical commits across three phases, numbered from 1 within each phase. The server package
+(Phase A) and the client transport (Phase B) carry no new UI. Phase C's design is validated — a
+mockup in the "OpenCineProdTools design shell" Claude Design project
+(`Pairing and Sync Design.dc.html`) — so it builds against a settled layout rather than waiting on
+one.
 
 ### Phase A — `packages/ocpt_sync_relay` (the server)
 
@@ -118,24 +119,41 @@ drifted and the commit does not land.
     `changesetService` push/pull unchanged. A restore publishes through the snapshot route, not as a
     changeset (§3.4). Unpaired projects behave exactly as today.
 
-### Phase C — the two UI surfaces (held for design direction)
+### Phase C — the screens and the join flow
 
-1. **The pairing screen.** Reached **from the project card on the Home grid** (a "Share / Sync"
-    action, before the workspace is even opened — pairing is a project-level decision): it takes a
-    relay address and a token, by QR code on a tablet and manual entry on desktop, and pairs the
-    project. A new view — its layout is shaped with Benoit before it is built.
-2. **The status indicator.** In the workspace status bar: in sync, syncing, offline with a pending
-    count, or an error. It is **clickable** — the workspace's sync entry point: a tap opens pairing
-    (when the project is not yet paired) or a small panel (the pending queue, re-pair, force a sync).
-    It reads the driver's state and never writes, so under a read-only preview it stays informational
-    and its actions are withheld. A new surface — shaped with Benoit before it is built.
+The design is validated against the mockup named above: the Home entry points, the Partager screen's
+two states, the Rejoindre screen, and the sync status indicator with its panel, all in the studio
+look. Build order:
 
-The two views are held until their layout is agreed with Benoit; the engine and transport underneath
-them (Phases A and B) do not depend on either and land first. Settled so far: entry from the Home
-card, a clickable indicator, and the token in ACT secure storage (Phase B, commit 2). Still open: the
-exact layout of
-each view — QR vs. manual entry on the pairing screen, the four states' iconography and wording, and
-what precisely the indicator's panel offers.
+1. **The snapshot engine.** M3 left `OcptRemoteStorage.uploadSnapshot`/`fetchLatestSnapshot` unused,
+   but the join flow, the first append to an empty relay (§5.3) and a restore's publish (§3.4) all
+   need a project turned into snapshot bytes and back. Reuse `OcptProjectPackageService`: the
+   portable package — a zip of the `.ocpt` and its assets, already tested — *is* the opaque snapshot
+   payload. A service produces a snapshot from the open project (`writePackage`, the descriptor's
+   `sequenceUpTo` being the relay cursor at that moment) and applies fetched bytes into a new local
+   project (`readPackage`). Wire the session to upload a snapshot on the first append to an empty
+   relay, and add `joinFromRelay(baseUri, token)` that fetches the snapshot and materialises a new
+   `.ocpt`. Fake-transport tests; the app still never depends on the relay package.
+2. **QR and the invite payload.** Encode `{relayBaseUri, projectId, token}` as the invite link the
+   QR carries, and generate the QR (check `actlibs/` first, else `qr_flutter`).
+3. **The Partager screen.** A full-screen route reached from the Home card's ⋮ menu
+   ("Partager / Synchroniser"), one screen in two states: ① Configure (relay address + enrolment
+   secret → "pair and create on the relay", the token minted and stored via `OcptSecretsManager`)
+   → ② Invite (the QR, the relay address, the masked token, and "stop sharing" through
+   `OcptConfirmDialog`). Its own bloc.
+4. **The Rejoindre screen.** A full-screen route reached from the Home toolbar ("Join a shared
+   project"): a camera scan on a tablet (`mobile_scanner`, mobile only, camera permission) and manual
+   entry (relay address + token) on desktop and as the fallback; on confirm it calls `joinFromRelay`,
+   shows the snapshot download, and opens the new project. Its own bloc. The camera path can only be
+   verified on a real device — over the devcontainer's wireless adb.
+5. **The status indicator.** In the workspace status bar, reading `OcptSyncStatus`: in sync, syncing,
+   offline with a pending count, or an error. It is **clickable** — the workspace's sync entry point:
+   a tap opens a panel (sync now, show the invite QR, re-pair). The workspace starts the sync session
+   when a paired project opens and stops it on close. It never writes, so under a read-only preview
+   it stays informational and its actions are withheld.
+6. **Wiring and l10n.** The Home card ⋮ action, the Home "Join" action, the status-bar slot, and
+   every user-visible string through `Tr.of(context)` in both ARB files (in French a scene is
+   « séquence »).
 
 ## Verification gates
 
