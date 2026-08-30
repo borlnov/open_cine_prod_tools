@@ -21,7 +21,8 @@ class OcptRouterManagerBuilder extends AbstractRouterBuilder<OcptRouterManager> 
 /// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace],
 /// [OcptRoute.projectSettings] and [OcptRoute.sharing]: all three can only be reached while
 /// [OcptProjectsManager] has a project open, otherwise navigation is redirected to
-/// [OcptRoute.home].
+/// [OcptRoute.home]. [OcptRoute.joining] carries no such guard — joining is how a project comes
+/// to exist on this replica in the first place, so it has to be reachable with none open.
 class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
   /// {@macro act_router_manager.AbstractRouterManager.createRoutesHelper}
   @override

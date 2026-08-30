@@ -19,6 +19,12 @@ enum OcptRoute with MixinRoute {
   /// (`docs/plans/relay.md`, Phase C, commit 3)
   sharing,
 
+  /// The "Rejoindre un projet partagé" screen: pairing this replica to a project already shared
+  /// on a relay (`docs/plans/relay.md`, Phase C, commit 4). Reachable with **no project open** —
+  /// joining is how one comes to exist on this replica in the first place, so this route carries
+  /// none of [sharing]'s own open-project guard.
+  joining,
+
   /// The settings page
   settings,
 
