@@ -5,6 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
@@ -13,10 +14,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
 import 'package:uuid/uuid.dart';
 
-/// Turns a replica's own un-pushed local edits into a changeset and appends it to a relay: the
-/// **outbound** half of `docs/plans/collaboration-and-sync.md`'s M3 changeset engine. Applying an
-/// incoming changeset — the inbound half — and the per-column and screenplay merges are later
-/// steps; this service only ever reads the project, never writes to it.
+/// Turns a replica's own un-pushed local edits into a changeset and appends it to a relay
+/// ([pushLocalEdits]), and applies every changeset a relay holds that this replica hasn't seen yet
+/// ([pullAndApply]) — the outbound and inbound halves of `docs/plans/collaboration-and-sync.md`'s M3
+/// changeset engine. [syncOnce] is the two run back to back, which is what makes two replicas
+/// pointed at the same [OcptRemoteStorage] converge.
 ///
 /// A "relay" here is any [OcptRemoteStorage] this replica is paired with, named by a `relayId` —
 /// the same identifier `sync_relay_cursors.relayId` keys a replica's own delivery state by, since a
@@ -24,7 +26,10 @@ import 'package:uuid/uuid.dart';
 /// (`docs/plans/collaboration-and-sync.md` §5.3).
 class OcptChangesetService {
   /// Class constructor
-  const OcptChangesetService();
+  const OcptChangesetService({this.mergeService = const OcptMergeService()});
+
+  /// The per-column merge every incoming changeset is applied through.
+  final OcptMergeService mergeService;
 
   /// Generates the un-pushed local edits of [database] for [deviceId] and appends them to
   /// [storage] as one changeset, then advances [relayId]'s own `outboxHighWaterMark` so the same
@@ -114,6 +119,77 @@ class OcptChangesetService {
 
     await _advanceOutboxHighWaterMark(database: database, relayId: relayId, highWaterMark: maxVersion);
   }
+
+  /// Applies every changeset [relayId] holds that this replica hasn't read yet to [database]'s
+  /// own file, and advances [relayId]'s `lastAppliedSequence` past every one of them.
+  ///
+  /// This is a replica catching up: it reads [relayId]'s current `sync_relay_cursors.
+  /// lastAppliedSequence` (`0` when this replica has never pulled from it before), asks [storage]
+  /// for everything appended since, and hands each one's decoded [OcptChangeset] to
+  /// [mergeService] in turn — a replica that was offline across several changesets catches up in
+  /// this one call, not one per changeset. When [storage] has nothing new, this does nothing: no
+  /// merge runs and [relayId]'s cursor is left untouched.
+  Future<void> pullAndApply({required OcptProjectDatabase database, required OcptRemoteStorage storage, required String relayId}) async {
+    final cursor = await _lastAppliedSequence(database: database, relayId: relayId);
+    final stored = await storage.readSince(cursor);
+    if (stored.isEmpty) {
+      return;
+    }
+
+    var highestSequence = cursor;
+    for (final entry in stored) {
+      await mergeService.applyChangeset(
+        fileDatabase: database,
+        changeset: OcptChangeset.decode(entry.envelope.payload),
+      );
+
+      if (entry.sequenceNumber > highestSequence) {
+        highestSequence = entry.sequenceNumber;
+      }
+    }
+
+    await _advanceLastAppliedSequence(database: database, relayId: relayId, sequence: highestSequence);
+  }
+
+  /// [pushLocalEdits] followed by [pullAndApply], against the very same [relayId]: what a replica
+  /// runs to both publish what it changed and absorb what everyone else did, in one call.
+  Future<void> syncOnce({
+    required OcptProjectDatabase database,
+    required OcptRemoteStorage storage,
+    required String relayId,
+    required String deviceId,
+  }) async {
+    await pushLocalEdits(database: database, storage: storage, relayId: relayId, deviceId: deviceId);
+    await pullAndApply(database: database, storage: storage, relayId: relayId);
+  }
+
+  /// [relayId]'s current `lastAppliedSequence` against [database], or [OcptSequenceNumber.zero]
+  /// when this replica has never pulled anything from it yet.
+  Future<OcptSequenceNumber> _lastAppliedSequence({
+    required OcptProjectDatabase database,
+    required String relayId,
+  }) async {
+    final row = await (database.select(
+      database.ocptSyncRelayCursorsTable,
+    )..where((table) => table.relayId.equals(relayId))).getSingleOrNull();
+
+    return OcptSequenceNumber(row?.lastAppliedSequence ?? 0);
+  }
+
+  /// Upserts [relayId]'s `sync_relay_cursors` row so its `lastAppliedSequence` reads [sequence],
+  /// leaving `outboxHighWaterMark` — the unrelated write-side cursor — untouched.
+  Future<void> _advanceLastAppliedSequence({
+    required OcptProjectDatabase database,
+    required String relayId,
+    required OcptSequenceNumber sequence,
+  }) => database
+      .into(database.ocptSyncRelayCursorsTable)
+      .insertOnConflictUpdate(
+        OcptSyncRelayCursorsTableCompanion.insert(
+          relayId: relayId,
+          lastAppliedSequence: Value(sequence.value),
+        ),
+      );
 
   /// [relayId]'s current `outboxHighWaterMark` against [database], or `0` when this replica has
   /// never pushed anything to it yet.
