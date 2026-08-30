@@ -49,6 +49,13 @@ model evolves without ever redeploying it.
 usable with no network; changes queue locally and merge on reconnect. This is not a degraded mode,
 it is the normal one.
 
+**The single machine never needs a server.** The all-in-one desktop build — one executable on
+Linux, Windows or macOS, doing everything on the machine with no server anywhere — is a permanent,
+first-class mode, never a degraded fallback. Every milestone below is additive to it: sync is opt-in
+per project, the relay is reached only once a project is deliberately paired, and **nothing in this
+plan may make a deployed server a requirement for using the app on one machine.** Syncing one
+person's own devices with no server at all stays possible too, through the folder transport (§3.2).
+
 **Merge is client-side and per column.** The director editing a shot's `framing` and the assistant
 director setting that same shot's `shootingDay` must both survive. Whole-row resolution would drop
 one of them.
@@ -109,17 +116,18 @@ are scoped to user edits and must never swallow an incoming merge — see
 rather than "is this project read-only?". Both slots already exist and are the same connection
 outside a preview, so nothing here changes.
 
-### 3.3 Schema v3
+### 3.3 The data model (already in place)
 
-Per ADR 0010: `isDeleted` on every synchronised table, `sortKey` beside `position` on the ordered
-ones, the `row_field_versions` sidecar table, and a `deviceId` in `OcptPropertiesManager`. The
-migration is additive, as ADR 0007 requires, and backfills `sortKey` from the existing `position`
-ordering.
+The sync-ready data model has shipped and is documented in `docs/architecture/foundations.md`:
+`isDeleted` on every synchronised table, `sortKey` beside the retained `position` on the ordered
+ones (fractional index, `lib/utils/ocpt_fractional_key.dart`), the `row_field_versions` sidecar,
+and a per-replica `deviceId` in `OcptPropertiesManager`. Project versions were then built on top of
+it — its payload codec and its tombstone-and-stamp restore both read these columns.
 
-**This claims schema v3; project versions took v4 on top of it.** M1 here shipped first, so it
-keeps the number: the version payload codec freezes a column list into files on users' disks, and a
-restore has to be written against tombstones and version stamps rather than against a bulk delete —
-both would have been written twice in the other order.
+The schema is **frozen at version 1** (ADR 0029): no stable release has shipped, so instead of the
+`v2→v3` migration with a `sortKey` backfill this plan first described, every column — the
+sync-ready ones included — is declared at once in the v1 baseline. There is nothing left to migrate
+here; the engine below builds on the columns as they already stand.
 
 ### 3.4 What synchronising does *not* cover
 
@@ -154,43 +162,11 @@ screenplay conflict view, which is the only conflict a user is ever asked to res
 Each milestone ends with the full verification gate of `CLAUDE.md` §*Verification gates*, one
 commit per logical change, and a user checkpoint before the next one starts.
 
-**M1 and M2 are independent of each other** and can run in parallel; everything after depends on
-M1.
-
-### M1 — Sync-ready data model
-
-Schema v3 and its `MigrationStrategy`: `isDeleted` on the synchronised tables, `sortKey` beside
-`position` with its backfill, `row_field_versions`, `deviceId` in `OcptPropertiesManager`. Every
-hard `delete()` in `OcptShotListService`, `OcptScreenplayService`, `OcptSceneIndexService` and
-`OcptShotCoverageService` becomes a tombstone, and every read path in those services learns to
-filter tombstones out. `_renumberGroup` and the inline character renumbering in
-`OcptShotListService` are replaced by fractional key allocation, so an insertion or a move writes
-one row.
-
-Tests: migration from a v2 database preserving every existing row and producing a strictly ordered
-`sortKey` backfill; a deleted row staying invisible to every reader; fractional key allocation at
-the head, between two neighbours, at the tail, and after repeated insertions between the same pair;
-a reorder writing exactly one row.
-
-No sync, no network, no UI. This milestone is worth shipping on its own even if nothing after it
-is ever built.
-
-**It also gated the project versions step entirely**: the version payload codec freezes a column
-list into files on users' disks, and a restore would have been a bulk delete — both would have had
-to be written twice in the other order, and the payloads already stored would have needed
-migrating.
-
-### M2 — The app on a tablet
-
-Android build wired into `build.yml`, and the shot list made usable with a finger on a tablet:
-touch-sized targets, a readable table at tablet width, and an add-shot flow that does not assume a
-keyboard or a right dock. Exports go through the system share sheet, since `file_selector`'s
-`getSaveLocation` has no Android implementation — check the iOS side at the same time and report
-what it needs. The screenplay editor is **read-only** on small screens; the styled editor is not
-part of this milestone.
-
-Report at the checkpoint what the workspace shell and the mode switcher needed to work at tablet
-width — the answer shapes M5's presence UI.
+**M1 (the sync-ready data model) and M2 (the app on a phone and a tablet) have shipped** — their
+outcomes now live in `docs/architecture/`: the responsive foundation and the Android build in
+`foundations.md`, the mobile share-sheet export in `exports.md`, the cost-tracking cards in
+`budget.md`, and the compressed phone layout in `screenplay.md`. §3.3 records what the milestones
+below build on. M4 through M6 depend on M3.
 
 ### M3 — The changeset engine, over a folder
 
@@ -198,12 +174,25 @@ width — the answer shapes M5's presence UI.
 `OcptScreenplayMergeService`, and `OcptFolderRemoteStorage` as the only transport. Two app
 instances pointed at the same directory must converge.
 
+**What the engine covers.** Every synchronised table flows through the changeset log — that is,
+every table carrying `isDeleted` except the derived and local-only ones (`scenes`, recomputed from
+the screenplay; `project_versions` and `local_erasures`, local to a replica — §3.4). That is far
+more than the four services M1 first touched: the data model has grown to the screenplay and shot
+list (`screenplays`, `screenplay_snapshots`, `shots`, `shot_characters`, `shot_coverages`), the
+resources catalogue (`people`, `roles`, `locations`, `sets`, `elements`, `assets` and their child
+and join tables), the breakdown (`breakdown_tags`, `scene_breakdowns`, `scene_elements`,
+`scene_sets`), the schedule (`shooting_days`, `shooting_slots` and their cast, crew, guest, block,
+event and candidate tables, plus the availabilities), the budget (every `budget_*` table), and the
+project dictionary (`project_dictionary_words`). New synchronised tables will keep appearing; the
+rule, not the list, is what the engine encodes.
+
 Tests: two replicas editing different columns of the same shot row, both surviving; a delete on one
 side and an edit on the other; a replica offline across several changesets catching up in one go;
 concurrent insertions at the same index coexisting; screenplay three-way merge on a clean case and
-on a genuine conflict; `scenes` recomputed rather than merged; and — if versions have shipped — a
-restore on one replica converging against a replica that was offline throughout, with the rows the
-restore tombstoned staying gone and an incoming changeset applying normally while a preview is up.
+on a genuine conflict; `scenes` recomputed rather than merged; and — project versions having
+shipped — a restore on one replica converging against a replica that was offline throughout, with
+the rows the restore tombstoned staying gone and an incoming changeset applying normally while a
+preview is up.
 
 No server yet. The folder transport exists to prove the engine without any network code, and it
 stays afterwards as the desktop fallback.
@@ -212,8 +201,9 @@ stays afterwards as the desktop fallback.
 
 `packages/ocpt_sync_relay`: the five routes, one bearer token per project, project creation on a
 first append carrying the instance enrolment secret, snapshot upload and pruning below it, a SQLite
-store, and a Dockerfile plus the compose file of §5.1. If versions have shipped, a restore publishes
-itself through the snapshot route rather than as a changeset (§3.4). `OcptRelayRemoteStorage` on the
+store, and a Dockerfile plus the compose file of §5.1. A restore publishes itself through the
+snapshot route rather than as a changeset (§3.4), since project versions have shipped.
+`OcptRelayRemoteStorage` on the
 client, plus the pairing screen and the status indicator described in §3.5.
 
 Tests on the server side are plain Dart: route behaviour, sequence monotonicity, rejection of a
