@@ -23,6 +23,10 @@ class OcptHomeHeader extends StatelessWidget {
   /// Called when the user taps the "Import…" action, opening `OcptHomeImportDialog`.
   final VoidCallback onImport;
 
+  /// Called when the user taps the "Join a shared project…" action, navigating to the Rejoindre
+  /// screen (`OcptRoute.joining`).
+  final VoidCallback onJoinSharedProject;
+
   /// Called when the user taps the settings gear action.
   final VoidCallback onOpenSettings;
 
@@ -31,6 +35,7 @@ class OcptHomeHeader extends StatelessWidget {
     required this.onNewProject,
     required this.onOpenProject,
     required this.onImport,
+    required this.onJoinSharedProject,
     required this.onOpenSettings,
     super.key,
   });
@@ -57,6 +62,12 @@ class OcptHomeHeader extends StatelessWidget {
           onPressed: onImport,
           icon: const Icon(Icons.file_download_outlined),
           label: Text(tr.homeImportAction),
+        ),
+        const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: onJoinSharedProject,
+          icon: const Icon(Icons.qr_code_scanner_outlined),
+          label: Text(tr.homeJoinSharedProjectAction),
         ),
         const SizedBox(width: 12),
         OutlinedButton.icon(

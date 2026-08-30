@@ -21,9 +21,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 /// the entry being worth clearing away even when the project it names is gone, while `Export…` goes
 /// disabled with the card — there is no file left to read, let alone to package.
 ///
-/// The `⋮` overflow menu holds two entries: `Export…`, writing the project out as a portable
+/// The `⋮` overflow menu holds three entries: `Export…`, writing the project out as a portable
 /// package without opening it first (the same flow the toolbar's own `Export` panel runs from
-/// inside a project, `MixinOcptProjectPackageBloc`), and `Remove from list`.
+/// inside a project, `MixinOcptProjectPackageBloc`), `Partager / Synchroniser…`, opening the
+/// project and navigating to its Partager screen (`OcptRoute.sharing`), and `Remove from list`.
 ///
 /// A project holding several episodes wears a small `⟨N episodes⟩` pill in the poster's top-left
 /// corner ([_OcptProjectCardEpisodeBadge]), mirroring the `⋮` overflow menu's own top-right one.
@@ -42,6 +43,11 @@ class OcptProjectCard extends StatelessWidget {
   /// entry whose project can't be found any more.
   final VoidCallback onExport;
 
+  /// Called when "Partager / Synchroniser…" is chosen from the overflow menu, unless
+  /// [OcptHomeRecentProjectEntry.exists] is false: there is no file to open, let alone to pair
+  /// with a relay, for an entry whose project can't be found any more.
+  final VoidCallback onShare;
+
   /// Called when "Remove from list" is chosen from the overflow menu.
   final VoidCallback onRemove;
 
@@ -50,6 +56,7 @@ class OcptProjectCard extends StatelessWidget {
     required this.entry,
     required this.onTap,
     required this.onExport,
+    required this.onShare,
     required this.onRemove,
     super.key,
   });
@@ -119,6 +126,11 @@ class OcptProjectCard extends StatelessWidget {
                           enabled: exists,
                           onTap: onExport,
                           child: Text(tr.homeExportProjectAction),
+                        ),
+                        PopupMenuItem<void>(
+                          enabled: exists,
+                          onTap: onShare,
+                          child: Text(tr.homeShareProjectAction),
                         ),
                         PopupMenuItem<void>(
                           onTap: onRemove,

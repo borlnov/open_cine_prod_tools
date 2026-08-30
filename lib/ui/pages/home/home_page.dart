@@ -66,6 +66,7 @@ class _HomeView extends StatelessWidget {
                 onNewProject: () => _requestNewProject(context),
                 onOpenProject: () => _requestOpenProject(context),
                 onImport: () => _requestImport(context),
+                onJoinSharedProject: () => _requestJoinSharedProject(context),
                 onOpenSettings: () => _requestOpenSettings(context),
               ),
               const SizedBox(height: 24),
@@ -103,6 +104,9 @@ class _HomeView extends StatelessWidget {
                                   name: entry.project.name,
                                 ),
                               ),
+                            ),
+                            onShare: () => context.read<OcptHomeBloc>().add(
+                              OcptHomeShareProjectRequestedEvent(filePath: entry.project.path),
                             ),
                             onRemove: () => context.read<OcptHomeBloc>().add(
                               OcptHomeRemoveRecentProjectRequestedEvent(path: entry.project.path),
@@ -424,5 +428,14 @@ class _HomeView extends StatelessWidget {
   /// [OcptHomeBloc].
   void _requestOpenSettings(BuildContext context) {
     unawaited(globalGetIt().get<OcptRouterManager>().push(OcptRoute.settings));
+  }
+
+  /// Dispatches the request that navigates to the "Rejoindre un projet partagé" screen.
+  ///
+  /// Round-trips through [OcptHomeBloc], unlike [_requestOpenSettings]'s direct router push,
+  /// because the bloc still has to refresh the recent projects list once the user comes back —
+  /// joining creates a new project card that was not there before.
+  void _requestJoinSharedProject(BuildContext context) {
+    context.read<OcptHomeBloc>().add(const OcptHomeJoinSharedProjectRequestedEvent());
   }
 }

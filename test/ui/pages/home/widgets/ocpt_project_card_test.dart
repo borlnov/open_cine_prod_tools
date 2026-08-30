@@ -19,6 +19,7 @@ Widget _buildCard(
   int? episodeCount,
   bool exists = true,
   VoidCallback? onExport,
+  VoidCallback? onShare,
 }) => MaterialApp(
   theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
@@ -40,6 +41,7 @@ Widget _buildCard(
     ),
     onTap: () {},
     onExport: onExport ?? () {},
+    onShare: onShare ?? () {},
     onRemove: () {},
   ),
 );
@@ -113,26 +115,90 @@ void main() {
     expect(find.text(tr.homeProjectEpisodeCount(2)), findsNothing);
   });
 
-  testWidgets("the overflow menu offers Export…, above Remove from list", (tester) async {
-    await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
+  testWidgets(
+    "the overflow menu offers Export… and Partager…, above Remove from list",
+    (tester) async {
+      await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
+
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+      expect(find.text(tr.homeExportProjectAction), findsOneWidget);
+      expect(find.text(tr.homeShareProjectAction), findsOneWidget);
+      expect(find.text(tr.homeRemoveFromListAction), findsOneWidget);
+
+      final exportItem = tester.widget<PopupMenuItem<void>>(
+        find.ancestor(
+          of: find.text(tr.homeExportProjectAction),
+          matching: find.byType(PopupMenuItem<void>),
+        ),
+      );
+      expect(exportItem.enabled, isTrue);
+
+      final shareItem = tester.widget<PopupMenuItem<void>>(
+        find.ancestor(
+          of: find.text(tr.homeShareProjectAction),
+          matching: find.byType(PopupMenuItem<void>),
+        ),
+      );
+      expect(shareItem.enabled, isTrue);
+
+      await tester.tap(find.text(tr.homeExportProjectAction));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets("tapping Partager / Synchroniser… calls back for a project whose file exists", (
+    tester,
+  ) async {
+    var shared = false;
+    await tester.pumpWidget(
+      _buildCard('/home/user/projects/glass-paths.ocpt', onShare: () => shared = true),
+    );
 
     await tester.tap(find.byType(PopupMenuButton<void>));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
-    expect(find.text(tr.homeExportProjectAction), findsOneWidget);
-    expect(find.text(tr.homeRemoveFromListAction), findsOneWidget);
+    await tester.tap(find.text(tr.homeShareProjectAction));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
-    final exportItem = tester.widget<PopupMenuItem<void>>(
+    expect(shared, isTrue);
+  });
+
+  testWidgets("Partager / Synchroniser… is inert for a project whose file is gone", (
+    tester,
+  ) async {
+    var shared = false;
+    await tester.pumpWidget(
+      _buildCard(
+        '/home/user/projects/glass-paths.ocpt',
+        exists: false,
+        onShare: () => shared = true,
+      ),
+    );
+
+    await tester.tap(find.byType(PopupMenuButton<void>));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    final shareItem = tester.widget<PopupMenuItem<void>>(
       find.ancestor(
-        of: find.text(tr.homeExportProjectAction),
+        of: find.text(tr.homeShareProjectAction),
         matching: find.byType(PopupMenuItem<void>),
       ),
     );
-    expect(exportItem.enabled, isTrue);
+    expect(shareItem.enabled, isFalse);
 
-    await tester.tap(find.text(tr.homeExportProjectAction));
-    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.homeShareProjectAction), warnIfMissed: false);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(shared, isFalse);
   });
 
   testWidgets("tapping Export… calls back for a project whose file exists", (tester) async {

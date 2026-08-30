@@ -1082,6 +1082,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeJoinSharedProjectAction": "Join a shared project…",
+  "@homeJoinSharedProjectAction": {
+    "description": "Label of the action that opens the Rejoindre screen, pairing this replica to a project already shared on a relay",
+    "context": "Displayed on a button in the home page header",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeImportDialogTitle": "Import",
   "@homeImportDialogTitle": {
     "description": "Title of the modal offering the two things that can be imported",
@@ -1211,6 +1218,13 @@
   "homeExportProjectAction": "Export…",
   "@homeExportProjectAction": {
     "description": "Label of the action that writes a project card's project out as a portable package",
+    "context": "Displayed in a project card's overflow menu, above Remove from list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeShareProjectAction": "Share / Sync…",
+  "@homeShareProjectAction": {
+    "description": "Label of the action that opens a project card's project, then its Partager screen",
     "context": "Displayed in a project card's overflow menu, above Remove from list",
     "type": "text",
     "placeholders": {}

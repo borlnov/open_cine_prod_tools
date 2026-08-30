@@ -593,6 +593,58 @@ void main() {
     });
   });
 
+  group("a project card's Partager / Synchroniser…", () {
+    test("opens the project and pushes the Partager screen instead of the workspace", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await projectsManager.createProject(name: "My Movie", filePath: filePath);
+      await projectsManager.closeCurrentProject();
+
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(OcptHomeShareProjectRequestedEvent(filePath: filePath));
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.error, isNull);
+      expect(projectsManager.currentProject?.path, filePath);
+      expect(routerManager.pushedRoute, OcptRoute.sharing);
+
+      await bloc.close();
+    });
+
+    test("a project that fails to open raises the error and navigates nowhere", () async {
+      final filePath = p.join(tempDir.path, "does-not-exist.ocpt");
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(OcptHomeShareProjectRequestedEvent(filePath: filePath));
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.error, isNotNull);
+      expect(projectsManager.currentProject, isNull);
+      expect(routerManager.pushedRoute, isNull);
+
+      await bloc.close();
+    });
+  });
+
+  group("the home toolbar's Join a shared project…", () {
+    test("pushes the Rejoindre screen and opens no project", () async {
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(const OcptHomeJoinSharedProjectRequestedEvent());
+      await pumpEventQueue();
+
+      expect(routerManager.pushedRoute, OcptRoute.joining);
+      expect(projectsManager.currentProject, isNull);
+
+      await bloc.close();
+    });
+  });
+
   group("a project card's Export…", () {
     /// Writes a real file under the temp directory and returns its path, so an `assets` row can
     /// point at something that is actually there.

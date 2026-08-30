@@ -68,6 +68,34 @@ class OcptHomeOpenProjectRequestedEvent extends OcptHomeEvent {
   List<Object?> get props => [...super.props, filePath, fileTypeLabel, allowMigration];
 }
 
+/// Requests opening the project at [filePath], then navigating to its Partager screen
+/// (`OcptRoute.sharing`) instead of the workspace.
+///
+/// Raised by a project card's own "Partager / Synchroniser…" overflow menu action: [filePath]
+/// always names an existing entry there, so there is no dialog to show first, unlike
+/// [OcptHomeOpenProjectRequestedEvent].
+class OcptHomeShareProjectRequestedEvent extends OcptHomeEvent {
+  /// The path of the project to open before navigating to its Partager screen.
+  final String filePath;
+
+  /// Class constructor
+  const OcptHomeShareProjectRequestedEvent({required this.filePath});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, filePath];
+}
+
+/// Requests navigating to the "Rejoindre un projet partagé" screen (`OcptRoute.joining`).
+///
+/// Raised by the home page toolbar's own "Join a shared project…" action. Unlike
+/// [OcptHomeShareProjectRequestedEvent], this opens no project first — joining is how a project
+/// comes to exist on this replica in the first place.
+class OcptHomeJoinSharedProjectRequestedEvent extends OcptHomeEvent {
+  /// Class constructor
+  const OcptHomeJoinSharedProjectRequestedEvent();
+}
+
 /// Reports that the home page has stated what the probe found about a project file, which clears
 /// it from the state.
 ///

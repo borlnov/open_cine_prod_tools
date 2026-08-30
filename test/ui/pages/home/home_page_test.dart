@@ -256,13 +256,34 @@ void main() {
         onNewProject: () {},
         onOpenProject: () {},
         onImport: () => tapped = true,
+        onJoinSharedProject: () {},
         onOpenSettings: () {},
       ),
     );
 
     final context = tester.element(find.byType(OcptHomeHeader));
     await tester.tap(find.text(Tr.of(context).homeImportAction));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('tapping the join a shared project action calls back', (tester) async {
+    var tapped = false;
+    await _pumpHome(
+      tester,
+      OcptHomeHeader(
+        onNewProject: () {},
+        onOpenProject: () {},
+        onImport: () {},
+        onJoinSharedProject: () => tapped = true,
+        onOpenSettings: () {},
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptHomeHeader));
+    await tester.tap(find.text(Tr.of(context).homeJoinSharedProjectAction));
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(tapped, isTrue);
   });
