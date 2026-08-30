@@ -74,6 +74,16 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// this is off: the fluid surface has no sheets at all.
   final bool isPageSimulationEnabled;
 
+  /// Whether the row this editor is laid out in is narrow enough
+  /// (`ocptIsCompactWidth`/`docs/plans/tablet.md`) that the stylesheet should carry the block
+  /// hierarchy by *style* rather than by the real screenplay indents: a phone or a narrow tablet
+  /// window has no room for a character cue starting 3.7 inches from the page's left edge. Only
+  /// ever acted on while [isPageSimulationEnabled] is off (see
+  /// `OcptFountainEditorStylesheet.build`'s own doc comment) — the caller that forces this true is
+  /// the same one that forces [isPageSimulationEnabled] false, but this widget does not assume
+  /// that pairing itself.
+  final bool isCompact;
+
   /// Whether every scene heading shows its scene number (explicit or computed, see
   /// `computeOcptStyledSceneNumbers`) in its left gutter.
   final bool areSceneNumbersVisible;
@@ -124,6 +134,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.text,
     required this.pageSetup,
     required this.isPageSimulationEnabled,
+    this.isCompact = false,
     required this.areSceneNumbersVisible,
     required this.isSpellCheckVisible,
     required this.onTextChanged,
@@ -540,6 +551,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         colorScheme: theme.colorScheme,
         isPageSimulationEnabled: widget.isPageSimulationEnabled,
         trailingBottomPadding: _trailingBottomPadding,
+        isCompact: widget.isCompact,
       ),
     );
 
