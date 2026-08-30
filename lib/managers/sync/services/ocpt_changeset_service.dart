@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_sql_column_name.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
 import 'package:uuid/uuid.dart';
 
@@ -89,15 +90,28 @@ class OcptChangesetService {
       }
 
       final row = await _readCurrentRow(database: database, table: table, rowId: rowId);
-      final json = (row as dynamic).toJson() as Map<String, dynamic>;
+      final columnsByDartName = {
+        for (final column in table.$columns) ocptDartFieldName(column.name): column,
+      };
 
       for (final stamp in rowStamps) {
+        final column = columnsByDartName[stamp.columnName];
+        if (column == null) {
+          // Every stamp names a column of the very table it was written alongside
+          // (`OcptRowStampService`), so this would mean a stamp and its own table's columns have
+          // drifted apart — a bug worth failing loudly on rather than silently dropping the edit.
+          throw StateError(
+            "row_field_versions stamps column '${stamp.columnName}' of '$tableName', which no "
+            "column of that table maps to",
+          );
+        }
+
         fieldStamps.add(
           OcptFieldStamp(
             tableName: tableName,
             rowId: rowId,
             columnName: stamp.columnName,
-            value: json[stamp.columnName],
+            value: row[column.name],
             version: stamp.version,
             deviceId: stamp.deviceId,
           ),
@@ -216,12 +230,14 @@ class OcptChangesetService {
         ),
       );
 
-  /// Reads [table]'s current row named [rowId] out of [database], raw — tombstones included, no
-  /// filter applied — by matching [rowId] against [table]'s own primary key through
-  /// `ocptCompositeRowStampKeySqlExpression` rather than a typed, per-table query: this is what
-  /// lets this service work over any [TableInfo] `ocptSynchronisedTables` hands it, with no
-  /// hand-maintained per-table row lookup to keep in step with the schema.
-  Future<Object?> _readCurrentRow({
+  /// [table]'s current row named [rowId] out of [database], as its own raw SQL cell values keyed
+  /// by SQL column name — tombstones included, no filter applied, and never run through a drift
+  /// data class's `toJson()` (see `OcptFieldStamp`'s own doc comment for why) — by matching [rowId]
+  /// against [table]'s own primary key through `ocptCompositeRowStampKeySqlExpression` rather than
+  /// a typed, per-table query: this is what lets this service work over any [TableInfo]
+  /// `ocptSynchronisedTables` hands it, with no hand-maintained per-table row lookup to keep in
+  /// step with the schema.
+  Future<Map<String, Object?>> _readCurrentRow({
     required OcptProjectDatabase database,
     required TableInfo<Table, Object?> table,
     required String rowId,
@@ -250,6 +266,6 @@ class OcptChangesetService {
       throw StateError("No row '$rowId' found in '${table.actualTableName}' to build a changeset from");
     }
 
-    return table.mapFromRow(row);
+    return row.data;
   }
 }

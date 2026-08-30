@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// Two replicas of the same project, both reading and writing through one shared
@@ -130,6 +131,83 @@ void main() {
     expect(onA.shootingDay, '2026-09-01');
     expect(onB.framing, 'Close-up');
     expect(onB.shootingDay, '2026-09-01');
+  });
+
+  test(
+    'an edited TypeConverter-backed enum column (shots.status) converges to the same value',
+    () async {
+      // This is also this schema's only kind of `TypeConverter` column: every `TypeConverter` this
+      // app declares (`git grep 'extends TypeConverter<'`) converts an enum to text, so there is no
+      // separate non-enum `TypeConverter` case to exercise. Before the raw-value fix, this column's
+      // stamped value was an `OcptShotStatus` enum instance straight out of `toJson()`, which
+      // `jsonEncode` cannot serialise — pushing this edit used to throw.
+      final replicaA = OcptProjectDatabase.memory();
+      final replicaB = OcptProjectDatabase.memory();
+      addTearDown(replicaA.close);
+      addTearDown(replicaB.close);
+
+      const shotId = 'shot-1';
+      await seedScreenplayAndShot(replicaA, shotId: shotId);
+      await seedScreenplayAndShot(replicaB, shotId: shotId);
+
+      final baseline = await readShot(replicaA, shotId);
+      await writeAndStamp(
+        database: replicaA,
+        deviceId: 'device-a',
+        table: replicaA.ocptShotsTable,
+        rowId: shotId,
+        current: baseline,
+        next: baseline.copyWith(status: OcptShotStatus.retake),
+      );
+
+      await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
+      await service.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
+
+      final onA = await readShot(replicaA, shotId);
+      final onB = await readShot(replicaB, shotId);
+
+      expect(onA.status, OcptShotStatus.retake);
+      expect(onB.status, OcptShotStatus.retake);
+    },
+  );
+
+  test('an edited DateTime column (screenplays.updatedAt) converges to the same value', () async {
+    final replicaA = OcptProjectDatabase.memory();
+    final replicaB = OcptProjectDatabase.memory();
+    addTearDown(replicaA.close);
+    addTearDown(replicaB.close);
+
+    const shotId = 'shot-1';
+    await seedScreenplayAndShot(replicaA, shotId: shotId);
+    await seedScreenplayAndShot(replicaB, shotId: shotId);
+
+    Future<OcptScreenplayRow> readScreenplay(OcptProjectDatabase database) =>
+        (database.select(
+          database.ocptScreenplaysTable,
+        )..where((table) => table.id.equals('screenplay-1'))).getSingle();
+
+    final baseline = await readScreenplay(replicaA);
+    // Stored as ISO-8601 text (`storeDateTimeAsText`), not a Unix timestamp — a good check that the
+    // raw value carried on the wire is the exact text SQLite holds, not a re-derived millisecond
+    // count.
+    final editedAt = DateTime.utc(2026, 3, 15, 9, 30);
+    await writeAndStamp(
+      database: replicaA,
+      deviceId: 'device-a',
+      table: replicaA.ocptScreenplaysTable,
+      rowId: 'screenplay-1',
+      current: baseline,
+      next: baseline.copyWith(updatedAt: editedAt),
+    );
+
+    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
+    await service.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
+
+    final onA = await readScreenplay(replicaA);
+    final onB = await readScreenplay(replicaB);
+
+    expect(onA.updatedAt, editedAt);
+    expect(onB.updatedAt, editedAt);
   });
 
   test('a tombstone on one side and an edit on the other resolve consistently on both', () async {
