@@ -7,8 +7,12 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 
-/// The width of one mode entry, wide enough for the longest mode label without wrapping.
+/// The width of one mode entry with its label, wide enough for the longest one without wrapping.
 const _entryWidth = 110.0;
+
+/// The width of one mode entry once the band drops its labels for icons alone, wide enough for the
+/// tapped icon and its active wash without crowding its neighbours.
+const _iconOnlyEntryWidth = 56.0;
 
 /// The persistent bottom band choosing which production mode fills the rest of the window: one
 /// entry per [OcptWorkspaceMode], icon over label, the active one tinted `primary` over a soft
@@ -19,6 +23,11 @@ const _entryWidth = 110.0;
 /// rather than removed: [OcptWorkspaceMode.isImplemented] stays an explicit, extensible check
 /// rather than a bare `true` for exactly this reason, so a mode added ahead of its own content
 /// finds the marker already wired rather than having to reinvent it.
+///
+/// The band drops its labels for icons alone once the row is too narrow for the full labelled band
+/// (`OcptWorkspaceMode.values.length * _entryWidth`), so all six modes stay reachable on a phone
+/// instead of overflowing; each entry keeps its label as its tooltip. This is a pure width
+/// reduction, so the widget stays presentational and reads no platform.
 class OcptWorkspaceModeSwitcher extends StatelessWidget {
   /// The currently active mode.
   final OcptWorkspaceMode activeMode;
@@ -36,6 +45,7 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final labelledBandWidth = OcptWorkspaceMode.values.length * _entryWidth;
 
     return Container(
       height: ocptModeSwitcherHeight,
@@ -43,16 +53,23 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
         color: theme.colorScheme.surfaceContainerLowest,
         border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (final mode in OcptWorkspaceMode.values)
-            _OcptWorkspaceModeEntry(
-              mode: mode,
-              isActive: mode == activeMode,
-              onTap: () => onModeSelected(mode),
-            ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showLabel = constraints.maxWidth >= labelledBandWidth;
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final mode in OcptWorkspaceMode.values)
+                _OcptWorkspaceModeEntry(
+                  mode: mode,
+                  isActive: mode == activeMode,
+                  showLabel: showLabel,
+                  onTap: () => onModeSelected(mode),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -86,11 +103,20 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
   /// Whether [mode] is the currently active one.
   final bool isActive;
 
+  /// Whether the entry shows its label under the icon. When false the entry is icon-only and
+  /// narrower, its label carried by the tooltip alone — the band's reduction on a narrow row.
+  final bool showLabel;
+
   /// Called when this entry is tapped.
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptWorkspaceModeEntry({required this.mode, required this.isActive, required this.onTap});
+  const _OcptWorkspaceModeEntry({
+    required this.mode,
+    required this.isActive,
+    required this.showLabel,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +127,7 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
     final tooltip = mode.isImplemented ? label : tr.workspaceModeComingSoonTooltip(label);
 
     return SizedBox(
-      width: _entryWidth,
+      width: showLabel ? _entryWidth : _iconOnlyEntryWidth,
       child: Tooltip(
         message: tooltip,
         child: InkWell(
@@ -121,13 +147,15 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _OcptWorkspaceModeIcon(mode: mode, color: color),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(color: color),
-                ),
+                if (showLabel) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(color: color),
+                  ),
+                ],
               ],
             ),
           ),
