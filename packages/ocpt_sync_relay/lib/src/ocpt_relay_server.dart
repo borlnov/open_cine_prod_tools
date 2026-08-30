@@ -11,30 +11,42 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:ocpt_sync_relay/src/ocpt_relay_store.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf_router/shelf_router.dart' as shelf_router;
+import 'package:shelf_web_socket/shelf_web_socket.dart' as shelf_web_socket;
+import 'package:web_socket_channel/web_socket_channel.dart';
 
-/// The relay's HTTP surface over an [OcptRelayStore]: the four request/response routes a replica's
-/// `OcptRemoteStorage` transport speaks against, each behind a bearer-token check. The fifth
-/// operation, the "new work" WebSocket, and the `bin/` entrypoint that serves [handler] over a real
-/// socket, are later commits — this class only assembles the handler.
+/// The relay's HTTP surface over an [OcptRelayStore]: the five routes a replica's
+/// `OcptRemoteStorage` transport speaks against, each behind a bearer-token check. The `bin/`
+/// entrypoint that serves [handler] over a real socket is a later commit — this class only
+/// assembles the handler.
 ///
 /// ## Routes and their wire shapes
 ///
 /// Every body is JSON; every opaque payload inside one is base64 text, never raw bytes, so a JSON
-/// body stays JSON end to end. None of the four routes below ever looks inside a changeset's own
+/// body stays JSON end to end. None of the routes below ever looks inside a changeset's own
 /// payload or a snapshot's own bytes — see [OcptRelayStore]'s own doc comment for why that is the
 /// whole point of this package.
 ///
 /// - `POST /projects/<projectId>/changesets` — body is one [OcptChangesetEnvelope.toJson]. Appends
-///   it and answers `200` with `{"sequence": <int>}`, the assigned [OcptSequenceNumber.value].
+///   it, notifies that project's `events` subscribers (below), and answers `200` with
+///   `{"sequence": <int>}`, the assigned [OcptSequenceNumber.value].
 /// - `GET /projects/<projectId>/changesets?since=<seq>` — `since` is required and must be a
 ///   non-negative integer; answers `200` with the JSON list of [OcptStoredChangeset.toJson],
 ///   oldest first, exactly as [OcptRelayStore.readSince] returns them.
 /// - `POST /projects/<projectId>/snapshot` — body is
-///   `{"descriptor": <OcptSnapshotDescriptor.toJson()>, "bytes": "<base64>"}`. Answers `204` with
-///   an empty body once stored.
+///   `{"descriptor": <OcptSnapshotDescriptor.toJson()>, "bytes": "<base64>"}`. Stores it, notifies
+///   that project's `events` subscribers, and answers `204` with an empty body.
 /// - `GET /projects/<projectId>/snapshot` — answers `200` with
 ///   `{"descriptor": <OcptSnapshotDescriptor.toJson()>, "bytes": "<base64>"}` for the project's
 ///   latest snapshot, or `404` when it has none yet.
+/// - `GET /projects/<projectId>/events` — upgrades to a WebSocket. While connected, the socket
+///   receives one opaque frame (the literal string [_newWorkPing]) every time any replica appends a
+///   changeset or uploads a snapshot to `<projectId>`, including a write made over a different
+///   connection to this same server process — nothing about the frame is meaningful beyond its
+///   arrival, exactly as `OcptRemoteStorage.newWorkStream`'s own contract says a listener should
+///   treat it: react by calling `readSince`/`fetchLatestSnapshot` again, never by parsing it. The
+///   subscriber set behind this is in-memory and per server process
+///   ([_eventSubscribersByProject]): fine for the one relay process a project talks to, and
+///   cleared as each socket closes.
 ///
 /// A request this class refuses — a bad body, a bad token, an unknown project, or the rate limiter
 /// tripping — answers with the matching HTTP status and an [OcptSyncError] JSON body
@@ -89,6 +101,11 @@ class OcptRelayServer {
   static const _descriptorKey = 'descriptor';
   static const _bytesKey = 'bytes';
 
+  /// The opaque frame sent to every `events` subscriber of a project on new work. Its content is
+  /// not part of the contract — a listener reacts to a frame's arrival, never to what it says —
+  /// this is simply the smallest constant that does the job.
+  static const _newWorkPing = 'new-work';
+
   /// The relay's own storage: every route is a thin HTTP wrapper around one of its methods.
   final OcptRelayStore store;
 
@@ -98,14 +115,21 @@ class OcptRelayServer {
 
   final _AuthRateLimiter _rateLimiter;
 
-  /// The assembled request handler for this relay's four HTTP routes: mount it under
-  /// `shelf_io.serve` or any other shelf adapter.
+  /// The sockets currently subscribed to each project's `events` route, so a write can be
+  /// broadcast to every subscriber of the project it landed in. Per server process only (see this
+  /// class's own doc comment) — a project with no subscriber has no entry here at all.
+  final Map<String, Set<WebSocketChannel>> _eventSubscribersByProject = {};
+
+  /// The assembled request handler for this relay's five routes: mount it under `shelf_io.serve`
+  /// or any other shelf adapter that supports request hijacking, which the `events` route needs
+  /// for its WebSocket upgrade.
   shelf.Handler get handler {
     final router = shelf_router.Router()
       ..post('/projects/<projectId>/changesets', _postChangesets)
       ..get('/projects/<projectId>/changesets', _getChangesets)
       ..post('/projects/<projectId>/snapshot', _postSnapshot)
-      ..get('/projects/<projectId>/snapshot', _getSnapshot);
+      ..get('/projects/<projectId>/snapshot', _getSnapshot)
+      ..get('/projects/<projectId>/events', _getEvents);
 
     return router.call;
   }
@@ -129,6 +153,7 @@ class OcptRelayServer {
     }
 
     final sequence = store.append(projectId, envelope);
+    _notifyNewWork(projectId);
 
     return _jsonResponse(200, {_sequenceKey: sequence.value});
   }
@@ -177,6 +202,7 @@ class OcptRelayServer {
     }
 
     store.uploadSnapshot(projectId, descriptor, bytes);
+    _notifyNewWork(projectId);
 
     return shelf.Response(204);
   }
@@ -198,6 +224,64 @@ class OcptRelayServer {
     final (descriptor, bytes) = latest;
 
     return _jsonResponse(200, {_descriptorKey: descriptor.toJson(), _bytesKey: base64Encode(bytes)});
+  }
+
+  /// Upgrades [request] to the `events` WebSocket for `<projectId>`, behind the same bearer check
+  /// every other route makes (`allowCreate: false` — a socket does not create a project). A
+  /// rejected request never reaches the upgrade at all: [_authenticate] answers the ordinary HTTP
+  /// status (`401`/`404`/`429`) instead, exactly as it would for any other route.
+  ///
+  /// Once upgraded, the socket is added to [_eventSubscribersByProject] and removed again as soon
+  /// as it closes from either end — nothing it sends is ever read, since the route carries no
+  /// meaningful traffic in that direction.
+  Future<shelf.Response> _getEvents(shelf.Request request) async {
+    final projectId = request.params['projectId']!;
+    final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
+    if (rejection != null) {
+      return rejection;
+    }
+
+    final upgrade = shelf_web_socket.webSocketHandler((webSocket, _) => _subscribe(projectId, webSocket));
+
+    return upgrade(request);
+  }
+
+  /// Adds [webSocket] to [projectId]'s subscriber set and arranges for [_unsubscribe] to run the
+  /// moment the connection closes, from either end.
+  void _subscribe(String projectId, WebSocketChannel webSocket) {
+    _eventSubscribersByProject.putIfAbsent(projectId, () => {}).add(webSocket);
+    webSocket.stream.listen(
+      (_) {},
+      onDone: () => _unsubscribe(projectId, webSocket),
+      onError: (Object _) => _unsubscribe(projectId, webSocket),
+      cancelOnError: true,
+    );
+  }
+
+  /// Removes [webSocket] from [projectId]'s subscriber set, dropping the set entirely once it is
+  /// left empty so a project nobody is watching leaves no trace in [_eventSubscribersByProject].
+  void _unsubscribe(String projectId, WebSocketChannel webSocket) {
+    final subscribers = _eventSubscribersByProject[projectId];
+    if (subscribers == null) {
+      return;
+    }
+    subscribers.remove(webSocket);
+    if (subscribers.isEmpty) {
+      _eventSubscribersByProject.remove(projectId);
+    }
+  }
+
+  /// Sends the opaque [_newWorkPing] frame to every socket currently subscribed to [projectId]'s
+  /// `events` route — called once a changeset append or a snapshot upload for that project has
+  /// actually landed in [store]. A project with no subscriber does nothing.
+  void _notifyNewWork(String projectId) {
+    final subscribers = _eventSubscribersByProject[projectId];
+    if (subscribers == null) {
+      return;
+    }
+    for (final webSocket in List.of(subscribers)) {
+      webSocket.sink.add(_newWorkPing);
+    }
   }
 
   /// Authenticates [request] for [projectId], creating the project first when [allowCreate] is
