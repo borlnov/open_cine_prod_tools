@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_tree.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The `N°` column's own fixed width, in logical pixels — detailed header only.
 const double _ocptCostTrackingNumberColumnWidth = 44;
@@ -96,6 +97,14 @@ const double _ocptCostTrackingBadgeMaxWidth = 84;
 /// The widest the empty state's own [OcptWorkspaceEmptyMode]/[OcptBudgetFeedCard] pair is ever
 /// drawn, in logical pixels — centred rather than run the width of the screen.
 const double _ocptCostTrackingEmptyStateMaxWidth = 480;
+
+/// A poste card's own proportion bar's own height, in logical pixels — matches
+/// `OcptBudgetFiche`'s own poste-variant proportion bar, the mode's own established reading of the
+/// same paid/committed/overrun figures.
+const double _ocptCostTrackingCardProportionBarHeight = 8;
+
+/// The gap, in logical pixels, between one poste card and the next in the compact list.
+const double _ocptCostTrackingCardSpacing = 12;
 
 /// The off-quote row's own reserved id in `OcptBudgetState.expandedNodeIds` — no poste, quote line,
 /// resource or revenue can ever collide with it, since every one of those mints a UUID and this
@@ -201,6 +210,19 @@ const String _ocptCostTrackingOffQuoteNodeId = "off-quote";
 /// whole mode to it — the retired left dock card's own `⋮` entry, ported here now that picking a
 /// poste to filter by has nowhere else to live. It only ever reads the project, so it draws (and
 /// works) even under a read-only preview, the one entry of this menu that is never withheld.
+///
+/// **At a compact width (`ocptIsCompactWidth`), the two-pane table gives way to one
+/// [_OcptCostTrackingPosteCard] per live poste**, scrolling vertically, above the very same
+/// `+ Poste` creation footer. A card draws a poste's own name, a proportion bar reading its own
+/// paid/committed amounts against its quote (`_OcptCostTrackingCardProportionBar`, the very colours
+/// `OcptBudgetFiche`'s own poste-variant bar already uses for the same figures), and its own
+/// `Engagé`/`Payé`/`Reste`/`Écart` figures — read through [_OcptCostTrackingPosteFigures.of], the
+/// very same calls [_OcptCostTrackingPosteAmountsRow] makes for its own row, so a card never
+/// disagrees with the table over the same poste. Tapping a card selects its poste exactly as
+/// tapping either half of its row does — [onPosteSelected] is never withheld under
+/// [isReadOnly], selecting a poste being a read, not a write. Only the tree — quote lines,
+/// commitments, entries, the off-quote reading — is reduced away at this width; the table above the
+/// breakpoint is unchanged.
 class OcptBudgetCostTracking extends StatelessWidget {
   /// Every live poste, in display order.
   final List<OcptBudgetPoste> postes;
@@ -382,19 +404,23 @@ class OcptBudgetCostTracking extends StatelessWidget {
       return _buildEmptyState(context);
     }
 
-    final allLines = [for (final poste in postes) ...poste.lines];
-    final total = ocptBudgetTotalOf(
-      allLines,
-      basis: taxBasis,
-      projectVatRateBasisPoints: defaultVatRateBasisPoints,
-    );
-    final coveredPosteCount = _coveredPosteCountOf();
-    final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuoteTotal]);
-    final finalCostCents = _finalCostTotalOf();
-    final rows = _buildRows();
-
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (ocptIsCompactWidth(constraints.maxWidth)) {
+          return _buildCompactCards(context);
+        }
+
+        final allLines = [for (final poste in postes) ...poste.lines];
+        final total = ocptBudgetTotalOf(
+          allLines,
+          basis: taxBasis,
+          projectVatRateBasisPoints: defaultVatRateBasisPoints,
+        );
+        final coveredPosteCount = _coveredPosteCountOf();
+        final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuoteTotal]);
+        final finalCostCents = _finalCostTotalOf();
+        final rows = _buildRows();
+
         final identityFixedWidth = isSimplified ? 0.0 : _ocptCostTrackingNumberColumnWidth;
         // Devis, Engagé, Payé, Reste, Coût final, Écart — six amount columns.
         final amountsWidth = 6 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
@@ -499,6 +525,44 @@ class OcptBudgetCostTracking extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ),
+        if (showFooter) _OcptCostTrackingCreationFooter(onTap: onPosteCreationRequested!),
+      ],
+    );
+  }
+
+  /// The compact reduction of the two-pane table — see the class doc comment's own "at a compact
+  /// width" note: one [_OcptCostTrackingPosteCard] per live poste, in a plain scrolling list, above
+  /// the very same `+ Poste` creation footer the table itself draws below its own two panes. The
+  /// tree — quote lines, commitments, entries, the off-quote reading — is not offered here at all;
+  /// a poste's own card opens straight onto its `Inspector` tab, where that detail already lives.
+  Widget _buildCompactCards(BuildContext context) {
+    final showFooter = !isReadOnly && onPosteCreationRequested != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(_ocptCostTrackingCardSpacing),
+            itemCount: postes.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: _ocptCostTrackingCardSpacing),
+            itemBuilder: (context, index) {
+              final poste = postes[index];
+              return _OcptCostTrackingPosteCard(
+                poste: poste,
+                isSimplified: isSimplified,
+                isSelected: _isPosteSelected(poste.id),
+                taxBasis: taxBasis,
+                defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+                currencyCode: currencyCode,
+                paidCents: paidByPosteId[poste.id]?.amountCents ?? 0,
+                committedCents: committedCentsOf(poste.id),
+                onTap: () => onPosteSelected(poste.id),
+              );
+            },
           ),
         ),
         if (showFooter) _OcptCostTrackingCreationFooter(onTap: onPosteCreationRequested!),
@@ -1562,6 +1626,301 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
       style: Theme.of(context).textTheme.bodySmall,
     ),
   );
+}
+
+/// One poste's own quote/remaining/final-cost/variance figures, computed exactly as
+/// [_OcptCostTrackingPosteAmountsRow.build] computes them for the desktop table's own row — pulled
+/// out into a pure holder so [_OcptCostTrackingPosteCard] reads the very same readings rather than
+/// a second calculation that could quietly disagree with the table over the same poste.
+class _OcptCostTrackingPosteFigures {
+  /// The poste's own quoted total, in cents, under the reading basis.
+  final int quotedAmountCents;
+
+  /// `Reste` — [ocptBudgetRemainingCents] over the very same three amounts.
+  final int remainingCents;
+
+  /// `Écart` — [ocptBudgetVarianceCents], never [ocptBudgetFinalCostVarianceCents] (see the mode's
+  /// own architecture doc for why this table always prints the former).
+  final int varianceCents;
+
+  /// Class constructor
+  const _OcptCostTrackingPosteFigures({
+    required this.quotedAmountCents,
+    required this.remainingCents,
+    required this.varianceCents,
+  });
+
+  /// Builds [poste]'s own figures under [taxBasis], given its own [paidCents] and [committedCents]
+  /// — the very same [ocptBudgetTotalOf]/[ocptBudgetRemainingCents]/[ocptBudgetVarianceCents] calls
+  /// [_OcptCostTrackingPosteAmountsRow.build] makes for the desktop row.
+  factory _OcptCostTrackingPosteFigures.of({
+    required OcptBudgetPoste poste,
+    required OcptBudgetTaxBasis taxBasis,
+    required int? defaultVatRateBasisPoints,
+    required int paidCents,
+    required int committedCents,
+  }) {
+    final quoted = ocptBudgetTotalOf(
+      poste.lines,
+      basis: taxBasis,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    return _OcptCostTrackingPosteFigures(
+      quotedAmountCents: quoted.amountCents,
+      remainingCents: ocptBudgetRemainingCents(
+        quotedAmountCents: quoted.amountCents,
+        paidCents: paidCents,
+        committedCents: committedCents,
+      ),
+      varianceCents: ocptBudgetVarianceCents(
+        quotedAmountCents: quoted.amountCents,
+        paidCents: paidCents,
+        committedCents: committedCents,
+      ),
+    );
+  }
+}
+
+/// One poste's own card, drawn in place of its row pair at a compact width — see
+/// [OcptBudgetCostTracking]'s own class doc comment. Its own name, a proportion bar and its
+/// `Engagé`/`Payé`/`Reste`/`Écart` figures, tapping it selecting the poste exactly as tapping
+/// either half of its desktop row does.
+class _OcptCostTrackingPosteCard extends StatelessWidget {
+  /// The poste this card shows.
+  final OcptBudgetPoste poste;
+
+  /// Whether the header's simplified/detailed switch currently reads simplified.
+  final bool isSimplified;
+
+  /// Whether this poste is the currently selected one.
+  final bool isSelected;
+
+  /// Which basis the header's excluding/including-tax switch currently reads every amount in.
+  final OcptBudgetTaxBasis taxBasis;
+
+  /// The project's default VAT rate, in basis points, or null.
+  final int? defaultVatRateBasisPoints;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// This poste's own paid total, in cents.
+  final int paidCents;
+
+  /// This poste's own committed total, in cents.
+  final int committedCents;
+
+  /// Called when this card is tapped — never withheld under a read-only preview, selecting a poste
+  /// being a read, not a write ([OcptBudgetCostTracking.onPosteSelected] is never gated on
+  /// `isReadOnly` for the very same reason on the desktop row).
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _OcptCostTrackingPosteCard({
+    required this.poste,
+    required this.isSimplified,
+    required this.isSelected,
+    required this.taxBasis,
+    required this.defaultVatRateBasisPoints,
+    required this.currencyCode,
+    required this.paidCents,
+    required this.committedCents,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final label = ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified);
+    final figures = _OcptCostTrackingPosteFigures.of(
+      poste: poste,
+      taxBasis: taxBasis,
+      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+      paidCents: paidCents,
+      committedCents: committedCents,
+    );
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ColoredBox(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          mouseCursor: ocptClickableCursor,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (!isSimplified) ...[
+                      Text(
+                        poste.code,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: Text(
+                        label.isEmpty ? tr.budgetPosteUnnamed : label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontStyle: label.isEmpty ? FontStyle.italic : FontStyle.normal,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      ocptBudgetAmountLabel(figures.quotedAmountCents, currencyCode),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _OcptCostTrackingCardProportionBar(
+                  quotedAmountCents: figures.quotedAmountCents,
+                  paidCents: paidCents,
+                  committedCents: committedCents,
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 4,
+                  children: [
+                    _figureOf(context, tr.budgetCostTrackingColumnCommitted, committedCents),
+                    _figureOf(context, tr.budgetCostTrackingColumnPaid, paidCents),
+                    _figureOf(context, tr.budgetCostTrackingColumnRemaining, figures.remainingCents),
+                    _figureOf(context, tr.budgetCostTrackingColumnVariance, figures.varianceCents),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// One `label` above `amountCents`, formatted through [ocptBudgetAmountLabel] like every other
+  /// figure this table prints.
+  Widget _figureOf(BuildContext context, String label, int amountCents) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        Text(ocptBudgetAmountLabel(amountCents, currencyCode), style: theme.textTheme.bodyMedium),
+      ],
+    );
+  }
+}
+
+/// A poste card's own proportion bar: the paid amount, then the committed one, over a track
+/// scaled to the quote — the very same reading and the very same [ColorScheme] colours
+/// `OcptBudgetFiche`'s own poste-variant proportion bar already draws these figures in, so this
+/// card and the fiche it opens onto never disagree about what a poste's own bar means.
+///
+/// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
+/// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
+/// and the overrun's own length eats the end of the bar in [ColorScheme.error].
+class _OcptCostTrackingCardProportionBar extends StatelessWidget {
+  /// The poste's own quoted total, in cents — the track's own scale while nothing overruns it.
+  final int quotedAmountCents;
+
+  /// The poste's own paid total, in cents — the bar's own first segment.
+  final int paidCents;
+
+  /// The poste's own committed total, in cents — the bar's own second segment, drawn right after
+  /// [paidCents].
+  final int committedCents;
+
+  /// Class constructor
+  const _OcptCostTrackingCardProportionBar({
+    required this.quotedAmountCents,
+    required this.paidCents,
+    required this.committedCents,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(_ocptCostTrackingCardProportionBarHeight / 2);
+    // Never negative: a poste's own quote, paid and committed totals are all sums of non-negative
+    // amounts (`docs/architecture/budget.md`'s "The money rule").
+    final quoteCents = quotedAmountCents < 0 ? 0 : quotedAmountCents;
+    final totalCents = paidCents + committedCents;
+    final overrunCents = totalCents > quoteCents ? totalCents - quoteCents : 0;
+    final scaleCents = overrunCents > 0 ? totalCents : quoteCents;
+
+    // The within-budget share of each segment stays in the accent colour; whatever is left over,
+    // [overrunCents], eats the end of the track in red — see `OcptBudgetFiche`'s own proportion
+    // bar for the very same reading.
+    final withinBudgetPaidCents = paidCents < quoteCents ? paidCents : quoteCents;
+    final remainingBudgetCents = quoteCents - withinBudgetPaidCents;
+    final withinBudgetCommittedCents = committedCents < remainingBudgetCents
+        ? committedCents
+        : remainingBudgetCents;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final track = Container(
+          width: width,
+          height: _ocptCostTrackingCardProportionBarHeight,
+          decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: radius),
+        );
+
+        if (scaleCents <= 0) {
+          return track;
+        }
+
+        double lengthOf(int cents) => width * cents / scaleCents;
+
+        return SizedBox(
+          width: width,
+          height: _ocptCostTrackingCardProportionBarHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              track,
+              ClipRRect(
+                borderRadius: radius,
+                child: Row(
+                  children: [
+                    Container(width: lengthOf(withinBudgetPaidCents), color: colors.primary),
+                    Container(
+                      width: lengthOf(withinBudgetCommittedCents),
+                      color: colors.primary.withValues(alpha: 0.45),
+                    ),
+                    if (overrunCents > 0)
+                      Container(width: lengthOf(overrunCents), color: colors.error),
+                  ],
+                ),
+              ),
+              if (overrunCents > 0)
+                Positioned(
+                  left: lengthOf(quoteCents) - 1,
+                  top: -2,
+                  bottom: -2,
+                  child: Container(width: 2, color: colors.onSurface),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 /// One line of a sub-row's own identity label: an optional coloured dot, the label itself, and an
