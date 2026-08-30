@@ -386,6 +386,20 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await session.start();
   }
 
+  /// Unpairs [projectId] from whatever relay it was synced through — the Partager screen's own
+  /// "stop sharing" action, once the page's own `OcptConfirmDialog` has confirmed it
+  /// (`docs/plans/relay.md`, Phase C, commit 3).
+  ///
+  /// [stopSyncSession] first, since a session kept running against a pairing whose token has just
+  /// been deleted from secure storage would only fail on its very next push; then
+  /// [pairingService].`clearPairing` removes [database]'s own `sync_pairings` row and the project
+  /// token it named, leaving [projectId] exactly as unpaired as a project that never talked to a
+  /// relay at all.
+  Future<void> unpairProject({required OcptProjectDatabase database, required String projectId}) async {
+    await stopSyncSession();
+    await pairingService.clearPairing(database: database, projectId: projectId);
+  }
+
   /// Stops the current sync session, if any — cancels its timer and its `newWorkStream`
   /// subscription and closes its status stream. Safe to call with no session running.
   Future<void> stopSyncSession() async {

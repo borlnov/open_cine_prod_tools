@@ -18,9 +18,10 @@ class OcptRouterManagerBuilder extends AbstractRouterBuilder<OcptRouterManager> 
 
 /// Drives the navigation of the application through the [OcptRoute] enum.
 ///
-/// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace] and
-/// [OcptRoute.projectSettings]: both can only be reached while [OcptProjectsManager] has a project
-/// open, otherwise navigation is redirected to [OcptRoute.home].
+/// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace],
+/// [OcptRoute.projectSettings] and [OcptRoute.sharing]: all three can only be reached while
+/// [OcptProjectsManager] has a project open, otherwise navigation is redirected to
+/// [OcptRoute.home].
 class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
   /// {@macro act_router_manager.AbstractRouterManager.createRoutesHelper}
   @override
@@ -38,15 +39,19 @@ class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
     registerRedirect(_redirectWhenNoProjectIsOpen);
   }
 
-  /// Redirects [OcptRoute.workspace] and [OcptRoute.projectSettings] to [OcptRoute.home] whenever
-  /// no project is currently open: the workspace has nothing to show then, and the project
-  /// settings page has no project to read or write.
+  /// Redirects [OcptRoute.workspace], [OcptRoute.projectSettings] and [OcptRoute.sharing] to
+  /// [OcptRoute.home] whenever no project is currently open: the workspace has nothing to show
+  /// then, the project settings page has no project to read or write, and the sharing screen has
+  /// no project to pair.
   Future<OcptRoute?> _redirectWhenNoProjectIsOpen(
     BuildContext context,
     OcptRoute route,
     GoRouterState state,
   ) async {
-    final needsAnOpenProject = route == OcptRoute.workspace || route == OcptRoute.projectSettings;
+    final needsAnOpenProject =
+        route == OcptRoute.workspace ||
+        route == OcptRoute.projectSettings ||
+        route == OcptRoute.sharing;
     if (needsAnOpenProject && globalGetIt().get<OcptProjectsManager>().currentProject == null) {
       return OcptRoute.home;
     }

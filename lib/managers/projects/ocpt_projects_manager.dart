@@ -141,6 +141,16 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     defaultValue: "0.1.0",
   );
 
+  /// The running build's own app version — see [_appVersion]'s own doc comment for where it comes
+  /// from and why it defaults the way it does.
+  ///
+  /// Exposed alongside it rather than duplicated: the Partager screen's own pairing call
+  /// (`docs/plans/relay.md`, Phase C, commit 3) stamps a freshly published snapshot with this same
+  /// version, through `OcptSyncManager.pairProjectToRelay`, and reading it here is what keeps that
+  /// one string from drifting out of step with what [createProject] and [_gateOnFileFormat] already
+  /// stamp into a project file.
+  String get appVersion => _appVersion;
+
   /// The properties manager used to persist the recently opened projects list.
   final OcptPropertiesManager _propertiesManager;
 

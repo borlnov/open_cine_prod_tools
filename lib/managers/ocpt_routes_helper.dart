@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
 
 /// Helper class mapping every [OcptRoute] to the page it displays
@@ -21,6 +22,7 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     onPage(OcptRoute.home, _createHomePage);
     onPage(OcptRoute.workspace, _createWorkspacePage);
     onPage(OcptRoute.projectSettings, _createProjectSettingsPage);
+    onPage(OcptRoute.sharing, _createSharingPage);
     onPage(OcptRoute.settings, _createSettingsPage);
     onPage(OcptRoute.licenses, _createLicensesPage);
   }
@@ -46,6 +48,10 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
       ),
     );
   }
+
+  /// Callback to create the [OcptSharingPage]
+  RoutePageDetails _createSharingPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptSharingPage());
 
   /// Callback to create the [SettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>

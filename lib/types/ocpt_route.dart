@@ -15,6 +15,10 @@ enum OcptRoute with MixinRoute {
   /// The current project's settings page (currency, page format)
   projectSettings,
 
+  /// The current project's sharing screen: pairing it to a relay and inviting a team to it
+  /// (`docs/plans/relay.md`, Phase C, commit 3)
+  sharing,
+
   /// The settings page
   settings,
 

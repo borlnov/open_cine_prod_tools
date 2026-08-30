@@ -14881,6 +14881,121 @@
         "type": "String"
       }
     }
+  },
+  "sharingPageTitle": "Share \"{projectName}\"",
+  "@sharingPageTitle": {
+    "description": "Title of the sharing page, naming the project",
+    "context": "Displayed at the top of the Partager screen",
+    "type": "text",
+    "placeholders": {
+      "projectName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharingStepConfigureChip": "① Configure",
+  "@sharingStepConfigureChip": {
+    "description": "Step chip shown in the sharing page's own top bar while the project is not yet paired"
+  },
+  "sharingStepInviteChip": "② Invite",
+  "@sharingStepInviteChip": {
+    "description": "Step chip shown in the sharing page's own top bar once the project is paired"
+  },
+  "sharingStatusUnpairedChip": "Not paired",
+  "@sharingStatusUnpairedChip": {
+    "description": "Status chip shown in the sharing page's own top bar while the project is not yet paired"
+  },
+  "sharingStatusSyncedChip": "In sync",
+  "@sharingStatusSyncedChip": {
+    "description": "Status chip shown in the sharing page's own top bar once the project is paired and syncing"
+  },
+  "sharingConfigureIntro": "Publish this project on a relay to share it with your team. Every device that joins keeps a full copy of the project, and edits merge automatically the next time it reconnects.",
+  "@sharingConfigureIntro": {
+    "description": "Introductory line of the ① Configure form"
+  },
+  "sharingRelayCardTitle": "Relay",
+  "@sharingRelayCardTitle": {
+    "description": "Title of the ① Configure form's own card"
+  },
+  "sharingRelayAddressLabel": "Relay address",
+  "@sharingRelayAddressLabel": {
+    "description": "Label of the relay address field, both in the ① Configure form and read-only in the ② Invite screen's own connection card"
+  },
+  "sharingRelayAddressHint": "https://relay.example.org",
+  "@sharingRelayAddressHint": {
+    "description": "Placeholder text of the relay address field"
+  },
+  "sharingEnrolmentSecretLabel": "Enrolment secret",
+  "@sharingEnrolmentSecretLabel": {
+    "description": "Label of the instance-wide enrolment secret field in the ① Configure form"
+  },
+  "sharingTokenNoteText": "A project token is generated automatically and kept in secure storage. It is never written to the project file.",
+  "@sharingTokenNoteText": {
+    "description": "Note explaining how the project token is minted and stored, shown under the ① Configure form"
+  },
+  "sharingPairAction": "Pair and create on the relay",
+  "@sharingPairAction": {
+    "description": "Primary button of the ① Configure form"
+  },
+  "sharingRelayAddressInvalidMessage": "Enter a valid relay address, e.g. https://relay.example.org",
+  "@sharingRelayAddressInvalidMessage": {
+    "description": "Validation message shown under the relay address field when it isn't a well-formed URL"
+  },
+  "sharingPairingErrorMessage": "Could not pair with the relay. Check the address and the enrolment secret, then try again.",
+  "@sharingPairingErrorMessage": {
+    "description": "Snack bar message shown when pairing to the relay fails"
+  },
+  "sharingInviteCardTitle": "Invite your team",
+  "@sharingInviteCardTitle": {
+    "description": "Title of the ② Invite screen's own QR card"
+  },
+  "sharingInviteCardBody": "Scan this code from another device to join the project. Every device that joins keeps a full copy, and edits merge automatically.",
+  "@sharingInviteCardBody": {
+    "description": "Body text of the ② Invite screen's own QR card"
+  },
+  "sharingSaveQrAction": "Save the QR code…",
+  "@sharingSaveQrAction": {
+    "description": "Action saving the invite QR code as an image file"
+  },
+  "sharingConnectionCardTitle": "Connection",
+  "@sharingConnectionCardTitle": {
+    "description": "Title of the ② Invite screen's own connection card"
+  },
+  "sharingProjectTokenLabel": "Project token",
+  "@sharingProjectTokenLabel": {
+    "description": "Label of the masked project token field in the ② Invite screen's own connection card"
+  },
+  "sharingCopyTooltip": "Copy",
+  "@sharingCopyTooltip": {
+    "description": "Tooltip of a copy-to-clipboard icon button"
+  },
+  "sharingRevealTokenTooltip": "Reveal",
+  "@sharingRevealTokenTooltip": {
+    "description": "Tooltip of the icon button revealing the masked project token"
+  },
+  "sharingHideTokenTooltip": "Hide",
+  "@sharingHideTokenTooltip": {
+    "description": "Tooltip of the icon button hiding the revealed project token"
+  },
+  "sharingUnshareAction": "Stop sharing…",
+  "@sharingUnshareAction": {
+    "description": "Destructive action ending this project's own relay pairing"
+  },
+  "sharingUnshareConfirmTitle": "Stop sharing this project?",
+  "@sharingUnshareConfirmTitle": {
+    "description": "Title of the confirmation dialog before unpairing the project from its relay"
+  },
+  "sharingUnshareConfirmMessage": "Nobody will be able to sync with it any longer. Every device that already holds a copy keeps it, but stops sending and receiving changes.",
+  "@sharingUnshareConfirmMessage": {
+    "description": "Message of the confirmation dialog before unpairing the project from its relay"
+  },
+  "sharingUnshareConfirmCancelAction": "Cancel",
+  "@sharingUnshareConfirmCancelAction": {
+    "description": "Cancel button of the confirmation dialog before unpairing the project from its relay"
+  },
+  "sharingUnshareConfirmConfirmAction": "Stop sharing",
+  "@sharingUnshareConfirmConfirmAction": {
+    "description": "Confirm button of the confirmation dialog before unpairing the project from its relay"
   }
 
 }
