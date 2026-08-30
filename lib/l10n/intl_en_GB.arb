@@ -15064,6 +15064,56 @@
   "joiningErrorMessage": "Could not join this project. Check the relay address, the project ID and the token, then try again.",
   "@joiningErrorMessage": {
     "description": "Snack bar message shown when joining fails, whether the submission was manual or scanned"
+  },
+  "workspaceSyncStatusInSync": "In sync",
+  "@workspaceSyncStatusInSync": {
+    "description": "Label of the workspace status bar's sync indicator when every edit has been pushed and pulled"
+  },
+  "workspaceSyncStatusSyncing": "Syncing…",
+  "@workspaceSyncStatusSyncing": {
+    "description": "Label of the workspace status bar's sync indicator while a push-then-pull is running"
+  },
+  "workspaceSyncStatusOfflinePending": "{count, plural, one{Offline · {count} pending change} other{Offline · {count} pending changes}}",
+  "@workspaceSyncStatusOfflinePending": {
+    "description": "Label of the workspace status bar's sync indicator when the relay could not be reached, naming how many local edits are still waiting to be pushed",
+    "context": "Displayed in the workspace status bar and in the sync panel it opens",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "workspaceSyncStatusOfflineUnknown": "Offline · pending changes",
+  "@workspaceSyncStatusOfflineUnknown": {
+    "description": "Label of the workspace status bar's sync indicator when the relay could not be reached and the pending edit count itself could not be read"
+  },
+  "workspaceSyncStatusError": "Sync error",
+  "@workspaceSyncStatusError": {
+    "description": "Label of the workspace status bar's sync indicator when the relay itself rejected the last sync request"
+  },
+  "workspaceSyncPanelErrorDetail": "Relay error: {message}",
+  "@workspaceSyncPanelErrorDetail": {
+    "description": "Detail line of the sync panel while the relay rejected the last sync request, naming what it said",
+    "context": "Displayed under the sync panel's own state label",
+    "type": "text",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSyncActionSyncNow": "Sync now",
+  "@workspaceSyncActionSyncNow": {
+    "description": "Action of the sync panel that runs a sync right away"
+  },
+  "workspaceSyncActionShowQr": "Show the invite QR code",
+  "@workspaceSyncActionShowQr": {
+    "description": "Action of the sync panel that opens the Partager screen to show the invite QR code"
+  },
+  "workspaceSyncActionRepair": "Re-pair…",
+  "@workspaceSyncActionRepair": {
+    "description": "Action of the sync panel that opens the Partager screen to replace the current pairing"
   }
 
 }

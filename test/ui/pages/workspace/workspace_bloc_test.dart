@@ -4,10 +4,20 @@
 
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -18,9 +28,102 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+/// The method channel `flutter_secure_storage` talks over — mirrors
+/// `ocpt_sync_manager_pairing_test.dart`'s own mock, which this file's [OcptPairingService] needs
+/// the exact same wiring for.
+const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
+
+void _mockSecureStorage(Map<String, String> store) {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    _secureStorageChannel,
+    (call) async {
+      final arguments = call.arguments as Map<Object?, Object?>?;
+      final key = arguments?['key'] as String?;
+
+      switch (call.method) {
+        case 'read':
+          return store[key];
+        case 'write':
+          store[key!] = arguments!['value']! as String;
+          return null;
+        case 'delete':
+          store.remove(key);
+          return null;
+        case 'deleteAll':
+          store.clear();
+          return null;
+        case 'containsKey':
+          return store.containsKey(key);
+        case 'readAll':
+          return Map<String, String>.from(store);
+        default:
+          return null;
+      }
+    },
+  );
+}
+
+/// An in-memory [OcptRemoteStorage] carrying no network at all.
+class _FakeRemoteStorage implements OcptRemoteStorage {
+  @override
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+
+  @override
+  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
+
+  @override
+  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
+
+  @override
+  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
+
+  @override
+  Stream<void> get newWorkStream => const Stream.empty();
+}
+
+/// An [OcptSyncManager] recording whether/how [startSyncSession] was called, instead of actually
+/// running one: the real [OcptSyncSession.start] would touch the fake transport's own
+/// `newWorkStream`/timers, which this file's own tests about the lifecycle hook — not the session
+/// itself — have no reason to drive. `ocpt_sync_manager_pairing_test.dart` and
+/// `ocpt_sync_manager_snapshot_test.dart` already cover the session's real behaviour.
+class _RecordingSyncManager extends OcptSyncManager {
+  _RecordingSyncManager({required OcptPairingService pairingService})
+    : super(pairingService: pairingService, changesetService: const OcptChangesetService());
+
+  bool startSyncSessionCalled = false;
+  String? startedProjectId;
+
+  @override
+  OcptRemoteStorage openRelayRemoteStorage(
+    OcptProjectPairing pairing,
+    String projectId, {
+    String? enrolmentSecret,
+  }) => _FakeRemoteStorage();
+
+  @override
+  Future<void> startSyncSession({
+    required String projectId,
+    required OcptProjectDatabase database,
+    required String deviceId,
+    required String relayId,
+    required OcptRemoteStorage storage,
+    Duration pushInterval = ocptDefaultSyncPushInterval,
+  }) async {
+    startSyncSessionCalled = true;
+    startedProjectId = projectId;
+  }
+
+  @override
+  Future<void> stopSyncSession() async {}
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
+  late OcptPairingService pairingService;
+  late Map<String, String> secureStore;
   late Directory tempDir;
 
   setUpAll(() async {
@@ -29,10 +132,25 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     propertiesManager = OcptPropertiesManager();
     await propertiesManager.initLifeCycle();
+
+    final configManager = OcptConfigManager();
+    await configManager.initLifeCycle();
+
+    secureStore = {};
+    _mockSecureStorage(secureStore);
+
+    final secretsManager = OcptSecretsManager(
+      propertiesGetter: () => propertiesManager,
+      confGetter: () => configManager,
+    );
+    await secretsManager.initLifeCycle();
+
+    pairingService = OcptPairingService(secretsManager: secretsManager);
   });
 
   setUp(() async {
     await propertiesManager.deleteAll();
+    secureStore.clear();
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_workspace_bloc_test_");
     projectsManager = OcptProjectsManager(
@@ -55,9 +173,13 @@ void main() {
 
   /// Builds a bloc wired to the test properties manager and, unless the test needs no open
   /// project, the test project manager (already holding an open project by [setUp]).
-  OcptWorkspaceBloc buildBloc({OcptProjectsManager? overrideProjectsManager}) => OcptWorkspaceBloc(
+  OcptWorkspaceBloc buildBloc({
+    OcptProjectsManager? overrideProjectsManager,
+    OcptSyncManager? syncManager,
+  }) => OcptWorkspaceBloc(
     propertiesManager: propertiesManager,
     projectsManager: overrideProjectsManager ?? projectsManager,
+    syncManager: syncManager,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -288,6 +410,43 @@ void main() {
 
       expect(state.selectedEpisodeId, firstEpisodeId);
       expect(state.episodes.map((episode) => episode.id).toList(), [firstEpisodeId]);
+      await bloc.close();
+    },
+  );
+
+  test(
+    'a paired project starts its sync session once the workspace opens',
+    () async {
+      final project = projectsManager.currentProject!;
+      await pairingService.savePairing(
+        database: project.fileDatabase,
+        projectId: "project-abc",
+        relayBaseUri: Uri.parse("https://relay.example.org/"),
+        token: "token-1",
+      );
+
+      final syncManager = _RecordingSyncManager(pairingService: pairingService);
+      final bloc = buildBloc(syncManager: syncManager);
+
+      await waitForState(bloc, (state) => !state.isLoading);
+      await pumpEventQueue();
+
+      expect(syncManager.startSyncSessionCalled, isTrue);
+      expect(syncManager.startedProjectId, "project-abc");
+      await bloc.close();
+    },
+  );
+
+  test(
+    'an unpaired project starts no sync session at all',
+    () async {
+      final syncManager = _RecordingSyncManager(pairingService: pairingService);
+      final bloc = buildBloc(syncManager: syncManager);
+
+      await waitForState(bloc, (state) => !state.isLoading);
+      await pumpEventQueue();
+
+      expect(syncManager.startSyncSessionCalled, isFalse);
       await bloc.close();
     },
   );
