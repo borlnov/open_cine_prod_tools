@@ -177,7 +177,7 @@ class _BudgetViewState extends State<_BudgetView> {
           onBack: () => context.read<OcptBudgetBloc>().add(const OcptBudgetBackRequestedEvent()),
           // No episode selector: see the class doc comment.
           modeLabel: Tr.of(context).workspaceModeLabelBudget,
-          onExportRequested: () => unawaited(_requestExport(context, state)),
+          onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
           isRightDockOpen: state.rightDockTab != null,
           onToggleRightDock: () =>
               context.read<OcptBudgetBloc>().add(const OcptBudgetRightDockToggledEvent()),
@@ -258,7 +258,11 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Opens the toolbar's `Export` panel, then dispatches the picked document's own request onto its
   /// own `_request…Export` method — each one opens its own options dialog first, the cash journal
   /// alone taking none, exactly as `OcptScheduleMode._requestExport` does for its own six documents.
-  Future<void> _requestExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptBudgetExportDocument>(
       context,
@@ -278,13 +282,13 @@ class _BudgetViewState extends State<_BudgetView> {
       case OcptWorkspaceExportDocumentPick<OcptBudgetExportDocument>(:final document):
         switch (document) {
           case OcptBudgetExportDocument.quote:
-            await _requestQuoteExport(context, state);
+            await _requestQuoteExport(context, state, shareAnchor);
           case OcptBudgetExportDocument.financingPlan:
-            await _requestFinancingPlanExport(context, state);
+            await _requestFinancingPlanExport(context, state, shareAnchor);
           case OcptBudgetExportDocument.cashJournal:
-            _requestCashJournalExport(context, state);
+            _requestCashJournalExport(context, state, shareAnchor);
           case OcptBudgetExportDocument.financialReport:
-            await _requestFinancialReportExport(context, state);
+            await _requestFinancialReportExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptBudgetExportDocument>():
         _requestProjectPackageExport(context);
@@ -294,7 +298,11 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Shows the quote export options dialog, then dispatches the export request if the user applied
   /// it, resolving here — the last place with a [BuildContext] — the labels, the breakdown element
   /// names and the localized string the native save dialog carries.
-  Future<void> _requestQuoteExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestQuoteExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final options = await OcptBudgetQuoteExportDialog.show(
       context,
       current: state.pageSetup,
@@ -314,13 +322,18 @@ class _BudgetViewState extends State<_BudgetView> {
         labels: ocptBudgetQuoteLabelsOf(context),
         elementNameById: {for (final element in state.elements) element.id: element.name},
         fileTypeLabel: tr.budgetExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
 
   /// Shows the financing plan export options dialog, then dispatches the export request if the user
   /// applied it — mirrors [_requestQuoteExport].
-  Future<void> _requestFinancingPlanExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestFinancingPlanExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final options = await OcptBudgetFinancingPlanExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
       return;
@@ -335,19 +348,21 @@ class _BudgetViewState extends State<_BudgetView> {
         options: options,
         labels: ocptBudgetFinancingPlanLabelsOf(context),
         fileTypeLabel: tr.budgetExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
 
   /// Dispatches the cash journal export request straight away — this document takes no options
   /// dialog of its own, mirroring every other options-free export in the app.
-  void _requestCashJournalExport(BuildContext context, OcptBudgetState state) {
+  void _requestCashJournalExport(BuildContext context, OcptBudgetState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
     context.read<OcptBudgetBloc>().add(
       OcptBudgetCashJournalExportRequestedEvent(
         labels: ocptBudgetCashJournalXlsxLabelsOf(context),
         linkLabelByEntryId: _linkLabelByEntryIdOf(state),
         fileTypeLabel: tr.budgetExportXlsxFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -380,7 +395,11 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Shows the financial report export options dialog, then dispatches the export request if the
   /// user applied it — mirrors [_requestFinancingPlanExport].
-  Future<void> _requestFinancialReportExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestFinancialReportExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final options = await OcptBudgetFinancialReportExportDialog.show(
       context,
       current: state.pageSetup,
@@ -398,6 +417,7 @@ class _BudgetViewState extends State<_BudgetView> {
         options: options,
         labels: ocptBudgetFinancialReportLabelsOf(context),
         fileTypeLabel: tr.budgetExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -2549,14 +2569,15 @@ class _BudgetViewState extends State<_BudgetView> {
     }
   }
 
-  /// The SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`.
+  /// The SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`,
+  /// [OcptBudgetIoNotice.wasShared] included.
   String _ioNoticeMessage(BuildContext context, OcptBudgetIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptBudgetIoNoticeKind.fileExportSucceeded => tr.budgetExportFileSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptBudgetIoNoticeKind.fileExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.budgetExportFileSuccessMessage(notice.path ?? ""),
       OcptBudgetIoNoticeKind.exportFailed => tr.budgetExportError,
     };
   }

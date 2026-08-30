@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,6 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -138,7 +140,7 @@ class _FakeExportManager extends OcptExportManager {
   String? lastExportedEpisodeTag;
 
   @override
-  Future<String?> exportBreakdownSheets({
+  Future<OcptExportOutcome?> exportBreakdownSheets({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
     required OcptPageSetup pageSetup,
@@ -149,6 +151,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeToFindList,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedPageSetup = pageSetup;
@@ -166,7 +169,8 @@ class _FakeExportManager extends OcptExportManager {
       throw StateError("breakdown sheets export intentionally failed for the test");
     }
 
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   /// The snapshot of the last [exportBreakdownXlsx] call.
@@ -185,7 +189,7 @@ class _FakeExportManager extends OcptExportManager {
   String? lastExportedXlsxEpisodeTag;
 
   @override
-  Future<String?> exportBreakdownXlsx({
+  Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
     required OcptPageSetup pageSetup,
@@ -193,6 +197,7 @@ class _FakeExportManager extends OcptExportManager {
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedXlsxSnapshot = snapshot;
     lastExportedXlsxLabels = labels;
@@ -204,7 +209,8 @@ class _FakeExportManager extends OcptExportManager {
       throw StateError("breakdown workbook export intentionally failed for the test");
     }
 
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 }
 

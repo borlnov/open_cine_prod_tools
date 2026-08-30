@@ -64,6 +64,10 @@ dependencies:
   # act_file_transfer_manager to a direct one now that the app calls it itself
   file_selector: ^1.1.0
 
+  # Hands an export's bytes to the OS share sheet on mobile, where file_selector's getSaveLocation
+  # and getDirectoryPath have no Android or iOS implementation
+  share_plus: ^12.0.2
+
   # Scales fonts (.sp) and dimensions (.w/.h) on mobile only; neutralised to identity on desktop.
   flutter_screenutil: ^5.9.3
 

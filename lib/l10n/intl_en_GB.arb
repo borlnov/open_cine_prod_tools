@@ -6124,6 +6124,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "exportSharedMessage": "Shared",
+  "@exportSharedMessage": {
+    "description": "Message shown when an export was handed to the OS share sheet instead of a picked save location",
+    "context": "Displayed in a SnackBar after any export, on mobile only, in place of the usual 'saved to <path>' message",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsPageTitle": "Project settings",
   "@projectSettingsPageTitle": {
     "description": "Title of the project settings page",

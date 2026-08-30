@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
@@ -125,14 +126,15 @@ class _RecordingExportManager extends OcptExportManager {
   String? lastExportedEpisodeTag;
 
   @override
-  Future<String?> exportFountain({
+  Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedEpisodeTag = episodeTag;
-    return "/tmp/$projectName.fountain";
+    return OcptExportSaved("/tmp/$projectName.fountain");
   }
 }
 

@@ -321,7 +321,7 @@ class _EditorViewState extends State<_EditorView> {
                     ),
               toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
               modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
-              onExportRequested: () => unawaited(_requestExport(context)),
+              onExportRequested: (anchor) => unawaited(_requestExport(context, anchor)),
               overflowEntries: _buildOverflowEntries(context, state),
               isLeftDockOpen: state.isScenePanelVisible,
               onToggleLeftDock: () => context.read<OcptEditorBloc>().add(
@@ -1332,7 +1332,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Opens the export panel, then dispatches the picked document's own request: the `.fountain`
   /// export event directly (it opens no options dialog of its own), or [_requestExportPdf], which
   /// opens the PDF export options dialog exactly as it always has.
-  Future<void> _requestExport(BuildContext context) async {
+  Future<void> _requestExport(BuildContext context, Rect? shareAnchor) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptEditorExportDocument>(
       context,
@@ -1356,10 +1356,11 @@ class _EditorViewState extends State<_EditorView> {
               OcptEditorExportRequestedEvent(
                 fileTypeLabel: tr.editorImportFileTypeLabel,
                 episodeTag: _episodeExportTag(context),
+                shareAnchor: shareAnchor,
               ),
             );
           case OcptEditorExportDocument.pdf:
-            await _requestExportPdf(context);
+            await _requestExportPdf(context, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptEditorExportDocument>():
         _requestProjectPackageExport(context);
@@ -1368,7 +1369,7 @@ class _EditorViewState extends State<_EditorView> {
 
   /// Shows the PDF export options dialog, then dispatches the export request if the user applied
   /// it.
-  Future<void> _requestExportPdf(BuildContext context) async {
+  Future<void> _requestExportPdf(BuildContext context, Rect? shareAnchor) async {
     final bloc = context.read<OcptEditorBloc>();
     final options = await OcptEditorExportPdfOptionsDialog.show(context, current: bloc.state.pageSetup);
     if (options == null) {
@@ -1383,6 +1384,7 @@ class _EditorViewState extends State<_EditorView> {
         options: options,
         fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -1588,18 +1590,24 @@ class _EditorViewState extends State<_EditorView> {
   }
 
   /// Maps [notice] to its localized, user-facing message.
+  ///
+  /// A succeeded export kind degrades to the generic "shared" message on mobile
+  /// ([OcptEditorIoNotice.wasShared]): there is no path to name, the export having been handed to
+  /// the OS share sheet rather than written to a location the user picked.
   String _ioNoticeMessage(BuildContext context, OcptEditorIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptEditorIoNoticeKind.exportSucceeded => tr.editorExportSuccessMessage(notice.path ?? ""),
+      OcptEditorIoNoticeKind.exportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.editorExportSuccessMessage(notice.path ?? ""),
       OcptEditorIoNoticeKind.exportFailed => tr.editorExportError,
       OcptEditorIoNoticeKind.importSucceeded => tr.editorImportSuccessMessage,
       OcptEditorIoNoticeKind.importFailed => tr.editorImportError,
       OcptEditorIoNoticeKind.importUnreadable => tr.editorImportUnreadableError,
-      OcptEditorIoNoticeKind.pdfExportSucceeded => tr.editorExportPdfSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptEditorIoNoticeKind.pdfExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.editorExportPdfSuccessMessage(notice.path ?? ""),
       OcptEditorIoNoticeKind.pdfExportFailed => tr.editorExportPdfError,
     };
   }

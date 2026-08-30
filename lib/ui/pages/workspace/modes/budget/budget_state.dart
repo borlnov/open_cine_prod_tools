@@ -65,15 +65,20 @@ class OcptBudgetIoNotice extends Equatable {
   final OcptBudgetIoNoticeKind kind;
 
   /// The path the export was written to, only set when [kind] is [OcptBudgetIoNoticeKind
-  /// .fileExportSucceeded].
+  /// .fileExportSucceeded] and [wasShared] is false — a mobile export hands the file to the OS
+  /// share sheet instead of writing it to a path the user picked, so there is none to show.
   final String? path;
 
+  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
+  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
+  final bool wasShared;
+
   /// Class constructor
-  const OcptBudgetIoNotice({required this.kind, this.path});
+  const OcptBudgetIoNotice({required this.kind, this.path, this.wasShared = false});
 
   /// Object properties
   @override
-  List<Object?> get props => [kind, path];
+  List<Object?> get props => [kind, path, wasShared];
 }
 
 /// The state of `OcptBudgetBloc`.

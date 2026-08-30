@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,6 +25,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
@@ -152,12 +154,13 @@ class _FakeExportManager extends OcptExportManager {
   ({bool sceneNumbers, bool titlePage, bool legendPage, bool summaryPage})? lastCoverageToggles;
 
   @override
-  Future<String?> exportShotListXlsx({
+  Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
     required OcptShotListXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedLabels = labels;
@@ -169,11 +172,12 @@ class _FakeExportManager extends OcptExportManager {
       throw StateError("shot list export intentionally failed for the test");
     }
 
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportScenarioCoverage({
+  Future<OcptExportOutcome?> exportScenarioCoverage({
     required FountainDocument document,
     required String screenplayText,
     required OcptShotListSnapshot snapshot,
@@ -186,6 +190,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeSummaryPage,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedProjectName = projectName;
@@ -206,7 +211,8 @@ class _FakeExportManager extends OcptExportManager {
       throw StateError("scenario coverage export intentionally failed for the test");
     }
 
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 }
 

@@ -4,12 +4,14 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_sheets_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_xlsx_export_service.dart';
@@ -28,6 +30,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xls
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_import_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_share_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
@@ -59,6 +62,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:path/path.dart' as p;
@@ -70,7 +74,7 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [LoggerManager, FileSelectorManager];
+  Iterable<Type> dependsOn() => [LoggerManager, FileSelectorManager, PlatformManager];
 }
 
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
@@ -93,11 +97,26 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService],
 /// [sidesPdfService], [contactListPdfService], [budgetQuotePdfService],
 /// [budgetFinancingPlanPdfService], [budgetCashJournalXlsxExportService] and
-/// [budgetFinancialReportPdfService], and the "save as"/"choose a folder" location picking to
-/// [saveLocationService] — the twenty services this manager owns (RFL18).
+/// [budgetFinancialReportPdfService], the "save as"/"choose a folder" location picking to
+/// [saveLocationService], and — on mobile, where `file_selector`'s `getSaveLocation`/
+/// `getDirectoryPath` have no Android or iOS implementation — the OS share sheet to [shareService]
+/// — the twenty-one services this manager owns (RFL18).
+///
+/// Every write funnels through [_writeToPickedLocation] (a single file) or [_writeBytesInFolder]
+/// and its two callers (several files at once): on [PlatformManager.isMobile] each writes into a
+/// `path_provider` temporary directory and hands the result to [shareService] instead of showing
+/// the native dialog, which is why every export method below returns an [OcptExportOutcome]
+/// rather than a bare path — [OcptExportSaved] on desktop, [OcptExportShared] on mobile — and
+/// takes an optional `shareAnchor`, the tapped `Export` control's own screen `Rect`
+/// (`sharePositionOrigin` on an iPad/Mac popover; this manager sees no `BuildContext` to resolve
+/// one itself).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
+
+  /// Tells whether the write funnel shows the native save dialog or hands the bytes to the OS
+  /// share sheet instead.
+  final PlatformManager _platformManager;
 
   /// The service converting Fountain files to and from text.
   final OcptFountainIoService fountainIoService;
@@ -161,14 +180,21 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// path.
   final OcptSaveLocationService saveLocationService;
 
+  /// The service handing an export's bytes to the OS share sheet on mobile.
+  final OcptShareService shareService;
+
   /// Class constructor
   OcptExportManager({
     FileSelectorManager? fileSelectorManager,
+    PlatformManager? platformManager,
     OcptSaveLocationService? saveLocationService,
+    OcptShareService? shareService,
   }) : this._(
          fontsLoader: OcptCourierPrimeFontsLoader(),
          fileSelectorManager: fileSelectorManager,
+         platformManager: platformManager,
          saveLocationService: saveLocationService,
+         shareService: shareService,
        );
 
   /// Class constructor, taking the one font loader every PDF renderer shares.
@@ -178,9 +204,18 @@ class OcptExportManager extends AbsWithLifeCycle {
   OcptExportManager._({
     required OcptCourierPrimeFontsLoader fontsLoader,
     required FileSelectorManager? fileSelectorManager,
+    required PlatformManager? platformManager,
     required OcptSaveLocationService? saveLocationService,
+    required OcptShareService? shareService,
   }) : _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
+       // Not resolved through globalGetIt() like the manager above: PlatformManager's own
+       // constructor is a synchronous, side-effect-free read of the real platform (isMobile does
+       // not depend on initLifeCycle()'s async SDK-version lookup), so building one directly here
+       // is exactly as correct as the registered singleton would be, and it keeps every other
+       // export test — none of which registers PlatformManager in GetIt — from having to.
+       _platformManager = platformManager ?? PlatformManager(),
        saveLocationService = saveLocationService ?? const OcptSaveLocationService(),
+       shareService = shareService ?? const OcptShareService(),
        fountainIoService = const OcptFountainIoService(),
        scriptImportService = const OcptScriptImportService(),
        pdfExportService = OcptPdfExportService(fontsLoader: fontsLoader),
@@ -207,14 +242,15 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// is the selected episode's own tag, resolved by the caller (this manager has no `Tr` of its
   /// own) and present only while the open project holds more than one episode — a screenplay is one
   /// episode's own text, so two episodes exported into the same folder must not silently overwrite
-  /// one another (issue #55, ADR 0019). Returns the path of the written file, or null if the user
+  /// one another (issue #55, ADR 0019). Returns the write funnel's own outcome, or null if the user
   /// cancelled or the save failed (failures are logged; the OS dialog already reported a
   /// cancellation to the user).
-  Future<String?> exportFountain({
+  Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) => _writeToPickedLocation(
     suggestedFileName: fountainIoService.fountainFileName(
       projectName: projectName,
@@ -223,6 +259,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     fileTypeLabel: fileTypeLabel,
     extensions: [OcptFountainIoService.fountainFileExtension],
     bytes: fountainIoService.encodeFountainText(fountainText),
+    shareAnchor: shareAnchor,
   );
 
   /// Renders [document] into a PDF via [pdfExportService] and shows the native save dialog to
@@ -231,10 +268,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. [episodeTag]
   /// is the selected episode's own tag, resolved by the caller (this manager has no `Tr` of its
   /// own) and present only while the open project holds more than one episode — see
-  /// [exportFountain]'s own doc comment for why. Returns the path of the written file, or null if
+  /// [exportFountain]'s own doc comment for why. Returns the write funnel's own outcome, or null if
   /// the user cancelled or the save failed (failures are logged; the OS dialog already reported a
   /// cancellation to the user).
-  Future<String?> exportPdf({
+  Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
     required OcptPageSetup pageSetup,
     required String projectName,
@@ -242,6 +279,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeTitlePage,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     final bytes = await pdfExportService.generate(
       document: document,
@@ -259,6 +297,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -270,14 +309,15 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// passed to the native dialog's type filter — this manager has no `Tr` of its own. [episodeTag]
   /// is the selected episode's own tag, resolved by the caller and present only while the open
   /// project holds more than one episode — see [exportFountain]'s own doc comment for why. Returns
-  /// the path of the written file, or null if the user cancelled or the save failed (failures are
+  /// the write funnel's own outcome, or null if the user cancelled or the save failed (failures are
   /// logged; the OS dialog already reported a cancellation to the user).
-  Future<String?> exportShotListXlsx({
+  Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
     required OcptShotListXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) => _writeToPickedLocation(
     suggestedFileName: shotListXlsxExportService.xlsxFileName(
       projectName: projectName,
@@ -286,6 +326,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
     bytes: shotListXlsxExportService.generate(snapshot: snapshot, labels: labels),
+    shareAnchor: shareAnchor,
   );
 
   /// Renders the scenario coverage of [snapshot] over [document] via [scenarioCoveragePdfService]
@@ -297,10 +338,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// sequence titles and the file name's own suffix) and [fileTypeLabel] the one the native dialog
   /// needs — this manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag,
   /// resolved by the caller and present only while the open project holds more than one episode —
-  /// see [exportFountain]'s own doc comment for why. Returns the path of the written file, or null
+  /// see [exportFountain]'s own doc comment for why. Returns the write funnel's own outcome, or null
   /// if the user cancelled or the save failed (failures are logged; the OS dialog already reported
   /// a cancellation to the user).
-  Future<String?> exportScenarioCoverage({
+  Future<OcptExportOutcome?> exportScenarioCoverage({
     required FountainDocument document,
     required String screenplayText,
     required OcptShotListSnapshot snapshot,
@@ -313,6 +354,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeSummaryPage,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     final bytes = await scenarioCoveragePdfService.generate(
       document: document,
@@ -336,6 +378,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -344,13 +387,14 @@ class OcptExportManager extends AbsWithLifeCycle {
   ///
   /// [labels] carries every localized string the four sheets themselves hold, and [fileTypeLabel]
   /// is the localized label passed to the native dialog's type filter — this manager has no `Tr`
-  /// of its own. Returns the path of the written file, or null if the user cancelled or the save
+  /// of its own. Returns the write funnel's own outcome, or null if the user cancelled or the save
   /// failed (failures are logged; the OS dialog already reported a cancellation to the user).
-  Future<String?> exportResourcesXlsx({
+  Future<OcptExportOutcome?> exportResourcesXlsx({
     required OcptResourcesSnapshot snapshot,
     required OcptResourcesXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) => _writeToPickedLocation(
     suggestedFileName: resourcesXlsxExportService.xlsxFileName(
       projectName: projectName,
@@ -359,6 +403,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
     bytes: resourcesXlsxExportService.generate(snapshot: snapshot, labels: labels),
+    shareAnchor: shareAnchor,
   );
 
   /// Renders the contact list of [snapshot] via [contactListPdfService] and shows the native save
@@ -368,16 +413,17 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// department and position labels and the file name's own suffix) and [fileTypeLabel] the one the
   /// native dialog needs — this manager has no `Tr` of its own. [exportDate] is resolved by the
   /// caller, exactly as the schedule mode's own PDF exports resolve theirs, so a test can pin it
-  /// rather than race a midnight rollover. Returns the path of the written file, or null if the
+  /// rather than race a midnight rollover. Returns the write funnel's own outcome, or null if the
   /// user cancelled or the save failed (failures are logged; the OS dialog already reported a
   /// cancellation to the user).
-  Future<String?> exportContactList({
+  Future<OcptExportOutcome?> exportContactList({
     required OcptResourcesSnapshot snapshot,
     required OcptPageSetup pageSetup,
     required OcptContactListLabels labels,
     required String projectName,
     required String fileTypeLabel,
     DateTime? exportDate,
+    Rect? shareAnchor,
   }) async {
     final bytes = await contactListPdfService.generate(
       snapshot: snapshot,
@@ -395,6 +441,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -404,10 +451,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// [elementNameById] names every breakdown element a quote line prices
   /// (`OcptBudgetLine.elementId`), resolved by the caller — this manager has no `Tr` of its own.
   /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
-  /// the native dialog needs. Returns the path of the written file, or null if the user cancelled
+  /// the native dialog needs. Returns the write funnel's own outcome, or null if the user cancelled
   /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
   /// user).
-  Future<String?> exportBudgetQuote({
+  Future<OcptExportOutcome?> exportBudgetQuote({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> elementNameById,
     required OcptPageSetup pageSetup,
@@ -416,6 +463,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     final bytes = await budgetQuotePdfService.generate(
       snapshot: snapshot,
@@ -432,6 +480,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -439,16 +488,17 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// native save dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
-  /// the native dialog needs. Returns the path of the written file, or null if the user cancelled
+  /// the native dialog needs. Returns the write funnel's own outcome, or null if the user cancelled
   /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
   /// user).
-  Future<String?> exportBudgetFinancingPlan({
+  Future<OcptExportOutcome?> exportBudgetFinancingPlan({
     required OcptBudgetSnapshot snapshot,
     required OcptPageSetup pageSetup,
     required OcptBudgetFinancingPlanLabels labels,
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     final bytes = await budgetFinancingPlanPdfService.generate(
       snapshot: snapshot,
@@ -466,6 +516,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -476,15 +527,16 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// `OcptBudgetEntry.id` and resolved by the caller — this manager has no `Tr` of its own, and
   /// this service resolves nothing itself either (`OcptBudgetCashJournalXlsxExportService`'s own
   /// doc comment). [labels] carries every localized string the sheet itself holds and
-  /// [fileTypeLabel] the one the native dialog needs. Returns the path of the written file, or null
+  /// [fileTypeLabel] the one the native dialog needs. Returns the write funnel's own outcome, or null
   /// if the user cancelled or the save failed (failures are logged; the OS dialog already reported
   /// a cancellation to the user).
-  Future<String?> exportBudgetCashJournalXlsx({
+  Future<OcptExportOutcome?> exportBudgetCashJournalXlsx({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> linkLabelByEntryId,
     required OcptBudgetCashJournalXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) => _writeToPickedLocation(
     suggestedFileName: budgetCashJournalXlsxExportService.xlsxFileName(projectName: projectName),
     fileTypeLabel: fileTypeLabel,
@@ -494,22 +546,24 @@ class OcptExportManager extends AbsWithLifeCycle {
       linkLabelByEntryId: linkLabelByEntryId,
       labels: labels,
     ),
+    shareAnchor: shareAnchor,
   );
 
   /// Renders the financial report of [snapshot] via [budgetFinancialReportPdfService] and shows the
   /// native save dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
-  /// the native dialog needs. Returns the path of the written file, or null if the user cancelled
+  /// the native dialog needs. Returns the write funnel's own outcome, or null if the user cancelled
   /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
   /// user).
-  Future<String?> exportBudgetFinancialReport({
+  Future<OcptExportOutcome?> exportBudgetFinancialReport({
     required OcptBudgetSnapshot snapshot,
     required OcptPageSetup pageSetup,
     required OcptBudgetFinancialReportLabels labels,
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     final bytes = await budgetFinancialReportPdfService.generate(
       snapshot: snapshot,
@@ -527,6 +581,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -539,10 +594,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// labels and the file name's own suffix) and [fileTypeLabel] the one the native dialog needs —
   /// this manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag, resolved
   /// by the caller and present only while the open project holds more than one episode — see
-  /// [exportFountain]'s own doc comment for why. Returns the path of the written file, or null if
+  /// [exportFountain]'s own doc comment for why. Returns the write funnel's own outcome, or null if
   /// the user cancelled or the save failed (failures are logged; the OS dialog already reported a
   /// cancellation to the user).
-  Future<String?> exportBreakdownSheets({
+  Future<OcptExportOutcome?> exportBreakdownSheets({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
     required OcptPageSetup pageSetup,
@@ -553,6 +608,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeToFindList,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     final bytes = await breakdownSheetsPdfService.generate(
       document: document,
@@ -574,6 +630,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -587,10 +644,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag, resolved by
   /// the caller and present only while the open project holds more than one episode — see
   /// [exportFountain]'s own doc comment for why. Unlike the breakdown sheets, this export takes no
-  /// options dialog: there is nothing to ask before writing it out. Returns the path of the written
-  /// file, or null if the user cancelled or the save failed (failures are logged; the OS dialog
+  /// options dialog: there is nothing to ask before writing it out. Returns the write funnel's own outcome, or null if the user cancelled or the save failed (failures are logged; the OS dialog
   /// already reported a cancellation to the user).
-  Future<String?> exportBreakdownXlsx({
+  Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
     required OcptPageSetup pageSetup,
@@ -598,6 +654,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) => _writeToPickedLocation(
     suggestedFileName: breakdownXlsxExportService.xlsxFileName(
       projectName: projectName,
@@ -612,6 +669,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       pageSetup: pageSetup,
       labels: labels,
     ),
+    shareAnchor: shareAnchor,
   );
 
   /// Renders one general call sheet per day of [dayIds] via [callSheetPdfService] and writes every
@@ -631,6 +689,11 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// each of them: a folder of sheets produced by one gesture is one issue of that day's paperwork,
   /// and a batch that read the clock per file would hand two people sheets a minute apart with no
   /// way to tell they are the same one.
+  ///
+  /// On mobile there is no folder to choose at all: every sheet is written into a temporary one
+  /// instead, then handed to the OS share sheet together once the run is done, anchored at
+  /// [shareAnchor] on an iPad/Mac — [OcptCallSheetExportResult.wasShared] is what tells a caller
+  /// which of the two happened.
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -638,8 +701,9 @@ class OcptExportManager extends AbsWithLifeCycle {
     required OcptCallSheetLabels labels,
     required String projectName,
     required String confirmButtonText,
+    Rect? shareAnchor,
   }) async {
-    final folderPath = await saveLocationService.pickDirectory(confirmButtonText: confirmButtonText);
+    final folderPath = await _resolveCallSheetFolder(confirmButtonText: confirmButtonText);
     if (folderPath == null) {
       return null;
     }
@@ -671,7 +735,12 @@ class OcptExportManager extends AbsWithLifeCycle {
       }
     }
 
-    return OcptCallSheetExportResult(folderPath: folderPath, writtenFileNames: written, failedFileNames: failed);
+    return _finishCallSheetExport(
+      folderPath: folderPath,
+      written: written,
+      failed: failed,
+      shareAnchor: shareAnchor,
+    );
   }
 
   /// Renders one named call sheet per (convocation × day) of [dayIds] via [callSheetPdfService] and
@@ -698,6 +767,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// recipients whose names collide on one day still each get a file of their own (`-2`, `-3`) — the
   /// file name already carries the day's own tag, so two different days' sheets never collide with
   /// each other in the first place.
+  ///
+  /// On mobile the whole run is shared together in one gesture rather than written into a folder the
+  /// user picks — see [exportGeneralCallSheets]'s own doc comment for [shareAnchor] and
+  /// [OcptCallSheetExportResult.wasShared].
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -706,8 +779,9 @@ class OcptExportManager extends AbsWithLifeCycle {
     required OcptCallSheetLabels labels,
     required String projectName,
     required String confirmButtonText,
+    Rect? shareAnchor,
   }) async {
-    final folderPath = await saveLocationService.pickDirectory(confirmButtonText: confirmButtonText);
+    final folderPath = await _resolveCallSheetFolder(confirmButtonText: confirmButtonText);
     if (folderPath == null) {
       return null;
     }
@@ -755,7 +829,12 @@ class OcptExportManager extends AbsWithLifeCycle {
       }
     }
 
-    return OcptCallSheetExportResult(folderPath: folderPath, writtenFileNames: written, failedFileNames: failed);
+    return _finishCallSheetExport(
+      folderPath: folderPath,
+      written: written,
+      failed: failed,
+      shareAnchor: shareAnchor,
+    );
   }
 
   /// Renders the whole-shoot shooting plan of [dayIds] via [shootingPlanPdfService] and shows the
@@ -765,10 +844,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// director line, the grid and section headings, the shot table's own headers and the file name's
   /// own suffix) and [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of
   /// its own. Unlike the call sheets, this is a **single** file: the whole shoot's own plan, through
-  /// `pickSaveLocation` rather than a folder. Returns the path of the written file, or null if the
+  /// `pickSaveLocation` rather than a folder. Returns the write funnel's own outcome, or null if the
   /// user cancelled or the save failed (failures are logged; the OS dialog already reported a
   /// cancellation to the user).
-  Future<String?> exportShootingPlan({
+  Future<OcptExportOutcome?> exportShootingPlan({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptPageSetup pageSetup,
@@ -781,6 +860,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeTenMinuteGrid,
     required bool includeElementsGrid,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     final bytes = await shootingPlanPdfService.generate(
       plan: plan,
@@ -804,6 +884,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -813,15 +894,16 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// [labels] carries every localized string the five sheets themselves hold and [fileTypeLabel]
   /// the one the native dialog needs — this manager has no `Tr` of its own. Unlike [exportShootingPlan],
   /// this export takes no options beyond [dayIds]: there is no page geometry to ask about, and a
-  /// sheet costs nothing to hide, unlike a PDF's own page. Returns the path of the written file, or
-  /// null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// sheet costs nothing to hide, unlike a PDF's own page. Returns the write funnel's own outcome,
+  /// or null if the user cancelled or the save failed (failures are logged; the OS dialog already
   /// reported a cancellation to the user).
-  Future<String?> exportShootingPlanXlsx({
+  Future<OcptExportOutcome?> exportShootingPlanXlsx({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptShootingPlanXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) => _writeToPickedLocation(
     suggestedFileName: shootingPlanXlsxExportService.xlsxFileName(
       projectName: projectName,
@@ -830,6 +912,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
     bytes: shootingPlanXlsxExportService.generate(plan: plan, dayIds: dayIds, labels: labels),
+    shareAnchor: shareAnchor,
   );
 
   /// Renders the cast's own *Day Out of Days* over [dayIds] via [dayOutOfDaysPdfService] and shows
@@ -839,10 +922,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// letters and their legend, the two count headers and the file name's own suffix) and
   /// [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of its own. Like the
   /// shooting plan and unlike the call sheets, this is a **single** file, through `pickSaveLocation`
-  /// rather than a folder. Returns the path of the written file, or null if the user cancelled or
+  /// rather than a folder. Returns the write funnel's own outcome, or null if the user cancelled or
   /// the save failed (failures are logged; the OS dialog already reported a cancellation to the
   /// user).
-  Future<String?> exportDayOutOfDays({
+  Future<OcptExportOutcome?> exportDayOutOfDays({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptPageSetup pageSetup,
@@ -850,6 +933,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     final bytes = await dayOutOfDaysPdfService.generate(
       plan: plan,
@@ -868,6 +952,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -877,10 +962,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// [labels] carries every localized string the document itself holds (the day titles, the column
   /// headers and the file name's own suffix) and [fileTypeLabel] the one the native dialog needs —
   /// this manager has no `Tr` of its own. Like the shooting plan and the *Day Out of Days*, this is
-  /// a **single** file, through `pickSaveLocation` rather than a folder. Returns the path of the
-  /// written file, or null if the user cancelled or the save failed (failures are logged; the OS
+  /// a **single** file, through `pickSaveLocation` rather than a folder. Returns the write funnel's own outcome, or null if the user cancelled or the save failed (failures are logged; the OS
   /// dialog already reported a cancellation to the user).
-  Future<String?> exportOneLineSchedule({
+  Future<OcptExportOutcome?> exportOneLineSchedule({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptPageSetup pageSetup,
@@ -888,6 +972,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     final bytes = await oneLineSchedulePdfService.generate(
       plan: plan,
@@ -906,6 +991,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -923,9 +1009,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// dialog needs — this manager has no `Tr` of its own. Like the shooting plan, the *Day Out of
   /// Days* and the one-line schedule, this is a **single** file, through `pickSaveLocation` rather
   /// than a folder — one booklet is one day's own paperwork, handed to one recipient at a time.
-  /// Returns the path of the written file, or null if the user cancelled or the save failed
+  /// Returns the write funnel's own outcome, or null if the user cancelled or the save failed
   /// (failures are logged; the OS dialog already reported a cancellation to the user).
-  Future<String?> exportSides({
+  Future<OcptExportOutcome?> exportSides({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
     required List<({String screenplayId, FountainDocument document})> documents,
@@ -935,6 +1021,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeSceneNumbers,
     required OcptSidesPresentation presentation,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     final bytes = await sidesPdfService.generate(
       plan: plan,
@@ -957,6 +1044,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
+      shareAnchor: shareAnchor,
     );
   }
 
@@ -1000,6 +1088,43 @@ class OcptExportManager extends AbsWithLifeCycle {
     }
   }
 
+  /// Resolves the folder [exportGeneralCallSheets]/[exportNamedCallSheets] write into: the folder
+  /// the user picks through the native "choose a folder" dialog on desktop, or a `path_provider`
+  /// temporary directory on mobile, where there is no such dialog to show at all.
+  Future<String?> _resolveCallSheetFolder({required String confirmButtonText}) async {
+    if (_platformManager.isMobile) {
+      return (await shareService.temporaryDirectory()).path;
+    }
+
+    return saveLocationService.pickDirectory(confirmButtonText: confirmButtonText);
+  }
+
+  /// Finishes a call sheet run: on mobile, hands every file in [written] to the OS share sheet
+  /// together, in the one gesture, anchored at [shareAnchor] — rather than leaving them sitting in
+  /// the temporary folder [_resolveCallSheetFolder] wrote them into. A no-op on desktop, and when
+  /// [written] is empty (nothing came out of the run to share).
+  Future<OcptCallSheetExportResult> _finishCallSheetExport({
+    required String folderPath,
+    required List<String> written,
+    required List<String> failed,
+    Rect? shareAnchor,
+  }) async {
+    var wasShared = false;
+    if (_platformManager.isMobile && written.isNotEmpty) {
+      wasShared = await shareService.shareFiles(
+        paths: [for (final fileName in written) p.join(folderPath, fileName)],
+        sharePositionOrigin: shareAnchor,
+      );
+    }
+
+    return OcptCallSheetExportResult(
+      folderPath: folderPath,
+      writtenFileNames: written,
+      failedFileNames: failed,
+      wasShared: wasShared,
+    );
+  }
+
   /// Writes [bytes] to `[folderPath]/[fileName]`, returning whether it succeeded — logged on
   /// failure, exactly like [_writeToPickedLocation]'s own write.
   Future<bool> _writeBytesInFolder({
@@ -1017,16 +1142,24 @@ class OcptExportManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Shows the native save dialog and writes [bytes] to the chosen location.
+  /// Shows the native save dialog and writes [bytes] to the chosen location — or, on
+  /// [PlatformManager.isMobile], writes them to a `path_provider` temporary file and hands that to
+  /// [shareService] instead, [shareAnchor] anchoring the popover it opens as on an iPad or a Mac.
   ///
-  /// Returns the written path, or null if the user cancelled the dialog or the write failed
+  /// Returns [OcptExportSaved] with the written path, [OcptExportShared] once the bytes were handed
+  /// to the share sheet, or null if the user cancelled the dialog or the write/share failed
   /// (logged; treated the same as a cancellation by every caller).
-  Future<String?> _writeToPickedLocation({
+  Future<OcptExportOutcome?> _writeToPickedLocation({
     required String suggestedFileName,
     required String fileTypeLabel,
     required List<String> extensions,
     required Uint8List bytes,
+    Rect? shareAnchor,
   }) async {
+    if (_platformManager.isMobile) {
+      return _shareBytes(fileName: suggestedFileName, bytes: bytes, shareAnchor: shareAnchor);
+    }
+
     final path = await saveLocationService.pickSaveLocation(
       suggestedFileName: suggestedFileName,
       fileTypeLabel: fileTypeLabel,
@@ -1038,9 +1171,34 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     try {
       await File(path).writeAsBytes(bytes, flush: true);
-      return path;
+      return OcptExportSaved(path);
     } catch (error) {
       appLogger().e("A problem occurred when tried to write the file at: $path, error: $error");
+      return null;
+    }
+  }
+
+  /// [_writeToPickedLocation]'s mobile branch: writes [bytes] to [fileName] under
+  /// [OcptShareService.temporaryDirectory] and hands that file to [shareService], anchored at
+  /// [shareAnchor].
+  ///
+  /// Returns [OcptExportShared] once the share sheet was shown, or null if the temporary file could
+  /// not be written or the share sheet itself could not be shown (logged, exactly like the desktop
+  /// write).
+  Future<OcptExportOutcome?> _shareBytes({
+    required String fileName,
+    required Uint8List bytes,
+    Rect? shareAnchor,
+  }) async {
+    try {
+      final directory = await shareService.temporaryDirectory();
+      final path = p.join(directory.path, fileName);
+      await File(path).writeAsBytes(bytes, flush: true);
+
+      final shared = await shareService.shareFiles(paths: [path], sharePositionOrigin: shareAnchor);
+      return shared ? const OcptExportShared() : null;
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to share the file: $fileName, error: $error");
       return null;
     }
   }

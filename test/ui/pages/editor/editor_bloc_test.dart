@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
@@ -32,6 +33,7 @@ import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
@@ -180,21 +182,23 @@ class _FakeExportManager extends OcptExportManager {
   String? lastExportedPdfEpisodeTag;
 
   @override
-  Future<String?> exportFountain({
+  Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedText = fountainText;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
     lastExportedEpisodeTag = episodeTag;
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportPdf({
+  Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
     required OcptPageSetup pageSetup,
     required String projectName,
@@ -202,6 +206,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeTitlePage,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedPdfDocument = document;
     lastExportedPdfPageSetup = pageSetup;
@@ -210,7 +215,8 @@ class _FakeExportManager extends OcptExportManager {
     lastExportedPdfIncludeTitlePage = includeTitlePage;
     lastExportedPdfFileTypeLabel = fileTypeLabel;
     lastExportedPdfEpisodeTag = episodeTag;
-    return exportPdfResult;
+    final result = exportPdfResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
@@ -234,7 +240,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
   _ThrowingPdfExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
   @override
-  Future<String?> exportPdf({
+  Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
     required OcptPageSetup pageSetup,
     required String projectName,
@@ -242,6 +248,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
     required bool includeTitlePage,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async => throw StateError("PDF export intentionally failed for the test");
 }
 

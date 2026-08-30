@@ -827,6 +827,7 @@
   "workspaceHelpTooltip": "Aide",
   "workspaceExportAction": "Exporter",
   "workspaceExportTooltip": "Ouvrir le panneau d'export de ce mode",
+  "exportSharedMessage": "Partag\u00e9",
   "projectSettingsPageTitle": "Param\u00e8tres du projet",
   "projectSettingsCurrencySectionTitle": "Devise",
   "projectSettingsCurrencyLabel": "Devise",

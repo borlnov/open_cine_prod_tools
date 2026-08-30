@@ -2311,7 +2311,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportBudgetQuote(
+      final outcome = await _exportManager.exportBudgetQuote(
         snapshot: snapshot,
         elementNameById: event.elementNameById,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
@@ -2320,15 +2320,20 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -2354,22 +2359,27 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportBudgetFinancingPlan(
+      final outcome = await _exportManager.exportBudgetFinancingPlan(
         snapshot: snapshot,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
         labels: event.labels,
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -2396,21 +2406,26 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     try {
-      final path = await _exportManager.exportBudgetCashJournalXlsx(
+      final outcome = await _exportManager.exportBudgetCashJournalXlsx(
         snapshot: snapshot,
         linkLabelByEntryId: event.linkLabelByEntryId,
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -2436,22 +2451,27 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportBudgetFinancialReport(
+      final outcome = await _exportManager.exportBudgetFinancialReport(
         snapshot: snapshot,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
         labels: event.labels,
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {

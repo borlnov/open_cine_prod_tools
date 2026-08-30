@@ -666,14 +666,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      final path = await _exportManager.exportShotListXlsx(
+      final outcome = await _exportManager.exportShotListXlsx(
         snapshot: snapshot,
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
         episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
@@ -682,7 +683,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           ioNotice: OcptShotListIoNotice(
             kind: OcptShotListIoNoticeKind.xlsxExportSucceeded,
-            path: path,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
           ),
         ),
       );
@@ -721,7 +723,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportScenarioCoverage(
+      final outcome = await _exportManager.exportScenarioCoverage(
         document: const FountainParser().parse(state.screenplayText),
         screenplayText: state.screenplayText,
         snapshot: snapshot,
@@ -734,8 +736,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         includeSummaryPage: options.includeSummaryPage,
         fileTypeLabel: event.fileTypeLabel,
         episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
@@ -744,7 +747,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           ioNotice: OcptShotListIoNotice(
             kind: OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded,
-            path: path,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
           ),
         ),
       );

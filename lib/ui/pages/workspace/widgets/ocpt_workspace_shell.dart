@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_export_share_anchor.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
@@ -114,7 +115,12 @@ class OcptWorkspaceShell extends StatelessWidget {
 
   /// Called when the toolbar's `Export` control is clicked, or null when the mode prints nothing —
   /// no control is rendered at all then, rather than a disabled one.
-  final VoidCallback? onExportRequested;
+  ///
+  /// Carries the control's own screen `Rect` at the moment it was tapped — null from the phone
+  /// overflow menu, where no control's own bounds are meaningful — which a mode threads down to
+  /// whichever export it ends up dispatching, for `Share.shareXFiles`' iPad/Mac popover anchor
+  /// (`OcptExportManager` sees no `BuildContext` to resolve one itself).
+  final ValueSetter<Rect?>? onExportRequested;
 
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
@@ -288,8 +294,13 @@ class OcptWorkspaceShell extends StatelessWidget {
     final onHelpRequested = this.onHelpRequested;
 
     return [
+      // No control's own bounds are meaningful once the gesture came through a menu item rather
+      // than the toolbar button itself, so this is the one caller that always hands down null.
       if (onExportRequested != null)
-        PopupMenuItem<void>(onTap: onExportRequested, child: Text(tr.workspaceExportAction)),
+        PopupMenuItem<void>(
+          onTap: () => onExportRequested(null),
+          child: Text(tr.workspaceExportAction),
+        ),
       if (onProjectSettingsRequested != null)
         PopupMenuItem<void>(
           onTap: onProjectSettingsRequested,
@@ -318,6 +329,10 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// whatever the theme says. Beware that `flutter test` reports the Android density unless the test
   /// overrides `debugDefaultTargetPlatform`, so this is a difference a widget test cannot see by
   /// default.
+  ///
+  /// Wrapped in its own [Builder] so `onPressed` can resolve the button's own screen [Rect] from
+  /// its `RenderBox` at tap time — the anchor [onExportRequested] hands down for the OS share
+  /// sheet's iPad/Mac popover — without this widget itself needing a [GlobalKey].
   Widget? _buildExportAction(BuildContext context) {
     final onExportRequested = this.onExportRequested;
     if (onExportRequested == null) {
@@ -328,16 +343,18 @@ class OcptWorkspaceShell extends StatelessWidget {
 
     return Tooltip(
       message: tr.workspaceExportTooltip,
-      child: TextButton.icon(
-        onPressed: onExportRequested,
-        icon: const Icon(Icons.file_upload_outlined, size: 16),
-        label: Text(tr.workspaceExportAction),
-        style: TextButton.styleFrom(
-          minimumSize: const Size(0, ocptToolbarChromeButtonSize),
-          maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.standard,
+      child: Builder(
+        builder: (buttonContext) => TextButton.icon(
+          onPressed: () => onExportRequested(ocptExportShareAnchorOf(buttonContext)),
+          icon: const Icon(Icons.file_upload_outlined, size: 16),
+          label: Text(tr.workspaceExportAction),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, ocptToolbarChromeButtonSize),
+            maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.standard,
+          ),
         ),
       ),
     );

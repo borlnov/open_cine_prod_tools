@@ -43,6 +43,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_export_share_anchor.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
@@ -139,7 +140,7 @@ class _ShotListViewState extends State<_ShotListView> {
             OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
           ),
           modeLabel: Tr.of(context).workspaceModeLabelShotList,
-          onExportRequested: () => unawaited(_requestExport(context, state)),
+          onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
           overflowEntries: _buildOverflowEntries(context),
           isLeftDockOpen: state.isSequencePanelVisible,
           onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
@@ -214,7 +215,11 @@ class _ShotListViewState extends State<_ShotListView> {
   /// event directly (it opens no options dialog of its own, mirroring the table's own
   /// `Export XLSX` button), or [_requestScenarioCoverageExport], which opens the scenario coverage
   /// export options dialog exactly as it always has.
-  Future<void> _requestExport(BuildContext context, OcptShotListState state) async {
+  Future<void> _requestExport(
+    BuildContext context,
+    OcptShotListState state,
+    Rect? shareAnchor,
+  ) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptShotListExportDocument>(
       context,
@@ -234,9 +239,9 @@ class _ShotListViewState extends State<_ShotListView> {
       case OcptWorkspaceExportDocumentPick<OcptShotListExportDocument>(:final document):
         switch (document) {
           case OcptShotListExportDocument.xlsx:
-            _requestXlsxExport(context, state);
+            _requestXlsxExport(context, state, shareAnchor);
           case OcptShotListExportDocument.coverage:
-            await _requestScenarioCoverageExport(context, state);
+            await _requestScenarioCoverageExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptShotListExportDocument>():
         _requestProjectPackageExport(context);
@@ -245,7 +250,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the workbook and the native save dialog carry.
-  void _requestXlsxExport(BuildContext context, OcptShotListState state) {
+  void _requestXlsxExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
 
     context.read<OcptShotListBloc>().add(
@@ -253,6 +258,7 @@ class _ShotListViewState extends State<_ShotListView> {
         labels: ocptShotListXlsxLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportXlsxFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -263,6 +269,7 @@ class _ShotListViewState extends State<_ShotListView> {
   Future<void> _requestScenarioCoverageExport(
     BuildContext context,
     OcptShotListState state,
+    Rect? shareAnchor,
   ) async {
     final bloc = context.read<OcptShotListBloc>();
     final options = await OcptScenarioCoverageExportDialog.show(
@@ -283,6 +290,7 @@ class _ShotListViewState extends State<_ShotListView> {
         labels: ocptScenarioCoverageLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -464,13 +472,20 @@ class _ShotListViewState extends State<_ShotListView> {
               const SizedBox(width: 8),
               // Exports the whole shot list, not the sequence this header names: the button sits
               // here because the mock-up puts it next to the columns menu, not because it is
-              // scoped to what the table below currently shows.
-              OutlinedButton.icon(
-                onPressed: state.totalShotCount > 0
-                    ? () => _requestXlsxExport(context, state)
-                    : null,
-                icon: const Icon(Icons.file_download_outlined, size: 16),
-                label: Text(tr.shotListExportXlsxAction),
+              // scoped to what the table below currently shows. Wrapped in its own Builder so the
+              // anchor handed to the export is this button's own screen Rect, not some ancestor's.
+              Builder(
+                builder: (buttonContext) => OutlinedButton.icon(
+                  onPressed: state.totalShotCount > 0
+                      ? () => _requestXlsxExport(
+                          context,
+                          state,
+                          ocptExportShareAnchorOf(buttonContext),
+                        )
+                      : null,
+                  icon: const Icon(Icons.file_download_outlined, size: 16),
+                  label: Text(tr.shotListExportXlsxAction),
+                ),
               ),
             ],
           ),
@@ -892,16 +907,21 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Maps [notice] to its localized, user-facing message.
+  ///
+  /// A succeeded kind degrades to the generic "shared" message on mobile
+  /// ([OcptShotListIoNotice.wasShared]): there is no path to name, the export having been handed to
+  /// the OS share sheet rather than written to a location the user picked.
   String _ioNoticeMessage(BuildContext context, OcptShotListIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptShotListIoNoticeKind.xlsxExportSucceeded => tr.shotListExportXlsxSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptShotListIoNoticeKind.xlsxExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportXlsxSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.xlsxExportFailed => tr.shotListExportXlsxError,
-      OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded =>
-        tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.scenarioCoverageExportFailed => tr.shotListExportCoverageError,
     };
   }

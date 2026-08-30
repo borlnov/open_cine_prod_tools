@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:ui';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
@@ -1035,17 +1037,30 @@ class OcptBudgetQuoteExportRequestedEvent extends OcptBudgetEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, anchoring the OS share sheet's popover on an
+  /// iPad/Mac when the export is handed to it rather than to the native save dialog; null on
+  /// desktop and wherever no anchor was resolved.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptBudgetQuoteExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.elementNameById,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, elementNameById, fileTypeLabel];
+  List<Object?> get props => [
+    ...super.props,
+    options,
+    labels,
+    elementNameById,
+    fileTypeLabel,
+    shareAnchor,
+  ];
 }
 
 /// Requests exporting the financing plan as a single PDF, written through the native save dialog —
@@ -1060,16 +1075,21 @@ class OcptBudgetFinancingPlanExportRequestedEvent extends OcptBudgetEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptBudgetQuoteExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptBudgetFinancingPlanExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Requests exporting the cash journal as a single XLSX workbook, written through the native save
@@ -1087,16 +1107,27 @@ class OcptBudgetCashJournalExportRequestedEvent extends OcptBudgetEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptBudgetQuoteExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptBudgetCashJournalExportRequestedEvent({
     required this.labels,
     required this.linkLabelByEntryId,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, labels, linkLabelByEntryId, fileTypeLabel];
+  List<Object?> get props => [
+    ...super.props,
+    labels,
+    linkLabelByEntryId,
+    fileTypeLabel,
+    shareAnchor,
+  ];
 }
 
 /// Requests exporting the financial report as a single PDF, written through the native save
@@ -1111,16 +1142,21 @@ class OcptBudgetFinancialReportExportRequestedEvent extends OcptBudgetEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptBudgetQuoteExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptBudgetFinancialReportExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Clears the transient export notice currently shown, if any.

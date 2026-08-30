@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' as drift;
@@ -42,6 +43,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
@@ -185,7 +187,7 @@ class _FakeBudgetExportManager extends OcptExportManager {
   Map<String, String>? lastCashJournalLinkLabelByEntryId;
 
   @override
-  Future<String?> exportBudgetQuote({
+  Future<OcptExportOutcome?> exportBudgetQuote({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> elementNameById,
     required OcptPageSetup pageSetup,
@@ -194,6 +196,7 @@ class _FakeBudgetExportManager extends OcptExportManager {
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     lastQuoteSnapshot = snapshot;
     lastQuoteTaxBasis = taxBasis;
@@ -201,53 +204,60 @@ class _FakeBudgetExportManager extends OcptExportManager {
     if (quoteFails) {
       throw StateError("quote export intentionally failed for the test");
     }
-    return quoteResult;
+    final result = quoteResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportBudgetFinancingPlan({
+  Future<OcptExportOutcome?> exportBudgetFinancingPlan({
     required OcptBudgetSnapshot snapshot,
     required OcptPageSetup pageSetup,
     required OcptBudgetFinancingPlanLabels labels,
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     if (financingPlanFails) {
       throw StateError("financing plan export intentionally failed for the test");
     }
-    return financingPlanResult;
+    final result = financingPlanResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportBudgetCashJournalXlsx({
+  Future<OcptExportOutcome?> exportBudgetCashJournalXlsx({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> linkLabelByEntryId,
     required OcptBudgetCashJournalXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     lastCashJournalLinkLabelByEntryId = linkLabelByEntryId;
 
     if (cashJournalFails) {
       throw StateError("cash journal export intentionally failed for the test");
     }
-    return cashJournalResult;
+    final result = cashJournalResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportBudgetFinancialReport({
+  Future<OcptExportOutcome?> exportBudgetFinancialReport({
     required OcptBudgetSnapshot snapshot,
     required OcptPageSetup pageSetup,
     required OcptBudgetFinancialReportLabels labels,
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     if (financialReportFails) {
       throw StateError("financial report export intentionally failed for the test");
     }
-    return financialReportResult;
+    final result = financialReportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 }
 
