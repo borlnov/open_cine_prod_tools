@@ -678,7 +678,9 @@ void main() {
       for (final column in row.toJson().keys) {
         final stamp = ownStamps["budget_entries/$entryId/$column"];
         expect(stamp, isNotNull, reason: "$column should be stamped");
-        expect(stamp!.version, 1);
+        // The device clock already ticked once creating `posteId` in setUp, so this entry's own
+        // transaction reserves the next tick, not the first one.
+        expect(stamp!.version, 2);
       }
     });
 
@@ -737,7 +739,9 @@ void main() {
       for (final column in row.toJson().keys) {
         final stamp = ownStamps["budget_commitments/$commitmentId/$column"];
         expect(stamp, isNotNull, reason: "$column should be stamped");
-        expect(stamp!.version, 1);
+        // The device clock already ticked once creating `posteId` in setUp, so this commitment's
+        // own transaction reserves the next tick, not the first one.
+        expect(stamp!.version, 2);
       }
     });
 

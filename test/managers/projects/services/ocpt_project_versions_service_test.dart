@@ -704,7 +704,7 @@ void main() {
       expect(liveShots.map((shot) => shot.id), ["shot-1"]);
     });
 
-    test("stamps every column it changed, above what that column already held", () async {
+    test("stamps every column it changed with one version, above what any of them already held", () async {
       final version = await createDivergedProject();
 
       // As if the edit that rewrote the framing had been stamped by the changeset engine.
@@ -730,8 +730,9 @@ void main() {
       expect(stamps["shots/shot-1/framing"]?.deviceId, deviceId);
 
       // A row the version didn't hold is tombstoned, and the tombstone is stamped like any other
-      // write.
-      expect(stamps["shots/shot-2/isDeleted"]?.version, 1);
+      // write — sharing the very same version, since the whole restore is one transaction and this
+      // device's clock hands out exactly one tick for it.
+      expect(stamps["shots/shot-2/isDeleted"]?.version, 8);
       expect(stamps["shots/shot-2/isDeleted"]?.deviceId, deviceId);
 
       // A column whose value already matched the version is left alone: a restore must not stomp
