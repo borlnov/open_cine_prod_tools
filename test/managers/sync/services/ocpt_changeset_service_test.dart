@@ -231,4 +231,64 @@ void main() {
 
     expect(await storage.readSince(OcptSequenceNumber.zero), isEmpty);
   });
+
+  group('countUnpushedEdits', () {
+    test('is zero when nothing has ever been stamped', () async {
+      expect(
+        await service.countUnpushedEdits(database: database, relayId: relayId, deviceId: deviceId),
+        0,
+      );
+    });
+
+    test('counts exactly the stamps a push would send, and none it already sent', () async {
+      final location = await insertLocation('location-1');
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationsTable,
+        rowId: location.id,
+        current: location,
+        next: location.copyWith(name: 'Exterior'),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+
+      expect(
+        await service.countUnpushedEdits(database: database, relayId: relayId, deviceId: deviceId),
+        1,
+      );
+
+      await service.pushLocalEdits(
+        database: database,
+        storage: storage,
+        relayId: relayId,
+        deviceId: deviceId,
+      );
+
+      expect(
+        await service.countUnpushedEdits(database: database, relayId: relayId, deviceId: deviceId),
+        0,
+      );
+    });
+
+    test("never counts another device's own stamp", () async {
+      final location = await insertLocation('location-1');
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: 'locations',
+              rowId: location.id,
+              columnName: 'name',
+              version: 1,
+              deviceId: 'other-device',
+            ),
+          );
+
+      expect(
+        await service.countUnpushedEdits(database: database, relayId: relayId, deviceId: deviceId),
+        0,
+      );
+    });
+  });
 }

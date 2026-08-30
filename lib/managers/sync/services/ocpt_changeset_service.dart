@@ -192,6 +192,29 @@ class OcptChangesetService {
     return pullAndApply(database: database, storage: storage, relayId: relayId);
   }
 
+  /// How many of [deviceId]'s own `row_field_versions` stamps against [database] have not been
+  /// pushed to [relayId] yet — i.e. carry a version higher than [relayId]'s current
+  /// `outboxHighWaterMark`.
+  ///
+  /// A read-only count, never a lookup [pushLocalEdits] itself needs: exactly the stamps that call
+  /// would push on its very next run, without reading any of their rows back off their own
+  /// tables — which is the part of [pushLocalEdits] this skips, and why this is cheap enough for a
+  /// sync session's status to compute on every failed run. Behaviourally inert on its own: nothing
+  /// about calling this changes [relayId]'s cursor or anything else in [database].
+  Future<int> countUnpushedEdits({
+    required OcptProjectDatabase database,
+    required String relayId,
+    required String deviceId,
+  }) async {
+    final highWaterMark = await _outboxHighWaterMark(database: database, relayId: relayId);
+
+    final stamps = await (database.select(
+      database.ocptRowFieldVersionsTable,
+    )..where((table) => table.deviceId.equals(deviceId) & table.version.isBiggerThanValue(highWaterMark))).get();
+
+    return stamps.length;
+  }
+
   /// [relayId]'s current `lastAppliedSequence` against [database], or [OcptSequenceNumber.zero]
   /// when this replica has never pulled anything from it yet.
   Future<OcptSequenceNumber> _lastAppliedSequence({
