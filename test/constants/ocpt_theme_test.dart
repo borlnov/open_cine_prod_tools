@@ -173,4 +173,38 @@ void main() {
       });
     }
   });
+
+  group('buildOcptThemeModel scaler parametrisation', () {
+    // These assertions build the theme model directly, without ScreenUtilInit: the scalers below
+    // are plain functions, not flutter_screenutil's `.sp`/`.w`/`.r`, so the theme's own
+    // parametrisation is exercised independently of ScreenUtil ever being initialised.
+    test('the identity default leaves the dense headlineSmall size at 22', () {
+      expect(buildOcptThemeModel().lightThemeData!.textTheme.headlineSmall!.fontSize, 22);
+    });
+
+    test('a doubling sp scaler doubles the dense headlineSmall size to 44', () {
+      final model = buildOcptThemeModel(sp: (v) => v * 2);
+      expect(model.lightThemeData!.textTheme.headlineSmall!.fontSize, 44);
+    });
+
+    test('a doubling w scaler doubles the icon button minimum size to 56', () {
+      final model = buildOcptThemeModel(w: (v) => v * 2);
+      final minimumSize = model.lightThemeData!.iconButtonTheme.style!.minimumSize!.resolve(
+        <WidgetState>{},
+      );
+      expect(minimumSize, const Size(56, 56));
+    });
+
+    test('a doubling r scaler doubles the card corner radius', () {
+      final identityShape =
+          ocptTheme.lightThemeData!.cardTheme.shape as RoundedRectangleBorder?;
+      final identityRadius = (identityShape?.borderRadius as BorderRadius?)?.topLeft.x;
+
+      final model = buildOcptThemeModel(r: (v) => v * 2);
+      final scaledShape = model.lightThemeData!.cardTheme.shape as RoundedRectangleBorder?;
+      final scaledRadius = (scaledShape?.borderRadius as BorderRadius?)?.topLeft.x;
+
+      expect(scaledRadius, identityRadius! * 2);
+    });
+  });
 }

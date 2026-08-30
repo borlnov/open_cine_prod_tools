@@ -7,6 +7,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_licenses_manager/act_licenses_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter/widgets.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -37,6 +38,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
   @override
   Future<void> registerManagers() async {
     registerManagerAsync<OcptConfigManager>(const OcptConfigManagerBuilder());
+    registerManagerAsync<PlatformManager>(const PlatformBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
     registerManagerAsync<ActLicensesManager>(ActLicensesBuilder<OcptConfigManager>());
     registerManagerAsync<OcptPropertiesManager>(const OcptPropertiesManagerBuilder());
