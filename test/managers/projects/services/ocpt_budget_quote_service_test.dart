@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -17,8 +18,12 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptBudgetQuoteService();
-  const elementsService = OcptElementsService();
+  Future<String> testDeviceId() async => "test-device";
+  final service = OcptBudgetQuoteService(deviceId: testDeviceId);
+  final elementsService = OcptElementsService(
+    assetsService: OcptAssetsService(deviceId: testDeviceId),
+    deviceId: testDeviceId,
+  );
 
   late OcptProjectDatabase database;
 
@@ -29,6 +34,13 @@ void main() {
   tearDown(() async {
     await database.close();
   });
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   /// Three postes, standing in for the ten the real CNC nomenclature ships — enough to prove the
   /// seeding, ordering and merge-safety rules without repeating all ten in every test.
@@ -359,6 +371,138 @@ void main() {
       expect(previewPosteId, isNull);
 
       await preview.close();
+    });
+  });
+
+  group("stamping", () {
+    test("createPoste stamps every column of the new row", () async {
+      final posteId = (await service.createPoste(database: database, label: "Divers"))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetPostesTable,
+      )..where((table) => table.id.equals(posteId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_postes/$posteId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_postes/$posteId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("_seedIfEmpty stamps every column of every seeded poste", () async {
+      await service.loadPostes(database: database, seed: seed);
+
+      final stamps = await readStamps();
+      for (final posteSeed in seed) {
+        final ownKeys = stamps.keys.where((key) => key.startsWith("budget_postes/${posteSeed.id}/"));
+        expect(ownKeys, isNotEmpty);
+      }
+    });
+
+    test("updatePoste stamps only the columns that actually changed", () async {
+      final posteId = (await service.createPoste(database: database, label: "Divers"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updatePoste(
+        database: database,
+        posteId: posteId,
+        code: const Value("11"),
+        simpleLabel: const Value("Misc"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("budget_postes/$posteId/")).toSet();
+      expect(ownKeys, {"budget_postes/$posteId/code", "budget_postes/$posteId/simpleLabel"});
+    });
+
+    test("deletePoste stamps isDeleted on the poste and every line it holds", () async {
+      final posteId = (await service.createPoste(database: database, label: "Personnel"))!;
+      final lineId = (await service.createLine(
+        database: database,
+        posteId: posteId,
+        label: "Ingénieur du son",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deletePoste(database: database, posteId: posteId);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_postes/$posteId/isDeleted"]!.version, 1);
+      expect(stamps["budget_lines/$lineId/isDeleted"]!.version, 1);
+    });
+
+    test("createLine stamps every column of the new row", () async {
+      final posteId = (await service.createPoste(database: database, label: "Personnel"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final lineId = (await service.createLine(
+        database: database,
+        posteId: posteId,
+        label: "DP",
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetLinesTable,
+      )..where((table) => table.id.equals(lineId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_lines/$lineId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_lines/$lineId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateLine stamps only the columns that actually changed", () async {
+      final posteId = (await service.createPoste(database: database, label: "Personnel"))!;
+      final lineId = (await service.createLine(database: database, posteId: posteId, label: "DP"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateLine(
+        database: database,
+        lineId: lineId,
+        quantityMilli: const Value(1500),
+        unit: const Value("day"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("budget_lines/$lineId/")).toSet();
+      expect(ownKeys, {"budget_lines/$lineId/quantityMilli", "budget_lines/$lineId/unit"});
+    });
+
+    test("reorderLine stamps only the moved line's sortKey", () async {
+      final posteId = (await service.createPoste(database: database, label: "Personnel"))!;
+      final lineA = (await service.createLine(database: database, posteId: posteId, label: "A"))!;
+      final lineB = (await service.createLine(database: database, posteId: posteId, label: "B"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.reorderLine(database: database, lineId: lineB, newPosition: 0);
+
+      final stamps = await readStamps();
+      expect(stamps.keys, {"budget_lines/$lineB/sortKey"});
+      expect(stamps.keys.any((key) => key.startsWith("budget_lines/$lineA/")), isFalse);
+    });
+
+    test("deleteLine stamps isDeleted on the line", () async {
+      final posteId = (await service.createPoste(database: database, label: "Personnel"))!;
+      final lineId = (await service.createLine(database: database, posteId: posteId, label: "DP"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteLine(database: database, lineId: lineId);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_lines/$lineId/isDeleted"]!.version, 1);
     });
   });
 }

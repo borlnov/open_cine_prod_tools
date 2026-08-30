@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
@@ -39,8 +40,14 @@ class OcptRoleCandidatesService {
       .where((status) => status.isStillALead)
       .toList(growable: false);
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [tombstoneCandidatesOfRole] and [eraseCandidaciesOfPerson] never call
+  /// it: they write inside a caller's own transaction, and take that caller's own
+  /// [OcptRowStampService] instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptRoleCandidatesService();
+  const OcptRoleCandidatesService({required this.deviceId});
 
   /// Loads every live candidacy of the project, grouped by `roleId`, each group in its own
   /// `sortKey` order — the casting director's own ranking of the people they have seen.
@@ -110,28 +117,41 @@ class OcptRoleCandidatesService {
         droppedCandidacy ??= candidacy;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (droppedCandidacy != null) {
-        await (database.update(database.ocptRoleCandidatesTable)
-              ..where((table) => table.id.equals(droppedCandidacy!.id)))
-            .write(const OcptRoleCandidatesTableCompanion(isDeleted: Value(false)));
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleCandidatesTable,
+          rowId: droppedCandidacy.id,
+          current: droppedCandidacy,
+          next: droppedCandidacy.copyWith(isDeleted: false),
+          stamps: stamps,
+        );
+        await stamps.flush(database);
 
         return droppedCandidacy.id;
       }
 
       final existing = await _liveCandidateRows(database: database, roleId: roleId);
       final id = const Uuid().v4();
-      await database
-          .into(database.ocptRoleCandidatesTable)
-          .insert(
-            OcptRoleCandidatesTableCompanion.insert(
-              id: id,
-              roleId: roleId,
-              personId: personId,
-              sortKey: Value(
-                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-              ),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: id,
+        current: null,
+        next: OcptRoleCandidateRow(
+          id: id,
+          roleId: roleId,
+          personId: personId,
+          status: OcptRoleCandidateStatus.seen,
+          notes: '',
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -155,9 +175,28 @@ class OcptRoleCandidatesService {
       return;
     }
 
-    await (database.update(database.ocptRoleCandidatesTable)
-          ..where((table) => table.id.equals(candidateId) & table.isDeleted.not()))
-        .write(OcptRoleCandidatesTableCompanion(auditionedOn: auditionedOn, notes: notes));
+    final companion = OcptRoleCandidatesTableCompanion(auditionedOn: auditionedOn, notes: notes);
+
+    await database.transaction(() async {
+      final current = await (database.select(database.ocptRoleCandidatesTable)
+            ..where((table) => table.id.equals(candidateId) & table.isDeleted.not()))
+          .getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: candidateId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves candidacy [candidateId] to [newPosition] (0-based) within role [roleId]'s own list, by
@@ -176,8 +215,13 @@ class OcptRoleCandidatesService {
     }
 
     await database.transaction(() async {
-      final others = (await _liveCandidateRows(database: database, roleId: roleId))
-        ..removeWhere((row) => row.id == candidateId);
+      final rows = await _liveCandidateRows(database: database, roleId: roleId);
+      final current = rows.where((row) => row.id == candidateId).firstOrNull;
+      if (current == null) {
+        return;
+      }
+
+      final others = rows.where((row) => row.id != candidateId).toList(growable: false);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -188,9 +232,16 @@ class OcptRoleCandidatesService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(database.ocptRoleCandidatesTable)
-            ..where((table) => table.id.equals(candidateId)))
-          .write(OcptRoleCandidatesTableCompanion(sortKey: Value(sortKey)));
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: candidateId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
     });
   }
 
@@ -233,27 +284,43 @@ class OcptRoleCandidatesService {
         return;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (status == OcptRoleCandidateStatus.retained) {
         await _turnDownOtherLeadsOfRole(
           database: database,
           roleId: candidacy.roleId,
           exceptCandidateId: candidateId,
+          stamps: stamps,
         );
       }
 
-      await (database.update(database.ocptRoleCandidatesTable)
-            ..where((table) => table.id.equals(candidateId)))
-          .write(OcptRoleCandidatesTableCompanion(status: Value(status)));
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: candidateId,
+        current: candidacy,
+        next: candidacy.copyWith(status: status),
+        stamps: stamps,
+      );
 
       if (status == OcptRoleCandidateStatus.retained) {
         await _writeRoleCasting(
           database: database,
           roleId: candidacy.roleId,
           personId: candidacy.personId,
+          stamps: stamps,
         );
       } else if (candidacy.status == OcptRoleCandidateStatus.retained) {
-        await _writeRoleCasting(database: database, roleId: candidacy.roleId, personId: null);
+        await _writeRoleCasting(
+          database: database,
+          roleId: candidacy.roleId,
+          personId: null,
+          stamps: stamps,
+        );
       }
+
+      await stamps.flush(database);
     });
   }
 
@@ -318,13 +385,26 @@ class OcptRoleCandidatesService {
         return;
       }
 
-      await (database.update(database.ocptRoleCandidatesTable)
-            ..where((table) => table.id.equals(candidateId)))
-          .write(const OcptRoleCandidatesTableCompanion(isDeleted: Value(true)));
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: candidateId,
+        current: candidacy,
+        next: candidacy.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
 
       if (candidacy.status == OcptRoleCandidateStatus.retained) {
-        await _writeRoleCasting(database: database, roleId: candidacy.roleId, personId: null);
+        await _writeRoleCasting(
+          database: database,
+          roleId: candidacy.roleId,
+          personId: null,
+          stamps: stamps,
+        );
       }
+
+      await stamps.flush(database);
     });
   }
 
@@ -339,15 +419,32 @@ class OcptRoleCandidatesService {
   /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
   /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the role, so a second guard here would only be able to disagree with the first.
+  /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
+  /// its own.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> tombstoneCandidatesOfRole({
     required OcptProjectDatabase database,
     required String roleId,
-  }) =>
-      (database.update(database.ocptRoleCandidatesTable)
-            ..where((table) => table.roleId.equals(roleId)))
-          .write(const OcptRoleCandidatesTableCompanion(isDeleted: Value(true)));
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows =
+        await (database.select(
+              database.ocptRoleCandidatesTable,
+            )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+  }
 
   /// Tombstones every `role_candidates` row naming person [personId] **and blanks its notes**: the
   /// cascade `OcptPeopleService.deletePerson` reaches for, this table being the one link table that
@@ -362,16 +459,31 @@ class OcptRoleCandidatesService {
   ///
   /// **Unguarded**, for the reason [tombstoneCandidatesOfRole] is: its only caller has already
   /// refused the write on a preview connection and is already inside the transaction erasing the
-  /// person.
+  /// person. Stamps through [stamps], for the same reason.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> eraseCandidaciesOfPerson({
     required OcptProjectDatabase database,
     required String personId,
-  }) =>
-      (database.update(database.ocptRoleCandidatesTable)
-            ..where((table) => table.personId.equals(personId)))
-          .write(const OcptRoleCandidatesTableCompanion(isDeleted: Value(true), notes: Value('')));
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows =
+        await (database.select(
+              database.ocptRoleCandidatesTable,
+            )..where((table) => table.personId.equals(personId)))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true, notes: ''),
+        stamps: stamps,
+      );
+    }
+  }
 
   /// Turns down every live candidacy of role [roleId] other than [exceptCandidateId] that was still
   /// a lead — the "the part is cast, and the others did not get it" half of [setStatus].
@@ -396,19 +508,29 @@ class OcptRoleCandidatesService {
     required OcptProjectDatabase database,
     required String roleId,
     required String exceptCandidateId,
-  }) =>
-      (database.update(database.ocptRoleCandidatesTable)..where(
-            (table) =>
-                table.roleId.equals(roleId) &
-                table.id.equals(exceptCandidateId).not() &
-                table.isDeleted.not() &
-                table.status.isInValues(_leadStatuses),
-          ))
-          .write(
-            const OcptRoleCandidatesTableCompanion(
-              status: Value(OcptRoleCandidateStatus.notRetained),
-            ),
-          );
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows =
+        await (database.select(database.ocptRoleCandidatesTable)..where(
+              (table) =>
+                  table.roleId.equals(roleId) &
+                  table.id.equals(exceptCandidateId).not() &
+                  table.isDeleted.not() &
+                  table.status.isInValues(_leadStatuses),
+            ))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(status: OcptRoleCandidateStatus.notRetained),
+        stamps: stamps,
+      );
+    }
+  }
 
   /// Writes [personId] — a person, or null to leave the part uncast — into role [roleId]'s own
   /// `personId` column.
@@ -416,15 +538,30 @@ class OcptRoleCandidatesService {
   /// The one place this service touches `roles`, and it goes straight to the table rather than
   /// through `OcptRoleIndexService.updateRole`: this always runs inside one of the transactions
   /// above, and the guard that method carries has already been answered by whichever public method
-  /// opened it.
+  /// opened it. Stamps through [stamps] — that caller's own instance.
   Future<void> _writeRoleCasting({
     required OcptProjectDatabase database,
     required String roleId,
     required String? personId,
-  }) =>
-      (database.update(database.ocptRolesTable)
-            ..where((table) => table.id.equals(roleId) & table.isDeleted.not()))
-          .write(OcptRolesTableCompanion(personId: Value(personId)));
+    required OcptRowStampService? stamps,
+  }) async {
+    final current = await (database.select(
+      database.ocptRolesTable,
+    )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).getSingleOrNull();
+
+    if (current == null) {
+      return;
+    }
+
+    await OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptRolesTable,
+      rowId: roleId,
+      current: current,
+      next: current.copyWith(personId: Value(personId)),
+      stamps: stamps,
+    );
+  }
 
   /// Every live `role_candidates` row of the project — or of role [roleId] alone when one is given
   /// — ordered by `sortKey`.

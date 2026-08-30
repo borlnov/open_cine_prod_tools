@@ -17,9 +17,11 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -52,6 +54,9 @@ import 'package:spell_kit/spell_kit.dart';
 /// screenplay language never depends on the machine the tests run on.
 String _testAppLanguageCode() => "en";
 
+/// The fixed device id every stamping service built in this file uses.
+Future<String> _testDeviceId() async => "test-device";
+
 /// A screenplay service whose saves always fail, to exercise the bloc's save error path. Loads
 /// still go through the real implementation.
 class _FailingScreenplayService extends OcptScreenplayService {
@@ -59,14 +64,29 @@ class _FailingScreenplayService extends OcptScreenplayService {
   const _FailingScreenplayService()
     : super(
         sceneIndexService: const OcptSceneIndexService(),
-        shotListService: const OcptShotListService(),
-        shotCoverageService: const OcptShotCoverageService(),
-        roleIndexService: const OcptRoleIndexService(),
-        breakdownService: const OcptBreakdownService(
-          elementsService: OcptElementsService(),
-          locationsService: OcptLocationsService(),
+        shotListService: const OcptShotListService(deviceId: _testDeviceId),
+        shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
+        roleIndexService: const OcptRoleIndexService(
+          elementsService: OcptElementsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
         ),
-        scheduleService: const OcptScheduleService(),
+        breakdownService: const OcptBreakdownService(
+          elementsService: OcptElementsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          locationsService: OcptLocationsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          deviceId: _testDeviceId,
+        ),
+        scheduleService: const OcptScheduleService(deviceId: _testDeviceId),
+        deviceId: _testDeviceId,
       );
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}

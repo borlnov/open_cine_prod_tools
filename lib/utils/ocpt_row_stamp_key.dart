@@ -21,3 +21,23 @@ const _ocptRowStampKeySeparator = "/";
 ///
 /// A single-column key needs no encoding at all: pass it as is rather than through here.
 String ocptCompositeRowStampKey(Iterable<String> parts) => parts.join(_ocptRowStampKeySeparator);
+
+/// The SQL expression equivalent of [ocptCompositeRowStampKey]: concatenates [quotedColumns] —
+/// each already the quoted SQL identifier of one primary-key column, in the same declared order
+/// [ocptCompositeRowStampKey] itself receives its parts in — with the very same separator.
+///
+/// This is what lets a generic reader (the changeset engine of
+/// `docs/plans/collaboration-and-sync.md`, M3) match a stored `row_field_versions.rowId` against a
+/// table's own current row without ever parsing that id back apart: `WHERE <this> = ?` reproduces
+/// exactly the same string [ocptCompositeRowStampKey] wrote, whatever a later component happens to
+/// contain — even the separator itself, since nothing here ever needs to split it back out. A
+/// single-column key needs no concatenation either, matching [ocptCompositeRowStampKey]'s own
+/// single-part case: [quotedColumns] is simply returned as its one element.
+String ocptCompositeRowStampKeySqlExpression(Iterable<String> quotedColumns) {
+  final columns = quotedColumns.toList();
+  if (columns.length == 1) {
+    return columns.single;
+  }
+
+  return columns.join(" || '$_ocptRowStampKeySeparator' || ");
+}

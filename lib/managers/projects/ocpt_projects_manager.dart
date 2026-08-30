@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -260,52 +261,133 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
        sceneIndexService = const OcptSceneIndexService(),
-       shotListService = const OcptShotListService(),
-       shotCoverageService = const OcptShotCoverageService(),
-       projectVersionsService = const OcptProjectVersionsService(
-         codec: OcptProjectVersionCodec(),
+       shotListService = OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+       shotCoverageService = OcptShotCoverageService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       projectVersionsService = OcptProjectVersionsService(
+         codec: const OcptProjectVersionCodec(),
          screenplayService: OcptScreenplayService(
-           sceneIndexService: OcptSceneIndexService(),
-           shotListService: OcptShotListService(),
-           shotCoverageService: OcptShotCoverageService(),
-           roleIndexService: OcptRoleIndexService(),
-           breakdownService: OcptBreakdownService(
-             elementsService: OcptElementsService(),
-             locationsService: OcptLocationsService(),
+           sceneIndexService: const OcptSceneIndexService(),
+           shotListService: OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+           shotCoverageService: OcptShotCoverageService(
+             deviceId: _resolveDeviceId(propertiesManager),
            ),
-           scheduleService: OcptScheduleService(),
+           roleIndexService: OcptRoleIndexService(
+             elementsService: OcptElementsService(
+               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             roleCandidatesService: OcptRoleCandidatesService(
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           breakdownService: OcptBreakdownService(
+             elementsService: OcptElementsService(
+               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             locationsService: OcptLocationsService(
+               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
+           deviceId: _resolveDeviceId(propertiesManager),
          ),
        ),
-       screenplayService = const OcptScreenplayService(
-         sceneIndexService: OcptSceneIndexService(),
-         shotListService: OcptShotListService(),
-         shotCoverageService: OcptShotCoverageService(),
-         roleIndexService: OcptRoleIndexService(),
+       screenplayService = OcptScreenplayService(
+         sceneIndexService: const OcptSceneIndexService(),
+         shotListService: OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+         shotCoverageService: OcptShotCoverageService(
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         roleIndexService: OcptRoleIndexService(
+           elementsService: OcptElementsService(
+             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           roleCandidatesService: OcptRoleCandidatesService(
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
          breakdownService: OcptBreakdownService(
-           elementsService: OcptElementsService(),
-           locationsService: OcptLocationsService(),
+           elementsService: OcptElementsService(
+             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           locationsService: OcptLocationsService(
+             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           deviceId: _resolveDeviceId(propertiesManager),
          ),
-         scheduleService: OcptScheduleService(),
+         scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
+         deviceId: _resolveDeviceId(propertiesManager),
        ),
-       peopleService = const OcptPeopleService(),
-       roleIndexService = const OcptRoleIndexService(),
-       roleCandidatesService = const OcptRoleCandidatesService(),
-       locationsService = const OcptLocationsService(),
-       elementsService = const OcptElementsService(),
-       budgetQuoteService = const OcptBudgetQuoteService(),
-       budgetJournalService = const OcptBudgetJournalService(),
-       budgetFinancingService = const OcptBudgetFinancingService(),
-       budgetAllowancesService = const OcptBudgetAllowancesService(),
-       budgetSharingService = const OcptBudgetSharingService(),
-       assetsService = const OcptAssetsService(),
-       projectDictionaryService = const OcptProjectDictionaryService(),
+       peopleService = OcptPeopleService(
+         deviceId: _resolveDeviceId(propertiesManager),
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         roleCandidatesService: OcptRoleCandidatesService(
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+       ),
+       roleIndexService = OcptRoleIndexService(
+         elementsService: OcptElementsService(
+           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         roleCandidatesService: OcptRoleCandidatesService(
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       roleCandidatesService = OcptRoleCandidatesService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       locationsService = OcptLocationsService(
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       elementsService = OcptElementsService(
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       budgetQuoteService = OcptBudgetQuoteService(deviceId: _resolveDeviceId(propertiesManager)),
+       budgetJournalService = OcptBudgetJournalService(
+         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       budgetFinancingService = OcptBudgetFinancingService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       budgetAllowancesService = OcptBudgetAllowancesService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       budgetSharingService = OcptBudgetSharingService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       assetsService = OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+       projectDictionaryService = OcptProjectDictionaryService(
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
        projectPackageService = const OcptProjectPackageService(),
        projectFileCompatibilityService = const OcptProjectFileCompatibilityService(),
-       breakdownService = const OcptBreakdownService(
-         elementsService: OcptElementsService(),
-         locationsService: OcptLocationsService(),
+       breakdownService = OcptBreakdownService(
+         elementsService: OcptElementsService(
+           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         locationsService: OcptLocationsService(
+           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         deviceId: _resolveDeviceId(propertiesManager),
        ),
-       scheduleService = const OcptScheduleService();
+       scheduleService = OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager));
 
   /// The project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;
@@ -1349,6 +1431,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// nothing needs that manager registered until a project is actually created.
   static String _localesManagerLanguageCode() =>
       globalGetIt().get<LocalesManager>().currentLocale.languageCode;
+
+  /// The [OcptDeviceIdGetter] every stamping service this manager builds is given: [propertiesManager]
+  /// when the constructor received one (a test's own double), [globalGetIt]'s singleton otherwise —
+  /// the same fallback [_propertiesManager] itself resolves, repeated here rather than read off that
+  /// field because a constructor initializer list cannot see `this`.
+  static OcptDeviceIdGetter _resolveDeviceId(OcptPropertiesManager? propertiesManager) =>
+      (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId;
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

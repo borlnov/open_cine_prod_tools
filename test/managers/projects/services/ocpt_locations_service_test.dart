@@ -19,7 +19,12 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const locationsService = OcptLocationsService();
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
 
   late OcptProjectDatabase database;
 
@@ -42,6 +47,13 @@ void main() {
   Future<OcptLocationRow> readLocation(String id) => (database.select(
     database.ocptLocationsTable,
   )..where((row) => row.id.equals(id))).getSingle();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   /// Inserts one scene of `screenplay-1`, the screenplay the scene ↔ set group sets up.
   Future<void> insertScene({
@@ -735,7 +747,7 @@ void main() {
         path: "/photos/first.jpg",
       ))!;
 
-      await const OcptAssetsService().removeAsset(database: database, assetId: photoId);
+      await assetsService.removeAsset(database: database, assetId: photoId);
 
       final locations = await locationsService.loadLocations(database: database);
       expect(locations.single.photos, isEmpty);
@@ -782,19 +794,19 @@ void main() {
     });
 
     test("insertAsset records a document's validity window, or leaves it unrecorded", () async {
-      const assetsService = OcptAssetsService();
-
       final withDates = await assetsService.insertAsset(
         database: database,
         kind: OcptAssetKind.document,
         path: "/permits/granted.pdf",
         validFrom: DateTime.utc(2026, 3, 10),
         validUntil: DateTime.utc(2026, 3, 31),
+        stamps: null,
       );
       final withNoDates = await assetsService.insertAsset(
         database: database,
         kind: OcptAssetKind.document,
         path: "/permits/undated.pdf",
+        stamps: null,
       );
 
       final dated = await (database.select(
@@ -812,11 +824,11 @@ void main() {
     });
 
     test("updateAssetValidity writes and clears a document's validity window", () async {
-      const assetsService = OcptAssetsService();
       final assetId = await assetsService.insertAsset(
         database: database,
         kind: OcptAssetKind.document,
         path: "/permits/granted.pdf",
+        stamps: null,
       );
 
       await assetsService.updateAssetValidity(
@@ -865,6 +877,173 @@ void main() {
         database.ocptAssetsTable,
       )..where((row) => row.id.equals(documentId))).getSingle();
       expect(row.isDeleted, isTrue);
+    });
+  });
+
+  group("row-field-version stamps", () {
+    test("createLocation stamps every column of the new row", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      final stamps = await readStamps();
+      final location = await readLocation(locationId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("locations/$locationId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(location.toJson().length));
+      for (final column in location.toJson().keys) {
+        final stamp = ownStamps["locations/$locationId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateLocation stamps only the columns that actually changed", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.updateLocation(
+        database: database,
+        locationId: locationId,
+        name: const Value("Café du port"),
+        city: const Value("Concarneau"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("locations/$locationId/")).toSet();
+      expect(ownKeys, {"locations/$locationId/name", "locations/$locationId/city"});
+
+      // Writing the same values again touches nothing: there is nothing left to stamp.
+      await locationsService.updateLocation(
+        database: database,
+        locationId: locationId,
+        name: const Value("Café du port"),
+      );
+      expect(await readStamps(), stamps);
+    });
+
+    test("deleteLocation stamps isDeleted on the location, its sets and its availabilities",
+        () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final setId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Cuisine",
+      ))!;
+      final availabilityId = (await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime(2026, 3, 10),
+        endDate: DateTime(2026, 3, 10),
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.deleteLocation(database: database, locationId: locationId);
+
+      final stamps = await readStamps();
+      expect(stamps["locations/$locationId/isDeleted"]!.version, 1);
+      expect(stamps["sets/$setId/isDeleted"]!.version, 1);
+      expect(stamps["location_availabilities/$availabilityId/isDeleted"]!.version, 1);
+    });
+
+    test("createSet stamps every column of the new row", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final setId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Cuisine",
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptSetsTable,
+      )..where((table) => table.id.equals(setId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("sets/$setId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        expect(ownStamps["sets/$setId/$column"], isNotNull, reason: "$column should be stamped");
+      }
+    });
+
+    /// Inserts screenplay `screenplay-1` and one live scene `scene-1`, for the tests below that
+    /// link a scene to a set — `scene_sets.sceneId` is a foreign key, and this group's own
+    /// database starts with no screenplay at all.
+    Future<void> insertScreenplayAndScene() async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "screenplay-1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
+      await insertScene(id: "scene-1", position: 0, heading: "INT. CUISINE - JOUR");
+    }
+
+    test("assignSceneToSet stamps every column of the new link", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptSceneSetsTable,
+      )..where((table) => table.id.equals(linkId))).getSingle();
+
+      for (final column in row.toJson().keys) {
+        expect(
+          stamps["scene_sets/$linkId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("removeSceneFromSet stamps isDeleted on the link", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.removeSceneFromSet(database: database, sceneId: "scene-1", setId: setId);
+
+      final stamps = await readStamps();
+      expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);
+    });
+
+    test("deleteSet stamps isDeleted on its scene_sets links", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.deleteSet(database: database, setId: setId);
+
+      final stamps = await readStamps();
+      expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);
+      expect(stamps["sets/$setId/isDeleted"]!.version, 1);
     });
   });
 }

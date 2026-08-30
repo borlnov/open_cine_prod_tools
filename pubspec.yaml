@@ -126,6 +126,9 @@ dependencies:
   fountain_kit:
     path: packages/fountain_kit
 
+  ocpt_sync_protocol:
+    path: packages/ocpt_sync_protocol
+
   script_import_kit:
     path: packages/script_import_kit
 

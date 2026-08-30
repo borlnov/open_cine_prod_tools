@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
@@ -43,8 +44,12 @@ class OcptElementsService {
   /// reached for, exactly as `OcptPeopleService` and `OcptLocationsService` hold their own.
   final OcptAssetsService assetsService;
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptElementsService({this.assetsService = const OcptAssetsService()});
+  const OcptElementsService({required this.assetsService, required this.deviceId});
 
   /// Loads every live element of [database], in `sortKey` order, each joined with the live
   /// `scene_elements` links pointing at it (themselves in the screenplay's own scene order), the
@@ -112,25 +117,36 @@ class OcptElementsService {
     final existing = await _liveElementRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptElementsTable)
-        .insert(
-          OcptElementsTableCompanion.insert(
-            id: id,
-            name: name,
-            category: category,
-            sourceKind: sourceKind,
-            code: Value(
-              ocptElementCodeOf(
-                category: category,
-                existingCodes: existing.map((row) => row.code),
-              ),
-            ),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptElementsTable,
+        rowId: id,
+        current: null,
+        next: OcptElementRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          category: category,
+          subCategory: '',
+          name: name,
+          code: ocptElementCodeOf(category: category, existingCodes: existing.map((row) => row.code)),
+          quantity: '',
+          sourceKind: sourceKind,
+          ownerNotes: '',
+          storageNotes: '',
+          status: OcptElementStatus.toFind,
+          isSecured: false,
+          isReadyForShoot: false,
+          isReturned: false,
+          purposeNotes: '',
+          notes: '',
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -179,30 +195,47 @@ class OcptElementsService {
       category: category,
     );
 
-    await (database.update(
-      database.ocptElementsTable,
-    )..where((table) => table.id.equals(elementId) & table.isDeleted.not())).write(
-      OcptElementsTableCompanion(
-        category: category,
-        subCategory: subCategory,
-        name: name,
-        code: code,
-        quantity: quantity,
-        sourceKind: sourceKind,
-        status: status,
-        ownerPersonId: ownerPersonId,
-        ownerNotes: ownerNotes,
-        broughtByPersonId: broughtByPersonId,
-        storageNotes: storageNotes,
-        isSecured: isSecured,
-        isReadyForShoot: isReadyForShoot,
-        isReturned: isReturned,
-        cost: cost,
-        purposeNotes: purposeNotes,
-        notes: notes,
-        photoAssetId: photoAssetId,
-      ),
+    final companion = OcptElementsTableCompanion(
+      category: category,
+      subCategory: subCategory,
+      name: name,
+      code: code,
+      quantity: quantity,
+      sourceKind: sourceKind,
+      status: status,
+      ownerPersonId: ownerPersonId,
+      ownerNotes: ownerNotes,
+      broughtByPersonId: broughtByPersonId,
+      storageNotes: storageNotes,
+      isSecured: isSecured,
+      isReadyForShoot: isReadyForShoot,
+      isReturned: isReturned,
+      cost: cost,
+      purposeNotes: purposeNotes,
+      notes: notes,
+      photoAssetId: photoAssetId,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptElementsTable,
+      )..where((table) => table.id.equals(elementId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptElementsTable,
+        rowId: elementId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// The code element [elementId] is given as [category] is written onto it: a freshly generated
@@ -258,25 +291,60 @@ class OcptElementsService {
     }
 
     await database.transaction(() async {
-      await (database.update(
-        database.ocptSceneElementsTable,
-      )..where((table) => table.elementId.equals(elementId))).write(
-        const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
-      );
-      await (database.update(
-        database.ocptRoleElementsTable,
-      )..where((table) => table.elementId.equals(elementId))).write(
-        const OcptRoleElementsTableCompanion(isDeleted: Value(true)),
-      );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final sceneElementRows =
+          await (database.select(
+                database.ocptSceneElementsTable,
+              )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not()))
+              .get();
+      for (final row in sceneElementRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneElementsTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final roleElementRows =
+          await (database.select(
+                database.ocptRoleElementsTable,
+              )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not()))
+              .get();
+      for (final row in roleElementRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleElementsTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
       // The photo goes with the element: nothing can reach that row any more, which is what makes
       // it an orphan rather than history. Its `photoAssetId` is left pointing at the tombstone,
       // exactly as every other tombstoned link keeps its ids.
-      await _tombstoneElementPhoto(database: database, elementId: elementId);
-      await (database.update(
+      await _tombstoneElementPhoto(database: database, elementId: elementId, stamps: stamps);
+
+      final current = await (database.select(
         database.ocptElementsTable,
-      )..where((table) => table.id.equals(elementId))).write(
-        const OcptElementsTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.id.equals(elementId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptElementsTable,
+          rowId: elementId,
+          current: current,
+          next: current.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -300,7 +368,9 @@ class OcptElementsService {
     }
 
     return database.transaction(() async {
-      await _tombstoneElementPhoto(database: database, elementId: elementId);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      await _tombstoneElementPhoto(database: database, elementId: elementId, stamps: stamps);
 
       final id = await assetsService.insertAsset(
         database: database,
@@ -308,13 +378,24 @@ class OcptElementsService {
         elementId: elementId,
         path: path,
         label: label,
+        stamps: stamps,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptElementsTable,
-      )..where((table) => table.id.equals(elementId))).write(
-        OcptElementsTableCompanion(photoAssetId: Value(id)),
-      );
+      )..where((table) => table.id.equals(elementId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptElementsTable,
+          rowId: elementId,
+          current: current,
+          next: current.copyWith(photoAssetId: Value(id)),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
 
       return id;
     });
@@ -335,21 +416,35 @@ class OcptElementsService {
     }
 
     await database.transaction(() async {
-      await _tombstoneElementPhoto(database: database, elementId: elementId);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      await (database.update(
+      await _tombstoneElementPhoto(database: database, elementId: elementId, stamps: stamps);
+
+      final current = await (database.select(
         database.ocptElementsTable,
-      )..where((table) => table.id.equals(elementId))).write(
-        const OcptElementsTableCompanion(photoAssetId: Value(null)),
-      );
+      )..where((table) => table.id.equals(elementId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptElementsTable,
+          rowId: elementId,
+          current: current,
+          next: current.copyWith(photoAssetId: const Value(null)),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
   /// Tombstones whichever `assets` row element [elementId] currently names as its photo, if any.
-  /// Leaves `photoAssetId` alone: both callers write it themselves.
+  /// Leaves `photoAssetId` alone: both callers write it themselves. Stamps through [stamps] — the
+  /// caller's own instance.
   Future<void> _tombstoneElementPhoto({
     required OcptProjectDatabase database,
     required String elementId,
+    required OcptRowStampService? stamps,
   }) async {
     final row = await (database.select(
       database.ocptElementsTable,
@@ -360,7 +455,7 @@ class OcptElementsService {
       return;
     }
 
-    await assetsService.tombstoneAsset(database: database, assetId: photoAssetId);
+    await assetsService.tombstoneAsset(database: database, assetId: photoAssetId, stamps: stamps);
   }
 
   /// Moves element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
@@ -378,7 +473,13 @@ class OcptElementsService {
     }
 
     await database.transaction(() async {
-      final others = (await _liveElementRows(database))..removeWhere((row) => row.id == elementId);
+      final rows = await _liveElementRows(database);
+      final current = rows.where((row) => row.id == elementId).firstOrNull;
+      if (current == null) {
+        return;
+      }
+
+      final others = rows.where((row) => row.id != elementId).toList(growable: false);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -389,11 +490,16 @@ class OcptElementsService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptElementsTable,
-      )..where((table) => table.id.equals(elementId))).write(
-        OcptElementsTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptElementsTable,
+        rowId: elementId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -437,28 +543,39 @@ class OcptElementsService {
         droppedLink ??= link;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (droppedLink != null) {
-        await (database.update(
-          database.ocptSceneElementsTable,
-        )..where((table) => table.id.equals(droppedLink!.id))).write(
-          const OcptSceneElementsTableCompanion(isDeleted: Value(false)),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneElementsTable,
+          rowId: droppedLink.id,
+          current: droppedLink,
+          next: droppedLink.copyWith(isDeleted: false),
+          stamps: stamps,
         );
+        await stamps.flush(database);
 
         return droppedLink.id;
       }
 
       final id = const Uuid().v4();
-      await database
-          .into(database.ocptSceneElementsTable)
-          .insert(
-            OcptSceneElementsTableCompanion.insert(
-              id: id,
-              sceneId: sceneId,
-              elementId: elementId,
-              quantity: Value(quantity),
-              notes: Value(notes),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: id,
+        current: null,
+        next: OcptSceneElementRow(
+          id: id,
+          sceneId: sceneId,
+          elementId: elementId,
+          quantity: quantity,
+          notes: notes,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -478,11 +595,28 @@ class OcptElementsService {
       return;
     }
 
-    await (database.update(
-      database.ocptSceneElementsTable,
-    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptSceneElementsTableCompanion(quantity: quantity, notes: notes),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWithCompanion(
+          OcptSceneElementsTableCompanion(quantity: quantity, notes: notes),
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes the scene ↔ element link [id].
@@ -498,11 +632,26 @@ class OcptElementsService {
       return;
     }
 
-    await (database.update(
-      database.ocptSceneElementsTable,
-    )..where((table) => table.id.equals(id))).write(
-      const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Links role [roleId] to element [elementId], with optional [notes], and returns the id of the
@@ -540,27 +689,38 @@ class OcptElementsService {
         droppedLink ??= link;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (droppedLink != null) {
-        await (database.update(
-          database.ocptRoleElementsTable,
-        )..where((table) => table.id.equals(droppedLink!.id))).write(
-          const OcptRoleElementsTableCompanion(isDeleted: Value(false)),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleElementsTable,
+          rowId: droppedLink.id,
+          current: droppedLink,
+          next: droppedLink.copyWith(isDeleted: false),
+          stamps: stamps,
         );
+        await stamps.flush(database);
 
         return droppedLink.id;
       }
 
       final id = const Uuid().v4();
-      await database
-          .into(database.ocptRoleElementsTable)
-          .insert(
-            OcptRoleElementsTableCompanion.insert(
-              id: id,
-              roleId: roleId,
-              elementId: elementId,
-              notes: Value(notes),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleElementsTable,
+        rowId: id,
+        current: null,
+        next: OcptRoleElementRow(
+          id: id,
+          roleId: roleId,
+          elementId: elementId,
+          notes: notes,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -578,11 +738,26 @@ class OcptElementsService {
       return;
     }
 
-    await (database.update(
-      database.ocptRoleElementsTable,
-    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptRoleElementsTableCompanion(notes: Value(notes)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleElementsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(notes: notes),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes the role ↔ element link [id].
@@ -598,11 +773,26 @@ class OcptElementsService {
       return;
     }
 
-    await (database.update(
-      database.ocptRoleElementsTable,
-    )..where((table) => table.id.equals(id))).write(
-      const OcptRoleElementsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleElementsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones every `role_elements` row naming role [roleId], the cascade
@@ -610,17 +800,32 @@ class OcptElementsService {
   ///
   /// **Unguarded**, exactly as `OcptAssetsService`'s own cascades are: its only caller has already
   /// refused the write on a preview connection and is already inside the transaction removing the
-  /// role, so a second guard here would only be able to disagree with the first.
+  /// role, so a second guard here would only be able to disagree with the first. Stamps through
+  /// [stamps] — that caller's own instance — rather than resolving a device id of its own.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> tombstoneRoleLinksOfRole({
     required OcptProjectDatabase database,
     required String roleId,
-  }) => (database.update(
-    database.ocptRoleElementsTable,
-  )..where((table) => table.roleId.equals(roleId))).write(
-    const OcptRoleElementsTableCompanion(isDeleted: Value(true)),
-  );
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows =
+        await (database.select(
+              database.ocptRoleElementsTable,
+            )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleElementsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+  }
 
   /// Tombstones every live `scene_elements` row naming any of [sceneIds]: `scene_elements` is this
   /// service's table, not `OcptBreakdownService`'s, so its own cascade
@@ -629,22 +834,35 @@ class OcptElementsService {
   ///
   /// **Unguarded**, exactly as [tombstoneRoleLinksOfRole] is: its only caller has already refused
   /// the write on a preview connection and is already inside the transaction removing the episode,
-  /// so a second guard here would only be able to disagree with the first.
+  /// so a second guard here would only be able to disagree with the first. Stamps through [stamps]
+  /// — that caller's own instance — rather than resolving a device id of its own.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> tombstoneSceneElementsOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,
+    required OcptRowStampService? stamps,
   }) async {
     if (sceneIds.isEmpty) {
       return;
     }
 
-    await (database.update(
-      database.ocptSceneElementsTable,
-    )..where((table) => table.sceneId.isIn(sceneIds))).write(
-      const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
-    );
+    final rows =
+        await (database.select(
+              database.ocptSceneElementsTable,
+            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneElementsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
   }
 
   /// Every live `scene_elements` row of scene [sceneId].

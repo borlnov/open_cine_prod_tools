@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 import 'package:uuid/uuid.dart';
 
@@ -35,8 +37,13 @@ import 'package:uuid/uuid.dart';
 /// so inserting or moving one writes exactly that one row rather than renumbering the whole group.
 /// `position` survives only as the legacy column ADR 0007 forbids dropping in place.
 class OcptShotListService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [detachShotsFromDeletedScenes] never calls it: it writes inside a
+  /// caller's own transaction, and takes that caller's own [OcptRowStampService] instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptShotListService();
+  const OcptShotListService({required this.deviceId});
 
   /// Loads the whole shot list of [screenplayId] in [database]: every scene, in order, with its
   /// shots, followed by the orphan group if the screenplay has any orphaned shot.
@@ -212,19 +219,45 @@ class OcptShotListService {
     );
 
     final id = const Uuid().v4();
-    await database
-        .into(database.ocptShotsTable)
-        .insert(
-          OcptShotsTableCompanion.insert(
-            id: id,
-            screenplayId: screenplayId,
-            sceneId: Value(sceneId),
-            position: existing.length,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    // Every column [OcptShotsTable] declares a default for is spelled out here to match it exactly:
+    // [OcptRowStampService.writeAndStamp] stamps a fresh insert from the full row it is handed,
+    // never from what SQLite would fill in on its own.
+    final row = OcptShotRow(
+      id: id,
+      screenplayId: screenplayId,
+      sceneId: sceneId,
+      position: existing.length,
+      sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+      shotSize: "",
+      abbreviation: "",
+      framing: "",
+      cameraMove: "",
+      lens: "",
+      recordingFormat: "",
+      sound: "",
+      status: OcptShotStatus.toShoot,
+      difficultySet: 1,
+      difficultyCamera: 1,
+      difficultyActing: 1,
+      difficultySound: 1,
+      notes: "",
+      locationNotes: "",
+      needsCheck: false,
+      isDeleted: false,
+    );
+
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotsTable,
+        rowId: id,
+        current: null,
+        next: row,
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -261,31 +294,45 @@ class OcptShotListService {
       return;
     }
 
-    await (database.update(
-      database.ocptShotsTable,
-    )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).write(
-      OcptShotsTableCompanion(
-        shotSize: shotSize,
-        abbreviation: abbreviation,
-        framing: framing,
-        cameraMove: cameraMove,
-        lens: lens,
-        recordingFormat: recordingFormat,
-        estimatedDurationMs: estimatedDurationMs,
-        shootingDay: shootingDay,
-        plannedTakes: plannedTakes,
-        sound: sound,
-        status: status,
-        difficultySet: difficultySet,
-        difficultyCamera: difficultyCamera,
-        difficultyActing: difficultyActing,
-        difficultySound: difficultySound,
-        notes: notes,
-        locationNotes: locationNotes,
-        needsCheck: needsCheck,
-        checkReason: checkReason,
-      ),
+    final companion = OcptShotsTableCompanion(
+      shotSize: shotSize,
+      abbreviation: abbreviation,
+      framing: framing,
+      cameraMove: cameraMove,
+      lens: lens,
+      recordingFormat: recordingFormat,
+      estimatedDurationMs: estimatedDurationMs,
+      shootingDay: shootingDay,
+      plannedTakes: plannedTakes,
+      sound: sound,
+      status: status,
+      difficultySet: difficultySet,
+      difficultyCamera: difficultyCamera,
+      difficultyActing: difficultyActing,
+      difficultySound: difficultySound,
+      notes: notes,
+      locationNotes: locationNotes,
+      needsCheck: needsCheck,
+      checkReason: checkReason,
     );
+
+    await database.transaction(() async {
+      final current = await _liveShotRowOrNull(database: database, shotId: shotId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotsTable,
+        rowId: shotId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones the shot [shotId] in [database], its attached characters and coverage ranges along
@@ -303,21 +350,49 @@ class OcptShotListService {
     }
 
     await database.transaction(() async {
-      await (database.update(
-        database.ocptShotCoveragesTable,
-      )..where((table) => table.shotId.equals(shotId))).write(
-        const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
-      );
-      await (database.update(
-        database.ocptShotCharactersTable,
-      )..where((table) => table.shotId.equals(shotId))).write(
-        const OcptShotCharactersTableCompanion(isDeleted: Value(true)),
-      );
-      await (database.update(
-        database.ocptShotsTable,
-      )..where((table) => table.id.equals(shotId))).write(
-        const OcptShotsTableCompanion(isDeleted: Value(true)),
-      );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final coverageRows =
+          await (database.select(
+                database.ocptShotCoveragesTable,
+              )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not()))
+              .get();
+      for (final row in coverageRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCoveragesTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final characterRows = await _characterRowsOfShot(database: database, shotId: shotId);
+      for (final row in characterRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCharactersTable,
+          rowId: ocptCompositeRowStampKey([row.shotId, row.characterName]),
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final shot = await _liveShotRowOrNull(database: database, shotId: shotId);
+      if (shot != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotsTable,
+          rowId: shotId,
+          current: shot,
+          next: shot.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -356,11 +431,16 @@ class OcptShotListService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptShotsTable,
-      )..where((table) => table.id.equals(shotId))).write(
-        OcptShotsTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotsTable,
+        rowId: shotId,
+        current: shot,
+        next: shot.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -399,29 +479,37 @@ class OcptShotListService {
         characterName: normalized,
       );
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      final rowId = ocptCompositeRowStampKey([shotId, normalized]);
+
       if (tombstone != null) {
-        await (database.update(database.ocptShotCharactersTable)..where(
-              (table) => table.shotId.equals(shotId) & table.characterName.equals(normalized),
-            ))
-            .write(
-              OcptShotCharactersTableCompanion(
-                sortKey: Value(sortKey),
-                isDeleted: const Value(false),
-              ),
-            );
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCharactersTable,
+          rowId: rowId,
+          current: tombstone,
+          next: tombstone.copyWith(sortKey: sortKey, isDeleted: false),
+          stamps: stamps,
+        );
+        await stamps.flush(database);
         return;
       }
 
-      await database
-          .into(database.ocptShotCharactersTable)
-          .insert(
-            OcptShotCharactersTableCompanion.insert(
-              shotId: shotId,
-              characterName: normalized,
-              position: existing.length,
-              sortKey: Value(sortKey),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotCharactersTable,
+        rowId: rowId,
+        current: null,
+        next: OcptShotCharacterRow(
+          shotId: shotId,
+          characterName: normalized,
+          position: existing.length,
+          sortKey: sortKey,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
     });
   }
 
@@ -441,10 +529,27 @@ class OcptShotListService {
 
     final normalized = normalizeCharacterName(characterName);
 
-    await (database.update(database.ocptShotCharactersTable)..where(
-          (table) => table.shotId.equals(shotId) & table.characterName.equals(normalized),
-        ))
-        .write(const OcptShotCharactersTableCompanion(isDeleted: Value(true)));
+    await database.transaction(() async {
+      final current = await _characterRow(
+        database: database,
+        shotId: shotId,
+        characterName: normalized,
+      );
+      if (current == null || current.isDeleted) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotCharactersTable,
+        rowId: ocptCompositeRowStampKey([shotId, normalized]),
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Reorders shot [shotId]'s characters to [orderedCharacterNames] (normalised the same way
@@ -466,23 +571,33 @@ class OcptShotListService {
 
     await database.transaction(() async {
       final rows = await _characterRowsOfShot(database: database, shotId: shotId);
-      final sortKeyByName = {for (final row in rows) row.characterName: row.sortKey};
+      final rowByName = {for (final row in rows) row.characterName: row};
 
       final names = [
         for (final name in orderedCharacterNames) normalizeCharacterName(name),
-      ]..removeWhere((name) => !sortKeyByName.containsKey(name));
+      ]..removeWhere((name) => !rowByName.containsKey(name));
 
       final plan = ocptFractionalKeyRekeyPlan([
-        for (final name in names) sortKeyByName[name]!,
+        for (final name in names) rowByName[name]!.sortKey,
       ]);
 
-      for (final entry in plan.entries) {
-        await (database.update(database.ocptShotCharactersTable)..where(
-              (table) =>
-                  table.shotId.equals(shotId) & table.characterName.equals(names[entry.key]),
-            ))
-            .write(OcptShotCharactersTableCompanion(sortKey: Value(entry.value)));
+      if (plan.isEmpty) {
+        return;
       }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      for (final entry in plan.entries) {
+        final current = rowByName[names[entry.key]]!;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCharactersTable,
+          rowId: ocptCompositeRowStampKey([current.shotId, current.characterName]),
+          current: current,
+          next: current.copyWith(sortKey: entry.value),
+          stamps: stamps,
+        );
+      }
+      await stamps.flush(database);
     });
   }
 
@@ -508,10 +623,32 @@ class OcptShotListService {
       return;
     }
 
-    await (database.update(database.ocptShotCharactersTable)..where(
-          (table) => table.shotId.isIn(shotIds) & table.characterName.equals(normalized),
-        ))
-        .write(const OcptShotCharactersTableCompanion(isDeleted: Value(true)));
+    await database.transaction(() async {
+      final rows =
+          await (database.select(database.ocptShotCharactersTable)..where(
+                (table) =>
+                    table.shotId.isIn(shotIds) &
+                    table.characterName.equals(normalized) &
+                    table.isDeleted.not(),
+              ))
+              .get();
+      if (rows.isEmpty) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      for (final row in rows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCharactersTable,
+          rowId: ocptCompositeRowStampKey([row.shotId, row.characterName]),
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+      await stamps.flush(database);
+    });
   }
 
   /// Replaces [oldCharacterName] with [newCharacterName] (both normalised the same way
@@ -555,44 +692,57 @@ class OcptShotListService {
                     table.isDeleted.not(),
               ))
               .get();
+      if (rows.isEmpty) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
       for (final row in rows) {
-        await (database.update(database.ocptShotCharactersTable)..where(
-              (table) =>
-                  table.shotId.equals(row.shotId) & table.characterName.equals(normalizedOld),
-            ))
-            .write(const OcptShotCharactersTableCompanion(isDeleted: Value(true)));
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotCharactersTable,
+          rowId: ocptCompositeRowStampKey([row.shotId, normalizedOld]),
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
 
         final existingNew = await _characterRow(
           database: database,
           shotId: row.shotId,
           characterName: normalizedNew,
         );
+        final newRowId = ocptCompositeRowStampKey([row.shotId, normalizedNew]);
 
         if (existingNew == null) {
-          await database
-              .into(database.ocptShotCharactersTable)
-              .insert(
-                OcptShotCharactersTableCompanion.insert(
-                  shotId: row.shotId,
-                  characterName: normalizedNew,
-                  position: row.position,
-                  sortKey: Value(row.sortKey),
-                ),
-              );
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShotCharactersTable,
+            rowId: newRowId,
+            current: null,
+            next: OcptShotCharacterRow(
+              shotId: row.shotId,
+              characterName: normalizedNew,
+              position: row.position,
+              sortKey: row.sortKey,
+              isDeleted: false,
+            ),
+            stamps: stamps,
+          );
         } else if (existingNew.isDeleted) {
-          await (database.update(database.ocptShotCharactersTable)..where(
-                (table) =>
-                    table.shotId.equals(row.shotId) & table.characterName.equals(normalizedNew),
-              ))
-              .write(
-                OcptShotCharactersTableCompanion(
-                  sortKey: Value(row.sortKey),
-                  isDeleted: const Value(false),
-                ),
-              );
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShotCharactersTable,
+            rowId: newRowId,
+            current: existingNew,
+            next: existingNew.copyWith(sortKey: row.sortKey, isDeleted: false),
+            stamps: stamps,
+          );
         }
       }
+
+      await stamps.flush(database);
     });
   }
 
@@ -608,12 +758,15 @@ class OcptShotListService {
   /// current tail so [OcptOrphanShotSequence] reads grouped by [OcptShot.orphanedHeading] without
   /// any extra grouping logic at read time.
   ///
-  /// Called inside `reconcile`'s own transaction: this method does not open one of its own.
+  /// Called inside `reconcile`'s own transaction: this method does not open one of its own, and
+  /// stamps through [stamps] — the caller's own instance, seeded and flushed around the whole
+  /// save — rather than resolving a device id of its own.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> detachShotsFromDeletedScenes({
     required OcptProjectDatabase database,
     required List<OcptSceneRow> scenesAboutToBeDeleted,
+    required OcptRowStampService? stamps,
   }) async {
     if (database.refusesUserWrite("detachShotsFromDeletedScenes")) {
       return;
@@ -643,24 +796,38 @@ class OcptShotListService {
       );
 
       for (final shot in shotsOfScene) {
-        await (database.update(
-          database.ocptShotCoveragesTable,
-        )..where((table) => table.shotId.equals(shot.id))).write(
-          const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
-        );
+        final coverageRows =
+            await (database.select(
+                  database.ocptShotCoveragesTable,
+                )..where((table) => table.shotId.equals(shot.id) & table.isDeleted.not()))
+                .get();
+        for (final coverageRow in coverageRows) {
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShotCoveragesTable,
+            rowId: coverageRow.id,
+            current: coverageRow,
+            next: coverageRow.copyWith(isDeleted: true),
+            stamps: stamps,
+          );
+        }
 
         previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
-        await (database.update(database.ocptShotsTable)..where((table) => table.id.equals(shot.id)))
-            .write(
-              OcptShotsTableCompanion(
-                sceneId: const Value(null),
-                orphanedHeading: Value(scene.heading),
-                position: Value(nextPosition),
-                sortKey: Value(previousSortKey),
-                needsCheck: const Value(true),
-                checkReason: const Value(OcptShotCheckReason.sceneDeleted),
-              ),
-            );
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShotsTable,
+          rowId: shot.id,
+          current: shot,
+          next: shot.copyWith(
+            sceneId: const Value(null),
+            orphanedHeading: Value(scene.heading),
+            position: nextPosition,
+            sortKey: previousSortKey,
+            needsCheck: true,
+            checkReason: const Value(OcptShotCheckReason.sceneDeleted),
+          ),
+          stamps: stamps,
+        );
         nextPosition++;
       }
     }
@@ -673,33 +840,68 @@ class OcptShotListService {
   ///
   /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
   /// already refused the write on a preview connection and is already inside the transaction
-  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  /// removing the episode, so a second guard here would only be able to disagree with the first —
+  /// and stamps through [stamps], that caller's own instance, for the same reason
+  /// [detachShotsFromDeletedScenes] does.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<List<String>> tombstoneShotsOfScreenplay({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required OcptRowStampService? stamps,
   }) async {
     final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
     if (shotIds.isEmpty) {
       return const [];
     }
 
-    await (database.update(
-      database.ocptShotCoveragesTable,
-    )..where((table) => table.shotId.isIn(shotIds))).write(
-      const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
-    );
-    await (database.update(
-      database.ocptShotCharactersTable,
-    )..where((table) => table.shotId.isIn(shotIds))).write(
-      const OcptShotCharactersTableCompanion(isDeleted: Value(true)),
-    );
-    await (database.update(
-      database.ocptShotsTable,
-    )..where((table) => table.id.isIn(shotIds))).write(
-      const OcptShotsTableCompanion(isDeleted: Value(true)),
-    );
+    final coverageRows =
+        await (database.select(
+              database.ocptShotCoveragesTable,
+            )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not()))
+            .get();
+    for (final row in coverageRows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotCoveragesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+
+    final characterRows =
+        await (database.select(
+              database.ocptShotCharactersTable,
+            )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not()))
+            .get();
+    for (final row in characterRows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotCharactersTable,
+        rowId: ocptCompositeRowStampKey([row.shotId, row.characterName]),
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+
+    final shotRows =
+        await (database.select(
+              database.ocptShotsTable,
+            )..where((table) => table.id.isIn(shotIds) & table.isDeleted.not()))
+            .get();
+    for (final row in shotRows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
 
     return shotIds;
   }
@@ -790,6 +992,16 @@ class OcptShotListService {
   }) => (database.select(database.ocptShotsTable)
         ..where((table) => table.id.equals(shotId) & table.isDeleted.not()))
       .getSingle();
+
+  /// Reads back the shot row [shotId], or null if it doesn't exist or has been tombstoned: the
+  /// non-throwing sibling of [_getShotRow], for a write that is a silent no-op on a stale id
+  /// rather than a bug.
+  Future<OcptShotRow?> _liveShotRowOrNull({
+    required OcptProjectDatabase database,
+    required String shotId,
+  }) => (database.select(database.ocptShotsTable)
+        ..where((table) => table.id.equals(shotId) & table.isDeleted.not()))
+      .getSingleOrNull();
 
   /// Every live shot row of screenplay [screenplayId] belonging to the group [sceneId] identifies
   /// (a real scene, or the orphan group when [sceneId] is null), ordered by `sortKey`.

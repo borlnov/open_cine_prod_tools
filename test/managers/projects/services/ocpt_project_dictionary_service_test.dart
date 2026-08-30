@@ -12,7 +12,8 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptProjectDictionaryService();
+  Future<String> testDeviceId() async => "test-device";
+  final service = OcptProjectDictionaryService(deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
 
@@ -27,6 +28,13 @@ void main() {
   /// Every `project_dictionary_words` row the project currently holds, tombstones included.
   Future<List<OcptProjectDictionaryWordRow>> readAllRows() =>
       database.select(database.ocptProjectDictionaryWordsTable).get();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   group("learnWord", () {
     test("inserts one live row", () async {
@@ -143,6 +151,61 @@ void main() {
 
     test("returns an empty list for a project that has taught nothing yet", () async {
       expect(await service.loadWords(database: database), isEmpty);
+    });
+  });
+
+  group("stamping", () {
+    test("learnWord stamps every column of a freshly inserted word", () async {
+      await service.learnWord(database: database, word: "Séquence");
+      final id = (await readAllRows()).single.id;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptProjectDictionaryWordsTable,
+      )..where((table) => table.id.equals(id))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("project_dictionary_words/$id/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["project_dictionary_words/$id/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("re-learning a tombstoned word stamps only the columns that actually changed", () async {
+      await service.learnWord(database: database, word: "marc");
+      final id = (await readAllRows()).single.id;
+      await service.unlearnWord(database: database, word: "marc");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.learnWord(database: database, word: "Marc");
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("project_dictionary_words/$id/"))
+          .toSet();
+      expect(ownKeys, {
+        "project_dictionary_words/$id/word",
+        "project_dictionary_words/$id/isDeleted",
+      });
+    });
+
+    test("unlearnWord stamps isDeleted on the tombstoned word", () async {
+      await service.learnWord(database: database, word: "Julien");
+      final id = (await readAllRows()).single.id;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.unlearnWord(database: database, word: "Julien");
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("project_dictionary_words/$id/"))
+          .toSet();
+      expect(ownKeys, {"project_dictionary_words/$id/isDeleted"});
     });
   });
 }

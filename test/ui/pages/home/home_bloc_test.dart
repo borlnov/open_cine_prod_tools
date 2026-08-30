@@ -395,14 +395,15 @@ void main() {
   });
 
   group("a project file from another build", () {
-    // The older-file migration flow can't be exercised at schema version 1: ADR 0029 squashed the
-    // pre-stable chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0,
-    // which reads as an unreadable/foreign file, not an older one). The two tests that need an
-    // older file therefore skip until a stable cycle raises currentSchemaVersion to 2+ — at which
-    // point createProjectAtPreviousFormat must undo that new step's own additions again, and the
-    // auto-reactivated tests fail loudly until it does. The same limitation is why the pre-release
-    // "at your own risk" migration wording has no test here: it only replaces the migration
-    // message, which these two skips already keep untested.
+    // The older-file migration flow could not be exercised at schema version 1: ADR 0029 squashed
+    // the pre-stable chain, so no schema below the current one existed then
+    // (currentSchemaVersion - 1 was 0, which reads as an unreadable/foreign file, not an older
+    // one). Schema version 2 (`OcptSyncRelayCursorsTable`) is the first real `onUpgrade` step since,
+    // which is what reactivates the two tests below: `createProjectAtPreviousFormat` undoes exactly
+    // that step's own addition, so whichever schema step is newest has to keep this helper in sync
+    // with what it actually adds, or these tests fail loudly instead of proving anything. The same
+    // limitation is why the pre-release "at your own risk" migration wording has no test here: it
+    // only replaces the migration message, which these two skips already keep untested.
     const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
 
     /// The format a file one step behind this build states.
@@ -420,12 +421,7 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        ..execute("ALTER TABLE budget_entries DROP COLUMN commitment_id")
-        ..execute("ALTER TABLE budget_entries DROP COLUMN person_id")
-        ..execute(
-          'ALTER TABLE "budget_commitments" ADD COLUMN "settled_entry_id" TEXT NULL '
-          "REFERENCES budget_entries (id)",
-        )
+        ..execute("DROP TABLE sync_relay_cursors")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:uuid/uuid.dart';
 
@@ -18,8 +18,12 @@ import 'package:uuid/uuid.dart';
 /// rows for it. What is actually stored is the word **as typed**, case included — matching is
 /// case-insensitive, storage is not.
 class OcptProjectDictionaryService {
+  /// Resolves the device id every stamp [learnWord] and [unlearnWord] make carries — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptProjectDictionaryService();
+  const OcptProjectDictionaryService({required this.deviceId});
 
   /// The live words of this project's dictionary, sorted case-insensitively (ties broken by the
   /// exact text, so the ordering is deterministic), tombstones filtered out.
@@ -74,14 +78,24 @@ class OcptProjectDictionaryService {
     }
 
     if (match == null) {
-      await database
-          .into(database.ocptProjectDictionaryWordsTable)
-          .insert(
-            OcptProjectDictionaryWordsTableCompanion.insert(
-              id: const Uuid().v4(),
-              word: trimmedWord,
-            ),
-          );
+      final row = OcptProjectDictionaryWordRow(
+        id: const Uuid().v4(),
+        word: trimmedWord,
+        isDeleted: false,
+      );
+
+      await database.transaction(() async {
+        final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptProjectDictionaryWordsTable,
+          rowId: row.id,
+          current: null,
+          next: row,
+          stamps: stamps,
+        );
+        await stamps.flush(database);
+      });
       return;
     }
 
@@ -90,15 +104,18 @@ class OcptProjectDictionaryService {
       return;
     }
 
-    final matchId = match.id;
-    await (database.update(
-      database.ocptProjectDictionaryWordsTable,
-    )..where((table) => table.id.equals(matchId))).write(
-      OcptProjectDictionaryWordsTableCompanion(
-        word: Value(trimmedWord),
-        isDeleted: const Value(false),
-      ),
-    );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptProjectDictionaryWordsTable,
+        rowId: match!.id,
+        current: match,
+        next: match.copyWith(word: trimmedWord, isDeleted: false),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes [word] from this project's dictionary, on a user's own gesture in the project
@@ -124,16 +141,25 @@ class OcptProjectDictionaryService {
       database.ocptProjectDictionaryWordsTable,
     )..where((table) => table.isDeleted.equals(false))).get();
 
-    for (final row in liveMatches) {
-      if (row.word.toLowerCase() != loweredWord) {
-        continue;
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      for (final row in liveMatches) {
+        if (row.word.toLowerCase() != loweredWord) {
+          continue;
+        }
+
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptProjectDictionaryWordsTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
       }
 
-      await (database.update(
-        database.ocptProjectDictionaryWordsTable,
-      )..where((table) => table.id.equals(row.id))).write(
-        const OcptProjectDictionaryWordsTableCompanion(isDeleted: Value(true)),
-      );
-    }
+      await stamps.flush(database);
+    });
   }
 }

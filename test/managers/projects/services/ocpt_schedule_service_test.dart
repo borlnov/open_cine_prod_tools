@@ -5,7 +5,10 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -18,8 +21,13 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const scheduleService = OcptScheduleService();
-  const peopleService = OcptPeopleService();
+  Future<String> testDeviceId() async => "test-device";
+  final scheduleService = OcptScheduleService(deviceId: testDeviceId);
+  final peopleService = OcptPeopleService(
+    deviceId: testDeviceId,
+    assetsService: OcptAssetsService(deviceId: testDeviceId),
+    roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+  );
   const screenplayId = "screenplay-1";
 
   late OcptProjectDatabase database;
@@ -155,6 +163,13 @@ void main() {
             ..where((row) => row.shootingDayId.equals(dayId))
             ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
           .get();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptBreakdownService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   group("days", () {
     setUp(insertScreenplay);
@@ -1769,6 +1784,469 @@ void main() {
       );
 
       expect(await preview.select(preview.ocptShootingBlockCandidatesTable).get(), isEmpty);
+    });
+  });
+
+  group("row-field-version stamps", () {
+    setUp(insertScreenplay);
+
+    test("createDay stamps every column of the new day", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+
+      final stamps = await readStamps();
+      final day = await readDay(dayId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_days/$dayId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(day.toJson().length));
+      for (final column in day.toJson().keys) {
+        final stamp = ownStamps["shooting_days/$dayId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("deleteDay stamps isDeleted on the day", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.deleteDay(database: database, dayId: dayId);
+
+      final stamps = await readStamps();
+      expect(stamps["shooting_days/$dayId/isDeleted"]!.version, 1);
+    });
+
+    test("createSlot stamps every column of the new row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final slotId = (await scheduleService.createSlot(
+        database: database,
+        shootingDayId: dayId,
+        anchorMinute: 600,
+      ))!;
+
+      final stamps = await readStamps();
+      final slot = (await readAllSlots(dayId)).firstWhere((row) => row.id == slotId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_slots/$slotId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(slot.toJson().length));
+      for (final column in slot.toJson().keys) {
+        expect(ownStamps["shooting_slots/$slotId/$column"], isNotNull, reason: "$column should be stamped");
+      }
+    });
+
+    test("updateSlot stamps only the columns that actually changed", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.updateSlot(database: database, slotId: slotId, label: const Value("Matin"));
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("shooting_slots/$slotId/")).toSet();
+      expect(ownKeys, {"shooting_slots/$slotId/label"});
+    });
+
+    test("addSlotCrewMember stamps every column of the new row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final crewId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+
+      final stamps = await readStamps();
+      final crew = (await readAllCrew(slotId)).firstWhere((row) => row.id == crewId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_slot_crew/$crewId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(crew.toJson().length));
+      for (final column in crew.toJson().keys) {
+        expect(
+          ownStamps["shooting_slot_crew/$crewId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("removeSlotCrewMember stamps isDeleted", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+      final crewId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.removeSlotCrewMember(database: database, crewMemberId: crewId);
+
+      final stamps = await readStamps();
+      expect(stamps.keys.where((key) => key.startsWith("shooting_slot_crew/$crewId/")).toSet(), {
+        "shooting_slot_crew/$crewId/isDeleted",
+      });
+    });
+
+    test("addSlotCastRole stamps every column of the new row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final roleId = await createRole("role-1");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final castId = (await scheduleService.addSlotCastRole(
+        database: database,
+        slotId: slotId,
+        roleId: roleId,
+      ))!;
+
+      final stamps = await readStamps();
+      final cast = (await readAllCast(slotId)).firstWhere((row) => row.id == castId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_slot_cast/$castId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(cast.toJson().length));
+      for (final column in cast.toJson().keys) {
+        expect(
+          ownStamps["shooting_slot_cast/$castId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("removeSlotCastRole stamps isDeleted", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final roleId = await createRole("role-1");
+      final castId = (await scheduleService.addSlotCastRole(
+        database: database,
+        slotId: slotId,
+        roleId: roleId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.removeSlotCastRole(database: database, castRoleId: castId);
+
+      final stamps = await readStamps();
+      expect(stamps.keys.where((key) => key.startsWith("shooting_slot_cast/$castId/")).toSet(), {
+        "shooting_slot_cast/$castId/isDeleted",
+      });
+    });
+
+    test("addSlotGuest stamps every column of the new row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final guestId = (await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        freeName: "Le maire",
+      ))!;
+
+      final stamps = await readStamps();
+      final guest = (await readAllGuests(slotId)).firstWhere((row) => row.id == guestId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_slot_guests/$guestId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(guest.toJson().length));
+      for (final column in guest.toJson().keys) {
+        expect(
+          ownStamps["shooting_slot_guests/$guestId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("deleteSlotGuest stamps isDeleted", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final guestId = (await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        freeName: "Le maire",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.deleteSlotGuest(database: database, guestId: guestId);
+
+      final stamps = await readStamps();
+      expect(stamps.keys.where((key) => key.startsWith("shooting_slot_guests/$guestId/")).toSet(), {
+        "shooting_slot_guests/$guestId/isDeleted",
+      });
+    });
+
+    test("placeShot stamps every column of the new block", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final shotId = await createShot("shot-1");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final blockId = (await scheduleService.placeShot(
+        database: database,
+        slotId: slotId,
+        shotId: shotId,
+      ))!;
+
+      final stamps = await readStamps();
+      final block = await readBlock(blockId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_day_blocks/$blockId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(block.toJson().length));
+      for (final column in block.toJson().keys) {
+        expect(
+          ownStamps["shooting_day_blocks/$blockId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("updateBlock stamps only the columns that actually changed", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.meal,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.updateBlock(
+        database: database,
+        blockId: blockId,
+        crewNote: const Value("The generator arrives during this move"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("shooting_day_blocks/$blockId/")).toSet();
+      expect(ownKeys, {"shooting_day_blocks/$blockId/crewNote"});
+    });
+
+    test("deleteBlock stamps isDeleted", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.meal,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.deleteBlock(database: database, blockId: blockId);
+
+      final stamps = await readStamps();
+      expect(stamps["shooting_day_blocks/$blockId/isDeleted"]!.version, 1);
+    });
+
+    test("createDayEvent stamps every column of the new row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final eventId = (await scheduleService.createDayEvent(
+        database: database,
+        dayId: dayId,
+        minute: 1020,
+        label: "Feu d'artifice du village",
+      ))!;
+
+      final stamps = await readStamps();
+      final event = (await readAllEvents(dayId)).firstWhere((row) => row.id == eventId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_day_events/$eventId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(event.toJson().length));
+      for (final column in event.toJson().keys) {
+        expect(
+          ownStamps["shooting_day_events/$eventId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("deleteDayEvent stamps isDeleted", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final eventId = (await scheduleService.createDayEvent(
+        database: database,
+        dayId: dayId,
+        minute: 1020,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.deleteDayEvent(database: database, eventId: eventId);
+
+      final stamps = await readStamps();
+      expect(stamps["shooting_day_events/$eventId/isDeleted"]!.version, 1);
+    });
+
+    test("addBlockCandidate stamps every column of the new row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final roleId = await createRole("role-1");
+      final personId = (await peopleService.createPerson(database: database))!;
+      final candidacyId = await createCandidacy("candidacy-1", roleId: roleId, personId: personId);
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final convocationId = (await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      ))!;
+
+      final stamps = await readStamps();
+      final candidate = (await readAllBlockCandidates(
+        blockId,
+      )).firstWhere((row) => row.id == convocationId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shooting_block_candidates/$convocationId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(candidate.toJson().length));
+      for (final column in candidate.toJson().keys) {
+        expect(
+          ownStamps["shooting_block_candidates/$convocationId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("removeBlockCandidate stamps isDeleted", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final roleId = await createRole("role-1");
+      final personId = (await peopleService.createPerson(database: database))!;
+      final candidacyId = await createCandidacy("candidacy-1", roleId: roleId, personId: personId);
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.audition,
+      ))!;
+      final convocationId = (await scheduleService.addBlockCandidate(
+        database: database,
+        blockId: blockId,
+        roleCandidateId: candidacyId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await scheduleService.removeBlockCandidate(database: database, blockCandidateId: convocationId);
+
+      final stamps = await readStamps();
+      expect(
+        stamps.keys
+            .where((key) => key.startsWith("shooting_block_candidates/$convocationId/"))
+            .toSet(),
+        {"shooting_block_candidates/$convocationId/isDeleted"},
+      );
+    });
+
+    test("tombstoneShotBlocks stamps isDeleted on shooting_day_blocks", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final shotId = await createShot("shot-1");
+      final blockId = (await scheduleService.placeShot(
+        database: database,
+        slotId: slotId,
+        shotId: shotId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: "device-x");
+      await scheduleService.tombstoneShotBlocks(
+        database: database,
+        shotIds: [shotId],
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+
+      final readBackStamps = await readStamps();
+      expect(readBackStamps["shooting_day_blocks/$blockId/isDeleted"]!.version, 1);
+      expect(readBackStamps["shooting_day_blocks/$blockId/isDeleted"]!.deviceId, "device-x");
     });
   });
 
