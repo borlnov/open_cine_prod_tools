@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
@@ -43,6 +44,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
     registerManagerAsync<ActLicensesManager>(ActLicensesBuilder<OcptConfigManager>());
     registerManagerAsync<OcptPropertiesManager>(const OcptPropertiesManagerBuilder());
+    registerManagerAsync<OcptSecretsManager>(OcptSecretsManagerBuilder());
     registerManagerAsync<LocalesManager>(
       LocalesManagerBuilder<OcptConfigManager, OcptPropertiesManager>(
         getSupportedLocales: () => Tr.delegate.supportedLocales,

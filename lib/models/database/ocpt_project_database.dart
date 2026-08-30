@@ -53,6 +53,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_characters_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_coverages_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_pairings_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_cursors_table.dart';
 // These are only used through the type converters declared in the table files above
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
@@ -128,17 +129,20 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptBudgetAllowancesTable]); the writer's own project dictionary
 /// ([OcptProjectDictionaryWordsTable]); the user's named project versions
 /// ([OcptProjectVersionsTable]); the per-column version stamps a merge resolves conflicts with
-/// ([OcptRowFieldVersionsTable]); and the changeset engine's own delivery state against each relay
-/// it talks to, local to this replica and never synchronised
-/// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3).
+/// ([OcptRowFieldVersionsTable]); the changeset engine's own delivery state against each relay it
+/// talks to, local to this replica and never synchronised
+/// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3); and which relay this
+/// replica's project is paired with, also local and never synchronised
+/// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4).
 ///
 /// Everything up to [OcptRowFieldVersionsTable] was created by `onCreate` at schema version 1,
 /// which the 0.1.0 release froze per
 /// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`: no earlier release had shipped, so
-/// that version carries no pre-stable migration history of its own. [OcptSyncRelayCursorsTable] is
-/// schema version 2's own addition — the first real `onUpgrade` step, additive only per
-/// `docs/adr/0007-schema-migration-policy.md` — created for an existing v1 file without touching
-/// anything else, and by `onCreate` alongside every other table for a brand-new one.
+/// that version carries no pre-stable migration history of its own. [OcptSyncRelayCursorsTable] and
+/// [OcptSyncPairingsTable] are schema version 2's own addition — the first real `onUpgrade` step,
+/// additive only per `docs/adr/0007-schema-migration-policy.md` — created for an existing v1 file
+/// without touching anything else, and by `onCreate` alongside every other table for a brand-new
+/// one.
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -189,6 +193,7 @@ part 'ocpt_project_database.g.dart';
     OcptBudgetSharesTable,
     OcptBudgetAllowancesTable,
     OcptSyncRelayCursorsTable,
+    OcptSyncPairingsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -306,7 +311,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `docs/adr/0007-schema-migration-policy.md` gives for how a single step is written. From 1 to 2,
   /// `onUpgrade` only creates [OcptSyncRelayCursorsTable] — the changeset engine's own local,
   /// never-synchronised delivery-cursor table (`docs/plans/collaboration-and-sync.md`, M3) — and
-  /// touches nothing else, so a v1 file's existing rows are untouched by the upgrade.
+  /// [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which relay a
+  /// project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and touches nothing else,
+  /// so a v1 file's existing rows are untouched by the upgrade.
   ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
@@ -317,6 +324,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(ocptSyncRelayCursorsTable);
+        await m.createTable(ocptSyncPairingsTable);
       }
     },
     beforeOpen: (details) async {
