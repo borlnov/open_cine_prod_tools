@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve (the shell's own
 /// toolbar reads them for its tooltips), a wide test surface so the docks row has room for both
@@ -687,4 +688,136 @@ void main() {
       expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
     },
   );
+
+  group("compact-width edge drawers", () {
+    OcptWorkspaceDockLayoutController buildController() => OcptWorkspaceDockLayoutController(
+      leftFraction: OcptWorkspaceDock.leftDefaultFraction,
+      rightFraction: OcptWorkspaceDock.rightDefaultFraction,
+    );
+
+    testWidgets("an expanded width keeps the persistent columns with their divider", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = buildController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            leftPanel: const Text("left"),
+            dockLayoutController: controller,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptWorkspaceDockDivider), findsOneWidget);
+      expect(find.text("left"), findsOneWidget);
+    });
+
+    testWidgets("a compact width drops the divider and shows the panel as a drawer", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = buildController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            leftPanel: const Text("left"),
+            dockLayoutController: controller,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // No resize divider at a compact width, but the open panel and the centre are both present.
+      expect(find.byType(OcptWorkspaceDockDivider), findsNothing);
+      expect(find.text("left"), findsOneWidget);
+      expect(find.text("centre"), findsOneWidget);
+
+      // The drawer is the fixed edge width on a tablet-compact row, not the whole width.
+      expect(tester.getSize(find.byType(OcptWorkspaceDock)).width, ocptCompactDrawerWidth);
+    });
+
+    testWidgets("a phone-width drawer fills the whole row", (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = buildController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            rightPanel: const Text("right"),
+            dockLayoutController: controller,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptWorkspaceDockDivider), findsNothing);
+      expect(tester.getSize(find.byType(OcptWorkspaceDock)).width, 390);
+    });
+
+    testWidgets("tapping the scrim beside a drawer closes it through its toggle", (tester) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = buildController();
+      addTearDown(controller.dispose);
+
+      var leftToggleCount = 0;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            leftPanel: const Text("left"),
+            isLeftDockOpen: true,
+            onToggleLeftDock: () => leftToggleCount++,
+            dockLayoutController: controller,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The drawer is 360 px wide at the left; a tap well to its right lands on the scrim over the
+      // centre, which dismisses the drawer through the same toggle that opened it.
+      await tester.tapAt(const Offset(600, 600));
+      await tester.pumpAndSettle();
+
+      expect(leftToggleCount, 1);
+    });
+  });
 }

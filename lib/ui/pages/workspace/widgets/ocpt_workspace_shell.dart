@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The persistent application chrome around a production mode's own content: a toolbar, an
 /// optional full-width [banner] under it, an optional pair of resizable side docks around a centre
@@ -52,6 +53,11 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart'
 /// builder alone; since it references the very same widget instances on every rebuild, Flutter's
 /// `Element.update` short-circuits on their identity and only re-lays-out the resolved widths —
 /// the content underneath never rebuilds mid-drag.
+///
+/// Below [ocptCompactWidthBreakpoint] the two side docks no longer fit as persistent columns
+/// beside the centre floor, so the row reduces to edge drawers: the centre fills the width and an
+/// open panel slides over it, summoned by the same toolbar dock toggles (see [_buildCompactDrawers]).
+/// This is a pure width reduction — the widget stays presentational and reads no platform.
 class OcptWorkspaceShell extends StatelessWidget {
   /// The open project's name, shown in the toolbar.
   final String title;
@@ -538,6 +544,12 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// Skips the [LayoutBuilder]/[ListenableBuilder]/dock-width machinery entirely when
   /// [dockLayoutController] is null (a mode with no dock at all): [centre] then simply fills the
   /// row.
+  ///
+  /// Below [ocptCompactWidthBreakpoint] the two side docks can no longer coexist with the centre
+  /// floor as persistent columns, so the row reduces to [_buildCompactDrawers]: [centre] fills the
+  /// whole width and whichever panel is open ([leftPanel]/[rightPanel] non-null) slides over it as
+  /// an edge drawer summoned by the toolbar's own dock toggles. Above the breakpoint the row keeps
+  /// its persistent side columns unchanged.
   Widget _buildDocksRow() {
     final controller = dockLayoutController;
     if (controller == null) {
@@ -547,6 +559,10 @@ class OcptWorkspaceShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final rowWidth = constraints.maxWidth;
+
+        if (ocptIsCompactWidth(rowWidth)) {
+          return _buildCompactDrawers(context, rowWidth);
+        }
 
         return ListenableBuilder(
           listenable: controller,
@@ -594,6 +610,73 @@ class OcptWorkspaceShell extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  /// Builds the compact-width presentation of the docks row: [centre] fills the whole row of
+  /// [rowWidth], and whichever side panel is open ([leftPanel] / [rightPanel] non-null) slides over
+  /// it as an edge drawer, dimming the centre behind a scrim that dismisses the drawer when tapped.
+  ///
+  /// The drawers are summoned by the toolbar's own dock toggles: a panel is present here for exactly
+  /// the same reason it is a column at an expanded width — the mode hands it in non-null while its
+  /// dock is open — so nothing but the presentation changes between the two. There are no resize
+  /// dividers at this width; a drawer is [ocptCompactDrawerWidthFor] wide (the whole row on a phone,
+  /// an edge drawer above that), and carries a 1 px `outlineVariant` line on its centre-facing edge,
+  /// the same seam the divider draws between a column and the centre.
+  ///
+  /// The scrim closes whichever side is open through the very toggle that opened it
+  /// ([onToggleLeftDock] / [onToggleRightDock]); a mode that wired no toggle for a side it somehow
+  /// left open simply keeps it open, exactly as tapping outside a menu it never registered would.
+  Widget _buildCompactDrawers(BuildContext context, double rowWidth) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final drawerWidth = ocptCompactDrawerWidthFor(rowWidth);
+    final isAnyDrawerOpen = leftPanel != null || rightPanel != null;
+
+    return Stack(
+      children: [
+        Positioned.fill(child: centre),
+        if (isAnyDrawerOpen)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (leftPanel != null) {
+                  onToggleLeftDock?.call();
+                }
+                if (rightPanel != null) {
+                  onToggleRightDock?.call();
+                }
+              },
+              child: ColoredBox(color: colorScheme.scrim.withValues(alpha: 0.46)),
+            ),
+          ),
+        if (leftPanel != null)
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: drawerWidth,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(right: BorderSide(color: colorScheme.outlineVariant)),
+              ),
+              child: OcptWorkspaceDock(width: drawerWidth, child: leftPanel!),
+            ),
+          ),
+        if (rightPanel != null)
+          Positioned(
+            top: 0,
+            bottom: 0,
+            right: 0,
+            width: drawerWidth,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: colorScheme.outlineVariant)),
+              ),
+              child: OcptWorkspaceDock(width: drawerWidth, child: rightPanel!),
+            ),
+          ),
+      ],
     );
   }
 }
