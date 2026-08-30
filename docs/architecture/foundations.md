@@ -264,32 +264,35 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
   build on one commits it. See `.github/ci-doc.md` for the local recipes.
 
-- Persistence: drift schema v1 (ADR 0029). `onCreate` creates the whole schema at once —
+- Persistence: drift schema v2 (ADR 0029). `onCreate` creates the whole schema at once —
   `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot list tables, the
   fifteen resources tables (`role_candidates`, `role_elements` and `role_episodes` among them),
   `breakdown_tags`, `scene_breakdowns`, the eight schedule tables, the nine budget tables
   (`budget_postes`, `budget_lines`, `budget_entries`, `budget_commitments`, `budget_resources`,
   `budget_mileage_rates`, `budget_revenues`, `budget_shares`, `budget_allowances`),
-  `project_dictionary_words`, `row_field_versions`, `project_versions` — with
-  `storeDateTimeAsText: true`, `beforeOpen` turning SQLite's `foreign_keys` pragma on, and scene
-  reconciliation in 3 passes (explicit scene number → exact heading → relative order). No stable
-  release has ever shipped, so the schema carries **no pre-stable migration history**: the 34
-  migration steps four alpha tags accumulated — a column added, renamed and dropped again while a
-  feature was designed — were pre-release workshop churn, owed to nobody because none reached a
-  user's disk, and were squashed to this one fresh schema (ADR 0029). `onUpgrade` therefore has
-  nothing to do yet (a real `.ocpt` is never below v1), and the first step is written only once a
-  stable release has frozen the schema. Two constants govern that: `currentSchemaVersion` (1) and
-  `lastStableSchemaVersion` (0, none frozen yet). While `current == lastStable + 1` a cycle is open
-  and the pending step is rewritten in place; while `current == lastStable` the top step is frozen,
-  so the next schema change creates a new one. Freezing sets `lastStableSchemaVersion` to
-  `currentSchemaVersion` at release (`docs/RELEASING.md`), which a fail-closed CI guard on a stable
-  tag enforces — a forgotten freeze blocks the release, an incorrect one fails the migration test.
-  ADR 0007's additive-only guidance still governs how a single step is written; its
-  allocate-at-merge rule is amended — a cycle no longer takes a number per merge. The migration
-  test is the harness pinning each frozen stable's upgrade path (a verbatim DDL fixture per stable,
-  proving `onCreate` == every stable upgrade path), so a table declared and forgotten fails there
-  rather than on a user's file; it holds none yet. `**/*.g.dart` is git-ignored (documented
-  deviation); CI regenerates with build_runner.
+  `project_dictionary_words`, `row_field_versions`, `project_versions`, and `sync_relay_cursors`
+  (the changeset engine's own per-relay delivery state, local to this replica and never
+  synchronised, `docs/plans/collaboration-and-sync.md`, M3) — with `storeDateTimeAsText: true`,
+  `beforeOpen` turning SQLite's `foreign_keys` pragma on, and scene reconciliation in 3 passes
+  (explicit scene number → exact heading → relative order). Schema v1 carries **no pre-stable
+  migration history**: the 34 migration steps four alpha tags accumulated — a column added,
+  renamed and dropped again while a feature was designed — were pre-release workshop churn, owed to
+  nobody because none reached a user's disk, and were squashed to that one fresh schema (ADR 0029).
+  The 0.1.0 release then froze v1, and v2 is the cycle's first real `onUpgrade` step since:
+  additive only (ADR 0007), it creates `sync_relay_cursors` alone and touches nothing else, so a v1
+  file's existing rows are untouched by it. Two constants govern this: `currentSchemaVersion` (2)
+  and `lastStableSchemaVersion` (1, frozen at 0.1.0). While `current == lastStable + 1` a cycle is
+  open and the pending step is rewritten in place — the state today; while `current == lastStable`
+  the top step is frozen, so the next schema change creates a new one. Freezing sets
+  `lastStableSchemaVersion` to `currentSchemaVersion` at release (`docs/RELEASING.md`), which a
+  fail-closed CI guard on a stable tag enforces — a forgotten freeze blocks the release, an
+  incorrect one fails the migration test. ADR 0007's additive-only guidance still governs how a
+  single step is written; its allocate-at-merge rule is amended — a cycle no longer takes a number
+  per merge. The migration test is the harness pinning each frozen stable's upgrade path (a
+  verbatim DDL fixture per stable, proving `onCreate` == every stable upgrade path), so a table
+  declared and forgotten fails there rather than on a user's file; it holds none yet, since v2 has
+  not itself been frozen by a stable release. `**/*.g.dart` is git-ignored (documented deviation);
+  CI regenerates with build_runner.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v1): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with

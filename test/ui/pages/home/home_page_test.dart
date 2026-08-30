@@ -281,12 +281,12 @@ void main() {
   });
 
   group("opening a project file from another build", () {
-    // The older-file case can't be exercised at schema version 1: ADR 0029 squashed the pre-stable
-    // chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0, which reads
-    // as an unreadable/foreign file, not an older one). The older test skips until a stable cycle
-    // raises currentSchemaVersion to 2+, when it reactivates on its own. The same limitation is why
-    // the pre-release "at your own risk" migration wording has no test here: it only replaces the
-    // migration message, which this skip already keeps untested.
+    // The older-file case could not be exercised at schema version 1: ADR 0029 squashed the
+    // pre-stable chain, so no schema below the current one existed then (currentSchemaVersion - 1
+    // was 0, which reads as an unreadable/foreign file, not an older one). Schema version 2 is what
+    // reactivates the older test below, on its own, through this constant. The same limitation is
+    // why the pre-release "at your own risk" migration wording has no test here: it only replaces
+    // the migration message, which this skip already keeps untested.
     const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
 
     /// Writes a project file at [filePath] stating [userVersion], and puts it on the home page as
