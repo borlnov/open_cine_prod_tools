@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:test/test.dart';
@@ -14,6 +16,19 @@ OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptCh
   lamport: lamport,
   createdAt: DateTime.utc(2026),
   payload: Uint8List.fromList([1, 2, 3]),
+);
+
+/// A snapshot descriptor over [bytes], with a real digest computed over them — the store treats
+/// the digest as opaque, but a realistic one keeps these tests honest about what a caller passes.
+OcptSnapshotDescriptor _descriptor({
+  required String snapshotId,
+  required OcptSequenceNumber sequenceUpTo,
+  required Uint8List bytes,
+}) => OcptSnapshotDescriptor(
+  snapshotId: snapshotId,
+  sequenceUpTo: sequenceUpTo,
+  byteLength: bytes.length,
+  contentDigest: sha256.convert(bytes).toString(),
 );
 
 void main() {
@@ -91,6 +106,99 @@ void main() {
 
     test('an unknown project is not found', () {
       expect(store.findProject('unknown'), isNull);
+    });
+
+    test('a snapshot uploaded is fetched back, descriptor and bytes intact', () {
+      final bytes = Uint8List.fromList(utf8.encode('a snapshot payload'));
+      final descriptor = _descriptor(
+        snapshotId: 'snapshot-1',
+        sequenceUpTo: OcptSequenceNumber.zero,
+        bytes: bytes,
+      );
+
+      store.uploadSnapshot('project-1', descriptor, bytes);
+      final fetched = store.fetchLatestSnapshot('project-1');
+
+      expect(fetched, isNotNull);
+      expect(fetched!.$1, descriptor);
+      expect(fetched.$2, bytes);
+    });
+
+    test('fetchLatestSnapshot returns null before any upload', () {
+      expect(store.fetchLatestSnapshot('project-1'), isNull);
+    });
+
+    test('a second uploadSnapshot replaces the latest', () {
+      final firstBytes = Uint8List.fromList(utf8.encode('first snapshot'));
+      final secondBytes = Uint8List.fromList(utf8.encode('second snapshot'));
+      final first = _descriptor(
+        snapshotId: 'snapshot-1',
+        sequenceUpTo: OcptSequenceNumber.zero,
+        bytes: firstBytes,
+      );
+      final second = _descriptor(
+        snapshotId: 'snapshot-2',
+        sequenceUpTo: OcptSequenceNumber.zero,
+        bytes: secondBytes,
+      );
+
+      store.uploadSnapshot('project-1', first, firstBytes);
+      store.uploadSnapshot('project-1', second, secondBytes);
+      final fetched = store.fetchLatestSnapshot('project-1');
+
+      expect(fetched, isNotNull);
+      expect(fetched!.$1, second);
+      expect(fetched.$2, secondBytes);
+    });
+
+    test('pruning not losing a changeset a replica has not yet read', () {
+      for (var i = 1; i <= 5; i++) {
+        store.append('project-1', _envelope('changeset-$i'));
+      }
+
+      final snapshotBytes = Uint8List.fromList(utf8.encode('state up to sequence 3'));
+      final descriptor = _descriptor(
+        snapshotId: 'snapshot-1',
+        sequenceUpTo: const OcptSequenceNumber(3),
+        bytes: snapshotBytes,
+      );
+      store.uploadSnapshot('project-1', descriptor, snapshotBytes);
+
+      // (a) the changesets at/below the snapshot's sequence are pruned from the log.
+      final sinceZero = store.readSince('project-1', OcptSequenceNumber.zero);
+      expect(sinceZero.map((changeset) => changeset.envelope.changesetId), ['changeset-4', 'changeset-5']);
+
+      // (b) reading since the snapshot's own position returns exactly what is above it.
+      final sinceSnapshot = store.readSince('project-1', const OcptSequenceNumber(3));
+      expect(sinceSnapshot.map((changeset) => changeset.envelope.changesetId), ['changeset-4', 'changeset-5']);
+
+      // (c) a replica at a cursor behind the snapshot still converges: fetching the snapshot jumps
+      // it to sequence 3, and reading since 3 hands it everything above — nothing lost.
+      final replicaCursor = const OcptSequenceNumber(1);
+      final fetched = store.fetchLatestSnapshot('project-1')!;
+      expect(fetched.$1.sequenceUpTo, const OcptSequenceNumber(3));
+      expect(replicaCursor < fetched.$1.sequenceUpTo, isTrue);
+      final replicaCatchUp = store.readSince('project-1', fetched.$1.sequenceUpTo);
+      expect(replicaCatchUp.map((changeset) => changeset.envelope.changesetId), ['changeset-4', 'changeset-5']);
+    });
+
+    test('pruning is per-project', () {
+      store.append('project-a', _envelope('a-1'));
+      store.append('project-a', _envelope('a-2'));
+      store.append('project-b', _envelope('b-1'));
+      store.append('project-b', _envelope('b-2'));
+
+      final bytes = Uint8List.fromList(utf8.encode('project-a snapshot'));
+      final descriptor = _descriptor(
+        snapshotId: 'snapshot-a-1',
+        sequenceUpTo: const OcptSequenceNumber(2),
+        bytes: bytes,
+      );
+      store.uploadSnapshot('project-a', descriptor, bytes);
+
+      expect(store.readSince('project-a', OcptSequenceNumber.zero), isEmpty);
+      final sinceZeroOnB = store.readSince('project-b', OcptSequenceNumber.zero);
+      expect(sinceZeroOnB.map((changeset) => changeset.envelope.changesetId), ['b-1', 'b-2']);
     });
   });
 }
