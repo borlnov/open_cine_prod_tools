@@ -937,4 +937,87 @@ void main() {
       expect(find.byType(PopupMenuDivider), findsOneWidget);
     });
   });
+
+  group("phone-width episode control", () {
+    testWidgets(
+      "the single-episode add button is icon-only and does not overflow the toolbar",
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptWorkspaceShell(
+              title: "A Rather Long Movie Project Title Here",
+              isDirty: false,
+              onBack: () {},
+              modeLabel: "Screenplay",
+              centre: const Text("centre"),
+              episodes: const [OcptEpisode(id: "ep-1", number: 1, title: "Pilot")],
+              selectedEpisodeId: "ep-1",
+              onEpisodeSelected: (_) {},
+              onAddEpisodeRequested: () {},
+              onSave: () {},
+              isLeftDockOpen: true,
+              onToggleLeftDock: () {},
+              onToggleRightDock: () {},
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // A RenderFlex overflow throws during paint; a clean pump proves the toolbar fits.
+        expect(tester.takeException(), isNull);
+
+        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+        // The control is present (its tooltip) but icon-only — its label is not drawn.
+        expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsOneWidget);
+        expect(find.text(tr.workspaceAddEpisodeAction), findsNothing);
+      },
+    );
+
+    testWidgets(
+      "the multi-episode selector is icon-only and does not overflow the toolbar",
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptWorkspaceShell(
+              title: "A Rather Long Movie Project Title Here",
+              isDirty: false,
+              onBack: () {},
+              modeLabel: "Screenplay",
+              centre: const Text("centre"),
+              episodes: const [
+                OcptEpisode(id: "ep-1", number: 1, title: "A Very Long Episode Title Indeed"),
+                OcptEpisode(id: "ep-2", number: 2, title: "Another Long One"),
+              ],
+              selectedEpisodeId: "ep-1",
+              onEpisodeSelected: (_) {},
+              onSave: () {},
+              isLeftDockOpen: true,
+              onToggleLeftDock: () {},
+              onToggleRightDock: () {},
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+
+        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+        // The selector is reachable by its tooltip, but the selected episode's title is not drawn
+        // in the toolbar (icon-only trigger); it appears only once the menu is opened.
+        expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsOneWidget);
+        expect(find.text(tr.workspaceEpisodeTitledLabel(1, "A Very Long Episode Title Indeed")),
+            findsNothing);
+      },
+    );
+  });
 }

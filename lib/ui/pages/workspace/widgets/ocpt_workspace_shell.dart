@@ -244,7 +244,7 @@ class OcptWorkspaceShell extends StatelessWidget {
             isDirty: isDirty,
             isReadOnly: isReadOnly,
             onBack: onBack,
-            episodeControl: _buildEpisodeControl(context),
+            episodeControl: _buildEpisodeControl(context, isPhone),
             actions: toolbarActions,
             modeLabel: modeLabel,
             exportAction: isPhone ? null : _buildExportAction(context),
@@ -365,8 +365,13 @@ class OcptWorkspaceShell extends StatelessWidget {
   ///
   /// The two guard themselves on [episodes]'s own length, so the order they are tried in never
   /// decides anything: a project can't be both at once.
-  Widget? _buildEpisodeControl(BuildContext context) =>
-      _buildEpisodeSelector(context) ?? _buildAddEpisodeAction(context);
+  ///
+  /// On a phone ([isPhone]) both reduce to an icon-only chrome button: the real controls carry a
+  /// label as wide as the episode's own title, which the phone toolbar has no room for beside the
+  /// mode's own controls, and a label-bearing control squeezed into a `Flexible` there overflows
+  /// its own icon rather than ellipsizing cleanly. The label lives in the tooltip then.
+  Widget? _buildEpisodeControl(BuildContext context, bool isPhone) =>
+      _buildEpisodeSelector(context, isPhone) ?? _buildAddEpisodeAction(context, isPhone);
 
   /// Builds the toolbar's episode selector, or null when [onEpisodeSelected] is null or [episodes]
   /// holds at most one — no control is rendered at all then, rather than a disabled one, exactly
@@ -382,8 +387,10 @@ class OcptWorkspaceShell extends StatelessWidget {
   ///
   /// It wraps itself in a [Flexible] — the toolbar wraps nothing itself — because an episode's
   /// title is as long as the user made it: on a window too narrow for the whole toolbar, this is
-  /// the control that gives width up, its trigger ellipsizing like the project title beside it.
-  Widget? _buildEpisodeSelector(BuildContext context) {
+  /// the control that gives width up, its trigger ellipsizing like the project title beside it. On
+  /// a phone ([isPhone]) it is an icon-only fixed trigger instead (its label in the tooltip), since
+  /// the phone toolbar has no room to ellipsize a title beside the mode's own controls.
+  Widget? _buildEpisodeSelector(BuildContext context, bool isPhone) {
     final onEpisodeSelected = this.onEpisodeSelected;
     if (onEpisodeSelected == null || episodes.length <= 1) {
       return null;
@@ -394,63 +401,88 @@ class OcptWorkspaceShell extends StatelessWidget {
     final onProjectSettingsRequested = this.onProjectSettingsRequested;
     final selected = _episodeById(selectedEpisodeId);
 
-    return Flexible(
-      child: PopupMenuButton<String>(
-        tooltip: tr.workspaceEpisodeSelectorTooltip,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-        onSelected: (value) => value == _manageEpisodesOption
-            ? onProjectSettingsRequested?.call()
-            : onEpisodeSelected(value),
-        itemBuilder: (context) => [
-          for (final episode in episodes)
-            PopupMenuItem<String>(
-              value: episode.id,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 18,
-                    child: episode.id == selectedEpisodeId
-                        ? const Icon(Icons.check, size: 16)
-                        : null,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(ocptWorkspaceEpisodeLabelOf(tr, episode)),
-                ],
-              ),
-            ),
-          if (onProjectSettingsRequested != null) ...[
-            const PopupMenuDivider(),
-            PopupMenuItem<String>(
-              value: _manageEpisodesOption,
-              child: Text(tr.workspaceManageEpisodesAction),
-            ),
-          ],
-        ],
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: SizedBox(
-            height: ocptToolbarChromeButtonSize,
+    final button = PopupMenuButton<String>(
+      tooltip: tr.workspaceEpisodeSelectorTooltip,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      onSelected: (value) => value == _manageEpisodesOption
+          ? onProjectSettingsRequested?.call()
+          : onEpisodeSelected(value),
+      itemBuilder: (context) => [
+        for (final episode in episodes)
+          PopupMenuItem<String>(
+            value: episode.id,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Flexible(
-                  child: Text(
-                    selected == null ? "" : ocptWorkspaceEpisodeLabelOf(tr, selected),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
+                SizedBox(
+                  width: 18,
+                  child: episode.id == selectedEpisodeId
+                      ? const Icon(Icons.check, size: 16)
+                      : null,
                 ),
-                const SizedBox(width: 4),
-                Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Text(ocptWorkspaceEpisodeLabelOf(tr, episode)),
               ],
             ),
           ),
-        ),
-      ),
+        if (onProjectSettingsRequested != null) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<String>(
+            value: _manageEpisodesOption,
+            child: Text(tr.workspaceManageEpisodesAction),
+          ),
+        ],
+      ],
+      child: isPhone
+          ? _buildEpisodeIconTrigger(theme)
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: SizedBox(
+                height: ocptToolbarChromeButtonSize,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        selected == null ? "" : ocptWorkspaceEpisodeLabelOf(tr, selected),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_drop_down,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
+
+    // On a phone the trigger is a fixed, icon-only chrome button, so it stays out of the toolbar's
+    // flexible width entirely; only on a wider window does it share (and give up) that width.
+    return isPhone ? button : Flexible(child: button);
   }
+
+  /// Builds the phone-width, icon-only trigger for [_buildEpisodeSelector]: a fixed chrome-sized
+  /// glyph pair (an episode library icon and the dropdown caret), reading which episode is on
+  /// screen from its tooltip rather than a label the phone toolbar has no room for.
+  Widget _buildEpisodeIconTrigger(ThemeData theme) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    child: SizedBox(
+      height: ocptToolbarChromeButtonSize,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.video_library_outlined, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
+        ],
+      ),
+    ),
+  );
 
   /// Builds the toolbar's `Add an episode…` button, or null when [onAddEpisodeRequested] is null
   /// or [episodes] holds anything other than exactly one.
@@ -466,7 +498,10 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// It is laid out by hand rather than as a [TextButton.icon] so its label sits in a [Flexible]:
   /// this control shares the toolbar's flexible width with the project title, and a window too
   /// narrow for the whole band ellipsizes the label down to the glyph instead of striping the row.
-  Widget? _buildAddEpisodeAction(BuildContext context) {
+  ///
+  /// On a phone ([isPhone]) it is that glyph alone — a fixed icon-only chrome button, its label in
+  /// the tooltip — since the phone toolbar has no room for the label beside the mode's own controls.
+  Widget? _buildAddEpisodeAction(BuildContext context, bool isPhone) {
     final onAddEpisodeRequested = this.onAddEpisodeRequested;
     if (onAddEpisodeRequested == null || episodes.length != 1) {
       return null;
@@ -474,6 +509,15 @@ class OcptWorkspaceShell extends StatelessWidget {
 
     final tr = Tr.of(context);
     final theme = Theme.of(context);
+
+    if (isPhone) {
+      return IconButton(
+        icon: const Icon(Icons.playlist_add, size: 20),
+        tooltip: tr.workspaceAddEpisodeTooltip,
+        style: OcptWorkspaceToolbar.chromeButtonStyle,
+        onPressed: onAddEpisodeRequested,
+      );
+    }
 
     return Flexible(
       child: Tooltip(
