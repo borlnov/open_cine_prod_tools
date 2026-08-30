@@ -820,4 +820,121 @@ void main() {
       expect(leftToggleCount, 1);
     });
   });
+
+  group("phone-width toolbar overflow", () {
+    testWidgets("folds export, settings and help into the overflow menu on a phone", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(500, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      var exportCount = 0;
+      var settingsCount = 0;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onExportRequested: () => exportCount++,
+            onProjectSettingsRequested: () => settingsCount++,
+            onHelpRequested: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+
+      // None of the three are toolbar controls at this width.
+      expect(find.byTooltip(tr.workspaceExportTooltip), findsNothing);
+      expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsNothing);
+      expect(find.byTooltip(tr.workspaceHelpTooltip), findsNothing);
+
+      // They live in the overflow menu instead: open it and act on them there.
+      final overflow = find.byType(PopupMenuButton<void>);
+      expect(overflow, findsOneWidget);
+
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.workspaceExportAction), findsOneWidget);
+      expect(find.text(tr.workspaceProjectSettingsTooltip), findsOneWidget);
+      expect(find.text(tr.workspaceHelpTooltip), findsOneWidget);
+
+      await tester.tap(find.text(tr.workspaceExportAction));
+      await tester.pumpAndSettle();
+      expect(exportCount, 1);
+
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.workspaceProjectSettingsTooltip));
+      await tester.pumpAndSettle();
+      expect(settingsCount, 1);
+    });
+
+    testWidgets("keeps export and settings as toolbar controls above a phone width", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onExportRequested: () {},
+            onProjectSettingsRequested: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+
+      // The controls are on the toolbar, and nothing folded, so there is no overflow button.
+      expect(find.byTooltip(tr.workspaceExportTooltip), findsOneWidget);
+      expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsOneWidget);
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
+    });
+
+    testWidgets("keeps the mode's own overflow entries below the folded ones", (tester) async {
+      tester.view.physicalSize = const Size(500, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onExportRequested: () {},
+            overflowEntries: const [PopupMenuItem<void>(child: Text("Mode entry"))],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.workspaceExportAction), findsOneWidget);
+      expect(find.text("Mode entry"), findsOneWidget);
+      expect(find.byType(PopupMenuDivider), findsOneWidget);
+    });
+  });
 }

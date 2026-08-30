@@ -26,7 +26,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 /// control ([onSave]), the project settings action ([onProjectSettingsRequested]), then the `Help`
 /// action ([onHelpRequested]) — each rendered only when the mode wired it, so a mode with nothing
 /// to print, no dock, nothing to save, nothing to open there, or no help panel of its own simply
-/// shows fewer of them.
+/// shows fewer of them. On a phone ([ocptIsPhoneWidth]) the export, settings and help controls fold
+/// out of the toolbar into its `⋮` overflow instead, where the band has room for them.
 ///
 /// The episode control sits at the *other* end of the toolbar, right after the title and its
 /// dirty marker / `Read only` pill, since it qualifies *which content* is on screen — exactly what
@@ -222,28 +223,82 @@ class OcptWorkspaceShell extends StatelessWidget {
        );
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      OcptWorkspaceToolbar(
-        title: title,
-        isDirty: isDirty,
-        isReadOnly: isReadOnly,
-        onBack: onBack,
-        episodeControl: _buildEpisodeControl(context),
-        actions: toolbarActions,
-        modeLabel: modeLabel,
-        exportAction: _buildExportAction(context),
-        dockToggles: _buildDockToggles(context),
-        saveAction: _buildSaveAction(context),
-        projectSettingsAction: _buildProjectSettingsAction(context),
-        helpAction: _buildHelpAction(context),
-        overflowEntries: overflowEntries,
-      ),
-      if (banner != null) banner!,
-      Expanded(child: _buildDocksRow()),
-      if (statusBar != null) statusBar!,
-    ],
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      // On a phone the toolbar has no room for its secondary actions beside the mode's own, so the
+      // export, project-settings and help controls fold from their toolbar slots into the `⋮`
+      // overflow instead (see [_buildFoldedChromeEntries]). Above a phone they stay toolbar
+      // controls, exactly as before.
+      final isPhone = ocptIsPhoneWidth(constraints.maxWidth);
+
+      return Column(
+        children: [
+          OcptWorkspaceToolbar(
+            title: title,
+            isDirty: isDirty,
+            isReadOnly: isReadOnly,
+            onBack: onBack,
+            episodeControl: _buildEpisodeControl(context),
+            actions: toolbarActions,
+            modeLabel: modeLabel,
+            exportAction: isPhone ? null : _buildExportAction(context),
+            dockToggles: _buildDockToggles(context),
+            saveAction: _buildSaveAction(context),
+            projectSettingsAction: isPhone ? null : _buildProjectSettingsAction(context),
+            helpAction: isPhone ? null : _buildHelpAction(context),
+            overflowEntries: isPhone ? _buildPhoneOverflowEntries(context) : overflowEntries,
+          ),
+          if (banner != null) banner!,
+          Expanded(child: _buildDocksRow()),
+          if (statusBar != null) statusBar!,
+        ],
+      );
+    },
   );
+
+  /// Builds the `⋮` overflow entries on a phone: the export, project-settings and help actions the
+  /// toolbar folded out of its own slots, above the mode's own [overflowEntries], separated from
+  /// them by a divider when both groups are present.
+  ///
+  /// Each folded action guards on its own callback, exactly as the toolbar slot it replaces did, so
+  /// a mode that withholds one (the settings action under a version preview, the help action every
+  /// mode but the budget one) simply contributes no entry for it. When nothing folds, the mode's
+  /// own entries are returned untouched.
+  List<PopupMenuEntry<void>> _buildPhoneOverflowEntries(BuildContext context) {
+    final folded = _buildFoldedChromeEntries(context);
+    if (folded.isEmpty) {
+      return overflowEntries;
+    }
+
+    return [
+      ...folded,
+      if (overflowEntries.isNotEmpty) const PopupMenuDivider(),
+      ...overflowEntries,
+    ];
+  }
+
+  /// Builds the folded export / project-settings / help entries for [_buildPhoneOverflowEntries],
+  /// each rendered only when the mode wired its callback, in the same order they hold in the
+  /// toolbar. Their labels reuse the controls' own strings, and each fires the very same callback
+  /// its toolbar control does.
+  List<PopupMenuEntry<void>> _buildFoldedChromeEntries(BuildContext context) {
+    final tr = Tr.of(context);
+    final onExportRequested = this.onExportRequested;
+    final onProjectSettingsRequested = this.onProjectSettingsRequested;
+    final onHelpRequested = this.onHelpRequested;
+
+    return [
+      if (onExportRequested != null)
+        PopupMenuItem<void>(onTap: onExportRequested, child: Text(tr.workspaceExportAction)),
+      if (onProjectSettingsRequested != null)
+        PopupMenuItem<void>(
+          onTap: onProjectSettingsRequested,
+          child: Text(tr.workspaceProjectSettingsTooltip),
+        ),
+      if (onHelpRequested != null)
+        PopupMenuItem<void>(onTap: onHelpRequested, child: Text(tr.workspaceHelpTooltip)),
+    ];
+  }
 
   /// Builds the toolbar's `Export` control, or null when the mode withheld it — no control is
   /// rendered at all then, rather than a disabled one.

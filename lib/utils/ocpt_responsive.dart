@@ -23,6 +23,13 @@ bool ocptIsCompactWidth(double width) => width < ocptCompactWidthBreakpoint;
 /// summoned dock as an edge drawer over the centre, keeping some of the centre in view.
 const double ocptPhoneWidthBreakpoint = 600;
 
+/// Tells whether [width] is a phone — at or below [ocptPhoneWidthBreakpoint].
+///
+/// A pure predicate so every call site agrees on the same boundary: the workspace toolbar folds its
+/// secondary actions (export, settings, help) into the `⋮` overflow at this width, and a summoned
+/// dock fills the whole row rather than sliding in as an edge drawer.
+bool ocptIsPhoneWidth(double width) => width <= ocptPhoneWidthBreakpoint;
+
 /// The width, in pixels, a summoned side dock takes as an edge drawer above
 /// [ocptPhoneWidthBreakpoint] — comfortably wider than the right dock's own 300 px floor
 /// (`OcptWorkspaceDock.rightMinWidth`) while still leaving the centre visible beside it. A drawer
