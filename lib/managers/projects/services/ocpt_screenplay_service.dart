@@ -165,24 +165,10 @@ class OcptScreenplayService {
 
   /// Saves [fountainText] as the new text of the screenplay [screenplayId] in [database].
   ///
-  /// This snapshots the text as it was before the overwrite (tagged [snapshotReason]), updates
-  /// the screenplay's text and `updatedAt`, reconciles its scene index from the new text — passing
-  /// `OcptShotListService.detachShotsFromDeletedScenes` as `onScenesDeleted`, so a scene removed by
-  /// this save orphans its shots rather than silently dropping them — reconciles the cast against
-  /// the same parsed document (`OcptRoleIndexService.reconcile`), re-checks the shots' scenario
-  /// coverage against the text just saved, re-anchors the breakdown tags against the same text
-  /// (`OcptBreakdownService.reconcileTags`), and prunes old snapshots, all within a single
-  /// transaction.
-  ///
-  /// The coverage re-check, the cast reconciliation and the tag reconciliation deliberately happen
-  /// here, on save, and never on the editor's parse debounce: staleness is what raises a shot's
-  /// `needsCheck` flag, a speaking character's appearance or disappearance is what raises or clears
-  /// a role's `orphanedName`, and a shifted or vanished passage is what re-anchors or flags a tag —
-  /// in every case a director does not want the flag flickering mid-keystroke. The cast is
-  /// reconciled right after the scene index (it reads the parsed [FountainDocument], not the scenes
-  /// the scene index just wrote); the coverage re-check and the tag reconciliation both come after
-  /// that, since both read the scenes' `charStart`/`charEnd` as the new text has just redefined
-  /// them, and both re-check stored anchors against the text just saved.
+  /// This is the user path onto [reconcileScreenplayText] — see its own doc comment for what the
+  /// reconciliation actually does. All this method adds on top: refusing the write outright when
+  /// [database] is a version preview ([OcptProjectDatabase.refusesUserWrite]), and seeding and
+  /// flushing the [OcptRowStampService] the reconciliation stamps into, around one transaction.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   ///
@@ -203,64 +189,112 @@ class OcptScreenplayService {
       // in here — that is `OcptProjectVersionsService.raiseFloor`'s job, not an ordinary save's.
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final currentScreenplay = await (database.select(database.ocptScreenplaysTable)
-            ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
-          .getSingle();
-
-      await _createSnapshot(
+      await reconcileScreenplayText(
         database: database,
         screenplayId: screenplayId,
-        fountainText: currentScreenplay.fountainText,
-        reason: snapshotReason,
+        fountainText: fountainText,
+        snapshotReason: snapshotReason,
         stamps: stamps,
       );
-
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptScreenplaysTable,
-        rowId: screenplayId,
-        current: currentScreenplay,
-        next: currentScreenplay.copyWith(fountainText: fountainText, updatedAt: DateTime.now()),
-        stamps: stamps,
-      );
-
-      final document = _fountainParser.parse(fountainText);
-      await _sceneIndexService.reconcile(
-        database: database,
-        screenplayId: screenplayId,
-        document: document,
-        onScenesDeleted: (scenesAboutToBeDeleted) => _shotListService.detachShotsFromDeletedScenes(
-          database: database,
-          scenesAboutToBeDeleted: scenesAboutToBeDeleted,
-          stamps: stamps,
-        ),
-      );
-
-      await _roleIndexService.reconcile(
-        database: database,
-        screenplayId: screenplayId,
-        document: document,
-        stamps: stamps,
-      );
-
-      await _shotCoverageService.refreshStaleness(
-        database: database,
-        screenplayId: screenplayId,
-        currentFountainText: fountainText,
-        stamps: stamps,
-      );
-
-      await _breakdownService.reconcileTags(
-        database: database,
-        screenplayId: screenplayId,
-        currentFountainText: fountainText,
-        stamps: stamps,
-      );
-
-      await _pruneSnapshots(database: database, screenplayId: screenplayId, stamps: stamps);
 
       await stamps.flush(database);
     });
+  }
+
+  /// Overwrites the screenplay [screenplayId]'s stored text with [fountainText] in [database] and
+  /// reruns everything that depends on it — the shared core of every screenplay text write in the
+  /// app, on **both** of its callers:
+  ///
+  /// - [saveScreenplayText], the user path: called from inside its own transaction, behind its own
+  ///   [OcptProjectDatabase.refusesUserWrite] guard, against the user's own [database];
+  /// - `OcptScreenplayMergeService`, the engine path: called from inside the merge's own
+  ///   `defer_foreign_keys` transaction, against `OcptOpenProjectModel.fileDatabase`, with **no**
+  ///   preview guard at all — an incoming merge is not a user edit (see that guard's own doc
+  ///   comment) and must go through even while a version preview is up.
+  ///
+  /// This snapshots the text as it was before the overwrite (tagged [snapshotReason]), updates
+  /// the screenplay's text and `updatedAt`, reconciles its scene index from the new text — passing
+  /// `OcptShotListService.detachShotsFromDeletedScenes` as `onScenesDeleted`, so a scene removed by
+  /// this save orphans its shots rather than silently dropping them — reconciles the cast against
+  /// the same parsed document (`OcptRoleIndexService.reconcile`), re-checks the shots' scenario
+  /// coverage against the text just saved, re-anchors the breakdown tags against the same text
+  /// (`OcptBreakdownService.reconcileTags`), and prunes old snapshots.
+  ///
+  /// The coverage re-check, the cast reconciliation and the tag reconciliation deliberately happen
+  /// here, on save, and never on the editor's parse debounce: staleness is what raises a shot's
+  /// `needsCheck` flag, a speaking character's appearance or disappearance is what raises or clears
+  /// a role's `orphanedName`, and a shifted or vanished passage is what re-anchors or flags a tag —
+  /// in every case a director does not want the flag flickering mid-keystroke. The cast is
+  /// reconciled right after the scene index (it reads the parsed [FountainDocument], not the scenes
+  /// the scene index just wrote); the coverage re-check and the tag reconciliation both come after
+  /// that, since both read the scenes' `charStart`/`charEnd` as the new text has just redefined
+  /// them, and both re-check stored anchors against the text just saved.
+  ///
+  /// Neither the transaction nor [stamps] is this method's own: it must run inside an
+  /// already-open transaction, [stamps] must already be seeded, and the caller flushes it exactly
+  /// once, after this returns — never twice inside the same transaction.
+  Future<void> reconcileScreenplayText({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+    required String fountainText,
+    required OcptSnapshotReason snapshotReason,
+    required OcptRowStampService stamps,
+  }) async {
+    final currentScreenplay = await (database.select(database.ocptScreenplaysTable)
+          ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
+        .getSingle();
+
+    await _createSnapshot(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: currentScreenplay.fountainText,
+      reason: snapshotReason,
+      stamps: stamps,
+    );
+
+    await OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptScreenplaysTable,
+      rowId: screenplayId,
+      current: currentScreenplay,
+      next: currentScreenplay.copyWith(fountainText: fountainText, updatedAt: DateTime.now()),
+      stamps: stamps,
+    );
+
+    final document = _fountainParser.parse(fountainText);
+    await _sceneIndexService.reconcile(
+      database: database,
+      screenplayId: screenplayId,
+      document: document,
+      onScenesDeleted: (scenesAboutToBeDeleted) => _shotListService.detachShotsFromDeletedScenes(
+        database: database,
+        scenesAboutToBeDeleted: scenesAboutToBeDeleted,
+        stamps: stamps,
+      ),
+    );
+
+    await _roleIndexService.reconcile(
+      database: database,
+      screenplayId: screenplayId,
+      document: document,
+      stamps: stamps,
+    );
+
+    await _shotCoverageService.refreshStaleness(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: fountainText,
+      stamps: stamps,
+    );
+
+    await _breakdownService.reconcileTags(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: fountainText,
+      stamps: stamps,
+    );
+
+    await _pruneSnapshots(database: database, screenplayId: screenplayId, stamps: stamps);
   }
 
   /// Loads every live episode of the project in [database] — every live `screenplays` row — in

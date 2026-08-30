@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sql_column_name.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
@@ -143,18 +144,28 @@ class OcptChangesetService {
   /// [mergeService] in turn — a replica that was offline across several changesets catches up in
   /// this one call, not one per changeset. When [storage] has nothing new, this does nothing: no
   /// merge runs and [relayId]'s cursor is left untouched.
-  Future<void> pullAndApply({required OcptProjectDatabase database, required OcptRemoteStorage storage, required String relayId}) async {
+  ///
+  /// Returns every [OcptScreenplayMergeConflict] raised while applying any of those changesets, in
+  /// the order they were applied — empty when nothing conflicted, which is the ordinary case.
+  Future<List<OcptScreenplayMergeConflict>> pullAndApply({
+    required OcptProjectDatabase database,
+    required OcptRemoteStorage storage,
+    required String relayId,
+  }) async {
     final cursor = await _lastAppliedSequence(database: database, relayId: relayId);
     final stored = await storage.readSince(cursor);
     if (stored.isEmpty) {
-      return;
+      return const [];
     }
 
     var highestSequence = cursor;
+    final conflicts = <OcptScreenplayMergeConflict>[];
     for (final entry in stored) {
-      await mergeService.applyChangeset(
-        fileDatabase: database,
-        changeset: OcptChangeset.decode(entry.envelope.payload),
+      conflicts.addAll(
+        await mergeService.applyChangeset(
+          fileDatabase: database,
+          changeset: OcptChangeset.decode(entry.envelope.payload),
+        ),
       );
 
       if (entry.sequenceNumber > highestSequence) {
@@ -163,18 +174,22 @@ class OcptChangesetService {
     }
 
     await _advanceLastAppliedSequence(database: database, relayId: relayId, sequence: highestSequence);
+
+    return conflicts;
   }
 
   /// [pushLocalEdits] followed by [pullAndApply], against the very same [relayId]: what a replica
-  /// runs to both publish what it changed and absorb what everyone else did, in one call.
-  Future<void> syncOnce({
+  /// runs to both publish what it changed and absorb what everyone else did, in one call. Returns
+  /// whatever [pullAndApply] returns — [pushLocalEdits] never merges anything inbound, so it never
+  /// raises a conflict of its own.
+  Future<List<OcptScreenplayMergeConflict>> syncOnce({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
     required String deviceId,
   }) async {
     await pushLocalEdits(database: database, storage: storage, relayId: relayId, deviceId: deviceId);
-    await pullAndApply(database: database, storage: storage, relayId: relayId);
+    return pullAndApply(database: database, storage: storage, relayId: relayId);
   }
 
   /// [relayId]'s current `lastAppliedSequence` against [database], or [OcptSequenceNumber.zero]

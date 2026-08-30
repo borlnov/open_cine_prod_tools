@@ -4,9 +4,11 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_winner.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sql_column_name.dart';
@@ -31,26 +33,45 @@ import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
 /// losing column keeps its current value and its current stamp untouched, exactly where it stood
 /// before this changeset arrived.
 ///
-/// `screenplays.fountainText` is, for this step, one column like any other: last-writer-wins,
-/// exactly as every other column resolves. The three-way line merge against the nearest common
-/// `screenplay_snapshots` row — the one column ADR 0010 actually asks for something else — is a
-/// later step; the column simply is not special-cased here yet. `scenes` is never named by an
-/// incoming changeset in the first place ([ocptSynchronisedTables] excludes it), so nothing here
-/// ever writes to it.
+/// `screenplays.fountainText` is the one column that is **not** resolved this way: when
+/// [screenplayMergeService] is configured and an incoming group names the `screenplays` table with
+/// a `fountainText` stamp, that column is pulled out of the generic overlay entirely — **never
+/// gated by [ocptIncomingStampWins]** — and handed to [OcptScreenplayMergeService] instead, whatever
+/// that stamp's own `(version, deviceId)` compares as against the column's local one: merging
+/// combines two edits, it does not replace-if-newer, and two independent edits made at the very same
+/// Lamport tick from two different devices are exactly the case the three-way merge exists for — the
+/// generic win/lose comparison would arbitrarily drop one of them by device id alone. Every other
+/// column of that same row (`title`, `updatedAt`, `isDeleted`) still resolves generically, alongside
+/// it, in the very same row group. [screenplayMergeService] is nullable so this class stays cheaply
+/// testable against tables that have nothing to do with screenplays (see this class's own tests):
+/// `OcptSyncManager` is the one place that always wires a real one for the running app.
+/// `scenes` is never named by an incoming changeset in the first place ([ocptSynchronisedTables]
+/// excludes it), so nothing here ever writes to it either way.
 class OcptMergeService {
+  /// The Dart field name `screenplays.fountainText` stamps carry — see [_applyRowGroup] for why
+  /// this one column is pulled out of the generic overlay.
+  static const _fountainTextColumnName = 'fountainText';
+
+  /// The three-way merge [_applyRowGroup] hands a winning `fountainText` stamp to, or `null` to
+  /// keep resolving that column exactly like any other (see this class's own doc comment).
+  final OcptScreenplayMergeService? screenplayMergeService;
+
   /// Class constructor
-  const OcptMergeService();
+  const OcptMergeService({this.screenplayMergeService});
 
   /// Applies every field stamp [changeset] carries to [fileDatabase], row group by row group, in
   /// one transaction with `PRAGMA defer_foreign_keys = ON` — a changeset can legitimately arrive in
   /// an order that violates a foreign key part way through (ADR 0010), exactly the situation
-  /// `OcptProjectVersionsService.restoreVersion` already defers the same way.
-  Future<void> applyChangeset({
+  /// `OcptProjectVersionsService.restoreVersion` already defers the same way — and returns every
+  /// [OcptScreenplayMergeConflict] a screenplay text merge raised along the way, for the caller to
+  /// record (`docs/plans/collaboration-and-sync.md` §3.5's future conflict view; M3 only collects
+  /// them).
+  Future<List<OcptScreenplayMergeConflict>> applyChangeset({
     required OcptProjectDatabase fileDatabase,
     required OcptChangeset changeset,
   }) async {
     if (changeset.fieldStamps.isEmpty) {
-      return;
+      return const [];
     }
 
     final tablesByName = {
@@ -62,8 +83,10 @@ class OcptMergeService {
       grouped.putIfAbsent((stamp.tableName, stamp.rowId), () => []).add(stamp);
     }
 
-    await fileDatabase.transaction(() async {
+    return fileDatabase.transaction(() async {
       await fileDatabase.customStatement('PRAGMA defer_foreign_keys = ON');
+
+      final conflicts = <OcptScreenplayMergeConflict>[];
 
       for (final MapEntry(key: (tableName, rowId), value: incomingStamps) in grouped.entries) {
         final table = tablesByName[tableName];
@@ -76,42 +99,88 @@ class OcptMergeService {
           throw StateError("Table '$tableName' is not part of the synchronised table set");
         }
 
-        await _applyRowGroup(database: fileDatabase, table: table, rowId: rowId, incoming: incomingStamps);
+        final conflict = await _applyRowGroup(database: fileDatabase, table: table, rowId: rowId, incoming: incomingStamps);
+        if (conflict != null) {
+          conflicts.add(conflict);
+        }
       }
+
+      return conflicts;
     });
   }
 
-  /// Applies every incoming stamp of one `(tableName, rowId)` group: works out which of
-  /// [incoming]'s columns win against [table]'s own local stamps for [rowId], overlays exactly
-  /// those onto the row's current state, writes the whole row back, and advances
-  /// `row_field_versions` for the columns that won.
-  Future<void> _applyRowGroup({
+  /// Applies every incoming stamp of one `(tableName, rowId)` group: separates a `screenplays`
+  /// row's `fountainText` stamp out first, when [screenplayMergeService] is configured — that
+  /// column is never gated by [ocptIncomingStampWins] at all, since **merging combines, it does not
+  /// replace-if-newer**: two independent edits made at the same Lamport tick from two different
+  /// devices are exactly the case this three-way merge exists for, and the generic win/lose
+  /// comparison would arbitrarily drop one of them by device id alone. Every other column of the
+  /// row (including `title`/`updatedAt`/`isDeleted` on the very same `screenplays` row) still goes
+  /// through the ordinary [ocptIncomingStampWins] overlay. Returns the
+  /// [OcptScreenplayMergeConflict] a screenplay merge raised, if any, or `null` when nothing
+  /// conflicted (including every ordinary, non-screenplay row group).
+  Future<OcptScreenplayMergeConflict?> _applyRowGroup({
     required OcptProjectDatabase database,
     required TableInfo<Table, Object?> table,
     required String rowId,
     required List<OcptFieldStamp> incoming,
   }) async {
-    final localStamps = await _localStamps(
-      database: database,
-      tableName: table.actualTableName,
-      rowId: rowId,
-    );
+    final mergeService = screenplayMergeService;
+    final isScreenplaysTable = table.actualTableName == database.ocptScreenplaysTable.actualTableName;
 
-    final winners = [
-      for (final stamp in incoming)
-        if (ocptIncomingStampWins(
-          incomingVersion: stamp.version,
-          incomingDeviceId: stamp.deviceId,
-          localVersion: localStamps[stamp.columnName]?.version,
-          localDeviceId: localStamps[stamp.columnName]?.deviceId,
-        ))
-          stamp,
-    ];
-
-    if (winners.isEmpty) {
-      return;
+    OcptFieldStamp? fountainTextStamp;
+    final genericIncoming = <OcptFieldStamp>[];
+    for (final stamp in incoming) {
+      if (mergeService != null && isScreenplaysTable && stamp.columnName == _fountainTextColumnName) {
+        fountainTextStamp = stamp;
+      } else {
+        genericIncoming.add(stamp);
+      }
     }
 
+    if (genericIncoming.isNotEmpty) {
+      final localStamps = await _localStamps(
+        database: database,
+        tableName: table.actualTableName,
+        rowId: rowId,
+      );
+
+      final genericWinners = [
+        for (final stamp in genericIncoming)
+          if (ocptIncomingStampWins(
+            incomingVersion: stamp.version,
+            incomingDeviceId: stamp.deviceId,
+            localVersion: localStamps[stamp.columnName]?.version,
+            localDeviceId: localStamps[stamp.columnName]?.deviceId,
+          ))
+            stamp,
+      ];
+
+      if (genericWinners.isNotEmpty) {
+        await _applyGenericWinners(database: database, table: table, rowId: rowId, winners: genericWinners);
+      }
+    }
+
+    if (fountainTextStamp == null) {
+      return null;
+    }
+
+    return mergeService!.mergeIncomingFountainText(
+      fileDatabase: database,
+      screenplayId: rowId,
+      incomingText: fountainTextStamp.value! as String,
+    );
+  }
+
+  /// Overlays [winners] onto [table]'s row [rowId] in [database] and advances `row_field_versions`
+  /// for exactly those columns — the generic per-column resolution every synchronised column but
+  /// `screenplays.fountainText` goes through.
+  Future<void> _applyGenericWinners({
+    required OcptProjectDatabase database,
+    required TableInfo<Table, Object?> table,
+    required String rowId,
+    required List<OcptFieldStamp> winners,
+  }) async {
     final currentRow = await _readCurrentRow(database: database, table: table, rowId: rowId);
     final merged = currentRow == null ? <String, Object?>{} : Map<String, Object?>.of(currentRow);
 

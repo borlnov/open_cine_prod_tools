@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -12,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_servi
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 
 /// Builds the [OcptSyncManager] instance registered by the global manager.
 class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
@@ -34,19 +36,41 @@ class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
 /// replicas pointed at the same [OcptRemoteStorage] converge — plus the [OcptRemoteStorage] seam and
 /// [OcptFolderRemoteStorage], the directory transport that exercises the whole engine with no
 /// network at all and stays afterwards as the desktop fallback
-/// (`docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`). The screenplay's own
-/// three-way text merge for `fountainText` follows in a later step — until then that column merges
-/// like any other, last-writer-wins (see [OcptMergeService]'s own doc comment). This manager depends
-/// on [OcptPropertiesManager] (the device id a changeset is stamped with) and [OcptProjectsManager]
-/// (the open project a changeset is generated from and applied to) for exactly that reason, ahead of
-/// the code that reads either one.
+/// (`docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`) — and
+/// [OcptScreenplayMergeService], the one column [OcptMergeService] hands off instead of resolving
+/// generically: the three-way line merge for `screenplays.fountainText`.
+///
+/// This manager depends on [OcptPropertiesManager] (the device id a changeset — and a screenplay
+/// merge's own write — is stamped with) and [OcptProjectsManager] (the open project a changeset is
+/// generated from and applied to, and the very [OcptProjectsManager.screenplayService] instance a
+/// screenplay merge reruns its reconciliation through, so scenes/cast/coverage/breakdown stay in
+/// step with whichever project is actually open) for exactly that reason, ahead of the code that
+/// reads either one.
 class OcptSyncManager extends AbsWithLifeCycle {
   /// The service turning a replica's own un-pushed local edits into a changeset, appending it to a
   /// relay, and applying every changeset a relay holds that this replica hasn't seen yet.
   final OcptChangesetService changesetService;
 
   /// Class constructor
-  const OcptSyncManager({this.changesetService = const OcptChangesetService()});
+  ///
+  /// [projectsManager] and [propertiesManager] are the injectable seams over `globalGetIt()` a test
+  /// hands in instead — `OcptScreenplayMergeService` needs a real, fully-wired
+  /// `OcptScreenplayService` and a real device id getter, and [OcptProjectsManager]/
+  /// [OcptPropertiesManager] are where those already live, exactly the pattern
+  /// `OcptProjectsManager`'s own constructor already follows for the very same services. Passing
+  /// [changesetService] directly (as this class's own tests do, with a bare
+  /// `OcptChangesetService()`) skips that wiring entirely.
+  OcptSyncManager({OcptProjectsManager? projectsManager, OcptPropertiesManager? propertiesManager, OcptChangesetService? changesetService})
+    : changesetService =
+          changesetService ??
+          OcptChangesetService(
+            mergeService: OcptMergeService(
+              screenplayMergeService: OcptScreenplayMergeService(
+                screenplayService: (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
+                deviceId: (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId,
+              ),
+            ),
+          );
 
   /// Opens the directory transport rooted at [directory].
   ///
