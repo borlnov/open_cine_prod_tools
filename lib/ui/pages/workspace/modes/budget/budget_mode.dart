@@ -64,6 +64,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_floating_add_button.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -80,6 +81,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The budget production mode: four chips — `Tableau de bord`, `Dépenses`, `Ressources`, `Outils`
 /// — and `Inspector`, `Versions` and `Help` in the right dock. **No left dock**: the mockup draws
@@ -167,43 +169,47 @@ class _BudgetViewState extends State<_BudgetView> {
         return const Center(child: CircularProgressIndicator());
       }
 
-      return OcptWorkspaceShell(
-        title: state.title,
-        isDirty: false,
-        isReadOnly: state.isPreviewingVersion,
-        onBack: () => context.read<OcptBudgetBloc>().add(const OcptBudgetBackRequestedEvent()),
-        // No episode selector: see the class doc comment.
-        modeLabel: Tr.of(context).workspaceModeLabelBudget,
-        onExportRequested: () => unawaited(_requestExport(context, state)),
-        isRightDockOpen: state.rightDockTab != null,
-        onToggleRightDock: () =>
-            context.read<OcptBudgetBloc>().add(const OcptBudgetRightDockToggledEvent()),
-        onProjectSettingsRequested: state.isPreviewingVersion
-            ? null
-            : () => unawaited(_requestProjectSettings(context)),
-        // Never withheld under a preview — see `OcptWorkspaceShell.onHelpRequested`'s own doc
-        // comment: a help panel only reads.
-        onHelpRequested: () => context.read<OcptBudgetBloc>().add(
-          const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help),
+      return LayoutBuilder(
+        builder: (context, constraints) => OcptWorkspaceShell(
+          title: state.title,
+          isDirty: false,
+          isReadOnly: state.isPreviewingVersion,
+          onBack: () => context.read<OcptBudgetBloc>().add(const OcptBudgetBackRequestedEvent()),
+          // No episode selector: see the class doc comment.
+          modeLabel: Tr.of(context).workspaceModeLabelBudget,
+          onExportRequested: () => unawaited(_requestExport(context, state)),
+          isRightDockOpen: state.rightDockTab != null,
+          onToggleRightDock: () =>
+              context.read<OcptBudgetBloc>().add(const OcptBudgetRightDockToggledEvent()),
+          onProjectSettingsRequested: state.isPreviewingVersion
+              ? null
+              : () => unawaited(_requestProjectSettings(context)),
+          // Never withheld under a preview — see `OcptWorkspaceShell.onHelpRequested`'s own doc
+          // comment: a help panel only reads.
+          onHelpRequested: () => context.read<OcptBudgetBloc>().add(
+            const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help),
+          ),
+          banner: _buildReadOnlyBanner(context, state),
+          rightPanel: _buildRightDock(context, state),
+          centre: _buildCentre(context, state, ocptIsCompactWidth(constraints.maxWidth)),
+          statusBar: OcptBudgetStatusBar(
+            posteCount: state.posteCount,
+            lineCount: state.lineCount,
+            quotedTotalCents: ocptBudgetProjectQuotedTotalCents(state.postes),
+            currencyCode: state.currencyCode,
+          ),
+          dockLayoutController: _dockLayoutController,
+          // Only the right divider can ever report a drag here — the mode carries no left dock, so
+          // `fractions.left` is always null (see the class doc comment).
+          onDockFractionsChanged: (fractions) {
+            final right = fractions.right;
+            if (right != null) {
+              context.read<OcptBudgetBloc>().add(
+                OcptBudgetRightDockFractionChangedEvent(fraction: right),
+              );
+            }
+          },
         ),
-        banner: _buildReadOnlyBanner(context, state),
-        rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state),
-        statusBar: OcptBudgetStatusBar(
-          posteCount: state.posteCount,
-          lineCount: state.lineCount,
-          quotedTotalCents: ocptBudgetProjectQuotedTotalCents(state.postes),
-          currencyCode: state.currencyCode,
-        ),
-        dockLayoutController: _dockLayoutController,
-        // Only the right divider can ever report a drag here — the mode carries no left dock, so
-        // `fractions.left` is always null (see the class doc comment).
-        onDockFractionsChanged: (fractions) {
-          final right = fractions.right;
-          if (right != null) {
-            context.read<OcptBudgetBloc>().add(OcptBudgetRightDockFractionChangedEvent(fraction: right));
-          }
-        },
       );
     },
   );
@@ -442,8 +448,12 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Builds the shell's `centre`: the header band, then whichever widget the current
-  /// [OcptBudgetState.view] names — see [_buildRoute].
-  Widget _buildCentre(BuildContext context, OcptBudgetState state) {
+  /// [OcptBudgetState.view] names (see [_buildRoute]), overlaid at a compact width [isCompact] with
+  /// the same floating `+ New` affordance the header band's own trailing button already fires — the
+  /// very pair [_newButtonOf] built for it, reused whole rather than resolved twice, so the floating
+  /// button can never drift from the desktop one. See [OcptWorkspaceFloatingAddButton]'s own doc
+  /// comment.
+  Widget _buildCentre(BuildContext context, OcptBudgetState state, bool isCompact) {
     final bloc = context.read<OcptBudgetBloc>();
     // Read once, here: null is "a previewed version takes it away" — the same label and gesture on
     // every route now, so there is nothing left for a route to withhold on its own account.
@@ -451,41 +461,48 @@ class _BudgetViewState extends State<_BudgetView> {
     // standing rule.
     final newButton = state.isPreviewingVersion ? null : _newButtonOf(context, state);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OcptBudgetHeader(
-          view: state.view,
-          // The header's own chips leave one document for another, so the fiche's own selection —
-          // an object that belonged to the view being left — is dropped, greeting the new view
-          // empty. Every gesture that switches the view *and* selects keeps `clearSelection` false.
-          onViewSelected: (view) =>
-              bloc.add(OcptBudgetViewSelectedEvent(view: view, clearSelection: true)),
-          toolsView: state.toolsView,
-          onToolsViewSelected: (toolsView) => bloc.add(
-            OcptBudgetToolsViewSelectedEvent(toolsView: toolsView, clearSelection: true),
+    return OcptWorkspaceFloatingAddButton(
+      isVisible: isCompact,
+      icon: Icons.add,
+      label: Tr.of(context).budgetHeaderNewAction,
+      onPressed: newButton?.$2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OcptBudgetHeader(
+            view: state.view,
+            // The header's own chips leave one document for another, so the fiche's own selection —
+            // an object that belonged to the view being left — is dropped, greeting the new view
+            // empty. Every gesture that switches the view *and* selects keeps `clearSelection` false.
+            onViewSelected: (view) =>
+                bloc.add(OcptBudgetViewSelectedEvent(view: view, clearSelection: true)),
+            toolsView: state.toolsView,
+            onToolsViewSelected: (toolsView) => bloc.add(
+              OcptBudgetToolsViewSelectedEvent(toolsView: toolsView, clearSelection: true),
+            ),
+            isSimplified: state.isSimplified,
+            onSimplifiedChanged: (value) =>
+                bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
+            taxBasis: state.taxBasis,
+            onTaxBasisChanged: (basis) => bloc.add(OcptBudgetTaxBasisChangedEvent(basis: basis)),
+            postes: state.postes,
+            filterPosteId: state.filterPosteId,
+            onPosteFilterCleared: () =>
+                bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
+            alertCount: state.alerts.length,
+            captureLabel: newButton?.$1,
+            onCaptureRequested: newButton?.$2,
           ),
-          isSimplified: state.isSimplified,
-          onSimplifiedChanged: (value) =>
-              bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
-          taxBasis: state.taxBasis,
-          onTaxBasisChanged: (basis) => bloc.add(OcptBudgetTaxBasisChangedEvent(basis: basis)),
-          postes: state.postes,
-          filterPosteId: state.filterPosteId,
-          onPosteFilterCleared: () => bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
-          alertCount: state.alerts.length,
-          captureLabel: newButton?.$1,
-          onCaptureRequested: newButton?.$2,
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _buildRoute(context, state),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildRoute(context, state),
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-      ],
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 

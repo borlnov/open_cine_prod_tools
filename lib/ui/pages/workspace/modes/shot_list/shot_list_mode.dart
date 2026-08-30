@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_floating_add_button.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -48,6 +49,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
 /// selected sequence's shot table in the centre, and the tabbed shot inspector on the right.
@@ -124,43 +126,46 @@ class _ShotListViewState extends State<_ShotListView> {
 
       final workspaceState = context.watch<OcptWorkspaceBloc>().state;
 
-      return OcptWorkspaceShell(
-        title: state.title,
-        isDirty: false,
-        isReadOnly: state.isPreviewingVersion,
-        onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
-        episodes: workspaceState.episodes,
-        selectedEpisodeId: workspaceState.selectedEpisodeId,
-        onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
-          OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
-        ),
-        modeLabel: Tr.of(context).workspaceModeLabelShotList,
-        onExportRequested: () => unawaited(_requestExport(context, state)),
-        overflowEntries: _buildOverflowEntries(context),
-        isLeftDockOpen: state.isSequencePanelVisible,
-        onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
-          const OcptShotListSequencePanelToggledEvent(),
-        ),
-        isRightDockOpen: state.rightDockTab != null,
-        onToggleRightDock: () => context.read<OcptShotListBloc>().add(
-          const OcptShotListRightDockToggledEvent(),
-        ),
-        onProjectSettingsRequested: state.isPreviewingVersion
-            ? null
-            : () => _requestProjectSettings(context),
-        banner: _buildReadOnlyBanner(context, state),
-        leftPanel: _buildSequencePanel(context, state),
-        rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state),
-        statusBar: OcptShotListStatusBar(
-          sequenceCount: state.sequenceCount,
-          shotCount: state.totalShotCount,
-          filmedShotCount: state.filmedShotCount,
-          shotsToCheckCount: state.shotsToCheckCount,
-        ),
-        dockLayoutController: _dockLayoutController,
-        onDockFractionsChanged: (fractions) => context.read<OcptShotListBloc>().add(
-          OcptShotListDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
+      return LayoutBuilder(
+        builder: (context, constraints) => OcptWorkspaceShell(
+          title: state.title,
+          isDirty: false,
+          isReadOnly: state.isPreviewingVersion,
+          onBack: () =>
+              context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
+          episodes: workspaceState.episodes,
+          selectedEpisodeId: workspaceState.selectedEpisodeId,
+          onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+            OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+          ),
+          modeLabel: Tr.of(context).workspaceModeLabelShotList,
+          onExportRequested: () => unawaited(_requestExport(context, state)),
+          overflowEntries: _buildOverflowEntries(context),
+          isLeftDockOpen: state.isSequencePanelVisible,
+          onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
+            const OcptShotListSequencePanelToggledEvent(),
+          ),
+          isRightDockOpen: state.rightDockTab != null,
+          onToggleRightDock: () => context.read<OcptShotListBloc>().add(
+            const OcptShotListRightDockToggledEvent(),
+          ),
+          onProjectSettingsRequested: state.isPreviewingVersion
+              ? null
+              : () => _requestProjectSettings(context),
+          banner: _buildReadOnlyBanner(context, state),
+          leftPanel: _buildSequencePanel(context, state),
+          rightPanel: _buildRightDock(context, state),
+          centre: _buildCentre(context, state, ocptIsCompactWidth(constraints.maxWidth)),
+          statusBar: OcptShotListStatusBar(
+            sequenceCount: state.sequenceCount,
+            shotCount: state.totalShotCount,
+            filmedShotCount: state.filmedShotCount,
+            shotsToCheckCount: state.shotsToCheckCount,
+          ),
+          dockLayoutController: _dockLayoutController,
+          onDockFractionsChanged: (fractions) => context.read<OcptShotListBloc>().add(
+            OcptShotListDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
+          ),
         ),
       );
     },
@@ -364,25 +369,44 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Builds the shell's `centre`: the deleted-character banners, then the selected sequence's
-  /// header, the `Columns ▾` menu, and the shot table under them.
+  /// header, the `Columns ▾` menu, and the shot table under them, overlaid at a compact width
+  /// ([isCompact]) with the same floating `+ Shot` affordance the left dock's own button already
+  /// fires — see [OcptWorkspaceFloatingAddButton]'s own doc comment.
+  ///
+  /// The floating button mirrors [_buildSequencePanel]'s own `onShotCreated` gating exactly: wired
+  /// only while the selected sequence is a real scene and no version is being previewed, withheld
+  /// (a null callback, never disabled) otherwise. Creating a shot already opens the right dock on its
+  /// inspector tab ([OcptShotListBloc._onShotCreationRequested]), which the compact width shows as an
+  /// edge drawer — nothing further to wire here for that.
   ///
   /// The banners sit above everything else and stay whichever sequence is selected: they report a
   /// mismatch between the screenplay and the whole shot list, not something about the sequence
   /// currently being looked at.
-  Widget _buildCentre(BuildContext context, OcptShotListState state) {
+  Widget _buildCentre(BuildContext context, OcptShotListState state, bool isCompact) {
     final banners = _buildRemovedCharacterBanners(context, state);
     final body = _buildSequenceBody(context, state);
 
-    if (banners.isEmpty) {
-      return body;
-    }
+    final content = banners.isEmpty
+        ? body
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+                child: Column(children: banners),
+              ),
+              Expanded(child: body),
+            ],
+          );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(padding: const EdgeInsets.fromLTRB(24, 18, 24, 0), child: Column(children: banners)),
-        Expanded(child: body),
-      ],
+    return OcptWorkspaceFloatingAddButton(
+      isVisible: isCompact,
+      label: Tr.of(context).shotListAddShotAction,
+      onPressed: state.selectedSequence is OcptSceneShotSequence && !state.isPreviewingVersion
+          ? () =>
+                context.read<OcptShotListBloc>().add(const OcptShotListShotCreationRequestedEvent())
+          : null,
+      child: content,
     );
   }
 
