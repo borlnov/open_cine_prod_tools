@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_snapshot_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
@@ -57,6 +59,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// relay, and applying every changeset a relay holds that this replica hasn't seen yet.
   final OcptChangesetService changesetService;
 
+  /// The service turning a project into snapshot bytes and back — what [publishSnapshot] and
+  /// [joinFromRelay] build on (`docs/plans/relay.md`, Phase C, commit 1).
+  final OcptSnapshotService snapshotService;
+
   /// Class constructor
   ///
   /// [projectsManager] and [propertiesManager] are the injectable seams over `globalGetIt()` a test
@@ -65,18 +71,25 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [OcptPropertiesManager] are where those already live, exactly the pattern
   /// `OcptProjectsManager`'s own constructor already follows for the very same services. Passing
   /// [changesetService] directly (as this class's own tests do, with a bare
-  /// `OcptChangesetService()`) skips that wiring entirely.
-  OcptSyncManager({OcptProjectsManager? projectsManager, OcptPropertiesManager? propertiesManager, OcptChangesetService? changesetService})
-    : changesetService =
-          changesetService ??
-          OcptChangesetService(
-            mergeService: OcptMergeService(
-              screenplayMergeService: OcptScreenplayMergeService(
-                screenplayService: (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
-                deviceId: (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId,
-              ),
-            ),
-          );
+  /// `OcptChangesetService()`) skips that wiring entirely. [snapshotService] defaults to a bare
+  /// `OcptSnapshotService()`, which needs no wiring at all — a test passes one built over its own
+  /// temporary directory instead.
+  OcptSyncManager({
+    OcptProjectsManager? projectsManager,
+    OcptPropertiesManager? propertiesManager,
+    OcptChangesetService? changesetService,
+    OcptSnapshotService? snapshotService,
+  }) : changesetService =
+           changesetService ??
+           OcptChangesetService(
+             mergeService: OcptMergeService(
+               screenplayMergeService: OcptScreenplayMergeService(
+                 screenplayService: (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
+                 deviceId: (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId,
+               ),
+             ),
+           ),
+       snapshotService = snapshotService ?? const OcptSnapshotService();
 
   /// This project's current sync session, or null when none is running — see [startSyncSession].
   OcptSyncSession? get syncSession => _syncSession;
@@ -115,6 +128,112 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// `docs/plans/collaboration-and-sync.md` §3.3/§5.3). The relay base URL already has exactly
   /// that shape, so nothing further is minted or stored for it.
   static String relayIdFor(OcptProjectPairing pairing) => pairing.relayBaseUri.toString();
+
+  /// Packages the project at [projectFilePath] as a snapshot and uploads it to [storage].
+  ///
+  /// This is what lets a joiner bootstrap against an otherwise-empty relay
+  /// (`docs/plans/collaboration-and-sync.md` §5.3: "the first device to append uploads a
+  /// snapshot") and what a restore publishes through instead of a changeset (§3.4) — the Partager
+  /// screen and the restore flow are later commits that call this rather than talking to
+  /// [snapshotService] or [storage] themselves.
+  ///
+  /// [sequenceUpTo] is the caller's own delivery cursor at the moment it decides to publish: the
+  /// position in [storage]'s changeset log this snapshot already reflects, exactly as
+  /// [OcptSnapshotDescriptor.sequenceUpTo]'s own doc comment describes.
+  Future<void> publishSnapshot({
+    required OcptRemoteStorage storage,
+    required String projectFilePath,
+    required String projectName,
+    required String appVersion,
+    required OcptSequenceNumber sequenceUpTo,
+  }) async {
+    final (descriptor, bytes) = await snapshotService.buildSnapshot(
+      projectFilePath: projectFilePath,
+      projectName: projectName,
+      appVersion: appVersion,
+      sequenceUpTo: sequenceUpTo,
+    );
+
+    await storage.uploadSnapshot(descriptor, bytes);
+  }
+
+  /// Fetches [storage]'s latest snapshot and materialises it as a new project under
+  /// [parentDirectoryPath], pairing that new project with the relay [storage] talks to before
+  /// handing back the `.ocpt` path it landed at.
+  ///
+  /// Throws [StateError] when [storage] holds no snapshot yet — an empty relay is not something to
+  /// join, only to create (the Partager flow does that, by publishing the first one through
+  /// [publishSnapshot]).
+  ///
+  /// **How the project id, the relay address and the token are obtained**, since the newly
+  /// materialised project has never been opened and so cannot be asked: the relay address and the
+  /// token are exactly what the caller already used to build [storage] in the first place (the
+  /// invite `{relayBaseUri, projectId, token}` a later commit's QR/manual-entry Rejoindre screen
+  /// reads), so they are taken as plain parameters here rather than guessed back out of [storage],
+  /// which — typed only as [OcptRemoteStorage] — carries neither. The **project id**, on the other
+  /// hand, does not need to be carried by the invite at all: a snapshot is a package built off the
+  /// sharer's own project file (`docs/plans/relay.md`, Phase C, commit 1), and by the time anyone
+  /// can publish one, the sharer's project already carries its own `sync_pairings` row — written by
+  /// the very act of pairing that let them publish to this relay to begin with. That row travels
+  /// inside the snapshot precisely as every other row does, so it is read back off the freshly
+  /// materialised project itself, and the same value is written into this replica's own pairing,
+  /// keeping every replica of the same project keyed by the same relay-side id.
+  Future<String> joinFromRelay({
+    required OcptRemoteStorage storage,
+    required String parentDirectoryPath,
+    required OcptPairingService pairingService,
+    required Uri relayBaseUri,
+    required String token,
+  }) async {
+    final fetched = await storage.fetchLatestSnapshot();
+    if (fetched == null) {
+      throw StateError(
+        'This relay holds no snapshot yet: there is nothing to join. Ask whoever shared the '
+        'project to open it once so a first snapshot can be published.',
+      );
+    }
+    final (descriptor, bytes) = fetched;
+
+    final projectFilePath = await snapshotService.applySnapshot(
+      bytes: bytes,
+      parentDirectoryPath: parentDirectoryPath,
+      descriptor: descriptor,
+    );
+
+    final database = OcptProjectDatabase(File(projectFilePath));
+    try {
+      final projectId = await _readSnapshottedProjectId(database);
+      await pairingService.savePairing(
+        database: database,
+        projectId: projectId,
+        relayBaseUri: relayBaseUri,
+        token: token,
+      );
+    } finally {
+      await database.close();
+    }
+
+    return projectFilePath;
+  }
+
+  /// The relay-side project id a freshly materialised snapshot already carries in its own
+  /// `sync_pairings` row — see [joinFromRelay]'s own doc comment for why that row is there at all.
+  ///
+  /// Read directly off the table rather than through [OcptPairingService.loadPairing]: that method
+  /// also requires the project's token to already sit in secure storage, which a joiner's fresh
+  /// install never has yet — the whole reason [joinFromRelay] is the one saving that pairing, not
+  /// reading an existing one.
+  Future<String> _readSnapshottedProjectId(OcptProjectDatabase database) async {
+    final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
+    if (row == null) {
+      throw StateError(
+        'The joined snapshot carries no relay pairing of its own: it cannot be identified on '
+        'the relay it was fetched from.',
+      );
+    }
+
+    return row.projectId;
+  }
 
   /// Starts keeping [projectId] in sync against [storage], replacing whatever session was running
   /// before ([stopSyncSession] runs first, so calling this twice in a row is always safe).
