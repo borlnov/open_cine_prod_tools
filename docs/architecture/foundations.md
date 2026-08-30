@@ -63,6 +63,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   primitives every mode's shell reuses; `OcptWorkspaceModeSwitcher` is the bottom band that selects
   the mode (all entries always selectable, unimplemented ones only discreetly marked). See
   `docs/adr/` for why this is a slot widget plus a mode-only bloc rather than a mode-aware god-bloc.
+  Its own compact-width reductions — the side docks as edge drawers, the mode switcher's icon-only
+  band, the toolbar's phone overflow fold — are described below, beside the width-breakpoint seam
+  that drives them.
 
 - One project, several episodes (ADR 0019): a series, a mini-series and a feature shot in two parts
   are one production with several screenplays — one crew, one address book, one set of locations,
@@ -93,6 +96,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   whole app being a discovery rather than a recurring offer, and it is withheld under a version
   preview like every other way into the settings. It leads there rather than creating anything: the
   number and the title are set in the same gesture, and a misclick writes nothing.
+  **On a phone both reduce to a fixed icon-only chrome trigger**, their label carried by the
+  tooltip alone rather than a `Flexible` label the phone toolbar has no room to ellipsize cleanly
+  beside the mode's own controls (`OcptWorkspaceShell._buildEpisodeIconTrigger`); wider windows are
+  unchanged.
   **The selection is not persisted**:
   opening a project lands on the first episode, a reading preference costing nothing to lose where a
   per-project key would have to live either in `OcptPropertiesManager` (keyed by a path that moves)
@@ -228,7 +235,55 @@ the persistence, the project versions, the sync-ready data model and the read-on
   (`WidgetStateMouseCursor.adaptiveClickable`) only resolves to the hand on the web, so the
   component themes hand this one to every control that reads a cursor from the theme, and the
   widgets with no theme hook (`DropdownButton`, every `InkWell` the app builds itself) pass it at
-  their call site — a new clickable surface must do the same.
+  their call site — a new clickable surface must do the same. The theme's own mobile scaling —
+  `.sp`/`.w`/`.r` behind `buildOcptThemeModel`, active only on `PlatformManager.isMobile` — is
+  described next, beside the app's width-breakpoint seam.
+
+- The mobile responsive theme foundation (M2): `flutter_screenutil` scales sizes on mobile only —
+  `.sp` for fonts, `.w`/`.h` for dimensions — neutralised to the identity function on desktop, the
+  running platform read from `PlatformManager` (`act_platform_manager`, `isMobile`/`isDesktop`),
+  registered in `OcptGlobalManager` beside `OcptConfigManager`. `ActThemeModel` builds and caches
+  its `ThemeData` **at construction**, and `ocptTheme` is a module-level `final` built at load
+  time, long before any `ScreenUtilInit` runs — so `.sp` cannot live in the global theme.
+  `ocpt_theme.dart` therefore parametrises `_buildTextTheme`/`_buildThemeData` with three
+  `OcptSizeScaler` functions (`sp`/`w`/`r`, each defaulting to the identity function) behind a
+  single `buildOcptThemeModel({sp, w, r})`, and keeps `ocptTheme = buildOcptThemeModel()` for every
+  desktop call site — byte-identical to a theme with no scaling concept at all. `MainAppUi` wraps
+  the whole app in `ScreenUtilInit` (design size 375×812, `minTextAdapt`) and, only on
+  `PlatformManager.isMobile`, rebuilds the theme in the tree with the `.sp`/`.w`/`.r` scalers
+  (`buildOcptThemeModel(sp: (v) => v.sp, w: (v) => v.w, r: (v) => v.r)`); desktop keeps the bloc
+  state's own theme model — the global `ocptTheme` — and never calls a scaler at all.
+
+- The app's first width-breakpoint seam lives in `lib/utils/ocpt_responsive.dart`, deliberately
+  kept apart from the platform-keyed scaling above: `ocptCompactWidthBreakpoint` (816 px — below it
+  the left dock's 180 px floor, the right dock's 300 px floor, the centre's 320 px floor and the two
+  8 px dividers between them no longer coexist as columns) and `ocptPhoneWidthBreakpoint` (600 px),
+  with `ocptIsCompactWidth`/`ocptIsPhoneWidth` as the pure predicates every call site — the shell, a
+  mode, a test — agrees on, and `ocptCompactDrawerWidthFor` resolving the width a summoned drawer
+  takes over a given row. The layout reductions this seam drives are **width-keyed** — pure
+  functions of the available space, so the widgets that read them stay presentational and read no
+  platform at all — while touch density is the **platform-keyed** half, the scaled theme above; a
+  wide desktop window and a docked tablet in landscape share the same width-keyed reductions
+  without either ever reading `PlatformManager`.
+
+- The workspace shell's own compact-width reductions, all width-keyed rather than platform-keyed:
+  below `ocptCompactWidthBreakpoint` the two side docks present as edge drawers over a full-width
+  centre (`OcptWorkspaceShell._buildCompactDrawers`) — summoned by the very same toolbar dock
+  toggles that open a persistent column above the breakpoint, dismissed by tapping the scrim beside
+  the open drawer, full-width on a phone (`ocptCompactDrawerWidthFor`) and a fixed-width edge
+  drawer above that. `OcptWorkspaceModeSwitcher` drops its six labelled entries for an icon-only
+  band, each keeping its label as its tooltip, once the row is narrower than its own labelled band
+  (`OcptWorkspaceMode.values.length * _entryWidth`). On a phone (`ocptIsPhoneWidth`) the toolbar
+  folds its `Export`, project-settings and `Help` controls out of their own slots into the `⋮`
+  overflow, above the mode's own entries and separated from them by a divider, each folding only
+  when the mode wired the callback it mirrors; the episode selector and the `Add an episode…`
+  button (above) reduce there too, to a fixed icon-only chrome trigger. `OcptWorkspaceFloatingAddButton`
+  (`lib/ui/pages/workspace/widgets/`) overlays a mode's centre with a floating add affordance, drawn
+  only at a compact width and wired to the mode's own existing creation flow — never a new one, so
+  the two can't drift apart — withheld (a null callback, never disabled) under a read-only preview
+  or whenever nothing can be added, matching the app's standing read-only idiom; the shot list wires
+  it to `+ Shot` and the budget mode to `+ New`, each the exact event its own desktop control
+  already fires.
 
 - Branding: the app mark lives in `assets/branding/` as three SVGs — `ocpt_logo_light.svg`
   (accent-filled square), `ocpt_logo_dark.svg` (the same drawing hollow, for near-black surfaces)
@@ -262,7 +317,17 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `if: env.APPLE_CERTIFICATE != ''`; `--options runtime` belongs to that path alone, never to the
   unsigned one. `macos/Podfile` is tracked (copied verbatim from the pinned SDK's template),
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
-  build on one commits it. See `.github/ci-doc.md` for the local recipes.
+  build on one commits it. See `.github/ci-doc.md` for the local recipes. CI also builds an Android
+  app bundle, described next — a fourth CI job, not a fourth desktop package.
+
+- Android CI: `build.yml`'s `build-android` job is gated like the Windows/macOS jobs above —
+  release tags, `main` pushes and manual dispatches only — and sets up JDK 17 (Temurin, matching
+  `android/app/build.gradle.kts`) through `actions/setup-java`, then reuses the same
+  `flutter-setup`/`flutter-build` composites with `target-platform: appbundle`. The release is
+  **debug-signed** for now — the scaffold's own `signingConfig` — a real upload key being a later,
+  deliberate step, so the job is kept **out of `create-release`'s assets** until then. The
+  devcontainer carries no Android SDK, so the Android build is **CI-verified only**; the local
+  verification gate stays `flutter build linux --debug`.
 
 - Persistence: drift schema v1 (ADR 0029). `onCreate` creates the whole schema at once —
   `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot list tables, the

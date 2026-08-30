@@ -82,7 +82,7 @@ sharing that splits what the film earns, and its four documents, `docs/architect
 
 | Step | Content | Status |
 | --- | --- | --- |
-| 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
+| 22b | Collaboration & sync M3-M6: the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
 | — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard | 📝 planned |
 
 Step numbers are historical: they were allocated as the work was planned, are referenced by no

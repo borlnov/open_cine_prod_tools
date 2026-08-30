@@ -520,6 +520,18 @@ are all here, and this file is the whole record of them.
   project dictionary dialog) exist because a list of rows there has no other way of saying *which*
   row is being talked about, which is not this table's problem: every row already opens its own
   fiche on selection.
+- **At a compact width (`ocptIsCompactWidth`), the two-pane table gives way to one card per live
+  poste**, scrolling vertically above the very same `+ Poste` creation footer — the tree itself
+  (quote lines, commitments, entries, the off-quote reading) is reduced away entirely at this width,
+  a card opening straight onto the fiche's own `Inspector` tab where that detail already lives. A
+  card draws the poste's name, a proportion bar splitting its quote across paid / committed /
+  remaining (reusing the fiche's own poste-variant colour vocabulary for the same figures) and its
+  own `Engagé`/`Payé`/`Reste`/`Écart` figures, read through a small pure holder
+  (`_OcptCostTrackingPosteFigures.of`) making the very same `ocptBudgetTotalOf`/
+  `ocptBudgetRemainingCents`/`ocptBudgetVarianceCents` calls the desktop row does, so a card can
+  never disagree with the table over the same poste. Tapping a card fires the same
+  `onPosteSelected` callback tapping a row does. Above the breakpoint the two-pane table is
+  unchanged.
 
 ## The resources tree folds the takings in
 

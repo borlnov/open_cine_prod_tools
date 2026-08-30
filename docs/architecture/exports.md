@@ -159,6 +159,24 @@ sit.
   screenplay text itself is always written through `OcptScreenplayService.saveScreenplayText`, never
   by hand.
 
+- **On mobile, the write funnel hands the bytes to the OS share sheet instead of a picked save
+  location.** `file_selector`'s `getSaveLocation`/`getDirectoryPath` have no Android or iOS
+  implementation, so `OcptExportManager`'s single write funnel branches on `PlatformManager.isMobile`
+  (`foundations.md`): desktop keeps `getSaveLocation`/`getDirectoryPath` → `File.writeAsBytes`
+  unchanged, mobile writes the bytes to a `path_provider` temp file and hands it — every file at
+  once, for the folder-batch exports — to `OcptShareService` (`lib/managers/export/services/`, a
+  thin `share_plus` wrapper reached through the manager rather than `globalGetIt()`, so a test can
+  replace it exactly as `OcptSaveLocationService` already is). Every export method now returns a
+  sealed `OcptExportOutcome` (`lib/types/`) — `OcptExportSaved(path)` or `OcptExportShared()` —
+  rather than a nullable path, since a null return still means "cancelled or failed" but a
+  successful one no longer always names a path; the success notice degrades accordingly, from
+  "saved to `<path>`" on desktop to "Shared" on mobile, each mode's `IoNotice` carrying a
+  `wasShared` flag rather than assuming a path is always there to word. A `Rect? shareAnchor`,
+  resolved from the tapped export control's own `RenderBox` (`ocptExportShareAnchorOf`,
+  `lib/ui/utils/`, a manager seeing no `BuildContext` of its own) and threaded through every export
+  event, is the popover source the OS share sheet needs on an iPad or a Mac; the phone toolbar's
+  folded overflow entry hands down null, having no control of its own to anchor from.
+
 - Scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage a shot covers. `OcptScenarioCoverageLayout.of(...)`
   (`lib/models/ocpt_scenario_coverage_layout.dart`, pure Dart, no `pdf` and no Flutter) holds every
