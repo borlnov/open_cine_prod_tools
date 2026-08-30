@@ -291,4 +291,66 @@ void main() {
       );
     });
   });
+
+  group('highestAppendedSequence', () {
+    test('is zero when this replica has never pushed anything to this relay', () async {
+      expect(
+        await service.highestAppendedSequence(database: database, relayId: relayId),
+        OcptSequenceNumber.zero,
+      );
+    });
+
+    test('reflects the outbox water mark a push just advanced', () async {
+      final location = await insertLocation('location-1');
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationsTable,
+        rowId: location.id,
+        current: location,
+        next: location.copyWith(name: 'Exterior'),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+      final stampedVersion = (await database.select(database.ocptRowFieldVersionsTable).getSingle()).version;
+
+      await service.pushLocalEdits(
+        database: database,
+        storage: storage,
+        relayId: relayId,
+        deviceId: deviceId,
+      );
+
+      expect(
+        await service.highestAppendedSequence(database: database, relayId: relayId),
+        OcptSequenceNumber(stampedVersion),
+      );
+    });
+
+    test('never advances for a relay nothing has been pushed to', () async {
+      final location = await insertLocation('location-1');
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationsTable,
+        rowId: location.id,
+        current: location,
+        next: location.copyWith(name: 'Exterior'),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+
+      await service.pushLocalEdits(
+        database: database,
+        storage: storage,
+        relayId: relayId,
+        deviceId: deviceId,
+      );
+
+      expect(
+        await service.highestAppendedSequence(database: database, relayId: 'another-relay'),
+        OcptSequenceNumber.zero,
+      );
+    });
+  });
 }

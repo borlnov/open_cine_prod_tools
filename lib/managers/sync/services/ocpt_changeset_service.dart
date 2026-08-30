@@ -243,6 +243,22 @@ class OcptChangesetService {
         ),
       );
 
+  /// [relayId]'s current `outboxHighWaterMark` against [database], as [pushLocalEdits] itself would
+  /// read it, wrapped as an [OcptSequenceNumber] — [OcptSequenceNumber.zero] when this replica has
+  /// appended nothing to [relayId] yet.
+  ///
+  /// A read-only counterpart to [_outboxHighWaterMark], for a caller outside this service that
+  /// needs the position a just-published changeset log stands at right now — the create-and-share
+  /// orchestration (`docs/plans/relay.md`, Phase C, commit 3) reads this immediately after
+  /// [pushLocalEdits] to know what a snapshot it publishes in the same breath should declare as its
+  /// own [OcptSnapshotDescriptor.sequenceUpTo]. Behaviourally inert on its own, exactly like
+  /// [countUnpushedEdits]: nothing about calling this changes [relayId]'s cursor or anything else in
+  /// [database].
+  Future<OcptSequenceNumber> highestAppendedSequence({
+    required OcptProjectDatabase database,
+    required String relayId,
+  }) async => OcptSequenceNumber(await _outboxHighWaterMark(database: database, relayId: relayId));
+
   /// [relayId]'s current `outboxHighWaterMark` against [database], or `0` when this replica has
   /// never pushed anything to it yet.
   Future<int> _outboxHighWaterMark({required OcptProjectDatabase database, required String relayId}) async {

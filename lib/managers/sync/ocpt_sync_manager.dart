@@ -9,6 +9,7 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_storage.dart';
@@ -20,8 +21,10 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merg
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_snapshot_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
+import 'package:uuid/uuid.dart';
 
 /// Builds the [OcptSyncManager] instance registered by the global manager.
 class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
@@ -30,7 +33,12 @@ class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [LoggerManager, OcptPropertiesManager, OcptProjectsManager];
+  Iterable<Type> dependsOn() => [
+    LoggerManager,
+    OcptPropertiesManager,
+    OcptProjectsManager,
+    OcptSecretsManager,
+  ];
 }
 
 /// Owns a project's own side of `docs/plans/collaboration-and-sync.md`'s changeset engine (M3):
@@ -63,6 +71,21 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [joinFromRelay] build on (`docs/plans/relay.md`, Phase C, commit 1).
   final OcptSnapshotService snapshotService;
 
+  /// The service reading and writing a project's own relay pairing — what [pairProjectToRelay]
+  /// saves the freshly minted pairing through before it ever talks to the relay.
+  ///
+  /// Built lazily, from `globalGetIt()`'s own [OcptSecretsManager], the first time it is actually
+  /// read rather than in the constructor — exactly what makes that call optional: a caller with no
+  /// reason to ever pair a project (most of this manager's own tests included) never needs
+  /// [OcptSecretsManager] registered at all, precisely as passing [changesetService] in directly
+  /// sidesteps the very same kind of `globalGetIt()` call for [OcptProjectsManager]/
+  /// [OcptPropertiesManager] above. A test that does need one hands it in through the constructor
+  /// instead — built over a fake secure-storage channel, exactly as
+  /// `ocpt_sync_manager_snapshot_test.dart` already does for [joinFromRelay].
+  OcptPairingService get pairingService =>
+      _pairingService ??= OcptPairingService(secretsManager: globalGetIt().get<OcptSecretsManager>());
+  OcptPairingService? _pairingService;
+
   /// Class constructor
   ///
   /// [projectsManager] and [propertiesManager] are the injectable seams over `globalGetIt()` a test
@@ -73,12 +96,14 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [changesetService] directly (as this class's own tests do, with a bare
   /// `OcptChangesetService()`) skips that wiring entirely. [snapshotService] defaults to a bare
   /// `OcptSnapshotService()`, which needs no wiring at all — a test passes one built over its own
-  /// temporary directory instead.
+  /// temporary directory instead. [pairingService] is not read here at all — see [pairingService]'s
+  /// own doc comment for why that matters.
   OcptSyncManager({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
     OcptChangesetService? changesetService,
     OcptSnapshotService? snapshotService,
+    OcptPairingService? pairingService,
   }) : changesetService =
            changesetService ??
            OcptChangesetService(
@@ -89,7 +114,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
                ),
              ),
            ),
-       snapshotService = snapshotService ?? const OcptSnapshotService();
+       snapshotService = snapshotService ?? const OcptSnapshotService(),
+       _pairingService = pairingService;
 
   /// This project's current sync session, or null when none is running — see [startSyncSession].
   OcptSyncSession? get syncSession => _syncSession;
@@ -128,6 +154,93 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// `docs/plans/collaboration-and-sync.md` §3.3/§5.3). The relay base URL already has exactly
   /// that shape, so nothing further is minted or stored for it.
   static String relayIdFor(OcptProjectPairing pairing) => pairing.relayBaseUri.toString();
+
+  /// Pairs [projectId] to the relay at [relayBaseUri], pushes this replica's own edits to create
+  /// it there, publishes a first snapshot so a joiner can bootstrap, and starts the ongoing sync
+  /// session — the create-and-share orchestration the Partager screen's "pair and create on the
+  /// relay" action calls (`docs/plans/relay.md`, Phase C, commit 3), returning the invite that
+  /// screen renders as a QR code.
+  ///
+  /// In order:
+  ///
+  /// 1. Mints a fresh project token — full-entropy machine output (a plain `Uuid().v4()`), never
+  ///    typed by a human, exactly as `docs/plans/collaboration-and-sync.md` §5.2 requires of a
+  ///    project token (as opposed to [enrolmentSecret], the instance-wide secret handed to this
+  ///    call, never minted by it).
+  /// 2. Saves [projectId]'s pairing to [relayBaseUri] with that token through [pairingService],
+  ///    before the relay has even heard of the project — so a failure past this point still leaves
+  ///    the pairing recorded, exactly as a real pairing that a later retry (or a manual re-pair)
+  ///    can reuse rather than minting a second token.
+  /// 3. Opens the relay transport with [openRelayRemoteStorage], carrying [enrolmentSecret] so the
+  ///    very first append below is allowed to create [projectId] on that relay
+  ///    (`docs/plans/collaboration-and-sync.md` §5.2).
+  /// 4. Pushes [database]'s own un-pushed local edits to that transport
+  ///    ([OcptChangesetService.pushLocalEdits]) — the append that actually creates the project on
+  ///    the relay.
+  /// 5. Reads how far that push just advanced this replica's own delivery cursor
+  ///    ([OcptChangesetService.highestAppendedSequence]) and [publishSnapshot]s the project as of
+  ///    that position, so a joiner fetching the relay's latest snapshot lands exactly there
+  ///    (`docs/plans/collaboration-and-sync.md` §5.3: "the first device to append uploads a
+  ///    snapshot").
+  /// 6. [startSyncSession]s against the same transport for the ongoing sync — [enrolmentSecret]
+  ///    being sent again on whatever it appends from here on is harmless, per
+  ///    [openRelayRemoteStorage]'s own doc comment.
+  ///
+  /// A failure at any step (the transport throwing, most likely) propagates to the caller rather
+  /// than being swallowed, and leaves no sync session dangling: [startSyncSession] is the last
+  /// step, so a failure anywhere before it never starts one at all.
+  Future<OcptRelayInvite> pairProjectToRelay({
+    required OcptProjectDatabase database,
+    required String projectId,
+    required String projectFilePath,
+    required String projectName,
+    required String appVersion,
+    required Uri relayBaseUri,
+    required String enrolmentSecret,
+    required String deviceId,
+  }) async {
+    final token = const Uuid().v4();
+
+    await pairingService.savePairing(
+      database: database,
+      projectId: projectId,
+      relayBaseUri: relayBaseUri,
+      token: token,
+    );
+
+    final pairing = OcptProjectPairing(relayBaseUri: relayBaseUri, token: token);
+    final relayId = relayIdFor(pairing);
+    final storage = openRelayRemoteStorage(pairing, projectId, enrolmentSecret: enrolmentSecret);
+
+    await changesetService.pushLocalEdits(
+      database: database,
+      storage: storage,
+      relayId: relayId,
+      deviceId: deviceId,
+    );
+
+    final sequenceUpTo = await changesetService.highestAppendedSequence(
+      database: database,
+      relayId: relayId,
+    );
+    await publishSnapshot(
+      storage: storage,
+      projectFilePath: projectFilePath,
+      projectName: projectName,
+      appVersion: appVersion,
+      sequenceUpTo: sequenceUpTo,
+    );
+
+    await startSyncSession(
+      projectId: projectId,
+      database: database,
+      deviceId: deviceId,
+      relayId: relayId,
+      storage: storage,
+    );
+
+    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
+  }
 
   /// Packages the project at [projectFilePath] as a snapshot and uploads it to [storage].
   ///
