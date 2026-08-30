@@ -71,6 +71,14 @@ dependencies:
   # Scales fonts (.sp) and dimensions (.w/.h) on mobile only; neutralised to identity on desktop.
   flutter_screenutil: ^5.9.3
 
+  # Speaks the sync relay's HTTP routes from OcptRelayRemoteStorage; promoted from a transitive
+  # dependency now that the app calls it itself
+  http: ^1.6.0
+
+  # Speaks the sync relay's events WebSocket from OcptRelayRemoteStorage; promoted from a
+  # transitive dependency now that the app calls it itself
+  web_socket_channel: ^3.0.3
+
   act_config_manager:
     path: actlibs/act_config_manager
 
@@ -188,6 +196,11 @@ dev_dependencies:
 
   # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
   build_runner: ^2.4.13
+
+  # Provides StreamChannelMixin, used to build a fake WebSocketChannel for
+  # OcptRelayRemoteStorage's tests; promoted from a transitive dependency now that a test imports
+  # it directly
+  stream_channel: ^2.1.4
 
 
 flutter:
