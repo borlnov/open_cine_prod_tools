@@ -125,6 +125,9 @@ dependencies:
   act_platform_manager:
     path: actlibs/act_platform_manager
 
+  act_qr_code:
+    path: actlibs/act_qr_code
+
   act_router_manager:
     path: actlibs/act_router_manager
 
