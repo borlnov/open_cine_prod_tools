@@ -11,7 +11,7 @@ inputs:
     required: false
     default: "."
   target-platform:
-    description: "Flutter build target platform (linux, windows or macos)"
+    description: "Flutter build target platform (linux, windows, macos or appbundle)"
     required: true
   build-args:
     description: "Additional arguments passed to flutter build (e.g. --dart-define)"

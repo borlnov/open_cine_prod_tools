@@ -389,6 +389,54 @@ jobs:
           path: ${{ steps.dmg.outputs.dmg-path }}
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
+  build-android:
+    name: Android build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: get-version
+    # Android builds follow the Windows/macOS gating: release tags, main pushes and manual
+    # dispatches only, to keep the common case cheap.
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          submodules: recursive
+
+      - name: Set up the JDK
+        # The Android Gradle build compiles against JDK 17, matching sourceCompatibility /
+        # targetCompatibility / jvmTarget in android/app/build.gradle.kts.
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter and dependencies
+        uses: ./.github/actions/flutter-setup
+
+      - name: Generate translations and database code
+        run: |
+          flutter pub get
+          dart run intl_utils:generate
+          dart run build_runner build
+
+      - name: Build the Android app bundle
+        # Release is debug-signed for now (android/app/build.gradle.kts's scaffold signingConfig);
+        # a real upload key is a later, deliberate step. This job verifies the Android build in CI
+        # and is deliberately kept out of create-release's assets until then.
+        uses: ./.github/actions/flutter-build
+        with:
+          target-platform: appbundle
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+
+      - name: Upload the Android app bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_android_aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
   test-deb:
     name: Check .deb installation
     runs-on: ubuntu-latest
