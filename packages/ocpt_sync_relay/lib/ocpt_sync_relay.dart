@@ -8,7 +8,9 @@
 ///
 /// This library contains no table name and no domain type — see each file's own doc comment for
 /// what that means for it. It has no Flutter dependency; storage is a plain `sqlite3` database
-/// file, and routing is added in a later commit.
+/// file, and the HTTP routes are assembled by `OcptRelayServer`. The WebSocket "new work" route
+/// and the `bin/` entrypoint that serves it over a real socket are later commits.
 library;
 
+export 'src/ocpt_relay_server.dart';
 export 'src/ocpt_relay_store.dart';
