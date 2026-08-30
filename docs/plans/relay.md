@@ -40,8 +40,9 @@ the seam was drawn wrong.
 
 ## The decomposition
 
-Twelve logical commits in three phases. The server package (1–7) and the client transport (8–10)
-carry no new UI and can be delegated as soon as this plan is approved; the two UI surfaces (11–12)
+Twelve logical commits in three phases, numbered from 1 within each phase. The server package
+(Phase A) and the client transport (Phase B) carry no new UI and can be delegated as soon as this
+plan is approved; the two UI surfaces (Phase C)
 need Benoit's design direction first (see *Design decisions* below) and are held until it lands.
 
 ### Phase A — `packages/ocpt_sync_relay` (the server)
@@ -95,13 +96,13 @@ drifted and the commit does not land.
 
 ### Phase B — the client transport
 
-8. **`OcptRelayRemoteStorage implements OcptRemoteStorage`**
+1. **`OcptRelayRemoteStorage implements OcptRemoteStorage`**
    (`lib/managers/sync/services/ocpt_relay_remote_storage.dart`). `append`/`readSince`/
    `uploadSnapshot`/`fetchLatestSnapshot` over `package:http`; `newWorkStream` over
    `package:web_socket_channel`, reconnecting on drop and emitting nothing while disconnected (the
    engine falls back to its poll on `readSince`, so a dropped socket is a normal, silent state). It
    speaks only `ocpt_sync_protocol` and opaque bytes, the same boundary the folder transport keeps.
-9. **Pairing storage.** A new local, non-synchronised table `sync_pairings` (one row per project:
+2. **Pairing storage.** A new local, non-synchronised table `sync_pairings` (one row per project:
    relay base URL — **not** the token), added additively the way `sync_relay_cursors` was: local
    tables are the two standing exceptions to the frozen-v1 rule (ADR 0029), so this is a schema bump
    with no migration of synchronised data. **The project token is a secret and never lands in the
@@ -111,7 +112,7 @@ drifted and the commit does not land.
    has no concrete secrets manager yet, so this commit introduces `OcptSecretsManager extends
    AbstractSecretsManager` (registered like the other managers, `dependsOn` the properties manager),
    exposing one per-project token secret keyed by project id.
-10. **Wiring the transport in.** `OcptSyncManager.openRelayRemoteStorage(...)` beside
+3. **Wiring the transport in.** `OcptSyncManager.openRelayRemoteStorage(...)` beside
     `openFolderRemoteStorage`, and the sync driver that, for a paired project, runs the
     push-then-pull loop and subscribes to `newWorkStream` — reusing the existing
     `changesetService` push/pull unchanged. A restore publishes through the snapshot route, not as a
@@ -119,19 +120,20 @@ drifted and the commit does not land.
 
 ### Phase C — the two UI surfaces (held for design direction)
 
-11. **The pairing screen.** Reached **from the project card on the Home grid** (a "Share / Sync"
+1. **The pairing screen.** Reached **from the project card on the Home grid** (a "Share / Sync"
     action, before the workspace is even opened — pairing is a project-level decision): it takes a
     relay address and a token, by QR code on a tablet and manual entry on desktop, and pairs the
     project. A new view — its layout is shaped with Benoit before it is built.
-12. **The status indicator.** In the workspace status bar: in sync, syncing, offline with a pending
+2. **The status indicator.** In the workspace status bar: in sync, syncing, offline with a pending
     count, or an error. It is **clickable** — the workspace's sync entry point: a tap opens pairing
     (when the project is not yet paired) or a small panel (the pending queue, re-pair, force a sync).
     It reads the driver's state and never writes, so under a read-only preview it stays informational
     and its actions are withheld. A new surface — shaped with Benoit before it is built.
 
 The two views are held until their layout is agreed with Benoit; the engine and transport underneath
-them (1–10) do not depend on either and land first. Settled so far: entry from the Home card, a
-clickable indicator, and the token in ACT secure storage (commit 9). Still open: the exact layout of
+them (Phases A and B) do not depend on either and land first. Settled so far: entry from the Home
+card, a clickable indicator, and the token in ACT secure storage (Phase B, commit 2). Still open: the
+exact layout of
 each view — QR vs. manual entry on the pairing screen, the four states' iconography and wording, and
 what precisely the indicator's panel offers.
 
