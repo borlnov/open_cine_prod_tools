@@ -55,6 +55,7 @@ jobs:
           - { name: app, path: . }
           - { name: fountain_kit, path: packages/fountain_kit }
           - { name: ocpt_sync_protocol, path: packages/ocpt_sync_protocol }
+          - { name: ocpt_sync_relay, path: packages/ocpt_sync_relay }
           - { name: script_import_kit, path: packages/script_import_kit }
           - { name: spell_kit, path: packages/spell_kit }
     steps:

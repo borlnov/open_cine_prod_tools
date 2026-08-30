@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: ocpt_sync_relay
+description: >-
+  The domain-blind sync relay: a self-hostable server storing opaque changeset and snapshot
+  payloads behind the ocpt_sync_protocol wire format.
+publish_to: none
+
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  crypto: ^3.0.6
+  ocpt_sync_protocol:
+    path: ../ocpt_sync_protocol
+  sqlite3: ^2.4.6
+
+dev_dependencies:
+  lints: ^5.1.1
+  test: ^1.25.15
