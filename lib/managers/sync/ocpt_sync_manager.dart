@@ -249,6 +249,111 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
   }
 
+  /// Re-points [projectId] at a new relay (typically the on-set relay), reusing its **existing**
+  /// project token, pushes this replica's own edits to create it there, publishes a fresh snapshot
+  /// so the next joiner bootstraps against [relayBaseUri], and restarts the ongoing sync session —
+  /// the "Changer de relais" flow's own orchestration (`docs/plans/on-set-server.md`, Phase D).
+  ///
+  /// This is [pairProjectToRelay] with exactly one difference: it never mints a token. Where
+  /// [pairProjectToRelay] creates a brand new pairing (a fresh [Uuid] token for a project never
+  /// paired before), this recovers [projectId]'s current token from its existing pairing and
+  /// carries that same token forward to [relayBaseUri] — a project keeps one project token for its
+  /// whole life, whichever relay currently holds it. [enrolmentSecret] here is the *set relay's*
+  /// own instance-wide secret (the one scanned off its `ocpt://relay` enrolment QR,
+  /// `OcptRelayEnrolment`), not the token: it plays exactly the role [pairProjectToRelay]'s own
+  /// [enrolmentSecret] plays for the very first relay.
+  ///
+  /// This returns nothing, unlike [pairProjectToRelay]: the caller already holds the enrolment
+  /// information it needs to show the next QR (the operator typed or scanned [relayBaseUri] and
+  /// [enrolmentSecret] to get here), so there is nothing new to hand back.
+  ///
+  /// In order:
+  ///
+  /// 1. Loads [projectId]'s current pairing through [pairingService]. A null pairing means
+  ///    [projectId] was never paired to any relay — re-pointing has no existing token to reuse, so
+  ///    this throws a [StateError] rather than silently minting one (that is what
+  ///    [pairProjectToRelay] is for).
+  /// 2. Re-saves [projectId]'s pairing through [pairingService], to the new [relayBaseUri] but with
+  ///    the very same token — [OcptPairingService.savePairing] upserts by [projectId], so this
+  ///    overwrites the single `sync_pairings` row in place rather than adding a second one.
+  /// 3. Opens the relay transport with [openRelayRemoteStorage], carrying [enrolmentSecret] so the
+  ///    very first append below is allowed to create [projectId] on that relay, exactly as
+  ///    [pairProjectToRelay] does for a brand new one.
+  /// 4. Pushes [database]'s own un-pushed local edits to that transport
+  ///    ([OcptChangesetService.pushLocalEdits]).
+  /// 5. Reads how far that push just advanced this replica's own delivery cursor
+  ///    ([OcptChangesetService.highestAppendedSequence]) and [publishSnapshot]s the project as of
+  ///    that position, so a joiner fetching this relay's latest snapshot lands exactly there.
+  /// 6. [startSyncSession]s against the same transport for the ongoing sync.
+  ///
+  /// [relayIdFor] keys a pairing's delivery cursor by relay base URL, so re-pointing to a
+  /// different [relayBaseUri] deliberately starts a fresh cursor rather than reusing the old
+  /// relay's — the same project living behind two relays (say, the prep relay and the set relay)
+  /// keeps one delivery cursor per relay, per [relayIdFor]'s own doc comment, and re-pointing back
+  /// to a relay this replica has talked to before simply resumes that relay's own cursor.
+  ///
+  /// A failure at any step (the transport throwing, most likely) propagates to the caller rather
+  /// than being swallowed, and leaves no sync session dangling: [startSyncSession] is the last
+  /// step, so a failure anywhere before it never starts one at all.
+  Future<void> repointProjectToRelay({
+    required OcptProjectDatabase database,
+    required String projectId,
+    required String projectFilePath,
+    required String projectName,
+    required String appVersion,
+    required Uri relayBaseUri,
+    required String enrolmentSecret,
+    required String deviceId,
+  }) async {
+    final pairing = await pairingService.loadPairing(database: database, projectId: projectId);
+    if (pairing == null) {
+      throw StateError(
+        'Cannot re-point project "$projectId" to a new relay: it has no existing pairing to '
+        'reuse a token from. Re-pointing only ever moves an already-paired project to a new '
+        'relay; pair it first through pairProjectToRelay.',
+      );
+    }
+    final token = pairing.token;
+
+    await pairingService.savePairing(
+      database: database,
+      projectId: projectId,
+      relayBaseUri: relayBaseUri,
+      token: token,
+    );
+
+    final newPairing = OcptProjectPairing(relayBaseUri: relayBaseUri, token: token);
+    final relayId = relayIdFor(newPairing);
+    final storage = openRelayRemoteStorage(newPairing, projectId, enrolmentSecret: enrolmentSecret);
+
+    await changesetService.pushLocalEdits(
+      database: database,
+      storage: storage,
+      relayId: relayId,
+      deviceId: deviceId,
+    );
+
+    final sequenceUpTo = await changesetService.highestAppendedSequence(
+      database: database,
+      relayId: relayId,
+    );
+    await publishSnapshot(
+      storage: storage,
+      projectFilePath: projectFilePath,
+      projectName: projectName,
+      appVersion: appVersion,
+      sequenceUpTo: sequenceUpTo,
+    );
+
+    await startSyncSession(
+      projectId: projectId,
+      database: database,
+      deviceId: deviceId,
+      relayId: relayId,
+      storage: storage,
+    );
+  }
+
   /// Packages the project at [projectFilePath] as a snapshot and uploads it to [storage].
   ///
   /// This is what lets a joiner bootstrap against an otherwise-empty relay

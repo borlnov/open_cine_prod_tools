@@ -110,6 +110,11 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   final OcptRemoteStorage storage;
   String? capturedEnrolmentSecret;
 
+  /// Set by `repointProjectToRelay`'s own tests to hand back a second, distinct
+  /// [_FakeRemoteStorage] for the re-point's own transport, so its own appends/uploads can be
+  /// asserted apart from the first [pairProjectToRelay] call's [storage].
+  OcptRemoteStorage? storageOverride;
+
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -118,7 +123,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   }) {
     capturedEnrolmentSecret = enrolmentSecret;
 
-    return storage;
+    return storageOverride ?? storage;
   }
 }
 
@@ -325,6 +330,123 @@ void main() {
       expect(
         invite,
         OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: pairing!.token),
+      );
+    });
+  });
+
+  group('repointProjectToRelay', () {
+    final newRelayBaseUri = Uri.parse('https://set-relay.example.org/');
+
+    test('reuses the existing token and re-saves the pairing against the new relay', () async {
+      final invite = await manager.pairProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: 'enrolment-secret-1',
+        deviceId: deviceId,
+      );
+
+      await manager.repointProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: 'set-relay-secret',
+        deviceId: deviceId,
+      );
+
+      final pairing = await pairingService.loadPairing(database: database, projectId: projectId);
+      expect(pairing, isNotNull);
+      expect(pairing!.relayBaseUri, newRelayBaseUri);
+      expect(pairing.token, invite.token);
+    });
+
+    test('opens the transport with the set relay enrolment secret', () async {
+      await manager.pairProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: 'enrolment-secret-1',
+        deviceId: deviceId,
+      );
+
+      await manager.repointProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: 'set-relay-secret',
+        deviceId: deviceId,
+      );
+
+      expect(manager.capturedEnrolmentSecret, 'set-relay-secret');
+    });
+
+    test('pushes edits, publishes a snapshot and starts a session against the new relay', () async {
+      await manager.pairProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: 'enrolment-secret-1',
+        deviceId: deviceId,
+      );
+
+      final newStorage = _FakeRemoteStorage();
+      manager.storageOverride = newStorage;
+
+      await manager.repointProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: 'set-relay-secret',
+        deviceId: deviceId,
+      );
+
+      expect(newStorage.appended, hasLength(1));
+      expect(newStorage.uploaded, isNotNull);
+      expect(manager.syncStatus, isNotNull);
+
+      final relayId = OcptSyncManager.relayIdFor(
+        OcptProjectPairing(relayBaseUri: newRelayBaseUri, token: 't'),
+      );
+      final sequenceUpTo = await const OcptChangesetService().highestAppendedSequence(
+        database: database,
+        relayId: relayId,
+      );
+      expect(newStorage.uploaded!.$1.sequenceUpTo, sequenceUpTo);
+
+      await newStorage.dispose();
+    });
+
+    test('throws a StateError when the project has no existing pairing', () async {
+      expect(
+        () => manager.repointProjectToRelay(
+          database: database,
+          projectId: projectId,
+          projectFilePath: projectPath,
+          projectName: 'Les Vagues',
+          appVersion: '0.1.0',
+          relayBaseUri: newRelayBaseUri,
+          enrolmentSecret: 'set-relay-secret',
+          deviceId: deviceId,
+        ),
+        throwsA(isA<StateError>()),
       );
     });
   });
