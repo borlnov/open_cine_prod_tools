@@ -52,4 +52,24 @@ abstract interface class OcptRemoteStorage {
   /// implementation drives this from its WebSocket route; a transport with no way to observe
   /// another replica's writes may emit nothing at all.
   Stream<void> get newWorkStream;
+
+  /// Sends [opaquePayload] to this project's other replicas, over the same channel [newWorkStream]
+  /// listens on.
+  ///
+  /// [opaquePayload] is exactly that to this interface — a string this transport moves without
+  /// reading, per `docs/plans/presence.md` (M5, Phase A): today's only caller is presence, but
+  /// nothing here names it, so the relay this method talks to never learns what the payload means.
+  /// A transport with no peer to reach (a folder, say) drops the call silently — never throws — and
+  /// the same holds while a networked transport is disconnected: the next call carries current
+  /// state again, so nothing is lost that a caller needs to react to.
+  void sendPresence(String opaquePayload);
+
+  /// Emits every opaque frame another replica sent through its own [sendPresence], in arrival
+  /// order.
+  ///
+  /// Exactly as opaque to this interface as [sendPresence]'s own payload — this stream carries
+  /// whatever a peer sent, unparsed, never a table name or a domain type. A transport with no way
+  /// to receive a peer's frames (a folder, say) emits nothing at all, exactly as
+  /// [newWorkStream] does in that case.
+  Stream<String> get presenceStream;
 }

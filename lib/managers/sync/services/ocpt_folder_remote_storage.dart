@@ -124,6 +124,17 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
+  // A plain directory has no live peer to reach — sharing it is always through a file-sync client
+  // that only converges between launches, never a socket a presence heartbeat could ride. The call
+  // is accepted and dropped rather than refused: a caller of the shared `OcptRemoteStorage` seam
+  // never has to special-case this transport.
+  @override
+  void sendPresence(String opaquePayload) {}
+
+  // Mirrors newWorkStream above: no peer, nothing to receive.
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
   /// The highest sequence number already written under [changesetsDir], or
   /// [OcptSequenceNumber.zero] when it holds none — so that [append] always has a value to call
   /// `next()` on.

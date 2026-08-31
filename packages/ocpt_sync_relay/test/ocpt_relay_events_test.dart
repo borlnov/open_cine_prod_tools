@@ -161,6 +161,77 @@ void main() {
     );
 
     test(
+      'a frame one subscriber sends reaches the other subscriber verbatim, not the sender',
+      () async {
+        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+        final sender = connect('project-1', token: 'token-1');
+        final peer = connect('project-1', token: 'token-1');
+        await sender.ready;
+        await peer.ready;
+
+        var senderReceived = false;
+        final senderSubscription = sender.stream.listen((_) => senderReceived = true);
+        final peerFrame = peer.stream.first.timeout(const Duration(seconds: 3));
+
+        sender.sink.add('presence-frame-from-sender');
+
+        expect(await peerFrame, 'presence-frame-from-sender');
+        // Give the sender a moment to (not) receive its own frame back before asserting it never
+        // did — there is nothing else to await here since the assertion is an absence.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        await senderSubscription.cancel();
+        expect(senderReceived, isFalse);
+      },
+      timeout: _timeout,
+    );
+
+    test(
+      'a peer frame for one project never reaches another project\'s subscribers',
+      () async {
+        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+        store.createProject(projectId: 'project-2', tokenHash: _tokenHash('token-2'));
+        final projectOneSender = connect('project-1', token: 'token-1');
+        final projectOnePeer = connect('project-1', token: 'token-1');
+        final projectTwoSocket = connect('project-2', token: 'token-2');
+        await projectOneSender.ready;
+        await projectOnePeer.ready;
+        await projectTwoSocket.ready;
+
+        var projectTwoReceived = false;
+        final projectTwoSubscription = projectTwoSocket.stream.listen((_) => projectTwoReceived = true);
+        final peerFrame = projectOnePeer.stream.first.timeout(const Duration(seconds: 3));
+
+        projectOneSender.sink.add('presence-frame-for-project-1');
+
+        expect(await peerFrame, 'presence-frame-for-project-1');
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        await projectTwoSubscription.cancel();
+        expect(projectTwoReceived, isFalse);
+      },
+      timeout: _timeout,
+    );
+
+    test(
+      'a new-work ping still reaches every subscriber alongside peer frame rebroadcast',
+      () async {
+        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+        final first = connect('project-1', token: 'token-1');
+        final second = connect('project-1', token: 'token-1');
+        await first.ready;
+        await second.ready;
+
+        final firstPing = first.stream.first.timeout(const Duration(seconds: 3));
+        final secondPing = second.stream.first.timeout(const Duration(seconds: 3));
+
+        await post('/projects/project-1/changesets', token: 'token-1', jsonBody: _envelope('changeset-1').toJson());
+
+        expect(await firstPing, isNotNull);
+        expect(await secondPing, isNotNull);
+      },
+      timeout: _timeout,
+    );
+
+    test(
       'closing a socket cleans up its subscription: a later write to that project does not throw',
       () async {
         store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));

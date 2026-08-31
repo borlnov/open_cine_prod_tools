@@ -39,6 +39,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   /// Simulates the relay announcing another replica's own push.
   void pingNewWork() => _newWorkController.add(null);
 
+  @override
+  void sendPresence(String opaquePayload) {}
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
   Future<void> dispose() => _newWorkController.close();
 }
 

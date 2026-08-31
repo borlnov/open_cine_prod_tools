@@ -130,4 +130,20 @@ void main() {
       expect(fetched.$2, Uint8List.fromList([2]));
     });
   });
+
+  group('sendPresence/presenceStream', () {
+    test('presenceStream emits nothing — a plain directory has no peer to reach', () async {
+      final frames = <String>[];
+      final subscription = storage.presenceStream.listen(frames.add);
+
+      await Future<void>.delayed(Duration.zero);
+      await subscription.cancel();
+
+      expect(frames, isEmpty);
+    });
+
+    test('sendPresence is a harmless no-op', () {
+      expect(() => storage.sendPresence('a presence payload'), returnsNormally);
+    });
+  });
 }

@@ -79,6 +79,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 
   @override
   Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  void sendPresence(String opaquePayload) {}
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
 }
 
 /// An [OcptSyncManager] recording whether/how [startSyncSession] was called, instead of actually

@@ -38,13 +38,17 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 /// - `GET /projects/<projectId>/snapshot` — answers `200` with
 ///   `{"descriptor": <OcptSnapshotDescriptor.toJson()>, "bytes": "<base64>"}` for the project's
 ///   latest snapshot, or `404` when it has none yet.
-/// - `GET /projects/<projectId>/events` — upgrades to a WebSocket. While connected, the socket
-///   receives one opaque frame (the literal string [_newWorkPing]) every time any replica appends a
-///   changeset or uploads a snapshot to `<projectId>`, including a write made over a different
-///   connection to this same server process — nothing about the frame is meaningful beyond its
-///   arrival, exactly as `OcptRemoteStorage.newWorkStream`'s own contract says a listener should
-///   treat it: react by calling `readSince`/`fetchLatestSnapshot` again, never by parsing it. The
-///   subscriber set behind this is in-memory and per server process
+/// - `GET /projects/<projectId>/events` — upgrades to a WebSocket, and is bidirectional. While
+///   connected, the socket receives one opaque frame (the literal string [_newWorkPing]) every time
+///   any replica appends a changeset or uploads a snapshot to `<projectId>`, including a write made
+///   over a different connection to this same server process — nothing about that frame is
+///   meaningful beyond its arrival, exactly as `OcptRemoteStorage.newWorkStream`'s own contract says
+///   a listener should treat it: react by calling `readSince`/`fetchLatestSnapshot` again, never by
+///   parsing it. Any *other* frame a subscriber sends — a peer's opaque presence payload, per
+///   `docs/plans/presence.md` (M5, Phase A) — is rebroadcast verbatim to that same project's other
+///   subscribers only, never back to the sender and never to another project's subscribers; this
+///   relay only moves that frame, exactly as it moves a changeset payload, and never looks inside
+///   it. The subscriber set behind this is in-memory and per server process
 ///   ([_eventSubscribersByProject]): fine for the one relay process a project talks to, and
 ///   cleared as each socket closes.
 ///
@@ -232,8 +236,8 @@ class OcptRelayServer {
   /// status (`401`/`404`/`429`) instead, exactly as it would for any other route.
   ///
   /// Once upgraded, the socket is added to [_eventSubscribersByProject] and removed again as soon
-  /// as it closes from either end — nothing it sends is ever read, since the route carries no
-  /// meaningful traffic in that direction.
+  /// as it closes from either end. What it sends is rebroadcast to its project's other subscribers
+  /// by [_subscribe] — see this class's own doc comment for the `events` route.
   Future<shelf.Response> _getEvents(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
@@ -246,12 +250,13 @@ class OcptRelayServer {
     return upgrade(request);
   }
 
-  /// Adds [webSocket] to [projectId]'s subscriber set and arranges for [_unsubscribe] to run the
-  /// moment the connection closes, from either end.
+  /// Adds [webSocket] to [projectId]'s subscriber set, rebroadcasts every frame it sends to that
+  /// project's other subscribers ([_rebroadcastToPeers]), and arranges for [_unsubscribe] to run
+  /// the moment the connection closes, from either end.
   void _subscribe(String projectId, WebSocketChannel webSocket) {
     _eventSubscribersByProject.putIfAbsent(projectId, () => {}).add(webSocket);
     webSocket.stream.listen(
-      (_) {},
+      (frame) => _rebroadcastToPeers(projectId, sender: webSocket, frame: frame),
       onDone: () => _unsubscribe(projectId, webSocket),
       onError: (Object _) => _unsubscribe(projectId, webSocket),
       cancelOnError: true,
@@ -281,6 +286,25 @@ class OcptRelayServer {
     }
     for (final webSocket in List.of(subscribers)) {
       webSocket.sink.add(_newWorkPing);
+    }
+  }
+
+  /// Forwards [frame] — an opaque presence payload one replica sent over its own `events` socket —
+  /// to every *other* subscriber of [projectId], never back to [sender] and never to another
+  /// project's subscribers. Distinct from [_notifyNewWork], which is relay-generated and goes to
+  /// every subscriber including whichever socket triggered it: this method only ever moves a frame
+  /// a client itself sent, and never inspects it — [frame] passes through exactly as received,
+  /// keeping this class domain-blind.
+  void _rebroadcastToPeers(String projectId, {required WebSocketChannel sender, required Object? frame}) {
+    final subscribers = _eventSubscribersByProject[projectId];
+    if (subscribers == null) {
+      return;
+    }
+    for (final webSocket in List.of(subscribers)) {
+      if (identical(webSocket, sender)) {
+        continue;
+      }
+      webSocket.sink.add(frame);
     }
   }
 

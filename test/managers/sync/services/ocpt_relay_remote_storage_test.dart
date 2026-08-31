@@ -30,6 +30,7 @@ class _FakeWebSocketChannel with StreamChannelMixin<dynamic> implements WebSocke
   _FakeWebSocketChannel(this.incoming);
 
   final StreamController<dynamic> incoming;
+  final List<dynamic> sent = [];
   bool closed = false;
 
   @override
@@ -59,7 +60,7 @@ class _FakeWebSocketSink implements WebSocketSink {
   @override
   // Matches StreamSink's own untyped signature, which this fake overrides.
   // ignore: avoid_annotating_with_dynamic
-  void add(dynamic event) {}
+  void add(dynamic event) => _channel.sent.add(event);
 
   @override
   void addError(Object error, [StackTrace? stackTrace]) {}
@@ -343,5 +344,118 @@ void main() {
 
       expect(events, hasLength(1));
     }, timeout: const Timeout(Duration(seconds: 5)));
+  });
+
+  group('presenceStream', () {
+    test('a literal new-work frame goes to newWorkStream, not presenceStream', () async {
+      final incoming = StreamController<dynamic>.broadcast();
+      final storage = OcptRelayRemoteStorage(
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => http.Response('', 500)),
+        webSocketConnector: (uri) => _FakeWebSocketChannel(incoming),
+      );
+      addTearDown(incoming.close);
+
+      final newWorkEvents = <void>[];
+      final presenceFrames = <String>[];
+      final newWorkSubscription = storage.newWorkStream.listen(newWorkEvents.add);
+      final presenceSubscription = storage.presenceStream.listen(presenceFrames.add);
+      addTearDown(newWorkSubscription.cancel);
+      addTearDown(presenceSubscription.cancel);
+      await Future<void>.delayed(Duration.zero);
+
+      incoming.add('new-work');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(newWorkEvents, hasLength(1));
+      expect(presenceFrames, isEmpty);
+    });
+
+    test('any other frame goes to presenceStream, not newWorkStream', () async {
+      final incoming = StreamController<dynamic>.broadcast();
+      final storage = OcptRelayRemoteStorage(
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => http.Response('', 500)),
+        webSocketConnector: (uri) => _FakeWebSocketChannel(incoming),
+      );
+      addTearDown(incoming.close);
+
+      final newWorkEvents = <void>[];
+      final presenceFrames = <String>[];
+      final newWorkSubscription = storage.newWorkStream.listen(newWorkEvents.add);
+      final presenceSubscription = storage.presenceStream.listen(presenceFrames.add);
+      addTearDown(newWorkSubscription.cancel);
+      addTearDown(presenceSubscription.cancel);
+      await Future<void>.delayed(Duration.zero);
+
+      incoming.add('{"deviceId":"device-a"}');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(presenceFrames, ['{"deviceId":"device-a"}']);
+      expect(newWorkEvents, isEmpty);
+    });
+
+    test('connecting starts once, shared between newWorkStream and presenceStream listeners', () async {
+      final incoming = StreamController<dynamic>.broadcast();
+      var connectCount = 0;
+      final storage = OcptRelayRemoteStorage(
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => http.Response('', 500)),
+        webSocketConnector: (uri) {
+          connectCount += 1;
+
+          return _FakeWebSocketChannel(incoming);
+        },
+      );
+      addTearDown(incoming.close);
+
+      final newWorkSubscription = storage.newWorkStream.listen((_) {});
+      final presenceSubscription = storage.presenceStream.listen((_) {});
+      addTearDown(newWorkSubscription.cancel);
+      addTearDown(presenceSubscription.cancel);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(connectCount, 1);
+    });
+  });
+
+  group('sendPresence', () {
+    test('writes the opaque payload to the connected socket', () async {
+      final incoming = StreamController<dynamic>.broadcast();
+      late _FakeWebSocketChannel channel;
+      final storage = OcptRelayRemoteStorage(
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => http.Response('', 500)),
+        webSocketConnector: (uri) => channel = _FakeWebSocketChannel(incoming),
+      );
+      addTearDown(incoming.close);
+
+      final subscription = storage.presenceStream.listen((_) {});
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(Duration.zero);
+
+      storage.sendPresence('a presence payload');
+
+      expect(channel.sent, ['a presence payload']);
+    });
+
+    test('is a silent no-op while the socket is not connected', () async {
+      final storage = OcptRelayRemoteStorage(
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => http.Response('', 500)),
+      );
+
+      expect(() => storage.sendPresence('a presence payload'), returnsNormally);
+    });
   });
 }

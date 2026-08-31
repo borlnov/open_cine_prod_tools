@@ -34,8 +34,10 @@ typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 ///   `{"descriptor": <OcptSnapshotDescriptor.toJson()>, "bytes": "<base64>"}`; `204`.
 /// - `GET /projects/<projectId>/snapshot` — `200` with the same shape as the upload body, or `404`
 ///   when the project has no snapshot yet.
-/// - `GET /projects/<projectId>/events` — a WebSocket; every message is an opaque "new work"
-///   ping, react to arrival only.
+/// - `GET /projects/<projectId>/events` — a WebSocket, bidirectional. An inbound message equal to
+///   [_newWorkFrame] is an opaque "new work" ping, react to arrival only; any other inbound message
+///   is a peer's opaque presence frame ([presenceStream]). Outbound, [sendPresence] writes an
+///   opaque frame of its own for the relay to fan out to this project's other subscribers.
 ///
 /// Every route is authenticated with `Authorization: Bearer <token>`; an append that might be the
 /// first request ever made for [projectId] also carries `X-Ocpt-Enrolment-Secret` when
@@ -88,6 +90,11 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   static const _descriptorKey = 'descriptor';
   static const _bytesKey = 'bytes';
 
+  /// The literal frame `OcptRelayServer` sends on new work — mirrors its own `_newWorkPing`
+  /// constant, which this class never imports (per this file's own doc comment) so it is repeated
+  /// here instead. Every other inbound frame on the `events` socket is routed to [presenceStream].
+  static const _newWorkFrame = 'new-work';
+
   /// The relay instance this transport talks to, e.g. `https://relay.example.org/`.
   final Uri relayBaseUri;
 
@@ -114,10 +121,11 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   final OcptWebSocketConnector _webSocketConnector;
 
   StreamController<void>? _newWorkController;
+  StreamController<String>? _presenceController;
   WebSocketChannel? _activeSocket;
   StreamSubscription<Object?>? _activeSocketSubscription;
   Timer? _reconnectTimer;
-  bool _newWorkStreamWanted = false;
+  bool _socketWanted = false;
 
   @override
   Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async {
@@ -154,6 +162,18 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _throwIfFailed(response);
   }
 
+  /// Writes [opaquePayload] to the `events` socket for the relay to rebroadcast to this project's
+  /// other subscribers (`OcptRelayServer._rebroadcastToPeers`).
+  ///
+  /// Silently dropped, never thrown, when the socket is not currently connected — disconnected or
+  /// not yet opened because nothing is listening to [newWorkStream] or [presenceStream] — exactly
+  /// as [OcptRemoteStorage.sendPresence]'s own contract asks: the next heartbeat call carries
+  /// current state again once the socket comes back.
+  @override
+  void sendPresence(String opaquePayload) {
+    _activeSocket?.sink.add(opaquePayload);
+  }
+
   @override
   Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async {
     final response = await _httpClient.get(_snapshotUri(), headers: _authHeaders());
@@ -168,18 +188,20 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   }
 
   /// Releases every resource this transport holds: tears down the `events` WebSocket and its
-  /// pending reconnect timer exactly as unsubscribing from [newWorkStream] would, closes that
-  /// stream's own broadcast controller, and — only when this transport created its own
-  /// [http.Client] rather than being handed one — closes that client too.
+  /// pending reconnect timer exactly as unsubscribing from [newWorkStream] and [presenceStream]
+  /// would, closes both streams' own broadcast controllers, and — only when this transport created
+  /// its own [http.Client] rather than being handed one — closes that client too.
   ///
   /// [OcptRemoteStorage] declares no disposal method of its own (a folder-backed transport holds
   /// nothing that needs releasing), so a caller pairing a project with a relay owns calling this
   /// once it is done with the transport, exactly as it would for any other object it constructed
   /// with its own resources.
   void dispose() {
-    _stopWatchingForNewWork();
+    _stopWatchingEvents();
     unawaited(_newWorkController?.close());
     _newWorkController = null;
+    unawaited(_presenceController?.close());
+    _presenceController = null;
     if (_ownsHttpClient) {
       _httpClient.close();
     }
@@ -187,32 +209,64 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
 
   /// A broadcast stream emitting one event per opaque ping the relay's `events` WebSocket sends.
   ///
-  /// Connecting starts only once this stream gets its first listener and stops the moment its last
-  /// listener cancels, so an unpaired or idle transport never holds a socket open. While listened
-  /// to, a dropped connection (the relay restarting, a network blip) is retried every
-  /// [reconnectDelay] until it succeeds again; per [OcptRemoteStorage.newWorkStream]'s own
-  /// contract, nothing is emitted while disconnected — a caller falls back to polling [readSince]
-  /// during that window, exactly as it would for a transport with no push channel at all.
+  /// Connecting starts once either this stream or [presenceStream] gets its first listener, and
+  /// stops once both have no listener left, so an unpaired or idle transport never holds a socket
+  /// open. While listened to, a dropped connection (the relay restarting, a network blip) is
+  /// retried every [reconnectDelay] until it succeeds again; per
+  /// [OcptRemoteStorage.newWorkStream]'s own contract, nothing is emitted while disconnected — a
+  /// caller falls back to polling [readSince] during that window, exactly as it would for a
+  /// transport with no push channel at all.
   @override
   Stream<void> get newWorkStream {
     // This controller lives for as long as the transport itself and is closed by dispose(), not
     // at the end of this getter — the lint cannot see that far.
     // ignore: close_sinks
     final controller = _newWorkController ??= StreamController<void>.broadcast(
-      onListen: _startWatchingForNewWork,
-      onCancel: _stopWatchingForNewWork,
+      onListen: _startWatchingEvents,
+      onCancel: _stopWatchingEvents,
     );
 
     return controller.stream;
   }
 
-  void _startWatchingForNewWork() {
-    _newWorkStreamWanted = true;
+  /// A broadcast stream emitting every frame the `events` WebSocket receives other than the literal
+  /// [_newWorkFrame] — a peer's own opaque presence payload, sent through its
+  /// [OcptRemoteStorage.sendPresence].
+  ///
+  /// Shares the same underlying socket and reconnect logic as [newWorkStream]: connecting starts
+  /// once either stream gets its first listener and stops once both are idle, and per
+  /// [OcptRemoteStorage.presenceStream]'s own contract, nothing is emitted while disconnected.
+  @override
+  Stream<String> get presenceStream {
+    // Lives for as long as the transport and is closed by dispose(), exactly like
+    // [_newWorkController] above.
+    // ignore: close_sinks
+    final controller = _presenceController ??= StreamController<String>.broadcast(
+      onListen: _startWatchingEvents,
+      onCancel: _stopWatchingEvents,
+    );
+
+    return controller.stream;
+  }
+
+  void _startWatchingEvents() {
+    _socketWanted = true;
+    if (_activeSocket != null || _reconnectTimer != null) {
+      // Already connected, or already waiting on a scheduled reconnect: the other stream's
+      // listener started this, and a second connection attempt would only leak a socket.
+      return;
+    }
     _connectEventsSocket();
   }
 
-  void _stopWatchingForNewWork() {
-    _newWorkStreamWanted = false;
+  /// Tears down the socket once neither [newWorkStream] nor [presenceStream] has a listener left —
+  /// called from each controller's `onCancel` and from [dispose], which forces it regardless of
+  /// listeners since the transport itself is going away.
+  void _stopWatchingEvents() {
+    if ((_newWorkController?.hasListener ?? false) || (_presenceController?.hasListener ?? false)) {
+      return;
+    }
+    _socketWanted = false;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     unawaited(_activeSocketSubscription?.cancel());
@@ -222,7 +276,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   }
 
   void _connectEventsSocket() {
-    if (!_newWorkStreamWanted) {
+    if (!_socketWanted) {
       return;
     }
 
@@ -237,15 +291,30 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
 
     _activeSocket = socket;
     _activeSocketSubscription = socket.stream.listen(
-      (_) => _newWorkController?.add(null),
+      _routeIncomingFrame,
       onDone: () => _handleEventsSocketDown(socket),
       onError: (Object _) => _handleEventsSocketDown(socket),
       cancelOnError: true,
     );
   }
 
+  /// Routes one inbound `events` frame: the literal [_newWorkFrame] ping to [newWorkStream], and
+  /// every other text frame — a peer's opaque presence payload — to [presenceStream]. Never
+  /// inspects a non-ping frame beyond telling it apart from the ping itself; a non-text frame (the
+  /// relay never sends one) is dropped rather than routed anywhere.
+  void _routeIncomingFrame(Object? frame) {
+    if (frame == _newWorkFrame) {
+      _newWorkController?.add(null);
+
+      return;
+    }
+    if (frame is String) {
+      _presenceController?.add(frame);
+    }
+  }
+
   /// Reacts to [socket] going down (from either end): reconnects only when [socket] is still the
-  /// transport's active one — a socket superseded by [_stopWatchingForNewWork] or a fresh
+  /// transport's active one — a socket superseded by [_stopWatchingEvents] or a fresh
   /// [_connectEventsSocket] call reports its own demise here too late to matter, and must not
   /// schedule a second, redundant reconnect.
   void _handleEventsSocketDown(WebSocketChannel socket) {
@@ -258,7 +327,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   }
 
   void _scheduleReconnect() {
-    if (!_newWorkStreamWanted) {
+    if (!_socketWanted) {
       return;
     }
     _reconnectTimer?.cancel();

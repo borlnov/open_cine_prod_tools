@@ -90,6 +90,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
 
+  @override
+  void sendPresence(String opaquePayload) {}
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
   Future<void> dispose() => _newWorkController.close();
 }
 
