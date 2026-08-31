@@ -165,6 +165,31 @@ void main() {
       expect(await _jsonBodyOf(third), {'sequence': 3});
     });
 
+    test('posting the same changeset twice over the route is idempotent', () async {
+      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      final envelope = _envelope('changeset-1');
+
+      final first = await _post(
+        handler,
+        '/projects/project-1/changesets',
+        token: 'token-1',
+        jsonBody: envelope.toJson(),
+      );
+      final second = await _post(
+        handler,
+        '/projects/project-1/changesets',
+        token: 'token-1',
+        jsonBody: envelope.toJson(),
+      );
+
+      expect(await _jsonBodyOf(first), {'sequence': 1});
+      expect(await _jsonBodyOf(second), {'sequence': 1});
+
+      final readResponse = await _get(handler, '/projects/project-1/changesets?since=0', token: 'token-1');
+      final body = jsonDecode(await readResponse.readAsString()) as List<dynamic>;
+      expect(body, hasLength(1));
+    });
+
     test('readSince requires a since query parameter', () async {
       store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
 

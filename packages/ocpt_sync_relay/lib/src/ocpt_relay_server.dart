@@ -28,7 +28,10 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 ///
 /// - `POST /projects/<projectId>/changesets` — body is one [OcptChangesetEnvelope.toJson]. Appends
 ///   it, notifies that project's `events` subscribers (below), and answers `200` with
-///   `{"sequence": <int>}`, the assigned [OcptSequenceNumber.value].
+///   `{"sequence": <int>}`, the assigned [OcptSequenceNumber.value]. Idempotent on the envelope's
+///   own `changesetId` ([OcptRelayStore.append]): posting the same changeset twice stores it once
+///   and answers both times with the same sequence — the route a set relay re-pushing a whole
+///   day's log to a prep relay every evening relies on to not duplicate it on a re-run.
 /// - `GET /projects/<projectId>/changesets?since=<seq>` — `since` is required and must be a
 ///   non-negative integer; answers `200` with the JSON list of [OcptStoredChangeset.toJson],
 ///   oldest first, exactly as [OcptRelayStore.readSince] returns them.

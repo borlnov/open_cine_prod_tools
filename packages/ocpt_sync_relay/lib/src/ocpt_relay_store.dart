@@ -71,14 +71,29 @@ class OcptRelayStore {
   /// that project's own log — one past the highest sequence number already stored for it, or
   /// [OcptSequenceNumber.zero]'s own `next()` when the log is still empty — and returns it.
   ///
+  /// Idempotent on [OcptChangesetEnvelope.changesetId]: when [projectId]'s log already holds an
+  /// entry for that same `changesetId`, this returns the sequence it was already assigned, without
+  /// inserting a second row — the whole point being a set relay that re-pushes a day's log to a
+  /// prep relay every evening does not duplicate it on a re-run. Only a first sighting of a
+  /// `changesetId` consumes a new sequence number.
+  ///
   /// Every `sqlite3` call this method makes runs synchronously on the calling isolate, so within
-  /// one relay process two appends for the same project can never race on the same number; nothing
-  /// further is done here to serialise concurrent appends across processes.
+  /// one relay process this check-then-insert can never race with another append for the same
+  /// project — nor can two appends ever race on the same sequence number; nothing further is done
+  /// here to serialise concurrent appends across processes.
   OcptSequenceNumber append(String projectId, OcptChangesetEnvelope envelope) {
+    final existing = _db.select(
+      'SELECT sequence FROM changesets WHERE projectId = ? AND changesetId = ?',
+      [projectId, envelope.changesetId],
+    );
+    if (existing.isNotEmpty) {
+      return OcptSequenceNumber(existing.first['sequence'] as int);
+    }
+
     final sequence = _highestSequenceNumber(projectId).next();
     _db.execute(
-      'INSERT INTO changesets (projectId, sequence, payload) VALUES (?, ?, ?)',
-      [projectId, sequence.value, _encodeEnvelope(envelope)],
+      'INSERT INTO changesets (projectId, sequence, payload, changesetId) VALUES (?, ?, ?, ?)',
+      [projectId, sequence.value, _encodeEnvelope(envelope), envelope.changesetId],
     );
 
     return sequence;
@@ -187,12 +202,19 @@ class OcptRelayStore {
         createdAt TEXT NOT NULL
       );
     ''');
+    // changesetId is deliberately nullable, not NOT NULL: SQLite treats NULLs as distinct under a
+    // UNIQUE constraint, so a legacy row with no changesetId (backfilled by the ALTER TABLE below,
+    // never given a value) never collides with another legacy row, or with a real one — while
+    // append() always supplies a real changesetId for every row it inserts from here on, which is
+    // what actually makes the dedup in append() effective.
     _db.execute('''
       CREATE TABLE IF NOT EXISTS changesets (
         projectId TEXT NOT NULL,
         sequence INTEGER NOT NULL,
         payload BLOB NOT NULL,
-        PRIMARY KEY (projectId, sequence)
+        changesetId TEXT,
+        PRIMARY KEY (projectId, sequence),
+        UNIQUE (projectId, changesetId)
       );
     ''');
     _db.execute('''
@@ -205,5 +227,23 @@ class OcptRelayStore {
         PRIMARY KEY (projectId, snapshotId)
       );
     ''');
+    _migrateChangesetIdColumnIfAbsent();
+  }
+
+  /// Adds the `changesetId` column to a `changesets` table created before this column existed —
+  /// idempotent, so it is safe to call on every startup: a brand-new database already has the
+  /// column from [_createSchemaIfAbsent]'s own `CREATE TABLE`, and this does nothing to it. A
+  /// legacy database gets the column added, nullable, with every existing row backfilled to null —
+  /// which [append]'s dedup simply treats as "not seen before", exactly as if those rows had never
+  /// carried a `changesetId` at all. The `UNIQUE (projectId, changesetId)` constraint itself is not
+  /// retrofitted onto a legacy table: the check-then-insert in [append] is what actually
+  /// deduplicates, so a schema-level constraint added after the fact would only add risk (a legacy
+  /// table could already hold non-null duplicates from other code paths) for no real benefit.
+  void _migrateChangesetIdColumnIfAbsent() {
+    final columns = _db.select('PRAGMA table_info(changesets)');
+    final hasChangesetId = columns.any((row) => row['name'] == 'changesetId');
+    if (!hasChangesetId) {
+      _db.execute('ALTER TABLE changesets ADD COLUMN changesetId TEXT');
+    }
   }
 }

@@ -94,6 +94,39 @@ void main() {
       expect(stored.map((changeset) => changeset.envelope.changesetId), ['changeset-2', 'changeset-3']);
     });
 
+    test('appending the same changesetId twice is idempotent', () {
+      final envelope = _envelope('changeset-1');
+
+      final first = store.append('project-1', envelope);
+      final second = store.append('project-1', envelope);
+
+      expect(first, second);
+      final stored = store.readSince('project-1', OcptSequenceNumber.zero);
+      expect(stored, [OcptStoredChangeset(sequenceNumber: first, envelope: envelope)]);
+    });
+
+    test('appending envelopes with different changesetIds appends both', () {
+      final first = store.append('project-1', _envelope('changeset-1'));
+      final second = store.append('project-1', _envelope('changeset-2'));
+
+      expect(first, const OcptSequenceNumber(1));
+      expect(second, const OcptSequenceNumber(2));
+      final stored = store.readSince('project-1', OcptSequenceNumber.zero);
+      expect(stored.map((changeset) => changeset.envelope.changesetId), ['changeset-1', 'changeset-2']);
+    });
+
+    test('a duplicate append after other appends still returns its original sequence', () {
+      final first = store.append('project-1', _envelope('changeset-1'));
+      store.append('project-1', _envelope('changeset-2'));
+      store.append('project-1', _envelope('changeset-3'));
+
+      final duplicate = store.append('project-1', _envelope('changeset-1'));
+
+      expect(duplicate, first);
+      final stored = store.readSince('project-1', OcptSequenceNumber.zero);
+      expect(stored.map((changeset) => changeset.envelope.changesetId), ['changeset-1', 'changeset-2', 'changeset-3']);
+    });
+
     test('project lookup returns the stored tokenHash', () {
       store.createProject(projectId: 'project-1', tokenHash: 'hash-of-secret-token');
 
