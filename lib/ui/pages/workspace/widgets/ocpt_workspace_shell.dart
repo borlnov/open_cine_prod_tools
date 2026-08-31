@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_indicator.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
@@ -247,6 +248,7 @@ class OcptWorkspaceShell extends StatelessWidget {
             episodeControl: _buildEpisodeControl(context, isPhone),
             actions: toolbarActions,
             modeLabel: modeLabel,
+            presenceIndicator: const OcptPresenceIndicator(),
             exportAction: isPhone ? null : _buildExportAction(context),
             dockToggles: _buildDockToggles(context),
             saveAction: _buildSaveAction(context),

@@ -111,7 +111,9 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// Loads the persisted workspace mode, defaulting to [OcptWorkspaceMode.screenplay], and the
   /// open project's episodes, landing the selection on the first one (see
   /// [OcptWorkspaceState.selectedEpisodeId]'s own doc comment for why it is never restored from
-  /// anywhere instead).
+  /// anywhere instead). Once [_startSyncSessionIfPaired] has had its chance to start a presence
+  /// service for a paired project, this replica's resolved mode is reported to it too, so a peer
+  /// already on the project sees which mode this replica opened into.
   Future<void> _onLoadRequested(
     OcptWorkspaceLoadRequestedEvent event,
     Emitter<OcptWorkspaceState> emitter,
@@ -128,7 +130,10 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
       ),
     );
 
+    // After starting the session, not before: `updatePresenceMode` does nothing while no presence
+    // service is running yet, which is exactly the case until `_startSyncSessionIfPaired` returns.
     await _startSyncSessionIfPaired();
+    _syncManager?.updatePresenceMode(mode);
   }
 
   /// Starts the open project's own sync session when it is paired to a relay, and does nothing at
@@ -236,6 +241,10 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// (ADR 0006). A switch that names nothing — every switch the mode switcher itself makes —
   /// clears whatever an earlier one left behind, so a request can never outlive the switch it was
   /// made for.
+  ///
+  /// Also reports the new mode to the running presence service, when there is one, so a peer's
+  /// popover reflects it on its very next heartbeat rather than the current mode going stale until
+  /// then.
   Future<void> _onModeSelected(
     OcptWorkspaceModeSelectedEvent event,
     Emitter<OcptWorkspaceState> emitter,
@@ -247,6 +256,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
         clearRevealRequest: event.revealRequest == null,
       ),
     );
+    _syncManager?.updatePresenceMode(event.mode);
     await _propertiesManager.workspaceMode.store(event.mode);
   }
 

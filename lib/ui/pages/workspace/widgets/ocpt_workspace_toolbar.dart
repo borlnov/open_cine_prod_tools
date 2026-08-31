@@ -70,8 +70,14 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// null to show no label at all.
   final String? modeLabel;
 
-  /// The `Export` control, shown after [modeLabel] and before [dockToggles], or null when the mode
-  /// prints nothing — no control is rendered at all then, rather than a disabled one. Every
+  /// The presence indicator, shown after [modeLabel] and before [exportAction] — workspace chrome
+  /// rather than a mode's own control, exactly like the rest of this widget's trailing slots, which
+  /// is why it is built by the shell and handed in here rather than contributed through [actions].
+  /// Null renders nothing at all, the unpaired-project case the indicator itself already answers.
+  final Widget? presenceIndicator;
+
+  /// The `Export` control, shown after [presenceIndicator] and before [dockToggles], or null when
+  /// the mode prints nothing — no control is rendered at all then, rather than a disabled one. Every
   /// implemented mode wires it today, the budget mode included: even at M1, before it prints a
   /// document of its own, the panel it opens still offers the project package export every mode's
   /// panel carries as its own standing card (`OcptWorkspaceExportDialog`'s own doc comment).
@@ -125,6 +131,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     this.episodeControl,
     this.actions = const [],
     this.modeLabel,
+    this.presenceIndicator,
     this.exportAction,
     this.dockToggles = const [],
     this.saveAction,
@@ -180,6 +187,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (presenceIndicator != null) presenceIndicator!,
                     if (exportAction != null) exportAction!,
                     ...dockToggles,
                     if (saveAction != null) saveAction!,
