@@ -233,5 +233,78 @@ void main() {
       final sinceZeroOnB = store.readSince('project-b', OcptSequenceNumber.zero);
       expect(sinceZeroOnB.map((changeset) => changeset.envelope.changesetId), ['b-1', 'b-2']);
     });
+
+    test('reconcileCursors returns zero/zero when no row has ever been saved', () {
+      final cursors = store.reconcileCursors(upstream: 'https://relay.example.org/', projectId: 'project-1');
+
+      expect(cursors.push, OcptSequenceNumber.zero);
+      expect(cursors.pull, OcptSequenceNumber.zero);
+    });
+
+    test('saveReconcileCursors is read back by reconcileCursors', () {
+      store.saveReconcileCursors(
+        upstream: 'https://relay.example.org/',
+        projectId: 'project-1',
+        push: const OcptSequenceNumber(3),
+        pull: const OcptSequenceNumber(5),
+      );
+
+      final cursors = store.reconcileCursors(upstream: 'https://relay.example.org/', projectId: 'project-1');
+
+      expect(cursors.push, const OcptSequenceNumber(3));
+      expect(cursors.pull, const OcptSequenceNumber(5));
+    });
+
+    test('a second save for the same upstream/projectId overwrites the first', () {
+      store.saveReconcileCursors(
+        upstream: 'https://relay.example.org/',
+        projectId: 'project-1',
+        push: const OcptSequenceNumber(1),
+        pull: const OcptSequenceNumber(1),
+      );
+      store.saveReconcileCursors(
+        upstream: 'https://relay.example.org/',
+        projectId: 'project-1',
+        push: const OcptSequenceNumber(4),
+        pull: const OcptSequenceNumber(2),
+      );
+
+      final cursors = store.reconcileCursors(upstream: 'https://relay.example.org/', projectId: 'project-1');
+
+      expect(cursors.push, const OcptSequenceNumber(4));
+      expect(cursors.pull, const OcptSequenceNumber(2));
+    });
+
+    test('different upstream/projectId keys are independent', () {
+      store.saveReconcileCursors(
+        upstream: 'https://relay-a.example.org/',
+        projectId: 'project-1',
+        push: const OcptSequenceNumber(1),
+        pull: const OcptSequenceNumber(2),
+      );
+      store.saveReconcileCursors(
+        upstream: 'https://relay-b.example.org/',
+        projectId: 'project-1',
+        push: const OcptSequenceNumber(9),
+        pull: const OcptSequenceNumber(8),
+      );
+      store.saveReconcileCursors(
+        upstream: 'https://relay-a.example.org/',
+        projectId: 'project-2',
+        push: const OcptSequenceNumber(7),
+        pull: const OcptSequenceNumber(6),
+      );
+
+      final onRelayAProjectOne = store.reconcileCursors(upstream: 'https://relay-a.example.org/', projectId: 'project-1');
+      final onRelayBProjectOne = store.reconcileCursors(upstream: 'https://relay-b.example.org/', projectId: 'project-1');
+      final onRelayAProjectTwo = store.reconcileCursors(upstream: 'https://relay-a.example.org/', projectId: 'project-2');
+
+      expect(onRelayAProjectOne.push, const OcptSequenceNumber(1));
+      expect(onRelayAProjectOne.pull, const OcptSequenceNumber(2));
+      expect(onRelayBProjectOne.push, const OcptSequenceNumber(9));
+      expect(onRelayBProjectOne.pull, const OcptSequenceNumber(8));
+      expect(onRelayAProjectTwo.push, const OcptSequenceNumber(7));
+      expect(onRelayAProjectTwo.pull, const OcptSequenceNumber(6));
+    });
   });
 }

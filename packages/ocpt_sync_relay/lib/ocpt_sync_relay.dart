@@ -13,5 +13,8 @@
 library;
 
 export 'src/ocpt_relay_environment.dart';
+export 'src/ocpt_relay_reconcile_command.dart';
+export 'src/ocpt_relay_reconciler.dart';
 export 'src/ocpt_relay_server.dart';
 export 'src/ocpt_relay_store.dart';
+export 'src/ocpt_relay_upstream_client.dart';

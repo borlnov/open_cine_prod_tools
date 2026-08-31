@@ -166,6 +166,54 @@ class OcptRelayStore {
     return (descriptor, bytes);
   }
 
+  /// The reconcile cursors this store holds for the upstream relay named by [upstream] and
+  /// [projectId], or a pair of [OcptSequenceNumber.zero] when this relay has never reconciled that
+  /// project against that upstream yet.
+  ///
+  /// The two cursors live in different sequence spaces and must never be compared against each
+  /// other: `push` is a position in *this* relay's own changeset log (how far [readSince] has
+  /// already been drained towards that upstream), while `pull` is a position in *the upstream's*
+  /// own log (how far the reconciler has already read from it). They happen to share a row only
+  /// because they are both relay-local bookkeeping for the same `(upstream, projectId)` pair — see
+  /// `reconcile_cursors`'s own table comment in [_createSchemaIfAbsent].
+  ({OcptSequenceNumber push, OcptSequenceNumber pull}) reconcileCursors({
+    required String upstream,
+    required String projectId,
+  }) {
+    final rows = _db.select(
+      'SELECT pushCursor, pullCursor FROM reconcile_cursors WHERE upstream = ? AND projectId = ?',
+      [upstream, projectId],
+    );
+    if (rows.isEmpty) {
+      return (push: OcptSequenceNumber.zero, pull: OcptSequenceNumber.zero);
+    }
+
+    final row = rows.first;
+
+    return (
+      push: OcptSequenceNumber(row['pushCursor'] as int),
+      pull: OcptSequenceNumber(row['pullCursor'] as int),
+    );
+  }
+
+  /// Persists [push] and [pull] as the reconcile cursors for [upstream]/[projectId] — see
+  /// [reconcileCursors] for what each one means. Upserts: a first call for a given
+  /// `(upstream, projectId)` pair inserts the row, and every later call overwrites it, so a caller
+  /// never has to know in advance whether one already exists.
+  void saveReconcileCursors({
+    required String upstream,
+    required String projectId,
+    required OcptSequenceNumber push,
+    required OcptSequenceNumber pull,
+  }) {
+    _db.execute(
+      'INSERT INTO reconcile_cursors (upstream, projectId, pushCursor, pullCursor) VALUES (?, ?, ?, ?) '
+      'ON CONFLICT (upstream, projectId) DO UPDATE SET pushCursor = excluded.pushCursor, '
+      'pullCursor = excluded.pullCursor',
+      [upstream, projectId, push.value, pull.value],
+    );
+  }
+
   /// The highest sequence number already stored for [projectId], or [OcptSequenceNumber.zero] when
   /// its log holds nothing yet — so [append] always has a value to call `next()` on.
   OcptSequenceNumber _highestSequenceNumber(String projectId) {
@@ -225,6 +273,20 @@ class OcptRelayStore {
         bytes BLOB NOT NULL,
         isLatest INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (projectId, snapshotId)
+      );
+    ''');
+    // Relay-local bookkeeping only, never synchronised and never read by any route a replica
+    // talks to: it exists purely so the reconcile client does not re-push or re-pull a whole log
+    // on every run. `upstream` is the upstream relay's own base URI, stringified, so one set relay
+    // reconciling several projects against the same upstream, or the same project against several
+    // upstreams, keeps one row per pair.
+    _db.execute('''
+      CREATE TABLE IF NOT EXISTS reconcile_cursors (
+        upstream   TEXT NOT NULL,
+        projectId  TEXT NOT NULL,
+        pushCursor INTEGER NOT NULL DEFAULT 0,
+        pullCursor INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (upstream, projectId)
       );
     ''');
     _migrateChangesetIdColumnIfAbsent();
