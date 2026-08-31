@@ -10,29 +10,19 @@ sealed class OcptJoiningEvent extends BlocEventForMixin {
   const OcptJoiningEvent();
 }
 
-/// Reports that the manual entry form's "Rejoindre" button was pressed, with its three raw fields
-/// as typed — none of them validated yet, since that needs no `Tr` and the bloc does it itself
+/// Reports that the manual entry form's "Rejoindre" button was pressed, with the pasted invite
+/// link as typed — not validated yet, since that needs no `Tr` and the bloc does it itself
 /// (see `OcptJoiningBloc._onManualSubmitted`'s own doc comment for why).
 class OcptJoiningManualSubmittedEvent extends OcptJoiningEvent {
-  /// The relay address the user typed, as free text.
-  final String relayAddressText;
-
-  /// The project id the user typed, as free text.
-  final String projectIdText;
-
-  /// The project token the user typed, as free text.
-  final String tokenText;
+  /// The invite link the user pasted, as free text.
+  final String inviteLinkText;
 
   /// Class constructor
-  const OcptJoiningManualSubmittedEvent({
-    required this.relayAddressText,
-    required this.projectIdText,
-    required this.tokenText,
-  });
+  const OcptJoiningManualSubmittedEvent({required this.inviteLinkText});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, relayAddressText, projectIdText, tokenText];
+  List<Object?> get props => [...super.props, inviteLinkText];
 }
 
 /// Reports that the camera scanner found a QR code, carrying its raw decoded text — not

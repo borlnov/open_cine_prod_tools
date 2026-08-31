@@ -99,9 +99,20 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
                             const SizedBox(height: 8),
                             Text(tr.sharingInviteCardBody, style: theme.textTheme.bodyMedium),
                             const SizedBox(height: 12),
-                            OutlinedButton(
-                              onPressed: _onSaveQrPressed,
-                              child: Text(tr.sharingSaveQrAction),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton(
+                                  onPressed: _onSaveQrPressed,
+                                  child: Text(tr.sharingSaveQrAction),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () =>
+                                      _copyToClipboard(widget.invite.toInviteString()),
+                                  child: Text(tr.sharingCopyInviteLinkAction),
+                                ),
+                              ],
                             ),
                           ],
                         ),

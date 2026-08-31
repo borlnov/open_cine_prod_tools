@@ -220,18 +220,21 @@ void main() {
     return bloc;
   }
 
+  /// A well-formed invite link, exactly what "Copy the invite link" on the Partager screen would
+  /// hand over and a manual submission pastes back — built through [OcptRelayInvite.toInviteString]
+  /// rather than typed out, so it stays valid if the encoding ever changes.
+  final validInviteLink = OcptRelayInvite(
+    relayBaseUri: Uri.parse(relayBaseUri),
+    projectId: "project-abc",
+    token: "token-1",
+  ).toInviteString();
+
   test("a valid manual entry joins the project and pushes the workspace", () async {
     final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(
-      const OcptJoiningManualSubmittedEvent(
-        relayAddressText: relayBaseUri,
-        projectIdText: "project-abc",
-        tokenText: "token-1",
-      ),
-    );
+    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
     await pumpEventQueue();
 
     expect(manager.joinCallCount, 1);
@@ -264,13 +267,7 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(
-      const OcptJoiningManualSubmittedEvent(
-        relayAddressText: "not a valid address",
-        projectIdText: "project-abc",
-        tokenText: "token-1",
-      ),
-    );
+    bloc.add(const OcptJoiningManualSubmittedEvent(inviteLinkText: "not an invite link at all"));
     await pumpEventQueue();
 
     expect(manager.joinCallCount, 0);
@@ -285,13 +282,7 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(
-      const OcptJoiningManualSubmittedEvent(
-        relayAddressText: relayBaseUri,
-        projectIdText: "",
-        tokenText: "token-1",
-      ),
-    );
+    bloc.add(const OcptJoiningManualSubmittedEvent(inviteLinkText: ""));
     await pumpEventQueue();
 
     expect(manager.joinCallCount, 0);
@@ -336,13 +327,7 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(
-      const OcptJoiningManualSubmittedEvent(
-        relayAddressText: relayBaseUri,
-        projectIdText: "project-abc",
-        tokenText: "token-1",
-      ),
-    );
+    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
     await pumpEventQueue();
 
     expect(bloc.state.isJoining, isTrue);
@@ -362,13 +347,7 @@ void main() {
     final fileSaverManager = _FakeFileSaverManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager, fileSaverManager: fileSaverManager);
 
-    bloc.add(
-      const OcptJoiningManualSubmittedEvent(
-        relayAddressText: relayBaseUri,
-        projectIdText: "project-abc",
-        tokenText: "token-1",
-      ),
-    );
+    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
     await pumpEventQueue();
 
     expect(fileSaverManager.callCount, 1);

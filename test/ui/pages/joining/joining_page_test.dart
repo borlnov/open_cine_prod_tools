@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_manual_view.dart';
@@ -124,10 +125,33 @@ void main() {
     expect(find.text(tr.joiningPageTitle), findsOneWidget);
     expect(find.text(tr.joiningTabScanner), findsOneWidget);
     expect(find.text(tr.joiningTabManual), findsOneWidget);
-    expect(find.text(tr.sharingRelayAddressLabel), findsOneWidget);
-    expect(find.text(tr.joiningProjectIdLabel), findsOneWidget);
-    expect(find.text(tr.sharingProjectTokenLabel), findsOneWidget);
+    expect(find.text(tr.joiningManualCardTitle), findsOneWidget);
+    expect(find.text(tr.joiningInviteLinkHelperText), findsOneWidget);
     expect(find.text(tr.joiningJoinAction), findsOneWidget);
+  });
+
+  testWidgets("pasting an invite link and pressing Join submits it, with no overflow", (
+    tester,
+  ) async {
+    await pumpView(tester);
+
+    final tr = Tr.of(tester.element(find.byType(OcptJoiningView)));
+    final inviteLink = OcptRelayInvite(
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      projectId: "project-abc",
+      token: "token-1",
+    ).toInviteString();
+
+    await tester.enterText(find.byType(TextField), inviteLink);
+    await tester.tap(find.text(tr.joiningJoinAction));
+    // A bounded pump only: `_FakeFileSaverManager.saveFileFromBytes` resolves to null (a
+    // cancelled destination picker), which `OcptJoiningBloc._join` treats as a silent no-op —
+    // exactly `joining_bloc_test.dart`'s own "a cancelled desktop destination picker" case — so
+    // there is no busy state or snack bar left to settle here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets("switching to the scanner tab shows the camera-unavailable card on desktop", (

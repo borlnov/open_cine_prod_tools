@@ -258,6 +258,8 @@ void main() {
     // footer status line), so this label appears more than once.
     expect(find.text(tr.sharingStatusSyncedChip), findsWidgets);
     expect(find.text(relayBaseUri.toString()), findsOneWidget);
+    expect(find.text(tr.sharingSaveQrAction), findsOneWidget);
+    expect(find.text(tr.sharingCopyInviteLinkAction), findsOneWidget);
     expect(find.text(tr.sharingUnshareAction), findsOneWidget);
   });
 }

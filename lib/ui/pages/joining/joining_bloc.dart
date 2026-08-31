@@ -86,34 +86,19 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     on<OcptJoiningErrorDismissedEvent>(_onErrorDismissed);
   }
 
-  /// Validates the manual form's three raw fields into an [OcptRelayInvite], then joins.
+  /// Parses the pasted invite link into an [OcptRelayInvite], then joins — or surfaces
+  /// [OcptJoiningState.joinFailed] straight away when it isn't one at all (an empty field or some
+  /// other, unrelated text).
   ///
-  /// Validation happens here, not in the page: none of it needs a `Tr` (a malformed address or an
-  /// empty field is worded once, generically, by [OcptJoiningState.joinFailed]'s own page-side
-  /// message), and keeping it here is what lets this bloc's own tests exercise "a malformed manual
-  /// entry" with no widget involved at all.
+  /// Validation happens here, not in the page: none of it needs a `Tr` (a malformed link is worded
+  /// once, generically, by [OcptJoiningState.joinFailed]'s own page-side message), and keeping it
+  /// here is what lets this bloc's own tests exercise "a malformed manual entry" with no widget
+  /// involved at all. Delegates to [_onInviteScanned]'s own shared [_joinFromRawText]: both paths
+  /// end at the exact same place, a raw string that may or may not be an [OcptRelayInvite].
   Future<void> _onManualSubmitted(
     OcptJoiningManualSubmittedEvent event,
     Emitter<OcptJoiningState> emitter,
-  ) async {
-    final relayBaseUri = Uri.tryParse(event.relayAddressText.trim());
-    final projectId = event.projectIdText.trim();
-    final token = event.tokenText.trim();
-
-    if (relayBaseUri == null ||
-        !relayBaseUri.hasScheme ||
-        !relayBaseUri.hasAuthority ||
-        projectId.isEmpty ||
-        token.isEmpty) {
-      emitter(state.copyWith(joinFailed: true));
-      return;
-    }
-
-    await _join(
-      OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token),
-      emitter,
-    );
-  }
+  ) => _joinFromRawText(event.inviteLinkText, emitter);
 
   /// Parses the scanned QR text into an [OcptRelayInvite], then joins — or surfaces
   /// [OcptJoiningState.joinFailed] straight away when it isn't one at all (a QR aimed at some
@@ -121,8 +106,13 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   Future<void> _onInviteScanned(
     OcptJoiningInviteScannedEvent event,
     Emitter<OcptJoiningState> emitter,
-  ) async {
-    final invite = OcptRelayInvite.tryParse(event.scannedText);
+  ) => _joinFromRawText(event.scannedText, emitter);
+
+  /// Parses [rawText] — a pasted invite link or a scanned QR code's own decoded text, the manual
+  /// and scan paths' shared destination — into an [OcptRelayInvite], then joins, or surfaces
+  /// [OcptJoiningState.joinFailed] when it isn't one at all.
+  Future<void> _joinFromRawText(String rawText, Emitter<OcptJoiningState> emitter) async {
+    final invite = OcptRelayInvite.tryParse(rawText.trim());
     if (invite == null) {
       emitter(state.copyWith(joinFailed: true));
       return;

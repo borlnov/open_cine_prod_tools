@@ -135,15 +135,9 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
     if (_selectedTab == _OcptJoiningTab.manual) {
       return OcptJoiningManualView(
         isJoining: state.isJoining,
-        onJoinRequested: (relayAddressText, projectIdText, tokenText) => context
+        onJoinRequested: (inviteLinkText) => context
             .read<OcptJoiningBloc>()
-            .add(
-              OcptJoiningManualSubmittedEvent(
-                relayAddressText: relayAddressText,
-                projectIdText: projectIdText,
-                tokenText: tokenText,
-              ),
-            ),
+            .add(OcptJoiningManualSubmittedEvent(inviteLinkText: inviteLinkText)),
       );
     }
 

@@ -3,25 +3,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
-/// The Rejoindre screen's manual-entry tab: the relay address, the project id and the project
-/// token, typed by hand instead of scanned, and the "Rejoindre" button submitting them.
+/// The Rejoindre screen's manual-entry tab: a single field for the invite link the Partager
+/// screen's "Copy the invite link" button hands over, and the "Rejoindre" button submitting it.
 ///
-/// A `StatefulWidget` for its own three text fields alone — none of it is project data to load, so
+/// A `StatefulWidget` for its own text controller alone — none of it is project data to load, so
 /// none belongs in `OcptJoiningState`, exactly the reasoning `OcptSharingConfigureView`'s own text
-/// controllers already follow. Unlike that form, the three fields are **not** validated here: none
-/// of it needs a `Tr` (`OcptJoiningBloc._onManualSubmitted`'s own doc comment), so the raw text is
-/// handed straight to [onJoinRequested] and the bloc is what decides whether it was well-formed.
+/// controllers already follow. The field is **not** validated here: none of it needs a `Tr`
+/// (`OcptJoiningBloc._onManualSubmitted`'s own doc comment), so the raw text is handed straight to
+/// [onJoinRequested] and the bloc is what decides whether it was a well-formed invite link.
 class OcptJoiningManualView extends StatefulWidget {
-  /// Whether a join is currently in flight — every field and the button itself are disabled while
+  /// Whether a join is currently in flight — the field and the button itself are disabled while
   /// it is.
   final bool isJoining;
 
-  /// Called with the three fields' own raw text once "Rejoindre" is pressed.
-  final void Function(String relayAddressText, String projectIdText, String tokenText)
-  onJoinRequested;
+  /// Called with the invite link field's own raw text once "Rejoindre" is pressed.
+  final void Function(String inviteLinkText) onJoinRequested;
 
   /// Class constructor
   const OcptJoiningManualView({required this.isJoining, required this.onJoinRequested, super.key});
@@ -32,23 +30,12 @@ class OcptJoiningManualView extends StatefulWidget {
 
 /// The state of [OcptJoiningManualView].
 class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
-  /// The relay address field's own controller.
-  final _relayAddressController = TextEditingController();
-
-  /// The project id field's own controller.
-  final _projectIdController = TextEditingController();
-
-  /// The project token field's own controller.
-  final _tokenController = TextEditingController();
-
-  /// Whether the project token is currently shown in the clear.
-  bool _isTokenVisible = false;
+  /// The invite link field's own controller.
+  final _inviteLinkController = TextEditingController();
 
   @override
   void dispose() {
-    _relayAddressController.dispose();
-    _projectIdController.dispose();
-    _tokenController.dispose();
+    _inviteLinkController.dispose();
     super.dispose();
   }
 
@@ -66,33 +53,12 @@ class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
             Text(tr.joiningManualCardTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             TextField(
-              controller: _relayAddressController,
+              controller: _inviteLinkController,
               enabled: !widget.isJoining,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                labelText: tr.sharingRelayAddressLabel,
-                hintText: tr.sharingRelayAddressHint,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _projectIdController,
-              enabled: !widget.isJoining,
-              decoration: InputDecoration(labelText: tr.joiningProjectIdLabel),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _tokenController,
-              obscureText: !_isTokenVisible,
-              enabled: !widget.isJoining,
-              decoration: InputDecoration(
-                labelText: tr.sharingProjectTokenLabel,
-                suffixIcon: IconButton(
-                  icon: Icon(_isTokenVisible ? Icons.visibility_off : Icons.visibility),
-                  mouseCursor: ocptClickableCursor,
-                  onPressed: () => setState(() => _isTokenVisible = !_isTokenVisible),
-                ),
-              ),
+              minLines: 1,
+              maxLines: 4,
+              keyboardType: TextInputType.multiline,
+              decoration: InputDecoration(helperText: tr.joiningInviteLinkHelperText),
             ),
             const SizedBox(height: 16),
             Align(
@@ -114,11 +80,7 @@ class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
     );
   }
 
-  /// Hands the three fields' own raw text to [OcptJoiningManualView.onJoinRequested] as typed —
-  /// see this class's own doc comment for why nothing is validated here.
-  void _onJoinPressed() => widget.onJoinRequested(
-    _relayAddressController.text,
-    _projectIdController.text,
-    _tokenController.text,
-  );
+  /// Hands the invite link field's own raw text to [OcptJoiningManualView.onJoinRequested] as
+  /// typed — see this class's own doc comment for why nothing is validated here.
+  void _onJoinPressed() => widget.onJoinRequested(_inviteLinkController.text);
 }

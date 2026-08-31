@@ -14933,7 +14933,7 @@
   },
   "sharingRelayAddressLabel": "Relay address",
   "@sharingRelayAddressLabel": {
-    "description": "Label of the relay address field: the ① Configure form, read-only in the ② Invite screen's own connection card, and the Rejoindre screen's own manual entry form"
+    "description": "Label of the relay address field: the ① Configure form, and read-only in the ② Invite screen's own connection card"
   },
   "sharingRelayAddressHint": "https://relay.example.org",
   "@sharingRelayAddressHint": {
@@ -14971,13 +14971,17 @@
   "@sharingSaveQrAction": {
     "description": "Action saving the invite QR code as an image file"
   },
+  "sharingCopyInviteLinkAction": "Copy the invite link",
+  "@sharingCopyInviteLinkAction": {
+    "description": "Action copying the invite link (the QR code's own text) to the clipboard"
+  },
   "sharingConnectionCardTitle": "Connection",
   "@sharingConnectionCardTitle": {
     "description": "Title of the ② Invite screen's own connection card"
   },
   "sharingProjectTokenLabel": "Project token",
   "@sharingProjectTokenLabel": {
-    "description": "Label of the masked project token field in the ② Invite screen's own connection card, and of the token field in the Rejoindre screen's own manual entry form"
+    "description": "Label of the masked project token field in the ② Invite screen's own connection card"
   },
   "sharingCopyTooltip": "Copy",
   "@sharingCopyTooltip": {
@@ -15019,7 +15023,7 @@
   "@joiningNoLocalCopyChip": {
     "description": "Status chip shown in the Rejoindre page's own top bar, stating the project hasn't been joined yet"
   },
-  "joiningIntro": "You don't have this project yet. Scan the QR code from a teammate's own Partager screen, or enter the relay address, the project ID and the token by hand.",
+  "joiningIntro": "You don't have this project yet. Scan the QR code from a teammate's own Partager screen, or paste the invite link they shared with you.",
   "@joiningIntro": {
     "description": "Introductory line of the Rejoindre page"
   },
@@ -15055,13 +15059,13 @@
   "@joiningCameraPermissionButtonLabel": {
     "description": "Button opening the system settings from the Rejoindre page's own scan tab, while the camera permission is missing or denied"
   },
-  "joiningManualCardTitle": "Connection",
+  "joiningManualCardTitle": "Invite link",
   "@joiningManualCardTitle": {
     "description": "Title of the Rejoindre page's own manual entry form"
   },
-  "joiningProjectIdLabel": "Project ID",
-  "@joiningProjectIdLabel": {
-    "description": "Label of the project id field in the Rejoindre page's own manual entry form"
+  "joiningInviteLinkHelperText": "Paste the link shared with you",
+  "@joiningInviteLinkHelperText": {
+    "description": "Helper line under the invite link field in the Rejoindre page's own manual entry form"
   },
   "joiningJoinAction": "Join",
   "@joiningJoinAction": {
@@ -15075,7 +15079,7 @@
   "@joiningProgressTitle": {
     "description": "Title of the Rejoindre page's own busy state, shown while a join is in progress"
   },
-  "joiningErrorMessage": "Could not join this project. Check the relay address, the project ID and the token, then try again.",
+  "joiningErrorMessage": "Could not join this project. Check the invite link, then try again.",
   "@joiningErrorMessage": {
     "description": "Snack bar message shown when joining fails, whether the submission was manual or scanned"
   },
