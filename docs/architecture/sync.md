@@ -9,8 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 How a project becomes shareable between people and devices. The decisions are argued in
 [ADR 0009](../adr/0009-offline-first-sync-through-a-domain-blind-relay.md) (offline-first through a
 domain-blind relay) and [ADR 0010](../adr/0010-sync-ready-data-model-prerequisites.md) (what the
-schema needed first); this file says what the code does because of them. The changeset engine and
-the relay have shipped; live push, presence and the portable on-set server are still ahead — see
+schema needed first); this file says what the code does because of them. The changeset engine, the
+relay, live push and presence have shipped; the portable on-set server is still ahead — see
 [`../plans/collaboration-and-sync.md`](../plans/collaboration-and-sync.md).
 
 **The shape in one breath.** Every device keeps a full local replica and is completely usable
@@ -70,31 +70,50 @@ this project read-only?".
 
 ### The transport seam
 
-`OcptRemoteStorage` is the five-operation seam the engine exchanges work through — append a
-changeset, read changesets since a sequence, upload a snapshot, fetch the latest snapshot, and a
-stream announcing new work — speaking only `ocpt_sync_protocol`'s wire types and opaque bytes, never
-a table name. Two implementations:
+`OcptRemoteStorage` is the seam the engine exchanges work through — append a changeset, read
+changesets since a sequence, upload a snapshot, fetch the latest snapshot, a stream announcing new
+work, and, for presence (M5), a `sendPresence`/`presenceStream` pair carrying opaque frames a replica
+broadcasts to and receives from its peers — speaking only `ocpt_sync_protocol`'s wire types and
+opaque bytes, never a table name. Two implementations:
 
 - **`OcptFolderRemoteStorage`** — a plain directory (`changesets/`, `snapshots/`), no network at all.
   It exercised the whole engine before any server existed, and stays as the desktop fallback over any
-  file-sync client. Its `newWorkStream` is empty (nothing to observe between launches).
-- **`OcptRelayRemoteStorage`** — the HTTP + WebSocket transport to the relay. The four operations go
-  over `package:http`; `newWorkStream` connects a WebSocket that pings on new work and reconnects
-  with a small backoff after a drop, emitting nothing while disconnected (the engine falls back to
-  polling `readSince`). The bearer token rides the socket's request headers — which works because the
-  client is `dart:io`'s `IOWebSocketChannel`.
+  file-sync client. Its `newWorkStream` is empty (nothing to observe between launches), and it has no
+  peer, so `sendPresence` is a no-op and `presenceStream` is empty too.
+- **`OcptRelayRemoteStorage`** — the HTTP + WebSocket transport to the relay. The four request
+  operations go over `package:http`; the `events` WebSocket carries everything live, over one
+  reconnecting socket kept open while either `newWorkStream` or `presenceStream` has a listener. Its
+  read loop routes each inbound frame — the `new-work` ping to `newWorkStream`, any other frame (a
+  peer's opaque presence payload) to `presenceStream` — while `sendPresence` writes this replica's
+  own frames back up it; a drop reconnects with a small backoff and emits nothing meanwhile (the
+  engine falls back to polling `readSince`). The bearer token rides the socket's request headers —
+  which works because the client is `dart:io`'s `IOWebSocketChannel`.
 
 ### The sync session and its status
 
 `OcptSyncSession` drives a paired project: an initial `syncOnce`, a `pullAndApply` on every
 `newWorkStream` ping, and a `syncOnce` on a periodic timer so this replica's own edits reach the
-relay without waiting for someone else's; `syncNow()` is the manual trigger. It is started and
+relay without waiting for someone else's; `syncNow()` is the manual trigger. With the ping now the
+real driver, that timer is a long-interval fallback (sixty seconds), not the primary path it was
+before live push. It is started and
 stopped explicitly — the workspace starts it when it opens a paired project and stops it on close.
 It exposes `OcptSyncStatus` (a sealed value: in sync, syncing, offline with a pending count, or an
 error): the relay rejecting a request is an error, anything else — a refused connection, a dropped
 socket — is offline, and a later success recovers to in sync; a transport failure never throws out of
 the session. The `relayId` keying `sync_relay_cursors` is the relay's base URL, stable per relay so
 the same project behind two relays keeps two independent delivery cursors.
+
+### Presence
+
+`OcptPresenceService` rides the same transport a paired project already syncs over. It heartbeats
+this replica's own `OcptPresenceFrame` — its `deviceId`, platform and current `OcptWorkspaceMode` —
+every five seconds through `sendPresence`, listens to `presenceStream` for peers doing the same, and
+keeps an `OcptPresenceRoster` of whoever heartbeated within a twelve-second timeout, dropping a peer
+gone silent longer on the next tick. Disconnects are handled entirely by that timeout, so the relay
+never has to learn *who* left — it only ever rebroadcasts opaque frames. `OcptSyncManager` starts and
+stops the service alongside the sync session, and `updatePresenceMode` reports a mode switch so it
+reaches peers on the next heartbeat. Nothing about presence is persisted, on the device or the relay:
+it is entirely ephemeral by construction.
 
 ## The data model
 
@@ -117,10 +136,11 @@ One binary, one port, one SQLite file, behind a TLS-terminating reverse proxy. `
 holds three tables of nothing but opaque payloads — a project's token hash, its changesets keyed by
 an assigned per-project sequence, its snapshots. `OcptRelayServer` is a `shelf` handler over it with
 five routes: `POST/GET …/changesets` (append returns the assigned sequence; read is since a required
-`?since=`), `POST/GET …/snapshot` (a descriptor plus base64 bytes), and the `…/events` WebSocket that
-pings a project's subscribers whenever a replica appends. It moves opaque bytes and never decodes a
-payload — **if a reviewer finds a table name or a domain type in this package, the design has
-drifted.**
+`?since=`), `POST/GET …/snapshot` (a descriptor plus base64 bytes), and the `…/events` WebSocket,
+which is bidirectional: it pings a project's subscribers whenever a replica appends, and rebroadcasts
+any *other* frame a subscriber sends — a peer's opaque presence payload — to that project's other
+subscribers, never to the sender. It moves opaque bytes and never decodes a payload — **if a reviewer
+finds a table name or a domain type in this package, the design has drifted.**
 
 **A snapshot lets the log below it be pruned.** A snapshot at sequence *N* is a complete,
 self-consistent state, so `uploadSnapshot` deletes every changeset at or below *N* in the same
@@ -163,6 +183,13 @@ Sync is invisible when it works; the visible surface is deliberately small.
   `OcptSyncManager.syncStatus`, rebuilds on the status stream, and is absent for an unpaired project;
   a tap opens a panel to sync now, show the invite QR or re-pair. Under a read-only version preview
   its actions are withheld.
+- **The presence indicator** (`lib/ui/pages/workspace/widgets/ocpt_presence_indicator.dart`) sits in
+  the top toolbar instead — an overlapping avatar cluster naming every replica with the project open,
+  and a `MenuAnchor` popover (the sync indicator's own mechanism) detailing each one's platform, a
+  short id fragment and its current mode. Identity is automatic, since there are no accounts (ADR 0009
+  §6): a colour derived from the `deviceId`, a `platform · fragment` label, self ringed in the accent
+  and sorted first. It is absent for an unpaired project, exactly as the sync indicator is, and holds
+  no write action, so a read-only preview withholds nothing.
 
 `qr_flutter` draws the QR and `mobile_scanner` reads it. The ACT `act_qr_code` package covers both,
 but its stale transitive plugins (`qr_code_scanner`, `permission_handler`) fail the Android and

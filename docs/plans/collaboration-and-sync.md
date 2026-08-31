@@ -166,18 +166,12 @@ screenplay conflict view, which is the only conflict a user is ever asked to res
 Each milestone ends with the full verification gate of `CLAUDE.md` §*Verification gates*, one
 commit per logical change, and a user checkpoint before the next one starts.
 
-**M1 through M4 have shipped** — their outcomes now live in `docs/architecture/`: the responsive
+**M1 through M5 have shipped** — their outcomes now live in `docs/architecture/`: the responsive
 foundation and the Android build in `foundations.md`, the mobile share-sheet export in `exports.md`,
 the cost-tracking cards in `budget.md`, the compressed phone layout in `screenplay.md`, and the
-changeset engine, the domain-blind relay and the pairing UI in
-[`sync.md`](../architecture/sync.md). Only M5 and M6 remain; both build on the engine and the relay
-that `sync.md` records.
-
-### M5 — Live push and presence
-
-The WebSocket route driving the client instead of polling, and a presence indicator showing who
-else has the project open and which mode they are in. This is what makes the set feel collaborative
-rather than eventually consistent.
+changeset engine, the domain-blind relay, the pairing UI, live push and presence in
+[`sync.md`](../architecture/sync.md). Only M6 remains; it builds on the engine and the relay that
+`sync.md` records.
 
 ### M6 — The portable on-set server
 
