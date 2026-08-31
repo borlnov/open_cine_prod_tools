@@ -19,9 +19,9 @@ class OcptRouterManagerBuilder extends AbstractRouterBuilder<OcptRouterManager> 
 /// Drives the navigation of the application through the [OcptRoute] enum.
 ///
 /// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace],
-/// [OcptRoute.projectSettings] and [OcptRoute.sharing]: all three can only be reached while
-/// [OcptProjectsManager] has a project open, otherwise navigation is redirected to
-/// [OcptRoute.home]. [OcptRoute.joining] carries no such guard — joining is how a project comes
+/// [OcptRoute.projectSettings], [OcptRoute.sharing] and [OcptRoute.repointing]: all four can only
+/// be reached while [OcptProjectsManager] has a project open, otherwise navigation is redirected
+/// to [OcptRoute.home]. [OcptRoute.joining] carries no such guard — joining is how a project comes
 /// to exist on this replica in the first place, so it has to be reachable with none open.
 class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
   /// {@macro act_router_manager.AbstractRouterManager.createRoutesHelper}
@@ -40,10 +40,11 @@ class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
     registerRedirect(_redirectWhenNoProjectIsOpen);
   }
 
-  /// Redirects [OcptRoute.workspace], [OcptRoute.projectSettings] and [OcptRoute.sharing] to
-  /// [OcptRoute.home] whenever no project is currently open: the workspace has nothing to show
-  /// then, the project settings page has no project to read or write, and the sharing screen has
-  /// no project to pair.
+  /// Redirects [OcptRoute.workspace], [OcptRoute.projectSettings], [OcptRoute.sharing] and
+  /// [OcptRoute.repointing] to [OcptRoute.home] whenever no project is currently open: the
+  /// workspace has nothing to show then, the project settings page has no project to read or
+  /// write, the sharing screen has no project to pair, and the repointing screen has no project to
+  /// move to another relay.
   Future<OcptRoute?> _redirectWhenNoProjectIsOpen(
     BuildContext context,
     OcptRoute route,
@@ -52,7 +53,8 @@ class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
     final needsAnOpenProject =
         route == OcptRoute.workspace ||
         route == OcptRoute.projectSettings ||
-        route == OcptRoute.sharing;
+        route == OcptRoute.sharing ||
+        route == OcptRoute.repointing;
     if (needsAnOpenProject && globalGetIt().get<OcptProjectsManager>().currentProject == null) {
       return OcptRoute.home;
     }

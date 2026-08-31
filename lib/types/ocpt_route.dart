@@ -25,6 +25,12 @@ enum OcptRoute with MixinRoute {
   /// none of [sharing]'s own open-project guard.
   joining,
 
+  /// The current project's "Changer de relais" screen: moving its ongoing sync from the relay it
+  /// is paired to (an on-set server, say) to another one, reusing the token it already holds
+  /// (`docs/plans/on-set-server.md`, Phase E). Acts on the currently open project, so it carries
+  /// the same open-project guard as [sharing].
+  repointing,
+
   /// The settings page
   settings,
 

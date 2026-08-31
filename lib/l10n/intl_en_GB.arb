@@ -15071,6 +15071,85 @@
   "@joiningErrorMessage": {
     "description": "Snack bar message shown when joining fails, whether the submission was manual or scanned"
   },
+  "repointingPageTitle": "Switch relay for \"{projectName}\"",
+  "@repointingPageTitle": {
+    "description": "Title of the repointing page, naming the project",
+    "context": "Displayed at the top of the Changer de relais screen",
+    "type": "text",
+    "placeholders": {
+      "projectName": {
+        "type": "String"
+      }
+    }
+  },
+  "repointingStepConfigureChip": "① Configure",
+  "@repointingStepConfigureChip": {
+    "description": "Step chip shown in the repointing page's own top bar while the form is still shown"
+  },
+  "repointingStepQrChip": "② QR code",
+  "@repointingStepQrChip": {
+    "description": "Step chip shown in the repointing page's own top bar once the project has been re-pointed"
+  },
+  "repointingConfigureIntro": "Point this project at a different relay — the on-set server at the start of a shoot day, or back to the prep relay at the end of it. The project keeps its own history; only where it syncs changes.",
+  "@repointingConfigureIntro": {
+    "description": "Introductory line of the repointing page's own ① Configure form"
+  },
+  "repointingRelayCardTitle": "Relay",
+  "@repointingRelayCardTitle": {
+    "description": "Title of the repointing page's own ① Configure form card"
+  },
+  "repointingRelayAddressLabel": "Relay address",
+  "@repointingRelayAddressLabel": {
+    "description": "Label of the relay address field: the ① Configure form, and read-only in the ② QR code screen's own connection card"
+  },
+  "repointingRelayAddressHint": "https://relay.example.org",
+  "@repointingRelayAddressHint": {
+    "description": "Placeholder text of the repointing page's own relay address field"
+  },
+  "repointingEnrolmentSecretLabel": "Enrolment secret",
+  "@repointingEnrolmentSecretLabel": {
+    "description": "Label of the instance-wide enrolment secret field: the ① Configure form, and masked in the ② QR code screen's own connection card"
+  },
+  "repointingRelayAddressInvalidMessage": "Enter a valid relay address, e.g. https://relay.example.org",
+  "@repointingRelayAddressInvalidMessage": {
+    "description": "Validation message shown under the repointing page's own relay address field when it isn't a well-formed URL"
+  },
+  "repointingSubmitAction": "Switch relay",
+  "@repointingSubmitAction": {
+    "description": "Primary button of the repointing page's own ① Configure form"
+  },
+  "repointingScanQrAction": "Scan a relay QR code",
+  "@repointingScanQrAction": {
+    "description": "Action opening the camera scanner in the repointing page's own ① Configure form, mobile only"
+  },
+  "repointingScannerHint": "Point the camera at the relay's own enrolment QR code.",
+  "@repointingScannerHint": {
+    "description": "Hint text shown under the repointing page's own camera scanner"
+  },
+  "repointingEnterManuallyAction": "Enter details manually",
+  "@repointingEnterManuallyAction": {
+    "description": "Action switching the repointing page's own ① Configure form back from the scanner to the typed fields"
+  },
+  "repointingErrorMessage": "Could not switch relay. Check the address and the enrolment secret, then try again.",
+  "@repointingErrorMessage": {
+    "description": "Snack bar message shown when switching relay fails"
+  },
+  "repointingQrCardTitle": "Ready for the next device",
+  "@repointingQrCardTitle": {
+    "description": "Title of the repointing page's own ② QR code screen card"
+  },
+  "repointingQrCardBody": "Show this code to the next device so it can switch to the same relay.",
+  "@repointingQrCardBody": {
+    "description": "Body text of the repointing page's own ② QR code screen card"
+  },
+  "repointingCopyEnrolmentAction": "Copy the enrolment link",
+  "@repointingCopyEnrolmentAction": {
+    "description": "Action copying the enrolment link (the QR code's own text) to the clipboard"
+  },
+  "repointingDoneAction": "Done",
+  "@repointingDoneAction": {
+    "description": "Action closing the repointing page's own ② QR code screen"
+  },
   "workspaceSyncStatusInSync": "In sync",
   "@workspaceSyncStatusInSync": {
     "description": "Label of the workspace status bar's sync indicator when every edit has been pushed and pulled"
@@ -15120,6 +15199,10 @@
   "workspaceSyncActionRepair": "Re-pair…",
   "@workspaceSyncActionRepair": {
     "description": "Action of the sync panel that opens the Partager screen to replace the current pairing"
+  },
+  "workspaceSyncActionSwitchRelay": "Switch relay…",
+  "@workspaceSyncActionSwitchRelay": {
+    "description": "Action of the sync panel that opens the Changer de relais screen to move the project onto a different relay"
   },
   "workspacePresencePopoverHeader": "On this project",
   "@workspacePresencePopoverHeader": {

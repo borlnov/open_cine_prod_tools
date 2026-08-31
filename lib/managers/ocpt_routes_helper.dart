@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
@@ -25,6 +26,7 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     onPage(OcptRoute.projectSettings, _createProjectSettingsPage);
     onPage(OcptRoute.sharing, _createSharingPage);
     onPage(OcptRoute.joining, _createJoiningPage);
+    onPage(OcptRoute.repointing, _createRepointingPage);
     onPage(OcptRoute.settings, _createSettingsPage);
     onPage(OcptRoute.licenses, _createLicensesPage);
   }
@@ -58,6 +60,10 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
   /// Callback to create the [OcptJoiningPage]
   RoutePageDetails _createJoiningPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptJoiningPage());
+
+  /// Callback to create the [OcptRepointingPage]
+  RoutePageDetails _createRepointingPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptRepointingPage());
 
   /// Callback to create the [SettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>

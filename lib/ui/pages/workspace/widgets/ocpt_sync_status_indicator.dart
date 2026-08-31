@@ -31,11 +31,14 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// event.
 ///
 /// A tap opens a small panel naming the current state — the offline count or the relay's own error
-/// message, whichever applies — with three actions: `Synchroniser maintenant`
-/// ([OcptSyncManager.syncNow]), and `Afficher le QR d'invitation` / `Ré-appairer…`, which both
-/// simply open the Partager screen ([OcptRoute.sharing]) already showing the invite QR and the way
-/// to replace a pairing. Under a read-only preview (`isReadOnly`) all three are withheld — a null
-/// callback, never merely a disabled one, exactly as every other affordance that writes does.
+/// message, whichever applies — with four actions: `Synchroniser maintenant`
+/// ([OcptSyncManager.syncNow]); `Afficher le QR d'invitation` / `Ré-appairer…`, which both simply
+/// open the Partager screen ([OcptRoute.sharing]) already showing the invite QR and the way to
+/// replace a pairing; and `Changer de relais…`, which opens the repointing screen
+/// ([OcptRoute.repointing]) to move the project's ongoing sync onto a different relay
+/// (`docs/plans/on-set-server.md`, Phase E). Under a read-only preview (`isReadOnly`) all four are
+/// withheld — a null callback, never merely a disabled one, exactly as every other affordance that
+/// writes does.
 class OcptSyncStatusIndicator extends StatelessWidget {
   /// Class constructor
   ///
@@ -126,6 +129,9 @@ class OcptSyncStatusIndicator extends StatelessWidget {
             onSharingRequested: isReadOnly
                 ? null
                 : () => unawaited(_router.push(OcptRoute.sharing)),
+            onSwitchRelayRequested: isReadOnly
+                ? null
+                : () => unawaited(_router.push(OcptRoute.repointing)),
           ),
         );
       },
@@ -143,6 +149,7 @@ class _OcptSyncStatusBadge extends StatelessWidget {
     required this.status,
     required this.onSyncNowRequested,
     required this.onSharingRequested,
+    required this.onSwitchRelayRequested,
   });
 
   /// The status this badge (and the panel it opens) renders.
@@ -156,6 +163,10 @@ class _OcptSyncStatusBadge extends StatelessWidget {
   /// chosen, or null while the badge must withhold them (a read-only preview).
   final VoidCallback? onSharingRequested;
 
+  /// Called when the panel's `Changer de relais…` action is chosen, or null while the badge must
+  /// withhold it (a read-only preview).
+  final VoidCallback? onSwitchRelayRequested;
+
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -168,6 +179,7 @@ class _OcptSyncStatusBadge extends StatelessWidget {
           status: status,
           onSyncNowRequested: onSyncNowRequested,
           onSharingRequested: onSharingRequested,
+          onSwitchRelayRequested: onSwitchRelayRequested,
         ),
       ],
       builder: (context, controller, child) => InkWell(
@@ -237,6 +249,7 @@ class _OcptSyncStatusPanel extends StatelessWidget {
     required this.status,
     required this.onSyncNowRequested,
     required this.onSharingRequested,
+    required this.onSwitchRelayRequested,
   });
 
   /// The status this panel describes.
@@ -247,6 +260,9 @@ class _OcptSyncStatusPanel extends StatelessWidget {
 
   /// Forwarded from [_OcptSyncStatusBadge], see its own doc comment.
   final VoidCallback? onSharingRequested;
+
+  /// Forwarded from [_OcptSyncStatusBadge], see its own doc comment.
+  final VoidCallback? onSwitchRelayRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -290,6 +306,10 @@ class _OcptSyncStatusPanel extends StatelessWidget {
           MenuItemButton(
             onPressed: onSharingRequested,
             child: Text(tr.workspaceSyncActionRepair),
+          ),
+          MenuItemButton(
+            onPressed: onSwitchRelayRequested,
+            child: Text(tr.workspaceSyncActionSwitchRelay),
           ),
         ],
       ),

@@ -215,15 +215,37 @@ void main() {
     },
   );
 
+  testWidgets("Changer de relais… navigates to the repointing route", (tester) async {
+    final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
+    addTearDown(syncManager.disposeStream);
+    final router = _RecordingRouterManager();
+
+    await pumpIndicator(
+      tester,
+      OcptSyncStatusIndicator(syncManager: syncManager, routerManager: router),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptSyncStatusIndicator)));
+
+    await tester.tap(find.byType(OcptSyncStatusIndicator));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text(tr.workspaceSyncActionSwitchRelay), findsOneWidget);
+
+    await tester.tap(find.text(tr.workspaceSyncActionSwitchRelay));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(router.pushedRoute, OcptRoute.repointing);
+  });
+
   testWidgets("under a read-only preview every action is withheld (a null callback)", (
     tester,
   ) async {
     final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
     addTearDown(syncManager.disposeStream);
+    final router = _RecordingRouterManager();
 
     await pumpIndicator(
       tester,
-      OcptSyncStatusIndicator(syncManager: syncManager, isReadOnly: true),
+      OcptSyncStatusIndicator(syncManager: syncManager, routerManager: router, isReadOnly: true),
     );
     final tr = Tr.of(tester.element(find.byType(OcptSyncStatusIndicator)));
 
@@ -234,5 +256,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(syncManager.syncNowCallCount, 0);
+
+    // The menu stays open across both taps above (neither action has a callback to close it on),
+    // so `Changer de relais…` is reached from the very same open panel, with no need to reopen it.
+    await tester.tap(find.text(tr.workspaceSyncActionSwitchRelay));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(router.pushedRoute, isNull);
   });
 }
