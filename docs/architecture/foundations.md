@@ -335,18 +335,20 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `breakdown_tags`, `scene_breakdowns`, the eight schedule tables, the nine budget tables
   (`budget_postes`, `budget_lines`, `budget_entries`, `budget_commitments`, `budget_resources`,
   `budget_mileage_rates`, `budget_revenues`, `budget_shares`, `budget_allowances`),
-  `project_dictionary_words`, `row_field_versions`, `project_versions`, and `sync_relay_cursors`
-  (the changeset engine's own per-relay delivery state, local to this replica and never
-  synchronised, `docs/plans/collaboration-and-sync.md`, M3) — with `storeDateTimeAsText: true`,
+  `project_dictionary_words`, `row_field_versions`, `project_versions`, `sync_relay_cursors` (the
+  changeset engine's per-relay delivery state) and `sync_pairings` (a project's relay base URL) —
+  the last two both local to this replica and never synchronised (see [`sync.md`](sync.md)) — with
+  `storeDateTimeAsText: true`,
   `beforeOpen` turning SQLite's `foreign_keys` pragma on, and scene reconciliation in 3 passes
   (explicit scene number → exact heading → relative order). Schema v1 carries **no pre-stable
   migration history**: the 34 migration steps four alpha tags accumulated — a column added,
   renamed and dropped again while a feature was designed — were pre-release workshop churn, owed to
   nobody because none reached a user's disk, and were squashed to that one fresh schema (ADR 0029).
   The 0.1.0 release then froze v1, and v2 is the cycle's first real `onUpgrade` step since:
-  additive only (ADR 0007), it creates `sync_relay_cursors` alone and touches nothing else, so a v1
-  file's existing rows are untouched by it. Two constants govern this: `currentSchemaVersion` (2)
-  and `lastStableSchemaVersion` (1, frozen at 0.1.0). While `current == lastStable + 1` a cycle is
+  additive only (ADR 0007), it creates the two local sync tables (`sync_relay_cursors`,
+  `sync_pairings`) and touches nothing else, so a v1 file's existing rows are untouched by it. Two
+  constants govern this: `currentSchemaVersion` (2) and `lastStableSchemaVersion` (1, frozen at
+  0.1.0). While `current == lastStable + 1` a cycle is
   open and the pending step is rewritten in place — the state today; while `current == lastStable`
   the top step is frozen, so the next schema change creates a new one. Freezing sets
   `lastStableSchemaVersion` to `currentSchemaVersion` at release (`docs/RELEASING.md`), which a

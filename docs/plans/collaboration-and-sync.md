@@ -72,6 +72,10 @@ field.
 
 ## 3. Architecture
 
+The changeset engine, the relay and the pairing UI this section describes have shipped and are now
+recorded in [`../architecture/sync.md`](../architecture/sync.md); what follows is kept as the design
+context M5 and M6 extend. §5's deployment topology is what M6 builds on directly.
+
 ### 3.1 New packages
 
 Two pure-Dart packages beside `packages/fountain_kit`, both free of any Flutter import, keeping the
@@ -162,56 +166,12 @@ screenplay conflict view, which is the only conflict a user is ever asked to res
 Each milestone ends with the full verification gate of `CLAUDE.md` §*Verification gates*, one
 commit per logical change, and a user checkpoint before the next one starts.
 
-**M1 (the sync-ready data model) and M2 (the app on a phone and a tablet) have shipped** — their
-outcomes now live in `docs/architecture/`: the responsive foundation and the Android build in
-`foundations.md`, the mobile share-sheet export in `exports.md`, the cost-tracking cards in
-`budget.md`, and the compressed phone layout in `screenplay.md`. §3.3 records what the milestones
-below build on. M4 through M6 depend on M3.
-
-### M3 — The changeset engine, over a folder
-
-`packages/ocpt_sync_protocol`, `OcptSyncManager`, `OcptChangesetService`, `OcptMergeService`,
-`OcptScreenplayMergeService`, and `OcptFolderRemoteStorage` as the only transport. Two app
-instances pointed at the same directory must converge.
-
-**What the engine covers.** Every synchronised table flows through the changeset log — that is,
-every table carrying `isDeleted` except the derived and local-only ones (`scenes`, recomputed from
-the screenplay; `project_versions` and `local_erasures`, local to a replica — §3.4). That is far
-more than the four services M1 first touched: the data model has grown to the screenplay and shot
-list (`screenplays`, `screenplay_snapshots`, `shots`, `shot_characters`, `shot_coverages`), the
-resources catalogue (`people`, `roles`, `locations`, `sets`, `elements`, `assets` and their child
-and join tables), the breakdown (`breakdown_tags`, `scene_breakdowns`, `scene_elements`,
-`scene_sets`), the schedule (`shooting_days`, `shooting_slots` and their cast, crew, guest, block,
-event and candidate tables, plus the availabilities), the budget (every `budget_*` table), and the
-project dictionary (`project_dictionary_words`). New synchronised tables will keep appearing; the
-rule, not the list, is what the engine encodes.
-
-Tests: two replicas editing different columns of the same shot row, both surviving; a delete on one
-side and an edit on the other; a replica offline across several changesets catching up in one go;
-concurrent insertions at the same index coexisting; screenplay three-way merge on a clean case and
-on a genuine conflict; `scenes` recomputed rather than merged; and — project versions having
-shipped — a restore on one replica converging against a replica that was offline throughout, with
-the rows the restore tombstoned staying gone and an incoming changeset applying normally while a
-preview is up.
-
-No server yet. The folder transport exists to prove the engine without any network code, and it
-stays afterwards as the desktop fallback.
-
-### M4 — The relay
-
-`packages/ocpt_sync_relay`: the five routes, one bearer token per project, project creation on a
-first append carrying the instance enrolment secret, snapshot upload and pruning below it, a SQLite
-store, and a Dockerfile plus the compose file of §5.1. A restore publishes itself through the
-snapshot route rather than as a changeset (§3.4), since project versions have shipped.
-`OcptRelayRemoteStorage` on the
-client, plus the pairing screen and the status indicator described in §3.5.
-
-Tests on the server side are plain Dart: route behaviour, sequence monotonicity, rejection of a
-bad or missing token, an unknown project refused without the enrolment secret, pruning not losing a
-changeset a replica has not yet read.
-
-The server must stay domain-blind — if a reviewer finds a table name or a domain type anywhere in
-this package, the design has drifted.
+**M1 through M4 have shipped** — their outcomes now live in `docs/architecture/`: the responsive
+foundation and the Android build in `foundations.md`, the mobile share-sheet export in `exports.md`,
+the cost-tracking cards in `budget.md`, the compressed phone layout in `screenplay.md`, and the
+changeset engine, the domain-blind relay and the pairing UI in
+[`sync.md`](../architecture/sync.md). Only M5 and M6 remain; both build on the engine and the relay
+that `sync.md` records.
 
 ### M5 — Live push and presence
 

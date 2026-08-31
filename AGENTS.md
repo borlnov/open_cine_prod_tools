@@ -167,6 +167,7 @@ file in `docs/architecture/` says what the code does because of it.
 | [`breakdown.md`](docs/architecture/breakdown.md) | `lib/ui/pages/workspace/modes/breakdown/` |
 | [`schedule.md`](docs/architecture/schedule.md) | `lib/ui/pages/workspace/modes/schedule/` |
 | [`budget.md`](docs/architecture/budget.md) | `lib/ui/pages/workspace/modes/budget/`, `lib/utils/ocpt_budget_*.dart` |
+| [`sync.md`](docs/architecture/sync.md) | `packages/ocpt_sync_protocol/`, `packages/ocpt_sync_relay/`, `lib/managers/sync/`, `lib/ui/pages/sharing/`, `lib/ui/pages/joining/`, the sync status indicator |
 
 What follows is the short list of rules that hold **everywhere**, and that a file in
 `docs/architecture/` only ever refines:
