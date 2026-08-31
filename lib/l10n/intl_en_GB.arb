@@ -15047,18 +15047,6 @@
   "@joiningScannerUnavailableMessage": {
     "description": "Message shown on the Rejoindre page's own scan tab when the running platform has no camera to show"
   },
-  "joiningCameraPermissionAskingMessage": "Camera access is needed to scan the invite QR code.",
-  "@joiningCameraPermissionAskingMessage": {
-    "description": "Message shown on the Rejoindre page's own scan tab before the camera permission has been granted or denied"
-  },
-  "joiningCameraPermissionDeniedMessage": "Camera access was denied. Allow it in the system settings, or use manual entry instead.",
-  "@joiningCameraPermissionDeniedMessage": {
-    "description": "Message shown on the Rejoindre page's own scan tab once the camera permission has been denied"
-  },
-  "joiningCameraPermissionButtonLabel": "Open settings",
-  "@joiningCameraPermissionButtonLabel": {
-    "description": "Button opening the system settings from the Rejoindre page's own scan tab, while the camera permission is missing or denied"
-  },
   "joiningManualCardTitle": "Invite link",
   "@joiningManualCardTitle": {
     "description": "Title of the Rejoindre page's own manual entry form"

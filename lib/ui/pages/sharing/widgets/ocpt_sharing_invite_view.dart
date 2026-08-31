@@ -7,13 +7,13 @@ import 'dart:ui' as ui;
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_qr_code/act_qr_code.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_chip.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 /// The maximum width of the ② Invite column, matching the mock-up's own ~620px column.
 const _maxContentWidth = 620.0;
@@ -83,10 +83,11 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           color: Colors.white,
-                          child: QrCodeImage(
-                            text: widget.invite.toInviteString(),
-                            color: Colors.black,
+                          child: QrImageView(
+                            data: widget.invite.toInviteString(),
                             size: _qrSize,
+                            eyeStyle: const QrEyeStyle(color: Colors.black),
+                            dataModuleStyle: const QrDataModuleStyle(color: Colors.black),
                           ),
                         ),
                       ),

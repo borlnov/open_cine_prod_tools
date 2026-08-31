@@ -201,9 +201,9 @@ void main() {
       await bloc.stream.firstWhere((state) => !state.isLoading);
     }
     // Bounded pumps rather than `pumpAndSettle()`: the ② Invite state runs a live sync session
-    // (its own periodic push timer) and draws a `QrCodeImage` whose `flutter_svg` render keeps
-    // scheduling frames, so `pumpAndSettle()` would spin to its ten-minute timeout instead of
-    // converging. Two frames are enough to lay the loaded state out for the assertions below.
+    // (its own periodic push timer) whose ticking keeps scheduling frames, so `pumpAndSettle()`
+    // would spin to its ten-minute timeout instead of converging. Two frames are enough to lay the
+    // loaded state out for the assertions below.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
   }

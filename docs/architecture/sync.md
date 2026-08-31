@@ -153,8 +153,8 @@ Sync is invisible when it works; the visible surface is deliberately small.
   `OcptConfirmDialog` into `unpairProject`.
 - **Joining (the Rejoindre screen, `lib/ui/pages/joining/`)** — reached from the Home toolbar,
   carrying no open-project guard since joining is how a project comes to exist locally. A camera scan
-  on a tablet (`QrCodeReader` from the ACT `act_qr_code` package, instantiated only on mobile) or a
-  pasted **invite link** on desktop both resolve to one `OcptRelayInvite`
+  on a tablet (`mobile_scanner`, instantiated only on mobile) or a pasted **invite link** on desktop
+  both resolve to one `OcptRelayInvite`
   (`ocpt://join?r=…&p=…&t=…`); `joinFromRelay` fetches the snapshot into a fresh `.ocpt` (a native
   save location on desktop, the app documents directory on mobile), saves the pairing and opens the
   project.
@@ -164,5 +164,7 @@ Sync is invisible when it works; the visible surface is deliberately small.
   a tap opens a panel to sync now, show the invite QR or re-pair. Under a read-only version preview
   its actions are withheld.
 
-`act_qr_code` draws the QR (`QrCodeImage`) and reads it (`QrCodeReader`, with camera permission
-handled) — an ACT package used in place of a pub.dev QR-or-scanner dependency.
+`qr_flutter` draws the QR and `mobile_scanner` reads it. The ACT `act_qr_code` package covers both,
+but its stale transitive plugins (`qr_code_scanner`, `permission_handler`) fail the Android and
+Windows builds against this app's toolchains, so maintained pub.dev packages are used instead and the
+ACT gap is left for a separate submodule fix.

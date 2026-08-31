@@ -79,6 +79,15 @@ dependencies:
   # transitive dependency now that the app calls it itself
   web_socket_channel: ^3.0.3
 
+  # Draws the sharing invite's QR code; pure-Dart, no plugin. Replaces act_qr_code, whose
+  # transitive qr_code_scanner does not build against this app's AGP 8 (namespace not specified).
+  qr_flutter: ^4.1.0
+
+  # Reads a QR code from the camera on the joining screen's mobile-only scan tab. Replaces
+  # act_qr_code's QrCodeReader for the same reason as qr_flutter above; ships no Windows plugin,
+  # which is fine since this widget is only ever built on mobile.
+  mobile_scanner: ^7.1.2
+
   act_config_manager:
     path: actlibs/act_config_manager
 
@@ -124,9 +133,6 @@ dependencies:
   # Reads the running platform (isMobile/isDesktop) to gate the mobile-only responsive scaling.
   act_platform_manager:
     path: actlibs/act_platform_manager
-
-  act_qr_code:
-    path: actlibs/act_qr_code
 
   act_router_manager:
     path: actlibs/act_router_manager
