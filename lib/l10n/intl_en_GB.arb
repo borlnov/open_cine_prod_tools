@@ -15120,6 +15120,25 @@
   "workspaceSyncActionRepair": "Re-pair…",
   "@workspaceSyncActionRepair": {
     "description": "Action of the sync panel that opens the Partager screen to replace the current pairing"
+  },
+  "workspacePresencePopoverHeader": "On this project",
+  "@workspacePresencePopoverHeader": {
+    "description": "Header of the presence indicator's popover, above the list of replicas that have the project open"
+  },
+  "workspacePresenceOnlineCount": "{count, plural, one{{count} online} other{{count} online}}",
+  "@workspacePresenceOnlineCount": {
+    "description": "Participant count shown under the presence popover's header, naming how many replicas currently have the project open",
+    "context": "Displayed in the presence indicator's popover, right under workspacePresencePopoverHeader",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "workspacePresenceSelfBadge": "You",
+  "@workspacePresenceSelfBadge": {
+    "description": "Badge marking this replica's own row in the presence indicator's popover"
   }
 
 }

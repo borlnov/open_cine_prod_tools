@@ -2015,5 +2015,8 @@
   "workspaceSyncPanelErrorDetail": "Erreur du relais : {message}",
   "workspaceSyncActionSyncNow": "Synchroniser maintenant",
   "workspaceSyncActionShowQr": "Afficher le QR d'invitation",
-  "workspaceSyncActionRepair": "Ré-appairer…"
+  "workspaceSyncActionRepair": "Ré-appairer…",
+  "workspacePresencePopoverHeader": "Sur ce projet",
+  "workspacePresenceOnlineCount": "{count, plural, one{{count} connecté} other{{count} connectés}}",
+  "workspacePresenceSelfBadge": "Vous"
 }

@@ -75,8 +75,10 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
   }
 }
 
-/// The label shown under [mode]'s icon, and used as its tooltip base text.
-String _labelFor(Tr tr, OcptWorkspaceMode mode) => switch (mode) {
+/// [mode]'s short label — the one shown under its icon in the mode switcher, used as its tooltip
+/// base text there, and reused by the presence indicator's popover to name a peer's current mode
+/// so the two never disagree about what a mode is called.
+String ocptWorkspaceModeLabel(Tr tr, OcptWorkspaceMode mode) => switch (mode) {
   OcptWorkspaceMode.screenplay => tr.workspaceModeScreenplay,
   OcptWorkspaceMode.breakdown => tr.workspaceModeBreakdown,
   OcptWorkspaceMode.shotList => tr.workspaceModeShotList,
@@ -123,7 +125,7 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final color = isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
-    final label = _labelFor(tr, mode);
+    final label = ocptWorkspaceModeLabel(tr, mode);
     final tooltip = mode.isImplemented ? label : tr.workspaceModeComingSoonTooltip(label);
 
     return SizedBox(
