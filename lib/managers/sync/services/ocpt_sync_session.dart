@@ -14,8 +14,10 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 
 /// How often [OcptSyncSession] runs [OcptChangesetService.syncOnce] on its own timer, with no
 /// [OcptRemoteStorage.newWorkStream] ping and no [OcptSyncSession.syncNow] call from the user —
-/// what gets this replica's own edits to the relay even on a day nobody else's write ever pings it.
-const ocptDefaultSyncPushInterval = Duration(seconds: 10);
+/// the long-interval fallback that gets this replica's own edits to the relay even on a day
+/// nobody else's write ever pings it, now that the `newWorkStream` ping itself (M4/M5) is the real
+/// driver of an ordinary sync rather than this timer (`docs/plans/presence.md`, M5, Phase B).
+const ocptDefaultSyncPushInterval = Duration(seconds: 60);
 
 /// Keeps one project's replica converging against one relay for as long as it runs —
 /// `docs/plans/relay.md` (M4, Phase B, "wiring the transport in") and

@@ -15,15 +15,18 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_servi
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_presence_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_snapshot_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:uuid/uuid.dart';
 
 /// Builds the [OcptSyncManager] instance registered by the global manager.
@@ -120,6 +123,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// This project's current sync session, or null when none is running — see [startSyncSession].
   OcptSyncSession? get syncSession => _syncSession;
   OcptSyncSession? _syncSession;
+
+  /// This project's current presence service, or null when none is running — see
+  /// [startSyncSession] and `docs/plans/presence.md` (M5, Phase B).
+  OcptPresenceService? _presenceService;
 
   /// Opens the directory transport rooted at [directory].
   ///
@@ -362,6 +369,12 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [storage] itself came from ([openRelayRemoteStorage]'s own caller already has that pairing in
   /// hand); a caller syncing over [openFolderRemoteStorage] instead picks its own stable id, since
   /// a directory has no URL to derive one from.
+  ///
+  /// Also starts an [OcptPresenceService] over the very same [storage] and [deviceId] — see
+  /// [presenceRoster]/[presenceRosterStream]/[updatePresenceMode] and
+  /// `docs/plans/presence.md` (M5, Phase B). [presenceHeartbeatInterval] and [presencePeerTimeout]
+  /// default exactly as [pushInterval] does, for the same reason: a test hands in much shorter ones
+  /// so its own timer-driven assertions do not have to wait out the real defaults.
   Future<void> startSyncSession({
     required String projectId,
     required OcptProjectDatabase database,
@@ -369,6 +382,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     required String relayId,
     required OcptRemoteStorage storage,
     Duration pushInterval = ocptDefaultSyncPushInterval,
+    Duration presenceHeartbeatInterval = ocptDefaultPresenceHeartbeatInterval,
+    Duration presencePeerTimeout = ocptDefaultPresencePeerTimeout,
   }) async {
     await stopSyncSession();
 
@@ -384,6 +399,16 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _syncSession = session;
 
     await session.start();
+
+    final presenceService = OcptPresenceService(
+      storage: storage,
+      deviceId: deviceId,
+      heartbeatInterval: presenceHeartbeatInterval,
+      peerTimeout: presencePeerTimeout,
+    );
+    _presenceService = presenceService;
+
+    await presenceService.start();
   }
 
   /// Unpairs [projectId] from whatever relay it was synced through — the Partager screen's own
@@ -401,11 +426,16 @@ class OcptSyncManager extends AbsWithLifeCycle {
   }
 
   /// Stops the current sync session, if any — cancels its timer and its `newWorkStream`
-  /// subscription and closes its status stream. Safe to call with no session running.
+  /// subscription and closes its status stream — and the current presence service alongside it,
+  /// if any. Safe to call with no session (or presence service) running.
   Future<void> stopSyncSession() async {
     final session = _syncSession;
     _syncSession = null;
     await session?.stop();
+
+    final presenceService = _presenceService;
+    _presenceService = null;
+    await presenceService?.stop();
   }
 
   /// Runs a sync right now against the running session, on demand — what the status indicator's
@@ -430,6 +460,19 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// Every screenplay merge conflict the running session has raised so far, oldest first, or an
   /// empty list when no session is running.
   List<OcptScreenplayMergeConflict> get syncConflicts => _syncSession?.conflicts ?? const [];
+
+  /// The running presence service's current roster, or null when none is running.
+  /// [presenceRosterStream] never replays this to a new listener — read this first to seed a fresh
+  /// subscriber, exactly as [syncStatus]'s own doc comment says.
+  OcptPresenceRoster? get presenceRoster => _presenceService?.roster;
+
+  /// The running presence service's own roster stream, or null when none is running.
+  Stream<OcptPresenceRoster>? get presenceRosterStream => _presenceService?.rosterStream;
+
+  /// Tells the running presence service this replica's own [mode] just changed, so it reaches
+  /// every peer on the very next heartbeat rather than waiting for the current one to age. Does
+  /// nothing when no presence service is running.
+  void updatePresenceMode(OcptWorkspaceMode mode) => _presenceService?.updateMode(mode);
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override
