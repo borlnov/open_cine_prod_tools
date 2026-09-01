@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// Displays the project card grid: the app's real landing page.
 ///
@@ -42,8 +43,10 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptHomeBloc(), child: const _HomeView());
+  Widget build(BuildContext context) => BlocProvider(
+    create: (context) => OcptHomeBloc(),
+    child: const _HomeView(),
+  );
 }
 
 /// The content of [HomePage], separated from it so [HomePage] only wires the [OcptHomeBloc] up
@@ -53,74 +56,95 @@ class _HomeView extends StatelessWidget {
   const _HomeView();
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: BlocConsumer<OcptHomeBloc, OcptHomeState>(
-      listener: _onStateChanged,
-      builder: (context, state) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              OcptHomeHeader(
-                onNewProject: () => _requestNewProject(context),
-                onOpenProject: () => _requestOpenProject(context),
-                onImport: () => _requestImport(context),
-                onJoinSharedProject: () => _requestJoinSharedProject(context),
-                onOpenSettings: () => _requestOpenSettings(context),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: state.recentProjects.isEmpty
-                    ? OcptHomeEmptyState(
-                        onNewProject: () => _requestNewProject(context),
-                        onOpenProject: () => _requestOpenProject(context),
-                        onImport: () => _requestImport(context),
-                      )
-                    : GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 280,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.78,
-                        ),
-                        itemCount: state.recentProjects.length,
-                        itemBuilder: (context, index) {
-                          final entry = state.recentProjects[index];
+  Widget build(BuildContext context) {
+    final isCompact = ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
 
-                          return OcptProjectCard(
-                            entry: entry,
-                            onTap: () => context.read<OcptHomeBloc>().add(
-                              OcptHomeOpenProjectRequestedEvent(
-                                filePath: entry.project.path,
-                                fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel,
+    return Scaffold(
+      floatingActionButton: isCompact
+          ? FloatingActionButton(
+              onPressed: () => _requestNewProject(context),
+              tooltip: Tr.of(context).homeNewProjectAction,
+              child: const Icon(Icons.add),
+            )
+          : null,
+      body: BlocConsumer<OcptHomeBloc, OcptHomeState>(
+        listener: _onStateChanged,
+        builder: (context, state) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OcptHomeHeader(
+                  onNewProject: () => _requestNewProject(context),
+                  onOpenProject: () => _requestOpenProject(context),
+                  onImport: () => _requestImport(context),
+                  onJoinSharedProject: () => _requestJoinSharedProject(context),
+                  onOpenSettings: () => _requestOpenSettings(context),
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: state.recentProjects.isEmpty
+                      ? OcptHomeEmptyState(
+                          isCompact: isCompact,
+                          onNewProject: () => _requestNewProject(context),
+                          onOpenProject: () => _requestOpenProject(context),
+                          onImport: () => _requestImport(context),
+                        )
+                      : GridView.builder(
+                          gridDelegate:
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 280,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 0.78,
                               ),
-                            ),
-                            onExport: () => context.read<OcptHomeBloc>().add(
-                              OcptProjectPackageExportRequestedEvent(
-                                fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
-                                target: OcptProjectPackageTarget(
+                          itemCount: state.recentProjects.length,
+                          itemBuilder: (context, index) {
+                            final entry = state.recentProjects[index];
+
+                            return OcptProjectCard(
+                              entry: entry,
+                              onTap: () => context.read<OcptHomeBloc>().add(
+                                OcptHomeOpenProjectRequestedEvent(
                                   filePath: entry.project.path,
-                                  name: entry.project.name,
+                                  fileTypeLabel: Tr.of(
+                                    context,
+                                  ).homeOpenFileTypeLabel,
                                 ),
                               ),
-                            ),
-                            onShare: () => context.read<OcptHomeBloc>().add(
-                              OcptHomeShareProjectRequestedEvent(filePath: entry.project.path),
-                            ),
-                            onRemove: () => context.read<OcptHomeBloc>().add(
-                              OcptHomeRemoveRecentProjectRequestedEvent(path: entry.project.path),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                              onExport: () => context.read<OcptHomeBloc>().add(
+                                OcptProjectPackageExportRequestedEvent(
+                                  fileTypeLabel: Tr.of(
+                                    context,
+                                  ).projectPackageFileTypeLabel,
+                                  target: OcptProjectPackageTarget(
+                                    filePath: entry.project.path,
+                                    name: entry.project.name,
+                                  ),
+                                ),
+                              ),
+                              onShare: () => context.read<OcptHomeBloc>().add(
+                                OcptHomeShareProjectRequestedEvent(
+                                  filePath: entry.project.path,
+                                ),
+                              ),
+                              onRemove: () => context.read<OcptHomeBloc>().add(
+                                OcptHomeRemoveRecentProjectRequestedEvent(
+                                  path: entry.project.path,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   /// States whatever [state] is holding for the user: the verdict on a project file whose format
   /// isn't this build's, the transient error of a failed create/open, a project card's export
@@ -130,7 +154,9 @@ class _HomeView extends StatelessWidget {
   void _onStateChanged(BuildContext context, OcptHomeState state) {
     final compatibility = state.pendingFileCompatibility;
     if (compatibility != null) {
-      context.read<OcptHomeBloc>().add(const OcptHomeFileCompatibilityStatedEvent());
+      context.read<OcptHomeBloc>().add(
+        const OcptHomeFileCompatibilityStatedEvent(),
+      );
       unawaited(_stateFileCompatibility(context, compatibility));
     }
 
@@ -145,7 +171,9 @@ class _HomeView extends StatelessWidget {
 
     final packagePendingExport = state.projectPackagePendingExport;
     if (packagePendingExport != null) {
-      context.read<OcptHomeBloc>().add(const OcptProjectPackageMissingFilesAskDismissedEvent());
+      context.read<OcptHomeBloc>().add(
+        const OcptProjectPackageMissingFilesAskDismissedEvent(),
+      );
       unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
     }
 
@@ -154,18 +182,30 @@ class _HomeView extends StatelessWidget {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
+          SnackBar(
+            content: Text(
+              ocptProjectPackageNoticeMessage(context, packageNotice),
+            ),
+          ),
         );
-      context.read<OcptHomeBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
+      context.read<OcptHomeBloc>().add(
+        const OcptProjectPackageNoticeDismissedEvent(),
+      );
     }
 
     final packageImportError = state.projectPackageImportError;
     if (packageImportError != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_importErrorMessage(context, packageImportError))));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(_importErrorMessage(context, packageImportError)),
+          ),
+        );
 
-      context.read<OcptHomeBloc>().add(const OcptHomeProjectPackageImportErrorDismissedEvent());
+      context.read<OcptHomeBloc>().add(
+        const OcptHomeProjectPackageImportErrorDismissedEvent(),
+      );
     }
 
     final screenplayImportError = state.screenplayImportError;
@@ -173,15 +213,23 @@ class _HomeView extends StatelessWidget {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(_screenplayImportErrorMessage(context, screenplayImportError))),
+          SnackBar(
+            content: Text(
+              _screenplayImportErrorMessage(context, screenplayImportError),
+            ),
+          ),
         );
 
-      context.read<OcptHomeBloc>().add(const OcptHomeScreenplayImportErrorDismissedEvent());
+      context.read<OcptHomeBloc>().add(
+        const OcptHomeScreenplayImportErrorDismissedEvent(),
+      );
     }
 
     final packageImportReport = state.projectPackageImportReport;
     if (packageImportReport != null) {
-      context.read<OcptHomeBloc>().add(const OcptHomeProjectPackageImportReportDismissedEvent());
+      context.read<OcptHomeBloc>().add(
+        const OcptHomeProjectPackageImportReportDismissedEvent(),
+      );
       unawaited(_landImportedPackage(context, packageImportReport));
     }
   }
@@ -200,7 +248,10 @@ class _HomeView extends StatelessWidget {
     OcptProjectPackageImportReport report,
   ) async {
     if (report.skippedAssets.isNotEmpty) {
-      await OcptProjectPackageSkippedFilesDialog.show(context, skippedAssets: report.skippedAssets);
+      await OcptProjectPackageSkippedFilesDialog.show(
+        context,
+        skippedAssets: report.skippedAssets,
+      );
     }
     if (!context.mounted) {
       return;
@@ -226,7 +277,10 @@ class _HomeView extends StatelessWidget {
     OcptProjectPackagePreflight preflight,
   ) async {
     final bloc = context.read<OcptHomeBloc>();
-    final confirmed = await ocptAskAboutMissingPackagedFiles(context, preflight);
+    final confirmed = await ocptAskAboutMissingPackagedFiles(
+      context,
+      preflight,
+    );
     if (confirmed != true) {
       return;
     }
@@ -299,7 +353,10 @@ class _HomeView extends StatelessWidget {
       case OcptProjectFileVerdict.foreignDevBuild:
         // One dialog answers both: neither is anything this build can do anything about, and
         // OcptProjectFileNewerDialog itself picks the wording the verdict calls for.
-        await OcptProjectFileNewerDialog.show(context, compatibility: compatibility);
+        await OcptProjectFileNewerDialog.show(
+          context,
+          compatibility: compatibility,
+        );
       case OcptProjectFileVerdict.current:
       case OcptProjectFileVerdict.unreadable:
         // Never raised: a file this build opens as it is has nothing to state.
@@ -317,7 +374,8 @@ class _HomeView extends StatelessWidget {
       OcptProjectStatus.corruptedFile => tr.homeErrorCorruptedFile,
       OcptProjectStatus.migrationRequired => tr.homeErrorMigrationRequired,
       OcptProjectStatus.newerFormat => tr.homeErrorNewerFormat,
-      OcptProjectStatus.foreignDevBuildFormat => tr.homeErrorForeignDevBuildFormat,
+      OcptProjectStatus.foreignDevBuildFormat =>
+        tr.homeErrorForeignDevBuildFormat,
       OcptProjectStatus.alreadyOpen => tr.homeErrorAlreadyOpen,
       OcptProjectStatus.ioError => tr.homeErrorIoError,
     };
@@ -331,14 +389,21 @@ class _HomeView extends StatelessWidget {
   /// between picking it and reading it, which an import's own picked `.ocptz` has no equivalent
   /// of. Both still need a branch for the switch to be exhaustive, so each falls back to the same
   /// generic sentence [OcptProjectPackageStatus.ioError] gets.
-  String _importErrorMessage(BuildContext context, OcptProjectPackageStatus status) {
+  String _importErrorMessage(
+    BuildContext context,
+    OcptProjectPackageStatus status,
+  ) {
     final tr = Tr.of(context);
 
     return switch (status) {
-      OcptProjectPackageStatus.ok || OcptProjectPackageStatus.sourceNotFound => "",
-      OcptProjectPackageStatus.unreadableArchive => tr.homeImportErrorUnreadableArchive,
-      OcptProjectPackageStatus.unsupportedPackageFormat => tr.homeImportErrorUnsupportedFormat,
-      OcptProjectPackageStatus.destinationExists => tr.homeImportErrorDestinationExists,
+      OcptProjectPackageStatus.ok ||
+      OcptProjectPackageStatus.sourceNotFound => "",
+      OcptProjectPackageStatus.unreadableArchive =>
+        tr.homeImportErrorUnreadableArchive,
+      OcptProjectPackageStatus.unsupportedPackageFormat =>
+        tr.homeImportErrorUnsupportedFormat,
+      OcptProjectPackageStatus.destinationExists =>
+        tr.homeImportErrorDestinationExists,
       OcptProjectPackageStatus.ioError => tr.homeImportErrorIoError,
     };
   }
@@ -351,13 +416,18 @@ class _HomeView extends StatelessWidget {
   /// sentence [OcptScreenplayImportStatus.unreadableFile] gets: whether the bytes never came back
   /// or came back as something that is not a screenplay, what the user is told is the same, and
   /// nothing they could do differs.
-  String _screenplayImportErrorMessage(BuildContext context, OcptScreenplayImportStatus status) {
+  String _screenplayImportErrorMessage(
+    BuildContext context,
+    OcptScreenplayImportStatus status,
+  ) {
     final tr = Tr.of(context);
 
     return switch (status) {
-      OcptScreenplayImportStatus.ok || OcptScreenplayImportStatus.cancelled => "",
+      OcptScreenplayImportStatus.ok ||
+      OcptScreenplayImportStatus.cancelled => "",
       OcptScreenplayImportStatus.unreadableFile ||
-      OcptScreenplayImportStatus.ioError => tr.homeImportScreenplayUnreadableError,
+      OcptScreenplayImportStatus.ioError =>
+        tr.homeImportScreenplayUnreadableError,
     };
   }
 
@@ -375,7 +445,9 @@ class _HomeView extends StatelessWidget {
   /// Dispatches the open request that shows the open-file dialog.
   void _requestOpenProject(BuildContext context) {
     context.read<OcptHomeBloc>().add(
-      OcptHomeOpenProjectRequestedEvent(fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel),
+      OcptHomeOpenProjectRequestedEvent(
+        fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel,
+      ),
     );
   }
 
@@ -416,7 +488,8 @@ class _HomeView extends StatelessWidget {
     context.read<OcptHomeBloc>().add(
       OcptHomeImportProjectPackageRequestedEvent(
         packageFileTypeLabel: tr.projectPackageFileTypeLabel,
-        destinationConfirmButtonText: tr.homeImportProjectDestinationConfirmAction,
+        destinationConfirmButtonText:
+            tr.homeImportProjectDestinationConfirmAction,
       ),
     );
   }
@@ -436,6 +509,8 @@ class _HomeView extends StatelessWidget {
   /// because the bloc still has to refresh the recent projects list once the user comes back —
   /// joining creates a new project card that was not there before.
   void _requestJoinSharedProject(BuildContext context) {
-    context.read<OcptHomeBloc>().add(const OcptHomeJoinSharedProjectRequestedEvent());
+    context.read<OcptHomeBloc>().add(
+      const OcptHomeJoinSharedProjectRequestedEvent(),
+    );
   }
 }

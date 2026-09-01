@@ -166,6 +166,7 @@
   "homeImportErrorIoError": "Le paquet de projet n'a pas pu être importé.",
   "homeEmptyStateTitle": "Aucun projet pour le moment",
   "homeEmptyStateMessage": "Créez un nouveau projet de scénario ou ouvrez-en un existant pour commencer.",
+  "homeEmptyStateCompactHint": "Touchez + pour créer un projet, ou utilisez le menu ⋮ pour en ouvrir ou importer un.",
   "homeExportProjectAction": "Exporter…",
   "homeShareProjectAction": "Partager / Synchroniser…",
   "homeRemoveFromListAction": "Retirer de la liste",

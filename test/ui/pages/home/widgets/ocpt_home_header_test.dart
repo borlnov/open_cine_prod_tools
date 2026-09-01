@@ -57,10 +57,11 @@ void main() {
   });
 
   testWidgets(
-    "below the breakpoint, the header collapses four actions into an overflow menu",
+    "below the breakpoint, the header collapses every action into an overflow menu",
     (tester) async {
-      // Narrower than the header's breakpoint (720): the title stays on one line and only the
-      // primary "New project" action and the overflow trigger remain visible directly.
+      // Narrower than the compact-width breakpoint (816): the title stays on one line, "New
+      // project" is dropped entirely (it lives in the page's own FAB at this width) and only the
+      // overflow trigger remains visible directly.
       tester.view.physicalSize = const Size(500, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -76,8 +77,9 @@ void main() {
       expect(titleText.maxLines, 1);
       expect(titleText.overflow, TextOverflow.ellipsis);
 
-      // The primary action stays visible; the other four are behind the overflow menu.
-      expect(find.text(tr.homeNewProjectAction), findsOneWidget);
+      // "New project" is gone from the compact header; only the overflow trigger remains, and
+      // every other action is behind it.
+      expect(find.text(tr.homeNewProjectAction), findsNothing);
       expect(find.byIcon(Icons.more_vert), findsOneWidget);
       expect(find.text(tr.homeOpenProjectAction), findsNothing);
       expect(find.text(tr.homeImportAction), findsNothing);

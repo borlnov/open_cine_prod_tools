@@ -1215,6 +1215,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeEmptyStateCompactHint": "Tap + to create a project, or use the ⋮ menu to open or import one.",
+  "@homeEmptyStateCompactHint": {
+    "description": "Hint pointing to the FAB and the overflow menu, replacing the empty state's button row at compact width",
+    "context": "Displayed below the empty state message, when the recent projects list is empty and the window is compact",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeExportProjectAction": "Export…",
   "@homeExportProjectAction": {
     "description": "Label of the action that writes a project card's project out as a portable package",

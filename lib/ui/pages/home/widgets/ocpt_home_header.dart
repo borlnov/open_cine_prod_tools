@@ -5,22 +5,21 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The side of the application logo standing next to the home page's title: big enough to read as
 /// the app's mark on the one page that has room for it, small enough to stay under the title's own
 /// line height.
 const double _logoSize = 32;
 
-/// The available width below which the header collapses four of its five actions into a single
-/// overflow menu: below this, the logo, the title and all five actions side by side no longer fit
-/// without squeezing the title down to one letter per line. Picked so the wide layout has visible
-/// breathing room above it, not just the bare minimum to fit.
-const double _narrowBreakpoint = 720;
-
 /// The top region of the home page: the app logo and title, and the two primary actions of the
 /// page.
 class OcptHomeHeader extends StatelessWidget {
   /// Called when the user taps the "New project" action.
+  ///
+  /// Only wired at wide width — [ocptCompactWidthBreakpoint] and above — where "New project"
+  /// still shows in the header itself; at compact width the page's own floating action button
+  /// takes over that action and this field is unused by [build].
   final VoidCallback onNewProject;
 
   /// Called when the user taps the "Open…" action.
@@ -52,7 +51,7 @@ class OcptHomeHeader extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < _narrowBreakpoint;
+        final isCompact = ocptIsCompactWidth(constraints.maxWidth);
 
         return Row(
           children: [
@@ -67,7 +66,10 @@ class OcptHomeHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            if (isNarrow) ..._buildNarrowActions(tr) else ..._buildWideActions(tr),
+            if (isCompact)
+              ..._buildCompactActions(tr)
+            else
+              ..._buildWideActions(tr),
           ],
         );
       },
@@ -107,9 +109,10 @@ class OcptHomeHeader extends StatelessWidget {
     ),
   ];
 
-  /// The narrow layout: the primary "New project" action stays visible, the other four collapse
-  /// into a single overflow menu so neither the title nor the buttons force a horizontal overflow.
-  List<Widget> _buildNarrowActions(Tr tr) => [
+  /// The compact layout: every action collapses into a single overflow menu, and "New project"
+  /// itself is dropped — the home page shows it as a floating action button instead, which reaches
+  /// further down a phone-sized screen than a header button would.
+  List<Widget> _buildCompactActions(Tr tr) => [
     MenuAnchor(
       menuChildren: [
         MenuItemButton(
@@ -134,19 +137,14 @@ class OcptHomeHeader extends StatelessWidget {
         ),
       ],
       builder: (context, controller, child) => IconButton(
-        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
         icon: const Icon(Icons.more_vert),
         // Flutter's own generic "Show menu" string, not a bespoke ARB key: this button behaves
         // exactly like `PopupMenuButton`'s default trigger, just built from `MenuAnchor` so the
         // menu items stay `MenuItemButton`s.
         tooltip: MaterialLocalizations.of(context).showMenuTooltip,
       ),
-    ),
-    const SizedBox(width: 12),
-    FilledButton.icon(
-      onPressed: onNewProject,
-      icon: const Icon(Icons.add),
-      label: Text(tr.homeNewProjectAction),
     ),
   ];
 }
