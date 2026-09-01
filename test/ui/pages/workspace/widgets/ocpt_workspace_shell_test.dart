@@ -161,6 +161,15 @@ void main() {
   });
 
   testWidgets("a dock toggle is rendered only for the side that wired a callback", (tester) async {
+    // A wide, desktop surface: this is about the mode-owned isLeftDockOpen/onToggleLeftDock pair,
+    // which only drives the toggle above ocptCompactWidthBreakpoint — the default 800px test
+    // surface is compact (below 816), where the toggle drives the shell's own local drawer state
+    // instead (see the "compact-width edge drawers" group below).
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     var leftToggleCount = 0;
 
     await tester.pumpWidget(
@@ -370,6 +379,14 @@ void main() {
   );
 
   testWidgets("a mode that wires none of the chrome slots renders none of them", (tester) async {
+    // A wide surface: below ocptCompactWidthBreakpoint the mode label is withheld outright (see
+    // the "compact-width toolbar reductions" group below), and this test is about the chrome
+    // slots rather than that reduction.
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       _wrapInApp(
         OcptWorkspaceShell(
@@ -596,6 +613,13 @@ void main() {
     "the Add an episode… button takes the selector's place on a single-episode project, and "
     "clicking it fires onAddEpisodeRequested",
     (tester) async {
+      // A wide surface: below ocptCompactWidthBreakpoint the button is withheld outright (see the
+      // "compact-width toolbar reductions" group below), and this test is about the button itself.
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       var addCount = 0;
 
       await tester.pumpWidget(
@@ -724,41 +748,54 @@ void main() {
       expect(find.text("left"), findsOneWidget);
     });
 
-    testWidgets("a compact width drops the divider and shows the panel as a drawer", (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(700, 1000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      "a compact width starts with the panel closed, and shows it as a drawer once its toggle is "
+      "tapped",
+      (tester) async {
+        tester.view.physicalSize = const Size(700, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      final controller = buildController();
-      addTearDown(controller.dispose);
+        final controller = buildController();
+        addTearDown(controller.dispose);
 
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptWorkspaceShell(
-            title: "My Movie",
-            isDirty: false,
-            onBack: () {},
-            centre: const Text("centre"),
-            leftPanel: const Text("left"),
-            dockLayoutController: controller,
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptWorkspaceShell(
+              title: "My Movie",
+              isDirty: false,
+              onBack: () {},
+              centre: const Text("centre"),
+              leftPanel: const Text("left"),
+              // The mode's own flag defaults to open — a compact width ignores it, so the drawer
+              // still starts closed.
+              isLeftDockOpen: true,
+              onToggleLeftDock: () {},
+              dockLayoutController: controller,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // No resize divider at a compact width, but the open panel and the centre are both present.
-      expect(find.byType(OcptWorkspaceDockDivider), findsNothing);
-      expect(find.text("left"), findsOneWidget);
-      expect(find.text("centre"), findsOneWidget);
+        // No resize divider at a compact width, and the panel starts closed.
+        expect(find.byType(OcptWorkspaceDockDivider), findsNothing);
+        expect(find.text("left"), findsNothing);
+        expect(find.text("centre"), findsOneWidget);
 
-      // The drawer is the fixed edge width on a tablet-compact row, not the whole width.
-      expect(tester.getSize(find.byType(OcptWorkspaceDock)).width, ocptCompactDrawerWidth);
-    });
+        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+        await tester.tap(find.byTooltip(tr.workspaceToggleLeftDockTooltip));
+        await tester.pumpAndSettle();
 
-    testWidgets("a phone-width drawer fills the whole row", (tester) async {
+        expect(find.text("left"), findsOneWidget);
+        expect(find.text("centre"), findsOneWidget);
+
+        // The drawer is the fixed edge width on a tablet-compact row, not the whole width.
+        expect(tester.getSize(find.byType(OcptWorkspaceDock)).width, ocptCompactDrawerWidth);
+      },
+    );
+
+    testWidgets("a phone-width drawer fills the whole row once opened", (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -775,17 +812,68 @@ void main() {
             onBack: () {},
             centre: const Text("centre"),
             rightPanel: const Text("right"),
+            onToggleRightDock: () {},
             dockLayoutController: controller,
           ),
         ),
       );
       await tester.pumpAndSettle();
 
+      expect(find.text("right"), findsNothing);
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
+      await tester.pumpAndSettle();
+
       expect(find.byType(OcptWorkspaceDockDivider), findsNothing);
       expect(tester.getSize(find.byType(OcptWorkspaceDock)).width, 390);
     });
 
-    testWidgets("tapping the scrim beside a drawer closes it through its toggle", (tester) async {
+    testWidgets(
+      "opening the left drawer then the right leaves only the right open (mutual exclusivity)",
+      (tester) async {
+        tester.view.physicalSize = const Size(700, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final controller = buildController();
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptWorkspaceShell(
+              title: "My Movie",
+              isDirty: false,
+              onBack: () {},
+              centre: const Text("centre"),
+              leftPanel: const Text("left"),
+              rightPanel: const Text("right"),
+              onToggleLeftDock: () {},
+              onToggleRightDock: () {},
+              dockLayoutController: controller,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+        await tester.tap(find.byTooltip(tr.workspaceToggleLeftDockTooltip));
+        await tester.pumpAndSettle();
+
+        expect(find.text("left"), findsOneWidget);
+        expect(find.text("right"), findsNothing);
+
+        await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
+        await tester.pumpAndSettle();
+
+        // Opening the right drawer closed the left one — at most one is ever open at once.
+        expect(find.text("left"), findsNothing);
+        expect(find.text("right"), findsOneWidget);
+      },
+    );
+
+    testWidgets("tapping its own toggle again closes an open drawer", (tester) async {
       tester.view.physicalSize = const Size(700, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -793,8 +881,6 @@ void main() {
 
       final controller = buildController();
       addTearDown(controller.dispose);
-
-      var leftToggleCount = 0;
 
       await tester.pumpWidget(
         _wrapInApp(
@@ -804,20 +890,60 @@ void main() {
             onBack: () {},
             centre: const Text("centre"),
             leftPanel: const Text("left"),
-            isLeftDockOpen: true,
-            onToggleLeftDock: () => leftToggleCount++,
+            onToggleLeftDock: () {},
             dockLayoutController: controller,
           ),
         ),
       );
       await tester.pumpAndSettle();
 
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      final toggle = find.byTooltip(tr.workspaceToggleLeftDockTooltip);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text("left"), findsOneWidget);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text("left"), findsNothing);
+    });
+
+    testWidgets("tapping the scrim beside a drawer closes it", (tester) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = buildController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            leftPanel: const Text("left"),
+            onToggleLeftDock: () {},
+            dockLayoutController: controller,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      await tester.tap(find.byTooltip(tr.workspaceToggleLeftDockTooltip));
+      await tester.pumpAndSettle();
+      expect(find.text("left"), findsOneWidget);
+
       // The drawer is 360 px wide at the left; a tap well to its right lands on the scrim over the
-      // centre, which dismisses the drawer through the same toggle that opened it.
+      // centre, which closes the drawer.
       await tester.tapAt(const Offset(600, 600));
       await tester.pumpAndSettle();
 
-      expect(leftToggleCount, 1);
+      expect(find.text("left"), findsNothing);
     });
   });
 
@@ -940,7 +1066,8 @@ void main() {
 
   group("phone-width episode control", () {
     testWidgets(
-      "the single-episode add button is icon-only and does not overflow the toolbar",
+      "the single-episode add button is withheld outright at a phone width, which is always "
+      "compact too",
       (tester) async {
         tester.view.physicalSize = const Size(360, 844);
         tester.view.devicePixelRatio = 1.0;
@@ -972,8 +1099,10 @@ void main() {
         expect(tester.takeException(), isNull);
 
         final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
-        // The control is present (its tooltip) but icon-only — its label is not drawn.
-        expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsOneWidget);
+        // ocptPhoneWidthBreakpoint is always below ocptCompactWidthBreakpoint, so the button is
+        // withheld here exactly as it is at any other compact width — it never gets to reduce to
+        // an icon-only trigger of its own.
+        expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
         expect(find.text(tr.workspaceAddEpisodeAction), findsNothing);
       },
     );
@@ -1017,6 +1146,76 @@ void main() {
         expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsOneWidget);
         expect(find.text(tr.workspaceEpisodeTitledLabel(1, "A Very Long Episode Title Indeed")),
             findsNothing);
+      },
+    );
+  });
+
+  group("compact-width toolbar reductions", () {
+    testWidgets(
+      "hides the title and mode label, and the single-episode add button, below "
+      "ocptCompactWidthBreakpoint",
+      (tester) async {
+        // Explicitly below the 816px breakpoint — the default 800px test surface is compact too,
+        // but this test is about the reduction itself, so it states the width it relies on.
+        tester.view.physicalSize = const Size(500, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptWorkspaceShell(
+              title: "My Movie",
+              isDirty: false,
+              onBack: () {},
+              modeLabel: "Screenplay",
+              centre: const Text("centre"),
+              episodes: const [pilotEpisode],
+              selectedEpisodeId: pilotEpisode.id,
+              onEpisodeSelected: (_) {},
+              onAddEpisodeRequested: () {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+        expect(find.text("My Movie"), findsNothing);
+        expect(find.text("Screenplay"), findsNothing);
+        expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
+        expect(find.text(tr.workspaceAddEpisodeAction), findsNothing);
+      },
+    );
+
+    testWidgets(
+      "keeps the title, the mode label and the single-episode add button at a wide width",
+      (tester) async {
+        tester.view.physicalSize = const Size(1200, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptWorkspaceShell(
+              title: "My Movie",
+              isDirty: false,
+              onBack: () {},
+              modeLabel: "Screenplay",
+              centre: const Text("centre"),
+              episodes: const [pilotEpisode],
+              selectedEpisodeId: pilotEpisode.id,
+              onEpisodeSelected: (_) {},
+              onAddEpisodeRequested: () {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+        expect(find.text("My Movie"), findsOneWidget);
+        expect(find.text("Screenplay"), findsOneWidget);
+        expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsOneWidget);
       },
     );
   });
