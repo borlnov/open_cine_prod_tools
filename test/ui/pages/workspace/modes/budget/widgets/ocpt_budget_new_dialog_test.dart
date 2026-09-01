@@ -1317,4 +1317,84 @@ void main() {
       expect(routerManager.poppedValue, isNull);
     },
   );
+
+  group("the wizard shell answers ocptIsCompactWidth", () {
+    testWidgets(
+      "renders full-screen at a compact width — the default test surface included — and the "
+      "wizard still runs end to end",
+      (tester) async {
+        // No explicit surface override: the default 800×600 test surface is itself below
+        // `ocptCompactWidthBreakpoint` (816), so this is also what every other test in this file
+        // has been exercising all along.
+        final tr = await pumpDialog(tester, initialGesture: OcptBudgetGesture.recordTakingReceipt);
+
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.byType(AppBar), findsOneWidget);
+        expect(find.byKey(const Key("ocptBudgetNewFullscreenCloseButton")), findsOneWidget);
+        expect(
+          find.byWidgetPredicate((widget) => widget is SizedBox && widget.width == 520),
+          findsNothing,
+        );
+
+        // Two steps, not three: no taking to pick, so step 1 goes straight to the money form —
+        // the wizard's own step navigation and its `Save` still work inside the full-screen shell.
+        expect(find.text(tr.budgetNewStepLabel(1, 2)), findsOneWidget);
+        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "10");
+        await tester.enterText(find.byKey(const Key("ocptBudgetNewLabelField")), "Festival prize");
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+        await tester.pumpAndSettle();
+
+        final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
+        expect(outcome.fields.newRevenue?.label, "Festival prize");
+      },
+    );
+
+    testWidgets(
+      "the full-screen shell's close action cancels the whole wizard, exactly as Cancel already does",
+      (tester) async {
+        await pumpDialog(tester);
+
+        await tester.tap(find.byKey(const Key("ocptBudgetNewFullscreenCloseButton")));
+        await tester.pumpAndSettle();
+
+        expect(routerManager.popped, isTrue);
+        expect(routerManager.poppedValue, isNull);
+      },
+    );
+
+    testWidgets("stays an AlertDialog above the compact breakpoint", (tester) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpDialog(tester, initialGesture: OcptBudgetGesture.recordTakingReceipt);
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewFullscreenCloseButton")), findsNothing);
+      expect(
+        find.byWidgetPredicate((widget) => widget is SizedBox && widget.width == 520),
+        findsOneWidget,
+      );
+
+      // The wizard still runs end to end above the breakpoint too.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "10");
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewLabelField")), "Festival prize");
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+      await tester.pumpAndSettle();
+
+      final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
+      expect(outcome.fields.newRevenue?.label, "Festival prize");
+    });
+  });
 }

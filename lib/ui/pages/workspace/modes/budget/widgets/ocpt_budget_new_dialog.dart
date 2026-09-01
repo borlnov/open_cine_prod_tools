@@ -55,9 +55,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
-/// The dialog's own fixed width, in logical pixels — wide enough for the widest step (the
-/// breakdown selector's own table) without wrapping.
+/// The dialog's own fixed width, in logical pixels, above [ocptCompactWidthBreakpoint] — wide
+/// enough for the widest step (the breakdown selector's own table) without wrapping. Below the
+/// breakpoint the wizard drops this width altogether and renders full-screen instead (`build`).
 const double _ocptNewDialogWidth = 520;
 
 /// Which of the wizard's own three screens is currently drawn — mirrors
@@ -443,23 +445,75 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
+    final stepContent = switch (_step) {
+      _OcptBudgetNewStep.gesture => _buildGestureStep(context, tr),
+      _OcptBudgetNewStep.attachment => _buildAttachmentStep(context, tr),
+      _OcptBudgetNewStep.form => _buildFormStep(context, tr),
+    };
+    final stepActions = switch (_step) {
+      _OcptBudgetNewStep.gesture => _buildGestureActions(tr),
+      _OcptBudgetNewStep.attachment => _buildAttachmentActions(tr),
+      _OcptBudgetNewStep.form => _buildFormActions(context, tr),
+    };
+
+    if (ocptIsCompactWidth(MediaQuery.sizeOf(context).width)) {
+      return _buildFullscreen(context, tr, stepContent: stepContent, stepActions: stepActions);
+    }
+
     return AlertDialog(
       title: _buildTitle(context, tr),
       content: SizedBox(
         width: _ocptNewDialogWidth,
-        child: SingleChildScrollView(
-          child: switch (_step) {
-            _OcptBudgetNewStep.gesture => _buildGestureStep(context, tr),
-            _OcptBudgetNewStep.attachment => _buildAttachmentStep(context, tr),
-            _OcptBudgetNewStep.form => _buildFormStep(context, tr),
-          },
+        child: SingleChildScrollView(child: stepContent),
+      ),
+      actions: stepActions,
+    );
+  }
+
+  /// The compact rendering, below [ocptCompactWidthBreakpoint] — mirrors
+  /// `OcptNewProjectNameDialog`'s own `Dialog.fullscreen` shell, holding the exact same three-step
+  /// content [_step] would otherwise hand `AlertDialog`. The trail-carrying [_buildTitle] moves into
+  /// the `AppBar`, tall enough to hold it whether or not step 2/3's own trail row is drawn, and the
+  /// leading `×` cancels the whole wizard exactly as [_handleCancel] already does — never a
+  /// step-back, which stays in [stepActions] alongside `Continue`/`Save`, both now living in a
+  /// bottom bar since there is no `AlertDialog` left to draw them as.
+  Widget _buildFullscreen(
+    BuildContext context,
+    Tr tr, {
+    required Widget stepContent,
+    required List<Widget> stepActions,
+  }) {
+    final theme = Theme.of(context);
+    final showsTrail = _step != _OcptBudgetNewStep.gesture && _gesture != null;
+
+    return Dialog.fullscreen(
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: showsTrail ? kToolbarHeight + 28 : kToolbarHeight,
+          leading: IconButton(
+            key: const Key("ocptBudgetNewFullscreenCloseButton"),
+            onPressed: _handleCancel,
+            icon: const Icon(Icons.close),
+            tooltip: tr.budgetEntryDialogCancelAction,
+          ),
+          title: _buildTitle(context, tr),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: stepContent),
+        ),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Container(
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.dividerColor))),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: OverflowBar(
+              alignment: MainAxisAlignment.end,
+              spacing: 8,
+              children: stepActions,
+            ),
+          ),
         ),
       ),
-      actions: switch (_step) {
-        _OcptBudgetNewStep.gesture => _buildGestureActions(tr),
-        _OcptBudgetNewStep.attachment => _buildAttachmentActions(tr),
-        _OcptBudgetNewStep.form => _buildFormActions(context, tr),
-      },
     );
   }
 
