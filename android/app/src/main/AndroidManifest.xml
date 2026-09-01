@@ -2,7 +2,7 @@
     <!-- Used by mobile_scanner to read the invite QR code on the Rejoindre page's scan tab. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="open_cine_prod_tools"
+        android:label="OCP Tools"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
