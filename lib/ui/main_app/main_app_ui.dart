@@ -6,6 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -67,12 +68,63 @@ class MainAppUi extends StatelessWidget {
                 builder: (context, child) {
                   OcptGlobalManager.instance.initInFirstView(context);
 
-                  return child ?? const SizedBox.shrink();
+                  return _EdgeToEdgeShell(child: child ?? const SizedBox.shrink());
                 },
               );
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Wraps every route the [MaterialApp.router] builds so no screen ever hides behind the platform's
+/// system bars, while still letting the app paint edge to edge under them.
+///
+/// Android 15 (`targetSdk` 35) draws apps edge to edge: the status bar and the navigation bar
+/// overlay the content instead of insetting it, so a screen that does not account for them slips
+/// underneath. Rather than repeat a `SafeArea` in every page and every future one, this single shell
+/// does three things once, for the whole app:
+///
+/// - it makes both system bars transparent and picks their icon brightness from the active theme,
+///   through an [AnnotatedRegion] that re-evaluates whenever the theme flips, so the bars read as a
+///   seamless extension of the app in light and in dark;
+/// - it paints [ThemeData.scaffoldBackgroundColor] across the entire window — behind the bars
+///   included, since the [ColoredBox] sits *outside* the [SafeArea] — so the strips under the bars
+///   carry the app's own surface colour rather than a bare window background;
+/// - it insets [child] with a [SafeArea] so the routed content clears the bars.
+///
+/// On desktop there are no system insets, so the [SafeArea] adds no padding and the
+/// [AnnotatedRegion] is inert: the shell is a no-op there and changes nothing.
+class _EdgeToEdgeShell extends StatelessWidget {
+  /// The routed content to inset — the [MaterialApp.router]'s own `child`.
+  final Widget child;
+
+  /// Class constructor
+  const _EdgeToEdgeShell({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final barIconBrightness = isDark ? Brightness.light : Brightness.dark;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: barIconBrightness,
+        // iOS reads the status bar text brightness from the opposite field.
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: barIconBrightness,
+        // Keep Android from laying its own translucent scrim over the transparent nav bar, so the
+        // surface colour below shows through unaltered.
+        systemNavigationBarContrastEnforced: false,
+      ),
+      child: ColoredBox(
+        color: theme.scaffoldBackgroundColor,
+        child: SafeArea(child: child),
       ),
     );
   }
