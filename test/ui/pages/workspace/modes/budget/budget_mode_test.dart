@@ -1343,7 +1343,40 @@ void main() {
   );
 
   group("the floating add at a compact width", () {
-    testWidgets("is present at a compact width", (tester) async {
+    testWidgets(
+      "is present at a compact width, and the header's own capture button is withheld — never "
+      "both at once",
+      (tester) async {
+        tester.view.physicalSize = const Size(700, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(FloatingActionButton), findsOneWidget);
+        expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
+      },
+    );
+
+    testWidgets(
+      "is absent at a desktop width, where the header's own capture button is the only door",
+      (tester) async {
+        tester.view.physicalSize = const Size(1750, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(FloatingActionButton), findsNothing);
+        expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
+      },
+    );
+
+    testWidgets("is drawn icon-only, with no visible label text of its own", (tester) async {
       tester.view.physicalSize = const Size(700, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -1352,19 +1385,20 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      // Icon-only: no FloatingActionButton.extended drawing the label text, and the label lives
+      // on as the button's tooltip instead — the standing accessibility fallback.
       expect(find.byType(FloatingActionButton), findsOneWidget);
-    });
-
-    testWidgets("is absent at a desktop width", (tester) async {
-      tester.view.physicalSize = const Size(1750, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(find.byType(Icon), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byType(FloatingActionButton),
+          matching: find.text(tr.budgetHeaderNewAction),
+        ),
+        findsNothing,
+      );
+      expect(find.byTooltip(tr.budgetHeaderNewAction), findsOneWidget);
     });
 
     testWidgets(

@@ -471,8 +471,12 @@ class _BudgetViewState extends State<_BudgetView> {
   /// [OcptBudgetState.view] names (see [_buildRoute]), overlaid at a compact width [isCompact] with
   /// the same floating `+ New` affordance the header band's own trailing button already fires — the
   /// very pair [_newButtonOf] built for it, reused whole rather than resolved twice, so the floating
-  /// button can never drift from the desktop one. See [OcptWorkspaceFloatingAddButton]'s own doc
-  /// comment.
+  /// button can never drift from the desktop one. The two affordances are mutually exclusive: at a
+  /// wide width [OcptBudgetHeader] carries the capture button and the floating one stays hidden
+  /// ([OcptWorkspaceFloatingAddButton]'s own `isVisible: isCompact` withholds it); at a compact width
+  /// the header's own button is withheld instead (`captureLabel`/`onCaptureRequested` null) and the
+  /// floating one — icon-only, see [OcptWorkspaceFloatingAddButton.iconOnly] — takes over, so the
+  /// user is never shown both at once.
   Widget _buildCentre(BuildContext context, OcptBudgetState state, bool isCompact) {
     final bloc = context.read<OcptBudgetBloc>();
     // Read once, here: null is "a previewed version takes it away" — the same label and gesture on
@@ -483,6 +487,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
     return OcptWorkspaceFloatingAddButton(
       isVisible: isCompact,
+      iconOnly: true,
       icon: Icons.add,
       label: Tr.of(context).budgetHeaderNewAction,
       onPressed: newButton?.$2,
@@ -510,8 +515,10 @@ class _BudgetViewState extends State<_BudgetView> {
             onPosteFilterCleared: () =>
                 bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
             alertCount: state.alerts.length,
-            captureLabel: newButton?.$1,
-            onCaptureRequested: newButton?.$2,
+            // Withheld at a compact width: the floating button above takes over there, and showing
+            // both would duplicate the affordance.
+            captureLabel: isCompact ? null : newButton?.$1,
+            onCaptureRequested: isCompact ? null : newButton?.$2,
           ),
           const SizedBox(height: 12),
           Expanded(

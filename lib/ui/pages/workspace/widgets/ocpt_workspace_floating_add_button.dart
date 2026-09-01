@@ -37,10 +37,24 @@ class OcptWorkspaceFloatingAddButton extends StatelessWidget {
 
   /// A leading icon to draw before [label], or null when the label already carries its own visual
   /// cue (the shot list's `+ Shot` reads as a plus sign on its own).
+  ///
+  /// Required — non-null — when [iconOnly] is true, since it is then the button's only visible
+  /// content.
   final IconData? icon;
 
   /// Fires the mode's existing record-creation flow, or null to withhold the button entirely.
   final VoidCallback? onPressed;
+
+  /// Draws a plain, icon-only [FloatingActionButton] instead of the default labelled
+  /// [FloatingActionButton.extended].
+  ///
+  /// [label] is not dropped in this mode — it becomes the button's [Tooltip]/semantic label, so the
+  /// affordance still reads for accessibility even though no text is drawn. Use this when the mode's
+  /// own header band already carries the labelled control at a wide width and the floating button
+  /// only needs to stand in for it at a compact one, where the shorter affordance reads more like a
+  /// mobile "add" action (the budget mode's `+ New` does this; the shot list's `+ Shot` does not, and
+  /// keeps the default extended button). Requires [icon] to be non-null.
+  final bool iconOnly;
 
   /// Class constructor
   const OcptWorkspaceFloatingAddButton({
@@ -50,7 +64,11 @@ class OcptWorkspaceFloatingAddButton extends StatelessWidget {
     required this.label,
     this.icon,
     required this.onPressed,
-  });
+    this.iconOnly = false,
+  }) : assert(
+         !iconOnly || icon != null,
+         "iconOnly requires a non-null icon: it is the button's only visible content.",
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +85,9 @@ class OcptWorkspaceFloatingAddButton extends StatelessWidget {
         Positioned(
           right: 16,
           bottom: 16,
-          child: icon == null
+          child: iconOnly
+              ? FloatingActionButton(onPressed: onPressed, tooltip: label, child: Icon(icon))
+              : icon == null
               ? FloatingActionButton.extended(onPressed: onPressed, label: Text(label))
               : FloatingActionButton.extended(
                   onPressed: onPressed,
