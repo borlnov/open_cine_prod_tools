@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
+import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
@@ -32,6 +33,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_find_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_controls.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_overflow_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
@@ -1021,6 +1024,133 @@ void main() {
       expect(node.getMetadataValue(ocptTypeLockedMetadataKey), isTrue);
     },
   );
+
+  group('the compact-width toolbar (below ocptCompactWidthBreakpoint, above the phone width)', () {
+    /// Pumps [EditorPage] at a width inside the compact range but above the phone one — the exact
+    /// window the owner reported the format controls overflowing the toolbar's right side at
+    /// (601-652 px).
+    Future<void> pumpAtCompactWidth(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(620, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    }
+
+    testWidgets(
+      'folds the format controls into a single ⋮ menu, in place of the inline dropdown and '
+      'toggle buttons, and draws no overflow',
+      (tester) async {
+        await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+        // See the identical guard in "a phone width forces the styled editor…" above: mounting the
+        // styled editor at a forced width and then resizing the view back out in this test's own
+        // `resetPhysicalSize` teardown crashes its Android touch interactor (the default target
+        // platform under `flutter test`) unless the desktop one is forced instead.
+        debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+        try {
+          await pumpAtCompactWidth(tester);
+          await tester.pumpAndSettle();
+          // One more settle past the styled editor's own reclassify debounce — see the identical
+          // comment in "a phone width forces the styled editor…" above for why this is needed.
+          await tester.pump(const Duration(milliseconds: 200));
+
+          expect(find.byType(OcptEditorFormatControls), findsNothing);
+          expect(find.byType(OcptEditorFormatOverflowMenu), findsOneWidget);
+          expect(find.byType(OcptEditorBlockTypeDropdown), findsNothing);
+
+          final tr = Tr.of(tester.element(find.byType(EditorPage)));
+          expect(find.byTooltip(tr.editorFormatMenuTooltip), findsOneWidget);
+
+          // The styled/raw mode toggle stays reachable beside the folded format menu.
+          expect(find.byTooltip(tr.editorSwitchToRawModeTooltip), findsOneWidget);
+
+          expect(tester.takeException(), isNull);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+
+    testWidgets(
+      'the folded format menu exposes the same block-type submenu and bold toggle as the inline '
+      'controls, wired to the very same controller',
+      (tester) async {
+        await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+        // See the identical guard in the test above.
+        debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+        try {
+          await pumpAtCompactWidth(tester);
+          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 200));
+
+          final document = SuperEditorInspector.findDocument()!;
+          final firstNodeId = document.getNodeAt(0)!.id;
+          await tester.placeCaretInParagraph(firstNodeId, 0);
+          await tester.pumpAndSettle();
+
+          final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+          // The block-type submenu changes the caret's block type exactly like the inline dropdown
+          // does ("using the toolbar's dropdown changes the caret's block type…" above).
+          await tester.tap(find.byTooltip(tr.editorFormatMenuTooltip));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(tr.editorContextMenuBlockTypeSubmenu));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(tr.editorBlockTypeTransition));
+          await tester.pumpAndSettle();
+
+          final node = document.getNodeAt(0)! as ParagraphNode;
+          expect(
+            OcptFountainLineAttributions.typeOfAttributionValue(
+              node.getMetadataValue("blockType"),
+            ),
+            FountainLineType.transition,
+          );
+
+          // Bold toggles the very same controller the inline row would — reading it back off the
+          // live styled editor's own `styledController` is what proves the two widgets share one
+          // flow rather than each carrying its own.
+          final styledEditor = tester.widget<OcptStyledScreenplayEditor>(
+            find.byType(OcptStyledScreenplayEditor),
+          );
+          final controller = styledEditor.styledController!;
+          expect(controller.activeInlineStyles.contains(OcptInlineStyle.bold), isFalse);
+
+          await tester.tap(find.byTooltip(tr.editorFormatMenuTooltip));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(tr.editorToggleBoldTooltip));
+          await tester.pumpAndSettle();
+
+          expect(controller.activeInlineStyles.contains(OcptInlineStyle.bold), isTrue);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+
+    testWidgets(
+      'draws no right-side overflow in raw mode either, with the preview/syntax toggles still '
+      'shown beside the folded format menu',
+      (tester) async {
+        // Raw mode (forced by this file's setUp) at a width still above the phone breakpoint keeps
+        // the preview/syntax tab selectors in the toolbar (`_buildToolbarActions`'s own `isRawMode`
+        // branch) beside the folded format menu — the exact combination the owner reported
+        // overflowing before this fix.
+        await pumpAtCompactWidth(tester);
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(EditorPage)));
+        expect(find.byTooltip(tr.editorTogglePreviewTooltip), findsOneWidget);
+        expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsOneWidget);
+        expect(find.byTooltip(tr.editorSwitchToStyledModeTooltip), findsOneWidget);
+
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
 
   testWidgets('the toolbar back button closes the project and navigates back', (tester) async {
     await pumpEditorPage(tester);

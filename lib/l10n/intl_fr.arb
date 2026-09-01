@@ -53,6 +53,7 @@
   "editorToggleBoldTooltip": "Gras (Ctrl+B)",
   "editorToggleItalicTooltip": "Italique (Ctrl+I)",
   "editorToggleUnderlineTooltip": "Souligné (Ctrl+U)",
+  "editorFormatMenuTooltip": "Mise en forme",
   "editorExportPanelTitle": "Exporter le scénario",
   "editorExportPanelMessage": "Le scénario, sous forme de texte Fountain ou mis en page pour l'impression.",
   "editorExportFountainTitle": "Fichier Fountain",

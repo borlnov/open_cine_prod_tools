@@ -225,10 +225,14 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   (with its own find/replace and spell-check wiring) and a real-size simulated page are never what a
   phone shows. The user's own raw/styled toggle and page-simulation checkbox keep reading and
   writing the persisted preference untouched, so widening the window back out returns to whichever
-  was picked. The toolbar's format controls (the block-type dropdown, the B/I/U toggles) are
-  withheld at that width for want of room beside everything else the phone toolbar already carries
-  (`foundations.md`); a phone writer still reaches every block type through
-  `OcptEditorContextMenu`'s own submenu, or simply by typing the Fountain markup.
+  was picked. Below the compact width breakpoint (`ocptIsCompactWidth`, a phone included) the
+  toolbar's format controls (the block-type dropdown, the B/I/U toggles) fold into
+  `OcptEditorFormatOverflowMenu`'s own single `⋮` button — the same block-type choice as a submenu
+  and the same three toggles as checkable entries, reading and writing the very same
+  `OcptStyledEditorController` `OcptEditorFormatControls` does above that width — for want of room
+  beside everything else the toolbar already carries there (`foundations.md`); a phone writer
+  additionally reaches every block type through `OcptEditorContextMenu`'s own submenu, or simply by
+  typing the Fountain markup.
 - Below the compact breakpoint (`ocptIsCompactWidth`), and only on the fluid (page-simulation-off)
   surface, `OcptFountainEditorStylesheet.build(isCompact: true)` scales every element's indent and
   box width down by `_compactLayoutScale` (0.5), carrying the block hierarchy by **style** —

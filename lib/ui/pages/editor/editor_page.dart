@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_find_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_controls.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_overflow_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
@@ -434,13 +435,15 @@ class _EditorViewState extends State<_EditorView> {
   /// layout leaves the syntax guide reachable through the dock's tab row alone, which keeps the
   /// toolbar from carrying a shortcut to a tab the mode barely uses.
   ///
-  /// The format controls are additionally withheld on a phone ([_isPhoneWidth]): they render a
-  /// block-type dropdown plus three toggle buttons the moment they attach to a live styled editor,
-  /// and the styled editor is exactly what a phone always shows ([_liveMode]) — the phone-width
-  /// toolbar (already folded down by `OcptWorkspaceShell`) has no room left for this on top of
-  /// everything else it carries, and a phone writer still has every one of these through
-  /// `OcptEditorContextMenu`'s block-type submenu (block type) or simply typing the Fountain
-  /// markup (bold/italic/underline).
+  /// Below [ocptCompactWidthBreakpoint] ([_isCompactWidth]) the format controls fold into
+  /// [OcptEditorFormatOverflowMenu]'s own `⋮` button instead of [OcptEditorFormatControls]'s inline
+  /// dropdown and three toggle buttons: the fixed-width inline row has no room left beside
+  /// everything else the toolbar already carries there once the window drops under
+  /// [ocptCompactWidthBreakpoint] (a phone included — the styled editor is exactly what a phone
+  /// always shows, [_liveMode]), and a writer still has every one of these choices either way
+  /// (a phone additionally offers `OcptEditorContextMenu`'s own block-type submenu, or simply
+  /// typing the Fountain markup). Both widgets read and write the very same
+  /// [_styledEditorController], so this is never a second flow, only how it is presented.
   ///
   /// A version being previewed leaves the whole group out: the format controls write, and the two
   /// remaining ones are about an editing mode that isn't shown at all then (the centre is the
@@ -459,7 +462,10 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     return [
-      if (!_isPhoneWidth) OcptEditorFormatControls(controller: _styledEditorController),
+      if (_isCompactWidth)
+        OcptEditorFormatOverflowMenu(controller: _styledEditorController)
+      else
+        OcptEditorFormatControls(controller: _styledEditorController),
       if (isRawMode) ...[
         IconButton(
           icon: Icon(

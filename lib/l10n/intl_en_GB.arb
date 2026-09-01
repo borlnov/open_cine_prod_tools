@@ -394,6 +394,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorFormatMenuTooltip": "Format",
+  "@editorFormatMenuTooltip": {
+    "description": "Tooltip of the compact-width toolbar's format menu, folding the block-type choice and the bold/italic/underline toggles behind a single ⋮ button",
+    "context": "Displayed on hover over the editor toolbar's format menu button, below the compact width breakpoint, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorExportPanelTitle": "Export the screenplay",
   "@editorExportPanelTitle": {
     "description": "Title of the screenplay mode's export panel",
