@@ -30,7 +30,6 @@ import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
-import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
@@ -322,12 +321,6 @@ void main() {
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
-
-  test("the breakdown mode's preference round-trips through the persisted workspace mode", () async {
-    await propertiesManager.workspaceMode.store(OcptWorkspaceMode.breakdown);
-
-    expect(await propertiesManager.workspaceMode.load(), OcptWorkspaceMode.breakdown);
-  });
 
   test("loads the project's title and an empty snapshot when the screenplay has no scene", () async {
     final bloc = buildBloc();

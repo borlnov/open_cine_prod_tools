@@ -20,9 +20,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 ///
 /// It owns two things: which production mode is active, and which of the open project's episodes
 /// is selected. Each mode keeps its own bloc and state (including its own dock geometry); this
-/// bloc never reaches into them. The active mode is loaded from, and persisted to,
-/// [OcptPropertiesManager.workspaceMode], so opening a project restores the mode last used; the
-/// selected episode is not (see [OcptWorkspaceState.selectedEpisodeId]).
+/// bloc never reaches into them. The active mode always starts on [OcptWorkspaceMode.screenplay]
+/// when a project opens — a fresh [OcptWorkspaceBloc] is built every time
+/// (`workspace_page.dart`), so there is no "last mode" to resume — while switching between the
+/// open project's own episodes leaves whichever mode is active untouched: the selected episode is
+/// not persisted either (see [OcptWorkspaceState.selectedEpisodeId]).
 ///
 /// This bloc subscribes to [OcptProjectsManager.currentProjectStream] rather than reading
 /// [OcptProjectsManager.currentProject] once, because previewing or leaving a project version
@@ -42,7 +44,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// that first attempt — the workspace bloc lives exactly as long as one project stays open, so
 /// there is nothing later to react to.
 class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
-  /// The manager used to load and persist the active workspace mode.
+  /// The manager used to read this replica's own device id (see [_startSyncSessionIfPaired]) — the
+  /// active workspace mode is not persisted, so this bloc no longer reaches into it for that.
   final OcptPropertiesManager _propertiesManager;
 
   /// The manager used to read the open project and its episodes, and to watch it change.
@@ -108,17 +111,19 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     );
   }
 
-  /// Loads the persisted workspace mode, defaulting to [OcptWorkspaceMode.screenplay], and the
-  /// open project's episodes, landing the selection on the first one (see
-  /// [OcptWorkspaceState.selectedEpisodeId]'s own doc comment for why it is never restored from
-  /// anywhere instead). Once [_startSyncSessionIfPaired] has had its chance to start a presence
-  /// service for a paired project, this replica's resolved mode is reported to it too, so a peer
-  /// already on the project sees which mode this replica opened into.
+  /// Always starts the workspace on [OcptWorkspaceMode.screenplay] — a fresh [OcptWorkspaceBloc]
+  /// is built every time a project opens (`workspace_page.dart`), so there is no "last mode" to
+  /// resume, unlike switching between the project's own episodes, which leaves the active mode
+  /// untouched (see [_onEpisodeSelected]) — and loads the open project's episodes, landing the
+  /// selection on the first one (see [OcptWorkspaceState.selectedEpisodeId]'s own doc comment for
+  /// why it is never restored from anywhere instead). Once [_startSyncSessionIfPaired] has had its
+  /// chance to start a presence service for a paired project, this replica's resolved mode is
+  /// reported to it too, so a peer already on the project sees which mode this replica opened into.
   Future<void> _onLoadRequested(
     OcptWorkspaceLoadRequestedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async {
-    final mode = await _propertiesManager.workspaceMode.load() ?? OcptWorkspaceMode.screenplay;
+    const mode = OcptWorkspaceMode.screenplay;
     final episodes = await _loadEpisodes();
     emitter(
       state.copyWith(
@@ -233,8 +238,10 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     return _projectsManager.screenplayService.loadEpisodes(database: project.database);
   }
 
-  /// Applies and persists the mode selected from the bottom mode switcher, or by another mode
-  /// sending the user there.
+  /// Applies the mode selected from the bottom mode switcher, or by another mode sending the user
+  /// there. Not persisted: only a project switch resets the active mode, back to
+  /// [OcptWorkspaceMode.screenplay] (see [_onLoadRequested]); nothing here needs to remember what
+  /// this switch picked.
   ///
   /// `event.revealRequest` is carried into the state untouched and never read here: what a mode
   /// should land on is that mode's own business, and this bloc only owns which one is active
@@ -257,7 +264,6 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
       ),
     );
     _syncManager?.updatePresenceMode(event.mode);
-    await _propertiesManager.workspaceMode.store(event.mode);
   }
 
   /// Clears the reveal request the mode that was just opened reports having taken into account.

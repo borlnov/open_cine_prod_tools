@@ -203,7 +203,7 @@ void main() {
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
-  test('defaults to the screenplay mode when nothing was ever persisted', () async {
+  test('always starts on the screenplay mode, freshly loaded', () async {
     final bloc = buildBloc();
 
     final state = await waitForState(bloc, (state) => !state.isLoading);
@@ -212,17 +212,25 @@ void main() {
     await bloc.close();
   });
 
-  test('loads the persisted workspace mode on entry', () async {
-    await propertiesManager.workspaceMode.store(OcptWorkspaceMode.budget);
-    final bloc = buildBloc();
+  test(
+    'a fresh workspace bloc starts on the screenplay mode even after an earlier one switched '
+    'away from it — switching project resets the mode, nothing restores it',
+    () async {
+      final firstBloc = buildBloc();
+      await waitForState(firstBloc, (state) => !state.isLoading);
+      firstBloc.add(const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.budget));
+      await waitForState(firstBloc, (state) => state.mode == OcptWorkspaceMode.budget);
+      await firstBloc.close();
 
-    final state = await waitForState(bloc, (state) => !state.isLoading);
+      final secondBloc = buildBloc();
+      final state = await waitForState(secondBloc, (state) => !state.isLoading);
 
-    expect(state.mode, OcptWorkspaceMode.budget);
-    await bloc.close();
-  });
+      expect(state.mode, OcptWorkspaceMode.screenplay);
+      await secondBloc.close();
+    },
+  );
 
-  test('selecting a mode emits it and persists it', () async {
+  test('selecting a mode updates the state without persisting it anywhere', () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
 
@@ -230,7 +238,6 @@ void main() {
     final state = await waitForState(bloc, (state) => state.mode == OcptWorkspaceMode.schedule);
 
     expect(state.mode, OcptWorkspaceMode.schedule);
-    expect(await propertiesManager.workspaceMode.load(), OcptWorkspaceMode.schedule);
     await bloc.close();
   });
 
@@ -344,6 +351,28 @@ void main() {
     expect(state.selectedEpisodeId, secondEpisodeId);
     expect(state.mode, OcptWorkspaceMode.screenplay);
     expect(state.episodes, hasLength(2));
+    await bloc.close();
+  });
+
+  test('selecting an episode leaves whichever mode was already active untouched', () async {
+    final project = projectsManager.currentProject!;
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+      title: "Episode two",
+    );
+    expect(secondEpisodeId, isNotNull);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.budget));
+    await waitForState(bloc, (state) => state.mode == OcptWorkspaceMode.budget);
+
+    bloc.add(OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!));
+    final state = await waitForState(bloc, (state) => state.selectedEpisodeId == secondEpisodeId);
+
+    expect(state.selectedEpisodeId, secondEpisodeId);
+    expect(state.mode, OcptWorkspaceMode.budget);
     await bloc.close();
   });
 

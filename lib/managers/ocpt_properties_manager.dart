@@ -18,7 +18,6 @@ import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:uuid/uuid.dart';
 
 /// The maximum number of projects kept in [OcptPropertiesManager.recentProjects].
@@ -35,8 +34,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// On top of the [MixinLocaleProperties] wanted locale and the [MixinThemesProperties] theme and
 /// brightness, it stores the list of recently opened projects, the preferred editor mode, the
 /// app-wide page margins preference, the editor's dock width fractions, its scene-number
-/// visibility preference, its spell-check visibility preference, the last used workspace mode,
-/// the shot list mode's own dock fractions, visible table columns and last right dock tab, the
+/// visibility preference, its spell-check visibility preference, the shot list mode's own dock
+/// fractions, visible table columns and last right dock tab, the
 /// resources mode's own dock fractions, the breakdown mode's own dock fractions and last right
 /// dock tab, the schedule mode's own dock fractions and last right dock tab, the budget mode's own
 /// right dock fraction and last right dock tab, and the id identifying this replica of the app
@@ -61,16 +60,6 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   final editorMode = SharedPrefsItemWithParser<OcptEditorMode, String>(
     "EDITOR_MODE",
     parser: _parseEditorMode,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store the last used workspace mode in the local storage.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptWorkspaceMode.screenplay].
-  final workspaceMode = SharedPrefsItemWithParser<OcptWorkspaceMode, String>(
-    "WORKSPACE_MODE",
-    parser: _parseWorkspaceMode,
     castTo: (value) => value.name,
   );
 
@@ -372,21 +361,6 @@ class OcptPropertiesManager extends AbstractPropertiesManager
 
     appLogger().w("The editor mode stored in the local storage: $value, isn't a known editor "
         "mode, we can't convert it");
-    return null;
-  }
-
-  /// Parse the [value] stored in the local storage to the wanted [OcptWorkspaceMode].
-  ///
-  /// Returns null if the [value] doesn't match any of the [OcptWorkspaceMode] values.
-  static OcptWorkspaceMode? _parseWorkspaceMode(String value) {
-    for (final mode in OcptWorkspaceMode.values) {
-      if (mode.name == value) {
-        return mode;
-      }
-    }
-
-    appLogger().w("The workspace mode stored in the local storage: $value, isn't a known "
-        "workspace mode, we can't convert it");
     return null;
   }
 

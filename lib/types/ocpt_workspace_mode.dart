@@ -6,9 +6,9 @@
 ///
 /// Declared in the order the mode switcher displays them — the order the work happens in (write,
 /// break down, shoot-list, resource, schedule), [budget] last since it is the one that reads every
-/// other mode's own figures rather than the one anybody starts from; see
-/// `OcptPropertiesManager.workspaceMode` for how the last one used is persisted (by name, so this
-/// order is free to change without breaking a stored preference).
+/// other mode's own figures rather than the one anybody starts from. Not persisted: opening a
+/// project always starts on [OcptWorkspaceMode.screenplay] (`OcptWorkspaceBloc._onLoadRequested`),
+/// and switching between a project's own episodes leaves whichever mode is active untouched.
 enum OcptWorkspaceMode {
   /// The Fountain screenplay editor, the app's founding feature.
   screenplay,
