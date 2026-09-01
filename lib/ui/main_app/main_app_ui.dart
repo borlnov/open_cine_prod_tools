@@ -17,6 +17,18 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_bloc.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_state.dart';
 
+/// The extra factor the mobile UI is scaled up by, on top of `flutter_screenutil`'s own
+/// design-size scaling.
+///
+/// On a phone the screenutil-scaled sizes still read a touch small, so the mobile theme grows its
+/// font sizes (the text theme's `sp`) and its widget dimensions (paddings, icon sizes, field
+/// metrics — the theme's `w`) by this factor. Corner radii (`r`) are left alone, as are the fixed
+/// `ocpt*` chrome constants (the top toolbar height, the bottom mode-switcher band and their
+/// buttons) which never pass through a scaler — so the toolbar and the mode switcher keep the size
+/// they already have while the content around them grows. A starting value, tuned against the real
+/// device.
+const double _ocptMobileUiScale = 1.2;
+
 /// Builds the root [MaterialApp] shell of the application.
 ///
 /// The app locale and theme both follow the preferences persisted through
@@ -47,7 +59,11 @@ class MainAppUi extends StatelessWidget {
             builder: (context, state) {
               final platform = globalGetIt().get<PlatformManager>();
               final themeModel = platform.isMobile
-                  ? buildOcptThemeModel(sp: (v) => v.sp, w: (v) => v.w, r: (v) => v.r)
+                  ? buildOcptThemeModel(
+                      sp: (v) => (v * _ocptMobileUiScale).sp,
+                      w: (v) => (v * _ocptMobileUiScale).w,
+                      r: (v) => v.r,
+                    )
                   : state.currentTheme.themeData;
 
               return MaterialApp.router(
