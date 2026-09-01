@@ -308,6 +308,36 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   }
 
   @override
+  void didUpdateWidget(OcptWorkspaceShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // A mode opens a dock programmatically as well as by the toolbar's toggle — the budget fiche
+    // opens the right dock the moment a line is created or selected, say. Below the breakpoint that
+    // open has to reach [_compactDrawer], the sole driver of drawer visibility there; left
+    // unsynced it would be swallowed and the drawer stay shut. Only a false→true transition opens
+    // (so a mode that merely *defaults* a flag to open still starts closed on a phone — this never
+    // runs on the first build), and a true→false one closes that side when it is the one showing.
+    // Assigning a single enum value keeps the drawers mutually exclusive here too. It is harmless
+    // above the breakpoint, where [_compactDrawer] is unused; no `setState` is needed, the rebuild
+    // that follows `didUpdateWidget` reads the field as it now stands.
+    if (!oldWidget.isLeftDockOpen && widget.isLeftDockOpen) {
+      _compactDrawer = _OcptCompactDrawerSide.left;
+    } else if (oldWidget.isLeftDockOpen &&
+        !widget.isLeftDockOpen &&
+        _compactDrawer == _OcptCompactDrawerSide.left) {
+      _compactDrawer = _OcptCompactDrawerSide.none;
+    }
+
+    if (!oldWidget.isRightDockOpen && widget.isRightDockOpen) {
+      _compactDrawer = _OcptCompactDrawerSide.right;
+    } else if (oldWidget.isRightDockOpen &&
+        !widget.isRightDockOpen &&
+        _compactDrawer == _OcptCompactDrawerSide.right) {
+      _compactDrawer = _OcptCompactDrawerSide.none;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       // On a phone the toolbar has no room for its secondary actions beside the mode's own, so the
