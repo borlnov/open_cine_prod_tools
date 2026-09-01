@@ -392,7 +392,8 @@ jobs:
   build-android:
     name: Android build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Two Android builds now run here (the AAB then the APK); 40 minutes covers a cold cache.
+    timeout-minutes: 40
     needs: get-version
     # Android builds follow the Windows/macOS gating: release tags, main pushes and manual
     # dispatches only, to keep the common case cheap.
@@ -435,6 +436,23 @@ jobs:
         with:
           name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_android_aab
           path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+      - name: Build the Android APK
+        # The AAB above is the Play upload format and cannot be side-loaded; this APK is the
+        # directly installable counterpart for on-device testing ('adb install app-release.apk').
+        # Both are debug-signed for now (see the app bundle step) — the APK is a developer
+        # convenience, not a distributable release, and is likewise kept out of create-release.
+        uses: ./.github/actions/flutter-build
+        with:
+          target-platform: apk
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+
+      - name: Upload the Android APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_android_apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
   test-deb:
