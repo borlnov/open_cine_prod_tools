@@ -50,5 +50,46 @@ void main() {
       tester.getTopLeft(find.byType(OcptLogo)).dx,
       lessThan(tester.getTopLeft(find.text(tr.appTitle)).dx),
     );
+
+    // The wide layout shows all five actions side by side, with no overflow menu.
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert), findsNothing);
   });
+
+  testWidgets(
+    "below the breakpoint, the header collapses four actions into an overflow menu",
+    (tester) async {
+      // Narrower than the header's breakpoint (720): the title stays on one line and only the
+      // primary "New project" action and the overflow trigger remain visible directly.
+      tester.view.physicalSize = const Size(500, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_buildHeader());
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptHomeHeader)));
+
+      // The title never stacks its letters: it stays a single line and may only ellipsize.
+      final titleText = tester.widget<Text>(find.text(tr.appTitle));
+      expect(titleText.maxLines, 1);
+      expect(titleText.overflow, TextOverflow.ellipsis);
+
+      // The primary action stays visible; the other four are behind the overflow menu.
+      expect(find.text(tr.homeNewProjectAction), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      expect(find.text(tr.homeOpenProjectAction), findsNothing);
+      expect(find.text(tr.homeImportAction), findsNothing);
+      expect(find.text(tr.homeJoinSharedProjectAction), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(MenuItemButton, tr.homeOpenProjectAction), findsOneWidget);
+      expect(find.widgetWithText(MenuItemButton, tr.homeImportAction), findsOneWidget);
+      expect(find.widgetWithText(MenuItemButton, tr.homeJoinSharedProjectAction), findsOneWidget);
+      expect(find.widgetWithText(MenuItemButton, tr.homeSettingsTooltip), findsOneWidget);
+    },
+  );
 }

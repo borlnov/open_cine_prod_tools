@@ -11,6 +11,12 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
 /// line height.
 const double _logoSize = 32;
 
+/// The available width below which the header collapses four of its five actions into a single
+/// overflow menu: below this, the logo, the title and all five actions side by side no longer fit
+/// without squeezing the title down to one letter per line. Picked so the wide layout has visible
+/// breathing room above it, not just the bare minimum to fit.
+const double _narrowBreakpoint = 720;
+
 /// The top region of the home page: the app logo and title, and the two primary actions of the
 /// page.
 class OcptHomeHeader extends StatelessWidget {
@@ -44,44 +50,103 @@ class OcptHomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    return Row(
-      children: [
-        const OcptLogo(size: _logoSize),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(tr.appTitle, style: Theme.of(context).textTheme.headlineSmall),
-        ),
-        const SizedBox(width: 16),
-        IconButton(
-          onPressed: onOpenSettings,
-          icon: const Icon(Icons.settings_outlined),
-          tooltip: tr.homeSettingsTooltip,
-        ),
-        const SizedBox(width: 12),
-        OutlinedButton.icon(
-          onPressed: onImport,
-          icon: const Icon(Icons.file_download_outlined),
-          label: Text(tr.homeImportAction),
-        ),
-        const SizedBox(width: 12),
-        OutlinedButton.icon(
-          onPressed: onJoinSharedProject,
-          icon: const Icon(Icons.qr_code_scanner_outlined),
-          label: Text(tr.homeJoinSharedProjectAction),
-        ),
-        const SizedBox(width: 12),
-        OutlinedButton.icon(
-          onPressed: onOpenProject,
-          icon: const Icon(Icons.folder_open_outlined),
-          label: Text(tr.homeOpenProjectAction),
-        ),
-        const SizedBox(width: 12),
-        FilledButton.icon(
-          onPressed: onNewProject,
-          icon: const Icon(Icons.add),
-          label: Text(tr.homeNewProjectAction),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < _narrowBreakpoint;
+
+        return Row(
+          children: [
+            const OcptLogo(size: _logoSize),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                tr.appTitle,
+                style: Theme.of(context).textTheme.headlineSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 16),
+            if (isNarrow) ..._buildNarrowActions(tr) else ..._buildWideActions(tr),
+          ],
+        );
+      },
     );
   }
+
+  /// The wide layout: today's five actions side by side, unchanged.
+  List<Widget> _buildWideActions(Tr tr) => [
+    IconButton(
+      onPressed: onOpenSettings,
+      icon: const Icon(Icons.settings_outlined),
+      tooltip: tr.homeSettingsTooltip,
+    ),
+    const SizedBox(width: 12),
+    OutlinedButton.icon(
+      onPressed: onImport,
+      icon: const Icon(Icons.file_download_outlined),
+      label: Text(tr.homeImportAction),
+    ),
+    const SizedBox(width: 12),
+    OutlinedButton.icon(
+      onPressed: onJoinSharedProject,
+      icon: const Icon(Icons.qr_code_scanner_outlined),
+      label: Text(tr.homeJoinSharedProjectAction),
+    ),
+    const SizedBox(width: 12),
+    OutlinedButton.icon(
+      onPressed: onOpenProject,
+      icon: const Icon(Icons.folder_open_outlined),
+      label: Text(tr.homeOpenProjectAction),
+    ),
+    const SizedBox(width: 12),
+    FilledButton.icon(
+      onPressed: onNewProject,
+      icon: const Icon(Icons.add),
+      label: Text(tr.homeNewProjectAction),
+    ),
+  ];
+
+  /// The narrow layout: the primary "New project" action stays visible, the other four collapse
+  /// into a single overflow menu so neither the title nor the buttons force a horizontal overflow.
+  List<Widget> _buildNarrowActions(Tr tr) => [
+    MenuAnchor(
+      menuChildren: [
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.folder_open_outlined),
+          onPressed: onOpenProject,
+          child: Text(tr.homeOpenProjectAction),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.file_download_outlined),
+          onPressed: onImport,
+          child: Text(tr.homeImportAction),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.qr_code_scanner_outlined),
+          onPressed: onJoinSharedProject,
+          child: Text(tr.homeJoinSharedProjectAction),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.settings_outlined),
+          onPressed: onOpenSettings,
+          child: Text(tr.homeSettingsTooltip),
+        ),
+      ],
+      builder: (context, controller, child) => IconButton(
+        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+        icon: const Icon(Icons.more_vert),
+        // Flutter's own generic "Show menu" string, not a bespoke ARB key: this button behaves
+        // exactly like `PopupMenuButton`'s default trigger, just built from `MenuAnchor` so the
+        // menu items stay `MenuItemButton`s.
+        tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+      ),
+    ),
+    const SizedBox(width: 12),
+    FilledButton.icon(
+      onPressed: onNewProject,
+      icon: const Icon(Icons.add),
+      label: Text(tr.homeNewProjectAction),
+    ),
+  ];
 }
