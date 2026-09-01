@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 
@@ -31,6 +32,13 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 /// [OcptRecentProjectModel.episodeCount] being null (an entry written before this app version
 /// recorded it) or 1 (a single-episode project, which never names an episode anywhere) both draw
 /// nothing at all — a single-episode project stays exactly what it is today.
+///
+/// A project whose file was probed as [OcptProjectFileVerdict.newer] or
+/// [OcptProjectFileVerdict.foreignDevBuild] — the two verdicts opening the project refuses
+/// outright — wears a small ⚠ badge in the poster's bottom-left corner
+/// ([_OcptProjectCardCompatibilityBadge]), clear of the episode badge above it and the `⋮` menu.
+/// The card stays fully tappable regardless: opening it still runs the existing compatibility
+/// dialog, which is where the refusal is actually stated.
 class OcptProjectCard extends StatelessWidget {
   /// The recent project shown by this card.
   final OcptHomeRecentProjectEntry entry;
@@ -67,6 +75,9 @@ class OcptProjectCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final exists = entry.exists;
     final episodeCount = entry.project.episodeCount;
+    final showsIncompatibilityBadge =
+        entry.verdict == OcptProjectFileVerdict.newer ||
+        entry.verdict == OcptProjectFileVerdict.foreignDevBuild;
 
     final posterTints = Theme.of(context).extension<OcptSpecificColors>()!.projectPosterTints;
     final posterTint = posterTints[_stablePathHash(entry.project.path) % posterTints.length];
@@ -114,6 +125,12 @@ class OcptProjectCard extends StatelessWidget {
                           color: onPosterTint,
                         ),
                       ),
+                    ),
+                  if (showsIncompatibilityBadge)
+                    Positioned(
+                      bottom: 4,
+                      left: 4,
+                      child: _OcptProjectCardCompatibilityBadge(color: onPosterTint),
                     ),
                   Positioned(
                     top: 4,
@@ -233,4 +250,34 @@ class _OcptProjectCardEpisodeBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The ⚠ badge drawn in the bottom-left of a project's poster when the card's own entry probed
+/// as [OcptProjectFileVerdict.newer] or [OcptProjectFileVerdict.foreignDevBuild] — the two
+/// verdicts opening the project refuses outright — so the corner stays clear of
+/// [_OcptProjectCardEpisodeBadge] above it and the `⋮` overflow menu.
+///
+/// Tinted off [color] (the card's own `onPosterTint`) exactly like [_OcptProjectCardEpisodeBadge],
+/// for the same reason: the poster tint it sits on varies per project. Wrapped in a [Tooltip]
+/// wording what the probe found; opening the card still runs the compatibility dialog itself, so
+/// this badge only ever warns ahead of that, never blocks the tap.
+class _OcptProjectCardCompatibilityBadge extends StatelessWidget {
+  /// The colour legible against this card's own poster tint, icon and background alike.
+  final Color color;
+
+  /// Class constructor
+  const _OcptProjectCardCompatibilityBadge({required this.color});
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: Tr.of(context).homeIncompatibleProjectTooltip,
+    child: Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      ),
+      child: Icon(Icons.warning_amber_rounded, size: 14, color: color),
+    ),
+  );
 }

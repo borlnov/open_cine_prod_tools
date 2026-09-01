@@ -1243,6 +1243,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeIncompatibleProjectTooltip": "This project's format isn't compatible with this version of the app.",
+  "@homeIncompatibleProjectTooltip": {
+    "description": "Tooltip shown on a recent project card's incompatible-format warning badge",
+    "context": "Displayed on hover/long-press over the badge, for a file this build refuses to open (a newer format, or one written by a foreign development build)",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeProjectEpisodeCount": "{count, plural, one{{count} episode} other{{count} episodes}}",
   "@homeProjectEpisodeCount": {
     "description": "Number of live episodes a project holds",

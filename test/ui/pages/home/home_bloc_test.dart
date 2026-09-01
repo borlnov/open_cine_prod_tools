@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
+import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
@@ -591,6 +592,62 @@ void main() {
 
       await bloc.close();
     });
+
+    test(
+      "the recent projects list carries each entry's own probed verdict, for the card badge",
+      () async {
+        final currentPath = p.join(tempDir.path, "current.ocpt");
+        await projectsManager.createProject(name: "Current", filePath: currentPath);
+        await projectsManager.closeCurrentProject();
+
+        final olderPath = p.join(tempDir.path, "older.ocpt");
+        await createProjectAtPreviousFormat(olderPath);
+
+        final newerPath = p.join(tempDir.path, "newer.ocpt");
+        await createProjectFromTheFuture(newerPath);
+
+        final foreignDevBuildPath = p.join(tempDir.path, "foreign-dev-build.ocpt");
+        await createProjectWrittenByAnotherDevBuild(foreignDevBuildPath);
+
+        final missingPath = p.join(tempDir.path, "gone.ocpt");
+        await propertiesManager.addRecentProject(
+          OcptRecentProjectModel(path: missingPath, name: "Gone", lastOpenedAt: DateTime.utc(2026)),
+        );
+
+        final bloc = buildBloc();
+        final state = await waitForState(bloc, (state) => state.recentProjects.length == 5);
+
+        OcptHomeRecentProjectEntry entryFor(String path) =>
+            state.recentProjects.singleWhere((entry) => entry.project.path == path);
+
+        expect(entryFor(currentPath).verdict, OcptProjectFileVerdict.current);
+        expect(entryFor(newerPath).verdict, OcptProjectFileVerdict.newer);
+        expect(
+          entryFor(foreignDevBuildPath).verdict,
+          OcptProjectFileVerdict.foreignDevBuild,
+        );
+        expect(entryFor(missingPath).exists, isFalse);
+        expect(entryFor(missingPath).verdict, isNull);
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      "an older file's verdict is carried too, though it draws no badge on the card itself",
+      () async {
+        final olderPath = p.join(tempDir.path, "older.ocpt");
+        await createProjectAtPreviousFormat(olderPath);
+
+        final bloc = buildBloc();
+        final state = await waitForState(bloc, (state) => state.recentProjects.isNotEmpty);
+
+        expect(state.recentProjects.single.verdict, OcptProjectFileVerdict.older);
+
+        await bloc.close();
+      },
+      skip: olderFileFlowSkip,
+    );
   });
 
   group("a project card's Partager / Synchroniser…", () {

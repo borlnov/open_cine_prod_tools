@@ -8,16 +8,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
 
 /// Builds an [OcptProjectCard] for a project at [path], themed and localized as the app does,
 /// holding [episodeCount] episodes (null, as [OcptRecentProjectModel.episodeCount] itself
-/// defaults to, for an entry that never recorded one), and whose file [exists] (true by default).
+/// defaults to, for an entry that never recorded one), whose file [exists] (true by default), and
+/// whose format probe found [verdict] (null, as an entry whose file doesn't exist or was never
+/// probed, by default).
 Widget _buildCard(
   String path, {
   int? episodeCount,
   bool exists = true,
+  OcptProjectFileVerdict? verdict,
+  VoidCallback? onTap,
   VoidCallback? onExport,
   VoidCallback? onShare,
 }) => MaterialApp(
@@ -38,8 +43,9 @@ Widget _buildCard(
         episodeCount: episodeCount,
       ),
       exists: exists,
+      verdict: verdict,
     ),
-    onTap: () {},
+    onTap: onTap ?? () {},
     onExport: onExport ?? () {},
     onShare: onShare ?? () {},
     onRemove: () {},
@@ -243,5 +249,50 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(exported, isFalse);
+  });
+
+  group("the incompatible-format warning badge", () {
+    for (final verdict in [
+      OcptProjectFileVerdict.newer,
+      OcptProjectFileVerdict.foreignDevBuild,
+    ]) {
+      testWidgets("is drawn for a $verdict entry", (tester) async {
+        await tester.pumpWidget(
+          _buildCard('/home/user/projects/glass-paths.ocpt', verdict: verdict),
+        );
+
+        expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      });
+    }
+
+    for (final verdict in [
+      null,
+      OcptProjectFileVerdict.current,
+      OcptProjectFileVerdict.older,
+      OcptProjectFileVerdict.unreadable,
+    ]) {
+      testWidgets("is not drawn for a $verdict entry", (tester) async {
+        await tester.pumpWidget(
+          _buildCard('/home/user/projects/glass-paths.ocpt', verdict: verdict),
+        );
+
+        expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      });
+    }
+
+    testWidgets("the card stays tappable when it is drawn", (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(
+        _buildCard(
+          '/home/user/projects/glass-paths.ocpt',
+          verdict: OcptProjectFileVerdict.newer,
+          onTap: () => tapped = true,
+        ),
+      );
+
+      await tester.tap(find.byType(InkWell).first);
+
+      expect(tapped, isTrue);
+    });
   });
 }

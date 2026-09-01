@@ -123,7 +123,14 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async {}
 
-  /// Reloads the recent projects list and recomputes which of them still exist on disk.
+  /// Reloads the recent projects list, recomputes which of them still exist on disk, and probes
+  /// the format of every one that does.
+  ///
+  /// The probe is the same read-only header check [_stopsOnFileFormat] runs before an open — see
+  /// [OcptProjectsManager.probeProjectFile] — run here purely to state, on the card itself, the
+  /// two verdicts an open would refuse outright ([OcptProjectFileVerdict.newer] and
+  /// [OcptProjectFileVerdict.foreignDevBuild]); a migratable [OcptProjectFileVerdict.older] file is
+  /// not a problem to flag ahead of time, and is left to the open flow to offer as it always has.
   Future<void> _onRefreshRequested(
     OcptHomeRefreshRequestedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -131,7 +138,14 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     final projects = await _propertiesManager.recentProjects.load() ?? const [];
     final entries = [
       for (final project in projects)
-        OcptHomeRecentProjectEntry(project: project, exists: File(project.path).existsSync()),
+        if (File(project.path).existsSync())
+          OcptHomeRecentProjectEntry(
+            project: project,
+            exists: true,
+            verdict: _projectsManager.probeProjectFile(filePath: project.path).verdict,
+          )
+        else
+          OcptHomeRecentProjectEntry(project: project, exists: false),
     ];
 
     emitter(state.copyWith(recentProjects: entries));

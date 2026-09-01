@@ -170,6 +170,7 @@
   "homeShareProjectAction": "Partager / Synchroniser…",
   "homeRemoveFromListAction": "Retirer de la liste",
   "homeMissingFileTooltip": "Le fichier de ce projet est introuvable",
+  "homeIncompatibleProjectTooltip": "Le format de ce projet n'est pas compatible avec cette version de l'application.",
   "homeProjectEpisodeCount": "{count, plural, one{{count} épisode} other{{count} épisodes}}",
   "homeNewProjectDialogTitle": "Nouveau projet",
   "homeNewProjectDialogNameLabel": "Nom du projet",
