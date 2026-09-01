@@ -19,9 +19,20 @@ const double _ocptCardChoiceGridWidth = 600;
 /// shrink-wrapping whatever it holds until it reaches this.
 const double _ocptCardChoiceMaxHeight = 420;
 
-/// The width/height ratio of one card, tuned for a name, its description (or unavailability
-/// reason) over up to three lines, and a trailing format label.
-const double _ocptCardChoiceCardAspectRatio = 3.4;
+/// The fixed height one card is laid out at, tall enough for its title row (a name and a trailing
+/// format label, both one line, [TextTheme.titleSmall] being the taller of the two) and its
+/// description (or unavailability reason) over up to three lines of [TextTheme.bodySmall], with the
+/// card's own 12px padding above and below and the 4px gap between the title row and the
+/// description: at the dense scale's 12px titleSmall (Material's own 20/14 line height, so ≈17px)
+/// and 11px bodySmall (Material's own 16/12 line height, so ≈15px per line, ≈44px for three), that
+/// is 12 + 17 + 4 + 44 + 12 ≈ 89px — rounded up for a small margin so descenders never brush the
+/// card's edge.
+///
+/// A fixed height rather than [GridView.count]'s `childAspectRatio`: the aspect ratio derives a
+/// card's height from its *width*, so it silently stops fitting three lines the moment the grid
+/// (or the dialog it sits in) is narrower than what it was tuned against — which is exactly how the
+/// import dialog's cards ellipsized mid-sentence with no way to read the rest.
+const double _ocptCardChoiceCardHeight = 96;
 
 /// The opacity an unavailable card is drawn at, greying it without hiding it.
 const double _ocptCardChoiceUnavailableOpacity = 0.5;
@@ -155,14 +166,17 @@ class _OcptCardChoiceSectionView<T> extends StatelessWidget {
           ),
           const SizedBox(height: 8),
         ],
-        GridView.count(
+        GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: _ocptCardChoiceCardAspectRatio,
-          children: [for (final entry in section.entries) _OcptCardChoiceCard<T>(entry: entry)],
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            mainAxisExtent: _ocptCardChoiceCardHeight,
+          ),
+          itemCount: section.entries.length,
+          itemBuilder: (context, index) => _OcptCardChoiceCard<T>(entry: section.entries[index]),
         ),
       ],
     );
