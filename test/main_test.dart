@@ -91,6 +91,14 @@ void main() {
   testWidgets('EditorPage builds an empty editor when no project is open', (
     WidgetTester tester,
   ) async {
+    // Pump at an expanded width: below the compact breakpoint the preview is a drawer that starts
+    // closed, so its empty hint — asserted below — is only on screen when the preview shows as a
+    // persistent side column.
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
 

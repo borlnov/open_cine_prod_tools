@@ -337,12 +337,6 @@ void main() {
   group("the floating add at a compact width", () {
     /// Closes the left dock, open by default, so its drawer stops covering the centre — the
     /// floating add sits behind it otherwise, exactly as the scrim does for any other tap.
-    Future<void> closeLeftDock(WidgetTester tester) async {
-      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
-      await tester.tap(find.byTooltip(tr.workspaceToggleLeftDockTooltip));
-      await tester.pumpAndSettle();
-    }
-
     testWidgets("is present at a compact width", (tester) async {
       tester.view.physicalSize = const Size(700, 1000);
       tester.view.devicePixelRatio = 1.0;
@@ -377,7 +371,9 @@ void main() {
 
         await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
         await tester.pumpAndSettle();
-        await closeLeftDock(tester);
+
+        // On compact the docks start closed, so the left sequence panel is not covering the centre
+        // and the floating add button is free to tap — no need to close a dock first.
 
         // Read from a descendant of the mode's own `BlocProvider` — `OcptShotListMode` builds it,
         // so its own element sits above it and cannot resolve it.
