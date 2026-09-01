@@ -8,8 +8,11 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_card_choice_entry.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
-/// The width the grid lays its two columns out at.
+/// The width the grid lays its two columns out at, at an expanded width. Below
+/// [ocptCompactWidthBreakpoint] the dialog drops to a single column and takes the width the screen
+/// gives it instead, so its cards never sit cramped side by side (or overflow) on a phone.
 const double _ocptCardChoiceGridWidth = 600;
 
 /// The height the sections are bounded to together, so they scroll within the dialog rather than
@@ -101,26 +104,42 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
     final tr = Tr.of(context);
     final visibleSections = [for (final section in sections) if (section.entries.isNotEmpty) section];
 
+    // On a phone-width screen the fixed 600px grid would overflow, and two columns leave each card
+    // too narrow to read: below the breakpoint the dialog takes the width it is given and stacks its
+    // cards in a single column instead.
+    final isCompact = ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
+    final crossAxisCount = isCompact ? 1 : 2;
+
     return AlertDialog(
       title: Text(title),
       content: SizedBox(
-        width: _ocptCardChoiceGridWidth,
+        width: isCompact ? double.maxFinite : _ocptCardChoiceGridWidth,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(message, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: _ocptCardChoiceMaxHeight),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final (index, section) in visibleSections.indexed)
-                      _OcptCardChoiceSectionView<T>(section: section, isFirst: index == 0),
-                  ],
+            // [_ocptCardChoiceMaxHeight] is a ceiling for a roomy dialog; wrapping it in a [Flexible]
+            // lets the scroll area shrink below that when the dialog itself is shorter than the
+            // ceiling — a single-column list on a phone, say — so the cards scroll within the space
+            // there is rather than overflowing the dialog.
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: _ocptCardChoiceMaxHeight),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final (index, section) in visibleSections.indexed)
+                        _OcptCardChoiceSectionView<T>(
+                          section: section,
+                          isFirst: index == 0,
+                          crossAxisCount: crossAxisCount,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -137,8 +156,8 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
   }
 }
 
-/// One group of [OcptCardChoiceDialog], its cards laid out as a two-column grid under an optional
-/// heading, and separated from whatever came before it by a divider.
+/// One group of [OcptCardChoiceDialog], its cards laid out as a grid of [crossAxisCount] columns
+/// under an optional heading, and separated from whatever came before it by a divider.
 class _OcptCardChoiceSectionView<T> extends StatelessWidget {
   /// The group being drawn.
   final OcptCardChoiceSection<T> section;
@@ -146,8 +165,17 @@ class _OcptCardChoiceSectionView<T> extends StatelessWidget {
   /// Whether this is the topmost group, which needs neither the divider nor the space above it.
   final bool isFirst;
 
+  /// How many columns to lay the cards out in — two at an expanded width, one on a phone-width
+  /// screen (see [OcptCardChoiceDialog.build]).
+  final int crossAxisCount;
+
   /// Class constructor
-  const _OcptCardChoiceSectionView({required this.section, required this.isFirst, super.key});
+  const _OcptCardChoiceSectionView({
+    required this.section,
+    required this.isFirst,
+    required this.crossAxisCount,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -169,8 +197,8 @@ class _OcptCardChoiceSectionView<T> extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             mainAxisExtent: _ocptCardChoiceCardHeight,
