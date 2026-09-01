@@ -1373,6 +1373,7 @@
   "projectPackageExportSuccessMessage": "Paquet du projet écrit vers {path}",
   "projectPackageExportSuccessWithSkippedMessage": "Paquet du projet écrit vers {path}. {count, plural, one{{count} fichier manquant n'a pas pu être inclus.} other{{count} fichiers manquants n'ont pas pu être inclus.}}",
   "projectPackageExportError": "Le paquet du projet n'a pas pu être écrit.",
+  "projectPackageExportShared": "Projet partagé.",
   "projectSettingsBudgetSectionTitle": "Paramètres budgétaires",
   "projectSettingsBudgetVatRateLabel": "Taux de TVA par défaut",
   "projectSettingsBudgetVatRateFieldHint": "ex. 20",

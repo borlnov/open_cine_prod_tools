@@ -50,8 +50,12 @@ sit.
   drift apart mode by mode, the same reasoning that makes the end of the toolbar the shell's own
   chrome. Picking it pops `OcptWorkspaceExportProjectPackagePick`, which the mode's bloc answers
   through `MixinOcptProjectPackageBloc`: flush the pending writes, scan the referenced files, open
-  `OcptConfirmDialog` when some are gone, then the native save dialog and the write, reported in a
-  SnackBar like every other export outcome — and no bloc holds a `Tr`, the notice travelling as an
+  `OcptConfirmDialog` when some are gone, then write the package — on desktop through the native
+  save dialog, on mobile into a temporary directory and straight to the OS share sheet
+  (`OcptExportManager.isMobile`, the very branch the manager's own write funnel takes, since
+  `file_selector`'s `getSaveLocation` has no Android or iOS implementation) — reported in a SnackBar
+  like every other export outcome, `exportShared` wording the mobile branch's own success where
+  `exportSucceeded`'s path has nothing to name. No bloc holds a `Tr`, the notice travelling as an
   `OcptProjectPackageNotice` the mode words through `ocptProjectPackageNoticeMessage`.
   Under a **version preview** that card alone is drawn **unavailable with a reason** rather than
   withheld, and it is the one place the app's "withhold, don't disable" rule yields: what it would

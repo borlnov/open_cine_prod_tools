@@ -183,6 +183,15 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service handing an export's bytes to the OS share sheet on mobile.
   final OcptShareService shareService;
 
+  /// Whether the write funnel shows the native save dialog or hands the bytes to [shareService]'s
+  /// OS share sheet — `file_selector`'s `getSaveLocation`/`getDirectoryPath` having no Android or
+  /// iOS implementation.
+  ///
+  /// Exposed so a caller that writes outside this manager's own export methods (the project
+  /// package export, `MixinOcptProjectPackageBloc`) can branch the very same way, rather than
+  /// resolving [PlatformManager] a second time through [globalGetIt].
+  bool get isMobile => _platformManager.isMobile;
+
   /// Class constructor
   OcptExportManager({
     FileSelectorManager? fileSelectorManager,

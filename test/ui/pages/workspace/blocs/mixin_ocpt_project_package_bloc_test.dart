@@ -3,12 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_share_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -65,6 +68,50 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
     askCount++;
     lastExtensions = extensions;
     lastSuggestedFileName = suggestedFileName;
+    return answer;
+  }
+}
+
+/// A [PlatformManager] whose [isMobile] is stubbed, so the mixin's desktop/mobile branch can be
+/// exercised on either side without a real platform underneath it — the same idiom
+/// `ocpt_export_manager_test.dart` uses for the manager's own write funnel.
+class _StubPlatformManager extends PlatformManager {
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
+/// A share service answering [temporaryDirectory] with the directory given at construction and
+/// [shareFiles] with [answer], without ever showing a real OS share sheet, and recording that it
+/// was asked.
+///
+/// A false [answer] is the user dismissing the share sheet, which the mixin's mobile branch treats
+/// as a silent no-op, exactly as a cancelled save dialog is on desktop.
+class _RecordingShareService extends OcptShareService {
+  /// Class constructor
+  _RecordingShareService({required Directory directory, required this.answer}) : _directory = directory;
+
+  /// The directory [temporaryDirectory] resolves to.
+  final Directory _directory;
+
+  /// The outcome [shareFiles] reports.
+  final bool answer;
+
+  /// How many times the share sheet was asked for.
+  int shareCount = 0;
+
+  /// The paths of the last [shareFiles] call.
+  List<String> lastPaths = const [];
+
+  @override
+  Future<Directory> temporaryDirectory() async => _directory;
+
+  @override
+  Future<bool> shareFiles({required List<String> paths, Rect? sharePositionOrigin}) async {
+    shareCount++;
+    lastPaths = paths;
     return answer;
   }
 }
@@ -133,17 +180,27 @@ void main() {
   }
 
   /// Builds a shot list bloc — one of the five blocs mixing `MixinOcptProjectPackageBloc` in — over
-  /// the test project, its save dialog answered by [saveLocationService].
+  /// the test project, its save dialog answered by [saveLocationService] and, on
+  /// [platformManager]'s own [PlatformManager.isMobile], its share sheet answered by
+  /// [shareService].
   ///
   /// The shot list is the mode used here because it is the lightest of the five; the mixin's
   /// behaviour is the same in every one of them, which is the whole reason it is a mixin.
-  OcptShotListBloc buildBloc(OcptSaveLocationService saveLocationService) => OcptShotListBloc(
+  /// [platformManager] and [shareService] default to the real desktop write funnel, so the existing
+  /// desktop-only tests need not know either exists.
+  OcptShotListBloc buildBloc(
+    OcptSaveLocationService saveLocationService, {
+    PlatformManager? platformManager,
+    OcptShareService? shareService,
+  }) => OcptShotListBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: _SilentRouterManager(),
     exportManager: OcptExportManager(
       fileSelectorManager: const FileSelectorManager(),
       saveLocationService: saveLocationService,
+      platformManager: platformManager,
+      shareService: shareService,
     ),
     fieldEditDebounce: const Duration(milliseconds: 20),
   );
@@ -151,8 +208,16 @@ void main() {
   /// Builds a bloc through [buildBloc] and waits for its own initial read of the project to land,
   /// so nothing of the mode's is still in flight when a test's assertions — or its teardown —
   /// arrive.
-  Future<OcptShotListBloc> buildLoadedBloc(OcptSaveLocationService saveLocationService) async {
-    final bloc = buildBloc(saveLocationService);
+  Future<OcptShotListBloc> buildLoadedBloc(
+    OcptSaveLocationService saveLocationService, {
+    PlatformManager? platformManager,
+    OcptShareService? shareService,
+  }) async {
+    final bloc = buildBloc(
+      saveLocationService,
+      platformManager: platformManager,
+      shareService: shareService,
+    );
     await bloc.stream.firstWhere((state) => !state.isLoading).timeout(const Duration(seconds: 20));
     return bloc;
   }
@@ -167,6 +232,16 @@ void main() {
     }
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 20));
+  }
+
+  /// Polls [condition] until it is true or 20 seconds pass, without depending on a bloc state
+  /// emission — for a request whose outcome (a dismissed share sheet, mirroring a cancelled save
+  /// dialog) is a silent no-op and therefore never emits a new state [waitForState] could wait on.
+  Future<void> waitUntil(bool Function() condition) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 20));
+    while (!condition() && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
   }
 
   test("a project whose every referenced file is there is packaged without a question", () async {
@@ -293,5 +368,59 @@ void main() {
     expect(bloc.state.projectPackageNotice, isNull);
     expect(bloc.state.projectPackagePendingExport, isNull);
     expect(File(packagePath).existsSync(), isFalse);
+  });
+
+  group("on mobile", () {
+    test(
+      "a successful export writes into the temporary directory and shares it",
+      () async {
+        await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+
+        final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+        final shareService = _RecordingShareService(directory: tempDir, answer: true);
+        final bloc = await buildLoadedBloc(
+          saveLocationService,
+          platformManager: _StubPlatformManager(isMobile: true),
+          shareService: shareService,
+        );
+
+        bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
+
+        final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+        // The native save dialog is never shown on mobile.
+        expect(saveLocationService.askCount, 0);
+        expect(shareService.shareCount, 1);
+        expect(shareService.lastPaths, hasLength(1));
+        expect(p.basename(shareService.lastPaths.single), "My Movie.ocptz");
+        expect(File(shareService.lastPaths.single).existsSync(), isTrue);
+        expect(state.projectPackagePendingExport, isNull);
+        expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportShared);
+        expect(state.projectPackageNotice?.path, isNull);
+      },
+    );
+
+    test("a dismissed share sheet writes nothing to report and raises no notice", () async {
+      await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+
+      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+      final shareService = _RecordingShareService(directory: tempDir, answer: false);
+      final bloc = await buildLoadedBloc(
+        saveLocationService,
+        platformManager: _StubPlatformManager(isMobile: true),
+        shareService: shareService,
+      );
+
+      bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
+      await waitUntil(() => shareService.shareCount > 0);
+
+      // Nothing else is coming: the handler returned the moment the share sheet answered false, so
+      // a state holding a notice would have to be emitted by something that is not running any
+      // more.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      expect(bloc.state.projectPackageNotice, isNull);
+      expect(bloc.state.projectPackagePendingExport, isNull);
+    });
   });
 }

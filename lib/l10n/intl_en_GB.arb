@@ -10302,6 +10302,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectPackageExportShared": "Project shared.",
+  "@projectPackageExportShared": {
+    "description": "Message shown on mobile when the project package was handed to the OS share sheet",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsBudgetSectionTitle": "Budget defaults",
   "@projectSettingsBudgetSectionTitle": {
     "description": "Title of the project settings page's budget defaults section",
