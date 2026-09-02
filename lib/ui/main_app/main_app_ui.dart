@@ -41,9 +41,13 @@ const double _ocptMobileUiScale = 1.2;
 ///
 /// The whole tree is wrapped in [ScreenUtilInit], which initialises `flutter_screenutil` before
 /// calling its `builder` — so `.sp`/`.w`/`.r` are valid by the time the [BlocBuilder] below reads
-/// them. On [PlatformManager.isMobile], the theme is rebuilt with those scalers
-/// ([buildOcptThemeModel]); on desktop `isMobile` is false, so the app keeps the bloc state's own
-/// theme model (the global [ocptTheme]) unchanged and `.sp`/`.w`/`.r` are never called.
+/// them. On a **phone** (mobile, and a shortest side below [ocptPhoneWidthBreakpoint]) the theme is
+/// rebuilt with those scalers ([buildOcptThemeModel]); on a tablet and on desktop it is not — a
+/// tablet has desktop-class room, especially in landscape, so magnifying every size by the phone
+/// design-size ratio would blow the type and the controls up out of proportion. There the app keeps
+/// the bloc state's own theme model (the global [ocptTheme]) unchanged and `.sp`/`.w`/`.r` are never
+/// called. Phones and tablets are told apart by the rotation-invariant shortest side, the same 600dp
+/// line the orientation policy and Android's `sw600dp` qualifier draw.
 class MainAppUi extends StatelessWidget {
   /// Creates the main app widget.
   const MainAppUi({super.key});
@@ -61,7 +65,18 @@ class MainAppUi extends StatelessWidget {
           child: BlocBuilder<OcptMainAppBloc, OcptMainAppState>(
             builder: (context, state) {
               final platform = globalGetIt().get<PlatformManager>();
-              final themeModel = platform.isMobile
+              // The screenutil-based scaling is a phone concern: only there is the room tight enough
+              // to want the whole UI grown by the phone design-size ratio. A tablet has desktop-class
+              // room, so it keeps the unscaled desktop theme and reads like the desktop build rather
+              // than magnifying every size. The two are told apart by the rotation-invariant shortest
+              // side — [ScreenUtil] is already initialised here, so its screen dimensions are the
+              // measure to hand.
+              final screenUtil = ScreenUtil();
+              final shortestSide = screenUtil.screenWidth < screenUtil.screenHeight
+                  ? screenUtil.screenWidth
+                  : screenUtil.screenHeight;
+              final isPhone = platform.isMobile && shortestSide < ocptPhoneWidthBreakpoint;
+              final themeModel = isPhone
                   ? buildOcptThemeModel(
                       sp: (v) => (v * _ocptMobileUiScale).sp,
                       w: (v) => (v * _ocptMobileUiScale).w,
