@@ -2,11 +2,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -16,11 +20,13 @@ import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
 
 /// The method channel `flutter_secure_storage` talks over — mirrors
 /// `ocpt_sync_manager_pairing_test.dart`'s own mock, which this file's [OcptSecretsManager] needs
@@ -354,4 +360,177 @@ void main() {
 
     await failingManager.stopHosting();
   });
+
+  group('reconcileWithUpstream', () {
+    late OcptRelayStore hostStore;
+    late OcptRelayHostManager reconcileManager;
+    late OcptRelayStore upstreamStore;
+    late OcptRelayServer upstreamServer;
+    late HttpServer upstreamHttp;
+    late Uri upstreamBaseUri;
+    late OcptRelayInvite invite;
+    HttpOverrides? previousHttpOverrides;
+
+    setUp(() async {
+      // `flutter test` installs a global HttpOverrides that fails every real HttpClient request
+      // with a 400, to catch a widget test accidentally hitting the network — this group needs a
+      // real loopback socket, exactly like `ocpt_relay_reconciler_test.dart`'s own plain-Dart
+      // setup, so it is lifted for the duration of this group and restored in tearDown.
+      previousHttpOverrides = HttpOverrides.current;
+      HttpOverrides.global = null;
+
+      hostStore = OcptRelayStore(':memory:');
+      reconcileManager = OcptRelayHostManager(
+        secretsManager: secretsManager,
+        syncManager: spy,
+        platformManager: _StubPlatformManager(isMobile: false),
+        bindAddress: InternetAddress.loopbackIPv4,
+        lanAddressResolver: () async => InternetAddress('192.168.1.42'),
+        storeFactory: (_) => hostStore,
+      );
+
+      // Points startHosting's self-seed at a known project id, so the invite built below can
+      // target it without having to first inspect what startHosting minted.
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(projectId: 'project-1', relayBaseUrl: 'https://prep.example.org/'),
+          );
+
+      upstreamStore = OcptRelayStore(':memory:');
+      upstreamServer = OcptRelayServer(store: upstreamStore, enrolmentSecret: 'enrolment-secret');
+      upstreamHttp = await shelf_io.serve(upstreamServer.handler, 'localhost', 0);
+      upstreamBaseUri = Uri.parse('http://localhost:${upstreamHttp.port}');
+
+      invite = OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'project-1', token: 'token-1');
+    });
+
+    tearDown(() async {
+      // stopHosting closes hostStore itself (it is the very store startHosting opened, through
+      // the injected storeFactory) — closing it again here would double-dispose it.
+      await reconcileManager.stopHosting();
+      await upstreamHttp.close(force: true);
+      upstreamStore.close();
+      HttpOverrides.global = previousHttpOverrides;
+    });
+
+    test('pushes every local changeset to an upstream that has none yet', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      hostStore.append('project-1', _envelope('changeset-1'));
+      hostStore.append('project-1', _envelope('changeset-2'));
+      hostStore.append('project-1', _envelope('changeset-3'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileSucceeded>());
+      expect((outcome as OcptReconcileSucceeded).pushed, 3);
+      expect(outcome.pulled, 0);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-1',
+        'changeset-2',
+        'changeset-3',
+      ]);
+    });
+
+    test('pulls what the upstream holds while pushing what the local store holds', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      hostStore.append('project-1', _envelope('set-1'));
+      hostStore.append('project-1', _envelope('set-2'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      upstreamStore.append('project-1', _envelope('upstream-2'));
+
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileSucceeded>());
+      expect((outcome as OcptReconcileSucceeded).pushed, 2);
+      expect(outcome.pulled, 2);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'upstream-1',
+        'upstream-2',
+      });
+      final onHost = hostStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onHost.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'upstream-1',
+        'upstream-2',
+      });
+    });
+
+    test('a second run right after the first pushes and pulls nothing new', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      hostStore.append('project-1', _envelope('set-1'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      await reconcileManager.reconcileWithUpstream(invite);
+
+      final second = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(second, isA<OcptReconcileSucceeded>());
+      expect((second as OcptReconcileSucceeded).pushed, 0);
+      expect(second.pulled, 0);
+    });
+
+    test('reports a failed outcome when nothing is being hosted', () async {
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileFailed>());
+    });
+
+    test('reports a failed outcome when the invite names a different project than the hosted one', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      final outcome = await reconcileManager.reconcileWithUpstream(
+        OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'other-project', token: 'token-1'),
+      );
+
+      expect(outcome, isA<OcptReconcileFailed>());
+    });
+  });
 }
+
+/// The sha256 hex digest [OcptRelayStore.createProject] expects as a `tokenHash` — mirrors
+/// `OcptRelayServer`'s own hashing, so a test-seeded upstream project accepts the same bearer
+/// token an [OcptRelayInvite] in this file authenticates with. Mirrors
+/// `ocpt_relay_reconciler_test.dart`'s own helper.
+String _tokenHash(String token) => sha256.convert(utf8.encode(token)).toString();
+
+/// A minimal changeset envelope for the reconcile tests, whose payload content is never
+/// inspected — mirrors `ocpt_relay_reconciler_test.dart`'s own helper.
+OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptChangesetEnvelope(
+  changesetId: changesetId,
+  originDeviceId: 'device-1',
+  lamport: lamport,
+  createdAt: DateTime.utc(2026),
+  payload: Uint8List.fromList([1, 2, 3]),
+);

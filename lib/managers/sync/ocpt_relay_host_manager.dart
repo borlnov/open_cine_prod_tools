@@ -13,7 +13,9 @@ import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:path/path.dart' as p;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:uuid/uuid.dart';
@@ -22,6 +24,12 @@ import 'package:uuid/uuid.dart';
 /// [OcptRelayHostManager] resolves through by default with [NetworkInterface.list], and a test
 /// replaces with a fixed [InternetAddress] it cannot otherwise construct one of.
 typedef OcptLanAddressResolver = Future<InternetAddress?> Function();
+
+/// Opens the [OcptRelayStore] [OcptRelayHostManager.startHosting] serves — the seam a test
+/// replaces to pre-seed the very store the live server ends up holding (a test cannot otherwise
+/// reach into a store `startHosting` opens for itself), by returning an in-memory
+/// `OcptRelayStore(':memory:')` it keeps its own reference to. Defaults to `OcptRelayStore.new`.
+typedef OcptRelayStoreFactory = OcptRelayStore Function(String path);
 
 /// Builds the [OcptRelayHostManager] instance registered by the global manager.
 class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManager> {
@@ -75,6 +83,11 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// a test cannot construct a [NetworkInterface] of its own, so this seam returns the resolved
   /// [InternetAddress] directly rather than the interface it came from, letting a test inject
   /// `InternetAddress('192.168.1.42')` with nothing further to fake.
+  ///
+  /// [storeFactory] defaults to `OcptRelayStore.new` and is what [startHosting] calls to open the
+  /// store it serves and [reconcileWithUpstream] later reconciles — a test injects one returning
+  /// an in-memory `OcptRelayStore(':memory:')` it holds its own reference to, so it can pre-seed
+  /// the very store the live server ends up holding, which a test cannot otherwise reach into.
   OcptRelayHostManager({
     PlatformManager? platformManager,
     OcptSecretsManager? secretsManager,
@@ -82,11 +95,13 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     InternetAddress? bindAddress,
     this.port = 0,
     OcptLanAddressResolver? lanAddressResolver,
+    OcptRelayStoreFactory? storeFactory,
   }) : _platformManager = platformManager ?? PlatformManager(),
        _secretsManager = secretsManager,
        _syncManager = syncManager,
        _bindAddress = bindAddress ?? InternetAddress.anyIPv4,
-       _lanAddressResolver = lanAddressResolver ?? _defaultLanAddress;
+       _lanAddressResolver = lanAddressResolver ?? _defaultLanAddress,
+       _storeFactory = storeFactory ?? OcptRelayStore.new;
 
   final PlatformManager _platformManager;
 
@@ -111,6 +126,10 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
 
   /// Resolves the address advertised to peers as this hosted relay's own LAN base URI.
   final OcptLanAddressResolver _lanAddressResolver;
+
+  /// Opens the [OcptRelayStore] [startHosting] serves — see this class's own constructor doc
+  /// comment for why this is a seam rather than a direct call.
+  final OcptRelayStoreFactory _storeFactory;
 
   OcptRelayHostState _state = const OcptRelayHostStopped();
   final StreamController<OcptRelayHostState> _controller = StreamController<OcptRelayHostState>.broadcast();
@@ -205,7 +224,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       }
 
       final storePath = p.setExtension(projectFilePath, '.relay.sqlite');
-      final store = OcptRelayStore(storePath);
+      final store = _storeFactory(storePath);
       _store = store;
 
       final server = OcptRelayServer(store: store, enrolmentSecret: secret);
@@ -265,6 +284,56 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   Future<void> stopHosting() async {
     await _teardown();
     _setState(const OcptRelayHostStopped());
+  }
+
+  /// Reconciles the **live** hosted store — never a second, separately opened handle onto
+  /// `relay.sqlite` while [OcptRelayServer] already holds it — with the upstream relay named by
+  /// [invite] (typically the production's prep relay, reached through an `ocpt://join` invite
+  /// scanned or pasted into the hosting panel's "Réconcilier amont…" action): push what this
+  /// store holds that the upstream does not, then pull what the upstream holds that this store
+  /// does not, both deduped by `changesetId`, exactly as `docs/architecture/sync.md` describes for
+  /// the CLI's own `reconcile` subcommand — [OcptRelayReconciler] and [OcptRelayUpstreamClient] are
+  /// the very same classes, only reached here over the in-process store instead of a second file
+  /// handle.
+  ///
+  /// [invite]'s own token authenticates every request; no enrolment secret is ever forwarded to
+  /// the push, unlike the CLI's own `--enrolment-secret` flag: an `ocpt://join` invite is only ever
+  /// issued for a project that already exists on that relay (it names a project already being
+  /// shared, not one to create), so the upstream never needs to be told to create it.
+  ///
+  /// Returns [OcptReconcileSucceeded] with the counts a "Réconcilier amont…" action shows as
+  /// "pushed N, pulled M", or [OcptReconcileFailed] with a human-readable detail — never throws
+  /// across the UI boundary, so a caller renders either value the same way it renders
+  /// [OcptRelayHostState]. Two situations fail before any network call is made: nothing is
+  /// currently hosting ([_store] or [_hostedProjectId] is null), or [invite] names a different
+  /// project than the one hosted — a project keeps one stable id across every relay it is ever
+  /// pointed at, so a mismatch here means the invite was scanned for the wrong project. Any other
+  /// failure — the upstream unreachable, or answering anything but `200`, which
+  /// [OcptRelayUpstreamClient] surfaces as a thrown [StateError] — is caught here and reported as
+  /// [OcptReconcileFailed] instead, and also logged as a warning through [_logWarning].
+  Future<OcptReconcileOutcome> reconcileWithUpstream(OcptRelayInvite invite) async {
+    final store = _store;
+    final projectId = _hostedProjectId;
+    if (store == null || projectId == null) {
+      return const OcptReconcileFailed('Cannot reconcile: no project is being hosted right now.');
+    }
+    if (invite.projectId != projectId) {
+      return const OcptReconcileFailed('The upstream invite is for a different project than the one being hosted.');
+    }
+
+    final upstream = OcptRelayUpstreamClient(baseUri: invite.relayBaseUri, token: invite.token);
+    try {
+      final reconciler = OcptRelayReconciler(store: store, upstream: upstream);
+      final result = await reconciler.reconcileProject(projectId: projectId);
+
+      return OcptReconcileSucceeded(pushed: result.pushed, pulled: result.pulled);
+    } catch (error, stackTrace) {
+      _logWarning('Reconcile with ${invite.relayBaseUri} failed: $error\n$stackTrace');
+
+      return OcptReconcileFailed('Reconcile failed: $error');
+    } finally {
+      upstream.close();
+    }
   }
 
   /// Ends the self-seeded sync session, then closes [_httpServer] and [_store] and clears every
