@@ -156,6 +156,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late OcptSecretsManager secretsManager;
+  late OcptPropertiesManager propertiesManager;
   late Map<String, String> secureStore;
 
   setUpAll(() async {
@@ -165,7 +166,7 @@ void main() {
     OcptGlobalManager.instance;
 
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
-    final propertiesManager = OcptPropertiesManager();
+    propertiesManager = OcptPropertiesManager();
     await propertiesManager.initLifeCycle();
 
     final configManager = OcptConfigManager();
@@ -515,6 +516,121 @@ void main() {
       );
 
       expect(outcome, isA<OcptReconcileFailed>());
+    });
+  });
+
+  group('host on launch', () {
+    late OcptRelayHostManager autoManager;
+
+    setUp(() {
+      autoManager = OcptRelayHostManager(
+        secretsManager: secretsManager,
+        syncManager: spy,
+        propertiesManager: propertiesManager,
+        platformManager: _StubPlatformManager(isMobile: false),
+        bindAddress: InternetAddress.loopbackIPv4,
+        lanAddressResolver: () async => InternetAddress('192.168.1.42'),
+      );
+    });
+
+    tearDown(() async {
+      await autoManager.stopHosting();
+    });
+
+    test('the flag round-trips per project, defaulting to false', () async {
+      expect(await propertiesManager.loadHostOnLaunch('flag-proj-x'), isFalse);
+
+      await propertiesManager.setHostOnLaunch(projectId: 'flag-proj-x', value: true);
+
+      expect(await propertiesManager.loadHostOnLaunch('flag-proj-x'), isTrue);
+      expect(await propertiesManager.loadHostOnLaunch('flag-proj-y'), isFalse);
+    });
+
+    test('auto-starts hosting when the project is paired and the flag is set', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-1',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-1', value: true);
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(autoManager.state, isA<OcptRelayHostOnline>());
+    });
+
+    test('does not auto-start hosting when the flag is unset', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-2',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(autoManager.state, const OcptRelayHostStopped());
+    });
+
+    test('does not auto-start hosting an unpaired project', () async {
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-3', value: true);
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(autoManager.state, const OcptRelayHostStopped());
+    });
+
+    test('is a no-op on mobile', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-4',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-4', value: true);
+
+      final mobileManager = OcptRelayHostManager(
+        secretsManager: secretsManager,
+        syncManager: spy,
+        propertiesManager: propertiesManager,
+        platformManager: _StubPlatformManager(isMobile: true),
+        bindAddress: InternetAddress.loopbackIPv4,
+      );
+
+      await mobileManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(mobileManager.state, const OcptRelayHostStopped());
     });
   });
 }

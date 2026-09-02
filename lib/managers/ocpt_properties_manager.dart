@@ -38,8 +38,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// fractions, visible table columns and last right dock tab, the
 /// resources mode's own dock fractions, the breakdown mode's own dock fractions and last right
 /// dock tab, the schedule mode's own dock fractions and last right dock tab, the budget mode's own
-/// right dock fraction and last right dock tab, and the id identifying this replica of the app
-/// ([loadOrCreateDeviceId]).
+/// right dock fraction and last right dock tab, the id identifying this replica of the app
+/// ([loadOrCreateDeviceId]), and each project's own "host on launch" flag ([loadHostOnLaunch]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -302,6 +302,24 @@ class OcptPropertiesManager extends AbstractPropertiesManager
 
     return minted;
   }
+
+  /// Whether the project identified by [projectId] should start hosting its own relay again
+  /// automatically the next time it is opened — the local, per-device, never-synchronised
+  /// "réhéberger ce projet au démarrage" preference the hosting panel's checkbox toggles.
+  ///
+  /// Returns false when nothing has been stored yet (unchecked by default). It is keyed by the
+  /// project's own relay-side id, the same id every replica of the project shares, so the choice
+  /// is per project; it is a local `SharedPreferences` value, per device, and is never written to
+  /// any synchronised table — a device that never hosted a project simply never has it set.
+  Future<bool> loadHostOnLaunch(String projectId) async =>
+      await SharedPreferencesItem<bool>(_hostOnLaunchKey(projectId)).load() ?? false;
+
+  /// Stores whether [projectId] should auto-host on the next open — see [loadHostOnLaunch].
+  Future<void> setHostOnLaunch({required String projectId, required bool value}) =>
+      SharedPreferencesItem<bool>(_hostOnLaunchKey(projectId)).store(value);
+
+  /// The local-storage key [projectId]'s own "host on launch" flag is stored under.
+  static String _hostOnLaunchKey(String projectId) => 'HOST_ON_LAUNCH_$projectId';
 
   /// Add [project] to [recentProjects], or move it to the front if it's already there.
   ///

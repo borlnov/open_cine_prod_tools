@@ -10,6 +10,7 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -38,7 +39,8 @@ class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManag
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [LoggerManager, OcptSyncManager, OcptSecretsManager];
+  Iterable<Type> dependsOn() =>
+      [LoggerManager, OcptSyncManager, OcptSecretsManager, OcptPropertiesManager];
 }
 
 /// Owns the lifecycle of **one** in-process relay — one `OcptRelayServer` over one
@@ -50,7 +52,9 @@ class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManag
 /// [PlatformManager.isMobile] — and it does two things once the socket is up: it brings the server
 /// up and reports [OcptRelayHostOnline] ([stopHosting] tears it down), and it makes this replica
 /// its own relay's first member by pointing the project at the socket it just bound, over
-/// `localhost` — see [startHosting]'s own doc comment for exactly how.
+/// `localhost` — see [startHosting]'s own doc comment for exactly how. [maybeAutoStartHosting]
+/// restarts a project's hosting automatically on a later open, when its own "host on launch"
+/// preference asks for it.
 ///
 /// [state]/[stateStream] follow the same contract as `OcptSyncSession.status`/`statusStream`
 /// (`CLAUDE.md`'s own pitfalls list): [stateStream] never replays its current value to a new
@@ -70,7 +74,10 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// fake secure-storage channel instead. [syncManager] is stored nullable and resolved lazily
   /// through [_sync] for the very same reason: a test that only exercises the desktop guard never
   /// needs one registered, and a test that does needs a spy over `pairProjectToRelay`/
-  /// `repointProjectToRelay` rather than the real thing.
+  /// `repointProjectToRelay` rather than the real thing. [propertiesManager] is stored nullable and
+  /// resolved lazily through [_properties] for the same reason again: only [maybeAutoStartHosting]
+  /// ever reads it, so a test exercising [startHosting]/[stopHosting]/[reconcileWithUpstream] alone
+  /// never needs one registered.
   ///
   /// [bindAddress] is the socket [startHosting] binds: `InternetAddress.anyIPv4` (`0.0.0.0`) by
   /// default, so the relay is reachable from anywhere on the LAN, not just this machine; a test
@@ -92,6 +99,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     PlatformManager? platformManager,
     OcptSecretsManager? secretsManager,
     OcptSyncManager? syncManager,
+    OcptPropertiesManager? propertiesManager,
     InternetAddress? bindAddress,
     this.port = 0,
     OcptLanAddressResolver? lanAddressResolver,
@@ -99,6 +107,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   }) : _platformManager = platformManager ?? PlatformManager(),
        _secretsManager = secretsManager,
        _syncManager = syncManager,
+       _propertiesManager = propertiesManager,
        _bindAddress = bindAddress ?? InternetAddress.anyIPv4,
        _lanAddressResolver = lanAddressResolver ?? _defaultLanAddress,
        _storeFactory = storeFactory ?? OcptRelayStore.new;
@@ -117,6 +126,14 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// through `globalGetIt()` the first time it is actually needed — see this class's own
   /// constructor doc comment for why.
   OcptSyncManager get _sync => _syncManager ??= globalGetIt().get<OcptSyncManager>();
+
+  OcptPropertiesManager? _propertiesManager;
+
+  /// The per-project "host on launch" flag [maybeAutoStartHosting] reads, resolved lazily through
+  /// `globalGetIt()` the first time it is actually needed — see this class's own constructor doc
+  /// comment for why.
+  OcptPropertiesManager get _properties =>
+      _propertiesManager ??= globalGetIt().get<OcptPropertiesManager>();
 
   /// The address [startHosting] binds its socket to.
   final InternetAddress _bindAddress;
@@ -334,6 +351,46 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     } finally {
       upstream.close();
     }
+  }
+
+  /// The manager-layer half of "réhéberger au démarrage" (`docs/architecture/sync.md`): a
+  /// project-open caller (wired in a later step) hands this the project it just opened, and this
+  /// starts hosting it again only when both hold: the project is paired — has a relay-side id, so
+  /// [OcptSyncManager.loadPairedProjectId] returns one; a never-paired project was never hosted, so
+  /// there is nothing to restart — AND its per-project [OcptPropertiesManager] "host on launch"
+  /// flag ([OcptPropertiesManager.loadHostOnLaunch]) is set.
+  ///
+  /// A no-op, and never throws, in three cases: on [PlatformManager.isMobile] (hosting is
+  /// desktop-only, and the flag is a per-device local value a mobile build's own UI never sets),
+  /// on an unpaired project, and on a project whose flag is unset. Once it decides to start, it
+  /// reuses [startHosting] verbatim with the very same arguments.
+  Future<void> maybeAutoStartHosting({
+    required OcptProjectDatabase database,
+    required String projectFilePath,
+    required String projectName,
+    required String appVersion,
+    required String deviceId,
+  }) async {
+    if (_platformManager.isMobile) {
+      return;
+    }
+
+    final projectId = await _sync.loadPairedProjectId(database);
+    if (projectId == null) {
+      return;
+    }
+
+    if (!await _properties.loadHostOnLaunch(projectId)) {
+      return;
+    }
+
+    await startHosting(
+      database: database,
+      projectFilePath: projectFilePath,
+      projectName: projectName,
+      appVersion: appVersion,
+      deviceId: deviceId,
+    );
   }
 
   /// Ends the self-seeded sync session, then closes [_httpServer] and [_store] and clears every
