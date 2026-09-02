@@ -530,6 +530,21 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await pairingService.clearPairing(database: database, projectId: projectId);
   }
 
+  /// The relay-side project id [database]'s own single `sync_pairings` row carries, or null when
+  /// the project is not paired to any relay yet — the read `OcptRelayHostManager` uses to decide
+  /// between re-pointing an already-paired project at its own hosted relay and pairing a
+  /// never-paired one afresh.
+  ///
+  /// Read straight off the table, exactly as [_readSnapshottedProjectId] is, rather than through
+  /// [OcptPairingService.loadPairing]: that also requires the project's token to already sit in
+  /// secure storage and returns no project id of its own, where here only the id is wanted,
+  /// whether or not the token half is present.
+  Future<String?> loadPairedProjectId(OcptProjectDatabase database) async {
+    final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
+
+    return row?.projectId;
+  }
+
   /// Stops the current sync session, if any — cancels its timer and its `newWorkStream`
   /// subscription and closes its status stream — and the current presence service alongside it,
   /// if any. Safe to call with no session (or presence service) running.
