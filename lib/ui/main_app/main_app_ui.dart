@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async' show unawaited;
+
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
@@ -16,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_bloc.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_state.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The extra factor the mobile UI is scaled up by, on top of `flutter_screenutil`'s own
 /// design-size scaling.
@@ -113,12 +116,55 @@ class MainAppUi extends StatelessWidget {
 ///
 /// On desktop there are no system insets, so the [SafeArea] adds no padding and the
 /// [AnnotatedRegion] is inert: the shell is a no-op there and changes nothing.
-class _EdgeToEdgeShell extends StatelessWidget {
+///
+/// It is also where the app's device-orientation policy is applied, for the same reason it is the
+/// one wrapper every route passes through: see [_EdgeToEdgeShellState._lockOrientationForDeviceClass].
+class _EdgeToEdgeShell extends StatefulWidget {
   /// The routed content to inset — the [MaterialApp.router]'s own `child`.
   final Widget child;
 
   /// Class constructor
   const _EdgeToEdgeShell({required this.child});
+
+  @override
+  State<_EdgeToEdgeShell> createState() => _EdgeToEdgeShellState();
+}
+
+/// State of [_EdgeToEdgeShell]: applies the orientation policy once its [MediaQuery] is available.
+class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _lockOrientationForDeviceClass();
+  }
+
+  /// On a mobile build, pins a phone to portrait and leaves a tablet free to rotate.
+  ///
+  /// A phone has too little room to lay a production mode out in landscape, so it is kept upright; a
+  /// tablet has the space, so every orientation stays available. The two are told apart by the
+  /// screen's shortest side — the one measure that does not itself change when the device rotates —
+  /// against [ocptPhoneWidthBreakpoint], the same 600dp line Android's own `sw600dp` tablet
+  /// qualifier draws. A desktop build reaches none of this: it has no device orientation to
+  /// constrain, and [PlatformManager.isMobile] gates the whole thing out there.
+  void _lockOrientationForDeviceClass() {
+    if (!globalGetIt().get<PlatformManager>().isMobile) {
+      return;
+    }
+
+    final isPhone = MediaQuery.sizeOf(context).shortestSide < ocptPhoneWidthBreakpoint;
+    unawaited(
+      SystemChrome.setPreferredOrientations(
+        isPhone
+            ? const [DeviceOrientation.portraitUp]
+            : const [
+                DeviceOrientation.portraitUp,
+                DeviceOrientation.portraitDown,
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +186,7 @@ class _EdgeToEdgeShell extends StatelessWidget {
       ),
       child: ColoredBox(
         color: theme.scaffoldBackgroundColor,
-        child: SafeArea(child: child),
+        child: SafeArea(child: widget.child),
       ),
     );
   }
