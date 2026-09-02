@@ -15250,6 +15250,91 @@
   "workspacePresenceSelfBadge": "You",
   "@workspacePresenceSelfBadge": {
     "description": "Badge marking this replica's own row in the presence indicator's popover"
+  },
+  "sharingSegmentRemote": "Remote relay",
+  "@sharingSegmentRemote": {
+    "description": "Segment of the Partager screen's own segmented button selecting the remote-relay pairing flow"
+  },
+  "sharingSegmentHost": "Host on this machine",
+  "@sharingSegmentHost": {
+    "description": "Segment of the Partager screen's own segmented button selecting the in-app hosting panel, desktop only"
+  },
+  "hostingSwitchLabel": "Hosting",
+  "@hostingSwitchLabel": {
+    "description": "Label of the hosting panel's own Marche/Arrêt switch"
+  },
+  "hostingAutoRestartLabel": "Re-host this project on launch",
+  "@hostingAutoRestartLabel": {
+    "description": "Label of the hosting panel's own checkbox restarting hosting automatically on the next open"
+  },
+  "hostingAddressLabel": "Address",
+  "@hostingAddressLabel": {
+    "description": "Label of the hosted relay's own advertised LAN address, shown while hosting is online"
+  },
+  "hostingCopyAddressTooltip": "Copy the address",
+  "@hostingCopyAddressTooltip": {
+    "description": "Tooltip of the icon button copying the hosted relay's own advertised LAN address"
+  },
+  "hostingQrCaption": "For the crew to scan",
+  "@hostingQrCaption": {
+    "description": "Caption under the hosting panel's own enrolment QR code"
+  },
+  "hostingPeersLabel": "Connected",
+  "@hostingPeersLabel": {
+    "description": "Title of the hosting panel's own connected-peers card"
+  },
+  "hostingNoPeers": "No one has joined yet",
+  "@hostingNoPeers": {
+    "description": "Shown in the hosting panel's own connected-peers card while nobody has joined the hosted relay"
+  },
+  "hostingReconcileAction": "Reconcile upstream…",
+  "@hostingReconcileAction": {
+    "description": "Action opening the hosting panel's own inline reconcile form"
+  },
+  "hostingReconcileInviteHint": "Paste the upstream relay's invite link",
+  "@hostingReconcileInviteHint": {
+    "description": "Hint text of the hosting panel's own reconcile form field"
+  },
+  "hostingReconcileRun": "Reconcile",
+  "@hostingReconcileRun": {
+    "description": "Primary button of the hosting panel's own reconcile form"
+  },
+  "hostingReconcileResult": "Pushed {pushed}, pulled {pulled}",
+  "@hostingReconcileResult": {
+    "description": "Result line of the hosting panel's own reconcile form once a push-then-pull with the upstream relay has completed",
+    "context": "Displayed under the hosting panel's own reconcile form",
+    "type": "text",
+    "placeholders": {
+      "pushed": {
+        "type": "int"
+      },
+      "pulled": {
+        "type": "int"
+      }
+    }
+  },
+  "hostingReconcileInvalidInvite": "That is not a valid invite link",
+  "@hostingReconcileInvalidInvite": {
+    "description": "Result line of the hosting panel's own reconcile form when the pasted text isn't a well-formed invite link"
+  },
+  "hostingReconcileFailed": "Reconciliation failed",
+  "@hostingReconcileFailed": {
+    "description": "Result line of the hosting panel's own reconcile form when the upstream relay could not be reconciled with"
+  },
+  "hostingStatusStarting": "Starting…",
+  "@hostingStatusStarting": {
+    "description": "Status subtitle of the hosting panel's own switch while the in-process relay is binding its socket"
+  },
+  "hostingStatusOnline": "Online",
+  "@hostingStatusOnline": {
+    "description": "Status subtitle of the hosting panel's own switch while the in-process relay is up and serving"
+  },
+  "hostingStatusStopped": "Stopped",
+  "@hostingStatusStopped": {
+    "description": "Status subtitle of the hosting panel's own switch while nothing is hosting"
+  },
+  "hostingStatusFailed": "Hosting could not start",
+  "@hostingStatusFailed": {
+    "description": "Status subtitle of the hosting panel's own switch when the in-process relay failed to start"
   }
-
 }

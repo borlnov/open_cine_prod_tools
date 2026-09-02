@@ -10,14 +10,11 @@ import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_enrolment_qr_code.dart';
 
 /// The maximum width of the ② QR code column, matching the Partager screen's own
 /// `OcptSharingInviteView`.
 const _maxContentWidth = 620.0;
-
-/// The side of the QR code drawn in the enrolment card.
-const _qrSize = 140.0;
 
 /// The repointing page's ② QR code state: the `ocpt://relay` enrolment QR the next crew member
 /// scans to move their own project to the very same relay, the relay address and the masked
@@ -56,16 +53,9 @@ class OcptRepointingQrView extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        color: Colors.white,
-                        child: QrImageView(
-                          data: enrolment.toEnrolmentString(),
-                          size: _qrSize,
-                          eyeStyle: const QrEyeStyle(color: Colors.black),
-                          dataModuleStyle: const QrDataModuleStyle(color: Colors.black),
-                        ),
-                      ),
+                      // No explicit `size:` — `OcptEnrolmentQrCode`'s own default (140) is exactly
+                      // this card's original QR side, so passing it again would be redundant.
+                      OcptEnrolmentQrCode(enrolment: enrolment),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
