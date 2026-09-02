@@ -211,7 +211,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                     if (helpAction != null) helpAction!,
                     if (overflowEntries.isNotEmpty)
                       PopupMenuButton<void>(
-                        icon: const Icon(Icons.more_vert, size: 20),
+                        icon: const Icon(Icons.more_vert, size: 24),
                         tooltip: MaterialLocalizations.of(context).showMenuTooltip,
                         style: chromeButtonStyle,
                         itemBuilder: (context) => overflowEntries,

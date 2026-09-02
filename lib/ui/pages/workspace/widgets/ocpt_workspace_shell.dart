@@ -729,7 +729,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     return [
       if (onToggleLeftDock != null)
         IconButton(
-          icon: Icon(isLeftOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 20),
+          icon: Icon(isLeftOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 24),
           tooltip: tr.workspaceToggleLeftDockTooltip,
           isSelected: isLeftOpen,
           style: OcptWorkspaceToolbar.chromeButtonStyle,
@@ -741,7 +741,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
         IconButton(
           icon: Transform.flip(
             flipX: true,
-            child: Icon(isRightOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 20),
+            child: Icon(isRightOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 24),
           ),
           tooltip: tr.workspaceToggleRightDockTooltip,
           isSelected: isRightOpen,
@@ -771,7 +771,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     }
 
     return IconButton(
-      icon: const Icon(Icons.save_outlined, size: 20),
+      icon: const Icon(Icons.save_outlined, size: 24),
       tooltip: Tr.of(context).editorSaveTooltip,
       style: OcptWorkspaceToolbar.chromeButtonStyle,
       onPressed: onSave,
@@ -786,7 +786,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     }
 
     return IconButton(
-      icon: const Icon(Icons.settings_outlined, size: 20),
+      icon: const Icon(Icons.settings_outlined, size: 24),
       tooltip: Tr.of(context).workspaceProjectSettingsTooltip,
       style: OcptWorkspaceToolbar.chromeButtonStyle,
       onPressed: onProjectSettingsRequested,
@@ -801,7 +801,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     }
 
     return IconButton(
-      icon: const Icon(Icons.help_outline, size: 20),
+      icon: const Icon(Icons.help_outline, size: 24),
       tooltip: Tr.of(context).workspaceHelpTooltip,
       style: OcptWorkspaceToolbar.chromeButtonStyle,
       onPressed: onHelpRequested,

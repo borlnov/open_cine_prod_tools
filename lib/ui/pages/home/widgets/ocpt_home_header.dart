@@ -60,7 +60,7 @@ class OcptHomeHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 tr.appTitle,
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(context).textTheme.titleLarge,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
