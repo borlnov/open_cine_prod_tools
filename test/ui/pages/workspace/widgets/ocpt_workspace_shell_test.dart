@@ -873,6 +873,46 @@ void main() {
       },
     );
 
+    testWidgets(
+      "opening a compact drawer whose mode dock is closed fires the mode's own toggle",
+      (tester) async {
+        // A mode builds a dock's panel gated on its own flag, so a closed dock's panel is null and
+        // its drawer would have nothing to show. Opening the drawer therefore also fires the mode's
+        // toggle so the panel gets built — the same tap the desktop dock button makes.
+        tester.view.physicalSize = const Size(700, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        var rightToggleCount = 0;
+        final controller = buildController();
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptWorkspaceShell(
+              title: "My Movie",
+              isDirty: false,
+              onBack: () {},
+              centre: const Text("centre"),
+              rightPanel: const Text("right"),
+              // The mode's own right dock is closed: without firing its toggle, tapping the drawer
+              // open would leave the mode none the wiser and its panel unbuilt.
+              onToggleRightDock: () => rightToggleCount++,
+              dockLayoutController: controller,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+        await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
+        await tester.pumpAndSettle();
+
+        expect(rightToggleCount, 1);
+      },
+    );
+
     testWidgets("tapping its own toggle again closes an open drawer", (tester) async {
       tester.view.physicalSize = const Size(700, 1000);
       tester.view.devicePixelRatio = 1.0;

@@ -296,10 +296,27 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// Opens [side], or closes it back to [_OcptCompactDrawerSide.none] when it is already the open
   /// one — the compact dock toggle's own tap handler. Assigning a single enum value is what keeps
   /// the two drawers mutually exclusive: opening one always replaces whatever the other held.
+  ///
+  /// A side's drawer only shows once the mode has actually built that side's panel, and a mode
+  /// builds a panel gated on its own dock flag — the right dock's tabbed inspector is null until the
+  /// dock is opened, say. So opening a side whose mode dock is still closed also fires the mode's
+  /// own toggle callback, exactly the tap the desktop dock button makes, to get the panel built;
+  /// [didUpdateWidget] then re-syncs [_compactDrawer] to the flag that just flipped (already this
+  /// side). Without it the right toggle looked dead on a phone: the drawer had nothing to show.
   void _toggleCompactDrawer(_OcptCompactDrawerSide side) {
+    final isOpening = _compactDrawer != side;
     setState(() {
-      _compactDrawer = _compactDrawer == side ? _OcptCompactDrawerSide.none : side;
+      _compactDrawer = isOpening ? side : _OcptCompactDrawerSide.none;
     });
+
+    if (!isOpening) {
+      return;
+    }
+    if (side == _OcptCompactDrawerSide.left && !widget.isLeftDockOpen) {
+      widget.onToggleLeftDock?.call();
+    } else if (side == _OcptCompactDrawerSide.right && !widget.isRightDockOpen) {
+      widget.onToggleRightDock?.call();
+    }
   }
 
   /// Closes whichever drawer is open — the scrim's own tap handler.
