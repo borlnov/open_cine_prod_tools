@@ -78,7 +78,9 @@ class OcptEditorFormatOverflowMenu extends StatelessWidget {
           ),
         ],
         builder: (context, menuController, child) => IconButton(
-          icon: const Icon(Icons.more_vert, size: 20),
+          // The canonical "format text" glyph (an A with a baseline bar) — reads as text styling,
+          // and no longer collides with the mode overflow's own `⋮`.
+          icon: const Icon(Icons.text_format, size: 22),
           tooltip: tr.editorFormatMenuTooltip,
           onPressed: () =>
               menuController.isOpen ? menuController.close() : menuController.open(),
