@@ -24,21 +24,13 @@ void main() {
     });
   });
 
-  group("ocptCompactDrawerWidthFor", () {
-    test("fills the whole row at or below the phone breakpoint", () {
-      expect(ocptCompactDrawerWidthFor(390), 390);
-      expect(ocptCompactDrawerWidthFor(ocptPhoneWidthBreakpoint), ocptPhoneWidthBreakpoint);
+  group("ocptIsPhoneWidth", () {
+    test("classifies the phone breakpoint itself as a phone", () {
+      expect(ocptIsPhoneWidth(ocptPhoneWidthBreakpoint), isTrue);
     });
 
-    test("is a fixed edge drawer above the phone breakpoint", () {
-      expect(ocptCompactDrawerWidthFor(700), ocptCompactDrawerWidth);
-      expect(ocptCompactDrawerWidthFor(815), ocptCompactDrawerWidth);
-    });
-
-    test("never exceeds the row width across the compact range", () {
-      for (final rowWidth in <double>[320, ocptPhoneWidthBreakpoint, 601, 700, 815]) {
-        expect(ocptCompactDrawerWidthFor(rowWidth), lessThanOrEqualTo(rowWidth));
-      }
+    test("classifies a tablet-portrait width just above the breakpoint as not a phone", () {
+      expect(ocptIsPhoneWidth(ocptPhoneWidthBreakpoint + 0.1), isFalse);
     });
   });
 }

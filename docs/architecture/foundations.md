@@ -257,10 +257,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
 - The app's first width-breakpoint seam lives in `lib/utils/ocpt_responsive.dart`, deliberately
   kept apart from the platform-keyed scaling above: `ocptCompactWidthBreakpoint` (816 px — below it
   the left dock's 180 px floor, the right dock's 300 px floor, the centre's 320 px floor and the two
-  8 px dividers between them no longer coexist as columns) and `ocptPhoneWidthBreakpoint` (600 px),
+  12 px dividers between them no longer coexist as columns) and `ocptPhoneWidthBreakpoint` (600 px),
   with `ocptIsCompactWidth`/`ocptIsPhoneWidth` as the pure predicates every call site — the shell, a
-  mode, a test — agrees on, and `ocptCompactDrawerWidthFor` resolving the width a summoned drawer
-  takes over a given row. The layout reductions this seam drives are **width-keyed** — pure
+  mode, a test — agrees on. The layout reductions this seam drives are **width-keyed** — pure
   functions of the available space, so the widgets that read them stay presentational and read no
   platform at all — while touch density is the **platform-keyed** half, the scaled theme above; a
   wide desktop window and a docked tablet in landscape share the same width-keyed reductions
@@ -270,8 +269,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   below `ocptCompactWidthBreakpoint` the two side docks present as edge drawers over a full-width
   centre (`OcptWorkspaceShell._buildCompactDrawers`) — summoned by the very same toolbar dock
   toggles that open a persistent column above the breakpoint, dismissed by tapping the scrim beside
-  the open drawer, full-width on a phone (`ocptCompactDrawerWidthFor`) and a fixed-width edge
-  drawer above that. `OcptWorkspaceModeSwitcher` drops its six labelled entries for an icon-only
+  the open drawer, full-width on a phone (`ocptIsPhoneWidth`) and, above that (a tablet in portrait),
+  a resizable drawer opened to its dock's own fraction and carrying the same
+  `OcptWorkspaceDockDivider` a persistent column has on its centre-facing edge, so its width is
+  dragged by touch and reuses the very same `OcptWorkspaceDockLayoutController` fraction the landscape
+  columns do. That divider is a 1 px seam carrying a small three-dot grip that reads as grabbable on
+  a tablet where no hover cursor ever appears; the right dock defaults to 0.40 of the row.
+  `OcptWorkspaceModeSwitcher` drops its six labelled entries for an icon-only
   band, each keeping its label as its tooltip, once the row is narrower than its own labelled band
   (`OcptWorkspaceMode.values.length * _entryWidth`). On a phone (`ocptIsPhoneWidth`) the toolbar
   folds its `Export`, project-settings and `Help` controls out of their own slots into the `⋮`

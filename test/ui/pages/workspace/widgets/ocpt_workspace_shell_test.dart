@@ -13,7 +13,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve (the shell's own
 /// toolbar reads them for its tooltips), a wide test surface so the docks row has room for both
@@ -778,7 +777,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // No resize divider at a compact width, and the panel starts closed.
+        // Nothing is shown while the panel is closed: no drawer, and so no resize divider either.
         expect(find.byType(OcptWorkspaceDockDivider), findsNothing);
         expect(find.text("left"), findsNothing);
         expect(find.text("centre"), findsOneWidget);
@@ -790,10 +789,73 @@ void main() {
         expect(find.text("left"), findsOneWidget);
         expect(find.text("centre"), findsOneWidget);
 
-        // The drawer is the fixed edge width on a tablet-compact row, not the whole width.
-        expect(tester.getSize(find.byType(OcptWorkspaceDock)).width, ocptCompactDrawerWidth);
+        // A tablet-compact drawer opens to its fraction and is resizable, so it now carries a
+        // divider. The left dock's default 0.18 fraction of 700px clamps up to its 180px minimum.
+        expect(find.byType(OcptWorkspaceDockDivider), findsOneWidget);
+        expect(
+          tester.getSize(find.byType(OcptWorkspaceDock)).width,
+          closeTo(OcptWorkspaceDock.leftMinWidth, 0.001),
+        );
       },
     );
+
+    testWidgets("dragging a tablet-compact drawer's divider resizes it and persists the fraction", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(760, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = buildController();
+      addTearDown(controller.dispose);
+
+      var callCount = 0;
+      ({double? left, double? right})? lastReported;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            rightPanel: const Text("right"),
+            onToggleRightDock: () {},
+            dockLayoutController: controller,
+            onDockFractionsChanged: (fractions) {
+              callCount++;
+              lastReported = fractions;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
+      await tester.pumpAndSettle();
+
+      final widthBefore = tester.getSize(find.byType(OcptWorkspaceDock)).width;
+
+      // Drag the right drawer's handle towards the centre (leftwards) to widen it.
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(OcptWorkspaceDockDivider)),
+      );
+      await gesture.moveBy(const Offset(-80, 0));
+      await tester.pump();
+      // Mid-drag: the drawer has grown but nothing has been persisted yet.
+      expect(tester.getSize(find.byType(OcptWorkspaceDock)).width, greaterThan(widthBefore));
+      expect(callCount, 0);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // Exactly one persist call, for the right side alone.
+      expect(callCount, 1);
+      expect(lastReported?.right, isNotNull);
+      expect(lastReported?.left, isNull);
+    });
 
     testWidgets("a phone-width drawer fills the whole row once opened", (tester) async {
       tester.view.physicalSize = const Size(390, 844);
@@ -978,8 +1040,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("left"), findsOneWidget);
 
-      // The drawer is 360 px wide at the left; a tap well to its right lands on the scrim over the
-      // centre, which closes the drawer.
+      // The left drawer is only its clamped fraction wide at the left; a tap well to its right
+      // lands on the scrim over the centre, which closes the drawer.
       await tester.tapAt(const Offset(600, 600));
       await tester.pumpAndSettle();
 

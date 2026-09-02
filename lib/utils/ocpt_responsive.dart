@@ -27,25 +27,5 @@ const double ocptPhoneWidthBreakpoint = 600;
 ///
 /// A pure predicate so every call site agrees on the same boundary: the workspace toolbar folds its
 /// secondary actions (export, settings, help) into the `⋮` overflow at this width, and a summoned
-/// dock fills the whole row rather than sliding in as an edge drawer.
+/// dock fills the whole row rather than sliding in as a resizable edge drawer.
 bool ocptIsPhoneWidth(double width) => width <= ocptPhoneWidthBreakpoint;
-
-/// The width, in pixels, a summoned side dock takes as an edge drawer above
-/// [ocptPhoneWidthBreakpoint] — comfortably wider than the right dock's own 300 px floor
-/// (`OcptWorkspaceDock.rightMinWidth`) while still leaving the centre visible beside it. A drawer
-/// is never wider than the row itself.
-const double ocptCompactDrawerWidth = 360;
-
-/// The pixel width a summoned side dock should take over a row of [rowWidth] at a compact width:
-/// the whole row on a phone ([ocptPhoneWidthBreakpoint] and below), an [ocptCompactDrawerWidth]
-/// edge drawer above that, never wider than the row itself.
-///
-/// A pure function of the row width — the layout reduction is width-keyed, not platform-keyed, so
-/// the workspace shell stays a pure presentational widget (the mobile-only concerns, touch density
-/// and the scaled theme, are `PlatformManager`-keyed elsewhere).
-double ocptCompactDrawerWidthFor(double rowWidth) {
-  if (rowWidth <= ocptPhoneWidthBreakpoint) {
-    return rowWidth;
-  }
-  return rowWidth < ocptCompactDrawerWidth ? rowWidth : ocptCompactDrawerWidth;
-}

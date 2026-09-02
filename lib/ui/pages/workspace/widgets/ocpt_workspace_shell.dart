@@ -902,56 +902,104 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// ([OcptWorkspaceShell.leftPanel]/[OcptWorkspaceShell.rightPanel] null) still has no drawer at
   /// all regardless of [_compactDrawer], exactly as it has no column at an expanded width.
   ///
-  /// There are no resize dividers at this width; a drawer is [ocptCompactDrawerWidthFor] wide (the
-  /// whole row on a phone, an edge drawer above that), and carries a 1 px `outlineVariant` line on
-  /// its centre-facing edge, the same seam the divider draws between a column and the centre.
+  /// A tablet-width drawer ([ocptIsPhoneWidth] false — a tablet in portrait, a narrow desktop
+  /// window) opens to its dock's own fraction of the row and carries the same
+  /// [OcptWorkspaceDockDivider] a persistent column has on its centre-facing edge, so it can be
+  /// resized by touch just as a column is by mouse; the drag reuses the very same
+  /// [OcptWorkspaceShell.dockLayoutController] fraction, so a width set in portrait carries over to
+  /// the landscape columns and back. A phone-width drawer fills the whole row instead — there is no
+  /// centre left to keep in view, so there is nothing to resize against and no divider is drawn.
+  /// The whole thing is wrapped in a [ListenableBuilder] on the controller so a resize drag
+  /// re-lays-out the drawer without rebuilding the centre underneath, the same pattern the
+  /// persistent columns use.
   Widget _buildCompactDrawers(BuildContext context, double rowWidth) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final drawerWidth = ocptCompactDrawerWidthFor(rowWidth);
+    // Non-null in this branch: [_buildDocksRow] returns the bare centre when the controller is null.
+    final controller = widget.dockLayoutController!;
     final leftPanel = widget.leftPanel;
     final rightPanel = widget.rightPanel;
-    final isLeftDrawerOpen = leftPanel != null && _compactDrawer == _OcptCompactDrawerSide.left;
-    final isRightDrawerOpen =
-        rightPanel != null && _compactDrawer == _OcptCompactDrawerSide.right;
 
-    return Stack(
-      children: [
-        Positioned.fill(child: widget.centre),
-        if (isLeftDrawerOpen || isRightDrawerOpen)
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _closeCompactDrawer,
-              child: ColoredBox(color: colorScheme.scrim.withValues(alpha: 0.46)),
-            ),
-          ),
-        if (isLeftDrawerOpen)
-          Positioned(
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: drawerWidth,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(right: BorderSide(color: colorScheme.outlineVariant)),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final isLeftDrawerOpen = leftPanel != null && _compactDrawer == _OcptCompactDrawerSide.left;
+        final isRightDrawerOpen =
+            rightPanel != null && _compactDrawer == _OcptCompactDrawerSide.right;
+
+        return Stack(
+          children: [
+            Positioned.fill(child: widget.centre),
+            if (isLeftDrawerOpen || isRightDrawerOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _closeCompactDrawer,
+                  child: ColoredBox(color: colorScheme.scrim.withValues(alpha: 0.46)),
+                ),
               ),
-              child: OcptWorkspaceDock(width: drawerWidth, child: leftPanel),
+            if (isLeftDrawerOpen)
+              _buildCompactDrawer(controller: controller, rowWidth: rowWidth, isLeft: true, panel: leftPanel),
+            if (isRightDrawerOpen)
+              _buildCompactDrawer(controller: controller, rowWidth: rowWidth, isLeft: false, panel: rightPanel),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Builds one open compact drawer, anchored to [isLeft]'s edge of the row of [rowWidth].
+  ///
+  /// On a phone ([ocptIsPhoneWidth]) it fills the whole row and is not resizable. On a wider compact
+  /// row it opens to [controller]'s clamped fraction and carries an [OcptWorkspaceDockDivider] on
+  /// its centre-facing edge, wired exactly like the matching persistent column's — the left drawer's
+  /// handle on its right, the right drawer's on its left — so the drag sign and the persistence
+  /// through [OcptWorkspaceShell.onDockFractionsChanged] are identical.
+  Widget _buildCompactDrawer({
+    required OcptWorkspaceDockLayoutController controller,
+    required double rowWidth,
+    required bool isLeft,
+    required Widget panel,
+  }) {
+    if (ocptIsPhoneWidth(rowWidth)) {
+      return Positioned(
+        top: 0,
+        bottom: 0,
+        left: isLeft ? 0 : null,
+        right: isLeft ? null : 0,
+        width: rowWidth,
+        child: OcptWorkspaceDock(width: rowWidth, child: panel),
+      );
+    }
+
+    final fraction = isLeft
+        ? OcptWorkspaceDock.clampLeftFraction(controller.leftFraction, rowWidth)
+        : OcptWorkspaceDock.clampRightFraction(controller.rightFraction, rowWidth);
+    final drawerWidth = fraction * rowWidth;
+
+    final divider = OcptWorkspaceDockDivider(
+      onDragUpdate: (deltaX) => isLeft
+          ? controller.setLeftFraction(
+              OcptWorkspaceDock.clampLeftFraction(controller.leftFraction + deltaX / rowWidth, rowWidth),
+            )
+          : controller.setRightFraction(
+              OcptWorkspaceDock.clampRightFraction(controller.rightFraction - deltaX / rowWidth, rowWidth),
             ),
-          ),
-        if (isRightDrawerOpen)
-          Positioned(
-            top: 0,
-            bottom: 0,
-            right: 0,
-            width: drawerWidth,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: colorScheme.outlineVariant)),
-              ),
-              child: OcptWorkspaceDock(width: drawerWidth, child: rightPanel),
-            ),
-          ),
-      ],
+      onDragEnd: () => widget.onDockFractionsChanged?.call(
+        isLeft ? (left: controller.leftFraction, right: null) : (left: null, right: controller.rightFraction),
+      ),
+    );
+    final dock = OcptWorkspaceDock(width: drawerWidth, child: panel);
+
+    return Positioned(
+      top: 0,
+      bottom: 0,
+      left: isLeft ? 0 : null,
+      right: isLeft ? null : 0,
+      width: drawerWidth + OcptWorkspaceDock.dividerHitWidth,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: isLeft ? [dock, divider] : [divider, dock],
+      ),
     );
   }
 }
