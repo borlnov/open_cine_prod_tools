@@ -23,12 +23,16 @@ class OcptSecretsManagerBuilder
 /// The app's own confidential-data storage, wrapping `act_local_storage_manager`'s
 /// [AbstractSecretsManager] (itself wrapping `flutter_secure_storage`).
 ///
-/// The one secret this app stores today is a project's relay pairing token
+/// This app stores two secrets today. A project's relay pairing token
 /// (`docs/plans/relay.md`, M4, Phase B) — never the relay base URL, which is not a secret and lives
-/// in `sync_pairings` instead, nor the enrolment secret, which is a create-time-only value used
-/// once by the transport and never persisted at all. A device can pair more than one project with a
-/// relay over its lifetime, so [loadProjectToken], [saveProjectToken] and [deleteProjectToken] all
-/// key the token by the project id rather than exposing a single fixed secret.
+/// in `sync_pairings` instead, nor the enrolment secret a joiner presents once, which is a
+/// create-time-only value used by the transport and never persisted at all. A device can pair more
+/// than one project with a relay over its lifetime, so [loadProjectToken], [saveProjectToken] and
+/// [deleteProjectToken] all key the token by the project id rather than exposing a single fixed
+/// secret. The second is a project's own **hosting enrolment secret** (`OcptRelayHostManager`): a
+/// stable per-project value minted once so the "Héberger sur ce poste" enrolment QR stays the same
+/// across restarts; it grants project creation on the hosted relay, so it lives in secure storage
+/// here, never in the `.ocpt`.
 class OcptSecretsManager extends AbstractSecretsManager {
   /// Class constructor
   OcptSecretsManager({required super.propertiesGetter, required super.confGetter});
@@ -47,6 +51,20 @@ class OcptSecretsManager extends AbstractSecretsManager {
   Future<void> deleteProjectToken(String projectId) =>
       SecretItem<String>(_projectTokenKey(projectId)).delete();
 
+  /// The hosting enrolment secret stored for [projectId], or null when none has ever been minted —
+  /// the state `OcptRelayHostManager.startHosting` treats as "mint one now".
+  Future<String?> loadHostingEnrolmentSecret(String projectId) =>
+      SecretItem<String>(_hostingEnrolmentSecretKey(projectId)).load();
+
+  /// Stores [secret] as the hosting enrolment secret for [projectId], replacing whatever was
+  /// stored before.
+  Future<void> saveHostingEnrolmentSecret({required String projectId, required String secret}) async {
+    await SecretItem<String>(_hostingEnrolmentSecretKey(projectId)).store(secret);
+  }
+
   /// The secure-storage key [projectId]'s own token is stored under.
   static String _projectTokenKey(String projectId) => 'PROJECT_TOKEN_$projectId';
+
+  /// The secure-storage key [projectId]'s own hosting enrolment secret is stored under.
+  static String _hostingEnrolmentSecretKey(String projectId) => 'HOSTING_ENROLMENT_SECRET_$projectId';
 }

@@ -79,6 +79,10 @@ dependencies:
   # transitive dependency now that the app calls it itself
   web_socket_channel: ^3.0.3
 
+  # Serves the hosted relay's shelf handler on a real socket from OcptRelayHostManager; promoted
+  # from a transitive dependency (through ocpt_sync_relay) now that the app calls it itself
+  shelf: ^1.4.2
+
   # Draws the sharing invite's QR code; pure-Dart, no plugin. Replaces act_qr_code, whose
   # transitive qr_code_scanner does not build against this app's AGP 8 (namespace not specified).
   qr_flutter: ^4.1.0
@@ -145,6 +149,10 @@ dependencies:
 
   ocpt_sync_protocol:
     path: packages/ocpt_sync_protocol
+
+  # Hosts the domain-blind relay in-process for the "host on this machine" sharing mode.
+  ocpt_sync_relay:
+    path: packages/ocpt_sync_relay
 
   script_import_kit:
     path: packages/script_import_kit
