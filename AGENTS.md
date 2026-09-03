@@ -83,7 +83,7 @@ sharing that splits what the film earns, and its four documents, `docs/architect
 | Step | Content | Status |
 | --- | --- | --- |
 | 22b | Collaboration & sync: the changeset engine, the domain-blind relay, the pairing UI, live push, presence, the portable on-set server and in-app relay hosting have all shipped (`docs/architecture/sync.md`, `docs/on-set-server.md`, `docs/adr/0009`, `docs/adr/0010`) | ✅ done |
-| — | The M2–M6 end-user guide for the whole collaboration feature, in `docs-site/` | 📝 planned |
+| — | The M2–M6 end-user guide for the whole collaboration feature, in `docs-site/` (`docs/plans/collaboration-user-guide.md`) | 📝 planned |
 | — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard | 📝 planned |
 
 Step numbers are historical: they were allocated as the work was planned, are referenced by no
