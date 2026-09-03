@@ -31,14 +31,21 @@ import 'package:path_provider/path_provider.dart';
 /// routes' own open-project guard (`OcptRouterManager`).
 ///
 /// A submission — manual or scanned — resolves to an [OcptRelayInvite], then, in order: picks
-/// where the new `.ocpt` lands ([_resolveParentDirectoryPath]), fetches the relay's latest
-/// snapshot and materialises it there ([OcptSyncManager.joinFromRelay]), opens the freshly written
-/// project ([OcptProjectsManager.openProject]) and pushes the workspace
-/// (`OcptRouterManager`). Any failure along that path — a malformed submission, an unreachable
+/// where the new `.ocpt` lands ([_resolveParentDirectoryPath], reported as
+/// [OcptJoinStep.connecting]), fetches the relay's latest snapshot and materialises it there
+/// ([OcptSyncManager.joinFromRelay], reported as [OcptJoinStep.downloading]), and opens the
+/// freshly written project ([OcptProjectsManager.openProject], reported as
+/// [OcptJoinStep.opening]). Any failure along that path — a malformed submission, an unreachable
 /// relay, a corrupted snapshot, a project that fails to open — is surfaced as
 /// [OcptJoiningState.joinFailed] rather than propagated: exactly `OcptSharingBloc.pairingFailed`'s
 /// own reasoning, this bloc has no `Tr` to word a specific message with, and the page reads the
 /// flag to show its own, generic, localized one.
+///
+/// A successful join only sets [OcptJoiningState.joinSucceeded] — it does **not** navigate to the
+/// workspace on its own. The page shows a success state for the user to confirm, and only
+/// [OcptJoiningOpenRequestedEvent] pushes the workspace, through `OcptRouterManager.replace` so the
+/// Rejoindre screen is replaced rather than left underneath it: pushing on top of it (as this bloc
+/// used to) meant the workspace's own Home/back returned to Rejoindre instead of the real home.
 class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   /// The manager driving the actual join: opening the relay transport and fetching/materialising
   /// its latest snapshot.
@@ -77,6 +84,15 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
        _platformManager = platformManager ?? PlatformManager(),
        super(const OcptJoiningState.init());
 
+  /// Set by [_onCancelled] and checked by [_join] after every `await` along the join path, to bail
+  /// out — without navigating and without reporting success — the moment the user asks to cancel.
+  ///
+  /// This is a best-effort UI abandon only: `dart:io` gives no way to actually cancel an in-flight
+  /// snapshot fetch or materialisation already under way, so a cancelled join may still finish
+  /// writing a `.ocpt` to disk after this flag is set — that file is simply never opened or shown,
+  /// which is an acceptable cost for how rarely a cancel lands mid-write.
+  bool _cancelled = false;
+
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
@@ -84,6 +100,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     on<OcptJoiningManualSubmittedEvent>(_onManualSubmitted);
     on<OcptJoiningInviteScannedEvent>(_onInviteScanned);
     on<OcptJoiningErrorDismissedEvent>(_onErrorDismissed);
+    on<OcptJoiningOpenRequestedEvent>(_onOpenRequested);
+    on<OcptJoiningCancelledEvent>(_onCancelled);
   }
 
   /// Parses the pasted invite link into an [OcptRelayInvite], then joins — or surfaces
@@ -121,20 +139,38 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     await _join(invite, emitter);
   }
 
-  /// Runs the actual join against [invite]: picks a destination folder, fetches and materialises
-  /// the relay's latest snapshot there, opens the result, and pushes the workspace.
+  /// Runs the actual join against [invite]: picks a destination folder ([OcptJoinStep.connecting]),
+  /// fetches and materialises the relay's latest snapshot there ([OcptJoinStep.downloading]), and
+  /// opens the result ([OcptJoinStep.opening]) — leaving [OcptJoiningState.joinSucceeded] for the
+  /// page's own success state to pick up; it, not this method, is what eventually navigates
+  /// (see [_onOpenRequested]).
+  ///
+  /// [_cancelled] is checked after every `await`: once [_onCancelled] has set it, this bails out
+  /// silently — no further state change, no navigation — rather than reporting either success or
+  /// failure for a join the user has already walked away from.
   ///
   /// A cancelled destination picker is a silent no-op, exactly like every other import/export of
   /// this app treats one; any other failure — the relay unreachable, an invalid token, a corrupted
   /// snapshot, the freshly written project failing to open — surfaces as
   /// [OcptJoiningState.joinFailed].
   Future<void> _join(OcptRelayInvite invite, Emitter<OcptJoiningState> emitter) async {
-    emitter(state.copyWith(isJoining: true, joinFailed: false));
+    _cancelled = false;
+    emitter(
+      state.copyWith(
+        isJoining: true,
+        joinFailed: false,
+        joinSucceeded: false,
+        joinStep: OcptJoinStep.connecting,
+      ),
+    );
 
     try {
       final parentDirectoryPath = await _resolveParentDirectoryPath();
+      if (_cancelled) {
+        return;
+      }
       if (parentDirectoryPath == null) {
-        emitter(state.copyWith(isJoining: false));
+        emitter(state.copyWith(isJoining: false, clearJoinStep: true));
         return;
       }
 
@@ -142,6 +178,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
       final String projectFilePath;
       try {
+        emitter(state.copyWith(joinStep: OcptJoinStep.downloading));
         projectFilePath = await _syncManager.joinFromRelay(
           storage: storage,
           parentDirectoryPath: parentDirectoryPath,
@@ -154,17 +191,26 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
           storage.dispose();
         }
       }
-
-      final result = await _projectsManager.openProject(filePath: projectFilePath);
-      if (!result.status.isSuccess) {
-        emitter(state.copyWith(isJoining: false, joinFailed: true));
+      if (_cancelled) {
         return;
       }
 
-      emitter(state.copyWith(isJoining: false));
-      await _routerManager.push(OcptRoute.workspace);
+      emitter(state.copyWith(joinStep: OcptJoinStep.opening));
+      final result = await _projectsManager.openProject(filePath: projectFilePath);
+      if (_cancelled) {
+        return;
+      }
+      if (!result.status.isSuccess) {
+        emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
+        return;
+      }
+
+      emitter(state.copyWith(isJoining: false, joinSucceeded: true, clearJoinStep: true));
     } catch (_) {
-      emitter(state.copyWith(isJoining: false, joinFailed: true));
+      if (_cancelled) {
+        return;
+      }
+      emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
     }
   }
 
@@ -210,5 +256,27 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     Emitter<OcptJoiningState> emitter,
   ) async {
     emitter(state.copyWith(joinFailed: false));
+  }
+
+  /// Pushes the workspace on the user's explicit "Ouvrir", once [OcptJoiningState.joinSucceeded] is
+  /// true — through [OcptRouterManager.replace] rather than [OcptRouterManager.push], so the
+  /// Rejoindre screen is replaced on the navigation stack instead of left underneath the workspace:
+  /// a push there would mean the workspace's own Home/back returned to Rejoindre instead of the
+  /// real home.
+  Future<void> _onOpenRequested(
+    OcptJoiningOpenRequestedEvent event,
+    Emitter<OcptJoiningState> emitter,
+  ) async {
+    await _routerManager.replace(OcptRoute.workspace);
+  }
+
+  /// Marks the in-flight join as abandoned — see [_cancelled]'s own doc comment for what this can
+  /// and cannot actually stop — and returns the page to its idle state.
+  Future<void> _onCancelled(
+    OcptJoiningCancelledEvent event,
+    Emitter<OcptJoiningState> emitter,
+  ) async {
+    _cancelled = true;
+    emitter(state.copyWith(isJoining: false, clearJoinStep: true));
   }
 }

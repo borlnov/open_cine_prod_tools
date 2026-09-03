@@ -5,19 +5,27 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
 
 /// The Rejoindre screen's camera-scan tab, mobile only — `MobileScanner` is instantiated **only**
 /// while this widget is actually mounted, which the page itself gates on `PlatformManager.isMobile`
 /// (`docs/plans/relay.md`, Phase C, commit 4): a desktop build never reaches this widget at all,
 /// keeping it — and its tests — off the camera plugin entirely. `mobile_scanner` surfaces the OS
 /// camera-permission prompt itself, so there is no permission plumbing to build here.
+///
+/// [status] paints [OcptJoiningScanFrame]'s own border around the camera preview — driven by the
+/// page off `OcptJoiningBloc`'s state, not by this widget, which has no opinion of its own on
+/// whether a scan led anywhere.
 class OcptJoiningScannerView extends StatefulWidget {
   /// Called with the raw text a scanned QR code decoded to — not necessarily a valid invite, which
   /// the bloc is the one to decide.
   final void Function(String scannedText) onScanned;
 
+  /// The frame's own current status — see [OcptJoiningScanFrame].
+  final OcptJoiningScanStatus status;
+
   /// Class constructor
-  const OcptJoiningScannerView({required this.onScanned, super.key});
+  const OcptJoiningScannerView({required this.onScanned, required this.status, super.key});
 
   @override
   State<OcptJoiningScannerView> createState() => _OcptJoiningScannerViewState();
@@ -25,10 +33,12 @@ class OcptJoiningScannerView extends StatefulWidget {
 
 /// The state of [OcptJoiningScannerView].
 class _OcptJoiningScannerViewState extends State<OcptJoiningScannerView> {
-  /// Whether [OcptJoiningScannerView.onScanned] has already fired — `MobileScanner` keeps
-  /// streaming detections of the same code for as long as it stays framed, and the invite must
-  /// only be reported once.
-  bool _hasScanned = false;
+  /// The raw value of the last code reported through [OcptJoiningScannerView.onScanned], or null
+  /// before any has been. `MobileScanner` keeps streaming detections of the same code for as long
+  /// as it stays framed, so a detection is only reported when it differs from this — which is also
+  /// what lets the camera re-arm for a fresh attempt after an invalid code: nothing has to be reset
+  /// by hand, framing a *different* code is enough to report it.
+  String? _lastReportedValue;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +50,13 @@ class _OcptJoiningScannerViewState extends State<OcptJoiningScannerView> {
         padding: const EdgeInsets.all(22),
         child: Column(
           children: [
-            AspectRatio(aspectRatio: 1, child: MobileScanner(onDetect: _onDetect)),
+            AspectRatio(
+              aspectRatio: 1,
+              child: OcptJoiningScanFrame(
+                status: widget.status,
+                child: MobileScanner(onDetect: _onDetect),
+              ),
+            ),
             const SizedBox(height: 14),
             Text(
               tr.joiningScannerHint,
@@ -53,20 +69,16 @@ class _OcptJoiningScannerViewState extends State<OcptJoiningScannerView> {
     );
   }
 
-  /// Reports the first detected barcode's raw value to [OcptJoiningScannerView.onScanned], then
-  /// ignores every further detection: `MobileScanner` streams one callback per camera frame that
-  /// still frames a decodable code, and the invite must only be reported once.
+  /// Reports a newly detected barcode's raw value to [OcptJoiningScannerView.onScanned], ignoring a
+  /// repeat of [_lastReportedValue] — see that field's own doc comment for why this is also what
+  /// re-arms the camera for a fresh attempt.
   void _onDetect(BarcodeCapture capture) {
-    if (_hasScanned) {
-      return;
-    }
-
     final rawValue = capture.barcodes.firstOrNull?.rawValue;
-    if (rawValue == null) {
+    if (rawValue == null || rawValue == _lastReportedValue) {
       return;
     }
 
-    setState(() => _hasScanned = true);
+    _lastReportedValue = rawValue;
     widget.onScanned(rawValue);
   }
 }

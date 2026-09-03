@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -122,12 +123,15 @@ class _FakeFileSaverManager extends FileSaverManager {
   }
 }
 
-/// A router manager whose [push] only records the route pushed — this bloc's own tests don't build
-/// a real GoRouter for it to operate on, exactly `home_bloc_test.dart`'s own
-/// `_RecordingRouterManager`.
+/// A router manager whose [push]/[replace] only record the route they were called with — this
+/// bloc's own tests don't build a real GoRouter for it to operate on, exactly
+/// `home_bloc_test.dart`'s own `_RecordingRouterManager`.
 class _RecordingRouterManager extends OcptRouterManager {
   /// The last route [push] was called with, or null if it never was.
   OcptRoute? pushedRoute;
+
+  /// The last route [replace] was called with, or null if it never was.
+  OcptRoute? replacedRoute;
 
   @override
   Future<Y?> push<Y extends Object?>(
@@ -137,6 +141,17 @@ class _RecordingRouterManager extends OcptRouterManager {
     Object? extra,
   }) async {
     pushedRoute = route;
+    return null;
+  }
+
+  @override
+  Future<Y?> replace<Y extends Object?>(
+    OcptRoute route, {
+    Map<String, String> pathParameters = const <String, String>{},
+    Map<String, dynamic> queryParameters = const <String, dynamic>{},
+    Object? extra,
+  }) async {
+    replacedRoute = route;
     return null;
   }
 }
@@ -229,18 +244,27 @@ void main() {
     token: "token-1",
   ).toInviteString();
 
-  test("a valid manual entry joins the project and pushes the workspace", () async {
+  test("a valid manual entry emits the join steps in order then succeeds, without navigating", () async {
     final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
+    final steps = <OcptJoinStep?>[];
+    final subscription = bloc.stream.listen((state) => steps.add(state.joinStep));
+
     bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
     await pumpEventQueue();
+    await subscription.cancel();
 
+    expect(steps, [OcptJoinStep.connecting, OcptJoinStep.downloading, OcptJoinStep.opening, null]);
     expect(manager.joinCallCount, 1);
     expect(bloc.state.isJoining, isFalse);
     expect(bloc.state.joinFailed, isFalse);
-    expect(routerManager.pushedRoute, OcptRoute.workspace);
+    expect(bloc.state.joinSucceeded, isTrue);
+    // The bloc never navigates on its own once a join succeeds: only
+    // `OcptJoiningOpenRequestedEvent` does, on the user's own explicit "Ouvrir".
+    expect(routerManager.pushedRoute, isNull);
+    expect(routerManager.replacedRoute, isNull);
     expect(projectsManager.currentProject?.path, joinedProjectPath);
   });
 
@@ -259,7 +283,62 @@ void main() {
 
     expect(manager.joinCallCount, 1);
     expect(bloc.state.joinFailed, isFalse);
-    expect(routerManager.pushedRoute, OcptRoute.workspace);
+    expect(bloc.state.joinSucceeded, isTrue);
+    expect(routerManager.pushedRoute, isNull);
+    expect(routerManager.replacedRoute, isNull);
+  });
+
+  test("OcptJoiningOpenRequestedEvent replaces the Rejoindre screen with the workspace", () async {
+    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final routerManager = _RecordingRouterManager();
+    final bloc = buildBloc(manager: manager, routerManager: routerManager);
+
+    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
+    await pumpEventQueue();
+    expect(bloc.state.joinSucceeded, isTrue);
+    expect(routerManager.replacedRoute, isNull);
+
+    bloc.add(const OcptJoiningOpenRequestedEvent());
+    await pumpEventQueue();
+
+    expect(routerManager.replacedRoute, OcptRoute.workspace);
+    expect(routerManager.pushedRoute, isNull);
+  });
+
+  test("cancelling mid-join stops it, with no success and no navigation", () async {
+    final joinGate = Completer<void>();
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+      whileJoining: () => joinGate.future,
+    );
+    final routerManager = _RecordingRouterManager();
+    final bloc = buildBloc(manager: manager, routerManager: routerManager);
+
+    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
+    await pumpEventQueue();
+
+    expect(bloc.state.isJoining, isTrue);
+    expect(bloc.state.joinStep, OcptJoinStep.downloading);
+
+    bloc.add(const OcptJoiningCancelledEvent());
+    await pumpEventQueue();
+
+    expect(bloc.state.isJoining, isFalse);
+    expect(bloc.state.joinStep, isNull);
+    expect(bloc.state.joinSucceeded, isFalse);
+    expect(bloc.state.joinFailed, isFalse);
+
+    // The underlying (un-cancellable) join keeps running and eventually finishes, but the bail-out
+    // in `_join` means none of that is ever reported: no success, no failure, no navigation.
+    joinGate.complete();
+    await pumpEventQueue();
+
+    expect(bloc.state.isJoining, isFalse);
+    expect(bloc.state.joinSucceeded, isFalse);
+    expect(bloc.state.joinFailed, isFalse);
+    expect(routerManager.pushedRoute, isNull);
+    expect(routerManager.replacedRoute, isNull);
   });
 
   test("a malformed manual entry surfaces an error without ever calling the relay", () async {
@@ -333,12 +412,16 @@ void main() {
     expect(bloc.state.isJoining, isTrue);
     expect(bloc.state.joinFailed, isFalse);
     expect(routerManager.pushedRoute, isNull);
+    expect(routerManager.replacedRoute, isNull);
 
     joinGate.complete();
     await pumpEventQueue();
 
     expect(bloc.state.isJoining, isFalse);
-    expect(routerManager.pushedRoute, OcptRoute.workspace);
+    expect(bloc.state.joinSucceeded, isTrue);
+    // Still no navigation on its own — see "OcptJoiningOpenRequestedEvent replaces..." above.
+    expect(routerManager.pushedRoute, isNull);
+    expect(routerManager.replacedRoute, isNull);
   });
 
   test("a cancelled desktop destination picker is a silent no-op", () async {
@@ -354,6 +437,9 @@ void main() {
     expect(manager.joinCallCount, 0);
     expect(bloc.state.isJoining, isFalse);
     expect(bloc.state.joinFailed, isFalse);
+    expect(bloc.state.joinSucceeded, isFalse);
+    expect(bloc.state.joinStep, isNull);
     expect(routerManager.pushedRoute, isNull);
+    expect(routerManager.replacedRoute, isNull);
   });
 }

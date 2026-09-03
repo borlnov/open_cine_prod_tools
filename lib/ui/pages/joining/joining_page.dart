@@ -13,8 +13,9 @@ import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_manual_view.dart';
-import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_progress_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scanner_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
 
 /// The maximum width of the page's own column, matching the Partager screen's own ①/② forms.
 const _maxContentWidth = 560.0;
@@ -67,6 +68,15 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
       ? _OcptJoiningTab.scanner
       : _OcptJoiningTab.manual;
 
+  /// The scanner frame's own current status — see `OcptJoiningScanFrame`. Tracked here, rather
+  /// than read off `OcptJoiningState` directly, since a manual-entry failure must not paint the
+  /// camera frame red: only [_lastSubmissionFromScanner] tells the two apart.
+  OcptJoiningScanStatus _scanStatus = OcptJoiningScanStatus.idle;
+
+  /// Whether the last submission the bloc is currently acting on (or last reacted to a failure
+  /// for) came from the scanner tab rather than the manual form — see [_scanStatus].
+  bool _lastSubmissionFromScanner = false;
+
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptJoiningBloc, OcptJoiningState>(
     listenWhen: (previous, current) => current.joinFailed && !previous.joinFailed,
@@ -87,29 +97,38 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
             const SizedBox(width: 16),
           ],
         ),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(tr.joiningIntro, style: theme.textTheme.bodyMedium),
-                  const SizedBox(height: 18),
-                  _buildSegmentedControl(tr, theme),
-                  const SizedBox(height: 18),
-                  _buildSelectedTab(state),
-                  const SizedBox(height: 16),
-                  _buildNote(tr, theme),
-                  if (state.isJoining) ...[
-                    const SizedBox(height: 16),
-                    const OcptJoiningProgressCard(),
-                  ],
-                ],
+        body: Stack(
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(tr.joiningIntro, style: theme.textTheme.bodyMedium),
+                      const SizedBox(height: 18),
+                      _buildSegmentedControl(tr, theme),
+                      const SizedBox(height: 18),
+                      _buildSelectedTab(state),
+                      const SizedBox(height: 16),
+                      _buildNote(tr, theme),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+            if (state.isJoining || state.joinSucceeded)
+              OcptJoiningStatusOverlay(
+                step: state.joinStep,
+                succeeded: state.joinSucceeded,
+                onCancelRequested: () =>
+                    context.read<OcptJoiningBloc>().add(const OcptJoiningCancelledEvent()),
+                onOpenRequested: () =>
+                    context.read<OcptJoiningBloc>().add(const OcptJoiningOpenRequestedEvent()),
+              ),
+          ],
         ),
       );
     },
@@ -135,16 +154,28 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
     if (_selectedTab == _OcptJoiningTab.manual) {
       return OcptJoiningManualView(
         isJoining: state.isJoining,
-        onJoinRequested: (inviteLinkText) => context
-            .read<OcptJoiningBloc>()
-            .add(OcptJoiningManualSubmittedEvent(inviteLinkText: inviteLinkText)),
+        onJoinRequested: (inviteLinkText) {
+          _lastSubmissionFromScanner = false;
+          context.read<OcptJoiningBloc>().add(
+            OcptJoiningManualSubmittedEvent(inviteLinkText: inviteLinkText),
+          );
+        },
       );
     }
 
     if (globalGetIt().get<PlatformManager>().isMobile) {
       return OcptJoiningScannerView(
-        onScanned: (scannedText) =>
-            context.read<OcptJoiningBloc>().add(OcptJoiningInviteScannedEvent(scannedText)),
+        status: _scanStatus,
+        onScanned: (scannedText) {
+          // Optimistic: the code was successfully decoded, which is the whole of what "a valid
+          // scan" means here — whether it turns out to be a valid invite at all is for the bloc to
+          // decide, and [_onJoinFailed] corrects the colour to red if it wasn't.
+          setState(() {
+            _lastSubmissionFromScanner = true;
+            _scanStatus = OcptJoiningScanStatus.success;
+          });
+          context.read<OcptJoiningBloc>().add(OcptJoiningInviteScannedEvent(scannedText));
+        },
       );
     }
 
@@ -209,11 +240,18 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
 
   /// Shows [OcptJoiningState.joinFailed]'s own snack bar, then dispatches the event that clears
   /// it, so a later rebuild doesn't show it again — `OcptSharingView`'s own `_onPairingFailed`.
+  ///
+  /// Also flashes the scanner frame red when the failed attempt came from a scan
+  /// ([_lastSubmissionFromScanner]) — a manual-entry failure leaves it untouched.
   void _onJoinFailed(BuildContext context, OcptJoiningState state) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(Tr.of(context).joiningErrorMessage)));
     context.read<OcptJoiningBloc>().add(const OcptJoiningErrorDismissedEvent());
+
+    if (_lastSubmissionFromScanner) {
+      setState(() => _scanStatus = OcptJoiningScanStatus.error);
+    }
   }
 }
 

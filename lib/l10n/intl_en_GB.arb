@@ -15095,6 +15095,30 @@
   "@joiningProgressTitle": {
     "description": "Title of the Rejoindre page's own busy state, shown while a join is in progress"
   },
+  "joiningStepConnecting": "Connecting to the relay…",
+  "@joiningStepConnecting": {
+    "description": "Blocking modal's own step label while the join is resolving its destination and opening the relay transport"
+  },
+  "joiningStepDownloading": "Downloading the project…",
+  "@joiningStepDownloading": {
+    "description": "Blocking modal's own step label while the join is fetching and materialising the relay's snapshot"
+  },
+  "joiningStepOpening": "Opening…",
+  "@joiningStepOpening": {
+    "description": "Blocking modal's own step label while the join is opening the freshly written project"
+  },
+  "joiningSuccessTitle": "Project retrieved",
+  "@joiningSuccessTitle": {
+    "description": "Blocking modal's own title once a join succeeded, before the user taps Open"
+  },
+  "joiningOpenAction": "Open",
+  "@joiningOpenAction": {
+    "description": "Button entering the freshly joined project, shown by the blocking modal's own success state"
+  },
+  "joiningCancelAction": "Cancel",
+  "@joiningCancelAction": {
+    "description": "Button abandoning a join in progress, shown by the blocking modal's own busy state"
+  },
   "joiningErrorMessage": "Could not join this project. Check the invite link, then try again.",
   "@joiningErrorMessage": {
     "description": "Snack bar message shown when joining fails, whether the submission was manual or scanned"

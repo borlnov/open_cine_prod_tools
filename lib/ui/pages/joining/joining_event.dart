@@ -47,3 +47,22 @@ class OcptJoiningErrorDismissedEvent extends OcptJoiningEvent {
   /// Class constructor
   const OcptJoiningErrorDismissedEvent();
 }
+
+/// Reports that the success modal's own "Ouvrir" button was pressed, once `joinSucceeded` is true:
+/// the bloc navigates to the workspace only now, on the user's explicit ask, rather than the moment
+/// the join itself finishes.
+class OcptJoiningOpenRequestedEvent extends OcptJoiningEvent {
+  /// Class constructor
+  const OcptJoiningOpenRequestedEvent();
+}
+
+/// Reports that the blocking modal's own "Annuler" button was pressed while a join is in flight.
+///
+/// A best-effort UI abandon only: `dart:io` gives no way to actually cancel an in-flight snapshot
+/// fetch or materialisation, so a join already past that point may still finish writing a `.ocpt`
+/// to disk after this is dispatched — the user is simply returned to the Rejoindre screen's own
+/// idle state without ever seeing it, and without being navigated to the workspace.
+class OcptJoiningCancelledEvent extends OcptJoiningEvent {
+  /// Class constructor
+  const OcptJoiningCancelledEvent();
+}
