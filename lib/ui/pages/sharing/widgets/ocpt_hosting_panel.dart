@@ -20,8 +20,8 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_enrolment_qr_code.dart';
 /// ~560px column.
 const _maxContentWidth = 560.0;
 
-/// The Partager screen's "Héberger sur ce poste" panel (`docs/plans/in-app-relay-hosting.md`,
-/// Phase E): a pure function of [state] and the callbacks below, exactly the shape
+/// The Partager screen's "Héberger sur ce poste" panel (`docs/architecture/sync.md`): a pure
+/// function of [state] and the callbacks below, exactly the shape
 /// `OcptSharingConfigureView`/`OcptSharingInviteView` already follow — every write goes out through
 /// a nullable `on…Requested` callback, never a manager reached into directly (RD/RFL).
 ///

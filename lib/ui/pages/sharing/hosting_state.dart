@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 
 /// The state of `OcptHostingBloc` — the Partager screen's "Héberger sur ce poste" segment
-/// (`docs/plans/in-app-relay-hosting.md`, Phase E).
+/// (`docs/architecture/sync.md`).
 ///
 /// Named "Hosting" throughout this bloc layer, rather than reusing `OcptRelayHostManager`'s own
 /// `OcptRelayHostState` as a name, precisely to avoid the clash: [hostState] carries one of those

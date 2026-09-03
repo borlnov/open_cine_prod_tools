@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 
 /// This is the bloc class for the Partager screen's "Héberger sur ce poste" segment
-/// (`docs/plans/in-app-relay-hosting.md`, Phase E).
+/// (`docs/architecture/sync.md`).
 ///
 /// It drives `OcptRelayHostManager` the way `OcptSharingBloc` drives `OcptSyncManager.
 /// pairProjectToRelay`/`unpairProject` — start/stop hosting, toggle "réhéberger au démarrage", and

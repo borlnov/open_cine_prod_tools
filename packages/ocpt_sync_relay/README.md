@@ -14,7 +14,9 @@ append a changeset, read changesets since a sequence number, upload a snapshot, 
 snapshot, and a WebSocket announcing new work — and it never parses a changeset or learns a table
 name: the domain model on top of it can change without ever redeploying this server. If you are
 looking for what it does internally rather than how to run it, start at `lib/ocpt_sync_relay.dart`
-and `docs/plans/collaboration-and-sync.md` instead; this file is only the self-hoster's guide.
+and `docs/architecture/sync.md` instead; this file is only the self-hoster's guide. For a "day on
+set" walkthrough — starting a relay, sharing its enrolment QR, and the evening reconciliation below
+— see `docs/on-set-server.md`.
 
 This is not a multi-tenant hosted service. One instance is for one person or one production
 (§5.1 below): hosting a second person means running a second instance, not adding an account to
@@ -23,7 +25,7 @@ this one.
 ## The two secrets
 
 There are exactly two secrets, and **neither is ever typed by a human into the server** — see
-`docs/plans/collaboration-and-sync.md` §5.2 for the full table this summarises.
+`docs/architecture/sync.md` for the full picture this summarises.
 
 | | Enrolment secret | Project token |
 | --- | --- | --- |
@@ -88,6 +90,22 @@ sibling packages are on disk together — set the environment variables above an
 `dart compile exe` produces. `SIGINT`/`SIGTERM` shut it down cleanly (closing the listening socket
 and the SQLite database); `SIGTERM` is not delivered on Windows, so only `SIGINT` (Ctrl+C) applies
 there.
+
+## Reconciling a set relay upstream
+
+A relay run on set gathers a day's changesets offline; at the end of the day it can reconcile that
+log against an upstream relay (typically the production's own prep relay), pushing what it gathered
+and pulling what it missed — idempotent, so running it more than once never duplicates anything:
+
+```sh
+dart run bin/ocpt_sync_relay.dart reconcile --invite '<ocpt://join…>'
+```
+
+`<ocpt://join…>` is the upstream relay's own invite link for the project (the same one a crew
+member's own joining screen would use); `--upstream/--project/--token` accepts the same three values
+given directly instead. It prints `pushed N, pulled M` and exits. See `docs/on-set-server.md` for
+the full "day on set" runbook this subcommand is one half of — the app's own "Héberger sur ce poste"
+panel offers the same reconciliation in place, for whoever has the app open rather than a terminal.
 
 ## TLS and the reverse proxy
 

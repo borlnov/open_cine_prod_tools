@@ -33,9 +33,9 @@ in priority order: call sheets, budget, script supervisor reports, and storyboar
   Fountain text as the source of truth plus a stable-UUID scene index. **One project holds one or
   several episodes** (a series is one file, ADR 0019): a screenplay row *is* an episode, the modes
   read the one the workspace selects, and the schedule reads them all. Sharing and collaboration
-  come next, through an offline-first replica synced by a self-hostable, domain-blind relay
-  server — see `docs/adr/0009`, `docs/adr/0010` and `docs/plans/collaboration-and-sync.md`. Google
-  Drive was evaluated and rejected as a transport.
+  ship through an offline-first replica synced by a self-hostable, domain-blind relay server — see
+  `docs/adr/0009`, `docs/adr/0010` and `docs/architecture/sync.md`. Google Drive was evaluated and
+  rejected as a transport.
 - Every document must stay exportable to human-readable formats (PDF, `.fountain`, and open
   docx/xlsx equivalents later).
 - UI languages: English (`en_GB`, main) and French.
@@ -82,7 +82,8 @@ sharing that splits what the film earns, and its four documents, `docs/architect
 
 | Step | Content | Status |
 | --- | --- | --- |
-| 22b | Collaboration & sync M6: the portable on-set server, the last milestone — the changeset engine, the domain-blind relay, the pairing UI, live push and presence have shipped (`docs/architecture/sync.md`, `docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
+| 22b | Collaboration & sync: the changeset engine, the domain-blind relay, the pairing UI, live push, presence, the portable on-set server and in-app relay hosting have all shipped (`docs/architecture/sync.md`, `docs/on-set-server.md`, `docs/adr/0009`, `docs/adr/0010`) | ✅ done |
+| — | The M2–M6 end-user guide for the whole collaboration feature, in `docs-site/` | 📝 planned |
 | — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard | 📝 planned |
 
 Step numbers are historical: they were allocated as the work was planned, are referenced by no
