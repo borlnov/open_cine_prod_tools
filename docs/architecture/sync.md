@@ -253,14 +253,17 @@ stream seeded like `OcptSyncSession.status` (`stopped` / `starting` /
    `OcptSecretsManager`, so the enrolment QR stays the same across restarts.
 3. Opens an `OcptRelayStore` at `<projectFilePath>.relay.sqlite` — beside the project file, kept in
    place after `stopHosting` so the hub case restarts without losing what was already relayed — and
-   serves an `OcptRelayServer` on an OS-assigned (ephemeral) port.
+   serves an `OcptRelayServer` on a **fixed** default port (`ocptDefaultInAppHostingPort`,
+   overridable from the panel's own port field) — fixed rather than ephemeral so a restart keeps the
+   same advertised address and a peer already holding an invite is not stranded on a port the OS
+   picked afresh.
 4. **Self-seeds**: points the project at `http://localhost:<port>` — `repointProjectToRelay` for an
    already-paired project, `pairProjectToRelay` for a never-paired one — so the host becomes the
    relay's own first replica, pushing its edits in, publishing a snapshot, and starting the sync
    session, which is also what starts presence.
-5. Computes the advertised `lanBaseUri` from `NetworkInterface.list`'s first non-loopback IPv4
-   address (falling back to loopback, with a logged warning, when none exists), and from the socket's
-   actually bound port.
+5. Computes the advertised `lanBaseUri` from the first non-loopback IPv4 the interface ranking
+   (`rankLanAddresses`, which pushes VPN/virtual adapters last) offers — the panel's dropdown lets a
+   person pick another — falling back to loopback, with a logged warning, when none exists.
 
 A failure at any step tears down whatever was already opened and reports `OcptRelayHostFailed`
 rather than throwing — a bring-up failure is a state to render, exactly like `OcptSyncStatus`.
@@ -274,7 +277,12 @@ holds it — returning an `OcptReconcileOutcome` (`OcptReconcileSucceeded(pushed
 drives `maybeAutoStartHosting`, which the workspace bloc runs on project open. When it brings hosting
 up, its own self-seed has already started the sync session (and presence) against the freshly hosted
 relay, so the workspace bloc skips the ordinary paired-session start rather than starting a second
-one over the same project; `disposeLifeCycle` stops hosting on close.
+one over the same project. `maybeAutoStartHosting` is **idempotent**: called again for a project it
+is already hosting — as navigating back to it does, the workspace bloc being rebuilt each time — it
+does nothing, since restarting would rebind the socket and drop connected peers. For the same
+reason, hosting is owned by `OcptRelayHostManager` across every navigation and is **not** torn down
+by the workspace bloc's `disposeLifeCycle` (nor is its self-seeded session): it stops through the
+hosting panel's switch, a different project being hosted, or app shutdown.
 
 **The hosting panel** (`OcptHostingPanel` over a sibling `OcptHostingBloc`,
 `lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`) is the Partager screen's "Héberger sur ce

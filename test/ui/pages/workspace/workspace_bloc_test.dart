@@ -100,6 +100,7 @@ class _RecordingSyncManager extends OcptSyncManager {
     : super(pairingService: pairingService, changesetService: const OcptChangesetService());
 
   bool startSyncSessionCalled = false;
+  bool stopSyncSessionCalled = false;
   String? startedProjectId;
 
   @override
@@ -125,7 +126,9 @@ class _RecordingSyncManager extends OcptSyncManager {
   }
 
   @override
-  Future<void> stopSyncSession() async {}
+  Future<void> stopSyncSession() async {
+    stopSyncSessionCalled = true;
+  }
 }
 
 /// An [OcptRelayHostManager] recording the workspace's own auto-start-on-open and stop-on-close
@@ -579,15 +582,48 @@ void main() {
   );
 
   test(
-    'closing the workspace stops hosting',
+    'closing the workspace does not stop hosting (a navigation must not rebind the relay)',
     () async {
-      final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped());
+      final hostManager = _RecordingHostManager(
+        stateToReport: OcptRelayHostOnline(
+          lanBaseUri: Uri.parse('http://192.168.1.42:47600'),
+          enrolmentSecret: 'secret',
+        ),
+      );
       final bloc = buildBloc(hostManager: hostManager);
 
       await waitForState(bloc, (state) => !state.isLoading);
       await bloc.close();
 
-      expect(hostManager.stopHostingCalled, isTrue);
+      expect(hostManager.stopHostingCalled, isFalse);
+    },
+  );
+
+  test(
+    'closing the workspace does not stop the sync session while hosting owns it',
+    () async {
+      final project = projectsManager.currentProject!;
+      await pairingService.savePairing(
+        database: project.fileDatabase,
+        projectId: 'project-abc',
+        relayBaseUri: Uri.parse('https://relay.example.org/'),
+        token: 'token-1',
+      );
+
+      final syncManager = _RecordingSyncManager(pairingService: pairingService);
+      final hostManager = _RecordingHostManager(
+        stateToReport: OcptRelayHostOnline(
+          lanBaseUri: Uri.parse('http://192.168.1.42:47600'),
+          enrolmentSecret: 'secret',
+        ),
+      );
+      final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+
+      await waitForState(bloc, (state) => !state.isLoading);
+      await pumpEventQueue();
+      await bloc.close();
+
+      expect(syncManager.stopSyncSessionCalled, isFalse);
     },
   );
 }

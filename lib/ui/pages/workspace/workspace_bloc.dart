@@ -50,7 +50,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// back up: [_maybeAutoStartHosting] runs [OcptRelayHostManager.maybeAutoStartHosting] on the same
 /// open, and — when it does start hosting — its own self-seed has already started the sync session
 /// against this machine's hosted relay, so [_startSyncSessionIfPaired] is then skipped rather than
-/// starting a second one. [disposeLifeCycle] tears the hosted relay down alongside the session.
+/// starting a second one. Hosting itself is **not** torn down by [disposeLifeCycle] — it is owned
+/// by [OcptRelayHostManager] across every navigation and stops only through the hosting panel or
+/// app shutdown, since restarting it on a fresh port would strand connected peers.
 class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// The manager used to read this replica's own device id (see [_startSyncSessionIfPaired]) — the
   /// active workspace mode is not persisted, so this bloc no longer reaches into it for that.
@@ -351,10 +353,19 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   @override
   Future<void> disposeLifeCycle() async {
     await _currentProjectSubscription?.cancel();
-    // Stop hosting first — it ends its own self-seeded session as it tears the socket down — then
-    // stop any ordinary session (a no-op when hosting already ended it, or when none was running).
-    await _hostManager?.stopHosting();
-    await _syncManager?.stopSyncSession();
+    // Hosting is deliberately NOT stopped here. This bloc is rebuilt on every navigation, so tying
+    // hosting to its dispose made simply leaving and re-entering the workspace tear the relay down
+    // and rebind it on a fresh port — dropping every connected peer. Hosting is owned by
+    // `OcptRelayHostManager` across the whole time a project is hosted, and stops through the
+    // hosting panel's own switch, a different project being hosted, or app shutdown
+    // (`OcptRelayHostManager.disposeLifeCycle`) — never on a mere navigation away.
+    //
+    // The ordinary paired-project session this bloc itself starts ([_startSyncSessionIfPaired]) is
+    // stopped here as before — but only when hosting is NOT active: while hosting, the session is
+    // hosting's own self-seeded one, which must outlive this bloc for the very same reason.
+    if (_hostManager?.state is! OcptRelayHostOnline) {
+      await _syncManager?.stopSyncSession();
+    }
 
     return super.disposeLifeCycle();
   }

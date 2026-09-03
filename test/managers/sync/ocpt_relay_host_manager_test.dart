@@ -634,6 +634,43 @@ void main() {
       expect(autoManager.state, isA<OcptRelayHostOnline>());
     });
 
+    test('does not restart hosting when it is already hosting the same project', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-idem',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-idem', value: true);
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      expect(autoManager.state, isA<OcptRelayHostOnline>());
+
+      // A second call for the same project — as navigating back to it would make — must NOT restart
+      // hosting: a restart would re-seed and rebind the socket, stranding any connected peer.
+      spy.didPair = false;
+      spy.didRepoint = false;
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(spy.didPair, isFalse);
+      expect(spy.didRepoint, isFalse);
+      expect(autoManager.state, isA<OcptRelayHostOnline>());
+    });
+
     test('does not auto-start hosting when the flag is unset', () async {
       await database
           .into(database.ocptSyncPairingsTable)

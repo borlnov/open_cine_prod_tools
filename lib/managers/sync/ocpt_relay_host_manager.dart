@@ -98,6 +98,14 @@ List<InternetAddress> rankLanAddresses(
 /// `OcptRelayStore(':memory:')` it keeps its own reference to. Defaults to `OcptRelayStore.new`.
 typedef OcptRelayStoreFactory = OcptRelayStore Function(String path);
 
+/// The port [OcptRelayHostManager] binds its hosted relay to by default — a **fixed** port, not an
+/// ephemeral one, so the advertised address (and the join/enrolment QR built from it) stays the
+/// same across a restart of hosting: a peer that already holds an invite keeps reaching the relay,
+/// rather than being stranded on a port the OS picked afresh. Uncommon enough to rarely collide;
+/// when it is taken, the bind fails cleanly to [OcptRelayHostFailed], and the panel's own port
+/// field lets a person choose another.
+const ocptDefaultInAppHostingPort = 47600;
+
 /// Builds the [OcptRelayHostManager] instance registered by the global manager.
 class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManager> {
   /// Class constructor
@@ -167,7 +175,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     OcptSyncManager? syncManager,
     OcptPropertiesManager? propertiesManager,
     InternetAddress? bindAddress,
-    this.port = 0,
+    this.port = ocptDefaultInAppHostingPort,
     OcptLanAddressResolver? lanAddressResolver,
     OcptRelayStoreFactory? storeFactory,
   }) : _platformManager = platformManager ?? PlatformManager(),
@@ -204,7 +212,10 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// The address [startHosting] binds its socket to.
   final InternetAddress _bindAddress;
 
-  /// The port [startHosting] binds its socket to — `0` means the OS assigns a free one.
+  /// The port [startHosting] binds its socket to when its own `port` argument is null — the fixed
+  /// [ocptDefaultInAppHostingPort] by default (so a restart keeps the same advertised address), or
+  /// whatever a caller passed the constructor. `0` means the OS assigns a free one — what a test
+  /// passes to avoid contending for the fixed port.
   final int port;
 
   /// Resolves the address advertised to peers as this hosted relay's own LAN base URI.
@@ -494,6 +505,15 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
 
     final projectId = await _sync.loadPairedProjectId(database);
     if (projectId == null) {
+      return;
+    }
+
+    // Already hosting this very project — do nothing. This is called afresh on every project open,
+    // and the workspace is rebuilt on every navigation, so without this guard simply navigating
+    // back to a project that is already being hosted would call [startHosting] again, which tears
+    // the relay down and rebinds it on a fresh port — stranding every peer already connected to the
+    // old one (`docs/architecture/sync.md`).
+    if (_state is OcptRelayHostOnline && _hostedProjectId == projectId) {
       return;
     }
 
