@@ -134,11 +134,35 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   Future<void> _joinFromRawText(String rawText, Emitter<OcptJoiningState> emitter) async {
     final invite = OcptRelayInvite.tryParse(rawText.trim());
     if (invite == null) {
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        level: OcptDiagnosticsLevel.warning,
+        message: 'scanned code is not a valid join invite — ${_describeScannedText(rawText)}',
+      );
       emitter(state.copyWith(joinFailed: true));
       return;
     }
 
     await _join(invite, emitter);
+  }
+
+  /// A token-free description of what a rejected scan/paste actually held, for the diagnostics log:
+  /// the URI scheme and host, and which of the invite's own `r`/`p`/`t` query parameters were
+  /// present (never their values — a token must never reach the log). This is what tells a rejected
+  /// `ocpt://relay` enrolment QR (scanned in the wrong screen) apart from a genuinely malformed
+  /// `ocpt://join` invite or a QR aimed at some unrelated app.
+  String _describeScannedText(String rawText) {
+    final uri = Uri.tryParse(rawText.trim());
+    if (uri == null) {
+      return 'not a URI (${rawText.trim().length} chars)';
+    }
+    final query = uri.queryParameters;
+    final present = [
+      if ((query['r'] ?? '').isNotEmpty) 'r',
+      if ((query['p'] ?? '').isNotEmpty) 'p',
+      if ((query['t'] ?? '').isNotEmpty) 't',
+    ].join(',');
+    return 'scheme=${uri.scheme} host=${uri.host} params=[$present]';
   }
 
   /// Runs the actual join against [invite]: picks a destination folder ([OcptJoinStep.connecting]),

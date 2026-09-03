@@ -423,6 +423,20 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       }
     }
 
+    if (joinInvite == null) {
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.hosting,
+        level: OcptDiagnosticsLevel.warning,
+        message: 'join QR unavailable: no project token to build the invite '
+            '(hostedProjectId=${hostedProjectId ?? "none"}) — the "Envoyer le projet" QR is blank',
+      );
+    } else {
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.hosting,
+        message: 'join QR ready: project=$hostedProjectId relay=$advertisedUri',
+      );
+    }
+
     return (
       availableAddresses: availableAddresses,
       selectedAddress: selectedAddress,
