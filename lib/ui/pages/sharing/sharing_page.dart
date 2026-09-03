@@ -260,6 +260,15 @@ class _OcptSharingSegmentedBodyState extends State<_OcptSharingSegmentedBody> {
                       onReconcileDismissed: () => context.read<OcptHostingBloc>().add(
                         const OcptHostingReconcileDismissedEvent(),
                       ),
+                      onAdvertisedAddressChanged: (address) => context.read<OcptHostingBloc>().add(
+                        OcptHostingAdvertisedAddressChangedEvent(address),
+                      ),
+                      onPortChangeRequested: (port) => context.read<OcptHostingBloc>().add(
+                        OcptHostingPortChangeRequestedEvent(port),
+                      ),
+                      onQrKindChanged: (kind) => context.read<OcptHostingBloc>().add(
+                        OcptHostingQrKindChangedEvent(kind),
+                      ),
                     ),
             ),
           },

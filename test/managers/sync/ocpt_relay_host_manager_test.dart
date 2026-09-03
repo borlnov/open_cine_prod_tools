@@ -201,7 +201,7 @@ void main() {
       syncManager: spy,
       platformManager: _StubPlatformManager(isMobile: false),
       bindAddress: InternetAddress.loopbackIPv4,
-      lanAddressResolver: () async => InternetAddress('192.168.1.42'),
+      lanAddressResolver: () async => [InternetAddress('192.168.1.42')],
     );
   });
 
@@ -300,6 +300,32 @@ void main() {
     expect(online.lanBaseUri.port, isNot(0));
   });
 
+  test("availableLanAddresses returns the injected resolver's own list", () async {
+    final addresses = await manager.availableLanAddresses();
+
+    expect(addresses, [InternetAddress('192.168.1.42')]);
+  });
+
+  test('startHosting binds the given port instead of the ephemeral default', () async {
+    // Finds a currently free port by binding an ephemeral socket and releasing it immediately,
+    // rather than a hard-coded port number that could already be taken on the test machine.
+    final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final freePort = probe.port;
+    await probe.close();
+
+    await manager.startHosting(
+      database: database,
+      projectFilePath: projectPath,
+      projectName: 'Les Vagues',
+      appVersion: '0.1.0',
+      deviceId: 'device-1',
+      port: freePort,
+    );
+
+    final online = manager.state as OcptRelayHostOnline;
+    expect(online.lanBaseUri.port, freePort);
+  });
+
   test('creates the relay store file beside the project file', () async {
     await startHosting();
 
@@ -386,7 +412,7 @@ void main() {
         syncManager: spy,
         platformManager: _StubPlatformManager(isMobile: false),
         bindAddress: InternetAddress.loopbackIPv4,
-        lanAddressResolver: () async => InternetAddress('192.168.1.42'),
+        lanAddressResolver: () async => [InternetAddress('192.168.1.42')],
         storeFactory: (_) => hostStore,
       );
 
@@ -529,7 +555,7 @@ void main() {
         propertiesManager: propertiesManager,
         platformManager: _StubPlatformManager(isMobile: false),
         bindAddress: InternetAddress.loopbackIPv4,
-        lanAddressResolver: () async => InternetAddress('192.168.1.42'),
+        lanAddressResolver: () async => [InternetAddress('192.168.1.42')],
       );
     });
 

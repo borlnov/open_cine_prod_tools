@@ -21,10 +21,14 @@ import 'package:path/path.dart' as p;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:uuid/uuid.dart';
 
-/// Resolves the address a hosted relay is advertised on, on the local network — the seam
+/// Resolves every address a hosted relay could be advertised on, on the local network — the seam
 /// [OcptRelayHostManager] resolves through by default with [NetworkInterface.list], and a test
-/// replaces with a fixed [InternetAddress] it cannot otherwise construct one of.
-typedef OcptLanAddressResolver = Future<InternetAddress?> Function();
+/// replaces with a fixed list of [InternetAddress]es it cannot otherwise construct one of. The
+/// first entry (when any) is what [OcptRelayHostManager.startHosting] advertises by default; the
+/// hosting panel's own address dropdown reads the full list through
+/// [OcptRelayHostManager.availableLanAddresses] so a person can pick a different interface than the
+/// default one.
+typedef OcptLanAddressResolver = Future<List<InternetAddress>> Function();
 
 /// Opens the [OcptRelayStore] [OcptRelayHostManager.startHosting] serves — the seam a test
 /// replaces to pre-seed the very store the live server ends up holding (a test cannot otherwise
@@ -88,8 +92,8 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   ///
   /// [lanAddressResolver] defaults to [_defaultLanAddress], which reads real network interfaces —
   /// a test cannot construct a [NetworkInterface] of its own, so this seam returns the resolved
-  /// [InternetAddress] directly rather than the interface it came from, letting a test inject
-  /// `InternetAddress('192.168.1.42')` with nothing further to fake.
+  /// [InternetAddress]es directly rather than the interfaces they came from, letting a test inject
+  /// `[InternetAddress('192.168.1.42')]` with nothing further to fake.
   ///
   /// [storeFactory] defaults to `OcptRelayStore.new` and is what [startHosting] calls to open the
   /// store it serves and [reconcileWithUpstream] later reconciles — a test injects one returning
@@ -166,6 +170,13 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// The id of the project currently being hosted, or null when nothing is.
   String? get hostedProjectId => _hostedProjectId;
 
+  /// Every non-loopback IPv4 address this machine's own network interfaces currently offer,
+  /// straight off [_lanAddressResolver] — re-callable so the hosting panel's own address dropdown
+  /// can re-detect a network switch (a Wi-Fi hop, a cable plugged in) on a fresh view entry,
+  /// without restarting hosting to do it: the socket already binds [InternetAddress.anyIPv4] by
+  /// default, so every one of these addresses already reaches it.
+  Future<List<InternetAddress>> availableLanAddresses() => _lanAddressResolver();
+
   /// Starts hosting [database]'s own project (whose file sits at [projectFilePath]): opens a relay
   /// store beside the project file, serves it, makes this replica the relay's own first member
   /// over `localhost`, and reports [OcptRelayHostOnline] once all of that is up.
@@ -189,7 +200,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// 3. Opens an [OcptRelayStore] at `<projectFilePath>.relay.sqlite` — beside the project file,
   ///    one relay database per project, kept in place even after [stopHosting] so the
   ///    producer/director hub case can restart hosting without losing what was already relayed —
-  ///    and serves an [OcptRelayServer] over it on [_bindAddress]:[port].
+  ///    and serves an [OcptRelayServer] over it on [_bindAddress], on this call's own [port]
+  ///    parameter when given, or this manager's own [port] field otherwise (see that parameter's
+  ///    own doc comment below).
   /// 4. Self-seeds: points [database] at the socket just bound, over `http://localhost:<port>` —
   ///    the loopback address, since the host talks to its own relay over the very same machine,
   ///    unlike the LAN address peers use. An already-paired project is re-pointed
@@ -202,9 +215,10 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   ///    panel's own QR is built from the LAN address and the enrolment secret, not from a join
   ///    invite.
   /// 5. Computes the advertised [OcptRelayHostOnline.lanBaseUri] from [_lanAddressResolver]'s own
-  ///    non-loopback address when one exists, falling back to the loopback address (hosting still
-  ///    works on a single machine, just not for a peer to reach) — and from the socket's
-  ///    **actually bound** port, never [port] itself, since `0` means the OS picked one.
+  ///    first address when the list is non-empty, falling back to the loopback address (hosting
+  ///    still works on a single machine, just not for a peer to reach) — and from the socket's
+  ///    **actually bound** port, never this call's own [port] parameter or this manager's own
+  ///    [port] field, since `0` means the OS picked one.
   ///
   /// A failure at any step tears down whatever was already opened — ending the self-seeded sync
   /// session first, so it never talks to a socket that is already gone (see [_teardown]) —
@@ -212,12 +226,20 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// manager instance exists (mirroring `OcptSyncSession._logWarning`), and returns rather than
   /// rethrowing — a bring-up failure is a state to render, exactly like `OcptSyncStatus`, not an
   /// exception to propagate.
+  ///
+  /// This method's own [port] parameter, when non-null, binds that port instead of this manager's
+  /// own [port] field default — what the hosting panel's own port field applies after
+  /// "Appliquer": the socket already advertises whichever port it actually bound (see step 5
+  /// above), so changing it is simply calling this again with a chosen port rather than a fresh
+  /// ephemeral one. Every other caller — [maybeAutoStartHosting] included — passes nothing,
+  /// keeping the ephemeral default.
   Future<void> startHosting({
     required OcptProjectDatabase database,
     required String projectFilePath,
     required String projectName,
     required String appVersion,
     required String deviceId,
+    int? port,
   }) async {
     if (_platformManager.isMobile) {
       throw StateError(
@@ -245,7 +267,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       _store = store;
 
       final server = OcptRelayServer(store: store, enrolmentSecret: secret);
-      final httpServer = await shelf_io.serve(server.handler, _bindAddress, port);
+      final httpServer = await shelf_io.serve(server.handler, _bindAddress, port ?? this.port);
       _httpServer = httpServer;
 
       final localBaseUri = Uri(scheme: 'http', host: 'localhost', port: httpServer.port);
@@ -273,9 +295,11 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
         );
       }
 
-      final lanAddress = await _lanAddressResolver();
-      final host = lanAddress?.address ?? InternetAddress.loopbackIPv4.address;
-      if (lanAddress == null) {
+      final lanAddresses = await _lanAddressResolver();
+      final host = lanAddresses.isNotEmpty
+          ? lanAddresses.first.address
+          : InternetAddress.loopbackIPv4.address;
+      if (lanAddresses.isEmpty) {
         _logWarning(
           'No non-loopback network interface was found while starting to host project '
           '$projectId: advertising the loopback address, which only this machine can reach.',
@@ -426,19 +450,22 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     }
   }
 
-  /// The first non-loopback IPv4 address of this machine's own network interfaces, or null when
-  /// none is found — [OcptLanAddressResolver]'s default implementation.
-  static Future<InternetAddress?> _defaultLanAddress() async {
+  /// Every non-loopback IPv4 address of this machine's own network interfaces, deduplicated and in
+  /// the order [NetworkInterface.list] reports them, or an empty list when none is found —
+  /// [OcptLanAddressResolver]'s default implementation.
+  static Future<List<InternetAddress>> _defaultLanAddress() async {
     final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
+    final seen = <String>{};
+    final addresses = <InternetAddress>[];
     for (final interface in interfaces) {
       for (final address in interface.addresses) {
-        if (!address.isLoopback) {
-          return address;
+        if (!address.isLoopback && seen.add(address.address)) {
+          addresses.add(address);
         }
       }
     }
 
-    return null;
+    return addresses;
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

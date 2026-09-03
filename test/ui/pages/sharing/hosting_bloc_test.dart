@@ -8,10 +8,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
@@ -19,6 +21,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -33,8 +36,14 @@ class _FakeHostManager extends OcptRelayHostManager {
   final _controller = StreamController<OcptRelayHostState>.broadcast();
   String? _hostedProjectId;
 
+  /// What [availableLanAddresses] returns.
+  List<InternetAddress> lanAddresses = [InternetAddress('192.168.1.42')];
+
   /// How many times [startHosting] was called.
   int startHostingCallCount = 0;
+
+  /// The `port` argument [startHosting] was last called with, or null.
+  int? lastStartHostingPort;
 
   /// How many times [stopHosting] was called.
   int stopHostingCallCount = 0;
@@ -57,6 +66,9 @@ class _FakeHostManager extends OcptRelayHostManager {
   @override
   String? get hostedProjectId => _hostedProjectId;
 
+  @override
+  Future<List<InternetAddress>> availableLanAddresses() async => lanAddresses;
+
   /// Pushes [next] onto [stateStream], as [startHosting]/[stopHosting] would for real, and
   /// mirrors it into [hostedProjectId] when it carries one.
   void emit(OcptRelayHostState next, {String? hostedProjectId}) {
@@ -74,8 +86,10 @@ class _FakeHostManager extends OcptRelayHostManager {
     required String projectName,
     required String appVersion,
     required String deviceId,
+    int? port,
   }) async {
     startHostingCallCount++;
+    lastStartHostingPort = port;
   }
 
   @override
@@ -93,14 +107,45 @@ class _FakeHostManager extends OcptRelayHostManager {
   Future<void> disposeStream() => _controller.close();
 }
 
-/// A fake [OcptSyncManager] whose [loadPairedProjectId] and presence roster are fully under this
-/// file's own control — no real pairing, no real presence service, exactly
+/// A fake [OcptPairingService] returning [pairing] straight from [loadPairing] — no real secure
+/// storage, no real database read, exactly what the bloc's own online-extras load needs to be
+/// exercised without either. [secretsManager] is never actually used (this class's own
+/// [loadPairing] override never reaches it), so it is built with closures that would throw if
+/// ever called.
+class _FakePairingService extends OcptPairingService {
+  _FakePairingService({this.pairing})
+    : super(
+        secretsManager: OcptSecretsManager(
+          propertiesGetter: () => throw UnimplementedError(),
+          confGetter: () => throw UnimplementedError(),
+        ),
+      );
+
+  /// What [loadPairing] returns.
+  OcptProjectPairing? pairing;
+
+  @override
+  Future<OcptProjectPairing?> loadPairing({
+    required OcptProjectDatabase database,
+    required String projectId,
+  }) async => pairing;
+}
+
+/// A fake [OcptSyncManager] whose [loadPairedProjectId], presence roster and [pairingService] are
+/// fully under this file's own control — no real pairing, no real presence service, exactly
 /// `ocpt_sync_status_indicator_test.dart`'s own `_FakeSyncManager` reasoning.
 class _FakeSyncManager extends OcptSyncManager {
-  _FakeSyncManager({this.pairedProjectId}) : super(changesetService: const OcptChangesetService());
+  _FakeSyncManager({this.pairedProjectId, _FakePairingService? pairingService})
+    : _fakePairingService = pairingService ?? _FakePairingService(),
+      super(changesetService: const OcptChangesetService());
 
   /// What [loadPairedProjectId] returns.
   String? pairedProjectId;
+
+  final _FakePairingService _fakePairingService;
+
+  @override
+  OcptPairingService get pairingService => _fakePairingService;
 
   OcptPresenceRoster? _roster;
   final _controller = StreamController<OcptPresenceRoster>.broadcast();
@@ -226,6 +271,105 @@ void main() {
 
     expect(bloc.state.hostState, isA<OcptRelayHostOnline>());
     expect(bloc.state.canSetAutoRestart, isTrue);
+  });
+
+  test("going online populates the available addresses and builds the enrolment/join invite", () async {
+    final hostManager = _FakeHostManager()
+      ..lanAddresses = [InternetAddress("192.168.1.42"), InternetAddress("10.0.0.5")];
+    final syncManager = _FakeSyncManager(
+      pairingService: _FakePairingService(
+        pairing: OcptProjectPairing(
+          relayBaseUri: Uri.https("prep.example.org"),
+          token: "prep-token",
+        ),
+      ),
+    );
+    final bloc = buildBloc(hostManager: hostManager, syncManager: syncManager);
+    await pumpEventQueue();
+
+    hostManager.emit(
+      OcptRelayHostOnline(
+        lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
+        enrolmentSecret: "secret",
+      ),
+      hostedProjectId: "hosted-project",
+    );
+    await pumpEventQueue();
+
+    expect(bloc.state.availableAddresses, ["192.168.1.42", "10.0.0.5"]);
+    expect(bloc.state.selectedAddress, "192.168.1.42");
+    expect(bloc.state.boundPort, 53187);
+    expect(bloc.state.enrolment?.relayBaseUri, Uri.parse("http://192.168.1.42:53187"));
+    expect(bloc.state.enrolment?.enrolmentSecret, "secret");
+    expect(bloc.state.joinInvite?.relayBaseUri, Uri.parse("http://192.168.1.42:53187"));
+    expect(bloc.state.joinInvite?.projectId, "hosted-project");
+    expect(bloc.state.joinInvite?.token, "prep-token");
+    expect(bloc.state.qrKind, OcptHostingQrKind.join);
+  });
+
+  test("an advertised-address change rebuilds both credentials without restarting hosting", () async {
+    final hostManager = _FakeHostManager()
+      ..lanAddresses = [InternetAddress("192.168.1.42"), InternetAddress("10.0.0.5")];
+    final syncManager = _FakeSyncManager(
+      pairingService: _FakePairingService(
+        pairing: OcptProjectPairing(
+          relayBaseUri: Uri.https("prep.example.org"),
+          token: "prep-token",
+        ),
+      ),
+    );
+    final bloc = buildBloc(hostManager: hostManager, syncManager: syncManager);
+    await pumpEventQueue();
+
+    hostManager.emit(
+      OcptRelayHostOnline(
+        lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
+        enrolmentSecret: "secret",
+      ),
+      hostedProjectId: "hosted-project",
+    );
+    await pumpEventQueue();
+
+    bloc.add(const OcptHostingAdvertisedAddressChangedEvent("10.0.0.5"));
+    await pumpEventQueue();
+
+    expect(bloc.state.selectedAddress, "10.0.0.5");
+    expect(bloc.state.enrolment?.relayBaseUri, Uri.parse("http://10.0.0.5:53187"));
+    expect(bloc.state.joinInvite?.relayBaseUri, Uri.parse("http://10.0.0.5:53187"));
+    expect(bloc.state.joinInvite?.token, "prep-token");
+    expect(hostManager.startHostingCallCount, 0);
+  });
+
+  test("a port-change event asks the manager to re-bind that port", () async {
+    final hostManager = _FakeHostManager();
+    final bloc = buildBloc(hostManager: hostManager, syncManager: _FakeSyncManager());
+    await pumpEventQueue();
+
+    hostManager.emit(
+      OcptRelayHostOnline(
+        lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
+        enrolmentSecret: "secret",
+      ),
+      hostedProjectId: "hosted-project",
+    );
+    await pumpEventQueue();
+
+    bloc.add(const OcptHostingPortChangeRequestedEvent(6001));
+    await pumpEventQueue();
+
+    expect(hostManager.startHostingCallCount, 1);
+    expect(hostManager.lastStartHostingPort, 6001);
+  });
+
+  test("the QR-kind toggle updates the panel's own selection", () async {
+    final bloc = buildBloc(hostManager: _FakeHostManager(), syncManager: _FakeSyncManager());
+    await pumpEventQueue();
+    expect(bloc.state.qrKind, OcptHostingQrKind.join);
+
+    bloc.add(const OcptHostingQrKindChangedEvent(OcptHostingQrKind.enrolment));
+    await pumpEventQueue();
+
+    expect(bloc.state.qrKind, OcptHostingQrKind.enrolment);
   });
 
   test("stopping hosting calls the manager and follows its state stream back to stopped", () async {

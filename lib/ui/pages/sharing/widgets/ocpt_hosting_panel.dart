@@ -10,11 +10,10 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
-import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_presence_color.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_enrolment_qr_code.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';
 
 /// The maximum width of the hosting panel's own column, matching `OcptSharingConfigureView`'s own
 /// ~560px column.
@@ -25,10 +24,11 @@ const _maxContentWidth = 560.0;
 /// `OcptSharingConfigureView`/`OcptSharingInviteView` already follow — every write goes out through
 /// a nullable `on…Requested` callback, never a manager reached into directly (RD/RFL).
 ///
-/// The Marche/Arrêt switch and the "réhéberger au démarrage" checkbox always render; the advertised
-/// LAN address, the enrolment QR, the connected-peers list and the "Réconcilier amont…" action only
-/// render while `state.hostState` is [OcptRelayHostOnline] — absent otherwise, per the approved
-/// layout's own "greyed/hidden when stopped".
+/// The Marche/Arrêt switch and the "réhéberger au démarrage" checkbox always render; the
+/// advertised-address dropdown, the port field, the QR-kind segmented button and its one QR, the
+/// connected-peers list and the "Réconcilier amont…" action only render while `state.hostState` is
+/// [OcptRelayHostOnline] — absent otherwise, per the approved layout's own "greyed/hidden when
+/// stopped".
 class OcptHostingPanel extends StatefulWidget {
   /// The state this panel renders.
   final OcptHostingState state;
@@ -47,6 +47,16 @@ class OcptHostingPanel extends StatefulWidget {
   /// the bloc clears it and a later rebuild doesn't show it again.
   final VoidCallback onReconcileDismissed;
 
+  /// Called when the advertised-address dropdown picks a different value, with the address just
+  /// picked — one of `state.availableAddresses`.
+  final ValueChanged<String> onAdvertisedAddressChanged;
+
+  /// Called when the port field's own "Appliquer" is pressed, with the port typed into it.
+  final ValueChanged<int> onPortChangeRequested;
+
+  /// Called when the QR-kind segmented button picks a different kind.
+  final ValueChanged<OcptHostingQrKind> onQrKindChanged;
+
   /// Class constructor
   const OcptHostingPanel({
     required this.state,
@@ -54,6 +64,9 @@ class OcptHostingPanel extends StatefulWidget {
     required this.onAutoRestartChanged,
     required this.onReconcileRequested,
     required this.onReconcileDismissed,
+    required this.onAdvertisedAddressChanged,
+    required this.onPortChangeRequested,
+    required this.onQrKindChanged,
     super.key,
   });
 
@@ -67,10 +80,22 @@ class OcptHostingPanel extends StatefulWidget {
 class _OcptHostingPanelState extends State<OcptHostingPanel> {
   bool _isReconcileFormOpen = false;
   final _inviteController = TextEditingController();
+  late final TextEditingController _portController = TextEditingController(
+    text: widget.state.boundPort?.toString() ?? '',
+  );
+
+  @override
+  void didUpdateWidget(covariant OcptHostingPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.state.boundPort != oldWidget.state.boundPort) {
+      _portController.text = widget.state.boundPort?.toString() ?? '';
+    }
+  }
 
   @override
   void dispose() {
     _inviteController.dispose();
+    _portController.dispose();
     super.dispose();
   }
 
@@ -138,27 +163,14 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
               ),
               if (isOnline) ...[
                 const SizedBox(height: 16),
-                _OcptHostingAddressCard(online: hostState),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    OcptEnrolmentQrCode(
-                      enrolment: OcptRelayEnrolment(
-                        relayBaseUri: hostState.lanBaseUri,
-                        enrolmentSecret: hostState.enrolmentSecret,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        tr.hostingQrCaption,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
+                _OcptHostingAddressPortCard(
+                  state: widget.state,
+                  portController: _portController,
+                  onAdvertisedAddressChanged: widget.onAdvertisedAddressChanged,
+                  onPortChangeRequested: widget.onPortChangeRequested,
                 ),
+                const SizedBox(height: 16),
+                _OcptHostingQrCard(state: widget.state, onQrKindChanged: widget.onQrKindChanged),
                 const SizedBox(height: 16),
                 _OcptHostingPeersCard(roster: widget.state.presenceRoster),
                 const SizedBox(height: 16),
@@ -186,51 +198,172 @@ String _statusLabel(Tr tr, OcptRelayHostState hostState) => switch (hostState) {
   OcptRelayHostFailed() => tr.hostingStatusFailed,
 };
 
-/// The hosting panel's own advertised-address row: [OcptHostingState.hostState]'s own
-/// `lanBaseUri`, read-only, with a copy button — the panel's single source for the address, shown
-/// above the QR, per the approved layout.
-class _OcptHostingAddressCard extends StatelessWidget {
+/// The hosting panel's own advertised-address dropdown and port field: `state.availableAddresses`
+/// (with `state.selectedAddress` appended when the resolver dropped the address the socket is
+/// still advertising — a defensive fallback so the dropdown's own `value` always matches one of
+/// its items) picks what [OcptHostingState.enrolment]/[OcptHostingState.joinInvite] encode as a
+/// host, and the port field re-binds the socket itself through [onPortChangeRequested] once
+/// "Appliquer" is pressed or the field is submitted — an invalid or empty port is silently ignored.
+class _OcptHostingAddressPortCard extends StatelessWidget {
   /// Class constructor
-  const _OcptHostingAddressCard({required this.online});
+  const _OcptHostingAddressPortCard({
+    required this.state,
+    required this.portController,
+    required this.onAdvertisedAddressChanged,
+    required this.onPortChangeRequested,
+  });
 
-  /// The online host state this row reads its address from.
-  final OcptRelayHostOnline online;
+  /// The state this card reads its own address/port facts off.
+  final OcptHostingState state;
+
+  /// The port field's own controller, owned by [OcptHostingPanel]'s own state so it survives a
+  /// rebuild and is kept in step with [OcptHostingState.boundPort].
+  final TextEditingController portController;
+
+  /// Called when the dropdown picks a different address.
+  final ValueChanged<String> onAdvertisedAddressChanged;
+
+  /// Called when the port field is applied, with the parsed port.
+  final ValueChanged<int> onPortChangeRequested;
+
+  void _applyPort() {
+    final parsed = int.tryParse(portController.text.trim());
+    if (parsed != null) {
+      onPortChangeRequested(parsed);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final address = online.lanBaseUri.toString();
+    final selectedAddress = state.selectedAddress;
+    final items = <String>[
+      ...state.availableAddresses,
+      if (selectedAddress != null && !state.availableAddresses.contains(selectedAddress))
+        selectedAddress,
+    ];
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Text(
+              tr.hostingAdvertisedAddressLabel,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: selectedAddress,
+                    items: [
+                      for (final address in items)
+                        DropdownMenuItem(value: address, child: Text(address)),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        onAdvertisedAddressChanged(value);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 96,
+                  child: TextField(
+                    controller: portController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: tr.hostingPortLabel),
+                    onSubmitted: (_) => _applyPort(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(onPressed: _applyPort, child: Text(tr.hostingApplyPort)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The hosting panel's own QR-kind segmented button and the one QR it currently shows: a "join"
+/// segment ([OcptHostingQrKind.join]) drawing [OcptHostingState.joinInvite], for a device that
+/// doesn't have the project yet, and a "switch relay" segment ([OcptHostingQrKind.enrolment])
+/// drawing [OcptHostingState.enrolment], for a device that already has the project and only needs
+/// pointing here — each with its own caption clarifying which is which, and a copy-link button
+/// copying the very same string the QR encodes.
+class _OcptHostingQrCard extends StatelessWidget {
+  /// Class constructor
+  const _OcptHostingQrCard({required this.state, required this.onQrKindChanged});
+
+  /// The state this card reads its own QR facts off.
+  final OcptHostingState state;
+
+  /// Called when the segmented button picks a different QR kind.
+  final ValueChanged<OcptHostingQrKind> onQrKindChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+    final kind = state.qrKind;
+    final data = switch (kind) {
+      OcptHostingQrKind.join => state.joinInvite?.toInviteString(),
+      OcptHostingQrKind.enrolment => state.enrolment?.toEnrolmentString(),
+    };
+    final caption = switch (kind) {
+      OcptHostingQrKind.join => tr.hostingQrJoinCaption,
+      OcptHostingQrKind.enrolment => tr.hostingQrRepointCaption,
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<OcptHostingQrKind>(
+              segments: [
+                ButtonSegment(value: OcptHostingQrKind.join, label: Text(tr.hostingQrKindJoin)),
+                ButtonSegment(
+                  value: OcptHostingQrKind.enrolment,
+                  label: Text(tr.hostingQrKindRepoint),
+                ),
+              ],
+              selected: {kind},
+              onSelectionChanged: (selection) => onQrKindChanged(selection.first),
+            ),
+            if (data != null) ...[
+              const SizedBox(height: 16),
+              Center(child: OcptQrCode(data: data)),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  Text(
-                    tr.hostingAddressLabel,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  Expanded(
+                    child: Text(
+                      caption,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                  Text(
-                    address,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium,
+                  IconButton(
+                    tooltip: tr.hostingCopyLinkTooltip,
+                    icon: const Icon(Icons.copy_outlined),
+                    onPressed: () => unawaited(Clipboard.setData(ClipboardData(text: data))),
                   ),
                 ],
               ),
-            ),
-            IconButton(
-              tooltip: tr.hostingCopyAddressTooltip,
-              icon: const Icon(Icons.copy_outlined),
-              onPressed: () => unawaited(Clipboard.setData(ClipboardData(text: address))),
-            ),
+            ],
           ],
         ),
       ),

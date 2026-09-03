@@ -280,13 +280,18 @@ one over the same project; `disposeLifeCycle` stops hosting on close.
 `lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`) is the Partager screen's "Héberger sur ce
 poste" segment — desktop-only and withheld under a read-only preview, like every other write
 affordance. It always shows a Marche/Arrêt switch and a "réhéberger au démarrage" checkbox; once
-online it also shows the advertised LAN address (with a copy button), the enrolment QR (the reusable
-`OcptEnrolmentQrCode` widget, `lib/ui/widgets/ocpt_enrolment_qr_code.dart`, which the repointing
-screen's own QR state now draws through too), the connected-peers list (reading
-`OcptSyncManager.presenceRoster`/`presenceRosterStream` — no host-side presence code of its own, just
-the same roster the workspace toolbar already shows — each peer a `ocptPresenceColor` dot and a
-`platform · id fragment` label, never a name), and a "Réconcilier amont…" action: paste or scan an
-upstream `ocpt://join` invite, run the reconciler, show `pushed N, pulled M`.
+online it also shows an advertised-address dropdown (`OcptRelayHostManager.availableLanAddresses`,
+re-detecting a network switch on a fresh screen entry, since the socket already binds every
+interface) and a port field re-binding the socket through `startHosting`'s own `port` parameter, a
+`SegmentedButton` choosing between the join invite (a device with no local copy of the project) and
+the enrolment (a device that already has it, re-pointing here) — the one QR each currently selects
+(the reusable `OcptQrCode` widget, `lib/ui/widgets/ocpt_qr_code.dart`, which the repointing screen's
+own QR state also draws through, both now drawn at a larger, easier-to-scan size) — the
+connected-peers list (reading `OcptSyncManager.presenceRoster`/`presenceRosterStream` — no host-side
+presence code of its own, just the same roster the workspace toolbar already shows — each peer a
+`ocptPresenceColor` dot and a `platform · id fragment` label, never a name), and a "Réconcilier
+amont…" action: paste or scan an upstream `ocpt://join` invite, run the reconciler, show
+`pushed N, pulled M`.
 
 ## Sharing, joining, and what the user sees
 

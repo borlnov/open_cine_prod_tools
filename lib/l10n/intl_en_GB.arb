@@ -15267,17 +15267,37 @@
   "@hostingAutoRestartLabel": {
     "description": "Label of the hosting panel's own checkbox restarting hosting automatically on the next open"
   },
-  "hostingAddressLabel": "Address",
-  "@hostingAddressLabel": {
-    "description": "Label of the hosted relay's own advertised LAN address, shown while hosting is online"
+  "hostingAdvertisedAddressLabel": "Advertised address",
+  "@hostingAdvertisedAddressLabel": {
+    "description": "Label of the hosting panel's own advertised-address dropdown, shown while hosting is online"
   },
-  "hostingCopyAddressTooltip": "Copy the address",
-  "@hostingCopyAddressTooltip": {
-    "description": "Tooltip of the icon button copying the hosted relay's own advertised LAN address"
+  "hostingPortLabel": "Port",
+  "@hostingPortLabel": {
+    "description": "Label of the hosting panel's own port field, shown while hosting is online"
   },
-  "hostingQrCaption": "For the crew to scan",
-  "@hostingQrCaption": {
-    "description": "Caption under the hosting panel's own enrolment QR code"
+  "hostingApplyPort": "Apply",
+  "@hostingApplyPort": {
+    "description": "Button applying the hosting panel's own port field"
+  },
+  "hostingQrKindJoin": "Join (new device)",
+  "@hostingQrKindJoin": {
+    "description": "Segment of the hosting panel's own QR-kind segmented button selecting the join invite QR"
+  },
+  "hostingQrKindRepoint": "Switch relay (already has it)",
+  "@hostingQrKindRepoint": {
+    "description": "Segment of the hosting panel's own QR-kind segmented button selecting the enrolment QR"
+  },
+  "hostingQrJoinCaption": "A device that doesn't have the project scans this via « Join » to get it",
+  "@hostingQrJoinCaption": {
+    "description": "Caption under the hosting panel's own QR while it shows the join invite"
+  },
+  "hostingQrRepointCaption": "A device that already has the project scans this via « Switch relay » to point it here",
+  "@hostingQrRepointCaption": {
+    "description": "Caption under the hosting panel's own QR while it shows the enrolment"
+  },
+  "hostingCopyLinkTooltip": "Copy the link",
+  "@hostingCopyLinkTooltip": {
+    "description": "Tooltip of the icon button copying the hosting panel's own currently shown QR link"
   },
   "hostingPeersLabel": "Connected",
   "@hostingPeersLabel": {

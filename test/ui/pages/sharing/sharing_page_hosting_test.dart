@@ -131,6 +131,7 @@ class _FakeHostManager extends OcptRelayHostManager {
     required String projectName,
     required String appVersion,
     required String deviceId,
+    int? port,
   }) async {}
 
   @override

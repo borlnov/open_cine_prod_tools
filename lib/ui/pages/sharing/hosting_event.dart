@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 
 /// The events handled by `OcptHostingBloc`.
 sealed class OcptHostingEvent extends BlocEventForMixin {
@@ -98,4 +99,56 @@ class OcptHostingReconcileRequestedEvent extends OcptHostingEvent {
 class OcptHostingReconcileDismissedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingReconcileDismissedEvent();
+}
+
+/// Reports that the hosting panel's own address dropdown picked a different advertised address —
+/// [address] is one of `OcptHostingState.availableAddresses`. This never restarts hosting: the
+/// socket already binds every interface (`InternetAddress.anyIPv4`), so only what the QR codes
+/// encode changes.
+class OcptHostingAdvertisedAddressChangedEvent extends OcptHostingEvent {
+  /// The address just picked.
+  final String address;
+
+  /// Class constructor
+  const OcptHostingAdvertisedAddressChangedEvent(this.address);
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, address];
+}
+
+/// Reports that the hosting panel's own port field was applied — [port] is what
+/// `OcptRelayHostManager.startHosting` re-binds to, unlike an advertised address change, since the
+/// socket itself has to be re-bound to move off the port it is already listening on.
+class OcptHostingPortChangeRequestedEvent extends OcptHostingEvent {
+  /// The port to bind.
+  final int port;
+
+  /// Class constructor
+  const OcptHostingPortChangeRequestedEvent(this.port);
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, port];
+}
+
+/// Reports that the hosting panel's own QR-kind segmented button picked [kind].
+class OcptHostingQrKindChangedEvent extends OcptHostingEvent {
+  /// The QR kind just picked.
+  final OcptHostingQrKind kind;
+
+  /// Class constructor
+  const OcptHostingQrKindChangedEvent(this.kind);
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, kind];
+}
+
+/// Requests re-reading `OcptRelayHostManager.availableLanAddresses` — the hosting panel's own
+/// address dropdown dispatches this on becoming visible, so a network switch (a Wi-Fi hop, a cable
+/// plugged in) since the screen last loaded is re-detected without hosting having to restart.
+class OcptHostingAddressesRefreshRequestedEvent extends OcptHostingEvent {
+  /// Class constructor
+  const OcptHostingAddressesRefreshRequestedEvent();
 }

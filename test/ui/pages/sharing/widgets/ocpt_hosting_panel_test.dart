@@ -10,10 +10,12 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_hosting_panel.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_enrolment_qr_code.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,
 /// exactly `sharing_page_test.dart`'s own `_wrapWithLocalization`.
@@ -35,6 +37,17 @@ void main() {
     enrolmentSecret: "enrolment-secret",
   );
 
+  final joinInvite = OcptRelayInvite(
+    relayBaseUri: Uri.parse("http://192.168.1.42:53187"),
+    projectId: "hosted-project",
+    token: "token-1",
+  );
+
+  final enrolment = OcptRelayEnrolment(
+    relayBaseUri: Uri.parse("http://192.168.1.42:53187"),
+    enrolmentSecret: "enrolment-secret",
+  );
+
   final onlineState = OcptHostingState(
     isLoading: false,
     hostState: onlineHostState,
@@ -50,6 +63,11 @@ void main() {
     isReconciling: false,
     reconcileOutcome: null,
     reconcileInviteInvalid: false,
+    availableAddresses: const ["192.168.1.42", "10.0.0.5"],
+    selectedAddress: "192.168.1.42",
+    boundPort: 53187,
+    enrolment: enrolment,
+    joinInvite: joinInvite,
   );
 
   const stoppedState = OcptHostingState(
@@ -73,6 +91,9 @@ void main() {
     ValueChanged<bool>? onAutoRestartChanged,
     ValueChanged<String>? onReconcileRequested,
     VoidCallback? onReconcileDismissed,
+    ValueChanged<String>? onAdvertisedAddressChanged,
+    ValueChanged<int>? onPortChangeRequested,
+    ValueChanged<OcptHostingQrKind>? onQrKindChanged,
   }) async {
     await tester.binding.setSurfaceSize(const Size(900, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -85,29 +106,112 @@ void main() {
           onAutoRestartChanged: onAutoRestartChanged ?? (_) {},
           onReconcileRequested: onReconcileRequested ?? (_) {},
           onReconcileDismissed: onReconcileDismissed ?? () {},
+          onAdvertisedAddressChanged: onAdvertisedAddressChanged ?? (_) {},
+          onPortChangeRequested: onPortChangeRequested ?? (_) {},
+          onQrKindChanged: onQrKindChanged ?? (_) {},
         ),
       ),
     );
     await tester.pump();
   }
 
-  testWidgets("an online state renders the address, the QR, the peers and the reconcile action", (
-    tester,
-  ) async {
+  testWidgets(
+    "an online state renders the dropdown, the port field, the segmented button, the QR and "
+    "the peers",
+    (tester) async {
+      await pumpPanel(tester, onlineState);
+
+      final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+
+      expect(find.byType(DropdownButton<String>), findsOneWidget);
+      expect(find.text("53187"), findsOneWidget);
+      expect(find.byType(SegmentedButton<OcptHostingQrKind>), findsOneWidget);
+      expect(find.byType(OcptQrCode), findsOneWidget);
+      expect(find.text(tr.hostingPeersLabel), findsOneWidget);
+      expect(find.textContaining("macos"), findsNothing);
+      expect(find.textContaining("Macos"), findsOneWidget);
+      expect(find.text(tr.hostingReconcileAction), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      final switchWidget = tester.widget<Switch>(find.byType(Switch));
+      expect(switchWidget.value, isTrue);
+    },
+  );
+
+  testWidgets("the QR is drawn at the enlarged default size", (tester) async {
+    await pumpPanel(tester, onlineState);
+
+    final qr = tester.widget<OcptQrCode>(find.byType(OcptQrCode));
+    expect(qr.size, 220.0);
+  });
+
+  testWidgets("the join QR kind shows the join invite data and its own caption", (tester) async {
     await pumpPanel(tester, onlineState);
 
     final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+    final qr = tester.widget<OcptQrCode>(find.byType(OcptQrCode));
+    expect(qr.data, joinInvite.toInviteString());
+    expect(find.text(tr.hostingQrJoinCaption), findsOneWidget);
+  });
 
-    expect(find.text(onlineHostState.lanBaseUri.toString()), findsOneWidget);
-    expect(find.byType(OcptEnrolmentQrCode), findsOneWidget);
-    expect(find.text(tr.hostingPeersLabel), findsOneWidget);
-    expect(find.textContaining("macos"), findsNothing);
-    expect(find.textContaining("Macos"), findsOneWidget);
-    expect(find.text(tr.hostingReconcileAction), findsOneWidget);
-    expect(tester.takeException(), isNull);
+  testWidgets("the enrolment QR kind shows the enrolment data and its own caption", (tester) async {
+    await pumpPanel(tester, onlineState.copyWith(qrKind: OcptHostingQrKind.enrolment));
 
-    final switchWidget = tester.widget<Switch>(find.byType(Switch));
-    expect(switchWidget.value, isTrue);
+    final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+    final qr = tester.widget<OcptQrCode>(find.byType(OcptQrCode));
+    expect(qr.data, enrolment.toEnrolmentString());
+    expect(find.text(tr.hostingQrRepointCaption), findsOneWidget);
+  });
+
+  testWidgets("toggling the segmented button reports the kind it was set to", (tester) async {
+    OcptHostingQrKind? changedKind;
+    await pumpPanel(tester, onlineState, onQrKindChanged: (kind) => changedKind = kind);
+
+    final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+    await tester.tap(find.text(tr.hostingQrKindRepoint));
+    await tester.pump();
+
+    expect(changedKind, OcptHostingQrKind.enrolment);
+  });
+
+  testWidgets("changing the dropdown reports the address it was set to", (tester) async {
+    String? changedAddress;
+    await pumpPanel(
+      tester,
+      onlineState,
+      onAdvertisedAddressChanged: (address) => changedAddress = address,
+    );
+
+    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("10.0.0.5").last);
+    await tester.pumpAndSettle();
+
+    expect(changedAddress, "10.0.0.5");
+  });
+
+  testWidgets("applying the port field reports the parsed port", (tester) async {
+    int? changedPort;
+    await pumpPanel(tester, onlineState, onPortChangeRequested: (port) => changedPort = port);
+
+    final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+    await tester.enterText(find.byType(TextField).first, "6001");
+    await tester.tap(find.text(tr.hostingApplyPort));
+    await tester.pump();
+
+    expect(changedPort, 6001);
+  });
+
+  testWidgets("an invalid port is ignored", (tester) async {
+    int? changedPort;
+    await pumpPanel(tester, onlineState, onPortChangeRequested: (port) => changedPort = port);
+
+    final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+    await tester.enterText(find.byType(TextField).first, "not-a-port");
+    await tester.tap(find.text(tr.hostingApplyPort));
+    await tester.pump();
+
+    expect(changedPort, isNull);
   });
 
   testWidgets("an empty peer list shows the no-peers line instead of the wrap", (tester) async {
@@ -124,8 +228,9 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
 
-    expect(find.byType(OcptEnrolmentQrCode), findsNothing);
-    expect(find.text(tr.hostingAddressLabel), findsNothing);
+    expect(find.byType(OcptQrCode), findsNothing);
+    expect(find.byType(DropdownButton<String>), findsNothing);
+    expect(find.byType(SegmentedButton<OcptHostingQrKind>), findsNothing);
     expect(find.text(tr.hostingPeersLabel), findsNothing);
     expect(find.text(tr.hostingReconcileAction), findsNothing);
     expect(tester.takeException(), isNull);
@@ -168,18 +273,19 @@ void main() {
     expect(requestedStart, isTrue);
   });
 
-  testWidgets("opening the reconcile form reveals the invite field and the run button", (
+  testWidgets("opening the reconcile form reveals a second field and the run button", (
     tester,
   ) async {
     await pumpPanel(tester, onlineState);
 
     final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
-    expect(find.byType(TextField), findsNothing);
+    // Only the port field renders before the reconcile form is opened.
+    expect(find.byType(TextField), findsOneWidget);
 
     await tester.tap(find.text(tr.hostingReconcileAction));
     await tester.pump();
 
-    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(TextField), findsNWidgets(2));
     expect(find.text(tr.hostingReconcileRun), findsOneWidget);
   });
 
@@ -191,7 +297,12 @@ void main() {
     await tester.tap(find.text(tr.hostingReconcileAction));
     await tester.pump();
 
-    await tester.enterText(find.byType(TextField), "ocpt://join?r=https%3A%2F%2Fr.example%2F&p=p&t=t");
+    // The invite field is the reconcile card's own, opened after the port field, so it is the
+    // last TextField in the tree.
+    await tester.enterText(
+      find.byType(TextField).last,
+      "ocpt://join?r=https%3A%2F%2Fr.example%2F&p=p&t=t",
+    );
     await tester.tap(find.text(tr.hostingReconcileRun));
     await tester.pump();
 

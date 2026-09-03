@@ -5,7 +5,21 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+
+/// Which of the hosting panel's own two QR codes is currently shown — the panel's own
+/// `SegmentedButton<OcptHostingQrKind>` selects between them, see
+/// `lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`.
+enum OcptHostingQrKind {
+  /// The `ocpt://join` invite a device with no local copy of the project scans to get one.
+  join,
+
+  /// The `ocpt://relay` enrolment a device that already has the project scans to point itself at
+  /// this hosted relay instead of wherever it was pointed before.
+  enrolment,
+}
 
 /// The state of `OcptHostingBloc` — the Partager screen's "Héberger sur ce poste" segment
 /// (`docs/architecture/sync.md`).
@@ -52,6 +66,34 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
   /// more specific message than [OcptReconcileFailed]'s own generic one.
   final bool reconcileInviteInvalid;
 
+  /// Every advertised-address choice the hosting panel's own dropdown offers, straight off
+  /// `OcptRelayHostManager.availableLanAddresses` — empty while hosting is offline or before the
+  /// first load has completed.
+  final List<String> availableAddresses;
+
+  /// The address currently advertised — the host half of both [enrolment]'s and [joinInvite]'s own
+  /// `relayBaseUri`, and the dropdown's own selected value. Null while hosting is offline.
+  final String? selectedAddress;
+
+  /// The port the hosted relay's socket is actually bound to right now — the port half of both
+  /// [enrolment]'s and [joinInvite]'s own `relayBaseUri`, and what the panel's own port field is
+  /// pre-filled with. Null while hosting is offline.
+  final int? boundPort;
+
+  /// The `ocpt://relay` enrolment built from [selectedAddress]/[boundPort] and the manager's own
+  /// enrolment secret — what a device that already has the project scans to re-point here. Null
+  /// while hosting is offline.
+  final OcptRelayEnrolment? enrolment;
+
+  /// The `ocpt://join` invite built from [selectedAddress]/[boundPort] and the hosted project's own
+  /// pairing token — what a device with no local copy of the project scans to get one. Null while
+  /// hosting is offline, or when the token could not be loaded (the panel still shows [enrolment]
+  /// in that case).
+  final OcptRelayInvite? joinInvite;
+
+  /// Which of [enrolment]/[joinInvite] the panel's own QR currently shows.
+  final OcptHostingQrKind qrKind;
+
   /// Class constructor
   const OcptHostingState({
     required this.isLoading,
@@ -62,6 +104,12 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     required this.isReconciling,
     required this.reconcileOutcome,
     required this.reconcileInviteInvalid,
+    this.availableAddresses = const [],
+    this.selectedAddress,
+    this.boundPort,
+    this.enrolment,
+    this.joinInvite,
+    this.qrKind = OcptHostingQrKind.join,
   });
 
   /// The initial state, shown for the brief moment before the load completes.
@@ -73,14 +121,21 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
       presenceRoster = null,
       isReconciling = false,
       reconcileOutcome = null,
-      reconcileInviteInvalid = false;
+      reconcileInviteInvalid = false,
+      availableAddresses = const [],
+      selectedAddress = null,
+      boundPort = null,
+      enrolment = null,
+      joinInvite = null,
+      qrKind = OcptHostingQrKind.join;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [presenceRoster] and [reconcileOutcome] legitimately go back to null (hosting stopped, or the
   /// panel dismissed the last reconcile result), so each has its own `clear…` flag rather than a
   /// bare nullable parameter, which could never tell "leave it alone" apart from "clear it" —
-  /// exactly `OcptSharingState.clearInvite`'s own reasoning.
+  /// exactly `OcptSharingState.clearInvite`'s own reasoning. [selectedAddress], [boundPort],
+  /// [enrolment] and [joinInvite] follow the very same shape, going back to null once hosting stops.
   @override
   OcptHostingState copyWith({
     bool? isLoading,
@@ -93,6 +148,16 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     OcptReconcileOutcome? reconcileOutcome,
     bool clearReconcileOutcome = false,
     bool? reconcileInviteInvalid,
+    List<String>? availableAddresses,
+    String? selectedAddress,
+    bool clearSelectedAddress = false,
+    int? boundPort,
+    bool clearBoundPort = false,
+    OcptRelayEnrolment? enrolment,
+    bool clearEnrolment = false,
+    OcptRelayInvite? joinInvite,
+    bool clearJoinInvite = false,
+    OcptHostingQrKind? qrKind,
   }) => OcptHostingState(
     isLoading: isLoading ?? this.isLoading,
     hostState: hostState ?? this.hostState,
@@ -102,6 +167,12 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     isReconciling: isReconciling ?? this.isReconciling,
     reconcileOutcome: clearReconcileOutcome ? null : (reconcileOutcome ?? this.reconcileOutcome),
     reconcileInviteInvalid: reconcileInviteInvalid ?? this.reconcileInviteInvalid,
+    availableAddresses: availableAddresses ?? this.availableAddresses,
+    selectedAddress: clearSelectedAddress ? null : (selectedAddress ?? this.selectedAddress),
+    boundPort: clearBoundPort ? null : (boundPort ?? this.boundPort),
+    enrolment: clearEnrolment ? null : (enrolment ?? this.enrolment),
+    joinInvite: clearJoinInvite ? null : (joinInvite ?? this.joinInvite),
+    qrKind: qrKind ?? this.qrKind,
   );
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
@@ -116,5 +187,11 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     isReconciling,
     reconcileOutcome,
     reconcileInviteInvalid,
+    availableAddresses,
+    selectedAddress,
+    boundPort,
+    enrolment,
+    joinInvite,
+    qrKind,
   ];
 }

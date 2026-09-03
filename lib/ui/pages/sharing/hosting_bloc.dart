@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart'
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_event.dart';
@@ -77,6 +78,10 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     on<OcptHostingAutoRestartChangedEvent>(_onAutoRestartChanged);
     on<OcptHostingReconcileRequestedEvent>(_onReconcileRequested);
     on<OcptHostingReconcileDismissedEvent>(_onReconcileDismissed);
+    on<OcptHostingAdvertisedAddressChangedEvent>(_onAdvertisedAddressChanged);
+    on<OcptHostingPortChangeRequestedEvent>(_onPortChangeRequested);
+    on<OcptHostingQrKindChangedEvent>(_onQrKindChanged);
+    on<OcptHostingAddressesRefreshRequestedEvent>(_onAddressesRefreshRequested);
 
     _hostStateSubscription = _hostManager.stateStream.listen(
       (hostState) => add(OcptHostingHostStateChangedEvent(hostState)),
@@ -99,6 +104,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     final hostOnLaunch =
         projectId != null && await _propertiesManager.loadHostOnLaunch(projectId);
     final presenceRoster = _syncManager.presenceRoster;
+    final extras = hostState is OcptRelayHostOnline ? await _loadOnlineExtras(hostState) : null;
 
     emitter(
       state.copyWith(
@@ -108,6 +114,15 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
         clearPresenceRoster: presenceRoster == null,
         canSetAutoRestart: projectId != null,
         hostOnLaunch: hostOnLaunch,
+        availableAddresses: extras?.availableAddresses ?? const [],
+        selectedAddress: extras?.selectedAddress,
+        clearSelectedAddress: extras == null,
+        boundPort: extras?.boundPort,
+        clearBoundPort: extras == null,
+        enrolment: extras?.enrolment,
+        clearEnrolment: extras == null,
+        joinInvite: extras?.joinInvite,
+        clearJoinInvite: extras?.joinInvite == null,
       ),
     );
   }
@@ -133,6 +148,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
           ? state.hostOnLaunch
           : await _propertiesManager.loadHostOnLaunch(hostedId);
       final presenceRoster = _syncManager.presenceRoster;
+      final extras = await _loadOnlineExtras(hostState);
 
       emitter(
         state.copyWith(
@@ -141,11 +157,26 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
           hostOnLaunch: hostOnLaunch,
           presenceRoster: presenceRoster,
           clearPresenceRoster: presenceRoster == null,
+          availableAddresses: extras.availableAddresses,
+          selectedAddress: extras.selectedAddress,
+          boundPort: extras.boundPort,
+          enrolment: extras.enrolment,
+          joinInvite: extras.joinInvite,
+          clearJoinInvite: extras.joinInvite == null,
         ),
       );
     } else {
       await _unsubscribeFromPresence();
-      emitter(state.copyWith(hostState: hostState, clearPresenceRoster: true));
+      emitter(
+        state.copyWith(
+          hostState: hostState,
+          clearPresenceRoster: true,
+          clearSelectedAddress: true,
+          clearBoundPort: true,
+          clearEnrolment: true,
+          clearJoinInvite: true,
+        ),
+      );
     }
   }
 
@@ -230,6 +261,153 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     Emitter<OcptHostingState> emitter,
   ) {
     emitter(state.copyWith(clearReconcileOutcome: true, reconcileInviteInvalid: false));
+  }
+
+  /// Applies [event]'s own address to [OcptHostingState.selectedAddress] and rebuilds
+  /// [OcptHostingState.enrolment]/[OcptHostingState.joinInvite] against it — never restarting
+  /// hosting, since the socket already binds every interface
+  /// (`InternetAddress.anyIPv4`, `docs/architecture/sync.md`'s own "no behavioural change to how
+  /// the relay binds"): only what the QR codes encode changes. A no-op when hosting isn't online —
+  /// the panel never offers the dropdown otherwise.
+  void _onAdvertisedAddressChanged(
+    OcptHostingAdvertisedAddressChangedEvent event,
+    Emitter<OcptHostingState> emitter,
+  ) {
+    final hostState = state.hostState;
+    final port = state.boundPort;
+    if (hostState is! OcptRelayHostOnline || port == null) {
+      return;
+    }
+
+    final advertisedUri = Uri(scheme: 'http', host: event.address, port: port);
+    final enrolment = OcptRelayEnrolment(
+      relayBaseUri: advertisedUri,
+      enrolmentSecret: hostState.enrolmentSecret,
+    );
+    final currentJoinInvite = state.joinInvite;
+    final joinInvite = currentJoinInvite == null
+        ? null
+        : OcptRelayInvite(
+            relayBaseUri: advertisedUri,
+            projectId: currentJoinInvite.projectId,
+            token: currentJoinInvite.token,
+          );
+
+    emitter(
+      state.copyWith(
+        selectedAddress: event.address,
+        enrolment: enrolment,
+        joinInvite: joinInvite,
+        clearJoinInvite: joinInvite == null,
+      ),
+    );
+  }
+
+  /// Re-binds the hosted relay's own socket to [event]'s own port — unlike an advertised-address
+  /// change, this really does call `_hostManager.startHosting` again, since the socket itself has
+  /// to move off the port it is already listening on; [OcptHostingHostStateChangedEvent] then
+  /// carries the new [OcptRelayHostOnline.lanBaseUri] (and its own new port) through the very same
+  /// path [_onHostStateChanged] already follows, rebuilding every online field from there.
+  Future<void> _onPortChangeRequested(
+    OcptHostingPortChangeRequestedEvent event,
+    Emitter<OcptHostingState> emitter,
+  ) async {
+    final project = _project;
+    await _hostManager.startHosting(
+      database: project.fileDatabase,
+      projectFilePath: project.path,
+      projectName: project.name,
+      appVersion: _projectsManager.appVersion,
+      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
+      port: event.port,
+    );
+  }
+
+  /// Applies [event]'s own kind straight to [OcptHostingState.qrKind].
+  void _onQrKindChanged(OcptHostingQrKindChangedEvent event, Emitter<OcptHostingState> emitter) {
+    emitter(state.copyWith(qrKind: event.kind));
+  }
+
+  /// Re-reads `_hostManager.availableLanAddresses` into [OcptHostingState.availableAddresses],
+  /// keeping [OcptHostingState.selectedAddress] when it is still offered, or falling back to the
+  /// first address otherwise — covers a network switch (a Wi-Fi hop, a cable plugged in) since the
+  /// screen last loaded.
+  Future<void> _onAddressesRefreshRequested(
+    OcptHostingAddressesRefreshRequestedEvent event,
+    Emitter<OcptHostingState> emitter,
+  ) async {
+    final addresses = await _hostManager.availableLanAddresses();
+    final availableAddresses = [for (final address in addresses) address.address];
+    final currentSelection = state.selectedAddress;
+    final selectedAddress = currentSelection != null && availableAddresses.contains(currentSelection)
+        ? currentSelection
+        : (availableAddresses.isNotEmpty ? availableAddresses.first : currentSelection);
+
+    emitter(
+      state.copyWith(
+        availableAddresses: availableAddresses,
+        selectedAddress: selectedAddress,
+        clearSelectedAddress: selectedAddress == null,
+      ),
+    );
+  }
+
+  /// Builds every online-only field of [OcptHostingState] off [online]: the addresses
+  /// `_hostManager.availableLanAddresses` offers, the address/port `online.lanBaseUri` itself
+  /// carries, and the enrolment/join credentials built against them — the enrolment straight from
+  /// `online.enrolmentSecret`, the join invite additionally needing the project's own pairing
+  /// token through `_syncManager.pairingService`, guarded in a try/catch so a failure to load it
+  /// leaves [OcptHostingState.joinInvite] null rather than the whole online load failing — the
+  /// enrolment QR still works either way.
+  Future<
+    ({
+      List<String> availableAddresses,
+      String selectedAddress,
+      int boundPort,
+      OcptRelayEnrolment enrolment,
+      OcptRelayInvite? joinInvite,
+    })
+  >
+  _loadOnlineExtras(OcptRelayHostOnline online) async {
+    final addresses = await _hostManager.availableLanAddresses();
+    final availableAddresses = [for (final address in addresses) address.address];
+    final selectedAddress = online.lanBaseUri.host;
+    final boundPort = online.lanBaseUri.port;
+    final advertisedUri = Uri(scheme: 'http', host: selectedAddress, port: boundPort);
+
+    final enrolment = OcptRelayEnrolment(
+      relayBaseUri: advertisedUri,
+      enrolmentSecret: online.enrolmentSecret,
+    );
+
+    OcptRelayInvite? joinInvite;
+    final hostedProjectId = _hostManager.hostedProjectId;
+    if (hostedProjectId != null) {
+      try {
+        final pairing = await _syncManager.pairingService.loadPairing(
+          database: _project.fileDatabase,
+          projectId: hostedProjectId,
+        );
+        final token = pairing?.token;
+        if (token != null) {
+          joinInvite = OcptRelayInvite(
+            relayBaseUri: advertisedUri,
+            projectId: hostedProjectId,
+            token: token,
+          );
+        }
+      } catch (_) {
+        joinInvite = null;
+      }
+    }
+
+    return (
+      availableAddresses: availableAddresses,
+      selectedAddress: selectedAddress,
+      boundPort: boundPort,
+      enrolment: enrolment,
+      joinInvite: joinInvite,
+    );
   }
 
   /// Subscribes to [_syncManager]'s own presence roster stream, when it is actually live (hosting

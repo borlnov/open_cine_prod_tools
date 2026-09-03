@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_enrolment_qr_code.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';
 
 /// The maximum width of the ② QR code column, matching the Partager screen's own
 /// `OcptSharingInviteView`.
@@ -53,9 +53,7 @@ class OcptRepointingQrView extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // No explicit `size:` — `OcptEnrolmentQrCode`'s own default (140) is exactly
-                      // this card's original QR side, so passing it again would be redundant.
-                      OcptEnrolmentQrCode(enrolment: enrolment),
+                      OcptQrCode(data: enrolment.toEnrolmentString()),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
