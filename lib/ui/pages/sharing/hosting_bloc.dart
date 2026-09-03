@@ -104,7 +104,9 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     final hostOnLaunch =
         projectId != null && await _propertiesManager.loadHostOnLaunch(projectId);
     final presenceRoster = _syncManager.presenceRoster;
-    final extras = hostState is OcptRelayHostOnline ? await _loadOnlineExtras(hostState) : null;
+    final extras = hostState is OcptRelayHostOnline
+        ? await _loadOnlineExtras(hostState, preferredAddress: state.selectedAddress)
+        : null;
 
     emitter(
       state.copyWith(
@@ -148,7 +150,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
           ? state.hostOnLaunch
           : await _propertiesManager.loadHostOnLaunch(hostedId);
       final presenceRoster = _syncManager.presenceRoster;
-      final extras = await _loadOnlineExtras(hostState);
+      final extras = await _loadOnlineExtras(hostState, preferredAddress: state.selectedAddress);
 
       emitter(
         state.copyWith(
@@ -359,6 +361,14 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   /// token through `_syncManager.pairingService`, guarded in a try/catch so a failure to load it
   /// leaves [OcptHostingState.joinInvite] null rather than the whole online load failing — the
   /// enrolment QR still works either way.
+  ///
+  /// [preferredAddress], when it is still one of the addresses on offer, is kept as the selected
+  /// address rather than falling back to `online.lanBaseUri.host` (the default) — this is what lets
+  /// a port-apply restart ([_onHostStateChanged]'s online branch, which passes
+  /// [OcptHostingState.selectedAddress]) keep the address an operator had already picked, instead of
+  /// wiping it back to the default on every restart. [_onLoadRequested] passes the very same
+  /// [OcptHostingState.selectedAddress] for the same reason, harmless when it is still null (nothing
+  /// was ever picked yet).
   Future<
     ({
       List<String> availableAddresses,
@@ -368,10 +378,12 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       OcptRelayInvite? joinInvite,
     })
   >
-  _loadOnlineExtras(OcptRelayHostOnline online) async {
+  _loadOnlineExtras(OcptRelayHostOnline online, {String? preferredAddress}) async {
     final addresses = await _hostManager.availableLanAddresses();
     final availableAddresses = [for (final address in addresses) address.address];
-    final selectedAddress = online.lanBaseUri.host;
+    final selectedAddress = preferredAddress != null && availableAddresses.contains(preferredAddress)
+        ? preferredAddress
+        : online.lanBaseUri.host;
     final boundPort = online.lanBaseUri.port;
     final advertisedUri = Uri(scheme: 'http', host: selectedAddress, port: boundPort);
 

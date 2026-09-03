@@ -15279,19 +15279,19 @@
   "@hostingApplyPort": {
     "description": "Button applying the hosting panel's own port field"
   },
-  "hostingQrKindJoin": "Join (new device)",
+  "hostingQrKindJoin": "Send the project to a device",
   "@hostingQrKindJoin": {
     "description": "Segment of the hosting panel's own QR-kind segmented button selecting the join invite QR"
   },
-  "hostingQrKindRepoint": "Switch relay (already has it)",
+  "hostingQrKindRepoint": "Redirect a device that already has it",
   "@hostingQrKindRepoint": {
     "description": "Segment of the hosting panel's own QR-kind segmented button selecting the enrolment QR"
   },
-  "hostingQrJoinCaption": "A device that doesn't have the project scans this via « Join » to get it",
+  "hostingQrJoinCaption": "Give the project to a device that doesn't have it yet — it scans this via « Join »",
   "@hostingQrJoinCaption": {
     "description": "Caption under the hosting panel's own QR while it shows the join invite"
   },
-  "hostingQrRepointCaption": "A device that already has the project scans this via « Switch relay » to point it here",
+  "hostingQrRepointCaption": "Point a device that already has the project at this machine — it scans this via « Switch relay »",
   "@hostingQrRepointCaption": {
     "description": "Caption under the hosting panel's own QR while it shows the enrolment"
   },

@@ -30,6 +30,66 @@ import 'package:uuid/uuid.dart';
 /// default one.
 typedef OcptLanAddressResolver = Future<List<InternetAddress>> Function();
 
+/// Interface-name substrings (lower-cased) marking an address as a VPN or virtual adapter rather
+/// than a machine's own internet-facing interface — checked by [rankLanAddresses].
+const _virtualInterfaceMarkers = [
+  'wsl',
+  'veth',
+  'virtual',
+  'hyper-v',
+  'docker',
+  'vpn',
+  'nord',
+  'tap',
+  'tun',
+  'vmware',
+  'vbox',
+  'loopback',
+];
+
+/// Ranks [candidates] — every non-loopback IPv4 address this machine's network interfaces offer,
+/// paired with the interface's own name — so the address a phone on the same LAN can actually reach
+/// comes first, ahead of a VPN or virtual adapter's own address that [NetworkInterface.list] may
+/// otherwise report first (a `10.5.0.2` tunnel, a WSL `172.20.x` bridge): a hosting panel that
+/// advertises one of those in its QR shows a code the joining device cannot connect to.
+///
+/// Three groups, in order, each keeping the candidates' own relative order (a stable sort):
+///
+/// 1. The address equal to [primaryAddress] — a known default-route source address, when the caller
+///    can supply one. `dart:io` exposes no portable way to read it, so `_defaultLanAddress` passes
+///    none today and this group is empty in production; the parameter stays so a platform that can
+///    resolve the true internet-facing address later ranks it first with no other change.
+/// 2. Every other address whose own interface name, lower-cased, contains none of
+///    [_virtualInterfaceMarkers] — the ordinary case for a machine with no VPN or virtualisation
+///    software running at all.
+/// 3. Every address whose interface name does match one of those markers — ranked last since it is
+///    the one most likely unreachable from another device on the LAN.
+///
+/// [OcptRelayHostManager.startHosting] advertises whichever address ends up first; the hosting
+/// panel's own address dropdown offers the full ranked list so a person can still pick a different
+/// one by hand.
+List<InternetAddress> rankLanAddresses(
+  List<({InternetAddress address, String interfaceName})> candidates, {
+  String? primaryAddress,
+}) {
+  final primary = <InternetAddress>[];
+  final plain = <InternetAddress>[];
+  final virtual = <InternetAddress>[];
+
+  for (final candidate in candidates) {
+    if (primaryAddress != null && candidate.address.address == primaryAddress) {
+      primary.add(candidate.address);
+      continue;
+    }
+
+    final lowerName = candidate.interfaceName.toLowerCase();
+    final isVirtual = _virtualInterfaceMarkers.any(lowerName.contains);
+    (isVirtual ? virtual : plain).add(candidate.address);
+  }
+
+  return [...primary, ...plain, ...virtual];
+}
+
 /// Opens the [OcptRelayStore] [OcptRelayHostManager.startHosting] serves — the seam a test
 /// replaces to pre-seed the very store the live server ends up holding (a test cannot otherwise
 /// reach into a store `startHosting` opens for itself), by returning an in-memory
@@ -450,22 +510,31 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Every non-loopback IPv4 address of this machine's own network interfaces, deduplicated and in
-  /// the order [NetworkInterface.list] reports them, or an empty list when none is found —
+  /// Every non-loopback IPv4 address of this machine's own network interfaces, deduplicated and
+  /// ranked by [rankLanAddresses] so the address most likely reachable from a phone on the same LAN
+  /// comes first, ahead of a VPN or virtual adapter's own address (a `10.5.0.2` tunnel, a WSL
+  /// `172.20.x` bridge) that [NetworkInterface.list] may otherwise list first —
   /// [OcptLanAddressResolver]'s default implementation.
+  ///
+  /// The ranking is by **interface name** alone (see [rankLanAddresses]): `dart:io` exposes no
+  /// portable way to read the machine's own default-route source address — a client [Socket]'s
+  /// `address` is the address it connected *to*, not the local one it left from — so a real
+  /// reachability probe is not possible here, and the heuristic deliberately errs on the side of
+  /// offering the full ranked list to the panel's own dropdown, where a person can always pick a
+  /// different interface by hand when the first guess is wrong.
   static Future<List<InternetAddress>> _defaultLanAddress() async {
     final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
     final seen = <String>{};
-    final addresses = <InternetAddress>[];
+    final candidates = <({InternetAddress address, String interfaceName})>[];
     for (final interface in interfaces) {
       for (final address in interface.addresses) {
         if (!address.isLoopback && seen.add(address.address)) {
-          addresses.add(address);
+          candidates.add((address: address, interfaceName: interface.name));
         }
       }
     }
 
-    return addresses;
+    return rankLanAddresses(candidates);
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

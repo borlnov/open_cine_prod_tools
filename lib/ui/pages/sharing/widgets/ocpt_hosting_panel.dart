@@ -108,11 +108,11 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
     final isStarting = hostState is OcptRelayHostStarting;
     final isFailed = hostState is OcptRelayHostFailed;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _maxContentWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

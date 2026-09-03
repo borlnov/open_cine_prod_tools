@@ -545,6 +545,46 @@ void main() {
     });
   });
 
+  group('rankLanAddresses', () {
+    test('the address matching primaryAddress is placed first', () {
+      final candidates = [
+        (address: InternetAddress('172.20.0.1'), interfaceName: 'eth0'),
+        (address: InternetAddress('192.168.1.42'), interfaceName: 'wlan0'),
+      ];
+
+      final ranked = rankLanAddresses(candidates, primaryAddress: '192.168.1.42');
+
+      expect(ranked, [InternetAddress('192.168.1.42'), InternetAddress('172.20.0.1')]);
+    });
+
+    test('a WSL/VPN-named interface is deprioritised below a plainly-named one', () {
+      final candidates = [
+        (address: InternetAddress('172.20.0.1'), interfaceName: 'vEthernet (WSL)'),
+        (address: InternetAddress('10.8.0.2'), interfaceName: 'NordLynx'),
+        (address: InternetAddress('192.168.1.42'), interfaceName: 'Wi-Fi'),
+      ];
+
+      final ranked = rankLanAddresses(candidates);
+
+      expect(ranked, [
+        InternetAddress('192.168.1.42'),
+        InternetAddress('172.20.0.1'),
+        InternetAddress('10.8.0.2'),
+      ]);
+    });
+
+    test('with no primary and no virtual names, order is preserved', () {
+      final candidates = [
+        (address: InternetAddress('192.168.1.42'), interfaceName: 'Ethernet'),
+        (address: InternetAddress('192.168.1.99'), interfaceName: 'Wi-Fi'),
+      ];
+
+      final ranked = rankLanAddresses(candidates);
+
+      expect(ranked, [InternetAddress('192.168.1.42'), InternetAddress('192.168.1.99')]);
+    });
+  });
+
   group('host on launch', () {
     late OcptRelayHostManager autoManager;
 

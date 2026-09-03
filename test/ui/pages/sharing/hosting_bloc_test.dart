@@ -340,6 +340,53 @@ void main() {
     expect(hostManager.startHostingCallCount, 0);
   });
 
+  test(
+    "a port restart (a re-emitted online host state) keeps the previously selected address",
+    () async {
+      final hostManager = _FakeHostManager()
+        ..lanAddresses = [InternetAddress("192.168.1.42"), InternetAddress("10.0.0.5")];
+      final syncManager = _FakeSyncManager(
+        pairingService: _FakePairingService(
+          pairing: OcptProjectPairing(
+            relayBaseUri: Uri.https("prep.example.org"),
+            token: "prep-token",
+          ),
+        ),
+      );
+      final bloc = buildBloc(hostManager: hostManager, syncManager: syncManager);
+      await pumpEventQueue();
+
+      hostManager.emit(
+        OcptRelayHostOnline(
+          lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
+          enrolmentSecret: "secret",
+        ),
+        hostedProjectId: "hosted-project",
+      );
+      await pumpEventQueue();
+
+      bloc.add(const OcptHostingAdvertisedAddressChangedEvent("10.0.0.5"));
+      await pumpEventQueue();
+      expect(bloc.state.selectedAddress, "10.0.0.5");
+
+      // Simulates a port-apply restart: the manager re-binds and re-emits online with the very
+      // same default host (192.168.1.42), still carrying the address the operator had picked
+      // among `lanAddresses`.
+      hostManager.emit(
+        OcptRelayHostOnline(
+          lanBaseUri: Uri.parse("http://192.168.1.42:6001"),
+          enrolmentSecret: "secret",
+        ),
+        hostedProjectId: "hosted-project",
+      );
+      await pumpEventQueue();
+
+      expect(bloc.state.selectedAddress, "10.0.0.5");
+      expect(bloc.state.boundPort, 6001);
+      expect(bloc.state.enrolment?.relayBaseUri, Uri.parse("http://10.0.0.5:6001"));
+    },
+  );
+
   test("a port-change event asks the manager to re-bind that port", () async {
     final hostManager = _FakeHostManager();
     final bloc = buildBloc(hostManager: hostManager, syncManager: _FakeSyncManager());
