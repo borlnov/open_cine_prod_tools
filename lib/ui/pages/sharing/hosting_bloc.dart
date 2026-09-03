@@ -7,10 +7,12 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
@@ -188,6 +190,14 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     Emitter<OcptHostingState> emitter,
   ) {
     final roster = event.presenceRoster;
+    final previousCount = state.presenceRoster?.participants.length ?? 0;
+    final newCount = roster?.participants.length ?? 0;
+    if (newCount != previousCount) {
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.presence,
+        message: 'peers: $previousCount -> $newCount',
+      );
+    }
     emitter(state.copyWith(presenceRoster: roster, clearPresenceRoster: roster == null));
   }
 

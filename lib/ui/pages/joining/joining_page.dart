@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_manua
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scanner_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_diagnostics_log_panel.dart';
 
 /// The maximum width of the page's own column, matching the Partager screen's own ①/② forms.
 const _maxContentWidth = 560.0;
@@ -114,6 +116,10 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
                       _buildSelectedTab(state),
                       const SizedBox(height: 16),
                       _buildNote(tr, theme),
+                      const SizedBox(height: 16),
+                      const OcptDiagnosticsLogPanel(
+                        categories: {OcptDiagnosticsCategory.join, OcptDiagnosticsCategory.sync},
+                      ),
                     ],
                   ),
                 ),

@@ -232,6 +232,34 @@ void main() {
     );
 
     test(
+      'onEvent fires connected then disconnected lines around a subscriber\'s own lifetime',
+      () async {
+        final events = <String>[];
+        final onEventStore = OcptRelayStore(':memory:');
+        addTearDown(onEventStore.close);
+        onEventStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+        final onEventServer = OcptRelayServer(store: onEventStore, enrolmentSecret: _enrolmentSecret, onEvent: events.add);
+        final onEventHttpServer = await shelf_io.serve(onEventServer.handler, 'localhost', 0);
+        addTearDown(() => onEventHttpServer.close(force: true));
+        final onEventBaseUri = Uri.parse('http://localhost:${onEventHttpServer.port}');
+
+        final uri = onEventBaseUri.replace(scheme: 'ws', path: '/projects/project-1/events');
+        final channel = IOWebSocketChannel.connect(uri, headers: {'authorization': 'Bearer token-1'});
+        await channel.ready;
+        expect(events, ['events subscriber connected: project=project-1']);
+
+        await channel.sink.close();
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+
+        expect(events, [
+          'events subscriber connected: project=project-1',
+          'events subscriber disconnected: project=project-1',
+        ]);
+      },
+      timeout: _timeout,
+    );
+
+    test(
       'closing a socket cleans up its subscription: a later write to that project does not throw',
       () async {
         store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));

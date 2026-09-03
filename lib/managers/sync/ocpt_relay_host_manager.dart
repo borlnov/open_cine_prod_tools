@@ -10,10 +10,12 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
@@ -310,6 +312,10 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
 
     await stopHosting();
     _setState(const OcptRelayHostStarting());
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.hosting,
+      message: 'starting hosting: project="$projectName"',
+    );
 
     try {
       final existingProjectId = await _sync.loadPairedProjectId(database);
@@ -326,9 +332,20 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       final store = _storeFactory(storePath);
       _store = store;
 
-      final server = OcptRelayServer(store: store, enrolmentSecret: secret);
+      final server = OcptRelayServer(
+        store: store,
+        enrolmentSecret: secret,
+        onEvent: (message) => OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.relayServer,
+          message: message,
+        ),
+      );
       final httpServer = await shelf_io.serve(server.handler, _bindAddress, port ?? this.port);
       _httpServer = httpServer;
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.hosting,
+        message: 'relay socket bound: project=$projectId port=${httpServer.port}',
+      );
 
       final localBaseUri = Uri(scheme: 'http', host: 'localhost', port: httpServer.port);
       if (isPaired) {
@@ -369,9 +386,18 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
 
       _hostedProjectId = projectId;
       _setState(OcptRelayHostOnline(lanBaseUri: lanBaseUri, enrolmentSecret: secret));
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.hosting,
+        message: 'online: project=$projectId base=$lanBaseUri',
+      );
     } catch (error, stackTrace) {
       await _teardown();
       _logWarning('Could not start hosting project: $error\n$stackTrace');
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.hosting,
+        level: OcptDiagnosticsLevel.error,
+        message: 'could not start hosting: $error',
+      );
       _setState(OcptRelayHostFailed('Could not start hosting: $error'));
     }
   }
@@ -383,8 +409,15 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// The `.relay.sqlite` file itself is left in place beside the project — hosting again later
   /// (the ephemeral, on-set case) reopens the very same store rather than starting from nothing.
   Future<void> stopHosting() async {
+    final previousProjectId = _hostedProjectId;
     await _teardown();
     _setState(const OcptRelayHostStopped());
+    if (previousProjectId != null) {
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.hosting,
+        message: 'stopped: project=$previousProjectId',
+      );
+    }
   }
 
   /// Reconciles the **live** hosted store — never a second, separately opened handle onto

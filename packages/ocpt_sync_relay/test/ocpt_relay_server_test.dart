@@ -70,6 +70,64 @@ void main() {
 
     tearDown(() => store.close());
 
+    test('onEvent fires with a project-created line then a changeset-appended line', () async {
+      final events = <String>[];
+      final onEventHandler = OcptRelayServer(
+        store: store,
+        enrolmentSecret: _enrolmentSecret,
+        onEvent: events.add,
+      ).handler;
+
+      final response = await _post(
+        onEventHandler,
+        '/projects/project-1/changesets',
+        token: 'token-1',
+        enrolmentSecret: _enrolmentSecret,
+        jsonBody: _envelope('changeset-1').toJson(),
+      );
+
+      expect(response.statusCode, 200);
+      expect(events, [
+        'project created: project=project-1',
+        'changeset appended: project=project-1 sequence=1',
+      ]);
+    });
+
+    test('onEvent is never called when null (the default)', () async {
+      // `handler` above is built with no `onEvent` at all — this is simply the assertion that
+      // nothing throws or otherwise misbehaves without one, exercised by every other test in this
+      // file already; kept explicit here as this class's own dedicated "no behaviour change when
+      // onEvent is null" case.
+      final response = await _post(
+        handler,
+        '/projects/project-1/changesets',
+        token: 'token-1',
+        enrolmentSecret: _enrolmentSecret,
+        jsonBody: _envelope('changeset-1').toJson(),
+      );
+
+      expect(response.statusCode, 200);
+    });
+
+    test('onEvent fires an auth-rejected line for an unknown project with no enrolment secret', () async {
+      final events = <String>[];
+      final onEventHandler = OcptRelayServer(
+        store: store,
+        enrolmentSecret: _enrolmentSecret,
+        onEvent: events.add,
+      ).handler;
+
+      final response = await _post(
+        onEventHandler,
+        '/projects/project-1/changesets',
+        token: 'token-1',
+        jsonBody: _envelope('changeset-1').toJson(),
+      );
+
+      expect(response.statusCode, 404);
+      expect(events, ['auth rejected: project=project-1 status=404']);
+    });
+
     test('an unknown project is created and appended to with a matching enrolment secret', () async {
       final response = await _post(
         handler,

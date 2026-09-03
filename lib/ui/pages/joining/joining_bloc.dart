@@ -10,11 +10,13 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
@@ -163,6 +165,10 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         joinStep: OcptJoinStep.connecting,
       ),
     );
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.join,
+      message: 'connecting: project=${invite.projectId} relay=${invite.relayBaseUri}',
+    );
 
     try {
       final parentDirectoryPath = await _resolveParentDirectoryPath();
@@ -179,6 +185,10 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       final String projectFilePath;
       try {
         emitter(state.copyWith(joinStep: OcptJoinStep.downloading));
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.join,
+          message: 'downloading: project=${invite.projectId}',
+        );
         projectFilePath = await _syncManager.joinFromRelay(
           storage: storage,
           parentDirectoryPath: parentDirectoryPath,
@@ -196,20 +206,38 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       }
 
       emitter(state.copyWith(joinStep: OcptJoinStep.opening));
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        message: 'opening: project=${invite.projectId}',
+      );
       final result = await _projectsManager.openProject(filePath: projectFilePath);
       if (_cancelled) {
         return;
       }
       if (!result.status.isSuccess) {
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.join,
+          level: OcptDiagnosticsLevel.error,
+          message: 'failed to open joined project: project=${invite.projectId}',
+        );
         emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
         return;
       }
 
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        message: 'succeeded: project=${invite.projectId}',
+      );
       emitter(state.copyWith(isJoining: false, joinSucceeded: true, clearJoinStep: true));
-    } catch (_) {
+    } catch (error) {
       if (_cancelled) {
         return;
       }
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        level: OcptDiagnosticsLevel.error,
+        message: 'failed: project=${invite.projectId} $error',
+      );
       emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
     }
   }
@@ -276,6 +304,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     OcptJoiningCancelledEvent event,
     Emitter<OcptJoiningState> emitter,
   ) async {
+    OcptDiagnosticsManager.log(category: OcptDiagnosticsCategory.join, message: 'cancelled');
     _cancelled = true;
     emitter(state.copyWith(isJoining: false, clearJoinStep: true));
   }

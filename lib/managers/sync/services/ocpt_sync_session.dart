@@ -6,9 +6,11 @@ import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 
@@ -219,6 +221,37 @@ class OcptSyncSession {
     _status = status;
     if (!_statusController.isClosed) {
       _statusController.add(status);
+    }
+    _logDiagnostics(status);
+  }
+
+  /// Records [status]'s own transition into the device-local diagnostics buffer — one line per
+  /// status this session moves through, so a "why did syncing stop" question can be answered from
+  /// the very device it stopped on.
+  void _logDiagnostics(OcptSyncStatus status) {
+    switch (status) {
+      case OcptSyncStatusSyncing():
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.sync,
+          message: 'syncing: project=$projectId',
+        );
+      case OcptSyncStatusInSync():
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.sync,
+          message: 'in sync: project=$projectId',
+        );
+      case OcptSyncStatusOffline(pendingEditCount: final pendingEditCount):
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.sync,
+          level: OcptDiagnosticsLevel.warning,
+          message: 'offline: project=$projectId pendingEdits=${pendingEditCount ?? "?"}',
+        );
+      case OcptSyncStatusError(message: final message):
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.sync,
+          level: OcptDiagnosticsLevel.error,
+          message: 'error: project=$projectId $message',
+        );
     }
   }
 

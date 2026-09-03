@@ -15380,5 +15380,21 @@
   "hostingStatusFailed": "Hosting could not start",
   "@hostingStatusFailed": {
     "description": "Status subtitle of the hosting panel's own switch when the in-process relay failed to start"
+  },
+  "diagnosticsLogTitle": "Diagnostics log",
+  "@diagnosticsLogTitle": {
+    "description": "Title of the collapsible, collapsed-by-default diagnostics log section shown on the hosting panel and the Rejoindre screen"
+  },
+  "diagnosticsCopyTooltip": "Copy log",
+  "@diagnosticsCopyTooltip": {
+    "description": "Tooltip of the diagnostics log panel's own copy-all icon button"
+  },
+  "diagnosticsClearTooltip": "Clear log",
+  "@diagnosticsClearTooltip": {
+    "description": "Tooltip of the diagnostics log panel's own clear icon button"
+  },
+  "diagnosticsEmpty": "No events yet",
+  "@diagnosticsEmpty": {
+    "description": "Shown in the diagnostics log panel while it holds no entry for the current filter"
   }
 }

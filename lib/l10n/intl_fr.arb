@@ -2071,5 +2071,9 @@
   "hostingStatusStarting": "Démarrage…",
   "hostingStatusOnline": "En ligne",
   "hostingStatusStopped": "Arrêté",
-  "hostingStatusFailed": "L'hébergement n'a pas pu démarrer"
+  "hostingStatusFailed": "L'hébergement n'a pas pu démarrer",
+  "diagnosticsLogTitle": "Journaux (diagnostic)",
+  "diagnosticsCopyTooltip": "Copier le journal",
+  "diagnosticsClearTooltip": "Vider le journal",
+  "diagnosticsEmpty": "Aucun événement pour l'instant"
 }

@@ -13,6 +13,7 @@ import 'package:flutter/widgets.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
@@ -43,6 +44,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
     registerManagerAsync<OcptConfigManager>(const OcptConfigManagerBuilder());
     registerManagerAsync<PlatformManager>(const PlatformBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
+    registerManagerAsync<OcptDiagnosticsManager>(const OcptDiagnosticsManagerBuilder());
     registerManagerAsync<ActLicensesManager>(ActLicensesBuilder<OcptConfigManager>());
     registerManagerAsync<OcptPropertiesManager>(const OcptPropertiesManagerBuilder());
     registerManagerAsync<OcptSecretsManager>(OcptSecretsManagerBuilder());

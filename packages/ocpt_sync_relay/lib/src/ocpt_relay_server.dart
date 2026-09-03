@@ -99,6 +99,7 @@ class OcptRelayServer {
     required this.enrolmentSecret,
     int maxAuthFailuresPerSource = 20,
     Duration authFailureWindow = const Duration(minutes: 1),
+    this.onEvent,
   }) : _rateLimiter = _AuthRateLimiter(maxFailures: maxAuthFailuresPerSource, window: authFailureWindow);
 
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
@@ -119,6 +120,18 @@ class OcptRelayServer {
   /// The instance-wide secret a request must carry, alongside a brand-new project id, to register
   /// it (see this class's own doc comment).
   final String enrolmentSecret;
+
+  /// An optional sink for short, domain-blind debugging lines — a project created on first
+  /// append, a changeset appended (project id and its assigned sequence), a snapshot uploaded, an
+  /// `events` subscriber connecting or disconnecting, and an auth rejection (401/404/429).
+  ///
+  /// Called with ids and counts only — never a changeset's own payload or a snapshot's own bytes,
+  /// keeping this class exactly as domain-blind as every other route already is (see this class's
+  /// own doc comment). Null by default, in which case none of this runs at all: this stays a
+  /// behaviourally inert hook for a caller — `OcptRelayHostManager`, on the Flutter side — that
+  /// wants these events surfaced in an in-app diagnostics log, never something this
+  /// Flutter-free package reads or writes to on its own.
+  final void Function(String message)? onEvent;
 
   final _AuthRateLimiter _rateLimiter;
 
@@ -161,6 +174,7 @@ class OcptRelayServer {
 
     final sequence = store.append(projectId, envelope);
     _notifyNewWork(projectId);
+    onEvent?.call('changeset appended: project=$projectId sequence=${sequence.value}');
 
     return _jsonResponse(200, {_sequenceKey: sequence.value});
   }
@@ -210,6 +224,7 @@ class OcptRelayServer {
 
     store.uploadSnapshot(projectId, descriptor, bytes);
     _notifyNewWork(projectId);
+    onEvent?.call('snapshot uploaded: project=$projectId bytes=${bytes.length}');
 
     return shelf.Response(204);
   }
@@ -258,6 +273,7 @@ class OcptRelayServer {
   /// the moment the connection closes, from either end.
   void _subscribe(String projectId, WebSocketChannel webSocket) {
     _eventSubscribersByProject.putIfAbsent(projectId, () => {}).add(webSocket);
+    onEvent?.call('events subscriber connected: project=$projectId');
     webSocket.stream.listen(
       (frame) => _rebroadcastToPeers(projectId, sender: webSocket, frame: frame),
       onDone: () => _unsubscribe(projectId, webSocket),
@@ -274,6 +290,7 @@ class OcptRelayServer {
       return;
     }
     subscribers.remove(webSocket);
+    onEvent?.call('events subscriber disconnected: project=$projectId');
     if (subscribers.isEmpty) {
       _eventSubscribersByProject.remove(projectId);
     }
@@ -317,6 +334,8 @@ class OcptRelayServer {
   shelf.Response? _authenticate(shelf.Request request, {required String projectId, required bool allowCreate}) {
     final source = _sourceKeyFor(request);
     if (_rateLimiter.isBlocked(source)) {
+      onEvent?.call('auth rejected: project=$projectId status=429');
+
       return _errorResponse(
         429,
         OcptSyncErrorCode.badToken,
@@ -330,10 +349,12 @@ class OcptRelayServer {
     if (project == null) {
       if (allowCreate && token != null && request.headers[_enrolmentSecretHeader] == enrolmentSecret) {
         store.createProject(projectId: projectId, tokenHash: _hashToken(token));
+        onEvent?.call('project created: project=$projectId');
 
         return null;
       }
       _rateLimiter.recordFailure(source);
+      onEvent?.call('auth rejected: project=$projectId status=404');
 
       return _errorResponse(
         404,
@@ -344,6 +365,7 @@ class OcptRelayServer {
 
     if (token == null || _hashToken(token) != project.tokenHash) {
       _rateLimiter.recordFailure(source);
+      onEvent?.call('auth rejected: project=$projectId status=401');
 
       return _errorResponse(401, OcptSyncErrorCode.badToken, 'bad or missing bearer token');
     }
