@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
@@ -20,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -126,6 +128,38 @@ class _RecordingSyncManager extends OcptSyncManager {
   Future<void> stopSyncSession() async {}
 }
 
+/// An [OcptRelayHostManager] recording the workspace's own auto-start-on-open and stop-on-close
+/// hosting calls, and reporting whichever host state a test sets, without ever binding a real
+/// socket: the real `maybeAutoStartHosting`/`stopHosting` are covered by
+/// `ocpt_relay_host_manager_test.dart` — this file's tests are about the workspace's own wiring to
+/// them, not their behaviour.
+class _RecordingHostManager extends OcptRelayHostManager {
+  _RecordingHostManager({required this.stateToReport});
+
+  OcptRelayHostState stateToReport;
+  bool maybeAutoStartCalled = false;
+  bool stopHostingCalled = false;
+
+  @override
+  OcptRelayHostState get state => stateToReport;
+
+  @override
+  Future<void> maybeAutoStartHosting({
+    required OcptProjectDatabase database,
+    required String projectFilePath,
+    required String projectName,
+    required String appVersion,
+    required String deviceId,
+  }) async {
+    maybeAutoStartCalled = true;
+  }
+
+  @override
+  Future<void> stopHosting() async {
+    stopHostingCalled = true;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -185,10 +219,12 @@ void main() {
   OcptWorkspaceBloc buildBloc({
     OcptProjectsManager? overrideProjectsManager,
     OcptSyncManager? syncManager,
+    OcptRelayHostManager? hostManager,
   }) => OcptWorkspaceBloc(
     propertiesManager: propertiesManager,
     projectsManager: overrideProjectsManager ?? projectsManager,
     syncManager: syncManager,
+    hostManager: hostManager,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -486,6 +522,72 @@ void main() {
 
       expect(syncManager.startSyncSessionCalled, isFalse);
       await bloc.close();
+    },
+  );
+
+  test(
+    'a project re-hosted on launch comes up hosting and skips the ordinary session start',
+    () async {
+      final project = projectsManager.currentProject!;
+      await pairingService.savePairing(
+        database: project.fileDatabase,
+        projectId: "project-abc",
+        relayBaseUri: Uri.parse("https://relay.example.org/"),
+        token: "token-1",
+      );
+
+      final syncManager = _RecordingSyncManager(pairingService: pairingService);
+      final hostManager = _RecordingHostManager(
+        stateToReport: OcptRelayHostOnline(
+          lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
+          enrolmentSecret: "secret",
+        ),
+      );
+      final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+
+      await waitForState(bloc, (state) => !state.isLoading);
+      await pumpEventQueue();
+
+      expect(hostManager.maybeAutoStartCalled, isTrue);
+      expect(syncManager.startSyncSessionCalled, isFalse);
+      await bloc.close();
+    },
+  );
+
+  test(
+    'a project that does not re-host still starts its ordinary paired session',
+    () async {
+      final project = projectsManager.currentProject!;
+      await pairingService.savePairing(
+        database: project.fileDatabase,
+        projectId: "project-abc",
+        relayBaseUri: Uri.parse("https://relay.example.org/"),
+        token: "token-1",
+      );
+
+      final syncManager = _RecordingSyncManager(pairingService: pairingService);
+      final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped());
+      final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+
+      await waitForState(bloc, (state) => !state.isLoading);
+      await pumpEventQueue();
+
+      expect(hostManager.maybeAutoStartCalled, isTrue);
+      expect(syncManager.startSyncSessionCalled, isTrue);
+      await bloc.close();
+    },
+  );
+
+  test(
+    'closing the workspace stops hosting',
+    () async {
+      final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped());
+      final bloc = buildBloc(hostManager: hostManager);
+
+      await waitForState(bloc, (state) => !state.isLoading);
+      await bloc.close();
+
+      expect(hostManager.stopHostingCalled, isTrue);
     },
   );
 }
