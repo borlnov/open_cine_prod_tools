@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
@@ -70,6 +71,18 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// project package import's destination folder.
   final OcptExportManager _exportManager;
 
+  /// The subscription to the recent-projects list's own change stream, cancelled in
+  /// [disposeLifeCycle].
+  ///
+  /// It refreshes this page whenever the stored list changes from *anywhere*, not just the flows
+  /// this bloc drives itself. Joining a shared project is the case that needs it: the join replaces
+  /// the Rejoindre screen with the workspace (`OcptJoiningBloc`), so leaving that workspace pops
+  /// back to this page without ever completing the push this page awaited to refresh on — while the
+  /// home page itself has sat alive underneath the whole time, its one-shot startup load long since
+  /// run. `OcptProjectsManager.openProject` has already added the joined project to the list, so
+  /// reacting to that write is what puts its card on the grid.
+  StreamSubscription<dynamic>? _recentProjectsSubscription;
+
   /// Class constructor
   OcptHomeBloc({
     OcptPropertiesManager? propertiesManager,
@@ -86,6 +99,9 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptHomeState.init()) {
     add(const OcptHomeRefreshRequestedEvent());
+    _recentProjectsSubscription = _propertiesManager.recentProjects.updateStream.listen(
+      (_) => add(const OcptHomeRefreshRequestedEvent()),
+    );
   }
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
@@ -122,6 +138,13 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async {}
+
+  /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _recentProjectsSubscription?.cancel();
+    return super.disposeLifeCycle();
+  }
 
   /// Reloads the recent projects list, recomputes which of them still exist on disk, and probes
   /// the format of every one that does.

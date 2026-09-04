@@ -276,6 +276,34 @@ void main() {
     await bloc.close();
   });
 
+  test("shows a project added to the list from outside its own navigation", () async {
+    // Joining a shared project is the case: the join opens the freshly written project — which adds
+    // it to the recent list — then replaces the Rejoindre screen with the workspace, so the home
+    // page, alive underneath the whole time, never gets the return-from-push it would refresh on.
+    // The bloc must react to the list changing on its own to put the new card on the grid.
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.recentProjects.isEmpty);
+
+    final filePath = p.join(tempDir.path, "Joined.ocpt");
+    await File(filePath).writeAsBytes(Uint8List(0));
+    await propertiesManager.addRecentProject(
+      OcptRecentProjectModel(
+        path: filePath,
+        name: "Joined",
+        lastOpenedAt: DateTime.now(),
+        episodeCount: 1,
+      ),
+    );
+
+    final state = await waitForState(
+      bloc,
+      (state) => state.recentProjects.any((entry) => entry.project.path == filePath),
+    );
+    expect(state.recentProjects.single.project.name, "Joined");
+
+    await bloc.close();
+  });
+
   test(
     'imports a picked fountain file into a new project and navigates to the editor',
     () async {
