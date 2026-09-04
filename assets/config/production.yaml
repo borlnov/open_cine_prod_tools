@@ -14,3 +14,9 @@ logs:
 
     # The console logger stays silent in release builds shipped to production.
     printInRelease: false
+
+  # Whether app logs are also written to a rotating file (crash-survivable). Read by the app, not
+  # act_logger_manager itself. Left off in production unless a real need for it shows up.
+  file:
+    enabled: false
+    level: warning

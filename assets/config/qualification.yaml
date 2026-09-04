@@ -3,17 +3,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Contains the parameters read by the act_logger_manager package.
+#
+# This is the "qualification" environment's own file: ACT's Environment enum (act_config_manager)
+# resolves ENV=QUALIF to the "qualification" file name, and this is that file.
 logs:
-  # This defines the log level for the whole logger manager.
-  level: debug
+  level: info
 
-  # Contains the parameters for the console external logger.
   console:
-    # This defines the minimum log level printed by the console logger.
-    level: debug
+    level: info
+    printInRelease: true
 
   # Whether app logs are also written to a rotating file (crash-survivable). Read by the app, not
   # act_logger_manager itself.
   file:
     enabled: true
-    level: debug
+    level: info

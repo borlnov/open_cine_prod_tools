@@ -55,6 +55,12 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
 
   /// Appends one entry to the buffer, dropping the oldest one once [ocptDiagnosticsBufferCap] is
   /// exceeded, and broadcasts the updated list on [entriesStream].
+  ///
+  /// Also forwards the entry to `appLogger()`, at the level [category]/[level] map to, prefixed
+  /// with [category]'s own name — so the console and, when `logs.file.enabled` is true, the
+  /// crash-survivable file external logger capture these hosting/sync/join/relay/presence events
+  /// too, on top of this manager's own in-memory buffer. Guarded exactly like the static [log]
+  /// convenience below, so a test with no global manager environment stays unaffected.
   void record({
     required OcptDiagnosticsCategory category,
     OcptDiagnosticsLevel level = OcptDiagnosticsLevel.info,
@@ -72,6 +78,28 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
       _entries.removeAt(0);
     }
     _emit();
+
+    if (AbsGlobalManager.instance != null) {
+      _forwardToAppLogger(category: category, level: level, message: message);
+    }
+  }
+
+  /// Forwards one entry to `appLogger()`, called only once [AbsGlobalManager.instance] is known
+  /// non-null by [record].
+  void _forwardToAppLogger({
+    required OcptDiagnosticsCategory category,
+    required OcptDiagnosticsLevel level,
+    required String message,
+  }) {
+    final prefixedMessage = '[${category.name}] $message';
+    switch (level) {
+      case OcptDiagnosticsLevel.info:
+        appLogger().i(prefixedMessage);
+      case OcptDiagnosticsLevel.warning:
+        appLogger().w(prefixedMessage);
+      case OcptDiagnosticsLevel.error:
+        appLogger().e(prefixedMessage);
+    }
   }
 
   /// Empties the buffer and broadcasts the (now empty) list on [entriesStream] — what

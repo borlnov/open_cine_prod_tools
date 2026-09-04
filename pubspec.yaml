@@ -75,6 +75,11 @@ dependencies:
   # dependency now that the app calls it itself
   http: ^1.6.0
 
+  # Backs OcptFileExternalLogger's rotating log file (AdvancedFileOutput); promoted from a
+  # transitive dependency of act_logger_manager now that the app builds its own external logger
+  # with it
+  logger: ^2.7.0
+
   # Speaks the sync relay's events WebSocket from OcptRelayRemoteStorage; promoted from a
   # transitive dependency now that the app calls it itself
   web_socket_channel: ^3.0.3
