@@ -38,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      env: ${{ steps.version.outputs.env }}
 
     steps:
       - name: Clone repository
@@ -58,6 +59,21 @@ jobs:
             sed 's/^v//; /^[0-9]/! s/^/0.0.0-/')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION"
+
+          # Pick the build environment from the same stable-vs-not rule
+          # verify-stable-schema-frozen uses: a stable build is a final semver
+          # 'X.Y.Z' with no pre-release suffix (compiles in production); anything
+          # else — a pre-release tag, a commit after a tag, an untagged commit —
+          # carries a hyphenated suffix and compiles in qualification. These are
+          # the parsedString values of act_config_manager's Environment enum,
+          # read by the app through --dart-define="ENV=...".
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            ENV=PROD
+          else
+            ENV=QUALIF
+          fi
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "Building environment $ENV"
 
   verify-stable-schema-frozen:
     name: Verify stable schema is frozen
@@ -138,7 +154,7 @@ jobs:
         uses: ./.github/actions/flutter-build
         with:
           target-platform: linux
-          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Build Debian package
         id: deb
@@ -200,7 +216,7 @@ jobs:
         uses: ./.github/actions/flutter-build
         with:
           target-platform: windows
-          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Build Windows installer
         id: installer
@@ -290,6 +306,7 @@ jobs:
             --build-name=${{ steps.bundle-version.outputs.build-name }}
             --build-number=${{ steps.bundle-version.outputs.build-number }}
             --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+            --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Sign the application bundle
         if: env.APPLE_CERTIFICATE != ''
@@ -429,7 +446,7 @@ jobs:
         uses: ./.github/actions/flutter-build
         with:
           target-platform: appbundle
-          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Name the Android app bundle after the app
         # Flutter always writes 'app-release.aab'; rename it so the extracted file, not just the
@@ -453,7 +470,7 @@ jobs:
         uses: ./.github/actions/flutter-build
         with:
           target-platform: apk
-          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Name the Android APK after the app
         # Flutter always writes 'app-release.apk'; rename it as above so the installable file

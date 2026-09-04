@@ -4,6 +4,7 @@
 
 import 'dart:async' show unawaited;
 
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_bloc.dart';
@@ -201,7 +203,14 @@ class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
       ),
       child: ColoredBox(
         color: theme.scaffoldBackgroundColor,
-        child: SafeArea(child: widget.child),
+        // A corner banner naming the environment (blue "QUALIF", red "DEV") over every screen's top
+        // toolbar — withheld entirely for a release build in `Environment.production`, so a stable
+        // release shows nothing. `EnvBanner` reads `OcptConfigManager`'s own env and is consumed
+        // unchanged (ACT's default colours), the single insertion point being this one wrapper every
+        // route passes through.
+        child: SafeArea(
+          child: EnvBanner.displayAppBarBanner<OcptConfigManager>(child: widget.child),
+        ),
       ),
     );
   }
