@@ -13,27 +13,23 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 
-/// The maximum height of [OcptDiagnosticsLogPanel]'s own scrollable log list, once expanded.
-const _maxLogHeight = 220.0;
-
-/// The collapsed-by-default "Journaux (diagnostic)" section: a small window onto
-/// `OcptDiagnosticsManager`'s own device-local ring buffer, so Benoit can see, on each device,
-/// what the relay server (when hosting) and the sync client are doing — placed at the bottom of
-/// the hosting panel (every category) and the Rejoindre screen
-/// ([OcptDiagnosticsCategory.join]/[OcptDiagnosticsCategory.sync] only), so each device shows its
-/// own logs where the action itself lives.
+/// The full, live "Journaux (diagnostic)" list: a window onto `OcptDiagnosticsManager`'s own
+/// device-local ring buffer, so Benoit can see, on each device, what the relay server (when
+/// hosting) and the sync client are doing. Filled by `OcptDiagnosticsPage`, the dedicated
+/// diagnostics screen reachable from Settings — every category by default, or narrowed to
+/// [categories] when a caller only cares about some of them.
 ///
 /// Reads `OcptDiagnosticsManager` through `globalGetIt()`, tolerating its absence — no global
 /// manager instance at all, or one registered with no `OcptDiagnosticsManager` — by rendering the
 /// same empty state a real, empty buffer would: most of this app's own widget tests build a page
 /// straight over injected managers and blocs, with no reason to also register this one, and this
-/// panel must not be what breaks them.
-class OcptDiagnosticsLogPanel extends StatelessWidget {
+/// widget must not be what breaks them.
+class OcptDiagnosticsLogList extends StatelessWidget {
   /// Restricts the entries shown to these categories, when given; every category otherwise.
   final Set<OcptDiagnosticsCategory>? categories;
 
   /// Class constructor
-  const OcptDiagnosticsLogPanel({this.categories, super.key});
+  const OcptDiagnosticsLogList({this.categories, super.key});
 
   /// The registered [OcptDiagnosticsManager], or null when none can be resolved — see this class's
   /// own doc comment for why that is a real, tolerated case rather than a programmer error.
@@ -64,35 +60,31 @@ class OcptDiagnosticsLogPanel extends StatelessWidget {
     final tr = Tr.of(context);
     final manager = _resolveManager();
 
-    return ExpansionTile(
-      title: Text(tr.diagnosticsLogTitle),
-      children: [
-        if (manager == null)
-          _OcptDiagnosticsEmptyBody(text: tr.diagnosticsEmpty)
-        else
-          StreamBuilder<List<OcptDiagnosticsEntry>>(
-            initialData: manager.entries,
-            stream: manager.entriesStream,
-            builder: (context, snapshot) {
-              final entries = _filtered(snapshot.data ?? manager.entries);
+    if (manager == null) {
+      return _OcptDiagnosticsEmptyBody(text: tr.diagnosticsEmpty);
+    }
 
-              return _OcptDiagnosticsBody(entries: entries, manager: manager);
-            },
-          ),
-      ],
+    return StreamBuilder<List<OcptDiagnosticsEntry>>(
+      initialData: manager.entries,
+      stream: manager.entriesStream,
+      builder: (context, snapshot) {
+        final entries = _filtered(snapshot.data ?? manager.entries);
+
+        return _OcptDiagnosticsBody(entries: entries, manager: manager);
+      },
     );
   }
 }
 
-/// The panel's own body once a real [OcptDiagnosticsManager] is resolved: the copy-all/clear
-/// toolbar and the bounded, scrollable, monospace log list, or [OcptDiagnosticsLogPanel]'s own
-/// empty state when [entries] is empty.
+/// The list's own body once a real [OcptDiagnosticsManager] is resolved: the copy-all/clear
+/// toolbar above the scrollable, monospace log list filling the rest of the space
+/// [OcptDiagnosticsLogList] is given, or [OcptDiagnosticsLogList]'s own empty state when
+/// [entries] is empty.
 class _OcptDiagnosticsBody extends StatelessWidget {
   /// Class constructor
   const _OcptDiagnosticsBody({required this.entries, required this.manager});
 
-  /// The entries this body renders — already filtered to the panel's own [OcptDiagnosticsLogPanel.
-  /// categories].
+  /// The entries this body renders — already filtered to [OcptDiagnosticsLogList.categories].
   final List<OcptDiagnosticsEntry> entries;
 
   /// The manager the toolbar's own copy/clear actions act on.
@@ -125,12 +117,10 @@ class _OcptDiagnosticsBody extends StatelessWidget {
             ),
           ],
         ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: _maxLogHeight),
+        Expanded(
           child: entries.isEmpty
               ? _OcptDiagnosticsEmptyBody(text: tr.diagnosticsEmpty)
               : ListView.builder(
-                  shrinkWrap: true,
                   itemCount: entries.length,
                   itemBuilder: (context, index) =>
                       _OcptDiagnosticsLine(entry: entries[index], theme: theme),
@@ -145,7 +135,7 @@ class _OcptDiagnosticsBody extends StatelessWidget {
       entries.map(_lineText).join('\n');
 }
 
-/// [OcptDiagnosticsLogPanel]'s own empty state, shown both when no manager can be resolved at all
+/// [OcptDiagnosticsLogList]'s own empty state, shown both when no manager can be resolved at all
 /// and when a real, resolved one simply holds nothing (yet) for the current filter.
 class _OcptDiagnosticsEmptyBody extends StatelessWidget {
   /// Class constructor

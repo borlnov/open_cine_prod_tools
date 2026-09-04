@@ -15396,5 +15396,22 @@
   "diagnosticsEmpty": "No events yet",
   "@diagnosticsEmpty": {
     "description": "Shown in the diagnostics log panel while it holds no entry for the current filter"
+  },
+  "diagnosticsSettingsEntry": "Diagnostics log",
+  "@diagnosticsSettingsEntry": {
+    "description": "Label of the settings row opening the dedicated diagnostics log screen",
+    "context": "Displayed as a row in the about section of the settings page"
+  },
+  "diagnosticsLogFileLabel": "Log file",
+  "@diagnosticsLogFileLabel": {
+    "description": "Label of the log-file row on the diagnostics log screen"
+  },
+  "diagnosticsLogFileCopyPath": "Copy the path",
+  "@diagnosticsLogFileCopyPath": {
+    "description": "Tooltip of the diagnostics log screen's own copy-log-file-path icon button"
+  },
+  "diagnosticsLogFileDisabled": "File logging is off in this build",
+  "@diagnosticsLogFileDisabled": {
+    "description": "Shown on the diagnostics log screen's own log-file row when no log file path is available"
   }
 }

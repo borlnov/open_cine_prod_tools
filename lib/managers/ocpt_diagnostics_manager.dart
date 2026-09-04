@@ -26,7 +26,7 @@ class OcptDiagnosticsManagerBuilder extends AbsLifeCycleFactory<OcptDiagnosticsM
 /// [OcptDiagnosticsEntry] records, oldest first — so Benoit can see, on each device, what the
 /// relay server (when hosting) and the sync client are doing: debugging why one PC's hosting
 /// stops the moment a phone joins needs to see both sides at once, and neither a hosting laptop
-/// nor a joining phone on set has a real log file within reach. `OcptDiagnosticsLogPanel` is the
+/// nor a joining phone on set has a real log file within reach. `OcptDiagnosticsLogList` is the
 /// in-app "Journaux (diagnostic)" section reading it, placed where the hosting and joining actions
 /// themselves live, so each device shows its own logs.
 ///
@@ -39,7 +39,7 @@ class OcptDiagnosticsManagerBuilder extends AbsLifeCycleFactory<OcptDiagnosticsM
 ///
 /// [entriesStream] never replays its current value to a new listener — no ACT manager stream does
 /// (`CLAUDE.md`'s own pitfalls list) — so a caller seeds its own first render from [entries]
-/// before it ever listens, exactly as `OcptDiagnosticsLogPanel` does.
+/// before it ever listens, exactly as `OcptDiagnosticsLogList` does.
 class OcptDiagnosticsManager extends AbsWithLifeCycle {
   final List<OcptDiagnosticsEntry> _entries = [];
   final StreamController<List<OcptDiagnosticsEntry>> _controller =
@@ -103,7 +103,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   }
 
   /// Empties the buffer and broadcasts the (now empty) list on [entriesStream] — what
-  /// `OcptDiagnosticsLogPanel`'s own "clear" button calls.
+  /// `OcptDiagnosticsLogList`'s own "clear" button calls.
   void clear() {
     _entries.clear();
     _emit();

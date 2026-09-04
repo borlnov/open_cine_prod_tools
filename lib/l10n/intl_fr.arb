@@ -2075,5 +2075,9 @@
   "diagnosticsLogTitle": "Journaux (diagnostic)",
   "diagnosticsCopyTooltip": "Copier le journal",
   "diagnosticsClearTooltip": "Vider le journal",
-  "diagnosticsEmpty": "Aucun événement pour l'instant"
+  "diagnosticsEmpty": "Aucun événement pour l'instant",
+  "diagnosticsSettingsEntry": "Journaux (diagnostic)",
+  "diagnosticsLogFileLabel": "Fichier de logs",
+  "diagnosticsLogFileCopyPath": "Copier le chemin",
+  "diagnosticsLogFileDisabled": "Journalisation fichier désactivée dans ce build"
 }

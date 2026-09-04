@@ -35,7 +35,12 @@ enum OcptRoute with MixinRoute {
   settings,
 
   /// The third-party licenses page
-  licenses;
+  licenses,
+
+  /// The device-local "Journaux (diagnostic)" screen: the full diagnostics log
+  /// (`OcptDiagnosticsManager`) and the file logger's own log-file path, reachable from Settings
+  /// (`docs/architecture/sync.md`).
+  diagnostics;
 
   /// {@macro act_router_manager.MixinRoute.parent}
   @override

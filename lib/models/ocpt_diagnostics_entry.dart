@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 
-/// Which subsystem recorded an [OcptDiagnosticsEntry] — lets `OcptDiagnosticsLogPanel` filter
+/// Which subsystem recorded an [OcptDiagnosticsEntry] — lets `OcptDiagnosticsLogList` filter
 /// `OcptDiagnosticsManager`'s own buffer down to only what a given screen cares about (the
 /// hosting panel shows every category, the Rejoindre screen only [join] and [sync]).
 enum OcptDiagnosticsCategory {
@@ -25,7 +25,7 @@ enum OcptDiagnosticsCategory {
   presence,
 }
 
-/// How severe an [OcptDiagnosticsEntry] is — tints the line `OcptDiagnosticsLogPanel` draws it on.
+/// How severe an [OcptDiagnosticsEntry] is — tints the line `OcptDiagnosticsLogList` draws it on.
 enum OcptDiagnosticsLevel {
   /// An ordinary, expected event.
   info,

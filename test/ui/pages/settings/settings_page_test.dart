@@ -296,6 +296,21 @@ void main() {
     expect(routerManager.pushedRoute, OcptRoute.licenses);
   });
 
+  testWidgets("tapping the diagnostics log row pushes the diagnostics route", (tester) async {
+    await pumpSettingsView(tester);
+    final context = tester.element(find.byType(OcptSettingsView));
+
+    // Same reasoning as the third-party licenses row above: it sits below the fold too.
+    final diagnosticsRow = find.text(Tr.of(context).diagnosticsSettingsEntry);
+    await tester.ensureVisible(diagnosticsRow);
+    await tester.pumpAndSettle();
+
+    await tester.tap(diagnosticsRow);
+    await tester.pumpAndSettle();
+
+    expect(routerManager.pushedRoute, OcptRoute.diagnostics);
+  });
+
   testWidgets("tapping the back arrow pops through the router manager", (tester) async {
     await pumpSettingsView(tester);
 

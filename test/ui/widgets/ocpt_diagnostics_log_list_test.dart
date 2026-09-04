@@ -12,10 +12,12 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_diagnostics_log_panel.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_diagnostics_log_list.dart';
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,
-/// exactly `ocpt_hosting_panel_test.dart`'s own `_wrap`.
+/// inside a bounded-height body — [OcptDiagnosticsLogList] fills whatever space it is given
+/// (an `Expanded` inside its own body), so a test needs a bounded ancestor rather than the
+/// unbounded height a bare `MaterialApp`/`Scaffold` body would otherwise give it.
 Widget _wrap(Widget child) => MaterialApp(
   theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
@@ -25,20 +27,8 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SingleChildScrollView(child: child)),
+  home: Scaffold(body: SizedBox(height: 600, child: child)),
 );
-
-/// Pumps [panel] on a surface wide enough that nothing overflows, then expands its own
-/// `ExpansionTile` and settles the expand animation — `OcptDiagnosticsLogPanel` builds its body
-/// lazily, only once expanded.
-Future<void> _pumpExpanded(WidgetTester tester, OcptDiagnosticsLogPanel panel) async {
-  await tester.binding.setSurfaceSize(const Size(900, 1200));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-
-  await tester.pumpWidget(_wrap(panel));
-  await tester.tap(find.byType(ExpansionTile));
-  await tester.pumpAndSettle();
-}
 
 void main() {
   setUpAll(() {
@@ -86,23 +76,11 @@ void main() {
       await manager.disposeLifeCycle();
     });
 
-    testWidgets('is collapsed by default, showing neither entry nor the empty message', (
-      tester,
-    ) async {
-      manager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
-
-      await tester.binding.setSurfaceSize(const Size(900, 1200));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogPanel()));
-
-      expect(find.textContaining('starting hosting'), findsNothing);
-    });
-
-    testWidgets('expanding it shows every recorded entry, oldest first', (tester) async {
+    testWidgets('shows every recorded entry, oldest first', (tester) async {
       manager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
       manager.record(category: OcptDiagnosticsCategory.sync, message: 'in sync');
 
-      await _pumpExpanded(tester, const OcptDiagnosticsLogPanel());
+      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogList()));
 
       expect(find.textContaining('starting hosting'), findsOneWidget);
       expect(find.textContaining('in sync'), findsOneWidget);
@@ -115,10 +93,11 @@ void main() {
       manager.record(category: OcptDiagnosticsCategory.join, message: 'connecting');
       manager.record(category: OcptDiagnosticsCategory.sync, message: 'in sync');
 
-      await _pumpExpanded(
-        tester,
-        const OcptDiagnosticsLogPanel(
-          categories: {OcptDiagnosticsCategory.join, OcptDiagnosticsCategory.sync},
+      await tester.pumpWidget(
+        _wrap(
+          const OcptDiagnosticsLogList(
+            categories: {OcptDiagnosticsCategory.join, OcptDiagnosticsCategory.sync},
+          ),
         ),
       );
 
@@ -128,14 +107,14 @@ void main() {
     });
 
     testWidgets('shows the empty message when the buffer holds nothing', (tester) async {
-      await _pumpExpanded(tester, const OcptDiagnosticsLogPanel());
+      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogList()));
 
-      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogPanel)));
+      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogList)));
       expect(find.text(tr.diagnosticsEmpty), findsOneWidget);
     });
 
     testWidgets('rebuilds from entriesStream as new entries are recorded', (tester) async {
-      await _pumpExpanded(tester, const OcptDiagnosticsLogPanel());
+      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogList()));
 
       manager.record(category: OcptDiagnosticsCategory.presence, message: 'peer joined');
       // The broadcast stream delivers on a microtask, not synchronously with `record`.
@@ -149,9 +128,9 @@ void main() {
       manager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
       manager.record(category: OcptDiagnosticsCategory.sync, message: 'in sync');
 
-      await _pumpExpanded(tester, const OcptDiagnosticsLogPanel());
+      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogList()));
 
-      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogPanel)));
+      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogList)));
       await tester.tap(find.byTooltip(tr.diagnosticsCopyTooltip));
       await tester.pump();
 
@@ -163,9 +142,9 @@ void main() {
     testWidgets('the clear button empties the manager and the list', (tester) async {
       manager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
 
-      await _pumpExpanded(tester, const OcptDiagnosticsLogPanel());
+      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogList()));
 
-      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogPanel)));
+      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogList)));
       await tester.tap(find.byTooltip(tr.diagnosticsClearTooltip));
       await tester.pump();
 
@@ -175,9 +154,9 @@ void main() {
     });
 
     testWidgets('the copy and clear buttons are disabled while the list is empty', (tester) async {
-      await _pumpExpanded(tester, const OcptDiagnosticsLogPanel());
+      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogList()));
 
-      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogPanel)));
+      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogList)));
       final copyButton = tester.widget<IconButton>(
         find.ancestor(of: find.byTooltip(tr.diagnosticsCopyTooltip), matching: find.byType(IconButton)),
       );
@@ -198,13 +177,9 @@ void main() {
         await managers.unregister<OcptDiagnosticsManager>();
       }
 
-      await tester.binding.setSurfaceSize(const Size(900, 1200));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogPanel()));
-      await tester.tap(find.byType(ExpansionTile));
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(_wrap(const OcptDiagnosticsLogList()));
 
-      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogPanel)));
+      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogList)));
       expect(find.text(tr.diagnosticsEmpty), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

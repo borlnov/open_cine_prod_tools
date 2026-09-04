@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/ui/pages/diagnostics/ocpt_diagnostics_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
@@ -29,6 +30,7 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     onPage(OcptRoute.repointing, _createRepointingPage);
     onPage(OcptRoute.settings, _createSettingsPage);
     onPage(OcptRoute.licenses, _createLicensesPage);
+    onPage(OcptRoute.diagnostics, _createDiagnosticsPage);
   }
 
   /// Callback to create the [HomePage]
@@ -79,4 +81,8 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
           applicationLegalese: "Apache-2.0",
         ),
       );
+
+  /// Callback to create the [OcptDiagnosticsPage]
+  RoutePageDetails _createDiagnosticsPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptDiagnosticsPage());
 }
