@@ -304,7 +304,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   generates the committed Android/iOS/macOS/Windows launcher icons — and by
   `.github/actions/flutter-debian`, which installs the 512 px and scalable icons plus a `.desktop`
   entry named after the package (the icon name `linux/runner/my_application.cc` asks the window to
-  wear).
+  wear). A **non-production build rebrands every launcher icon** with a blue `QUALIF` corner flag:
+  the generator also emits `ocpt_icon_qualif_*` masters — a small blue triangle (the same
+  `Colors.blue` the environment banner paints in qualification) tucked into the mark's bottom-left
+  corner — and `.github/actions/qualif-icons` swaps those over the plain masters, turns the Android
+  adaptive background blue, and reruns `icons_launcher:create` before packaging, all gated on the
+  `get-version` job's `env` output. A stable release keeps the plain icons, so an alpha is
+  recognisable at a glance on the home screen, taskbar or launcher.
 
 - Desktop packaging: `build.yml` builds the three desktop targets and one composite action per
   format packages each — `flutter-debian` (`.deb`), `windows-installer` (Inno Setup),

@@ -150,6 +150,14 @@ jobs:
           dart run intl_utils:generate
           dart run build_runner build
 
+      # Linux embeds no launcher icon; only the Debian package's hicolor PNG, which the packaging
+      # step reads straight from the swapped master, so the native icons need no regeneration here.
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
+          regenerate-native: "false"
+
       - name: Build for Linux
         uses: ./.github/actions/flutter-build
         with:
@@ -211,6 +219,11 @@ jobs:
           flutter pub get
           dart run intl_utils:generate
           dart run build_runner build
+
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
 
       - name: Build for Windows
         uses: ./.github/actions/flutter-build
@@ -276,6 +289,11 @@ jobs:
           flutter pub get
           dart run intl_utils:generate
           dart run build_runner build
+
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
 
       - name: Split the version for the bundle
         id: bundle-version
@@ -438,6 +456,11 @@ jobs:
           flutter pub get
           dart run intl_utils:generate
           dart run build_runner build
+
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
 
       - name: Build the Android app bundle
         # Release is debug-signed for now (android/app/build.gradle.kts's scaffold signingConfig);

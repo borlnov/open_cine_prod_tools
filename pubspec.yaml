@@ -277,6 +277,12 @@ flutter:
 # `dart run icons_launcher:create`. The generated icons are committed, so this only has to be run
 # again when the mark itself changes.
 #
+# A non-production build rebrands these icons with a blue QUALIF corner flag: the CI's
+# .github/actions/qualif-icons swaps the `ocpt_icon_qualif_*` masters over the ones referenced here
+# and reruns the generator (turning adaptive_background_color below blue for Android) before
+# packaging, so this block always names the plain masters and the qualification variant lives only
+# in the swapped files. Both master sets come from tool/generate_branding_icons.dart.
+#
 # Linux is deliberately left out: the platform support of icons_launcher writes a snapcraft icon,
 # while this app ships a Debian package, whose icon and desktop entry are built from the same
 # masters by .github/actions/flutter-debian instead.
