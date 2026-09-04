@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:act_global_manager/act_global_manager.dart';
@@ -127,6 +128,29 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// This project's current presence service, or null when none is running — see
   /// [startSyncSession] and `docs/plans/presence.md` (M5, Phase B).
   OcptPresenceService? _presenceService;
+
+  /// Emits this manager's sync status across the whole session lifecycle — see [syncStatusChanges].
+  ///
+  /// A session's own [OcptSyncSession.statusStream] only exists while that session does, so a
+  /// caller reading it off [syncStatusStream] sees nothing when a session starts or stops *after*
+  /// it subscribed. This manager-level stream outlives any one session: [startSyncSession] pipes
+  /// the new session's status onto it (seeded with the current one), and [stopSyncSession] closes
+  /// it out with a null.
+  final StreamController<OcptSyncStatus?> _syncStatusController =
+      StreamController<OcptSyncStatus?>.broadcast();
+
+  /// The subscription piping the running session's [OcptSyncSession.statusStream] onto
+  /// [_syncStatusController], cancelled when the session stops.
+  StreamSubscription<OcptSyncStatus>? _sessionStatusForwarder;
+
+  /// Emits this manager's presence roster across the whole session lifecycle — the presence
+  /// counterpart of [_syncStatusController], for the same reason.
+  final StreamController<OcptPresenceRoster?> _presenceRosterController =
+      StreamController<OcptPresenceRoster?>.broadcast();
+
+  /// The subscription piping the running presence service's [OcptPresenceService.rosterStream] onto
+  /// [_presenceRosterController], cancelled when the service stops.
+  StreamSubscription<OcptPresenceRoster>? _presenceRosterForwarder;
 
   /// Opens the directory transport rooted at [directory].
   ///
@@ -504,6 +528,11 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _syncSession = session;
 
     await session.start();
+    // Pipe the new session's status onto the manager-level stream, seeded with the current one, so
+    // an indicator built before this session started still learns about it — see
+    // [_syncStatusController].
+    _sessionStatusForwarder = session.statusStream.listen(_syncStatusController.add);
+    _syncStatusController.add(session.status);
 
     final presenceService = OcptPresenceService(
       storage: storage,
@@ -514,6 +543,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _presenceService = presenceService;
 
     await presenceService.start();
+    _presenceRosterForwarder = presenceService.rosterStream.listen(_presenceRosterController.add);
+    _presenceRosterController.add(presenceService.roster);
   }
 
   /// Unpairs [projectId] from whatever relay it was synced through — the Partager screen's own
@@ -548,7 +579,18 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// Stops the current sync session, if any — cancels its timer and its `newWorkStream`
   /// subscription and closes its status stream — and the current presence service alongside it,
   /// if any. Safe to call with no session (or presence service) running.
+  ///
+  /// Closes the manager-level [syncStatusChanges]/[presenceRosterChanges] out with a null, so an
+  /// indicator listening to them hides again when the session ends, and stops forwarding the
+  /// now-dead session's own streams onto them.
   Future<void> stopSyncSession() async {
+    final hadSession = _syncSession != null;
+
+    await _sessionStatusForwarder?.cancel();
+    _sessionStatusForwarder = null;
+    await _presenceRosterForwarder?.cancel();
+    _presenceRosterForwarder = null;
+
     final session = _syncSession;
     _syncSession = null;
     await session?.stop();
@@ -556,6 +598,11 @@ class OcptSyncManager extends AbsWithLifeCycle {
     final presenceService = _presenceService;
     _presenceService = null;
     await presenceService?.stop();
+
+    if (hadSession) {
+      _syncStatusController.add(null);
+      _presenceRosterController.add(null);
+    }
   }
 
   /// Runs a sync right now against the running session, on demand — what the status indicator's
@@ -577,6 +624,14 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// The running session's own status stream, or null when no session is running.
   Stream<OcptSyncStatus>? get syncStatusStream => _syncSession?.statusStream;
 
+  /// The sync status across the whole session lifecycle: the running session's status, then null
+  /// once it stops. Unlike [syncStatusStream] it never goes null-*valued* to mean "no stream": it
+  /// is one stream that outlives every session, so a widget subscribing to it once (seeded with
+  /// [syncStatus]) keeps reflecting the truth as sessions start and stop underneath it. This is
+  /// what the workspace's own status indicator listens to, since its session starts only *after*
+  /// the workspace has already been built.
+  Stream<OcptSyncStatus?> get syncStatusChanges => _syncStatusController.stream;
+
   /// Every screenplay merge conflict the running session has raised so far, oldest first, or an
   /// empty list when no session is running.
   List<OcptScreenplayMergeConflict> get syncConflicts => _syncSession?.conflicts ?? const [];
@@ -589,6 +644,11 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// The running presence service's own roster stream, or null when none is running.
   Stream<OcptPresenceRoster>? get presenceRosterStream => _presenceService?.rosterStream;
 
+  /// The presence roster across the whole session lifecycle — the presence counterpart of
+  /// [syncStatusChanges], and what the workspace's own presence indicator listens to for the same
+  /// reason. Seed a fresh subscriber with [presenceRoster].
+  Stream<OcptPresenceRoster?> get presenceRosterChanges => _presenceRosterController.stream;
+
   /// Tells the running presence service this replica's own [mode] just changed, so it reaches
   /// every peer on the very next heartbeat rather than waiting for the current one to age. Does
   /// nothing when no presence service is running.
@@ -598,6 +658,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   @override
   Future<void> disposeLifeCycle() async {
     await stopSyncSession();
+    await _syncStatusController.close();
+    await _presenceRosterController.close();
 
     return super.disposeLifeCycle();
   }

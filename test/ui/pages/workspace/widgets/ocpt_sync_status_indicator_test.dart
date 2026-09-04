@@ -15,17 +15,18 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart';
 
-/// An [OcptSyncManager] whose [syncStatus]/[syncStatusStream] are fully under this file's own
+/// An [OcptSyncManager] whose [syncStatus]/[syncStatusChanges] are fully under this file's own
 /// control — never a real session, never any network — so a test seeds the widget's first frame
 /// through the getter (mirroring `OcptSyncSession.status`'s own contract) and then drives further
-/// frames through [emit], mirroring `syncStatusStream`.
+/// frames through [emit], mirroring `syncStatusChanges` (the lifecycle-spanning stream the
+/// indicator listens to).
 class _FakeSyncManager extends OcptSyncManager {
   _FakeSyncManager(this.status) : super(changesetService: const OcptChangesetService());
 
   /// What [syncStatus] returns — the seed a fresh listener reads before the stream ever emits.
   OcptSyncStatus? status;
 
-  final _controller = StreamController<OcptSyncStatus>.broadcast();
+  final _controller = StreamController<OcptSyncStatus?>.broadcast();
 
   /// Every call `syncNow()` recorded, oldest first.
   int syncNowCallCount = 0;
@@ -34,10 +35,11 @@ class _FakeSyncManager extends OcptSyncManager {
   OcptSyncStatus? get syncStatus => status;
 
   @override
-  Stream<OcptSyncStatus> get syncStatusStream => _controller.stream;
+  Stream<OcptSyncStatus?> get syncStatusChanges => _controller.stream;
 
-  /// Pushes [next] onto [syncStatusStream], as a real session's own run would.
-  void emit(OcptSyncStatus next) {
+  /// Pushes [next] onto [syncStatusChanges], as a session starting or a run would; a null is a
+  /// session stopping.
+  void emit(OcptSyncStatus? next) {
     status = next;
     _controller.add(next);
   }
@@ -163,6 +165,33 @@ void main() {
 
     expect(find.text(tr.workspaceSyncStatusInSync), findsNothing);
     expect(find.text(tr.workspaceSyncStatusOfflinePending(1)), findsOneWidget);
+  });
+
+  testWidgets("appears when a session starts after the indicator was built, and hides when it "
+      "stops", (tester) async {
+    // The real ordering: the workspace builds this indicator, then opens a paired project which
+    // starts the session moments later. The badge has to appear on that later status, not stay
+    // blank because there was no session to read at build time.
+    final syncManager = _FakeSyncManager(null);
+    addTearDown(syncManager.disposeStream);
+
+    await pumpIndicator(tester, OcptSyncStatusIndicator(syncManager: syncManager));
+    expect(
+      tester.getSize(find.byType(OcptSyncStatusIndicator)),
+      Size.zero,
+      reason: "nothing to show until the session starts",
+    );
+
+    syncManager.emit(const OcptSyncStatusInSync());
+    await tester.pump(const Duration(milliseconds: 50));
+    final tr = Tr.of(tester.element(find.byType(OcptSyncStatusIndicator)));
+    expect(find.text(tr.workspaceSyncStatusInSync), findsOneWidget);
+
+    // The session stopping closes the manager-level stream out with a null; the badge goes away.
+    syncManager.emit(null);
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text(tr.workspaceSyncStatusInSync), findsNothing);
+    expect(tester.getSize(find.byType(OcptSyncStatusIndicator)), Size.zero);
   });
 
   testWidgets("a tap opens the panel, and Synchroniser maintenant calls syncNow", (tester) async {

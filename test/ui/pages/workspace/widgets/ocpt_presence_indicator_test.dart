@@ -14,26 +14,28 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_indicator.dart';
 
-/// An [OcptSyncManager] whose [presenceRoster]/[presenceRosterStream] are fully under this file's
+/// An [OcptSyncManager] whose [presenceRoster]/[presenceRosterChanges] are fully under this file's
 /// own control — never a real presence service — so a test seeds the widget's first frame through
 /// the getter (mirroring `OcptPresenceService.roster`'s own contract) and then drives further
-/// frames through [emit], mirroring `presenceRosterStream`.
+/// frames through [emit], mirroring `presenceRosterChanges` (the lifecycle-spanning stream the
+/// indicator listens to).
 class _FakePresenceSyncManager extends OcptSyncManager {
   _FakePresenceSyncManager(this.roster) : super(changesetService: const OcptChangesetService());
 
   /// What [presenceRoster] returns — the seed a fresh listener reads before the stream ever emits.
   OcptPresenceRoster? roster;
 
-  final _controller = StreamController<OcptPresenceRoster>.broadcast();
+  final _controller = StreamController<OcptPresenceRoster?>.broadcast();
 
   @override
   OcptPresenceRoster? get presenceRoster => roster;
 
   @override
-  Stream<OcptPresenceRoster>? get presenceRosterStream => _controller.stream;
+  Stream<OcptPresenceRoster?> get presenceRosterChanges => _controller.stream;
 
-  /// Pushes [next] onto [presenceRosterStream], as a real presence service's own run would.
-  void emit(OcptPresenceRoster next) {
+  /// Pushes [next] onto [presenceRosterChanges], as a presence service starting or a heartbeat run
+  /// would; a null is the session stopping.
+  void emit(OcptPresenceRoster? next) {
     roster = next;
     _controller.add(next);
   }

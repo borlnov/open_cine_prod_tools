@@ -46,6 +46,12 @@ const double _selfRingWidth = 2;
 /// widget test that never registers a sync manager renders nothing here rather than crashing on a
 /// lookup nobody asked it to satisfy.
 ///
+/// Seeds from [OcptSyncManager.presenceRoster] and then listens to
+/// [OcptSyncManager.presenceRosterChanges] — the lifecycle-spanning stream, not the per-session
+/// [OcptSyncManager.presenceRosterStream] — for the same reason `OcptSyncStatusIndicator` listens
+/// to `syncStatusChanges`: the presence service starts only after this indicator has been built, so
+/// the cluster appears the moment presence goes live and clears when the session ends.
+///
 /// Identity is entirely automatic (`docs/adr/0009` §6): a peer's avatar colour is derived
 /// deterministically from its `deviceId` ([ocptPresenceColor]), never chosen or typed, and its
 /// label is `platform · <id fragment>` — a neutral, disposable identity, never a name. The self
@@ -89,9 +95,9 @@ class OcptPresenceIndicator extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return StreamBuilder<OcptPresenceRoster>(
+    return StreamBuilder<OcptPresenceRoster?>(
       initialData: manager.presenceRoster,
-      stream: manager.presenceRosterStream,
+      stream: manager.presenceRosterChanges,
       builder: (context, snapshot) {
         final roster = snapshot.data;
         if (roster == null) {

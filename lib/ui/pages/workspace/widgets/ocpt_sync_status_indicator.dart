@@ -24,11 +24,14 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// mock-up's own "absent" case for an unpaired project: the primary sharing entry stays the Home
 /// card's own menu (a later wiring commit), never this indicator.
 ///
-/// Seeds its very first frame from [OcptSyncManager.syncStatus] (the getter) rather than waiting on
-/// [OcptSyncManager.syncStatusStream], which — like every ACT manager stream — never replays its
-/// current value to a late listener (`CLAUDE.md`'s own pitfalls list): [StreamBuilder]'s own
-/// `initialData` is exactly that seed, so the badge never flashes empty before the stream's first
-/// event.
+/// Seeds its very first frame from [OcptSyncManager.syncStatus] (the getter) and then listens to
+/// [OcptSyncManager.syncStatusChanges], **not** the per-session [OcptSyncManager.syncStatusStream]:
+/// a project's session starts only *after* the workspace has already built this indicator, so a
+/// per-session stream would be null at build time and this badge would never learn the session
+/// arrived. [OcptSyncManager.syncStatusChanges] is the one stream that outlives every session — it
+/// carries the status when a session starts and a null when it stops — so the badge appears the
+/// moment syncing begins and hides again when it ends. [StreamBuilder]'s own `initialData` (the
+/// seed) covers the other order, a session already running by the time this is built.
 ///
 /// A tap opens a small panel naming the current state — the offline count or the relay's own error
 /// message, whichever applies — with four actions: `Synchroniser maintenant`
@@ -110,9 +113,9 @@ class OcptSyncStatusIndicator extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return StreamBuilder<OcptSyncStatus>(
+    return StreamBuilder<OcptSyncStatus?>(
       initialData: manager.syncStatus,
-      stream: manager.syncStatusStream,
+      stream: manager.syncStatusChanges,
       builder: (context, snapshot) {
         final status = snapshot.data;
         if (status == null) {

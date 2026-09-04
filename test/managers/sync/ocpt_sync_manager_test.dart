@@ -175,6 +175,32 @@ void main() {
       expect(manager.syncStatus, isNull);
     });
 
+    test('syncStatusChanges reaches a subscriber that subscribed before the session started', () async {
+      // The workspace's own status indicator subscribes when it is built — before the project it
+      // then opens has started its session. The per-session stream would be null at that point, so
+      // this manager-level one has to carry the session's status once it starts, and a null once it
+      // stops, for the indicator to ever appear (and later hide).
+      final received = <OcptSyncStatus?>[];
+      final subscription = manager.syncStatusChanges.listen(received.add);
+      addTearDown(subscription.cancel);
+
+      await manager.startSyncSession(
+        projectId: 'project-1',
+        database: database,
+        deviceId: 'device-1',
+        relayId: 'relay-1',
+        storage: storage,
+      );
+      await pumpEventQueue();
+
+      expect(received, contains(const OcptSyncStatusInSync()));
+
+      await manager.stopSyncSession();
+      await pumpEventQueue();
+
+      expect(received.last, isNull, reason: 'the session stopping closes the stream out with a null');
+    });
+
     test('starting a session again replaces the one already running', () async {
       await manager.startSyncSession(
         projectId: 'project-1',
