@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:io';
+
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -37,12 +39,19 @@ Future<String> _defaultLogDirectoryPath() async {
   return p.join(supportDirectory.path, 'logs');
 }
 
+/// Whether this is a desktop platform — the only one [OcptFileLoggingManager] writes a log file on.
+/// Android and iOS are the mobile pair; every other target (Linux, Windows, macOS) is desktop.
+bool _defaultIsDesktopPlatform() => !(Platform.isAndroid || Platform.isIOS);
+
 /// Turns the `logs.file.*` configuration read by [OcptConfigManager] into a registered
 /// [OcptFileExternalLogger], so a crash still leaves a log file behind — the file itself has no
 /// UI-facing affordance yet; [logFilePath] is the seam a later "open the log file" action reads.
 ///
-/// [initLifeCycle] does nothing when `logs.file.enabled` is false. Any I/O failure while resolving
-/// the log directory or setting up the file itself (a read-only file system, a sandboxed
+/// [initLifeCycle] does nothing when `logs.file.enabled` is false, **nor on a mobile platform** —
+/// a phone's per-app support directory is not something the user can reach to fetch the file from,
+/// so a rotating log file there earns nothing, and production deliberately turns the config flag on
+/// for the desktop diagnostics it does buy (`assets/config/production.yaml`). Any I/O failure while
+/// resolving the log directory or setting up the file itself (a read-only file system, a sandboxed
 /// environment) is caught and logged as a warning through `appLogger()` — file logging is a
 /// diagnostic nicety, never something app start may fail over.
 class OcptFileLoggingManager extends AbsWithLifeCycle {
@@ -55,13 +64,17 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
   /// recording `addExternalLogger` rather than the real thing. [resolveLogDirectoryPath] defaults
   /// to [_defaultLogDirectoryPath] and lets a test point it at a temporary directory instead of the
   /// real per-platform application support directory.
+  /// [isDesktopPlatform] defaults to a `dart:io` check for a desktop OS and lets a test drive the
+  /// mobile-skip path without running on a phone.
   OcptFileLoggingManager({
     OcptConfigManager? configManager,
     LoggerManager? loggerManager,
     Future<String> Function()? resolveLogDirectoryPath,
+    bool Function()? isDesktopPlatform,
   }) : _configManager = configManager,
        _loggerManager = loggerManager,
-       _resolveLogDirectoryPath = resolveLogDirectoryPath ?? _defaultLogDirectoryPath;
+       _resolveLogDirectoryPath = resolveLogDirectoryPath ?? _defaultLogDirectoryPath,
+       _isDesktopPlatform = isDesktopPlatform ?? _defaultIsDesktopPlatform;
 
   /// The config manager this manager reads `logs.file.*` from, or null until [_config] resolves it.
   OcptConfigManager? _configManager;
@@ -82,6 +95,10 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
   /// The seam [initLifeCycle] resolves the log directory's own path through.
   final Future<String> Function() _resolveLogDirectoryPath;
 
+  /// The seam [initLifeCycle] reads to decide whether this platform gets a log file at all — true
+  /// on desktop, false on mobile.
+  final bool Function() _isDesktopPlatform;
+
   /// The registered file logger, or null while file logging is disabled or its setup failed.
   OcptFileExternalLogger? _fileLogger;
 
@@ -95,6 +112,12 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
     await super.initLifeCycle();
 
     if (!_config.fileLogEnabled) {
+      return;
+    }
+
+    // Desktop only: a mobile build never writes a log file even where the config enables it, since
+    // its per-app support directory is not one the user can reach to fetch the file from.
+    if (!_isDesktopPlatform()) {
       return;
     }
 

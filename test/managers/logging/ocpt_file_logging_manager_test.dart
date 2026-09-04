@@ -136,6 +136,25 @@ void main() {
     });
   });
 
+  group('OcptFileLoggingManager, config enabled on a mobile platform', () {
+    test('registers no logger: a phone never writes a log file even where config enables it', () async {
+      final loggerManager = _RecordingLoggerManager();
+      final manager = OcptFileLoggingManager(
+        configManager: _FakeConfigManager(fileLogEnabled: true, fileLogLevel: LogsLevel.debug),
+        loggerManager: loggerManager,
+        resolveLogDirectoryPath: () async => throw StateError('should not be reached'),
+        isDesktopPlatform: () => false,
+      );
+
+      await manager.initLifeCycle();
+
+      expect(loggerManager.added, isEmpty);
+      expect(manager.logFilePath, isNull);
+
+      await manager.disposeLifeCycle();
+    });
+  });
+
   group('OcptFileLoggingManager, log directory resolution failure', () {
     test('is swallowed: no logger is registered and initLifeCycle does not throw', () async {
       final loggerManager = _RecordingLoggerManager();
