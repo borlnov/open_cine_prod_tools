@@ -17,9 +17,12 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:path/path.dart' as p;
@@ -77,15 +80,16 @@ class _RecordingExportManager extends OcptExportManager {
   String? lastExportedEpisodeTag;
 
   @override
-  Future<String?> exportShotListXlsx({
+  Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
     required OcptShotListXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedEpisodeTag = episodeTag;
-    return "/tmp/$projectName.xlsx";
+    return OcptExportSaved("/tmp/$projectName.xlsx");
   }
 }
 
@@ -329,4 +333,82 @@ void main() {
       expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
     },
   );
+
+  group("the floating add at a compact width", () {
+    /// Closes the left dock, open by default, so its drawer stops covering the centre — the
+    /// floating add sits behind it otherwise, exactly as the scrim does for any other tap.
+    testWidgets("is present at a compact width", (tester) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+
+    testWidgets("is absent at a desktop width", (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets(
+      "tapping it fires the shot creation flow and opens the inspector drawer on the new shot",
+      (tester) async {
+        tester.view.physicalSize = const Size(700, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+        await tester.pumpAndSettle();
+
+        // On compact the docks start closed, so the left sequence panel is not covering the centre
+        // and the floating add button is free to tap — no need to close a dock first.
+
+        // Read from a descendant of the mode's own `BlocProvider` — `OcptShotListMode` builds it,
+        // so its own element sits above it and cannot resolve it.
+        final bloc = tester.element(find.byType(FloatingActionButton)).read<OcptShotListBloc>();
+        expect(bloc.state.totalShotCount, 0);
+        expect(find.byType(OcptShotInspectorPanel), findsNothing);
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        // The very same event the left dock's own `+ Shot` button fires: one more shot, selected,
+        // with the right dock opened on its inspector tab.
+        expect(bloc.state.totalShotCount, 1);
+        expect(find.byType(OcptShotInspectorPanel), findsOneWidget);
+      },
+    );
+
+    testWidgets("is withheld under a previewed version", (tester) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+      final previewResult = await projectsManager.previewVersion(version!.id);
+      expect(previewResult.status.isSuccess, isTrue);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FloatingActionButton), findsNothing);
+
+      // Leave the preview so the working copy is what the next test opens onto.
+      await projectsManager.exitPreview();
+    });
+  });
 }

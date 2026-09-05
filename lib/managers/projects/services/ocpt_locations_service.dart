@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -46,8 +47,12 @@ class OcptLocationsService {
   /// services it composes.
   final OcptAssetsService assetsService;
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptLocationsService({this.assetsService = const OcptAssetsService()});
+  const OcptLocationsService({required this.assetsService, required this.deviceId});
 
   /// Loads every live location of [database], in `sortKey` order, each joined with its live
   /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
@@ -169,17 +174,38 @@ class OcptLocationsService {
     final existing = await _liveLocationRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptLocationsTable)
-        .insert(
-          OcptLocationsTableCompanion.insert(
-            id: id,
-            name: name,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationsTable,
+        rowId: id,
+        current: null,
+        next: OcptLocationRow(
+          id: id,
+          name: name,
+          colorIndex: 0,
+          addressLine1: '',
+          addressLine2: '',
+          postalCode: '',
+          city: '',
+          region: '',
+          country: '',
+          contactNotes: '',
+          permitStatus: OcptPermitStatus.toRequest,
+          permitLabel: '',
+          parkingNotes: '',
+          powerNotes: '',
+          facilitiesNotes: '',
+          constraintsNotes: '',
+          notes: '',
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -218,33 +244,50 @@ class OcptLocationsService {
       return;
     }
 
-    await (database.update(
-      database.ocptLocationsTable,
-    )..where((table) => table.id.equals(locationId) & table.isDeleted.not())).write(
-      OcptLocationsTableCompanion(
-        name: name,
-        colorIndex: colorIndex,
-        addressLine1: addressLine1,
-        addressLine2: addressLine2,
-        postalCode: postalCode,
-        city: city,
-        region: region,
-        country: country,
-        latitude: latitude,
-        longitude: longitude,
-        contactPersonId: contactPersonId,
-        contactNotes: contactNotes,
-        permitStatus: permitStatus,
-        permitLabel: permitLabel,
-        permitDate: permitDate,
-        permitAssetId: permitAssetId,
-        parkingNotes: parkingNotes,
-        powerNotes: powerNotes,
-        facilitiesNotes: facilitiesNotes,
-        constraintsNotes: constraintsNotes,
-        notes: notes,
-      ),
+    final companion = OcptLocationsTableCompanion(
+      name: name,
+      colorIndex: colorIndex,
+      addressLine1: addressLine1,
+      addressLine2: addressLine2,
+      postalCode: postalCode,
+      city: city,
+      region: region,
+      country: country,
+      latitude: latitude,
+      longitude: longitude,
+      contactPersonId: contactPersonId,
+      contactNotes: contactNotes,
+      permitStatus: permitStatus,
+      permitLabel: permitLabel,
+      permitDate: permitDate,
+      permitAssetId: permitAssetId,
+      parkingNotes: parkingNotes,
+      powerNotes: powerNotes,
+      facilitiesNotes: facilitiesNotes,
+      constraintsNotes: constraintsNotes,
+      notes: notes,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptLocationsTable,
+      )..where((table) => table.id.equals(locationId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationsTable,
+        rowId: locationId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones location [locationId] in [database], its sets, the `scene_sets` links onto those
@@ -266,6 +309,8 @@ class OcptLocationsService {
     }
 
     await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       final setRows =
           await (database.select(database.ocptSetsTable)..where(
                 (table) => table.locationId.equals(locationId) & table.isDeleted.not(),
@@ -274,35 +319,81 @@ class OcptLocationsService {
       final setIds = setRows.map((row) => row.id).toList(growable: false);
 
       if (setIds.isNotEmpty) {
-        await (database.update(
-          database.ocptSceneSetsTable,
-        )..where((table) => table.setId.isIn(setIds))).write(
-          const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
-        );
-        await (database.update(
-          database.ocptSetsTable,
-        )..where((table) => table.locationId.equals(locationId))).write(
-          const OcptSetsTableCompanion(isDeleted: Value(true)),
+        final sceneSetRows =
+            await (database.select(
+                  database.ocptSceneSetsTable,
+                )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not()))
+                .get();
+        for (final row in sceneSetRows) {
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptSceneSetsTable,
+            rowId: row.id,
+            current: row,
+            next: row.copyWith(isDeleted: true),
+            stamps: stamps,
+          );
+        }
+
+        for (final setRow in setRows) {
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptSetsTable,
+            rowId: setRow.id,
+            current: setRow,
+            next: setRow.copyWith(isDeleted: true),
+            stamps: stamps,
+          );
+        }
+      }
+
+      final availabilityRows =
+          await (database.select(database.ocptLocationAvailabilitiesTable)..where(
+                (table) => table.locationId.equals(locationId) & table.isDeleted.not(),
+              ))
+              .get();
+      for (final availabilityRow in availabilityRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptLocationAvailabilitiesTable,
+          rowId: availabilityRow.id,
+          current: availabilityRow,
+          next: availabilityRow.copyWith(isDeleted: true),
+          stamps: stamps,
         );
       }
 
-      await (database.update(
-        database.ocptLocationAvailabilitiesTable,
-      )..where((table) => table.locationId.equals(locationId))).write(
-        const OcptLocationAvailabilitiesTableCompanion(isDeleted: Value(true)),
-      );
+      final assetRows =
+          await (database.select(
+                database.ocptAssetsTable,
+              )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not()))
+              .get();
+      for (final assetRow in assetRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptAssetsTable,
+          rowId: assetRow.id,
+          current: assetRow,
+          next: assetRow.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
 
-      await (database.update(
-        database.ocptAssetsTable,
-      )..where((table) => table.locationId.equals(locationId))).write(
-        const OcptAssetsTableCompanion(isDeleted: Value(true)),
-      );
-
-      await (database.update(
+      final current = await (database.select(
         database.ocptLocationsTable,
-      )..where((table) => table.id.equals(locationId))).write(
-        const OcptLocationsTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.id.equals(locationId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptLocationsTable,
+          rowId: locationId,
+          current: current,
+          next: current.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -320,8 +411,13 @@ class OcptLocationsService {
     }
 
     await database.transaction(() async {
-      final others = (await _liveLocationRows(database))
-        ..removeWhere((row) => row.id == locationId);
+      final rows = await _liveLocationRows(database);
+      final current = rows.where((row) => row.id == locationId).firstOrNull;
+      if (current == null) {
+        return;
+      }
+
+      final others = rows.where((row) => row.id != locationId).toList(growable: false);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -332,11 +428,16 @@ class OcptLocationsService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptLocationsTable,
-      )..where((table) => table.id.equals(locationId))).write(
-        OcptLocationsTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationsTable,
+        rowId: locationId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -363,19 +464,26 @@ class OcptLocationsService {
     final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptSetsTable)
-        .insert(
-          OcptSetsTableCompanion.insert(
-            id: id,
-            locationId: locationId,
-            name: name,
-            code: Value(ocptSetCodeOf(existingCodes: await _liveSetCodes(database))),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSetsTable,
+        rowId: id,
+        current: null,
+        next: OcptSetRow(
+          id: id,
+          locationId: locationId,
+          code: ocptSetCodeOf(existingCodes: await _liveSetCodes(database)),
+          name: name,
+          notes: '',
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -446,11 +554,28 @@ class OcptLocationsService {
       return;
     }
 
-    await (database.update(
-      database.ocptSetsTable,
-    )..where((table) => table.id.equals(setId) & table.isDeleted.not())).write(
-      OcptSetsTableCompanion(name: name, notes: notes),
-    );
+    final companion = OcptSetsTableCompanion(name: name, notes: notes);
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptSetsTable,
+      )..where((table) => table.id.equals(setId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSetsTable,
+        rowId: setId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves set [setId] to location [locationId], appended at the end of that location's sets.
@@ -474,18 +599,31 @@ class OcptLocationsService {
       return;
     }
 
-    final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptSetsTable,
+      )..where((table) => table.id.equals(setId) & table.isDeleted.not())).getSingleOrNull();
 
-    await (database.update(
-      database.ocptSetsTable,
-    )..where((table) => table.id.equals(setId) & table.isDeleted.not())).write(
-      OcptSetsTableCompanion(
-        locationId: Value(locationId),
-        sortKey: Value(
-          ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+      if (current == null) {
+        return;
+      }
+
+      final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSetsTable,
+        rowId: setId,
+        current: current,
+        next: current.copyWith(
+          locationId: locationId,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
         ),
-      ),
-    );
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones set [setId] in [database] and the `scene_sets` links onto it along with it.
@@ -499,16 +637,39 @@ class OcptLocationsService {
     }
 
     await database.transaction(() async {
-      await (database.update(
-        database.ocptSceneSetsTable,
-      )..where((table) => table.setId.equals(setId))).write(
-        const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
-      );
-      await (database.update(
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final sceneSetRows =
+          await (database.select(
+                database.ocptSceneSetsTable,
+              )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
+              .get();
+      for (final row in sceneSetRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneSetsTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final current = await (database.select(
         database.ocptSetsTable,
-      )..where((table) => table.id.equals(setId))).write(
-        const OcptSetsTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.id.equals(setId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSetsTable,
+          rowId: setId,
+          current: current,
+          next: current.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -527,9 +688,13 @@ class OcptLocationsService {
     }
 
     await database.transaction(() async {
-      final others =
-          (await _liveSetRowsOfLocation(database: database, locationId: locationId))
-            ..removeWhere((row) => row.id == setId);
+      final rows = await _liveSetRowsOfLocation(database: database, locationId: locationId);
+      final current = rows.where((row) => row.id == setId).firstOrNull;
+      if (current == null) {
+        return;
+      }
+
+      final others = rows.where((row) => row.id != setId).toList(growable: false);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -540,11 +705,16 @@ class OcptLocationsService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptSetsTable,
-      )..where((table) => table.id.equals(setId))).write(
-        OcptSetsTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSetsTable,
+        rowId: setId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -585,22 +755,32 @@ class OcptLocationsService {
         droppedLink ??= link;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (droppedLink != null) {
-        await (database.update(
-          database.ocptSceneSetsTable,
-        )..where((table) => table.id.equals(droppedLink!.id))).write(
-          const OcptSceneSetsTableCompanion(isDeleted: Value(false)),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneSetsTable,
+          rowId: droppedLink.id,
+          current: droppedLink,
+          next: droppedLink.copyWith(isDeleted: false),
+          stamps: stamps,
         );
+        await stamps.flush(database);
 
         return droppedLink.id;
       }
 
       final id = const Uuid().v4();
-      await database
-          .into(database.ocptSceneSetsTable)
-          .insert(
-            OcptSceneSetsTableCompanion.insert(id: id, sceneId: sceneId, setId: setId),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneSetsTable,
+        rowId: id,
+        current: null,
+        next: OcptSceneSetRow(id: id, sceneId: sceneId, setId: setId, isDeleted: false),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -625,10 +805,27 @@ class OcptLocationsService {
       return;
     }
 
-    await (database.update(database.ocptSceneSetsTable)..where(
-          (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId),
-        ))
-        .write(const OcptSceneSetsTableCompanion(isDeleted: Value(true)));
+    await database.transaction(() async {
+      final current = await (database.select(database.ocptSceneSetsTable)..where(
+            (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId) & table.isDeleted.not(),
+          ))
+          .getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneSetsTable,
+        rowId: current.id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Adds an availability window to location [locationId], and returns its freshly generated id.
@@ -657,24 +854,30 @@ class OcptLocationsService {
 
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptLocationAvailabilitiesTable)
-        .insert(
-          OcptLocationAvailabilitiesTableCompanion.insert(
-            id: id,
-            locationId: locationId,
-            startDate: startDate,
-            endDate: endDate.isBefore(startDate) ? startDate : endDate,
-            weekdays: Value(
-              weekdays & ocptEveryWeekdayMask == 0 ? ocptEveryWeekdayMask : weekdays,
-            ),
-            slot: Value(slot),
-            startMinute: Value(startMinute),
-            endMinute: Value(endMinute),
-            kind: Value(kind),
-            note: Value(note),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationAvailabilitiesTable,
+        rowId: id,
+        current: null,
+        next: OcptLocationAvailabilityRow(
+          id: id,
+          locationId: locationId,
+          startDate: startDate,
+          endDate: endDate.isBefore(startDate) ? startDate : endDate,
+          weekdays: weekdays & ocptEveryWeekdayMask == 0 ? ocptEveryWeekdayMask : weekdays,
+          slot: slot,
+          startMinute: startMinute,
+          endMinute: endMinute,
+          kind: kind,
+          note: note,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -699,20 +902,37 @@ class OcptLocationsService {
       return;
     }
 
-    await (database.update(
-      database.ocptLocationAvailabilitiesTable,
-    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptLocationAvailabilitiesTableCompanion(
-        startDate: startDate,
-        endDate: endDate,
-        weekdays: weekdays,
-        slot: slot,
-        startMinute: startMinute,
-        endMinute: endMinute,
-        kind: kind,
-        note: note,
-      ),
+    final companion = OcptLocationAvailabilitiesTableCompanion(
+      startDate: startDate,
+      endDate: endDate,
+      weekdays: weekdays,
+      slot: slot,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      kind: kind,
+      note: note,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationAvailabilitiesTable,
+        rowId: id,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes availability window [id].
@@ -728,11 +948,26 @@ class OcptLocationsService {
       return;
     }
 
-    await (database.update(
-      database.ocptLocationAvailabilitiesTable,
-    )..where((table) => table.id.equals(id))).write(
-      const OcptLocationAvailabilitiesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptLocationAvailabilitiesTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// References the file at [path] as a scouting photo of location [locationId], appended at the
@@ -765,14 +1000,21 @@ class OcptLocationsService {
               ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
             .get();
 
-    return assetsService.insertAsset(
-      database: database,
-      kind: OcptAssetKind.locationPhoto,
-      locationId: locationId,
-      path: path,
-      label: label,
-      sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-    );
+    return database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      final id = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.locationPhoto,
+        locationId: locationId,
+        path: path,
+        label: label,
+        sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+
+      return id;
+    });
   }
 
   /// References the file at [path] as location [locationId]'s filming permit document, replacing
@@ -795,7 +1037,9 @@ class OcptLocationsService {
     }
 
     return database.transaction(() async {
-      await _tombstonePermitDocument(database: database, locationId: locationId);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      await _tombstonePermitDocument(database: database, locationId: locationId, stamps: stamps);
 
       final id = await assetsService.insertAsset(
         database: database,
@@ -803,13 +1047,24 @@ class OcptLocationsService {
         locationId: locationId,
         path: path,
         label: label,
+        stamps: stamps,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptLocationsTable,
-      )..where((table) => table.id.equals(locationId))).write(
-        OcptLocationsTableCompanion(permitAssetId: Value(id)),
-      );
+      )..where((table) => table.id.equals(locationId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptLocationsTable,
+          rowId: locationId,
+          current: current,
+          next: current.copyWith(permitAssetId: Value(id)),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
 
       return id;
     });
@@ -830,20 +1085,35 @@ class OcptLocationsService {
     }
 
     await database.transaction(() async {
-      await _tombstonePermitDocument(database: database, locationId: locationId);
-      await (database.update(
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      await _tombstonePermitDocument(database: database, locationId: locationId, stamps: stamps);
+
+      final current = await (database.select(
         database.ocptLocationsTable,
-      )..where((table) => table.id.equals(locationId))).write(
-        const OcptLocationsTableCompanion(permitAssetId: Value(null)),
-      );
+      )..where((table) => table.id.equals(locationId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptLocationsTable,
+          rowId: locationId,
+          current: current,
+          next: current.copyWith(permitAssetId: const Value(null)),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
   /// Tombstones whichever `assets` row location [locationId] currently names as its permit
-  /// document, if any. Leaves `permitAssetId` alone: both callers write it themselves.
+  /// document, if any. Leaves `permitAssetId` alone: both callers write it themselves. Stamps
+  /// through [stamps] — the caller's own instance.
   Future<void> _tombstonePermitDocument({
     required OcptProjectDatabase database,
     required String locationId,
+    required OcptRowStampService? stamps,
   }) async {
     final row = await (database.select(
       database.ocptLocationsTable,
@@ -854,7 +1124,7 @@ class OcptLocationsService {
       return;
     }
 
-    await assetsService.tombstoneAsset(database: database, assetId: permitAssetId);
+    await assetsService.tombstoneAsset(database: database, assetId: permitAssetId, stamps: stamps);
   }
 
   /// Tombstones every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this service's
@@ -865,21 +1135,35 @@ class OcptLocationsService {
   /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
   /// already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first.
+  /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
+  /// its own.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> tombstoneSceneSetsOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,
+    required OcptRowStampService? stamps,
   }) async {
     if (sceneIds.isEmpty) {
       return;
     }
 
-    await (database.update(
-      database.ocptSceneSetsTable,
-    )..where((table) => table.sceneId.isIn(sceneIds))).write(
-      const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
-    );
+    final rows =
+        await (database.select(
+              database.ocptSceneSetsTable,
+            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneSetsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
   }
 
   /// The ids of the live scenes linked to each of [setIds], keyed by set id and ordered by the

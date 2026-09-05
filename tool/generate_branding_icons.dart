@@ -27,6 +27,11 @@ const _accentColor = _Rgb(0x6C, 0x5C, 0xE7);
 /// The colour every shape drawn over the container wears.
 const _markColor = _Rgb(0xFF, 0xFF, 0xFF);
 
+/// The colour of the corner flag that flavours a non-production (qualification) build's icon: the
+/// same `Colors.blue` (`#2196F3`) the app-bar environment banner paints in qualification, so the
+/// launcher icon and the in-app banner read as one convention.
+const _qualifFlagColor = _Rgb(0x21, 0x96, 0xF3);
+
 /// The side of the square the mark is authored in, matching the SVGs' `76 76` viewBox.
 const double _canvasUnits = 76;
 
@@ -72,22 +77,59 @@ const _masters = <_MasterSpec>[
   ),
 ];
 
-/// Rasterizes every entry of [_masters] and writes it under [_outputDirectoryPath].
+/// Rasterizes every entry of [_masters] — both the plain masters and, for the ones that carry a
+/// container, their qualification-banded counterparts — and writes them under [_outputDirectoryPath].
+///
+/// A containered master is emitted twice: once as itself (the production icon), and once with a
+/// `_qualif` suffix carrying the corner flag (the qualification icon the CI regenerates the native
+/// launcher icons from for a non-stable build). The adaptive foreground layer has no counterpart: it
+/// is masked to the canvas centre where a corner flag would be clipped away, so a qualification
+/// Android build reuses this very foreground unchanged and takes its flavour from a blue background
+/// layer instead (chosen in the packaging step, not here).
 void main() {
   final outputDirectory = Directory(_outputDirectoryPath)..createSync(recursive: true);
 
   for (final master in _masters) {
-    final pixels = _renderMark(sidePixels: master.sidePixels, style: master.style);
-    final file = File("${outputDirectory.path}/${master.fileName}");
-    file.writeAsBytesSync(_encodePng(pixels: pixels, width: master.sidePixels));
-
-    stdout.writeln("Wrote ${file.path} (${master.sidePixels}x${master.sidePixels})");
+    _write(outputDirectory, master.fileName, master.sidePixels, master.style, banded: false);
+    if (master.style != _MarkStyle.marksOnly) {
+      _write(
+        outputDirectory,
+        _bandedFileName(master.fileName),
+        master.sidePixels,
+        master.style,
+        banded: true,
+      );
+    }
   }
 }
 
+/// Rasterizes one master in [style] at [sidePixels] and writes it as [fileName] under [directory],
+/// laying the qualification corner flag over it when [banded] and the style carries a container.
+void _write(
+  Directory directory,
+  String fileName,
+  int sidePixels,
+  _MarkStyle style, {
+  required bool banded,
+}) {
+  // The flag rides on the container's silhouette; the container-less adaptive foreground never takes
+  // a banded copy, so only a containered master reaches here with [banded] set.
+  final flag = banded ? const _CornerFlag(cornerSize: 34) : null;
+
+  final pixels = _renderMark(sidePixels: sidePixels, style: style, flag: flag);
+  final file = File("${directory.path}/$fileName");
+  file.writeAsBytesSync(_encodePng(pixels: pixels, width: sidePixels));
+
+  stdout.writeln("Wrote ${file.path} ($sidePixels" "x$sidePixels)");
+}
+
+/// Inserts the `_qualif` marker into [fileName] right after its `ocpt_icon` stem, so
+/// `ocpt_icon_ios_1024.png` becomes `ocpt_icon_qualif_ios_1024.png`.
+String _bandedFileName(String fileName) => fileName.replaceFirst("ocpt_icon", "ocpt_icon_qualif");
+
 /// Renders the mark in the given [style] into a straight (non premultiplied) RGBA buffer of
-/// [sidePixels] squared.
-Uint8List _renderMark({required int sidePixels, required _MarkStyle style}) {
+/// [sidePixels] squared, laying [flag] over it when one is given.
+Uint8List _renderMark({required int sidePixels, required _MarkStyle style, _CornerFlag? flag}) {
   final container = switch (style) {
     _MarkStyle.rounded => const _RoundedRect(left: 4, top: 4, width: 68, height: 68, radius: 16),
     _MarkStyle.fullBleed => const _RoundedRect(
@@ -148,6 +190,15 @@ Uint8List _renderMark({required int sidePixels, required _MarkStyle style}) {
 
       for (final mark in _marks) {
         paint(_coverageOf(mark.distanceTo(x, y), unitsPerPixel), _markColor);
+      }
+
+      if (flag != null) {
+        // The flag rides on top of the mark but stays inside the icon's silhouette: its coverage is
+        // clipped to the container so it never spills past the rounded corner.
+        final clip = container != null
+            ? _coverageOf(container.distanceTo(x, y), unitsPerPixel)
+            : 1.0;
+        paint(flag.coverage(x, y, unitsPerPixel) * clip, _qualifFlagColor);
       }
 
       final offset = (row * sidePixels + column) * 4;
@@ -245,6 +296,37 @@ class _RoundedRect {
     return outside + inside - radius;
   }
 }
+
+/// A filled blue triangle tucked into the mark's bottom-left corner, that brands a qualification
+/// build's launcher icon — small and text-free, a quiet flavour marker rather than a banner.
+///
+/// It lives in the anti-diagonal frame of the `76 76` canvas: `x - y` is most negative at the
+/// bottom-left corner, so the triangle is simply the corner side of the line `x - y == -(76 -
+/// [cornerSize])`, its two right-angle legs [cornerSize] units long down the left and bottom edges.
+/// The caller intersects its coverage with the icon's silhouette, so the hypotenuse's ends follow
+/// the rounded corner rather than jutting past it.
+class _CornerFlag {
+  /// The length of each of the triangle's right-angle legs, in canvas units.
+  final double cornerSize;
+
+  /// Class constructor
+  const _CornerFlag({required this.cornerSize});
+
+  /// The value of `x - y` along the triangle's hypotenuse; the corner lies below it (more negative).
+  double get _hypotenuse => -(_canvasUnits - cornerSize);
+
+  /// The coverage of the flag at ([x], [y]), antialiased over one pixel ([unitsPerPixel]).
+  ///
+  /// The `√2` scales the `x - y` gap into a true perpendicular distance to the 45° hypotenuse, so
+  /// the antialiased edge is one pixel wide rather than `√2` of one.
+  double coverage(double x, double y, double unitsPerPixel) =>
+      _edgeCoverage((_hypotenuse - (x - y)) / sqrt2, unitsPerPixel);
+}
+
+/// Antialiases a signed [distance] in canvas units — positive inside the shape — into 0..1 coverage
+/// over one pixel of width [unitsPerPixel].
+double _edgeCoverage(double distance, double unitsPerPixel) =>
+    (0.5 + distance / unitsPerPixel).clamp(0, 1);
 
 /// A straight 24 bit colour of the mark.
 class _Rgb {

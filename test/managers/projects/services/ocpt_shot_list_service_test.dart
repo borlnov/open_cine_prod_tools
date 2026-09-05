@@ -6,9 +6,11 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -19,28 +21,50 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// Parses [source] with the real Fountain parser, so scene reconciliation is exercised against a
 /// realistic document rather than a hand-built one.
 FountainDocument _parse(String source) => const FountainParser().parse(source);
+
+/// The fixed device id every stamp this file's writes carry, so a stamping assertion can compare
+/// against a known value rather than whatever `OcptPropertiesManager` would otherwise mint.
+const _deviceId = "device-1";
+
+Future<String> _testDeviceId() async => _deviceId;
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const shotListService = OcptShotListService();
+  const shotListService = OcptShotListService(deviceId: _testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
+  const assetsService = OcptAssetsService(deviceId: _testDeviceId);
+  const elementsService = OcptElementsService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
+  const locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
   const screenplayService = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
     shotListService: shotListService,
-    shotCoverageService: OcptShotCoverageService(),
-    roleIndexService: OcptRoleIndexService(),
-    breakdownService: OcptBreakdownService(
-      elementsService: OcptElementsService(),
-      locationsService: OcptLocationsService(),
+    shotCoverageService: OcptShotCoverageService(deviceId: _testDeviceId),
+    roleIndexService: OcptRoleIndexService(
+      elementsService: elementsService,
+      roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+      deviceId: _testDeviceId,
     ),
-    scheduleService: OcptScheduleService(),
+    breakdownService: OcptBreakdownService(
+      elementsService: elementsService,
+      locationsService: locationsService,
+      deviceId: _testDeviceId,
+    ),
+    scheduleService: OcptScheduleService(deviceId: _testDeviceId),
+    deviceId: _testDeviceId,
   );
   const screenplayId = "screenplay-1";
 
@@ -89,6 +113,13 @@ void main() {
   Future<List<OcptShotRow>> readShotsIncludingTombstones() => (database.select(
     database.ocptShotsTable,
   )..orderBy([(row) => OrderingTerm.asc(row.sortKey)])).get();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptProjectVersionsService`'s own tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   /// Every live shot's `sortKey`, keyed by shot id: what a test compares before and after a write
   /// to count how many rows that write actually touched.
@@ -887,5 +918,121 @@ Action one.
     expect(shots.single.sortKey, "V");
     expect(shots.single.isDeleted, isFalse);
     expect(await preview.select(preview.ocptShotCharactersTable).get(), isEmpty);
+  });
+
+  group("row-field-version stamps", () {
+    /// A shot appended to a fresh scene, ready for a test to write against.
+    Future<String> insertShot() async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+      return (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scenes.single.id,
+      ))!;
+    }
+
+    test("createShot stamps every column of the new row", () async {
+      final shotId = await insertShot();
+
+      final stamps = await readStamps();
+      final shot = (await readShots()).single;
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("shots/$shotId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(shot.toJson().length));
+      for (final column in shot.toJson().keys) {
+        final stamp = ownStamps["shots/$shotId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+        expect(stamp.deviceId, _deviceId);
+      }
+    });
+
+    test("updateShot stamps only the columns that actually changed", () async {
+      final shotId = await insertShot();
+      // Clears what `createShot` itself stamped, so only `updateShot`'s own stamps remain below.
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await shotListService.updateShot(
+        database: database,
+        shotId: shotId,
+        framing: const Value("Low angle"),
+        shotSize: const Value("CU"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("shots/$shotId/")).toSet();
+      expect(ownKeys, {"shots/$shotId/framing", "shots/$shotId/shotSize"});
+      expect(stamps["shots/$shotId/framing"]!.version, 1);
+      expect(stamps["shots/$shotId/shotSize"]!.version, 1);
+
+      // Writing the same values again touches nothing: there is nothing left to stamp.
+      await shotListService.updateShot(
+        database: database,
+        shotId: shotId,
+        framing: const Value("Low angle"),
+      );
+      expect(await readStamps(), stamps);
+    });
+
+    test("deleteShot stamps isDeleted on the shot, like any other column", () async {
+      final shotId = await insertShot();
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await shotListService.deleteShot(database: database, shotId: shotId);
+
+      final stamps = await readStamps();
+      expect(stamps.keys.where((key) => key.startsWith("shots/$shotId/")).toSet(), {
+        "shots/$shotId/isDeleted",
+      });
+      expect(stamps["shots/$shotId/isDeleted"]!.version, 1);
+    });
+
+    test("attachCharacter stamps the composite shot_characters row id", () async {
+      final shotId = await insertShot();
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        characterName: "Clara",
+      );
+
+      final rowId = ocptCompositeRowStampKey([shotId, "CLARA"]);
+      final stamps = await readStamps();
+      final character = (await database.select(database.ocptShotCharactersTable).get()).single;
+      for (final column in character.toJson().keys) {
+        final stamp = stamps["shot_characters/$rowId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("detachCharacter stamps isDeleted on the composite shot_characters row id", () async {
+      final shotId = await insertShot();
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        characterName: "Clara",
+      );
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await shotListService.detachCharacter(
+        database: database,
+        shotId: shotId,
+        characterName: "Clara",
+      );
+
+      final rowId = ocptCompositeRowStampKey([shotId, "CLARA"]);
+      final stamps = await readStamps();
+      expect(stamps.keys.toSet(), {"shot_characters/$rowId/isDeleted"});
+      expect(stamps["shot_characters/$rowId/isDeleted"]!.version, 1);
+    });
   });
 }

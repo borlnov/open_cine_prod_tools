@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
@@ -70,6 +71,18 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// project package import's destination folder.
   final OcptExportManager _exportManager;
 
+  /// The subscription to the recent-projects list's own change stream, cancelled in
+  /// [disposeLifeCycle].
+  ///
+  /// It refreshes this page whenever the stored list changes from *anywhere*, not just the flows
+  /// this bloc drives itself. Joining a shared project is the case that needs it: the join replaces
+  /// the Rejoindre screen with the workspace (`OcptJoiningBloc`), so leaving that workspace pops
+  /// back to this page without ever completing the push this page awaited to refresh on — while the
+  /// home page itself has sat alive underneath the whole time, its one-shot startup load long since
+  /// run. `OcptProjectsManager.openProject` has already added the joined project to the list, so
+  /// reacting to that write is what puts its card on the grid.
+  StreamSubscription<dynamic>? _recentProjectsSubscription;
+
   /// Class constructor
   OcptHomeBloc({
     OcptPropertiesManager? propertiesManager,
@@ -86,6 +99,9 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptHomeState.init()) {
     add(const OcptHomeRefreshRequestedEvent());
+    _recentProjectsSubscription = _propertiesManager.recentProjects.updateStream.listen(
+      (_) => add(const OcptHomeRefreshRequestedEvent()),
+    );
   }
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
@@ -95,6 +111,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     on<OcptHomeRefreshRequestedEvent>(_onRefreshRequested);
     on<OcptHomeCreateProjectRequestedEvent>(_onCreateProjectRequested);
     on<OcptHomeOpenProjectRequestedEvent>(_onOpenProjectRequested);
+    on<OcptHomeShareProjectRequestedEvent>(_onShareProjectRequested);
+    on<OcptHomeJoinSharedProjectRequestedEvent>(_onJoinSharedProjectRequested);
     on<OcptHomeRemoveRecentProjectRequestedEvent>(_onRemoveRecentProjectRequested);
     on<OcptHomeFileCompatibilityStatedEvent>(_onFileCompatibilityStated);
     on<OcptHomeErrorDismissedEvent>(_onErrorDismissed);
@@ -121,7 +139,21 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async {}
 
-  /// Reloads the recent projects list and recomputes which of them still exist on disk.
+  /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _recentProjectsSubscription?.cancel();
+    return super.disposeLifeCycle();
+  }
+
+  /// Reloads the recent projects list, recomputes which of them still exist on disk, and probes
+  /// the format of every one that does.
+  ///
+  /// The probe is the same read-only header check [_stopsOnFileFormat] runs before an open — see
+  /// [OcptProjectsManager.probeProjectFile] — run here purely to state, on the card itself, the
+  /// two verdicts an open would refuse outright ([OcptProjectFileVerdict.newer] and
+  /// [OcptProjectFileVerdict.foreignDevBuild]); a migratable [OcptProjectFileVerdict.older] file is
+  /// not a problem to flag ahead of time, and is left to the open flow to offer as it always has.
   Future<void> _onRefreshRequested(
     OcptHomeRefreshRequestedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -129,24 +161,35 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     final projects = await _propertiesManager.recentProjects.load() ?? const [];
     final entries = [
       for (final project in projects)
-        OcptHomeRecentProjectEntry(project: project, exists: File(project.path).existsSync()),
+        if (File(project.path).existsSync())
+          OcptHomeRecentProjectEntry(
+            project: project,
+            exists: true,
+            verdict: _projectsManager.probeProjectFile(filePath: project.path).verdict,
+          )
+        else
+          OcptHomeRecentProjectEntry(project: project, exists: false),
     ];
 
     emitter(state.copyWith(recentProjects: entries));
   }
 
-  /// Navigates to the workspace, then reloads the recent projects list once it pops back here.
+  /// Navigates to [route] (the workspace or the Partager screen, both reached with a project
+  /// already open), then reloads the recent projects list once it pops back here.
   ///
-  /// The push only completes when the user leaves the workspace, and what they did in there is
-  /// exactly what this page shows: `OcptProjectsManager.closeCurrentProject` writes back the
-  /// project's episode count on the way out, and its entry has just been moved to the top of the
-  /// list with a fresh `lastOpenedAt`. This page stays in the navigator's stack while the
-  /// workspace sits on top of it, so nothing else would ever re-read any of that.
+  /// The push only completes when the user leaves [route], and what they did there is exactly
+  /// what this page shows: leaving the workspace closes the current project, and
+  /// `OcptProjectsManager.closeCurrentProject` writes back its episode count on the way out, its
+  /// entry having just been moved to the top of the list with a fresh `lastOpenedAt`; leaving the
+  /// Partager screen only pops back, the project still open behind it (its own back button, the
+  /// same as the project settings page's), so the refresh here is a no-op for it beyond keeping
+  /// the two navigation paths this method serves symmetrical. This page stays in the navigator's
+  /// stack while [route] sits on top of it, so nothing else would ever re-read any of that.
   ///
-  /// The emitter is checked before it is used again: an app closing while the workspace is on
-  /// screen closes this bloc too, and emitting into a closed one throws.
-  Future<void> _pushWorkspaceAndRefreshOnReturn(Emitter<OcptHomeState> emitter) async {
-    await _routerManager.push(OcptRoute.workspace);
+  /// The emitter is checked before it is used again: an app closing while [route] is on screen
+  /// closes this bloc too, and emitting into a closed one throws.
+  Future<void> _pushRouteAndRefreshOnReturn(OcptRoute route, Emitter<OcptHomeState> emitter) async {
+    await _routerManager.push(route);
 
     if (emitter.isDone) {
       return;
@@ -182,7 +225,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _pushWorkspaceAndRefreshOnReturn(emitter);
+    await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
   /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
@@ -232,7 +275,44 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _pushWorkspaceAndRefreshOnReturn(emitter);
+    await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
+  }
+
+  /// Opens the project at [OcptHomeShareProjectRequestedEvent.filePath], then navigates to its
+  /// Partager screen instead of the workspace — a project card's own "Partager / Synchroniser…"
+  /// overflow menu action.
+  ///
+  /// Unlike [_onOpenProjectRequested], this runs no compatibility gate: the card only offers this
+  /// action while its entry's file exists, so there is no dialog to show before opening it. A
+  /// mismatched file still fails through [OcptProjectsManager.openProject]'s own status, which
+  /// lands in [OcptHomeState.error] exactly like a plain open's own failure would.
+  Future<void> _onShareProjectRequested(
+    OcptHomeShareProjectRequestedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(isBusy: true, clearError: true));
+
+    final result = await _projectsManager.openProject(filePath: event.filePath);
+    if (!result.status.isSuccess) {
+      emitter(state.copyWith(isBusy: false, error: result.status));
+      return;
+    }
+
+    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    emitter(state.copyWith(isBusy: false));
+    await _pushRouteAndRefreshOnReturn(OcptRoute.sharing, emitter);
+  }
+
+  /// Navigates to the "Rejoindre un projet partagé" screen, then reloads the recent projects list
+  /// once it pops back here — joining creates a new project card that was not there before.
+  ///
+  /// Opens no project first, unlike [_onShareProjectRequested]: joining is how a project comes to
+  /// exist on this replica in the first place.
+  Future<void> _onJoinSharedProjectRequested(
+    OcptHomeJoinSharedProjectRequestedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    await _pushRouteAndRefreshOnReturn(OcptRoute.joining, emitter);
   }
 
   /// Whether opening [filePath] has to stop and be stated to the user first, raising what the
@@ -358,7 +438,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _pushWorkspaceAndRefreshOnReturn(emitter);
+    await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
   /// Picks a `.ocptz` file, then a parent folder to unpack it into, and raises what landed through

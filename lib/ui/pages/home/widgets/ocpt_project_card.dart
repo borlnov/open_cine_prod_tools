@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 
@@ -21,15 +22,23 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 /// the entry being worth clearing away even when the project it names is gone, while `Export…` goes
 /// disabled with the card — there is no file left to read, let alone to package.
 ///
-/// The `⋮` overflow menu holds two entries: `Export…`, writing the project out as a portable
+/// The `⋮` overflow menu holds three entries: `Export…`, writing the project out as a portable
 /// package without opening it first (the same flow the toolbar's own `Export` panel runs from
-/// inside a project, `MixinOcptProjectPackageBloc`), and `Remove from list`.
+/// inside a project, `MixinOcptProjectPackageBloc`), `Partager / Synchroniser…`, opening the
+/// project and navigating to its Partager screen (`OcptRoute.sharing`), and `Remove from list`.
 ///
 /// A project holding several episodes wears a small `⟨N episodes⟩` pill in the poster's top-left
 /// corner ([_OcptProjectCardEpisodeBadge]), mirroring the `⋮` overflow menu's own top-right one.
 /// [OcptRecentProjectModel.episodeCount] being null (an entry written before this app version
 /// recorded it) or 1 (a single-episode project, which never names an episode anywhere) both draw
 /// nothing at all — a single-episode project stays exactly what it is today.
+///
+/// A project whose file was probed as [OcptProjectFileVerdict.newer] or
+/// [OcptProjectFileVerdict.foreignDevBuild] — the two verdicts opening the project refuses
+/// outright — wears a small ⚠ badge in the poster's bottom-left corner
+/// ([_OcptProjectCardCompatibilityBadge]), clear of the episode badge above it and the `⋮` menu.
+/// The card stays fully tappable regardless: opening it still runs the existing compatibility
+/// dialog, which is where the refusal is actually stated.
 class OcptProjectCard extends StatelessWidget {
   /// The recent project shown by this card.
   final OcptHomeRecentProjectEntry entry;
@@ -42,6 +51,11 @@ class OcptProjectCard extends StatelessWidget {
   /// entry whose project can't be found any more.
   final VoidCallback onExport;
 
+  /// Called when "Partager / Synchroniser…" is chosen from the overflow menu, unless
+  /// [OcptHomeRecentProjectEntry.exists] is false: there is no file to open, let alone to pair
+  /// with a relay, for an entry whose project can't be found any more.
+  final VoidCallback onShare;
+
   /// Called when "Remove from list" is chosen from the overflow menu.
   final VoidCallback onRemove;
 
@@ -50,6 +64,7 @@ class OcptProjectCard extends StatelessWidget {
     required this.entry,
     required this.onTap,
     required this.onExport,
+    required this.onShare,
     required this.onRemove,
     super.key,
   });
@@ -60,6 +75,9 @@ class OcptProjectCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final exists = entry.exists;
     final episodeCount = entry.project.episodeCount;
+    final showsIncompatibilityBadge =
+        entry.verdict == OcptProjectFileVerdict.newer ||
+        entry.verdict == OcptProjectFileVerdict.foreignDevBuild;
 
     final posterTints = Theme.of(context).extension<OcptSpecificColors>()!.projectPosterTints;
     final posterTint = posterTints[_stablePathHash(entry.project.path) % posterTints.length];
@@ -108,6 +126,12 @@ class OcptProjectCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (showsIncompatibilityBadge)
+                    Positioned(
+                      bottom: 4,
+                      left: 4,
+                      child: _OcptProjectCardCompatibilityBadge(color: onPosterTint),
+                    ),
                   Positioned(
                     top: 4,
                     right: 4,
@@ -119,6 +143,11 @@ class OcptProjectCard extends StatelessWidget {
                           enabled: exists,
                           onTap: onExport,
                           child: Text(tr.homeExportProjectAction),
+                        ),
+                        PopupMenuItem<void>(
+                          enabled: exists,
+                          onTap: onShare,
+                          child: Text(tr.homeShareProjectAction),
                         ),
                         PopupMenuItem<void>(
                           onTap: onRemove,
@@ -221,4 +250,34 @@ class _OcptProjectCardEpisodeBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The ⚠ badge drawn in the bottom-left of a project's poster when the card's own entry probed
+/// as [OcptProjectFileVerdict.newer] or [OcptProjectFileVerdict.foreignDevBuild] — the two
+/// verdicts opening the project refuses outright — so the corner stays clear of
+/// [_OcptProjectCardEpisodeBadge] above it and the `⋮` overflow menu.
+///
+/// Tinted off [color] (the card's own `onPosterTint`) exactly like [_OcptProjectCardEpisodeBadge],
+/// for the same reason: the poster tint it sits on varies per project. Wrapped in a [Tooltip]
+/// wording what the probe found; opening the card still runs the compatibility dialog itself, so
+/// this badge only ever warns ahead of that, never blocks the tap.
+class _OcptProjectCardCompatibilityBadge extends StatelessWidget {
+  /// The colour legible against this card's own poster tint, icon and background alike.
+  final Color color;
+
+  /// Class constructor
+  const _OcptProjectCardCompatibilityBadge({required this.color});
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: Tr.of(context).homeIncompatibleProjectTooltip,
+    child: Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      ),
+      child: Icon(Icons.warning_amber_rounded, size: 14, color: color),
+    ),
+  );
 }

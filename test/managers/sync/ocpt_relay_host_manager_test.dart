@@ -1,0 +1,755 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:path/path.dart' as p;
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
+
+/// The method channel `flutter_secure_storage` talks over — mirrors
+/// `ocpt_sync_manager_pairing_test.dart`'s own mock, which this file's [OcptSecretsManager] needs
+/// the exact same wiring for.
+const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
+
+void _mockSecureStorage(Map<String, String> store) {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    _secureStorageChannel,
+    (call) async {
+      final arguments = call.arguments as Map<Object?, Object?>?;
+      final key = arguments?['key'] as String?;
+
+      switch (call.method) {
+        case 'read':
+          return store[key];
+        case 'write':
+          store[key!] = arguments!['value']! as String;
+          return null;
+        case 'delete':
+          store.remove(key);
+          return null;
+        case 'deleteAll':
+          store.clear();
+          return null;
+        case 'containsKey':
+          return store.containsKey(key);
+        case 'readAll':
+          return Map<String, String>.from(store);
+        default:
+          return null;
+      }
+    },
+  );
+}
+
+/// A [PlatformManager] whose [isMobile] is stubbed, so the manager's desktop guard can be
+/// exercised on either branch without a real platform underneath it — mirrors
+/// `ocpt_export_manager_test.dart`'s own stub.
+class _StubPlatformManager extends PlatformManager {
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
+/// A spy [OcptSyncManager] recording whether `OcptRelayHostManager.startHosting`'s self-seed
+/// paired or re-pointed, and standing in for a live sync session/presence service — modelled on
+/// `ocpt_sync_manager_pairing_test.dart`'s own `_FakeTransportSyncManager`, but here the point is
+/// not to exercise the real pairing/repointing logic (already covered by that suite) but to prove
+/// [OcptRelayHostManager] calls the right one, with the right localhost URI, and tears the session
+/// down again on `OcptRelayHostManager.stopHosting`.
+class _SpySyncManager extends OcptSyncManager {
+  _SpySyncManager() : super(changesetService: const OcptChangesetService());
+
+  Uri? seededRelayBaseUri;
+  String? seededEnrolmentSecret;
+  String? seededProjectId;
+  bool didPair = false;
+  bool didRepoint = false;
+  bool didStopSession = false;
+  OcptPresenceRoster? rosterWhileSeeded;
+
+  @override
+  Future<OcptRelayInvite> pairProjectToRelay({
+    required OcptProjectDatabase database,
+    required String projectId,
+    required String projectFilePath,
+    required String projectName,
+    required String appVersion,
+    required Uri relayBaseUri,
+    required String enrolmentSecret,
+    required String deviceId,
+  }) async {
+    didPair = true;
+    seededProjectId = projectId;
+    seededRelayBaseUri = relayBaseUri;
+    seededEnrolmentSecret = enrolmentSecret;
+    rosterWhileSeeded = const OcptPresenceRoster(participants: [], selfDeviceId: 'device-1');
+    // Mirrors OcptPairingService.savePairing's own upsert, so a real OcptRelayHostManager built
+    // over this spy sees, on its very next loadPairedProjectId, exactly the row the real pairing
+    // path would have left behind — which is what lets the "reused across restarts" tests below
+    // find the very same project id a second time around.
+    await database
+        .into(database.ocptSyncPairingsTable)
+        .insertOnConflictUpdate(
+          OcptSyncPairingsTableCompanion.insert(projectId: projectId, relayBaseUrl: relayBaseUri.toString()),
+        );
+
+    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: 'spy-token');
+  }
+
+  @override
+  Future<void> repointProjectToRelay({
+    required OcptProjectDatabase database,
+    required String projectId,
+    required String projectFilePath,
+    required String projectName,
+    required String appVersion,
+    required Uri relayBaseUri,
+    required String enrolmentSecret,
+    required String deviceId,
+  }) async {
+    didRepoint = true;
+    seededProjectId = projectId;
+    seededRelayBaseUri = relayBaseUri;
+    seededEnrolmentSecret = enrolmentSecret;
+    rosterWhileSeeded = const OcptPresenceRoster(participants: [], selfDeviceId: 'device-1');
+    await database
+        .into(database.ocptSyncPairingsTable)
+        .insertOnConflictUpdate(
+          OcptSyncPairingsTableCompanion.insert(projectId: projectId, relayBaseUrl: relayBaseUri.toString()),
+        );
+  }
+
+  @override
+  Future<void> stopSyncSession() async {
+    didStopSession = true;
+  }
+
+  @override
+  OcptPresenceRoster? get presenceRoster => rosterWhileSeeded;
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late OcptSecretsManager secretsManager;
+  late OcptPropertiesManager propertiesManager;
+  late Map<String, String> secureStore;
+
+  setUpAll(() async {
+    // OcptGlobalManager, OcptConfigManager and OcptPropertiesManager all log through appLogger(),
+    // which requires a global manager instance to be set; merely accessing it creates the
+    // (otherwise unused) singleton, exactly as `ocpt_sync_manager_pairing_test.dart` does.
+    OcptGlobalManager.instance;
+
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    propertiesManager = OcptPropertiesManager();
+    await propertiesManager.initLifeCycle();
+
+    final configManager = OcptConfigManager();
+    await configManager.initLifeCycle();
+
+    secureStore = {};
+    _mockSecureStorage(secureStore);
+
+    secretsManager = OcptSecretsManager(
+      propertiesGetter: () => propertiesManager,
+      confGetter: () => configManager,
+    );
+    await secretsManager.initLifeCycle();
+  });
+
+  late Directory workspace;
+  late String projectPath;
+  late OcptProjectDatabase database;
+  late _SpySyncManager spy;
+  late OcptRelayHostManager manager;
+
+  setUp(() async {
+    workspace = Directory.systemTemp.createTempSync('ocpt_relay_host_manager_test_');
+    projectPath = p.join(workspace.path, 'project.ocpt');
+    secureStore.clear();
+
+    database = OcptProjectDatabase(File(projectPath));
+    spy = _SpySyncManager();
+
+    manager = OcptRelayHostManager(
+      secretsManager: secretsManager,
+      syncManager: spy,
+      platformManager: _StubPlatformManager(isMobile: false),
+      bindAddress: InternetAddress.loopbackIPv4,
+      lanAddressResolver: () async => [InternetAddress('192.168.1.42')],
+    );
+  });
+
+  tearDown(() async {
+    await manager.stopHosting();
+    await database.close();
+    workspace.deleteSync(recursive: true);
+  });
+
+  Future<void> startHosting() => manager.startHosting(
+    database: database,
+    projectFilePath: projectPath,
+    projectName: 'Les Vagues',
+    appVersion: '0.1.0',
+    deviceId: 'device-1',
+  );
+
+  test('a never-paired project pairs itself to its own hosted relay over localhost', () async {
+    await startHosting();
+
+    expect(spy.didPair, isTrue);
+    expect(spy.didRepoint, isFalse);
+    expect(spy.seededRelayBaseUri!.scheme, 'http');
+    expect(spy.seededRelayBaseUri!.host, 'localhost');
+    expect(spy.seededRelayBaseUri!.port, isNot(0));
+    expect(spy.seededEnrolmentSecret, (manager.state as OcptRelayHostOnline).enrolmentSecret);
+    expect(spy.seededProjectId, manager.hostedProjectId);
+  });
+
+  test('an already-paired project re-points itself to its own hosted relay, reusing its id', () async {
+    await database
+        .into(database.ocptSyncPairingsTable)
+        .insert(
+          OcptSyncPairingsTableCompanion.insert(
+            projectId: 'existing-project',
+            relayBaseUrl: 'https://prep.example.org/',
+          ),
+        );
+
+    await startHosting();
+
+    expect(spy.didRepoint, isTrue);
+    expect(spy.didPair, isFalse);
+    expect(spy.seededProjectId, 'existing-project');
+    expect(spy.seededRelayBaseUri!.host, 'localhost');
+  });
+
+  test('the presence roster is reachable while hosting, once the self-seed has started a session', () async {
+    await startHosting();
+
+    // The hosting panel reads OcptSyncManager.presenceRoster directly (Phase E) — this only
+    // proves the self-seed actually started a session, which is what makes presence live at all.
+    expect(spy.presenceRoster, isNotNull);
+  });
+
+  test('stopHosting ends the self-seeded sync session', () async {
+    await startHosting();
+
+    await manager.stopHosting();
+
+    expect(spy.didStopSession, isTrue);
+    expect(manager.state, const OcptRelayHostStopped());
+  });
+
+  test('moves from stopped to starting to online while starting hosting', () async {
+    final emitted = <OcptRelayHostState>[];
+    final subscription = manager.stateStream.listen(emitted.add);
+
+    expect(manager.state, const OcptRelayHostStopped());
+
+    await startHosting();
+    // The broadcast controller delivers events asynchronously, one microtask after add(): drain
+    // the queue so every state startHosting already set has actually reached this listener.
+    await pumpEventQueue();
+
+    // startHosting stops any previous host first (harmless here, since nothing was hosting yet),
+    // so the exact sequence carries a leading OcptRelayHostStopped before the starting/online pair
+    // this test actually cares about.
+    expect(emitted, contains(const OcptRelayHostStarting()));
+    expect(emitted.last, isA<OcptRelayHostOnline>());
+    expect(manager.state, isA<OcptRelayHostOnline>());
+    expect(manager.hostedProjectId, isNotNull);
+
+    await subscription.cancel();
+  });
+
+  test('advertises the LAN base URI built from the injected resolver and the bound port', () async {
+    await startHosting();
+
+    final state = manager.state;
+    expect(state, isA<OcptRelayHostOnline>());
+    final online = state as OcptRelayHostOnline;
+
+    expect(online.lanBaseUri.scheme, 'http');
+    expect(online.lanBaseUri.host, '192.168.1.42');
+    expect(online.lanBaseUri.port, isNot(0));
+  });
+
+  test("availableLanAddresses returns the injected resolver's own list", () async {
+    final addresses = await manager.availableLanAddresses();
+
+    expect(addresses, [InternetAddress('192.168.1.42')]);
+  });
+
+  test('startHosting binds the given port instead of the ephemeral default', () async {
+    // Finds a currently free port by binding an ephemeral socket and releasing it immediately,
+    // rather than a hard-coded port number that could already be taken on the test machine.
+    final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final freePort = probe.port;
+    await probe.close();
+
+    await manager.startHosting(
+      database: database,
+      projectFilePath: projectPath,
+      projectName: 'Les Vagues',
+      appVersion: '0.1.0',
+      deviceId: 'device-1',
+      port: freePort,
+    );
+
+    final online = manager.state as OcptRelayHostOnline;
+    expect(online.lanBaseUri.port, freePort);
+  });
+
+  test('creates the relay store file beside the project file', () async {
+    await startHosting();
+
+    final storePath = p.setExtension(projectPath, '.relay.sqlite');
+    expect(File(storePath).existsSync(), isTrue);
+  });
+
+  test('mints the hosting enrolment secret once and reuses it across restarts', () async {
+    await startHosting();
+    final firstSecret = (manager.state as OcptRelayHostOnline).enrolmentSecret;
+    final projectId = manager.hostedProjectId!;
+
+    await manager.stopHosting();
+    await startHosting();
+    final secondSecret = (manager.state as OcptRelayHostOnline).enrolmentSecret;
+
+    expect(secondSecret, firstSecret);
+    expect(await secretsManager.loadHostingEnrolmentSecret(projectId), firstSecret);
+  });
+
+  test('throws a StateError when starting hosting on a mobile platform', () {
+    final mobileManager = OcptRelayHostManager(
+      secretsManager: secretsManager,
+      syncManager: spy,
+      platformManager: _StubPlatformManager(isMobile: true),
+      bindAddress: InternetAddress.loopbackIPv4,
+    );
+
+    expect(
+      () => mobileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
+
+  test('reports a failed state when the LAN address resolver throws', () async {
+    final failingManager = OcptRelayHostManager(
+      secretsManager: secretsManager,
+      syncManager: spy,
+      platformManager: _StubPlatformManager(isMobile: false),
+      bindAddress: InternetAddress.loopbackIPv4,
+      lanAddressResolver: () async => throw Exception('no network available'),
+    );
+
+    await failingManager.startHosting(
+      database: database,
+      projectFilePath: projectPath,
+      projectName: 'Les Vagues',
+      appVersion: '0.1.0',
+      deviceId: 'device-1',
+    );
+
+    expect(failingManager.state, isA<OcptRelayHostFailed>());
+
+    await failingManager.stopHosting();
+  });
+
+  group('reconcileWithUpstream', () {
+    late OcptRelayStore hostStore;
+    late OcptRelayHostManager reconcileManager;
+    late OcptRelayStore upstreamStore;
+    late OcptRelayServer upstreamServer;
+    late HttpServer upstreamHttp;
+    late Uri upstreamBaseUri;
+    late OcptRelayInvite invite;
+    HttpOverrides? previousHttpOverrides;
+
+    setUp(() async {
+      // `flutter test` installs a global HttpOverrides that fails every real HttpClient request
+      // with a 400, to catch a widget test accidentally hitting the network — this group needs a
+      // real loopback socket, exactly like `ocpt_relay_reconciler_test.dart`'s own plain-Dart
+      // setup, so it is lifted for the duration of this group and restored in tearDown.
+      previousHttpOverrides = HttpOverrides.current;
+      HttpOverrides.global = null;
+
+      hostStore = OcptRelayStore(':memory:');
+      reconcileManager = OcptRelayHostManager(
+        secretsManager: secretsManager,
+        syncManager: spy,
+        platformManager: _StubPlatformManager(isMobile: false),
+        bindAddress: InternetAddress.loopbackIPv4,
+        lanAddressResolver: () async => [InternetAddress('192.168.1.42')],
+        storeFactory: (_) => hostStore,
+      );
+
+      // Points startHosting's self-seed at a known project id, so the invite built below can
+      // target it without having to first inspect what startHosting minted.
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(projectId: 'project-1', relayBaseUrl: 'https://prep.example.org/'),
+          );
+
+      upstreamStore = OcptRelayStore(':memory:');
+      upstreamServer = OcptRelayServer(store: upstreamStore, enrolmentSecret: 'enrolment-secret');
+      upstreamHttp = await shelf_io.serve(upstreamServer.handler, 'localhost', 0);
+      upstreamBaseUri = Uri.parse('http://localhost:${upstreamHttp.port}');
+
+      invite = OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'project-1', token: 'token-1');
+    });
+
+    tearDown(() async {
+      // stopHosting closes hostStore itself (it is the very store startHosting opened, through
+      // the injected storeFactory) — closing it again here would double-dispose it.
+      await reconcileManager.stopHosting();
+      await upstreamHttp.close(force: true);
+      upstreamStore.close();
+      HttpOverrides.global = previousHttpOverrides;
+    });
+
+    test('pushes every local changeset to an upstream that has none yet', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      hostStore.append('project-1', _envelope('changeset-1'));
+      hostStore.append('project-1', _envelope('changeset-2'));
+      hostStore.append('project-1', _envelope('changeset-3'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileSucceeded>());
+      expect((outcome as OcptReconcileSucceeded).pushed, 3);
+      expect(outcome.pulled, 0);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-1',
+        'changeset-2',
+        'changeset-3',
+      ]);
+    });
+
+    test('pulls what the upstream holds while pushing what the local store holds', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      hostStore.append('project-1', _envelope('set-1'));
+      hostStore.append('project-1', _envelope('set-2'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      upstreamStore.append('project-1', _envelope('upstream-2'));
+
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileSucceeded>());
+      expect((outcome as OcptReconcileSucceeded).pushed, 2);
+      expect(outcome.pulled, 2);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'upstream-1',
+        'upstream-2',
+      });
+      final onHost = hostStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onHost.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'upstream-1',
+        'upstream-2',
+      });
+    });
+
+    test('a second run right after the first pushes and pulls nothing new', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      hostStore.append('project-1', _envelope('set-1'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      await reconcileManager.reconcileWithUpstream(invite);
+
+      final second = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(second, isA<OcptReconcileSucceeded>());
+      expect((second as OcptReconcileSucceeded).pushed, 0);
+      expect(second.pulled, 0);
+    });
+
+    test('reports a failed outcome when nothing is being hosted', () async {
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileFailed>());
+    });
+
+    test('reports a failed outcome when the invite names a different project than the hosted one', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      final outcome = await reconcileManager.reconcileWithUpstream(
+        OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'other-project', token: 'token-1'),
+      );
+
+      expect(outcome, isA<OcptReconcileFailed>());
+    });
+  });
+
+  group('rankLanAddresses', () {
+    test('the address matching primaryAddress is placed first', () {
+      final candidates = [
+        (address: InternetAddress('172.20.0.1'), interfaceName: 'eth0'),
+        (address: InternetAddress('192.168.1.42'), interfaceName: 'wlan0'),
+      ];
+
+      final ranked = rankLanAddresses(candidates, primaryAddress: '192.168.1.42');
+
+      expect(ranked, [InternetAddress('192.168.1.42'), InternetAddress('172.20.0.1')]);
+    });
+
+    test('a WSL/VPN-named interface is deprioritised below a plainly-named one', () {
+      final candidates = [
+        (address: InternetAddress('172.20.0.1'), interfaceName: 'vEthernet (WSL)'),
+        (address: InternetAddress('10.8.0.2'), interfaceName: 'NordLynx'),
+        (address: InternetAddress('192.168.1.42'), interfaceName: 'Wi-Fi'),
+      ];
+
+      final ranked = rankLanAddresses(candidates);
+
+      expect(ranked, [
+        InternetAddress('192.168.1.42'),
+        InternetAddress('172.20.0.1'),
+        InternetAddress('10.8.0.2'),
+      ]);
+    });
+
+    test('with no primary and no virtual names, order is preserved', () {
+      final candidates = [
+        (address: InternetAddress('192.168.1.42'), interfaceName: 'Ethernet'),
+        (address: InternetAddress('192.168.1.99'), interfaceName: 'Wi-Fi'),
+      ];
+
+      final ranked = rankLanAddresses(candidates);
+
+      expect(ranked, [InternetAddress('192.168.1.42'), InternetAddress('192.168.1.99')]);
+    });
+  });
+
+  group('host on launch', () {
+    late OcptRelayHostManager autoManager;
+
+    setUp(() {
+      autoManager = OcptRelayHostManager(
+        secretsManager: secretsManager,
+        syncManager: spy,
+        propertiesManager: propertiesManager,
+        platformManager: _StubPlatformManager(isMobile: false),
+        bindAddress: InternetAddress.loopbackIPv4,
+        lanAddressResolver: () async => [InternetAddress('192.168.1.42')],
+      );
+    });
+
+    tearDown(() async {
+      await autoManager.stopHosting();
+    });
+
+    test('the flag round-trips per project, defaulting to false', () async {
+      expect(await propertiesManager.loadHostOnLaunch('flag-proj-x'), isFalse);
+
+      await propertiesManager.setHostOnLaunch(projectId: 'flag-proj-x', value: true);
+
+      expect(await propertiesManager.loadHostOnLaunch('flag-proj-x'), isTrue);
+      expect(await propertiesManager.loadHostOnLaunch('flag-proj-y'), isFalse);
+    });
+
+    test('auto-starts hosting when the project is paired and the flag is set', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-1',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-1', value: true);
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(autoManager.state, isA<OcptRelayHostOnline>());
+    });
+
+    test('does not restart hosting when it is already hosting the same project', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-idem',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-idem', value: true);
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+      expect(autoManager.state, isA<OcptRelayHostOnline>());
+
+      // A second call for the same project — as navigating back to it would make — must NOT restart
+      // hosting: a restart would re-seed and rebind the socket, stranding any connected peer.
+      spy.didPair = false;
+      spy.didRepoint = false;
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(spy.didPair, isFalse);
+      expect(spy.didRepoint, isFalse);
+      expect(autoManager.state, isA<OcptRelayHostOnline>());
+    });
+
+    test('does not auto-start hosting when the flag is unset', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-2',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(autoManager.state, const OcptRelayHostStopped());
+    });
+
+    test('does not auto-start hosting an unpaired project', () async {
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-3', value: true);
+
+      await autoManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(autoManager.state, const OcptRelayHostStopped());
+    });
+
+    test('is a no-op on mobile', () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'auto-4',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
+      await propertiesManager.setHostOnLaunch(projectId: 'auto-4', value: true);
+
+      final mobileManager = OcptRelayHostManager(
+        secretsManager: secretsManager,
+        syncManager: spy,
+        propertiesManager: propertiesManager,
+        platformManager: _StubPlatformManager(isMobile: true),
+        bindAddress: InternetAddress.loopbackIPv4,
+      );
+
+      await mobileManager.maybeAutoStartHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      expect(mobileManager.state, const OcptRelayHostStopped());
+    });
+  });
+}
+
+/// The sha256 hex digest [OcptRelayStore.createProject] expects as a `tokenHash` — mirrors
+/// `OcptRelayServer`'s own hashing, so a test-seeded upstream project accepts the same bearer
+/// token an [OcptRelayInvite] in this file authenticates with. Mirrors
+/// `ocpt_relay_reconciler_test.dart`'s own helper.
+String _tokenHash(String token) => sha256.convert(utf8.encode(token)).toString();
+
+/// A minimal changeset envelope for the reconcile tests, whose payload content is never
+/// inspected — mirrors `ocpt_relay_reconciler_test.dart`'s own helper.
+OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptChangesetEnvelope(
+  changesetId: changesetId,
+  originDeviceId: 'device-1',
+  lamport: lamport,
+  createdAt: DateTime.utc(2026),
+  payload: Uint8List.fromList([1, 2, 3]),
+);

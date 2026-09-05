@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:ui';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
@@ -172,16 +174,22 @@ class OcptShotListXlsxExportRequestedEvent extends OcptShotListEvent {
   /// one episode or none — see `ocptWorkspaceEpisodeExportTagOf`.
   final String? episodeTag;
 
+  /// The tapped `Export` control's own screen `Rect`, anchoring the OS share sheet's popover on an
+  /// iPad/Mac when the export is handed to it rather than to the native save dialog; null on
+  /// desktop and wherever no anchor was resolved.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptShotListXlsxExportRequestedEvent({
     required this.labels,
     required this.fileTypeLabel,
     this.episodeTag,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag];
+  List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }
 
 /// Requests exporting the screenplay annotated with the shots covering it, dispatched by the mode's
@@ -208,17 +216,22 @@ class OcptShotListScenarioCoverageExportRequestedEvent extends OcptShotListEvent
   /// [OcptShotListXlsxExportRequestedEvent.episodeTag] is — see its own doc comment.
   final String? episodeTag;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptShotListXlsxExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptShotListScenarioCoverageExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
     this.episodeTag,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, episodeTag];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, episodeTag, shareAnchor];
 }
 
 /// Dismisses the transient export notice currently shown, if any.

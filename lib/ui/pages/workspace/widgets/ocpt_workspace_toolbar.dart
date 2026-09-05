@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The size of the accent-filled square carrying the back action, small enough to sit inside the
 /// [ocptToolbarHeight] band with room to breathe, and deliberately smaller than the chrome buttons
@@ -31,12 +32,25 @@ const double _dirtyMarkerSize = 6;
 /// [overflowEntries]. The chrome slots after them are ordered by this widget rather than by the
 /// mode, so every mode's toolbar ends the same way; a mode that has nothing to put in one of them
 /// simply leaves it empty and it is not rendered at all.
+///
+/// Below [ocptCompactWidthBreakpoint] ([isCompact]), [title] and [modeLabel] are withheld outright
+/// — see [isCompact]'s own doc comment.
 class OcptWorkspaceToolbar extends StatelessWidget {
   /// The title shown at the left of the toolbar (the open project's name).
   final String title;
 
   /// Whether there are unsaved changes, shown as a dot next to the title.
   final bool isDirty;
+
+  /// Whether the shell has laid this toolbar out below [ocptCompactWidthBreakpoint].
+  ///
+  /// Below it, [title] and [modeLabel] are dropped entirely rather than shown ellipsized: neither
+  /// reads as anything but noise once the band has no room to show it in full, and dropping them
+  /// frees space the phone/tablet controls need more. This is distinct from [ocptIsPhoneWidth],
+  /// which folds a different set of controls (export, settings, help) into the `⋮` overflow at a
+  /// narrower width still — the two breakpoints are never the same width, so this flag is never a
+  /// stand-in for that one.
+  final bool isCompact;
 
   /// Whether what the workspace shows is a project version being previewed read-only, shown as the
   /// `Read only` pill in place of the unsaved-changes dot.
@@ -70,8 +84,14 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// null to show no label at all.
   final String? modeLabel;
 
-  /// The `Export` control, shown after [modeLabel] and before [dockToggles], or null when the mode
-  /// prints nothing — no control is rendered at all then, rather than a disabled one. Every
+  /// The presence indicator, shown after [modeLabel] and before [exportAction] — workspace chrome
+  /// rather than a mode's own control, exactly like the rest of this widget's trailing slots, which
+  /// is why it is built by the shell and handed in here rather than contributed through [actions].
+  /// Null renders nothing at all, the unpaired-project case the indicator itself already answers.
+  final Widget? presenceIndicator;
+
+  /// The `Export` control, shown after [presenceIndicator] and before [dockToggles], or null when
+  /// the mode prints nothing — no control is rendered at all then, rather than a disabled one. Every
   /// implemented mode wires it today, the budget mode included: even at M1, before it prints a
   /// document of its own, the panel it opens still offers the project package export every mode's
   /// panel carries as its own standing card (`OcptWorkspaceExportDialog`'s own doc comment).
@@ -120,11 +140,13 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     super.key,
     required this.title,
     required this.isDirty,
+    this.isCompact = false,
     this.isReadOnly = false,
     required this.onBack,
     this.episodeControl,
     this.actions = const [],
     this.modeLabel,
+    this.presenceIndicator,
     this.exportAction,
     this.dockToggles = const [],
     this.saveAction,
@@ -151,14 +173,15 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                   spacing: 10,
                   children: [
                     _buildBackAction(theme: theme, tr: tr),
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium,
+                    if (!isCompact)
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium,
+                        ),
                       ),
-                    ),
                     if (isReadOnly)
                       _buildReadOnlyPill(context: context, theme: theme, tr: tr)
                     else if (isDirty)
@@ -166,7 +189,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                     if (episodeControl != null) episodeControl!,
                     const Spacer(),
                     ...actions,
-                    if (modeLabel != null)
+                    if (modeLabel != null && !isCompact)
                       // Flexible like the title, so a window too narrow for a mode's whole
                       // toolbar ellipsizes the two labels rather than overflowing the row: every
                       // control around them is a fixed-size button that can't give any width up.
@@ -180,6 +203,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (presenceIndicator != null) presenceIndicator!,
                     if (exportAction != null) exportAction!,
                     ...dockToggles,
                     if (saveAction != null) saveAction!,
@@ -187,7 +211,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                     if (helpAction != null) helpAction!,
                     if (overflowEntries.isNotEmpty)
                       PopupMenuButton<void>(
-                        icon: const Icon(Icons.more_vert, size: 20),
+                        icon: const Icon(Icons.more_vert, size: 24),
                         tooltip: MaterialLocalizations.of(context).showMenuTooltip,
                         style: chromeButtonStyle,
                         itemBuilder: (context) => overflowEntries,

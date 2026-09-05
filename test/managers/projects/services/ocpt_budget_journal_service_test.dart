@@ -18,9 +18,10 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptBudgetJournalService();
-  const assetsService = OcptAssetsService();
-  const quoteService = OcptBudgetQuoteService();
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final service = OcptBudgetJournalService(assetsService: assetsService, deviceId: testDeviceId);
+  final quoteService = OcptBudgetQuoteService(deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
   late String posteId;
@@ -33,6 +34,13 @@ void main() {
   tearDown(() async {
     await database.close();
   });
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   group("entry CRUD", () {
     test("createEntry mints a sequential voucher number and appends at the end", () async {
@@ -269,6 +277,7 @@ void main() {
         kind: OcptAssetKind.receipt,
         path: "/tmp/receipt.pdf",
         budgetEntryId: entryId,
+        stamps: null,
       );
 
       await service.deleteEntry(database: database, entryId: entryId);
@@ -643,6 +652,238 @@ void main() {
 
       final commitments = await service.loadCommitments(database: database);
       expect(commitments.map((c) => c.id), [sooner, later, undated]);
+    });
+  });
+
+  group("stamping", () {
+    test("createEntry stamps every column of the new row", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Essence",
+        posteId: posteId,
+        debitCents: 6000,
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals(entryId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_entries/$entryId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_entries/$entryId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        // The device clock already ticked once creating `posteId` in setUp, so this entry's own
+        // transaction reserves the next tick, not the first one.
+        expect(stamp!.version, 2);
+      }
+    });
+
+    test("updateEntry stamps only the columns that actually changed", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "A",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateEntry(
+        database: database,
+        entryId: entryId,
+        label: const Value("Renamed"),
+        debitCents: const Value(5000),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("budget_entries/$entryId/")).toSet();
+      expect(ownKeys, {"budget_entries/$entryId/label", "budget_entries/$entryId/debitCents"});
+    });
+
+    test("deleteEntry stamps isDeleted on the entry", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "A",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteEntry(database: database, entryId: entryId);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_entries/$entryId/isDeleted"]!.version, 1);
+    });
+
+    test("createCommitment stamps every column of the new row", () async {
+      final commitmentId = (await service.createCommitment(
+        database: database,
+        posteId: posteId,
+        label: "Assurance",
+        amountCents: 20000,
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetCommitmentsTable,
+      )..where((table) => table.id.equals(commitmentId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_commitments/$commitmentId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_commitments/$commitmentId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        // The device clock already ticked once creating `posteId` in setUp, so this commitment's
+        // own transaction reserves the next tick, not the first one.
+        expect(stamp!.version, 2);
+      }
+    });
+
+    test("updateCommitment stamps only the columns that actually changed", () async {
+      final commitmentId = (await service.createCommitment(
+        database: database,
+        posteId: posteId,
+        label: "Assurance",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateCommitment(
+        database: database,
+        commitmentId: commitmentId,
+        label: const Value("Assurance tournage"),
+        amountCents: const Value(45000),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("budget_commitments/$commitmentId/"))
+          .toSet();
+      expect(ownKeys, {
+        "budget_commitments/$commitmentId/label",
+        "budget_commitments/$commitmentId/amountCents",
+      });
+    });
+
+    test("deleteCommitment stamps isDeleted on the commitment", () async {
+      final commitmentId = (await service.createCommitment(
+        database: database,
+        posteId: posteId,
+        label: "A",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteCommitment(database: database, commitmentId: commitmentId);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_commitments/$commitmentId/isDeleted"]!.version, 1);
+    });
+
+    test("setEntryReceipt stamps the receipt asset it mints — previously left unstamped", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Essence",
+        debitCents: 6000,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final assetId = (await service.setEntryReceipt(
+        database: database,
+        entryId: entryId,
+        path: "/tmp/receipt.pdf",
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(assetId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("assets/$assetId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["assets/$assetId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+      }
+    });
+
+    test(
+      "setEntryReceipt stamps isDeleted on the receipt it replaces — previously left unstamped",
+      () async {
+        final entryId = (await service.createEntry(
+          database: database,
+          date: DateTime.utc(2026, 3, 6),
+          label: "Essence",
+          debitCents: 6000,
+        ))!;
+        final firstAssetId = (await service.setEntryReceipt(
+          database: database,
+          entryId: entryId,
+          path: "/tmp/first.pdf",
+        ))!;
+        await database.delete(database.ocptRowFieldVersionsTable).go();
+
+        await service.setEntryReceipt(
+          database: database,
+          entryId: entryId,
+          path: "/tmp/second.pdf",
+        );
+
+        final stamps = await readStamps();
+        expect(stamps["assets/$firstAssetId/isDeleted"]!.version, 1);
+      },
+    );
+
+    test(
+      "clearEntryReceipt stamps isDeleted on the receipt — previously left unstamped",
+      () async {
+        final entryId = (await service.createEntry(
+          database: database,
+          date: DateTime.utc(2026, 3, 6),
+          label: "Essence",
+          debitCents: 6000,
+        ))!;
+        final assetId = (await service.setEntryReceipt(
+          database: database,
+          entryId: entryId,
+          path: "/tmp/receipt.pdf",
+        ))!;
+        await database.delete(database.ocptRowFieldVersionsTable).go();
+
+        await service.clearEntryReceipt(database: database, entryId: entryId);
+
+        final stamps = await readStamps();
+        expect(stamps["assets/$assetId/isDeleted"]!.version, 1);
+      },
+    );
+
+    test("deleteEntry stamps isDeleted on its own live receipt asset too", () async {
+      final entryId = (await service.createEntry(
+        database: database,
+        date: DateTime.utc(2026, 3, 6),
+        label: "Essence",
+        debitCents: 6000,
+      ))!;
+      final assetId = (await service.setEntryReceipt(
+        database: database,
+        entryId: entryId,
+        path: "/tmp/receipt.pdf",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteEntry(database: database, entryId: entryId);
+
+      final stamps = await readStamps();
+      expect(stamps["assets/$assetId/isDeleted"]!.version, 1);
+      expect(stamps["budget_entries/$entryId/isDeleted"]!.version, 1);
     });
   });
 }

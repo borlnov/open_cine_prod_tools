@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
@@ -21,8 +22,12 @@ import 'package:uuid/uuid.dart';
 /// **Orders flat by `sortKey`**, like the financing plan's own two catalogues: a defrayal belongs
 /// inside no other row.
 class OcptBudgetAllowancesService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptBudgetAllowancesService();
+  const OcptBudgetAllowancesService({required this.deviceId});
 
   /// Loads every live defrayal of [database], in `sortKey` order.
   Future<List<OcptBudgetAllowance>> loadAllowances({required OcptProjectDatabase database}) async {
@@ -55,24 +60,30 @@ class OcptBudgetAllowancesService {
     final existing = await _liveAllowanceRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptBudgetAllowancesTable)
-        .insert(
-          OcptBudgetAllowancesTableCompanion.insert(
-            id: id,
-            personId: Value(personId),
-            kind: Value(kind),
-            label: Value(label),
-            date: Value(date),
-            endDate: Value(endDate),
-            quantityMilli: Value(quantityMilli),
-            unitAmountMilliCents: Value(unitAmountMilliCents),
-            notes: Value(notes),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetAllowancesTable,
+        rowId: id,
+        current: null,
+        next: OcptBudgetAllowanceRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          personId: personId,
+          kind: kind,
+          label: label,
+          date: date,
+          endDate: endDate,
+          quantityMilli: quantityMilli,
+          unitAmountMilliCents: unitAmountMilliCents,
+          notes: notes,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -98,20 +109,39 @@ class OcptBudgetAllowancesService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetAllowancesTable,
-    )..where((table) => table.id.equals(allowanceId))).write(
-      OcptBudgetAllowancesTableCompanion(
-        personId: personId,
-        kind: kind,
-        label: label,
-        date: date,
-        endDate: endDate,
-        quantityMilli: quantityMilli,
-        unitAmountMilliCents: unitAmountMilliCents,
-        notes: notes,
-      ),
+    final companion = OcptBudgetAllowancesTableCompanion(
+      personId: personId,
+      kind: kind,
+      label: label,
+      date: date,
+      endDate: endDate,
+      quantityMilli: quantityMilli,
+      unitAmountMilliCents: unitAmountMilliCents,
+      notes: notes,
     );
+
+    await database.transaction(() async {
+      // This lookup deliberately does not filter `isDeleted`, matching the plain `where` update
+      // this method wrote before stamping existed: a defrayal's own tombstone was never guarded
+      // against here, unlike every other table's own `updateX`.
+      final current = await (database.select(
+        database.ocptBudgetAllowancesTable,
+      )..where((table) => table.id.equals(allowanceId))).getSingleOrNull();
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetAllowancesTable,
+        rowId: allowanceId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves defrayal [allowanceId] to [newPosition] (0-based) within the list's own flat `sortKey`
@@ -129,6 +159,11 @@ class OcptBudgetAllowancesService {
     }
 
     await database.transaction(() async {
+      final current = await _liveAllowanceRowOrNull(database: database, allowanceId: allowanceId);
+      if (current == null) {
+        return;
+      }
+
       final others = (await _liveAllowanceRows(database))
         ..removeWhere((row) => row.id == allowanceId);
 
@@ -141,11 +176,16 @@ class OcptBudgetAllowancesService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptBudgetAllowancesTable,
-      )..where((table) => table.id.equals(allowanceId))).write(
-        OcptBudgetAllowancesTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetAllowancesTable,
+        rowId: allowanceId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -162,11 +202,23 @@ class OcptBudgetAllowancesService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetAllowancesTable,
-    )..where((table) => table.id.equals(allowanceId))).write(
-      const OcptBudgetAllowancesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await _liveAllowanceRowOrNull(database: database, allowanceId: allowanceId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetAllowancesTable,
+        rowId: allowanceId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Every live defrayal row of [database], in `sortKey` order.
@@ -175,4 +227,12 @@ class OcptBudgetAllowancesService {
             ..where((table) => table.isDeleted.equals(false))
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// The live defrayal row [allowanceId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetAllowanceRow?> _liveAllowanceRowOrNull({
+    required OcptProjectDatabase database,
+    required String allowanceId,
+  }) => (database.select(database.ocptBudgetAllowancesTable)
+        ..where((table) => table.id.equals(allowanceId) & table.isDeleted.not()))
+      .getSingleOrNull();
 }

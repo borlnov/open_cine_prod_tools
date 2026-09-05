@@ -25,7 +25,7 @@ class OcptWorkspaceDock extends StatelessWidget {
   static const double rightMinWidth = 300;
 
   /// The right dock's default width, as a fraction of the editing row's width.
-  static const double rightDefaultFraction = 0.45;
+  static const double rightDefaultFraction = 0.40;
 
   /// The maximum width the right dock can be resized up to, as a fraction of the editing row's
   /// width.
@@ -37,8 +37,9 @@ class OcptWorkspaceDock extends StatelessWidget {
   static const double centreMinWidth = 320;
 
   /// The width of a divider's hit area (see [OcptWorkspaceDockDivider]), reserved out of the row's
-  /// width before splitting the rest between the docks and the centre floor.
-  static const double dividerHitWidth = 8;
+  /// width before splitting the rest between the docks and the centre floor. Wide enough to be a
+  /// comfortable target for a finger, not only a mouse, since a tablet resizes its docks by touch.
+  static const double dividerHitWidth = 12;
 
   /// The resolved pixel width this dock is given.
   final double width;
@@ -134,9 +135,14 @@ class OcptWorkspaceDock extends StatelessWidget {
   }
 }
 
-/// The draggable divider separating a dock from the centre area: an 8 px hit area
-/// ([OcptWorkspaceDock.dividerHitWidth]) drawn as a centred 1 px `outlineVariant` line, tinted
-/// `primary` while hovered or dragged, with a resize cursor on hover.
+/// The draggable divider separating a dock from the centre area: a hit area
+/// ([OcptWorkspaceDock.dividerHitWidth]) drawn as a centred 1 px `outlineVariant` line carrying a
+/// small three-dot grip, both tinted `primary` while hovered or dragged, with a resize cursor on
+/// hover.
+///
+/// The grip is what makes the divider read as *grabbable* rather than as a passive seam — it shows
+/// on desktop and on a tablet alike, so a finger has a visible thing to catch where a hover cursor
+/// never appears.
 ///
 /// Reports raw horizontal drag deltas in pixels through [onDragUpdate]; converting them to a
 /// fraction (and picking their sign for the dock being resized) is the caller's job, since only
@@ -156,8 +162,22 @@ class OcptWorkspaceDockDivider extends StatefulWidget {
   State<OcptWorkspaceDockDivider> createState() => _OcptWorkspaceDockDividerState();
 }
 
-/// The state of [OcptWorkspaceDockDivider]: tracks hover and drag to tint the divider line.
+/// The state of [OcptWorkspaceDockDivider]: tracks hover and drag to tint the divider line and its
+/// grip.
 class _OcptWorkspaceDockDividerState extends State<OcptWorkspaceDockDivider> {
+  /// The grip's own width, in pixels — narrower than [OcptWorkspaceDock.dividerHitWidth] so it sits
+  /// clear of both edges of the hit area.
+  static const double _gripWidth = 6;
+
+  /// The grip's own height, in pixels.
+  static const double _gripHeight = 32;
+
+  /// The diameter of each of the grip's three dots.
+  static const double _gripDotSize = 2.5;
+
+  /// The vertical gap between two of the grip's dots.
+  static const double _gripDotGap = 3;
+
   /// Whether the pointer is currently hovering the divider.
   bool _isHovered = false;
 
@@ -168,6 +188,7 @@ class _OcptWorkspaceDockDividerState extends State<OcptWorkspaceDockDivider> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isTinted = _isHovered || _isDragging;
+    final lineColor = isTinted ? theme.colorScheme.primary : theme.colorScheme.outlineVariant;
 
     return MouseRegion(
       cursor: SystemMouseCursors.resizeLeftRight,
@@ -183,13 +204,46 @@ class _OcptWorkspaceDockDividerState extends State<OcptWorkspaceDockDivider> {
         },
         child: SizedBox(
           width: OcptWorkspaceDock.dividerHitWidth,
-          child: Center(
-            child: Container(
-              width: 1,
-              color: isTinted ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
-            ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // The full-height seam line, behind the grip: a childless [Container] with a forced
+              // width fills the loose height Center hands it.
+              Center(child: Container(width: 1, color: lineColor)),
+              Center(child: _buildGrip(theme, isTinted)),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Builds the three-dot grip: a rounded, faintly filled pill carrying three stacked dots, all of
+  /// it tinted `primary` while [isTinted] (hovered or dragged) so grabbing it lights it up.
+  Widget _buildGrip(ThemeData theme, bool isTinted) {
+    final dotColor = isTinted ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
+    final pillColor = isTinted
+        ? theme.colorScheme.primary.withValues(alpha: 0.16)
+        : theme.colorScheme.surfaceContainerHighest;
+
+    return Container(
+      width: _gripWidth,
+      height: _gripHeight,
+      decoration: BoxDecoration(
+        color: pillColor,
+        borderRadius: BorderRadius.circular(_gripWidth / 2),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (var i = 0; i < 3; i++) ...[
+            if (i > 0) const SizedBox(height: _gripDotGap),
+            DecoratedBox(
+              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+              child: const SizedBox.square(dimension: _gripDotSize),
+            ),
+          ],
+        ],
       ),
     );
   }

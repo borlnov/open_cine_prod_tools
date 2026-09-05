@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_find_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_controls.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_overflow_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
@@ -58,10 +59,12 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shortcut_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 
-/// The screenplay editor: either the styled block editor or the raw Fountain source in the
-/// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
+/// The screenplay editor: either the styled block editor or the raw Fountain source in the center
+/// (depending on the persisted `OcptEditorMode`, forced to the styled editor on a phone — see
+/// `_EditorViewState._liveMode`/`docs/plans/tablet.md`), the collapsible scene panel on the left,
 /// the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide, the scene
 /// inspector, the read-only metadata panel and the project versions, all four in both modes)
 /// hosting at most one panel at a time, and a thin toolbar above them.
@@ -262,6 +265,43 @@ class _EditorViewState extends State<_EditorView> {
     super.dispose();
   }
 
+  /// Whether the window this page is laid out in is a phone ([ocptIsPhoneWidth]/
+  /// `docs/plans/tablet.md`) narrow enough to force the styled editor as the only editing surface,
+  /// and page simulation off, regardless of what [OcptEditorState.mode] and
+  /// [OcptEditorState.isPageSimulationEnabled] are persisted as: raw source (and its own
+  /// find/replace and spell-check wiring) and a real-size simulated page have no room to be usable
+  /// there. Deliberately the *phone* breakpoint rather than [ocptIsCompactWidth]'s wider one: a
+  /// tablet window between the two still has room for the toolbar's format controls (hidden in raw
+  /// mode, shown the moment the styled editor is forced on) beside everything else the toolbar
+  /// already carries there, which a phone-width toolbar has separately been folded down for
+  /// (`OcptWorkspaceShell`) but a merely-compact one has not.
+  ///
+  /// Read straight off [MediaQuery] rather than a value captured once by a `LayoutBuilder` in
+  /// [build]: [_syncRawSearch] and its siblings run from the `BlocConsumer`'s `listener`, which
+  /// fires independently of (and sometimes before) a rebuild, so they need a getter that always
+  /// answers with the window's current width rather than a stale build-time snapshot.
+  bool get _isPhoneWidth => ocptIsPhoneWidth(MediaQuery.sizeOf(context).width);
+
+  /// Whether the window this page is laid out in is narrow enough ([ocptIsCompactWidth]) that the
+  /// styled editor — forced on by [_isPhoneWidth], or simply the user's own live preference at any
+  /// width — should carry its block hierarchy by style rather than by the real screenplay indents
+  /// (see [OcptStyledScreenplayEditor.isCompact]/`docs/plans/tablet.md`): a tablet window has more
+  /// room than a phone, but still not the width a real screenplay page wants.
+  bool get _isCompactWidth => ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
+
+  /// The editing mode actually driving which surface is live and wired up:
+  /// [OcptEditorState.mode], unless [_isPhoneWidth] forces the styled editor regardless. The
+  /// user's own raw/styled toggle (the toolbar icon, Ctrl+Shift+M) is left untouched by this —
+  /// it keeps persisting whatever the user picks, and widening the window back out returns to it.
+  OcptEditorMode _liveMode(OcptEditorState state) => _isPhoneWidth ? OcptEditorMode.styled : state.mode;
+
+  /// Whether page simulation is actually applied to the live editing surface:
+  /// [OcptEditorState.isPageSimulationEnabled], forced off at [_isPhoneWidth] for the same reason
+  /// [_liveMode] forces the mode — a real-size simulated page has no room to be legible on a
+  /// phone. The user's own toggle is left untouched the same way [_liveMode] leaves the mode
+  /// toggle untouched.
+  bool _isPageSimulationLive(OcptEditorState state) => state.isPageSimulationEnabled && !_isPhoneWidth;
+
   @override
   Widget build(BuildContext context) => Shortcuts(
     shortcuts: const {
@@ -296,7 +336,7 @@ class _EditorViewState extends State<_EditorView> {
             }
 
             final isReadOnly = state.isPreviewingVersion;
-            final isRawMode = state.mode == OcptEditorMode.raw;
+            final isRawMode = _liveMode(state) == OcptEditorMode.raw;
             final workspaceState = context.watch<OcptWorkspaceBloc>().state;
 
             return OcptWorkspaceShell(
@@ -321,7 +361,7 @@ class _EditorViewState extends State<_EditorView> {
                     ),
               toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
               modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
-              onExportRequested: () => unawaited(_requestExport(context)),
+              onExportRequested: (anchor) => unawaited(_requestExport(context, anchor)),
               overflowEntries: _buildOverflowEntries(context, state),
               isLeftDockOpen: state.isScenePanelVisible,
               onToggleLeftDock: () => context.read<OcptEditorBloc>().add(
@@ -395,6 +435,16 @@ class _EditorViewState extends State<_EditorView> {
   /// layout leaves the syntax guide reachable through the dock's tab row alone, which keeps the
   /// toolbar from carrying a shortcut to a tab the mode barely uses.
   ///
+  /// Below [ocptCompactWidthBreakpoint] ([_isCompactWidth]) the format controls fold into
+  /// [OcptEditorFormatOverflowMenu]'s own `⋮` button instead of [OcptEditorFormatControls]'s inline
+  /// dropdown and three toggle buttons: the fixed-width inline row has no room left beside
+  /// everything else the toolbar already carries there once the window drops under
+  /// [ocptCompactWidthBreakpoint] (a phone included — the styled editor is exactly what a phone
+  /// always shows, [_liveMode]), and a writer still has every one of these choices either way
+  /// (a phone additionally offers `OcptEditorContextMenu`'s own block-type submenu, or simply
+  /// typing the Fountain markup). Both widgets read and write the very same
+  /// [_styledEditorController], so this is never a second flow, only how it is presented.
+  ///
   /// A version being previewed leaves the whole group out: the format controls write, and the two
   /// remaining ones are about an editing mode that isn't shown at all then (the centre is the
   /// formatted preview whichever mode is active, and the dock's preview tab doesn't exist — see
@@ -412,7 +462,10 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     return [
-      OcptEditorFormatControls(controller: _styledEditorController),
+      if (_isCompactWidth)
+        OcptEditorFormatOverflowMenu(controller: _styledEditorController)
+      else
+        OcptEditorFormatControls(controller: _styledEditorController),
       if (isRawMode) ...[
         IconButton(
           icon: Icon(
@@ -439,6 +492,10 @@ class _EditorViewState extends State<_EditorView> {
           ),
         ),
       ],
+      // Reads the persisted `state.mode` rather than [_liveMode]: this toggle is the user's own
+      // desktop preference (`docs/plans/tablet.md`), left untouched by a phone width forcing the
+      // styled editor onto the screen — it keeps stating (and toggling) what will apply once the
+      // window widens back out, not what happens to be rendered right this moment.
       IconButton(
         icon: Icon(state.mode == OcptEditorMode.styled ? Icons.code : Icons.style, size: 20),
         tooltip: state.mode == OcptEditorMode.styled
@@ -515,6 +572,9 @@ class _EditorViewState extends State<_EditorView> {
           ),
         ),
       ],
+      // Reads the persisted preference, not [_isPageSimulationLive], for the same reason the
+      // raw/styled toggle above does: this checkbox states what the user asked for, forced off at
+      // a phone width or not.
       CheckedPopupMenuItem<void>(
         checked: state.isPageSimulationEnabled,
         onTap: () => context.read<OcptEditorBloc>().add(
@@ -574,6 +634,14 @@ class _EditorViewState extends State<_EditorView> {
   /// mean a second super_editor rendering path (`SuperReader`, its own stylesheet, its own
   /// title-page components) to maintain forever. It applies in both editing modes, since neither of
   /// them may be typed into.
+  ///
+  /// [isRawMode] is already [_liveMode]'s answer by the time it reaches here (see [build]), so on a
+  /// phone the raw source field is never the one built here even when [OcptEditorState.mode] itself
+  /// still says raw — the styled editor is, with page simulation forced off ([_isPageSimulationLive])
+  /// and [OcptStyledScreenplayEditor.isCompact] set whenever the window is merely compact (a tablet
+  /// too, not only a phone — see [_isCompactWidth]), which is the phone default `docs/plans/tablet.md`
+  /// settled on: raw source and this same read-only preview (its own version-preview branch above)
+  /// have no room to be usable there either.
   Widget _buildCentre(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
     if (state.isPreviewingVersion) {
       return OcptEditorPreview(
@@ -594,7 +662,8 @@ class _EditorViewState extends State<_EditorView> {
         : OcptStyledScreenplayEditor(
             text: state.text,
             pageSetup: state.pageSetup,
-            isPageSimulationEnabled: state.isPageSimulationEnabled,
+            isPageSimulationEnabled: _isPageSimulationLive(state),
+            isCompact: _isCompactWidth,
             areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
             isSpellCheckVisible: state.isSpellCheckVisible,
             onTextChanged: (text) => context.read<OcptEditorBloc>().add(
@@ -677,13 +746,22 @@ class _EditorViewState extends State<_EditorView> {
   /// Builds the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide,
   /// the scene inspector, the read-only metadata panel and the project versions, all four in both
   /// modes), the shell's `rightPanel`, or null while the dock is closed.
+  ///
+  /// The preview tab is gated on [_liveMode] rather than [OcptEditorState.mode]: on a phone the
+  /// centre already is the formatted styled editor (see [_buildCentre]), the same reason
+  /// [OcptEditorState.isPreviewTabAvailable]'s own doc comment gives for leaving it out of styled
+  /// mode, so it would be redundant chrome even while the persisted preference is raw.
   Widget? _buildRightDock(BuildContext context, OcptEditorState state) {
     final rightDockTab = state.rightDockTab;
     if (rightDockTab == null) {
       return null;
     }
 
-    final previewChild = state.isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview
+    final isPreviewTabAvailable = OcptEditorState.isPreviewTabAvailableFor(
+      mode: _liveMode(state),
+      isReadOnly: state.isPreviewingVersion,
+    );
+    final previewChild = isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview
         ? OcptEditorPreview(
             document: state.document,
             pageSetup: state.pageSetup,
@@ -696,7 +774,7 @@ class _EditorViewState extends State<_EditorView> {
 
     return OcptEditorRightDock(
       activeTab: rightDockTab,
-      isPreviewTabAvailable: state.isPreviewTabAvailable,
+      isPreviewTabAvailable: isPreviewTabAvailable,
       previewChild: previewChild,
       inspectorChild: OcptEditorInspectorPanel(
         scene: currentSceneIndex == null ? null : state.scenes[currentSceneIndex],
@@ -819,7 +897,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Neither branch answers anything while a version is being previewed: there is no editing
   /// surface at all then, and the entries reading this are withheld before it is even called.
   ({bool canUndo, bool canRedo}) _historyAvailability(OcptEditorState state) =>
-      state.mode == OcptEditorMode.raw
+      _liveMode(state) == OcptEditorMode.raw
       ? (
           canUndo: _undoHistoryController.value.canUndo,
           canRedo: _undoHistoryController.value.canRedo,
@@ -829,7 +907,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Takes back the last gesture made in the surface [state] shows (the `⋮` menu's `Undo` entry),
   /// which is what Ctrl+Z reaches inside that same surface on its own.
   void _requestUndo(OcptEditorState state) {
-    if (state.mode == OcptEditorMode.raw) {
+    if (_liveMode(state) == OcptEditorMode.raw) {
       _undoHistoryController.undo();
     } else {
       _styledEditorController.undo();
@@ -840,7 +918,7 @@ class _EditorViewState extends State<_EditorView> {
   /// entry); the styled editor refuses one a later edit has overtaken, exactly as its own
   /// Ctrl+Shift+Z does.
   void _requestRedo(OcptEditorState state) {
-    if (state.mode == OcptEditorMode.raw) {
+    if (_liveMode(state) == OcptEditorMode.raw) {
       _undoHistoryController.redo();
     } else {
       _styledEditorController.redo();
@@ -914,7 +992,7 @@ class _EditorViewState extends State<_EditorView> {
   ///   an actual navigation (opening the bar, Next/Previous, a query/option change, the current
   ///   match's own index moving because the match count changed) does.
   void _syncRawSearch(OcptEditorState state) {
-    if (state.mode != OcptEditorMode.raw || state.isPreviewingVersion) {
+    if (_liveMode(state) != OcptEditorMode.raw || state.isPreviewingVersion) {
       _lastReportedRawSearchInputs = null;
       _lastNavigatedRawSearchTarget = null;
       return;
@@ -971,7 +1049,7 @@ class _EditorViewState extends State<_EditorView> {
   /// set — harmless on its own since nothing repaints it, but exactly the kind of state a mode
   /// switch back to raw should never resurrect uninvited.
   void _syncRawSpellCheck(OcptEditorState state) {
-    if (state.mode != OcptEditorMode.raw || state.isPreviewingVersion) {
+    if (_liveMode(state) != OcptEditorMode.raw || state.isPreviewingVersion) {
       _textController.updateSpellCheckRanges(const []);
       return;
     }
@@ -989,7 +1067,7 @@ class _EditorViewState extends State<_EditorView> {
   /// surface at all to underline anything in. Both cases clear the controller's ranges, for the
   /// identical reason [_syncRawSpellCheck]'s own doc comment gives.
   void _syncStyledSpellCheck(OcptEditorState state) {
-    if (state.mode != OcptEditorMode.styled || state.isPreviewingVersion) {
+    if (_liveMode(state) != OcptEditorMode.styled || state.isPreviewingVersion) {
       _styledEditorController.updateSpellCheckRanges(const {});
       return;
     }
@@ -1118,7 +1196,8 @@ class _EditorViewState extends State<_EditorView> {
   /// [_syncRawSearch] gates [_navigateToMatch] the same way (so typing elsewhere in the styled
   /// document never yanks the caret back onto "the current match" on every keystroke either).
   void _syncStyledSearch(OcptEditorState state) {
-    if (state.mode != OcptEditorMode.styled || state.isPreviewingVersion || !state.search.isOpen) {
+    final isStyledSurfaceLive = _liveMode(state) == OcptEditorMode.styled;
+    if (!isStyledSurfaceLive || state.isPreviewingVersion || !state.search.isOpen) {
       if (_lastNavigatedStyledSearchTarget != null) {
         _lastNavigatedStyledSearchTarget = null;
         _lastReportedStyledSearchMatchCount = null;
@@ -1176,7 +1255,7 @@ class _EditorViewState extends State<_EditorView> {
 
     final bloc = context.read<OcptEditorBloc>();
     final state = bloc.state;
-    final isStyledSurfaceLive = state.mode == OcptEditorMode.styled && !state.isPreviewingVersion;
+    final isStyledSurfaceLive = _liveMode(state) == OcptEditorMode.styled && !state.isPreviewingVersion;
 
     if (isStyledSurfaceLive) {
       final spellCheckTexts = _styledEditorController.spellCheckTextsByNodeId;
@@ -1332,7 +1411,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Opens the export panel, then dispatches the picked document's own request: the `.fountain`
   /// export event directly (it opens no options dialog of its own), or [_requestExportPdf], which
   /// opens the PDF export options dialog exactly as it always has.
-  Future<void> _requestExport(BuildContext context) async {
+  Future<void> _requestExport(BuildContext context, Rect? shareAnchor) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptEditorExportDocument>(
       context,
@@ -1356,10 +1435,11 @@ class _EditorViewState extends State<_EditorView> {
               OcptEditorExportRequestedEvent(
                 fileTypeLabel: tr.editorImportFileTypeLabel,
                 episodeTag: _episodeExportTag(context),
+                shareAnchor: shareAnchor,
               ),
             );
           case OcptEditorExportDocument.pdf:
-            await _requestExportPdf(context);
+            await _requestExportPdf(context, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptEditorExportDocument>():
         _requestProjectPackageExport(context);
@@ -1368,7 +1448,7 @@ class _EditorViewState extends State<_EditorView> {
 
   /// Shows the PDF export options dialog, then dispatches the export request if the user applied
   /// it.
-  Future<void> _requestExportPdf(BuildContext context) async {
+  Future<void> _requestExportPdf(BuildContext context, Rect? shareAnchor) async {
     final bloc = context.read<OcptEditorBloc>();
     final options = await OcptEditorExportPdfOptionsDialog.show(context, current: bloc.state.pageSetup);
     if (options == null) {
@@ -1383,6 +1463,7 @@ class _EditorViewState extends State<_EditorView> {
         options: options,
         fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -1490,7 +1571,7 @@ class _EditorViewState extends State<_EditorView> {
     // Scene jumps are only applied to the raw controller while raw mode is actually visible: the
     // styled editor applies its own jump requests independently, and forcing focus onto the
     // hidden raw field here would otherwise steal it away from the visible styled editor.
-    if (state.mode == OcptEditorMode.raw) {
+    if (_liveMode(state) == OcptEditorMode.raw) {
       final jumpRequest = state.jumpRequest;
       if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
         _lastAppliedJumpRequestId = jumpRequest.id;
@@ -1588,18 +1669,24 @@ class _EditorViewState extends State<_EditorView> {
   }
 
   /// Maps [notice] to its localized, user-facing message.
+  ///
+  /// A succeeded export kind degrades to the generic "shared" message on mobile
+  /// ([OcptEditorIoNotice.wasShared]): there is no path to name, the export having been handed to
+  /// the OS share sheet rather than written to a location the user picked.
   String _ioNoticeMessage(BuildContext context, OcptEditorIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptEditorIoNoticeKind.exportSucceeded => tr.editorExportSuccessMessage(notice.path ?? ""),
+      OcptEditorIoNoticeKind.exportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.editorExportSuccessMessage(notice.path ?? ""),
       OcptEditorIoNoticeKind.exportFailed => tr.editorExportError,
       OcptEditorIoNoticeKind.importSucceeded => tr.editorImportSuccessMessage,
       OcptEditorIoNoticeKind.importFailed => tr.editorImportError,
       OcptEditorIoNoticeKind.importUnreadable => tr.editorImportUnreadableError,
-      OcptEditorIoNoticeKind.pdfExportSucceeded => tr.editorExportPdfSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptEditorIoNoticeKind.pdfExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.editorExportPdfSuccessMessage(notice.path ?? ""),
       OcptEditorIoNoticeKind.pdfExportFailed => tr.editorExportPdfError,
     };
   }

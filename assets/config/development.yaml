@@ -11,3 +11,9 @@ logs:
   console:
     # This defines the minimum log level printed by the console logger.
     level: debug
+
+  # Whether app logs are also written to a rotating file (crash-survivable). Read by the app, not
+  # act_logger_manager itself.
+  file:
+    enabled: true
+    level: debug

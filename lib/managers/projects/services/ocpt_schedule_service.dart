@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_block_candidate.dart';
@@ -122,8 +123,13 @@ class OcptScheduleService {
   /// The minute a day's first slot is given by [createDay]: 08:00.
   static const _defaultStartMinute = 480;
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [tombstoneShotBlocks] never calls it: it writes inside a caller's own
+  /// transaction, and takes that caller's own [OcptRowStampService] instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptScheduleService();
+  const OcptScheduleService({required this.deviceId});
 
   /// Loads the whole shooting schedule of the project in [database]: every live day, in `sortKey`
   /// order, joined with its live slots (each carrying its own live crew, cast and guests), its live
@@ -347,22 +353,32 @@ class OcptScheduleService {
     }
 
     return database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       final existing = await _liveDayRows(database: database);
       final dayId = const Uuid().v4();
 
-      await database
-          .into(database.ocptShootingDaysTable)
-          .insert(
-            OcptShootingDaysTableCompanion.insert(
-              id: dayId,
-              date: date,
-              sortKey: Value(
-                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-              ),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDaysTable,
+        rowId: dayId,
+        current: null,
+        next: OcptShootingDayRow(
+          id: dayId,
+          date: date,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          status: OcptShootingDayStatus.planned,
+          crewNote: '',
+          weatherNote: '',
+          notes: '',
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
 
-      await _insertDefaultSlot(database: database, dayId: dayId);
+      await _insertDefaultSlot(database: database, dayId: dayId, stamps: stamps);
+
+      await stamps.flush(database);
 
       return dayId;
     });
@@ -388,17 +404,34 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingDaysTable,
-    )..where((table) => table.id.equals(dayId) & table.isDeleted.not())).write(
-      OcptShootingDaysTableCompanion(
-        date: date,
-        status: status,
-        crewNote: crewNote,
-        weatherNote: weatherNote,
-        notes: notes,
-      ),
+    final companion = OcptShootingDaysTableCompanion(
+      date: date,
+      status: status,
+      crewNote: crewNote,
+      weatherNote: weatherNote,
+      notes: notes,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingDaysTable,
+      )..where((table) => table.id.equals(dayId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDaysTable,
+        rowId: dayId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones day [dayId] in [database], and along with it: its slots, their crew, cast, guest and
@@ -414,59 +447,117 @@ class OcptScheduleService {
     }
 
     await database.transaction(() async {
-      final slotIds = (await _liveSlotRows(
-        database: database,
-        dayId: dayId,
-      )).map((row) => row.id).toList(growable: false);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final slotRows = await _liveSlotRows(database: database, dayId: dayId);
+      final slotIds = slotRows.map((row) => row.id).toList(growable: false);
 
       if (slotIds.isNotEmpty) {
-        await (database.update(
-          database.ocptShootingSlotCrewTable,
-        )..where((table) => table.slotId.isIn(slotIds))).write(
-          const OcptShootingSlotCrewTableCompanion(isDeleted: Value(true)),
-        );
-        await (database.update(
-          database.ocptShootingSlotCastTable,
-        )..where((table) => table.slotId.isIn(slotIds))).write(
-          const OcptShootingSlotCastTableCompanion(isDeleted: Value(true)),
-        );
-        await (database.update(
-          database.ocptShootingSlotGuestsTable,
-        )..where((table) => table.slotId.isIn(slotIds))).write(
-          const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
-        );
-        await (database.update(
-          database.ocptShootingSlotsTable,
-        )..where((table) => table.shootingDayId.equals(dayId))).write(
-          const OcptShootingSlotsTableCompanion(isDeleted: Value(true)),
+        final crewRows =
+            await (database.select(
+                  database.ocptShootingSlotCrewTable,
+                )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not()))
+                .get();
+        for (final row in crewRows) {
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingSlotCrewTable,
+            rowId: row.id,
+            current: row,
+            next: row.copyWith(isDeleted: true),
+            stamps: stamps,
+          );
+        }
+
+        final castRows =
+            await (database.select(
+                  database.ocptShootingSlotCastTable,
+                )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not()))
+                .get();
+        for (final row in castRows) {
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingSlotCastTable,
+            rowId: row.id,
+            current: row,
+            next: row.copyWith(isDeleted: true),
+            stamps: stamps,
+          );
+        }
+
+        final guestRows =
+            await (database.select(
+                  database.ocptShootingSlotGuestsTable,
+                )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not()))
+                .get();
+        for (final row in guestRows) {
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingSlotGuestsTable,
+            rowId: row.id,
+            current: row,
+            next: row.copyWith(isDeleted: true),
+            stamps: stamps,
+          );
+        }
+
+        for (final row in slotRows) {
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingSlotsTable,
+            rowId: row.id,
+            current: row,
+            next: row.copyWith(isDeleted: true),
+            stamps: stamps,
+          );
+        }
+      }
+
+      final blockRows = await _liveBlockRowsOfDay(database: database, dayId: dayId);
+      await _tombstoneCandidaciesOfBlocks(
+        database: database,
+        blockIds: blockRows.map((row) => row.id).toList(growable: false),
+        stamps: stamps,
+      );
+
+      for (final row in blockRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingDayBlocksTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
         );
       }
 
-      await _tombstoneCandidaciesOfBlocks(
-        database: database,
-        blockIds: (await _liveBlockRowsOfDay(
+      final eventRows = await _liveEventRowsOfDay(database: database, dayId: dayId);
+      for (final row in eventRows) {
+        await OcptRowStampService.writeAndStamp(
           database: database,
-          dayId: dayId,
-        )).map((row) => row.id).toList(growable: false),
-      );
+          table: database.ocptShootingDayEventsTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
 
-      await (database.update(
-        database.ocptShootingDayBlocksTable,
-      )..where((table) => table.shootingDayId.equals(dayId))).write(
-        const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
-      );
-
-      await (database.update(
-        database.ocptShootingDayEventsTable,
-      )..where((table) => table.shootingDayId.equals(dayId))).write(
-        const OcptShootingDayEventsTableCompanion(isDeleted: Value(true)),
-      );
-
-      await (database.update(
+      final currentDay = await (database.select(
         database.ocptShootingDaysTable,
-      )..where((table) => table.id.equals(dayId))).write(
-        const OcptShootingDaysTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.id.equals(dayId))).getSingleOrNull();
+      if (currentDay != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingDaysTable,
+          rowId: dayId,
+          current: currentDay,
+          next: currentDay.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -495,30 +586,39 @@ class OcptScheduleService {
     }
 
     return database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       // Read back for validation alone from here on — throws if `sourceDayId` doesn't exist or has
       // been tombstoned — since a day no longer names a screenplay for this method to carry over.
       await _getDayRow(database: database, dayId: sourceDayId);
       final existingDays = await _liveDayRows(database: database);
       final newDayId = const Uuid().v4();
 
-      await database
-          .into(database.ocptShootingDaysTable)
-          .insert(
-            OcptShootingDaysTableCompanion.insert(
-              id: newDayId,
-              date: date,
-              sortKey: Value(
-                ocptFractionalKeyBetween(
-                  before: existingDays.isEmpty ? null : existingDays.last.sortKey,
-                ),
-              ),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDaysTable,
+        rowId: newDayId,
+        current: null,
+        next: OcptShootingDayRow(
+          id: newDayId,
+          date: date,
+          sortKey: ocptFractionalKeyBetween(
+            before: existingDays.isEmpty ? null : existingDays.last.sortKey,
+          ),
+          status: OcptShootingDayStatus.planned,
+          crewNote: '',
+          weatherNote: '',
+          notes: '',
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
 
       final sourceSlots = await _liveSlotRows(database: database, dayId: sourceDayId);
 
       if (sourceSlots.isEmpty) {
-        await _insertDefaultSlot(database: database, dayId: newDayId);
+        await _insertDefaultSlot(database: database, dayId: newDayId, stamps: stamps);
+        await stamps.flush(database);
         return newDayId;
       }
 
@@ -550,78 +650,99 @@ class OcptScheduleService {
           anchorMinute = _frozenAnchorMinuteOf(sourceSlot, sourceTimelines);
         }
 
-        await database
-            .into(database.ocptShootingSlotsTable)
-            .insert(
-              OcptShootingSlotsTableCompanion.insert(
-                id: newSlotIds[i],
-                shootingDayId: newDayId,
-                sortKey: Value(slotSortKeys[i]),
-                label: Value(sourceSlot.label),
-                locationId: Value(sourceSlot.locationId),
-                setId: Value(sourceSlot.setId),
-                anchorEdge: Value(sourceSlot.anchorEdge),
-                anchorMinute: Value(anchorMinute),
-                anchorSlotId: Value(copiedAnchorSlotId),
-                notes: Value(sourceSlot.notes),
-              ),
-            );
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingSlotsTable,
+          rowId: newSlotIds[i],
+          current: null,
+          next: OcptShootingSlotRow(
+            id: newSlotIds[i],
+            shootingDayId: newDayId,
+            sortKey: slotSortKeys[i],
+            label: sourceSlot.label,
+            locationId: sourceSlot.locationId,
+            setId: sourceSlot.setId,
+            anchorEdge: sourceSlot.anchorEdge,
+            anchorMinute: anchorMinute,
+            anchorSlotId: copiedAnchorSlotId,
+            notes: sourceSlot.notes,
+            isDeleted: false,
+          ),
+          stamps: stamps,
+        );
 
         final sourceCrew = await _liveCrewRowsOfSlot(database: database, slotId: sourceSlot.id);
         final crewSortKeys = ocptFractionalKeySequence(sourceCrew.length);
         for (var j = 0; j < sourceCrew.length; j++) {
           final crewMember = sourceCrew[j];
-          await database
-              .into(database.ocptShootingSlotCrewTable)
-              .insert(
-                OcptShootingSlotCrewTableCompanion.insert(
-                  id: const Uuid().v4(),
-                  slotId: newSlotIds[i],
-                  sortKey: Value(crewSortKeys[j]),
-                  personId: crewMember.personId,
-                  positionId: Value(crewMember.positionId),
-                  customLabel: Value(crewMember.customLabel),
-                  notes: Value(crewMember.notes),
-                ),
-              );
+          final newCrewId = const Uuid().v4();
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingSlotCrewTable,
+            rowId: newCrewId,
+            current: null,
+            next: OcptShootingSlotCrewRow(
+              id: newCrewId,
+              slotId: newSlotIds[i],
+              sortKey: crewSortKeys[j],
+              personId: crewMember.personId,
+              positionId: crewMember.positionId,
+              customLabel: crewMember.customLabel,
+              notes: crewMember.notes,
+              isDeleted: false,
+            ),
+            stamps: stamps,
+          );
         }
 
         final sourceCast = await _liveCastRowsOfSlot(database: database, slotId: sourceSlot.id);
         final castSortKeys = ocptFractionalKeySequence(sourceCast.length);
         for (var j = 0; j < sourceCast.length; j++) {
           final castMember = sourceCast[j];
-          await database
-              .into(database.ocptShootingSlotCastTable)
-              .insert(
-                OcptShootingSlotCastTableCompanion.insert(
-                  id: const Uuid().v4(),
-                  slotId: newSlotIds[i],
-                  roleId: castMember.roleId,
-                  sortKey: Value(castSortKeys[j]),
-                  notes: Value(castMember.notes),
-                ),
-              );
+          final newCastId = const Uuid().v4();
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingSlotCastTable,
+            rowId: newCastId,
+            current: null,
+            next: OcptShootingSlotCastRow(
+              id: newCastId,
+              slotId: newSlotIds[i],
+              roleId: castMember.roleId,
+              sortKey: castSortKeys[j],
+              notes: castMember.notes,
+              isDeleted: false,
+            ),
+            stamps: stamps,
+          );
         }
 
         final sourceGuests = await _liveGuestRowsOfSlot(database: database, slotId: sourceSlot.id);
         final guestSortKeys = ocptFractionalKeySequence(sourceGuests.length);
         for (var j = 0; j < sourceGuests.length; j++) {
           final guest = sourceGuests[j];
-          await database
-              .into(database.ocptShootingSlotGuestsTable)
-              .insert(
-                OcptShootingSlotGuestsTableCompanion.insert(
-                  id: const Uuid().v4(),
-                  slotId: newSlotIds[i],
-                  sortKey: Value(guestSortKeys[j]),
-                  personId: Value(guest.personId),
-                  freeName: Value(guest.freeName),
-                  reason: Value(guest.reason),
-                  notes: Value(guest.notes),
-                ),
-              );
+          final newGuestId = const Uuid().v4();
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingSlotGuestsTable,
+            rowId: newGuestId,
+            current: null,
+            next: OcptShootingSlotGuestRow(
+              id: newGuestId,
+              slotId: newSlotIds[i],
+              personId: guest.personId,
+              freeName: guest.freeName,
+              reason: guest.reason,
+              notes: guest.notes,
+              sortKey: guestSortKeys[j],
+              isDeleted: false,
+            ),
+            stamps: stamps,
+          );
         }
       }
+
+      await stamps.flush(database);
 
       return newDayId;
     });
@@ -649,28 +770,34 @@ class OcptScheduleService {
       return null;
     }
 
-    final existing = await _liveSlotRows(database: database, dayId: shootingDayId);
-    final id = const Uuid().v4();
+    return database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      final existing = await _liveSlotRows(database: database, dayId: shootingDayId);
+      final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptShootingSlotsTable)
-        .insert(
-          OcptShootingSlotsTableCompanion.insert(
-            id: id,
-            shootingDayId: shootingDayId,
-            label: Value(label),
-            locationId: Value(locationId),
-            setId: Value(setId),
-            anchorEdge: const Value(OcptShootingSlotAnchorEdge.start),
-            anchorMinute: Value(anchorMinute),
-            notes: Value(notes),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotsTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingSlotRow(
+          id: id,
+          shootingDayId: shootingDayId,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          label: label,
+          locationId: locationId,
+          setId: setId,
+          anchorEdge: OcptShootingSlotAnchorEdge.start,
+          anchorMinute: anchorMinute,
+          notes: notes,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
-    return id;
+      return id;
+    });
   }
 
   /// Updates the fields of slot [slotId] in [database] that are passed as something other than
@@ -692,16 +819,33 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingSlotsTable,
-    )..where((table) => table.id.equals(slotId) & table.isDeleted.not())).write(
-      OcptShootingSlotsTableCompanion(
-        label: label,
-        locationId: locationId,
-        setId: setId,
-        notes: notes,
-      ),
+    final companion = OcptShootingSlotsTableCompanion(
+      label: label,
+      locationId: locationId,
+      setId: setId,
+      notes: notes,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingSlotsTable,
+      )..where((table) => table.id.equals(slotId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotsTable,
+        rowId: slotId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Pins slot [slotId]'s [edge] to a typed [minute], or to the **opposite** edge of
@@ -759,15 +903,20 @@ class OcptScheduleService {
         }
       }
 
-      await (database.update(
-        database.ocptShootingSlotsTable,
-      )..where((table) => table.id.equals(slotId) & table.isDeleted.not())).write(
-        OcptShootingSlotsTableCompanion(
-          anchorEdge: Value(edge),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotsTable,
+        rowId: slotId,
+        current: slot,
+        next: slot.copyWith(
+          anchorEdge: edge,
           anchorMinute: Value(minute),
           anchorSlotId: Value(sourceSlotId),
         ),
+        stamps: stamps,
       );
+      await stamps.flush(database);
 
       return true;
     });
@@ -801,11 +950,23 @@ class OcptScheduleService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptShootingSlotsTable,
-      )..where((table) => table.id.equals(slotId))).write(
-        OcptShootingSlotsTableCompanion(sortKey: Value(sortKey)),
+      )..where((table) => table.id.equals(slotId))).getSingleOrNull();
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotsTable,
+        rowId: slotId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -836,25 +997,60 @@ class OcptScheduleService {
     }
 
     await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       final slot = await _getSlotRow(database: database, slotId: slotId);
 
-      await _freezeDependentsOf(database: database, slot: slot);
+      await _freezeDependentsOf(database: database, slot: slot, stamps: stamps);
 
-      await (database.update(
-        database.ocptShootingSlotCrewTable,
-      )..where((table) => table.slotId.equals(slotId))).write(
-        const OcptShootingSlotCrewTableCompanion(isDeleted: Value(true)),
-      );
-      await (database.update(
-        database.ocptShootingSlotCastTable,
-      )..where((table) => table.slotId.equals(slotId))).write(
-        const OcptShootingSlotCastTableCompanion(isDeleted: Value(true)),
-      );
-      await (database.update(
-        database.ocptShootingSlotGuestsTable,
-      )..where((table) => table.slotId.equals(slotId))).write(
-        const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
-      );
+      final crewRows =
+          await (database.select(
+                database.ocptShootingSlotCrewTable,
+              )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not()))
+              .get();
+      for (final row in crewRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingSlotCrewTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final castRows =
+          await (database.select(
+                database.ocptShootingSlotCastTable,
+              )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not()))
+              .get();
+      for (final row in castRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingSlotCastTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final guestRows =
+          await (database.select(
+                database.ocptShootingSlotGuestsTable,
+              )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not()))
+              .get();
+      for (final row in guestRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingSlotGuestsTable,
+          rowId: row.id,
+          current: row,
+          next: row.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
       final otherSlots =
           (await _liveSlotRows(database: database, dayId: slot.shootingDayId))
             ..removeWhere((row) => row.id == slotId);
@@ -865,12 +1061,18 @@ class OcptScheduleService {
           await _tombstoneCandidaciesOfBlocks(
             database: database,
             blockIds: blocksToMove.map((row) => row.id).toList(growable: false),
+            stamps: stamps,
           );
-          await (database.update(
-            database.ocptShootingDayBlocksTable,
-          )..where((table) => table.slotId.equals(slotId))).write(
-            const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
-          );
+          for (final row in blocksToMove) {
+            await OcptRowStampService.writeAndStamp(
+              database: database,
+              table: database.ocptShootingDayBlocksTable,
+              rowId: row.id,
+              current: row,
+              next: row.copyWith(isDeleted: true),
+              stamps: stamps,
+            );
+          }
         }
       } else if (blocksToMove.isNotEmpty) {
         final destinationSlot = otherSlots.first;
@@ -884,22 +1086,35 @@ class OcptScheduleService {
         );
 
         for (var i = 0; i < blocksToMove.length; i++) {
-          await (database.update(
-            database.ocptShootingDayBlocksTable,
-          )..where((table) => table.id.equals(blocksToMove[i].id))).write(
-            OcptShootingDayBlocksTableCompanion(
-              slotId: Value(destinationSlot.id),
-              sortKey: Value(newSortKeys[i]),
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptShootingDayBlocksTable,
+            rowId: blocksToMove[i].id,
+            current: blocksToMove[i],
+            next: blocksToMove[i].copyWith(
+              slotId: destinationSlot.id,
+              sortKey: newSortKeys[i],
             ),
+            stamps: stamps,
           );
         }
       }
 
-      await (database.update(
+      final currentSlot = await (database.select(
         database.ocptShootingSlotsTable,
-      )..where((table) => table.id.equals(slotId))).write(
-        const OcptShootingSlotsTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.id.equals(slotId))).getSingleOrNull();
+      if (currentSlot != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingSlotsTable,
+          rowId: slotId,
+          current: currentSlot,
+          next: currentSlot.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -959,21 +1174,27 @@ class OcptScheduleService {
 
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptShootingSlotCrewTable)
-        .insert(
-          OcptShootingSlotCrewTableCompanion.insert(
-            id: id,
-            slotId: slotId,
-            personId: personId,
-            positionId: Value(resolvedPositionId),
-            customLabel: Value(resolvedCustomLabel),
-            notes: Value(notes),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotCrewTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingSlotCrewRow(
+          id: id,
+          slotId: slotId,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          personId: personId,
+          positionId: resolvedPositionId,
+          customLabel: resolvedCustomLabel,
+          notes: notes,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -995,16 +1216,33 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingSlotCrewTable,
-    )..where((table) => table.id.equals(crewMemberId) & table.isDeleted.not())).write(
-      OcptShootingSlotCrewTableCompanion(
-        personId: personId,
-        positionId: positionId,
-        customLabel: customLabel,
-        notes: notes,
-      ),
+    final companion = OcptShootingSlotCrewTableCompanion(
+      personId: personId,
+      positionId: positionId,
+      customLabel: customLabel,
+      notes: notes,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingSlotCrewTable,
+      )..where((table) => table.id.equals(crewMemberId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotCrewTable,
+        rowId: crewMemberId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones crew assignment [crewMemberId].
@@ -1020,11 +1258,26 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingSlotCrewTable,
-    )..where((table) => table.id.equals(crewMemberId))).write(
-      const OcptShootingSlotCrewTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingSlotCrewTable,
+      )..where((table) => table.id.equals(crewMemberId))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotCrewTable,
+        rowId: crewMemberId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Convokes role [roleId] during slot [slotId], appended at the end of its current cast, and
@@ -1065,31 +1318,40 @@ class OcptScheduleService {
         tombstoned ??= row;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (tombstoned != null) {
-        await (database.update(
-          database.ocptShootingSlotCastTable,
-        )..where((table) => table.id.equals(tombstoned!.id))).write(
-          OcptShootingSlotCastTableCompanion(notes: Value(notes), isDeleted: const Value(false)),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingSlotCastTable,
+          rowId: tombstoned.id,
+          current: tombstoned,
+          next: tombstoned.copyWith(notes: notes, isDeleted: false),
+          stamps: stamps,
         );
+        await stamps.flush(database);
         return tombstoned.id;
       }
 
       final existing = await _liveCastRowsOfSlot(database: database, slotId: slotId);
       final id = const Uuid().v4();
 
-      await database
-          .into(database.ocptShootingSlotCastTable)
-          .insert(
-            OcptShootingSlotCastTableCompanion.insert(
-              id: id,
-              slotId: slotId,
-              roleId: roleId,
-              notes: Value(notes),
-              sortKey: Value(
-                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-              ),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotCastTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingSlotCastRow(
+          id: id,
+          slotId: slotId,
+          roleId: roleId,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          notes: notes,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -1109,11 +1371,28 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingSlotCastTable,
-    )..where((table) => table.id.equals(castRoleId) & table.isDeleted.not())).write(
-      OcptShootingSlotCastTableCompanion(notes: notes),
-    );
+    final companion = OcptShootingSlotCastTableCompanion(notes: notes);
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingSlotCastTable,
+      )..where((table) => table.id.equals(castRoleId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotCastTable,
+        rowId: castRoleId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones cast convocation [castRoleId].
@@ -1129,11 +1408,26 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingSlotCastTable,
-    )..where((table) => table.id.equals(castRoleId))).write(
-      const OcptShootingSlotCastTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingSlotCastTable,
+      )..where((table) => table.id.equals(castRoleId))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotCastTable,
+        rowId: castRoleId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Adds a guest to slot [slotId], appended at the end of its current guests, and returns the
@@ -1163,26 +1457,32 @@ class OcptScheduleService {
       return null;
     }
 
-    final existing = await _liveGuestRowsOfSlot(database: database, slotId: slotId);
-    final id = const Uuid().v4();
+    return database.transaction(() async {
+      final existing = await _liveGuestRowsOfSlot(database: database, slotId: slotId);
+      final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptShootingSlotGuestsTable)
-        .insert(
-          OcptShootingSlotGuestsTableCompanion.insert(
-            id: id,
-            slotId: slotId,
-            personId: Value(personId),
-            freeName: Value(resolvedFreeName),
-            reason: Value(reason),
-            notes: Value(notes),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotGuestsTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingSlotGuestRow(
+          id: id,
+          slotId: slotId,
+          personId: personId,
+          freeName: resolvedFreeName,
+          reason: reason,
+          notes: notes,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
-    return id;
+      return id;
+    });
   }
 
   /// Updates the fields of guest attendance [guestId] in [database] that are passed as something
@@ -1209,7 +1509,14 @@ class OcptScheduleService {
       return;
     }
 
-    if (personId.present || freeName.present) {
+    final companion = OcptShootingSlotGuestsTableCompanion(
+      personId: personId,
+      freeName: freeName,
+      reason: reason,
+      notes: notes,
+    );
+
+    await database.transaction(() async {
       final row =
           await (database.select(database.ocptShootingSlotGuestsTable)..where(
                 (table) => table.id.equals(guestId) & table.isDeleted.not(),
@@ -1219,23 +1526,25 @@ class OcptScheduleService {
         return;
       }
 
-      final resultingPersonId = personId.present ? personId.value : row.personId;
-      final resultingFreeName = freeName.present ? freeName.value : row.freeName;
-      if ((resultingPersonId == null) == resultingFreeName.isEmpty) {
-        return;
+      if (personId.present || freeName.present) {
+        final resultingPersonId = personId.present ? personId.value : row.personId;
+        final resultingFreeName = freeName.present ? freeName.value : row.freeName;
+        if ((resultingPersonId == null) == resultingFreeName.isEmpty) {
+          return;
+        }
       }
-    }
 
-    await (database.update(
-      database.ocptShootingSlotGuestsTable,
-    )..where((table) => table.id.equals(guestId) & table.isDeleted.not())).write(
-      OcptShootingSlotGuestsTableCompanion(
-        personId: personId,
-        freeName: freeName,
-        reason: reason,
-        notes: notes,
-      ),
-    );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotGuestsTable,
+        rowId: guestId,
+        current: row,
+        next: row.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones guest attendance [guestId].
@@ -1251,11 +1560,26 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingSlotGuestsTable,
-    )..where((table) => table.id.equals(guestId))).write(
-      const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingSlotGuestsTable,
+      )..where((table) => table.id.equals(guestId))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotGuestsTable,
+        rowId: guestId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Names candidacy [roleCandidateId] on audition block [blockId], appended at the end of that
@@ -1306,34 +1630,40 @@ class OcptScheduleService {
         tombstoned ??= row;
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (tombstoned != null) {
-        await (database.update(
-          database.ocptShootingBlockCandidatesTable,
-        )..where((table) => table.id.equals(tombstoned!.id))).write(
-          OcptShootingBlockCandidatesTableCompanion(
-            notes: Value(notes),
-            isDeleted: const Value(false),
-          ),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingBlockCandidatesTable,
+          rowId: tombstoned.id,
+          current: tombstoned,
+          next: tombstoned.copyWith(notes: notes, isDeleted: false),
+          stamps: stamps,
         );
+        await stamps.flush(database);
         return tombstoned.id;
       }
 
       final existing = await _liveCandidateRowsOfBlock(database: database, blockId: blockId);
       final id = const Uuid().v4();
 
-      await database
-          .into(database.ocptShootingBlockCandidatesTable)
-          .insert(
-            OcptShootingBlockCandidatesTableCompanion.insert(
-              id: id,
-              blockId: blockId,
-              roleCandidateId: roleCandidateId,
-              notes: Value(notes),
-              sortKey: Value(
-                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-              ),
-            ),
-          );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingBlockCandidatesTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingBlockCandidateRow(
+          id: id,
+          blockId: blockId,
+          roleCandidateId: roleCandidateId,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          notes: notes,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
       return id;
     });
@@ -1354,11 +1684,28 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingBlockCandidatesTable,
-    )..where((table) => table.id.equals(blockCandidateId) & table.isDeleted.not())).write(
-      OcptShootingBlockCandidatesTableCompanion(notes: notes),
-    );
+    final companion = OcptShootingBlockCandidatesTableCompanion(notes: notes);
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingBlockCandidatesTable,
+      )..where((table) => table.id.equals(blockCandidateId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingBlockCandidatesTable,
+        rowId: blockCandidateId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves candidate convocation [blockCandidateId] to [newPosition] (0-based) among its own
@@ -1400,11 +1747,23 @@ class OcptScheduleService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptShootingBlockCandidatesTable,
-      )..where((table) => table.id.equals(blockCandidateId))).write(
-        OcptShootingBlockCandidatesTableCompanion(sortKey: Value(sortKey)),
+      )..where((table) => table.id.equals(blockCandidateId))).getSingleOrNull();
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingBlockCandidatesTable,
+        rowId: blockCandidateId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -1427,11 +1786,26 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingBlockCandidatesTable,
-    )..where((table) => table.id.equals(blockCandidateId))).write(
-      const OcptShootingBlockCandidatesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingBlockCandidatesTable,
+      )..where((table) => table.id.equals(blockCandidateId))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingBlockCandidatesTable,
+        rowId: blockCandidateId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Creates a new event on day [dayId], appended at the end of its current events, and returns its
@@ -1449,25 +1823,31 @@ class OcptScheduleService {
       return null;
     }
 
-    final existing = await _liveEventRowsOfDay(database: database, dayId: dayId);
-    final id = const Uuid().v4();
+    return database.transaction(() async {
+      final existing = await _liveEventRowsOfDay(database: database, dayId: dayId);
+      final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptShootingDayEventsTable)
-        .insert(
-          OcptShootingDayEventsTableCompanion.insert(
-            id: id,
-            shootingDayId: dayId,
-            minute: minute,
-            label: Value(label),
-            notes: Value(notes),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayEventsTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingDayEventRow(
+          id: id,
+          shootingDayId: dayId,
+          minute: minute,
+          label: label,
+          notes: notes,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
-    return id;
+      return id;
+    });
   }
 
   /// Updates the fields of event [eventId] in [database] that are passed as something other than
@@ -1486,11 +1866,28 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingDayEventsTable,
-    )..where((table) => table.id.equals(eventId) & table.isDeleted.not())).write(
-      OcptShootingDayEventsTableCompanion(minute: minute, label: label, notes: notes),
-    );
+    final companion = OcptShootingDayEventsTableCompanion(minute: minute, label: label, notes: notes);
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingDayEventsTable,
+      )..where((table) => table.id.equals(eventId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayEventsTable,
+        rowId: eventId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones event [eventId].
@@ -1506,11 +1903,26 @@ class OcptScheduleService {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingDayEventsTable,
-    )..where((table) => table.id.equals(eventId))).write(
-      const OcptShootingDayEventsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptShootingDayEventsTable,
+      )..where((table) => table.id.equals(eventId))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayEventsTable,
+        rowId: eventId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Places shot [shotId] inside slot [slotId], at [atPosition] within that slot's own timetable
@@ -1550,18 +1962,27 @@ class OcptScheduleService {
       );
 
       final id = const Uuid().v4();
-      await database
-          .into(database.ocptShootingDayBlocksTable)
-          .insert(
-            OcptShootingDayBlocksTableCompanion.insert(
-              id: id,
-              shootingDayId: dayId,
-              slotId: slotId,
-              kind: const Value(OcptShootingBlockKind.shot),
-              shotId: Value(shotId),
-              sortKey: Value(sortKey),
-            ),
-          );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayBlocksTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingDayBlockRow(
+          id: id,
+          shootingDayId: dayId,
+          sortKey: sortKey,
+          slotId: slotId,
+          kind: OcptShootingBlockKind.shot,
+          shotId: shotId,
+          label: '',
+          notes: '',
+          crewNote: '',
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
       return id;
     });
   }
@@ -1589,13 +2010,25 @@ class OcptScheduleService {
     }
 
     await database.transaction(() async {
-      await _tombstoneCandidaciesOfBlocks(database: database, blockIds: [blockId]);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      await (database.update(
+      await _tombstoneCandidaciesOfBlocks(database: database, blockIds: [blockId], stamps: stamps);
+
+      final current = await (database.select(
         database.ocptShootingDayBlocksTable,
-      )..where((table) => table.id.equals(blockId))).write(
-        const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.id.equals(blockId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptShootingDayBlocksTable,
+          rowId: blockId,
+          current: current,
+          next: current.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -1641,36 +2074,45 @@ class OcptScheduleService {
       return null;
     }
 
-    final slot = await _getSlotRow(database: database, slotId: slotId);
-    final slotBlocks = await _liveBlockRowsOfSlot(database: database, slotId: slotId);
-    final clampedPosition = atPosition == null
-        ? slotBlocks.length
-        : (atPosition < 0 ? 0 : (atPosition > slotBlocks.length ? slotBlocks.length : atPosition));
+    return database.transaction(() async {
+      final slot = await _getSlotRow(database: database, slotId: slotId);
+      final slotBlocks = await _liveBlockRowsOfSlot(database: database, slotId: slotId);
+      final clampedPosition = atPosition == null
+          ? slotBlocks.length
+          : (atPosition < 0 ? 0 : (atPosition > slotBlocks.length ? slotBlocks.length : atPosition));
 
-    final sortKey = ocptFractionalKeyBetween(
-      before: clampedPosition > 0 ? slotBlocks[clampedPosition - 1].sortKey : null,
-      after: clampedPosition < slotBlocks.length ? slotBlocks[clampedPosition].sortKey : null,
-    );
+      final sortKey = ocptFractionalKeyBetween(
+        before: clampedPosition > 0 ? slotBlocks[clampedPosition - 1].sortKey : null,
+        after: clampedPosition < slotBlocks.length ? slotBlocks[clampedPosition].sortKey : null,
+      );
 
-    final id = const Uuid().v4();
-    await database
-        .into(database.ocptShootingDayBlocksTable)
-        .insert(
-          OcptShootingDayBlocksTableCompanion.insert(
-            id: id,
-            shootingDayId: slot.shootingDayId,
-            slotId: slotId,
-            kind: Value(kind),
-            sceneId: Value(_namesASequence(kind) ? sceneId : null),
-            label: Value(label),
-            durationMinutes: Value(durationMinutes),
-            anchorMinute: Value(anchorMinute),
-            notes: Value(notes),
-            sortKey: Value(sortKey),
-          ),
-        );
+      final id = const Uuid().v4();
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayBlocksTable,
+        rowId: id,
+        current: null,
+        next: OcptShootingDayBlockRow(
+          id: id,
+          shootingDayId: slot.shootingDayId,
+          sortKey: sortKey,
+          slotId: slotId,
+          kind: kind,
+          sceneId: _namesASequence(kind) ? sceneId : null,
+          label: label,
+          durationMinutes: durationMinutes,
+          anchorMinute: anchorMinute,
+          notes: notes,
+          crewNote: '',
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
 
-    return id;
+      return id;
+    });
   }
 
   /// Updates the fields of block [blockId] in [database] that are passed as something other than
@@ -1723,41 +2165,54 @@ class OcptScheduleService {
     await database.transaction(() async {
       var sceneIdToWrite = sceneId;
 
-      if (kind.present || sceneId.present) {
-        final row =
-            await (database.select(database.ocptShootingDayBlocksTable)..where(
-                  (table) => table.id.equals(blockId) & table.isDeleted.not(),
-                ))
-                .getSingleOrNull();
+      final row =
+          await (database.select(database.ocptShootingDayBlocksTable)..where(
+                (table) => table.id.equals(blockId) & table.isDeleted.not(),
+              ))
+              .getSingleOrNull();
 
-        if (row == null || (kind.present && row.kind == OcptShootingBlockKind.shot)) {
+      if (row == null) {
+        return;
+      }
+
+      var resultingKind = row.kind;
+      if (kind.present || sceneId.present) {
+        if (kind.present && row.kind == OcptShootingBlockKind.shot) {
           return;
         }
 
-        final resultingKind = kind.present ? kind.value : row.kind;
+        resultingKind = kind.present ? kind.value : row.kind;
         if (!_namesASequence(resultingKind)) {
           sceneIdToWrite = const Value(null);
         }
-
-        if (row.kind == OcptShootingBlockKind.audition &&
-            resultingKind != OcptShootingBlockKind.audition) {
-          await _tombstoneCandidaciesOfBlocks(database: database, blockIds: [blockId]);
-        }
       }
 
-      await (database.update(
-        database.ocptShootingDayBlocksTable,
-      )..where((table) => table.id.equals(blockId) & table.isDeleted.not())).write(
-        OcptShootingDayBlocksTableCompanion(
-          kind: kind,
-          sceneId: sceneIdToWrite,
-          label: label,
-          durationMinutes: durationMinutes,
-          anchorMinute: anchorMinute,
-          notes: notes,
-          crewNote: crewNote,
-        ),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      if (row.kind == OcptShootingBlockKind.audition &&
+          resultingKind != OcptShootingBlockKind.audition) {
+        await _tombstoneCandidaciesOfBlocks(database: database, blockIds: [blockId], stamps: stamps);
+      }
+
+      final companion = OcptShootingDayBlocksTableCompanion(
+        kind: kind,
+        sceneId: sceneIdToWrite,
+        label: label,
+        durationMinutes: durationMinutes,
+        anchorMinute: anchorMinute,
+        notes: notes,
+        crewNote: crewNote,
       );
+
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayBlocksTable,
+        rowId: blockId,
+        current: row,
+        next: row.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
     });
   }
 
@@ -1803,11 +2258,23 @@ class OcptScheduleService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptShootingDayBlocksTable,
-      )..where((table) => table.id.equals(blockId))).write(
-        OcptShootingDayBlocksTableCompanion(sortKey: Value(sortKey)),
+      )..where((table) => table.id.equals(blockId))).getSingleOrNull();
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayBlocksTable,
+        rowId: blockId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -1844,15 +2311,27 @@ class OcptScheduleService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptShootingDayBlocksTable,
-      )..where((table) => table.id.equals(blockId))).write(
-        OcptShootingDayBlocksTableCompanion(
-          shootingDayId: Value(targetSlot.shootingDayId),
-          slotId: Value(targetSlotId),
-          sortKey: Value(sortKey),
+      )..where((table) => table.id.equals(blockId))).getSingleOrNull();
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayBlocksTable,
+        rowId: blockId,
+        current: current,
+        next: current.copyWith(
+          shootingDayId: targetSlot.shootingDayId,
+          slotId: targetSlotId,
+          sortKey: sortKey,
         ),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -1866,22 +2345,36 @@ class OcptScheduleService {
   ///
   /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
   /// already refused the write on a preview connection and is already inside the transaction
-  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  /// removing the episode, so a second guard here would only be able to disagree with the first —
+  /// and stamps through [stamps], that caller's own instance, rather than resolving a device id of
+  /// its own.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> tombstoneShotBlocks({
     required OcptProjectDatabase database,
     required List<String> shotIds,
+    required OcptRowStampService? stamps,
   }) async {
     if (shotIds.isEmpty) {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingDayBlocksTable,
-    )..where((table) => table.shotId.isIn(shotIds))).write(
-      const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
-    );
+    final rows =
+        await (database.select(
+              database.ocptShootingDayBlocksTable,
+            )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingDayBlocksTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
   }
 
   /// Inserts the default first slot a brand new day is never without: an empty label, anchored by
@@ -1890,17 +2383,27 @@ class OcptScheduleService {
   Future<void> _insertDefaultSlot({
     required OcptProjectDatabase database,
     required String dayId,
-  }) => database
-      .into(database.ocptShootingSlotsTable)
-      .insert(
-        OcptShootingSlotsTableCompanion.insert(
-          id: const Uuid().v4(),
-          shootingDayId: dayId,
-          anchorEdge: const Value(OcptShootingSlotAnchorEdge.start),
-          anchorMinute: const Value(_defaultStartMinute),
-          sortKey: Value(ocptFractionalKeyBetween()),
-        ),
-      );
+    required OcptRowStampService? stamps,
+  }) {
+    final id = const Uuid().v4();
+    return OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptShootingSlotsTable,
+      rowId: id,
+      current: null,
+      next: OcptShootingSlotRow(
+        id: id,
+        shootingDayId: dayId,
+        sortKey: ocptFractionalKeyBetween(),
+        label: '',
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: _defaultStartMinute,
+        notes: '',
+        isDeleted: false,
+      ),
+      stamps: stamps,
+    );
+  }
 
   /// The hour [slot]'s own anchored edge was reading in [timelines] — what a link that cannot be
   /// carried across freezes into a typed anchor, so the copy still says the same thing about time as
@@ -1926,6 +2429,7 @@ class OcptScheduleService {
   Future<void> _freezeDependentsOf({
     required OcptProjectDatabase database,
     required OcptShootingSlotRow slot,
+    required OcptRowStampService? stamps,
   }) async {
     final daySlots = await _liveSlotRows(database: database, dayId: slot.shootingDayId);
     final dependents = [
@@ -1946,15 +2450,18 @@ class OcptScheduleService {
     final endMinute = deletedTimeline?.endMinute ?? startMinute;
 
     for (final dependent in dependents) {
-      await (database.update(
-        database.ocptShootingSlotsTable,
-      )..where((table) => table.id.equals(dependent.id))).write(
-        OcptShootingSlotsTableCompanion(
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingSlotsTable,
+        rowId: dependent.id,
+        current: dependent,
+        next: dependent.copyWith(
           anchorMinute: Value(
             dependent.anchorEdge == OcptShootingSlotAnchorEdge.start ? endMinute : startMinute,
           ),
           anchorSlotId: const Value(null),
         ),
+        stamps: stamps,
       );
     }
   }
@@ -2146,16 +2653,28 @@ class OcptScheduleService {
   Future<void> _tombstoneCandidaciesOfBlocks({
     required OcptProjectDatabase database,
     required List<String> blockIds,
+    required OcptRowStampService? stamps,
   }) async {
     if (blockIds.isEmpty) {
       return;
     }
 
-    await (database.update(
-      database.ocptShootingBlockCandidatesTable,
-    )..where((table) => table.blockId.isIn(blockIds))).write(
-      const OcptShootingBlockCandidatesTableCompanion(isDeleted: Value(true)),
-    );
+    final rows =
+        await (database.select(
+              database.ocptShootingBlockCandidatesTable,
+            )..where((table) => table.blockId.isIn(blockIds) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShootingBlockCandidatesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
   }
 
   /// Every live event row of day [dayId], ordered by `sortKey` — the tiebreak `loadSchedule` falls

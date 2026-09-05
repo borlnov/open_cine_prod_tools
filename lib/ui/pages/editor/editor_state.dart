@@ -183,15 +183,21 @@ class OcptEditorIoNotice extends Equatable {
   final OcptEditorIoNoticeKind kind;
 
   /// The path the screenplay was exported to, only set when [kind] is
-  /// [OcptEditorIoNoticeKind.exportSucceeded] or [OcptEditorIoNoticeKind.pdfExportSucceeded].
+  /// [OcptEditorIoNoticeKind.exportSucceeded] or [OcptEditorIoNoticeKind.pdfExportSucceeded] and
+  /// [wasShared] is false — a mobile export hands the file to the OS share sheet instead of
+  /// writing it to a path the user picked, so there is none to show.
   final String? path;
 
+  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
+  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
+  final bool wasShared;
+
   /// Class constructor
-  const OcptEditorIoNotice({required this.kind, this.path});
+  const OcptEditorIoNotice({required this.kind, this.path, this.wasShared = false});
 
   /// Object properties
   @override
-  List<Object?> get props => [kind, path];
+  List<Object?> get props => [kind, path, wasShared];
 }
 
 /// The state of `OcptEditorBloc`.

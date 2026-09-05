@@ -2,19 +2,23 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart' show sqlite3;
 
 // This file is the harness that will pin each future stable release's upgrade path
 // (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`). The 0.1.0 release froze the
-// schema at v1, so `lastStableSchemaVersion == currentSchemaVersion == 1`: that release squashed
-// every pre-release migration into a single `onCreate` baseline, so there is still no `onUpgrade`
-// step and no frozen-schema DDL fixture to pin yet. The first schema change *after* 0.1.0 will bump
-// `currentSchemaVersion` to 2, add the first `onUpgrade` step, and this file will then gain a
-// verbatim `CREATE TABLE` DDL fixture for the v1 schema plus a test that migrating that fixture
-// onto the current schema lands on exactly what `onCreate` produces — proving
-// `onCreate == every stable upgrade path` the way ADR 0029 requires. The tests below only cover
-// what always holds regardless.
+// schema at v1, and schema version 2 — `OcptSyncRelayCursorsTable` and `OcptSyncPairingsTable`,
+// both local, never-synchronised tables the changeset engine and its relay transport add — is this
+// cycle's first `onUpgrade` step: `currentSchemaVersion == 2` while `lastStableSchemaVersion` stays
+// `1`, per ADR 0029's "a cycle is open" state. A verbatim `CREATE TABLE` DDL fixture for the frozen
+// v1 schema, proving `onCreate == every stable upgrade path`, is only owed once *this* step is
+// itself frozen by a stable release — that is the moment ADR 0029 ties the fixture to, not the
+// step's own authoring — so this file holds none yet. The tests below cover what always holds
+// regardless, plus the v1-to-v2 upgrade itself.
 
 void main() {
   test(
@@ -68,10 +72,82 @@ void main() {
         'budget_resources',
         'budget_revenues',
         'budget_allowances',
+        'sync_relay_cursors',
+        'sync_pairings',
       ]),
     );
 
     final userVersion = await database.customSelect('PRAGMA user_version').getSingle();
     expect(userVersion.data['user_version'], OcptProjectDatabase.currentSchemaVersion);
   });
+
+  test(
+    'a v1 database migrates to v2, keeping its rows and gaining the two empty local tables',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp('ocpt_migration_v1_to_v2_test_');
+      addTearDown(() => tempDir.delete(recursive: true));
+      final filePath = p.join(tempDir.path, 'movie.ocpt');
+
+      // The migration from 1 to 2 is additive-only and only ever creates `sync_relay_cursors` and
+      // `sync_pairings` (`OcptProjectDatabase.migration`'s own doc comment): a real v1 file is
+      // therefore exactly what `onCreate` produces here minus those two tables. Seed a real
+      // database at the current schema, then undo that addition by hand — the same trick
+      // `home_bloc_test.dart`'s `createProjectAtPreviousFormat` uses — so reopening it exercises the
+      // real `onUpgrade` step rather than a fixture standing in for it.
+      final seeded = OcptProjectDatabase(File(filePath));
+      await seeded
+          .into(seeded.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: 's1',
+              title: 'Draft',
+              updatedAt: DateTime(2026),
+            ),
+          );
+      await seeded.close();
+
+      final raw = sqlite3.open(filePath);
+      raw
+        ..execute('DROP TABLE sync_relay_cursors')
+        ..execute('DROP TABLE sync_pairings')
+        ..execute('PRAGMA user_version = 1')
+        ..dispose();
+
+      final migrated = OcptProjectDatabase(File(filePath));
+      addTearDown(migrated.close);
+
+      final screenplays = await migrated.select(migrated.ocptScreenplaysTable).get();
+      expect(screenplays, hasLength(1));
+      expect(screenplays.single.id, 's1');
+      expect(screenplays.single.title, 'Draft');
+
+      final cursorsBeforeInsert = await migrated.select(migrated.ocptSyncRelayCursorsTable).get();
+      expect(cursorsBeforeInsert, isEmpty);
+      final pairingsBeforeInsert = await migrated.select(migrated.ocptSyncPairingsTable).get();
+      expect(pairingsBeforeInsert, isEmpty);
+
+      await migrated
+          .into(migrated.ocptSyncRelayCursorsTable)
+          .insert(OcptSyncRelayCursorsTableCompanion.insert(relayId: 'relay-1'));
+      final cursorsAfterInsert = await migrated.select(migrated.ocptSyncRelayCursorsTable).get();
+      expect(cursorsAfterInsert, hasLength(1));
+      expect(cursorsAfterInsert.single.lastAppliedSequence, 0);
+      expect(cursorsAfterInsert.single.outboxHighWaterMark, 0);
+
+      await migrated
+          .into(migrated.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'p1',
+              relayBaseUrl: 'https://relay.example.org/',
+            ),
+          );
+      final pairingsAfterInsert = await migrated.select(migrated.ocptSyncPairingsTable).get();
+      expect(pairingsAfterInsert, hasLength(1));
+      expect(pairingsAfterInsert.single.relayBaseUrl, 'https://relay.example.org/');
+
+      final userVersion = await migrated.customSelect('PRAGMA user_version').getSingle();
+      expect(userVersion.data['user_version'], OcptProjectDatabase.currentSchemaVersion);
+    },
+  );
 }

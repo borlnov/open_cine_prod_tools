@@ -20,9 +20,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a wide, tall
-/// enough band that the whole dashboard is drawn with no scroll needed to find a card.
-Widget _wrap(Widget child) => MaterialApp(
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a band tall
+/// enough that the whole dashboard is drawn with no scroll needed to find a card — [width] wide by
+/// default, wide enough that nothing in it is squeezed; a narrow-width test overrides it to put a
+/// card's own layout under the same pressure the workspace shell's own side docks put it under.
+Widget _wrap(Widget child, {double width = 1200}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -30,7 +32,7 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 1200, height: 900, child: child)),
+  home: Scaffold(body: SizedBox(width: width, height: 900, child: child)),
 );
 
 /// Builds a quote line quoted at [amountCents] (a single unit at that price), tax-inclusive with no
@@ -119,6 +121,7 @@ Future<Tr> _pumpDashboard(
   List<OcptBudgetResource> resources = const [],
   ValueChanged<String>? onPosteOpened,
   VoidCallback? onCashAlertActionRequested,
+  double width = 1200,
 }) async {
   await tester.pumpWidget(
     _wrap(
@@ -136,6 +139,7 @@ Future<Tr> _pumpDashboard(
         onPosteOpened: onPosteOpened ?? (_) {},
         onCashAlertActionRequested: onCashAlertActionRequested ?? () {},
       ),
+      width: width,
     ),
   );
   await tester.pumpAndSettle();
@@ -512,6 +516,41 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      "the empty-state message wraps instead of overflowing and crushing the title at a narrow width",
+      (tester) async {
+        // No poste at all, so the balance bar reads its own three-way empty state — the longest of
+        // its own verdict sentences — squeezed into a band narrow enough that a bare `Text` (no
+        // `Flexible`, no `maxLines`) overflows the row by close to 300 pixels, crushing the title
+        // `Expanded` beside it — confirmed against the pre-fix widget, width 380 chosen precisely
+        // because it stays wide enough that the card's unrelated bottom row (`Resources`/`Needs`)
+        // does not itself overflow, so this test isolates the row this fix touches.
+        final tr = await _pumpDashboard(
+          tester,
+          postes: const [
+            OcptBudgetPoste(
+              id: "poste-1",
+              code: "1",
+              label: "Camera",
+              simpleLabel: null,
+              estimateToCompleteCents: null,
+              sortKey: "a0",
+              lines: [],
+            ),
+          ],
+          width: 380,
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text(tr.budgetDashboardBalanceTitle.toUpperCase()), findsOneWidget);
+        final finder = find.text(tr.budgetDashboardBalanceNoQuoteMessage);
+        expect(finder, findsOneWidget);
+        final text = tester.widget<Text>(finder);
+        expect(text.maxLines, isNotNull);
+        expect(text.overflow, TextOverflow.ellipsis);
+      },
+    );
   });
 
   group("the alerts card", () {

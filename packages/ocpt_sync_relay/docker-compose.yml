@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# One relay instance per person or per production (docs/plans/collaboration-and-sync.md §5.1):
+# this file runs exactly one, single-tenant by construction (ADR 0009 — there are no accounts to
+# separate two people by inside one instance). Hosting a second person on the same host is a
+# second service using the same image, with its own volume, enrolment secret and port — see the
+# commented-out example at the bottom of this file, not a second tenant inside this one.
+#
+# TLS is terminated by a reverse proxy in front of this service (Caddy, nginx, Traefik...), which
+# is deliberately NOT part of this file — see this package's own README.md. `ports` below binds to
+# 127.0.0.1 only, so nothing reaches this container except through whatever the operator puts in
+# front of it.
+#
+# Run with, from this directory:
+#
+#   OCPT_RELAY_ENROLMENT_SECRET=<generated secret> docker compose up -d
+
+services:
+  relay:
+    build:
+      # The repository root: see this package's own Dockerfile for why.
+      context: ../..
+      dockerfile: packages/ocpt_sync_relay/Dockerfile
+    environment:
+      OCPT_RELAY_ENROLMENT_SECRET: ${OCPT_RELAY_ENROLMENT_SECRET:?set OCPT_RELAY_ENROLMENT_SECRET before starting}
+      OCPT_RELAY_PORT: "8080"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - relay-data:/data
+    restart: unless-stopped
+
+volumes:
+  relay-data:
+
+# A second person on the same host, same image, its own volume/secret/port:
+#
+# services:
+#   relay-guest:
+#     build:
+#       context: ../..
+#       dockerfile: packages/ocpt_sync_relay/Dockerfile
+#     environment:
+#       OCPT_RELAY_ENROLMENT_SECRET: >-
+#         ${OCPT_RELAY_GUEST_ENROLMENT_SECRET:?set OCPT_RELAY_GUEST_ENROLMENT_SECRET before starting}
+#       OCPT_RELAY_PORT: "8080"
+#     ports:
+#       - "127.0.0.1:8081:8080"
+#     volumes:
+#       - relay-guest-data:/data
+#     restart: unless-stopped
+#
+# volumes:
+#   relay-guest-data:
+#
+# Then point the reverse proxy at both by hostname: 127.0.0.1:8080 for the first instance,
+# 127.0.0.1:8081 for the second.

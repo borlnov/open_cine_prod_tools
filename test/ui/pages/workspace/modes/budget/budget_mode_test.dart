@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -1340,4 +1341,143 @@ void main() {
       expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsOneWidget);
     },
   );
+
+  group("the floating add at a compact width", () {
+    testWidgets(
+      "is present at a compact width, and the header's own capture button is withheld — never "
+      "both at once",
+      (tester) async {
+        tester.view.physicalSize = const Size(700, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(FloatingActionButton), findsOneWidget);
+        expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
+      },
+    );
+
+    testWidgets(
+      "is absent at a desktop width, where the header's own capture button is the only door",
+      (tester) async {
+        tester.view.physicalSize = const Size(1750, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(FloatingActionButton), findsNothing);
+        expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
+      },
+    );
+
+    testWidgets("is drawn icon-only, with no visible label text of its own", (tester) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+
+      // Icon-only: no FloatingActionButton.extended drawing the label text, and the label lives
+      // on as the button's tooltip instead — the standing accessibility fallback.
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byType(Icon), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byType(FloatingActionButton),
+          matching: find.text(tr.budgetHeaderNewAction),
+        ),
+        findsNothing,
+      );
+      expect(find.byTooltip(tr.budgetHeaderNewAction), findsOneWidget);
+    });
+
+    testWidgets(
+      "tapping it fires the header's own + New flow, creating a quote line and opening the "
+      "fiche on it",
+      (tester) async {
+        tester.view.physicalSize = const Size(700, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+        await tester.pumpAndSettle();
+        await openExpenses(tester);
+
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
+        expect(find.byType(OcptBudgetFiche), findsNothing);
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        // The very same wizard the header's own capture button opens, its `addQuoteLine` gesture
+        // pre-selected for the expenses route — one click reaches step 2.
+        expect(find.byType(OcptBudgetNewDialog), findsOneWidget);
+        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+        await tester.pumpAndSettle();
+
+        // Step 2: which poste this line prices — scoped to the wizard, whose background still
+        // shows the very same poste name in the expenses table underneath it.
+        await tester.tap(
+          find.descendant(
+            of: find.byType(OcptBudgetNewDialog),
+            matching: find.text(tr.budgetCncPosteArtisticRights),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
+        await tester.pumpAndSettle();
+
+        // Step 3: the line's own form — label, quantity and unit price, in that order; the unit
+        // field between quantity and unit price is left blank, being optional.
+        final fields = find.descendant(
+          of: find.byType(OcptBudgetNewDialog),
+          matching: find.byType(TextFormField),
+        );
+        await tester.enterText(fields.at(0), "Camera rental");
+        await tester.enterText(fields.at(1), "1");
+        await tester.enterText(fields.at(3), "50.00");
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+        await tester.pumpAndSettle();
+
+        // The line lands selected, the right dock opened on its own fiche — exactly what the
+        // header's own capture button already does for this same gesture
+        // (`OcptBudgetBloc._onLineCreated`).
+        expect(find.byType(OcptBudgetFiche), findsOneWidget);
+        expect(find.text("Camera rental"), findsWidgets);
+      },
+    );
+
+    testWidgets("is withheld under a previewed version", (tester) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+      final previewResult = await projectsManager.previewVersion(version!.id);
+      expect(previewResult.status.isSuccess, isTrue);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FloatingActionButton), findsNothing);
+
+      // Leave the preview so the working copy is what the next test opens onto.
+      await projectsManager.exitPreview();
+    });
+  });
 }

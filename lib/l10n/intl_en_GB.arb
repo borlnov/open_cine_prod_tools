@@ -394,6 +394,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorFormatMenuTooltip": "Format",
+  "@editorFormatMenuTooltip": {
+    "description": "Tooltip of the compact-width toolbar's format menu, folding the block-type choice and the bold/italic/underline toggles behind a single ⋮ button",
+    "context": "Displayed on hover over the editor toolbar's format menu button, below the compact width breakpoint, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorExportPanelTitle": "Export the screenplay",
   "@editorExportPanelTitle": {
     "description": "Title of the screenplay mode's export panel",
@@ -1082,6 +1089,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeJoinSharedProjectAction": "Join a shared project…",
+  "@homeJoinSharedProjectAction": {
+    "description": "Label of the action that opens the Rejoindre screen, pairing this replica to a project already shared on a relay",
+    "context": "Displayed on a button in the home page header",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeImportDialogTitle": "Import",
   "@homeImportDialogTitle": {
     "description": "Title of the modal offering the two things that can be imported",
@@ -1208,9 +1222,23 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeEmptyStateCompactHint": "Tap + to create a project, or use the ⋮ menu to open or import one.",
+  "@homeEmptyStateCompactHint": {
+    "description": "Hint pointing to the FAB and the overflow menu, replacing the empty state's button row at compact width",
+    "context": "Displayed below the empty state message, when the recent projects list is empty and the window is compact",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeExportProjectAction": "Export…",
   "@homeExportProjectAction": {
     "description": "Label of the action that writes a project card's project out as a portable package",
+    "context": "Displayed in a project card's overflow menu, above Remove from list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeShareProjectAction": "Share / Sync…",
+  "@homeShareProjectAction": {
+    "description": "Label of the action that opens a project card's project, then its Partager screen",
     "context": "Displayed in a project card's overflow menu, above Remove from list",
     "type": "text",
     "placeholders": {}
@@ -1226,6 +1254,13 @@
   "@homeMissingFileTooltip": {
     "description": "Tooltip shown on a recent project card whose file is missing",
     "context": "Displayed on hover/long-press over a greyed-out project card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeIncompatibleProjectTooltip": "This project's format isn't compatible with this version of the app.",
+  "@homeIncompatibleProjectTooltip": {
+    "description": "Tooltip shown on a recent project card's incompatible-format warning badge",
+    "context": "Displayed on hover/long-press over the badge, for a file this build refuses to open (a newer format, or one written by a foreign development build)",
     "type": "text",
     "placeholders": {}
   },
@@ -6124,6 +6159,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "exportSharedMessage": "Shared",
+  "@exportSharedMessage": {
+    "description": "Message shown when an export was handed to the OS share sheet instead of a picked save location",
+    "context": "Displayed in a SnackBar after any export, on mobile only, in place of the usual 'saved to <path>' message",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsPageTitle": "Project settings",
   "@projectSettingsPageTitle": {
     "description": "Title of the project settings page",
@@ -10263,6 +10305,13 @@
   "projectPackageExportError": "The project package could not be written.",
   "@projectPackageExportError": {
     "description": "Error shown when writing the project out as a portable package failed",
+    "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectPackageExportShared": "Project shared.",
+  "@projectPackageExportShared": {
+    "description": "Message shown on mobile when the project package was handed to the OS share sheet",
     "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
     "type": "text",
     "placeholders": {}
@@ -14874,6 +14923,495 @@
         "type": "String"
       }
     }
+  },
+  "sharingPageTitle": "Share \"{projectName}\"",
+  "@sharingPageTitle": {
+    "description": "Title of the sharing page, naming the project",
+    "context": "Displayed at the top of the Partager screen",
+    "type": "text",
+    "placeholders": {
+      "projectName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharingStepConfigureChip": "① Configure",
+  "@sharingStepConfigureChip": {
+    "description": "Step chip shown in the sharing page's own top bar while the project is not yet paired"
+  },
+  "sharingStepInviteChip": "② Invite",
+  "@sharingStepInviteChip": {
+    "description": "Step chip shown in the sharing page's own top bar once the project is paired"
+  },
+  "sharingStatusUnpairedChip": "Not paired",
+  "@sharingStatusUnpairedChip": {
+    "description": "Status chip shown in the sharing page's own top bar while the project is not yet paired"
+  },
+  "sharingStatusSyncedChip": "In sync",
+  "@sharingStatusSyncedChip": {
+    "description": "Status chip shown in the sharing page's own top bar once the project is paired and syncing"
+  },
+  "sharingConfigureIntro": "Publish this project on a relay to share it with your team. Every device that joins keeps a full copy of the project, and edits merge automatically the next time it reconnects.",
+  "@sharingConfigureIntro": {
+    "description": "Introductory line of the ① Configure form"
+  },
+  "sharingRelayCardTitle": "Relay",
+  "@sharingRelayCardTitle": {
+    "description": "Title of the ① Configure form's own card"
+  },
+  "sharingRelayAddressLabel": "Relay address",
+  "@sharingRelayAddressLabel": {
+    "description": "Label of the relay address field: the ① Configure form, and read-only in the ② Invite screen's own connection card"
+  },
+  "sharingRelayAddressHint": "https://relay.example.org",
+  "@sharingRelayAddressHint": {
+    "description": "Placeholder text of the relay address field"
+  },
+  "sharingEnrolmentSecretLabel": "Enrolment secret",
+  "@sharingEnrolmentSecretLabel": {
+    "description": "Label of the instance-wide enrolment secret field in the ① Configure form"
+  },
+  "sharingTokenNoteText": "A project token is generated automatically and kept in secure storage. It is never written to the project file.",
+  "@sharingTokenNoteText": {
+    "description": "Note explaining how the project token is minted and stored, shown under the ① Configure form"
+  },
+  "sharingPairAction": "Pair and create on the relay",
+  "@sharingPairAction": {
+    "description": "Primary button of the ① Configure form"
+  },
+  "sharingRelayAddressInvalidMessage": "Enter a valid relay address, e.g. https://relay.example.org",
+  "@sharingRelayAddressInvalidMessage": {
+    "description": "Validation message shown under the relay address field when it isn't a well-formed URL"
+  },
+  "sharingPairingErrorMessage": "Could not pair with the relay. Check the address and the enrolment secret, then try again.",
+  "@sharingPairingErrorMessage": {
+    "description": "Snack bar message shown when pairing to the relay fails"
+  },
+  "sharingInviteCardTitle": "Invite your team",
+  "@sharingInviteCardTitle": {
+    "description": "Title of the ② Invite screen's own QR card"
+  },
+  "sharingInviteCardBody": "Scan this code from another device to join the project. Every device that joins keeps a full copy, and edits merge automatically.",
+  "@sharingInviteCardBody": {
+    "description": "Body text of the ② Invite screen's own QR card"
+  },
+  "sharingSaveQrAction": "Save the QR code…",
+  "@sharingSaveQrAction": {
+    "description": "Action saving the invite QR code as an image file"
+  },
+  "sharingCopyInviteLinkAction": "Copy the invite link",
+  "@sharingCopyInviteLinkAction": {
+    "description": "Action copying the invite link (the QR code's own text) to the clipboard"
+  },
+  "sharingConnectionCardTitle": "Connection",
+  "@sharingConnectionCardTitle": {
+    "description": "Title of the ② Invite screen's own connection card"
+  },
+  "sharingProjectTokenLabel": "Project token",
+  "@sharingProjectTokenLabel": {
+    "description": "Label of the masked project token field in the ② Invite screen's own connection card"
+  },
+  "sharingCopyTooltip": "Copy",
+  "@sharingCopyTooltip": {
+    "description": "Tooltip of a copy-to-clipboard icon button"
+  },
+  "sharingRevealTokenTooltip": "Reveal",
+  "@sharingRevealTokenTooltip": {
+    "description": "Tooltip of the icon button revealing the masked project token"
+  },
+  "sharingHideTokenTooltip": "Hide",
+  "@sharingHideTokenTooltip": {
+    "description": "Tooltip of the icon button hiding the revealed project token"
+  },
+  "sharingUnshareAction": "Stop sharing…",
+  "@sharingUnshareAction": {
+    "description": "Destructive action ending this project's own relay pairing"
+  },
+  "sharingUnshareConfirmTitle": "Stop sharing this project?",
+  "@sharingUnshareConfirmTitle": {
+    "description": "Title of the confirmation dialog before unpairing the project from its relay"
+  },
+  "sharingUnshareConfirmMessage": "Nobody will be able to sync with it any longer. Every device that already holds a copy keeps it, but stops sending and receiving changes.",
+  "@sharingUnshareConfirmMessage": {
+    "description": "Message of the confirmation dialog before unpairing the project from its relay"
+  },
+  "sharingUnshareConfirmCancelAction": "Cancel",
+  "@sharingUnshareConfirmCancelAction": {
+    "description": "Cancel button of the confirmation dialog before unpairing the project from its relay"
+  },
+  "sharingUnshareConfirmConfirmAction": "Stop sharing",
+  "@sharingUnshareConfirmConfirmAction": {
+    "description": "Confirm button of the confirmation dialog before unpairing the project from its relay"
+  },
+  "joiningPageTitle": "Join a shared project",
+  "@joiningPageTitle": {
+    "description": "Title of the Rejoindre (joining) page"
+  },
+  "joiningNoLocalCopyChip": "No local copy yet",
+  "@joiningNoLocalCopyChip": {
+    "description": "Status chip shown in the Rejoindre page's own top bar, stating the project hasn't been joined yet"
+  },
+  "joiningIntro": "You don't have this project yet. Scan the QR code from a teammate's own Partager screen, or paste the invite link they shared with you.",
+  "@joiningIntro": {
+    "description": "Introductory line of the Rejoindre page"
+  },
+  "joiningTabScanner": "Scan (tablet)",
+  "@joiningTabScanner": {
+    "description": "Label of the camera-scan segment of the Rejoindre page's own segmented control"
+  },
+  "joiningTabManual": "Enter manually",
+  "@joiningTabManual": {
+    "description": "Label of the manual-entry segment of the Rejoindre page's own segmented control"
+  },
+  "joiningScannerHint": "Point the camera at the QR code shown on the device that is sharing the project.",
+  "@joiningScannerHint": {
+    "description": "Hint text shown under the camera viewfinder on the Rejoindre page's own scan tab"
+  },
+  "joiningScannerUnavailableTitle": "Camera unavailable",
+  "@joiningScannerUnavailableTitle": {
+    "description": "Title shown on the Rejoindre page's own scan tab when the running platform has no camera to show"
+  },
+  "joiningScannerUnavailableMessage": "Scanning needs a camera, which this platform doesn't have. Use manual entry instead.",
+  "@joiningScannerUnavailableMessage": {
+    "description": "Message shown on the Rejoindre page's own scan tab when the running platform has no camera to show"
+  },
+  "joiningManualCardTitle": "Invite link",
+  "@joiningManualCardTitle": {
+    "description": "Title of the Rejoindre page's own manual entry form"
+  },
+  "joiningInviteLinkHelperText": "Paste the link shared with you",
+  "@joiningInviteLinkHelperText": {
+    "description": "Helper line under the invite link field in the Rejoindre page's own manual entry form"
+  },
+  "joiningJoinAction": "Join",
+  "@joiningJoinAction": {
+    "description": "Primary button of the Rejoindre page's own manual entry form"
+  },
+  "joiningNoteText": "Joining creates a full local copy of this project: it downloads the relay's snapshot, then keeps syncing. A new card will appear on the home screen.",
+  "@joiningNoteText": {
+    "description": "Note explaining what joining does, shown under both of the Rejoindre page's own tabs"
+  },
+  "joiningProgressTitle": "Retrieving the project…",
+  "@joiningProgressTitle": {
+    "description": "Title of the Rejoindre page's own busy state, shown while a join is in progress"
+  },
+  "joiningStepConnecting": "Connecting to the relay…",
+  "@joiningStepConnecting": {
+    "description": "Blocking modal's own step label while the join is resolving its destination and opening the relay transport"
+  },
+  "joiningStepDownloading": "Downloading the project…",
+  "@joiningStepDownloading": {
+    "description": "Blocking modal's own step label while the join is fetching and materialising the relay's snapshot"
+  },
+  "joiningStepOpening": "Opening…",
+  "@joiningStepOpening": {
+    "description": "Blocking modal's own step label while the join is opening the freshly written project"
+  },
+  "joiningSuccessTitle": "Project retrieved",
+  "@joiningSuccessTitle": {
+    "description": "Blocking modal's own title once a join succeeded, before the user taps Open"
+  },
+  "joiningOpenAction": "Open",
+  "@joiningOpenAction": {
+    "description": "Button entering the freshly joined project, shown by the blocking modal's own success state"
+  },
+  "joiningCancelAction": "Cancel",
+  "@joiningCancelAction": {
+    "description": "Button abandoning a join in progress, shown by the blocking modal's own busy state"
+  },
+  "joiningErrorMessage": "Could not join this project. Check the invite link, then try again.",
+  "@joiningErrorMessage": {
+    "description": "Snack bar message shown when joining fails, whether the submission was manual or scanned"
+  },
+  "repointingPageTitle": "Switch relay for \"{projectName}\"",
+  "@repointingPageTitle": {
+    "description": "Title of the repointing page, naming the project",
+    "context": "Displayed at the top of the Changer de relais screen",
+    "type": "text",
+    "placeholders": {
+      "projectName": {
+        "type": "String"
+      }
+    }
+  },
+  "repointingStepConfigureChip": "① Configure",
+  "@repointingStepConfigureChip": {
+    "description": "Step chip shown in the repointing page's own top bar while the form is still shown"
+  },
+  "repointingStepQrChip": "② QR code",
+  "@repointingStepQrChip": {
+    "description": "Step chip shown in the repointing page's own top bar once the project has been re-pointed"
+  },
+  "repointingConfigureIntro": "Point this project at a different relay — the on-set server at the start of a shoot day, or back to the prep relay at the end of it. The project keeps its own history; only where it syncs changes.",
+  "@repointingConfigureIntro": {
+    "description": "Introductory line of the repointing page's own ① Configure form"
+  },
+  "repointingRelayCardTitle": "Relay",
+  "@repointingRelayCardTitle": {
+    "description": "Title of the repointing page's own ① Configure form card"
+  },
+  "repointingRelayAddressLabel": "Relay address",
+  "@repointingRelayAddressLabel": {
+    "description": "Label of the relay address field: the ① Configure form, and read-only in the ② QR code screen's own connection card"
+  },
+  "repointingRelayAddressHint": "https://relay.example.org",
+  "@repointingRelayAddressHint": {
+    "description": "Placeholder text of the repointing page's own relay address field"
+  },
+  "repointingEnrolmentSecretLabel": "Enrolment secret",
+  "@repointingEnrolmentSecretLabel": {
+    "description": "Label of the instance-wide enrolment secret field: the ① Configure form, and masked in the ② QR code screen's own connection card"
+  },
+  "repointingRelayAddressInvalidMessage": "Enter a valid relay address, e.g. https://relay.example.org",
+  "@repointingRelayAddressInvalidMessage": {
+    "description": "Validation message shown under the repointing page's own relay address field when it isn't a well-formed URL"
+  },
+  "repointingSubmitAction": "Switch relay",
+  "@repointingSubmitAction": {
+    "description": "Primary button of the repointing page's own ① Configure form"
+  },
+  "repointingScanQrAction": "Scan a relay QR code",
+  "@repointingScanQrAction": {
+    "description": "Action opening the camera scanner in the repointing page's own ① Configure form, mobile only"
+  },
+  "repointingScannerHint": "Point the camera at the relay's own enrolment QR code.",
+  "@repointingScannerHint": {
+    "description": "Hint text shown under the repointing page's own camera scanner"
+  },
+  "repointingEnterManuallyAction": "Enter details manually",
+  "@repointingEnterManuallyAction": {
+    "description": "Action switching the repointing page's own ① Configure form back from the scanner to the typed fields"
+  },
+  "repointingErrorMessage": "Could not switch relay. Check the address and the enrolment secret, then try again.",
+  "@repointingErrorMessage": {
+    "description": "Snack bar message shown when switching relay fails"
+  },
+  "repointingQrCardTitle": "Ready for the next device",
+  "@repointingQrCardTitle": {
+    "description": "Title of the repointing page's own ② QR code screen card"
+  },
+  "repointingQrCardBody": "Show this code to the next device so it can switch to the same relay.",
+  "@repointingQrCardBody": {
+    "description": "Body text of the repointing page's own ② QR code screen card"
+  },
+  "repointingCopyEnrolmentAction": "Copy the enrolment link",
+  "@repointingCopyEnrolmentAction": {
+    "description": "Action copying the enrolment link (the QR code's own text) to the clipboard"
+  },
+  "repointingDoneAction": "Done",
+  "@repointingDoneAction": {
+    "description": "Action closing the repointing page's own ② QR code screen"
+  },
+  "workspaceSyncStatusInSync": "In sync",
+  "@workspaceSyncStatusInSync": {
+    "description": "Label of the workspace status bar's sync indicator when every edit has been pushed and pulled"
+  },
+  "workspaceSyncStatusSyncing": "Syncing…",
+  "@workspaceSyncStatusSyncing": {
+    "description": "Label of the workspace status bar's sync indicator while a push-then-pull is running"
+  },
+  "workspaceSyncStatusOfflinePending": "{count, plural, one{Offline · {count} pending change} other{Offline · {count} pending changes}}",
+  "@workspaceSyncStatusOfflinePending": {
+    "description": "Label of the workspace status bar's sync indicator when the relay could not be reached, naming how many local edits are still waiting to be pushed",
+    "context": "Displayed in the workspace status bar and in the sync panel it opens",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "workspaceSyncStatusOfflineUnknown": "Offline · pending changes",
+  "@workspaceSyncStatusOfflineUnknown": {
+    "description": "Label of the workspace status bar's sync indicator when the relay could not be reached and the pending edit count itself could not be read"
+  },
+  "workspaceSyncStatusError": "Sync error",
+  "@workspaceSyncStatusError": {
+    "description": "Label of the workspace status bar's sync indicator when the relay itself rejected the last sync request"
+  },
+  "workspaceSyncPanelErrorDetail": "Relay error: {message}",
+  "@workspaceSyncPanelErrorDetail": {
+    "description": "Detail line of the sync panel while the relay rejected the last sync request, naming what it said",
+    "context": "Displayed under the sync panel's own state label",
+    "type": "text",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSyncActionSyncNow": "Sync now",
+  "@workspaceSyncActionSyncNow": {
+    "description": "Action of the sync panel that runs a sync right away"
+  },
+  "workspaceSyncActionShowQr": "Show the invite QR code",
+  "@workspaceSyncActionShowQr": {
+    "description": "Action of the sync panel that opens the Partager screen to show the invite QR code"
+  },
+  "workspaceSyncActionRepair": "Re-pair…",
+  "@workspaceSyncActionRepair": {
+    "description": "Action of the sync panel that opens the Partager screen to replace the current pairing"
+  },
+  "workspaceSyncActionSwitchRelay": "Switch relay…",
+  "@workspaceSyncActionSwitchRelay": {
+    "description": "Action of the sync panel that opens the Changer de relais screen to move the project onto a different relay"
+  },
+  "workspacePresencePopoverHeader": "On this project",
+  "@workspacePresencePopoverHeader": {
+    "description": "Header of the presence indicator's popover, above the list of replicas that have the project open"
+  },
+  "workspacePresenceOnlineCount": "{count, plural, one{{count} online} other{{count} online}}",
+  "@workspacePresenceOnlineCount": {
+    "description": "Participant count shown under the presence popover's header, naming how many replicas currently have the project open",
+    "context": "Displayed in the presence indicator's popover, right under workspacePresencePopoverHeader",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "workspacePresenceSelfBadge": "You",
+  "@workspacePresenceSelfBadge": {
+    "description": "Badge marking this replica's own row in the presence indicator's popover"
+  },
+  "sharingSegmentRemote": "Remote relay",
+  "@sharingSegmentRemote": {
+    "description": "Segment of the Partager screen's own segmented button selecting the remote-relay pairing flow"
+  },
+  "sharingSegmentHost": "Host on this machine",
+  "@sharingSegmentHost": {
+    "description": "Segment of the Partager screen's own segmented button selecting the in-app hosting panel, desktop only"
+  },
+  "hostingSwitchLabel": "Hosting",
+  "@hostingSwitchLabel": {
+    "description": "Label of the hosting panel's own Marche/Arrêt switch"
+  },
+  "hostingAutoRestartLabel": "Re-host this project on launch",
+  "@hostingAutoRestartLabel": {
+    "description": "Label of the hosting panel's own checkbox restarting hosting automatically on the next open"
+  },
+  "hostingAdvertisedAddressLabel": "Advertised address",
+  "@hostingAdvertisedAddressLabel": {
+    "description": "Label of the hosting panel's own advertised-address dropdown, shown while hosting is online"
+  },
+  "hostingPortLabel": "Port",
+  "@hostingPortLabel": {
+    "description": "Label of the hosting panel's own port field, shown while hosting is online"
+  },
+  "hostingApplyPort": "Apply",
+  "@hostingApplyPort": {
+    "description": "Button applying the hosting panel's own port field"
+  },
+  "hostingQrKindJoin": "Send the project to a device",
+  "@hostingQrKindJoin": {
+    "description": "Segment of the hosting panel's own QR-kind segmented button selecting the join invite QR"
+  },
+  "hostingQrKindRepoint": "Redirect a device that already has it",
+  "@hostingQrKindRepoint": {
+    "description": "Segment of the hosting panel's own QR-kind segmented button selecting the enrolment QR"
+  },
+  "hostingQrJoinCaption": "Give the project to a device that doesn't have it yet — it scans this via « Join »",
+  "@hostingQrJoinCaption": {
+    "description": "Caption under the hosting panel's own QR while it shows the join invite"
+  },
+  "hostingQrRepointCaption": "Point a device that already has the project at this machine — it scans this via « Switch relay »",
+  "@hostingQrRepointCaption": {
+    "description": "Caption under the hosting panel's own QR while it shows the enrolment"
+  },
+  "hostingCopyLinkTooltip": "Copy the link",
+  "@hostingCopyLinkTooltip": {
+    "description": "Tooltip of the icon button copying the hosting panel's own currently shown QR link"
+  },
+  "hostingPeersLabel": "Connected",
+  "@hostingPeersLabel": {
+    "description": "Title of the hosting panel's own connected-peers card"
+  },
+  "hostingNoPeers": "No one has joined yet",
+  "@hostingNoPeers": {
+    "description": "Shown in the hosting panel's own connected-peers card while nobody has joined the hosted relay"
+  },
+  "hostingReconcileAction": "Reconcile upstream…",
+  "@hostingReconcileAction": {
+    "description": "Action opening the hosting panel's own inline reconcile form"
+  },
+  "hostingReconcileInviteHint": "Paste the upstream relay's invite link",
+  "@hostingReconcileInviteHint": {
+    "description": "Hint text of the hosting panel's own reconcile form field"
+  },
+  "hostingReconcileRun": "Reconcile",
+  "@hostingReconcileRun": {
+    "description": "Primary button of the hosting panel's own reconcile form"
+  },
+  "hostingReconcileResult": "Pushed {pushed}, pulled {pulled}",
+  "@hostingReconcileResult": {
+    "description": "Result line of the hosting panel's own reconcile form once a push-then-pull with the upstream relay has completed",
+    "context": "Displayed under the hosting panel's own reconcile form",
+    "type": "text",
+    "placeholders": {
+      "pushed": {
+        "type": "int"
+      },
+      "pulled": {
+        "type": "int"
+      }
+    }
+  },
+  "hostingReconcileInvalidInvite": "That is not a valid invite link",
+  "@hostingReconcileInvalidInvite": {
+    "description": "Result line of the hosting panel's own reconcile form when the pasted text isn't a well-formed invite link"
+  },
+  "hostingReconcileFailed": "Reconciliation failed",
+  "@hostingReconcileFailed": {
+    "description": "Result line of the hosting panel's own reconcile form when the upstream relay could not be reconciled with"
+  },
+  "hostingStatusStarting": "Starting…",
+  "@hostingStatusStarting": {
+    "description": "Status subtitle of the hosting panel's own switch while the in-process relay is binding its socket"
+  },
+  "hostingStatusOnline": "Online",
+  "@hostingStatusOnline": {
+    "description": "Status subtitle of the hosting panel's own switch while the in-process relay is up and serving"
+  },
+  "hostingStatusStopped": "Stopped",
+  "@hostingStatusStopped": {
+    "description": "Status subtitle of the hosting panel's own switch while nothing is hosting"
+  },
+  "hostingStatusFailed": "Hosting could not start",
+  "@hostingStatusFailed": {
+    "description": "Status subtitle of the hosting panel's own switch when the in-process relay failed to start"
+  },
+  "diagnosticsLogTitle": "Diagnostics log",
+  "@diagnosticsLogTitle": {
+    "description": "Title of the collapsible, collapsed-by-default diagnostics log section shown on the hosting panel and the Rejoindre screen"
+  },
+  "diagnosticsCopyTooltip": "Copy log",
+  "@diagnosticsCopyTooltip": {
+    "description": "Tooltip of the diagnostics log panel's own copy-all icon button"
+  },
+  "diagnosticsClearTooltip": "Clear log",
+  "@diagnosticsClearTooltip": {
+    "description": "Tooltip of the diagnostics log panel's own clear icon button"
+  },
+  "diagnosticsEmpty": "No events yet",
+  "@diagnosticsEmpty": {
+    "description": "Shown in the diagnostics log panel while it holds no entry for the current filter"
+  },
+  "diagnosticsSettingsEntry": "Diagnostics log",
+  "@diagnosticsSettingsEntry": {
+    "description": "Label of the settings row opening the dedicated diagnostics log screen",
+    "context": "Displayed as a row in the about section of the settings page"
+  },
+  "diagnosticsLogFileLabel": "Log file",
+  "@diagnosticsLogFileLabel": {
+    "description": "Label of the log-file row on the diagnostics log screen"
+  },
+  "diagnosticsLogFileCopyPath": "Copy the path",
+  "@diagnosticsLogFileCopyPath": {
+    "description": "Tooltip of the diagnostics log screen's own copy-log-file-path icon button"
+  },
+  "diagnosticsLogFileDisabled": "File logging is off in this build",
+  "@diagnosticsLogFileDisabled": {
+    "description": "Shown on the diagnostics log screen's own log-file row when no log file path is available"
   }
-
 }

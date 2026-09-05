@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -40,10 +41,15 @@ class OcptPeopleService {
   /// never reads `people`, so nothing here closes a circle.
   final OcptRoleCandidatesService roleCandidatesService;
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
   const OcptPeopleService({
-    this.assetsService = const OcptAssetsService(),
-    this.roleCandidatesService = const OcptRoleCandidatesService(),
+    required this.deviceId,
+    required this.assetsService,
+    required this.roleCandidatesService,
   });
 
   /// The write [deletePerson] uses to blank a person's personal columns.
@@ -186,16 +192,48 @@ class OcptPeopleService {
     final existing = await _liveRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptPeopleTable)
-        .insert(
-          OcptPeopleTableCompanion.insert(
-            id: id,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPeopleTable,
+        rowId: id,
+        current: null,
+        next: OcptPersonRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          addressLine1: '',
+          addressLine2: '',
+          postalCode: '',
+          city: '',
+          region: '',
+          country: '',
+          colorIndex: 0,
+          minorNotes: '',
+          accommodationNotes: '',
+          travelNotes: '',
+          dietaryNotes: '',
+          allergies: '',
+          measurementHeight: '',
+          measurementChest: '',
+          measurementWaist: '',
+          measurementHips: '',
+          sizeTop: '',
+          sizeBottom: '',
+          sizeShoes: '',
+          hmcNotes: '',
+          imageRightsStatus: OcptImageRightsStatus.notApplicable,
+          notes: '',
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -247,46 +285,63 @@ class OcptPeopleService {
       return;
     }
 
-    await (database.update(
-      database.ocptPeopleTable,
-    )..where((table) => table.id.equals(personId) & table.isDeleted.not())).write(
-      OcptPeopleTableCompanion(
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        phone: phone,
-        addressLine1: addressLine1,
-        addressLine2: addressLine2,
-        postalCode: postalCode,
-        city: city,
-        region: region,
-        country: country,
-        colorIndex: colorIndex,
-        birthDate: birthDate,
-        minorNotes: minorNotes,
-        maxDailyPresenceMinutes: maxDailyPresenceMinutes,
-        isTransportAutonomous: isTransportAutonomous,
-        accommodationNotes: accommodationNotes,
-        travelNotes: travelNotes,
-        dietaryNotes: dietaryNotes,
-        allergies: allergies,
-        measurementHeight: measurementHeight,
-        measurementChest: measurementChest,
-        measurementWaist: measurementWaist,
-        measurementHips: measurementHips,
-        sizeTop: sizeTop,
-        sizeBottom: sizeBottom,
-        sizeShoes: sizeShoes,
-        hmcNotes: hmcNotes,
-        imageRightsStatus: imageRightsStatus,
-        imageRightsDate: imageRightsDate,
-        imageRightsAssetId: imageRightsAssetId,
-        photoAssetId: photoAssetId,
-        notes: notes,
-        commuteKmMilli: commuteKmMilli,
-        mileageRateId: mileageRateId,
-      ),
+    final companion = OcptPeopleTableCompanion(
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: phone,
+      addressLine1: addressLine1,
+      addressLine2: addressLine2,
+      postalCode: postalCode,
+      city: city,
+      region: region,
+      country: country,
+      colorIndex: colorIndex,
+      birthDate: birthDate,
+      minorNotes: minorNotes,
+      maxDailyPresenceMinutes: maxDailyPresenceMinutes,
+      isTransportAutonomous: isTransportAutonomous,
+      accommodationNotes: accommodationNotes,
+      travelNotes: travelNotes,
+      dietaryNotes: dietaryNotes,
+      allergies: allergies,
+      measurementHeight: measurementHeight,
+      measurementChest: measurementChest,
+      measurementWaist: measurementWaist,
+      measurementHips: measurementHips,
+      sizeTop: sizeTop,
+      sizeBottom: sizeBottom,
+      sizeShoes: sizeShoes,
+      hmcNotes: hmcNotes,
+      imageRightsStatus: imageRightsStatus,
+      imageRightsDate: imageRightsDate,
+      imageRightsAssetId: imageRightsAssetId,
+      photoAssetId: photoAssetId,
+      notes: notes,
+      commuteKmMilli: commuteKmMilli,
+      mileageRateId: mileageRateId,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals(personId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPeopleTable,
+        rowId: personId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Erases person [personId] from [database] (decision 6 of the plan this service ships under):
@@ -342,37 +397,80 @@ class OcptPeopleService {
         return;
       }
 
-      await (database.update(
-        database.ocptPeopleTable,
-      )..where((table) => table.id.equals(personId))).write(_erasureCompanion);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      await (database.update(
-        database.ocptPersonPositionsTable,
-      )..where((table) => table.personId.equals(personId))).write(
-        const OcptPersonPositionsTableCompanion(isDeleted: Value(true)),
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPeopleTable,
+        rowId: personId,
+        current: row,
+        next: row.copyWithCompanion(_erasureCompanion),
+        stamps: stamps,
       );
 
-      await (database.update(
-        database.ocptPersonSkillsTable,
-      )..where((table) => table.personId.equals(personId))).write(
-        const OcptPersonSkillsTableCompanion(isDeleted: Value(true), label: Value('')),
+      final positionRows =
+          await (database.select(
+                database.ocptPersonPositionsTable,
+              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
+              .get();
+      for (final positionRow in positionRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptPersonPositionsTable,
+          rowId: positionRow.id,
+          current: positionRow,
+          next: positionRow.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final skillRows =
+          await (database.select(
+                database.ocptPersonSkillsTable,
+              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
+              .get();
+      for (final skillRow in skillRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptPersonSkillsTable,
+          rowId: skillRow.id,
+          current: skillRow,
+          next: skillRow.copyWith(isDeleted: true, label: ''),
+          stamps: stamps,
+        );
+      }
+
+      final unavailabilityRows =
+          await (database.select(
+                database.ocptPersonUnavailabilitiesTable,
+              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
+              .get();
+      for (final unavailabilityRow in unavailabilityRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptPersonUnavailabilitiesTable,
+          rowId: unavailabilityRow.id,
+          current: unavailabilityRow,
+          next: unavailabilityRow.copyWith(isDeleted: true, reason: ''),
+          stamps: stamps,
+        );
+      }
+
+      await assetsService.erasePersonAssets(database: database, personId: personId, stamps: stamps);
+
+      await roleCandidatesService.eraseCandidaciesOfPerson(
+        database: database,
+        personId: personId,
+        stamps: stamps,
       );
-
-      await (database.update(
-        database.ocptPersonUnavailabilitiesTable,
-      )..where((table) => table.personId.equals(personId))).write(
-        const OcptPersonUnavailabilitiesTableCompanion(isDeleted: Value(true), reason: Value('')),
-      );
-
-      await assetsService.erasePersonAssets(database: database, personId: personId);
-
-      await roleCandidatesService.eraseCandidaciesOfPerson(database: database, personId: personId);
 
       await database
           .into(database.ocptLocalErasuresTable)
           .insertOnConflictUpdate(
             OcptLocalErasuresTableCompanion.insert(personId: personId, erasedAt: DateTime.now()),
           );
+
+      await stamps.flush(database);
     });
   }
 
@@ -484,10 +582,13 @@ class OcptPeopleService {
     }
 
     return database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       await _tombstonePersonAsset(
         database: database,
         personId: personId,
         currentAssetIdOf: currentAssetIdOf,
+        stamps: stamps,
       );
 
       final id = await assetsService.insertAsset(
@@ -496,11 +597,25 @@ class OcptPeopleService {
         personId: personId,
         path: path,
         label: label,
+        stamps: stamps,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptPeopleTable,
-      )..where((table) => table.id.equals(personId))).write(companionOf(id));
+      )..where((table) => table.id.equals(personId))).getSingleOrNull();
+
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptPeopleTable,
+          rowId: personId,
+          current: current,
+          next: current.copyWithCompanion(companionOf(id)),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
 
       return id;
     });
@@ -520,24 +635,42 @@ class OcptPeopleService {
     }
 
     await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       await _tombstonePersonAsset(
         database: database,
         personId: personId,
         currentAssetIdOf: currentAssetIdOf,
+        stamps: stamps,
       );
 
-      await (database.update(
+      final current = await (database.select(
         database.ocptPeopleTable,
-      )..where((table) => table.id.equals(personId))).write(companionOf(null));
+      )..where((table) => table.id.equals(personId))).getSingleOrNull();
+
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptPeopleTable,
+          rowId: personId,
+          current: current,
+          next: current.copyWithCompanion(companionOf(null)),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
   /// Tombstones whichever `assets` row [currentAssetIdOf] reads off person [personId], if any.
-  /// Leaves the column alone: both callers write it themselves.
+  /// Leaves the column alone: both callers write it themselves. Stamps through [stamps] — the
+  /// caller's own instance.
   Future<void> _tombstonePersonAsset({
     required OcptProjectDatabase database,
     required String personId,
     required String? Function(OcptPersonRow row) currentAssetIdOf,
+    required OcptRowStampService? stamps,
   }) async {
     final row = await (database.select(
       database.ocptPeopleTable,
@@ -548,7 +681,7 @@ class OcptPeopleService {
       return;
     }
 
-    await assetsService.tombstoneAsset(database: database, assetId: assetId);
+    await assetsService.tombstoneAsset(database: database, assetId: assetId, stamps: stamps);
   }
 
   /// Moves person [personId] to [newPosition] (0-based) within the address book, by giving it a
@@ -565,7 +698,13 @@ class OcptPeopleService {
     }
 
     await database.transaction(() async {
-      final others = (await _liveRows(database))..removeWhere((row) => row.id == personId);
+      final rows = await _liveRows(database);
+      final current = rows.where((row) => row.id == personId).firstOrNull;
+      if (current == null) {
+        return;
+      }
+
+      final others = rows.where((row) => row.id != personId).toList(growable: false);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -576,11 +715,16 @@ class OcptPeopleService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptPeopleTable,
-      )..where((table) => table.id.equals(personId))).write(
-        OcptPeopleTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPeopleTable,
+        rowId: personId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -601,19 +745,25 @@ class OcptPeopleService {
     final existing = await _positionRowsOfPerson(database: database, personId: personId);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptPersonPositionsTable)
-        .insert(
-          OcptPersonPositionsTableCompanion.insert(
-            id: id,
-            personId: personId,
-            positionId: Value(positionId),
-            customLabel: Value(customLabel),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonPositionsTable,
+        rowId: id,
+        current: null,
+        next: OcptPersonPositionRow(
+          id: id,
+          personId: personId,
+          positionId: positionId,
+          customLabel: customLabel,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -632,11 +782,31 @@ class OcptPeopleService {
       return;
     }
 
-    await (database.update(
-      database.ocptPersonPositionsTable,
-    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptPersonPositionsTableCompanion(positionId: positionId, customLabel: customLabel),
+    final companion = OcptPersonPositionsTableCompanion(
+      positionId: positionId,
+      customLabel: customLabel,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptPersonPositionsTable,
+      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonPositionsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes position assignment [id].
@@ -649,11 +819,26 @@ class OcptPeopleService {
       return;
     }
 
-    await (database.update(
-      database.ocptPersonPositionsTable,
-    )..where((table) => table.id.equals(id))).write(
-      const OcptPersonPositionsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptPersonPositionsTable,
+      )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonPositionsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Reorders person [personId]'s positions to [orderedIds], which must be a permutation of their
@@ -671,18 +856,27 @@ class OcptPeopleService {
 
     await database.transaction(() async {
       final rows = await _positionRowsOfPerson(database: database, personId: personId);
-      final sortKeyById = {for (final row in rows) row.id: row.sortKey};
-      final ids = orderedIds.where(sortKeyById.containsKey).toList(growable: false);
+      final rowById = {for (final row in rows) row.id: row};
+      final ids = orderedIds.where(rowById.containsKey).toList(growable: false);
 
-      final plan = ocptFractionalKeyRekeyPlan([for (final id in ids) sortKeyById[id]!]);
+      final plan = ocptFractionalKeyRekeyPlan([for (final id in ids) rowById[id]!.sortKey]);
+      if (plan.isEmpty) {
+        return;
+      }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       for (final entry in plan.entries) {
-        await (database.update(
-          database.ocptPersonPositionsTable,
-        )..where((table) => table.id.equals(ids[entry.key]))).write(
-          OcptPersonPositionsTableCompanion(sortKey: Value(entry.value)),
+        final current = rowById[ids[entry.key]]!;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptPersonPositionsTable,
+          rowId: current.id,
+          current: current,
+          next: current.copyWith(sortKey: entry.value),
+          stamps: stamps,
         );
       }
+      await stamps.flush(database);
     });
   }
 
@@ -702,18 +896,24 @@ class OcptPeopleService {
     final existing = await _skillRowsOfPerson(database: database, personId: personId);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptPersonSkillsTable)
-        .insert(
-          OcptPersonSkillsTableCompanion.insert(
-            id: id,
-            personId: personId,
-            label: Value(label),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonSkillsTable,
+        rowId: id,
+        current: null,
+        next: OcptPersonSkillRow(
+          id: id,
+          personId: personId,
+          label: label,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -730,11 +930,26 @@ class OcptPeopleService {
       return;
     }
 
-    await (database.update(
-      database.ocptPersonSkillsTable,
-    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptPersonSkillsTableCompanion(label: Value(label)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptPersonSkillsTable,
+      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonSkillsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(label: label),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes skill [id].
@@ -747,11 +962,26 @@ class OcptPeopleService {
       return;
     }
 
-    await (database.update(
-      database.ocptPersonSkillsTable,
-    )..where((table) => table.id.equals(id))).write(
-      const OcptPersonSkillsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptPersonSkillsTable,
+      )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonSkillsTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Reorders person [personId]'s skills to [orderedIds], which must be a permutation of their
@@ -769,18 +999,27 @@ class OcptPeopleService {
 
     await database.transaction(() async {
       final rows = await _skillRowsOfPerson(database: database, personId: personId);
-      final sortKeyById = {for (final row in rows) row.id: row.sortKey};
-      final ids = orderedIds.where(sortKeyById.containsKey).toList(growable: false);
+      final rowById = {for (final row in rows) row.id: row};
+      final ids = orderedIds.where(rowById.containsKey).toList(growable: false);
 
-      final plan = ocptFractionalKeyRekeyPlan([for (final id in ids) sortKeyById[id]!]);
+      final plan = ocptFractionalKeyRekeyPlan([for (final id in ids) rowById[id]!.sortKey]);
+      if (plan.isEmpty) {
+        return;
+      }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       for (final entry in plan.entries) {
-        await (database.update(
-          database.ocptPersonSkillsTable,
-        )..where((table) => table.id.equals(ids[entry.key]))).write(
-          OcptPersonSkillsTableCompanion(sortKey: Value(entry.value)),
+        final current = rowById[ids[entry.key]]!;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptPersonSkillsTable,
+          rowId: current.id,
+          current: current,
+          next: current.copyWith(sortKey: entry.value),
+          stamps: stamps,
         );
       }
+      await stamps.flush(database);
     });
   }
 
@@ -806,20 +1045,28 @@ class OcptPeopleService {
 
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptPersonUnavailabilitiesTable)
-        .insert(
-          OcptPersonUnavailabilitiesTableCompanion.insert(
-            id: id,
-            personId: personId,
-            startDate: startDate,
-            endDate: endDate.isBefore(startDate) ? startDate : endDate,
-            slot: Value(slot),
-            startMinute: Value(startMinute),
-            endMinute: Value(endMinute),
-            reason: Value(reason),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonUnavailabilitiesTable,
+        rowId: id,
+        current: null,
+        next: OcptPersonUnavailabilityRow(
+          id: id,
+          personId: personId,
+          startDate: startDate,
+          endDate: endDate.isBefore(startDate) ? startDate : endDate,
+          slot: slot,
+          startMinute: startMinute,
+          endMinute: endMinute,
+          reason: reason,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -842,18 +1089,35 @@ class OcptPeopleService {
       return;
     }
 
-    await (database.update(
-      database.ocptPersonUnavailabilitiesTable,
-    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptPersonUnavailabilitiesTableCompanion(
-        startDate: startDate,
-        endDate: endDate,
-        slot: slot,
-        startMinute: startMinute,
-        endMinute: endMinute,
-        reason: reason,
-      ),
+    final companion = OcptPersonUnavailabilitiesTableCompanion(
+      startDate: startDate,
+      endDate: endDate,
+      slot: slot,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      reason: reason,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptPersonUnavailabilitiesTable,
+      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonUnavailabilitiesTable,
+        rowId: id,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Removes unavailability [id].
@@ -869,11 +1133,26 @@ class OcptPeopleService {
       return;
     }
 
-    await (database.update(
-      database.ocptPersonUnavailabilitiesTable,
-    )..where((table) => table.id.equals(id))).write(
-      const OcptPersonUnavailabilitiesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptPersonUnavailabilitiesTable,
+      )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptPersonUnavailabilitiesTable,
+        rowId: id,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Every live person row of [database], ordered by `sortKey`.

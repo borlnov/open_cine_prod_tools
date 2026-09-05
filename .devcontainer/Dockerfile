@@ -154,6 +154,51 @@ RUN git clone https://github.com/flutter/flutter.git -b ${FLUTTER_VERSION} --dep
 USER root
 
 # =============================================================================
+# Android SDK
+# =============================================================================
+# Lets `flutter build appbundle`/`apk` and on-device debugging run inside the container (the CI
+# builds Android too, but the container had no SDK, so nothing Android could be built or run
+# locally). The Android build needs a JDK to run Gradle and the SDK tooling: Debian trixie's
+# openjdk-21 runs Gradle 8.14 / AGP 8.11 and compiles the app to the JDK-17 bytecode target its
+# `android/app/build.gradle.kts` asks for — the same output the CI's Temurin 17 produces. A stable
+# symlink keeps JAVA_HOME arch-independent (the JVM dir carries the Debian architecture).
+#
+# The three version pins track what the pinned Flutter (3.44.6) targets: its `compileSdkVersion`/
+# `targetSdkVersion` is 36, so `platforms;android-36` + `build-tools;36.0.0`. The command-line
+# tools build number is Google's own and rotates; bump it when it 404s. No NDK/CMake is installed
+# here — Flutter pulls the exact versions a native plugin needs into the SDK on the first build.
+ARG ANDROID_CMDLINE_TOOLS=11076708
+ARG ANDROID_PLATFORM=android-36
+ARG ANDROID_BUILD_TOOLS=36.0.0
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-21-jdk-headless \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sfn "/usr/lib/jvm/java-21-openjdk-$(dpkg --print-architecture)" /usr/lib/jvm/current-jdk
+
+ENV JAVA_HOME=/usr/lib/jvm/current-jdk
+ENV ANDROID_SDK_ROOT=/home/${USERNAME}/android-sdk
+ENV ANDROID_HOME=${ANDROID_SDK_ROOT}
+ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+
+# The SDK is installed into the user's home (baked into the image, not a named volume), as the user
+# so its files are user-owned. `sdkmanager` needs JAVA_HOME, which the ENV above provides.
+USER ${USERNAME}
+RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" \
+    && curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS}_latest.zip" \
+       -o /tmp/cmdtools.zip \
+    && unzip -q /tmp/cmdtools.zip -d /tmp/cmdtools \
+    && mv /tmp/cmdtools/cmdline-tools "${ANDROID_SDK_ROOT}/cmdline-tools/latest" \
+    && rm -rf /tmp/cmdtools.zip /tmp/cmdtools \
+    && yes | sdkmanager --sdk_root="${ANDROID_SDK_ROOT}" --licenses > /dev/null \
+    && sdkmanager --sdk_root="${ANDROID_SDK_ROOT}" \
+       "platform-tools" "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" > /dev/null \
+    && flutter config --android-sdk "${ANDROID_SDK_ROOT}" \
+    && yes | flutter doctor --android-licenses > /dev/null \
+    && flutter precache --android
+
+# Switch back to root user
+USER root
+
+# =============================================================================
 # Reuse installation
 # =============================================================================
 # Install pipx
@@ -183,8 +228,14 @@ USER root
 # set in this Dockerfile. Non-login shells (VS Code terminals, docker exec) inherit the ENV and are
 # fine. Add a profile.d snippet so flutter/dart and the pipx shims resolve in login shells too.
 # /etc/profile sources /etc/profile.d/*.sh after setting its own PATH, so this wins.
-RUN printf 'export PATH="%s:%s:$PATH"\n' "/home/${USERNAME}/.local/bin" "${FLUTTER_HOME}/bin" \
-    > /etc/profile.d/flutter-dev.sh
+RUN { \
+      printf 'export JAVA_HOME="%s"\n' "${JAVA_HOME}"; \
+      printf 'export ANDROID_SDK_ROOT="%s"\n' "${ANDROID_SDK_ROOT}"; \
+      printf 'export ANDROID_HOME="%s"\n' "${ANDROID_SDK_ROOT}"; \
+      printf 'export PATH="%s:%s:%s:%s:$PATH"\n' \
+        "/home/${USERNAME}/.local/bin" "${FLUTTER_HOME}/bin" \
+        "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin" "${ANDROID_SDK_ROOT}/platform-tools"; \
+    } > /etc/profile.d/flutter-dev.sh
 
 # Default to the user's home; the real workspace is provided by the docker-compose bind mount at
 # runtime (and VS Code cd's into workspaceFolder anyway). No chown is needed: the bind mount keeps
@@ -226,6 +277,8 @@ RUN echo "=== Development Environment ===" \
     && echo "GitHub CLI: $(gh --version | head -1)" \
     && echo "Flutter: $(flutter --version | head -1)" \
     && echo "Dart: $(dart --version)" \
+    && echo "Java: $(java -version 2>&1 | head -1)" \
+    && echo "Android SDK: $(sdkmanager --version 2>/dev/null | tail -1) at ${ANDROID_SDK_ROOT}" \
     && echo "Reuse: $(reuse --version)" \
     && echo "================================"
 

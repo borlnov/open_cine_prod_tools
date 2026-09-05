@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
+import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
@@ -275,6 +276,34 @@ void main() {
     await bloc.close();
   });
 
+  test("shows a project added to the list from outside its own navigation", () async {
+    // Joining a shared project is the case: the join opens the freshly written project — which adds
+    // it to the recent list — then replaces the Rejoindre screen with the workspace, so the home
+    // page, alive underneath the whole time, never gets the return-from-push it would refresh on.
+    // The bloc must react to the list changing on its own to put the new card on the grid.
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.recentProjects.isEmpty);
+
+    final filePath = p.join(tempDir.path, "Joined.ocpt");
+    await File(filePath).writeAsBytes(Uint8List(0));
+    await propertiesManager.addRecentProject(
+      OcptRecentProjectModel(
+        path: filePath,
+        name: "Joined",
+        lastOpenedAt: DateTime.now(),
+        episodeCount: 1,
+      ),
+    );
+
+    final state = await waitForState(
+      bloc,
+      (state) => state.recentProjects.any((entry) => entry.project.path == filePath),
+    );
+    expect(state.recentProjects.single.project.name, "Joined");
+
+    await bloc.close();
+  });
+
   test(
     'imports a picked fountain file into a new project and navigates to the editor',
     () async {
@@ -395,14 +424,15 @@ void main() {
   });
 
   group("a project file from another build", () {
-    // The older-file migration flow can't be exercised at schema version 1: ADR 0029 squashed the
-    // pre-stable chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0,
-    // which reads as an unreadable/foreign file, not an older one). The two tests that need an
-    // older file therefore skip until a stable cycle raises currentSchemaVersion to 2+ — at which
-    // point createProjectAtPreviousFormat must undo that new step's own additions again, and the
-    // auto-reactivated tests fail loudly until it does. The same limitation is why the pre-release
-    // "at your own risk" migration wording has no test here: it only replaces the migration
-    // message, which these two skips already keep untested.
+    // The older-file migration flow could not be exercised at schema version 1: ADR 0029 squashed
+    // the pre-stable chain, so no schema below the current one existed then
+    // (currentSchemaVersion - 1 was 0, which reads as an unreadable/foreign file, not an older
+    // one). Schema version 2 (`OcptSyncRelayCursorsTable`) is the first real `onUpgrade` step since,
+    // which is what reactivates the two tests below: `createProjectAtPreviousFormat` undoes exactly
+    // that step's own addition, so whichever schema step is newest has to keep this helper in sync
+    // with what it actually adds, or these tests fail loudly instead of proving anything. The same
+    // limitation is why the pre-release "at your own risk" migration wording has no test here: it
+    // only replaces the migration message, which these two skips already keep untested.
     const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
 
     /// The format a file one step behind this build states.
@@ -420,12 +450,7 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        ..execute("ALTER TABLE budget_entries DROP COLUMN commitment_id")
-        ..execute("ALTER TABLE budget_entries DROP COLUMN person_id")
-        ..execute(
-          'ALTER TABLE "budget_commitments" ADD COLUMN "settled_entry_id" TEXT NULL '
-          "REFERENCES budget_entries (id)",
-        )
+        ..execute("DROP TABLE sync_relay_cursors")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }
@@ -592,6 +617,114 @@ void main() {
       final state = await waitForState(bloc, (state) => state.pendingFileCompatibility == null);
 
       expect(state.pendingFileCompatibility, isNull);
+
+      await bloc.close();
+    });
+
+    test(
+      "the recent projects list carries each entry's own probed verdict, for the card badge",
+      () async {
+        final currentPath = p.join(tempDir.path, "current.ocpt");
+        await projectsManager.createProject(name: "Current", filePath: currentPath);
+        await projectsManager.closeCurrentProject();
+
+        final olderPath = p.join(tempDir.path, "older.ocpt");
+        await createProjectAtPreviousFormat(olderPath);
+
+        final newerPath = p.join(tempDir.path, "newer.ocpt");
+        await createProjectFromTheFuture(newerPath);
+
+        final foreignDevBuildPath = p.join(tempDir.path, "foreign-dev-build.ocpt");
+        await createProjectWrittenByAnotherDevBuild(foreignDevBuildPath);
+
+        final missingPath = p.join(tempDir.path, "gone.ocpt");
+        await propertiesManager.addRecentProject(
+          OcptRecentProjectModel(path: missingPath, name: "Gone", lastOpenedAt: DateTime.utc(2026)),
+        );
+
+        final bloc = buildBloc();
+        final state = await waitForState(bloc, (state) => state.recentProjects.length == 5);
+
+        OcptHomeRecentProjectEntry entryFor(String path) =>
+            state.recentProjects.singleWhere((entry) => entry.project.path == path);
+
+        expect(entryFor(currentPath).verdict, OcptProjectFileVerdict.current);
+        expect(entryFor(newerPath).verdict, OcptProjectFileVerdict.newer);
+        expect(
+          entryFor(foreignDevBuildPath).verdict,
+          OcptProjectFileVerdict.foreignDevBuild,
+        );
+        expect(entryFor(missingPath).exists, isFalse);
+        expect(entryFor(missingPath).verdict, isNull);
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      "an older file's verdict is carried too, though it draws no badge on the card itself",
+      () async {
+        final olderPath = p.join(tempDir.path, "older.ocpt");
+        await createProjectAtPreviousFormat(olderPath);
+
+        final bloc = buildBloc();
+        final state = await waitForState(bloc, (state) => state.recentProjects.isNotEmpty);
+
+        expect(state.recentProjects.single.verdict, OcptProjectFileVerdict.older);
+
+        await bloc.close();
+      },
+      skip: olderFileFlowSkip,
+    );
+  });
+
+  group("a project card's Partager / Synchroniser…", () {
+    test("opens the project and pushes the Partager screen instead of the workspace", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await projectsManager.createProject(name: "My Movie", filePath: filePath);
+      await projectsManager.closeCurrentProject();
+
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(OcptHomeShareProjectRequestedEvent(filePath: filePath));
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.error, isNull);
+      expect(projectsManager.currentProject?.path, filePath);
+      expect(routerManager.pushedRoute, OcptRoute.sharing);
+
+      await bloc.close();
+    });
+
+    test("a project that fails to open raises the error and navigates nowhere", () async {
+      final filePath = p.join(tempDir.path, "does-not-exist.ocpt");
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(OcptHomeShareProjectRequestedEvent(filePath: filePath));
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.error, isNotNull);
+      expect(projectsManager.currentProject, isNull);
+      expect(routerManager.pushedRoute, isNull);
+
+      await bloc.close();
+    });
+  });
+
+  group("the home toolbar's Join a shared project…", () {
+    test("pushes the Rejoindre screen and opens no project", () async {
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
+
+      bloc.add(const OcptHomeJoinSharedProjectRequestedEvent());
+      await pumpEventQueue();
+
+      expect(routerManager.pushedRoute, OcptRoute.joining);
+      expect(projectsManager.currentProject, isNull);
 
       await bloc.close();
     });

@@ -118,6 +118,33 @@ size is reproducible, and the app starts against an empty home directory so none
 show up in the images. The image ships the tools it needs (Xvfb, openbox, xdotool, x11-utils,
 ImageMagick).
 
+## Building and running on Android
+
+The image carries the Android SDK (command-line tools, `platform-tools`, `platforms;android-36`,
+`build-tools;36.0.0`) and a JDK, wired to Flutter, so `flutter build appbundle` / `flutter build
+apk` and `flutter doctor`'s Android toolchain work inside the container without any host setup —
+`flutter doctor` should show `[✓] Android toolchain`. The desktop build stays the local
+verification gate (`flutter build linux --debug`); the Android build is additionally checked by
+CI.
+
+To run and debug on a real phone, use **wireless adb** rather than USB: passing a USB device into a
+container on WSL needs `usbipd` and extra privileges, whereas wireless adb only needs the phone and
+the machine on the same network, which the container already reaches through its default outbound
+networking.
+
+1. On the phone, enable **Developer options → Wireless debugging**.
+2. Pair once (Android 11+): tap **Pair device with pairing code** — it shows an `IP:port` and a
+   six-digit code — then in the container run `adb pair <ip>:<pair-port>` and enter the code.
+3. Connect: `adb connect <ip>:<port>`, using the IP and port from the Wireless debugging screen
+   itself (a different port from the pairing one).
+4. `flutter devices` now lists the phone; run it with `flutter run -d <device-id>` (or pick it in
+   VS Code's device selector).
+
+On WSL the container reaches the phone's LAN address through the default NAT, so no `--network=host`
+or USB passthrough is needed. If `adb connect` cannot reach the phone, check that its IP is
+reachable from WSL (the two share the LAN through the Windows host) and that no firewall blocks the
+adb port.
+
 ## First run
 
 1. Open the folder in VS Code and reopen in the container (or run

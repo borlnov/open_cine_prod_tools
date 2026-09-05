@@ -14,3 +14,11 @@ logs:
 
     # The console logger stays silent in release builds shipped to production.
     printInRelease: false
+
+  # Whether app logs are also written to a rotating file (crash-survivable). Read by the app, not
+  # act_logger_manager itself. On in production for the diagnostics a field crash leaves behind, but
+  # only ever on desktop: OcptFileLoggingManager skips a log file on mobile, whose per-app support
+  # directory the user cannot reach to fetch it from.
+  file:
+    enabled: true
+    level: warning

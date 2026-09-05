@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
@@ -16,9 +17,11 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -32,6 +35,7 @@ import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
@@ -50,6 +54,9 @@ import 'package:spell_kit/spell_kit.dart';
 /// screenplay language never depends on the machine the tests run on.
 String _testAppLanguageCode() => "en";
 
+/// The fixed device id every stamping service built in this file uses.
+Future<String> _testDeviceId() async => "test-device";
+
 /// A screenplay service whose saves always fail, to exercise the bloc's save error path. Loads
 /// still go through the real implementation.
 class _FailingScreenplayService extends OcptScreenplayService {
@@ -57,14 +64,29 @@ class _FailingScreenplayService extends OcptScreenplayService {
   const _FailingScreenplayService()
     : super(
         sceneIndexService: const OcptSceneIndexService(),
-        shotListService: const OcptShotListService(),
-        shotCoverageService: const OcptShotCoverageService(),
-        roleIndexService: const OcptRoleIndexService(),
-        breakdownService: const OcptBreakdownService(
-          elementsService: OcptElementsService(),
-          locationsService: OcptLocationsService(),
+        shotListService: const OcptShotListService(deviceId: _testDeviceId),
+        shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
+        roleIndexService: const OcptRoleIndexService(
+          elementsService: OcptElementsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
         ),
-        scheduleService: const OcptScheduleService(),
+        breakdownService: const OcptBreakdownService(
+          elementsService: OcptElementsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          locationsService: OcptLocationsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          deviceId: _testDeviceId,
+        ),
+        scheduleService: const OcptScheduleService(deviceId: _testDeviceId),
+        deviceId: _testDeviceId,
       );
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
@@ -180,21 +202,23 @@ class _FakeExportManager extends OcptExportManager {
   String? lastExportedPdfEpisodeTag;
 
   @override
-  Future<String?> exportFountain({
+  Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedText = fountainText;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
     lastExportedEpisodeTag = episodeTag;
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportPdf({
+  Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
     required OcptPageSetup pageSetup,
     required String projectName,
@@ -202,6 +226,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeTitlePage,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedPdfDocument = document;
     lastExportedPdfPageSetup = pageSetup;
@@ -210,7 +235,8 @@ class _FakeExportManager extends OcptExportManager {
     lastExportedPdfIncludeTitlePage = includeTitlePage;
     lastExportedPdfFileTypeLabel = fileTypeLabel;
     lastExportedPdfEpisodeTag = episodeTag;
-    return exportPdfResult;
+    final result = exportPdfResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
@@ -234,7 +260,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
   _ThrowingPdfExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
   @override
-  Future<String?> exportPdf({
+  Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
     required OcptPageSetup pageSetup,
     required String projectName,
@@ -242,6 +268,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
     required bool includeTitlePage,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async => throw StateError("PDF export intentionally failed for the test");
 }
 

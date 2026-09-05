@@ -53,6 +53,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_characters_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_coverages_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_pairings_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_cursors_table.dart';
 // These are only used through the type converters declared in the table files above
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
@@ -126,14 +128,21 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptBudgetRevenuesTable], [OcptBudgetSharesTable]) and the per-diem allowances
 /// ([OcptBudgetAllowancesTable]); the writer's own project dictionary
 /// ([OcptProjectDictionaryWordsTable]); the user's named project versions
-/// ([OcptProjectVersionsTable]); and the per-column version stamps a merge resolves conflicts with
-/// ([OcptRowFieldVersionsTable]).
+/// ([OcptProjectVersionsTable]); the per-column version stamps a merge resolves conflicts with
+/// ([OcptRowFieldVersionsTable]); the changeset engine's own delivery state against each relay it
+/// talks to, local to this replica and never synchronised
+/// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3); and which relay this
+/// replica's project is paired with, also local and never synchronised
+/// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4).
 ///
-/// All of it is created by `onCreate` at schema version 1: per
-/// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release has shipped yet,
-/// so this build carries no pre-stable migration history. A future stable release cycle adds the
-/// first real `onUpgrade` step, once the schema it wrote is a promise to a user's file rather than
-/// workshop churn between developer machines.
+/// Everything up to [OcptRowFieldVersionsTable] was created by `onCreate` at schema version 1,
+/// which the 0.1.0 release froze per
+/// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`: no earlier release had shipped, so
+/// that version carries no pre-stable migration history of its own. [OcptSyncRelayCursorsTable] and
+/// [OcptSyncPairingsTable] are schema version 2's own addition — the first real `onUpgrade` step,
+/// additive only per `docs/adr/0007-schema-migration-policy.md` — created for an existing v1 file
+/// without touching anything else, and by `onCreate` alongside every other table for a brand-new
+/// one.
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -183,6 +192,8 @@ part 'ocpt_project_database.g.dart';
     OcptBudgetRevenuesTable,
     OcptBudgetSharesTable,
     OcptBudgetAllowancesTable,
+    OcptSyncRelayCursorsTable,
+    OcptSyncPairingsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -268,7 +279,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// always one of those two values. Freezing a stable release is the one line
   /// `lastStableSchemaVersion = currentSchemaVersion`, done at release prep (see
   /// `docs/RELEASING.md`).
-  static const currentSchemaVersion = 1;
+  static const currentSchemaVersion = 2;
 
   /// The highest schema version a stable release has frozen.
   ///
@@ -292,13 +303,17 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// How an existing `.ocpt` file is brought up to the current [schemaVersion].
   ///
-  /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release has ever
-  /// shipped, so the schema carries no pre-stable migration history: `onCreate` creates the whole
-  /// schema at once, at version 1, and `onUpgrade` has nothing to do — real `.ocpt` files are never
-  /// found below this schema version. The first real `onUpgrade` step is written when a schema
-  /// change is needed after a stable release has frozen [lastStableSchemaVersion], following the
-  /// additive-only guidance `docs/adr/0007-schema-migration-policy.md` still gives for how a single
-  /// step is written.
+  /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release had shipped
+  /// before schema version 1, so that version itself carries no pre-stable migration history — no
+  /// real `.ocpt` file is ever found below it. The 0.1.0 release froze [lastStableSchemaVersion] at
+  /// 1, opening the current development cycle: schema version 2 is that cycle's first real
+  /// `onUpgrade` step, following the additive-only guidance
+  /// `docs/adr/0007-schema-migration-policy.md` gives for how a single step is written. From 1 to 2,
+  /// `onUpgrade` only creates [OcptSyncRelayCursorsTable] — the changeset engine's own local,
+  /// never-synchronised delivery-cursor table (`docs/plans/collaboration-and-sync.md`, M3) — and
+  /// [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which relay a
+  /// project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and touches nothing else,
+  /// so a v1 file's existing rows are untouched by the upgrade.
   ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
@@ -307,9 +322,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
-      // No real `.ocpt` file is ever found below schema version 1 (ADR 0029: no stable
-      // release has shipped, so there is no pre-stable migration history to carry), so this
-      // has nothing to do yet.
+      if (from < 2) {
+        await m.createTable(ocptSyncRelayCursorsTable);
+        await m.createTable(ocptSyncPairingsTable);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

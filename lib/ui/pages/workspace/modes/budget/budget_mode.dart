@@ -64,6 +64,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_floating_add_button.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -80,6 +81,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The budget production mode: four chips — `Tableau de bord`, `Dépenses`, `Ressources`, `Outils`
 /// — and `Inspector`, `Versions` and `Help` in the right dock. **No left dock**: the mockup draws
@@ -167,43 +169,47 @@ class _BudgetViewState extends State<_BudgetView> {
         return const Center(child: CircularProgressIndicator());
       }
 
-      return OcptWorkspaceShell(
-        title: state.title,
-        isDirty: false,
-        isReadOnly: state.isPreviewingVersion,
-        onBack: () => context.read<OcptBudgetBloc>().add(const OcptBudgetBackRequestedEvent()),
-        // No episode selector: see the class doc comment.
-        modeLabel: Tr.of(context).workspaceModeLabelBudget,
-        onExportRequested: () => unawaited(_requestExport(context, state)),
-        isRightDockOpen: state.rightDockTab != null,
-        onToggleRightDock: () =>
-            context.read<OcptBudgetBloc>().add(const OcptBudgetRightDockToggledEvent()),
-        onProjectSettingsRequested: state.isPreviewingVersion
-            ? null
-            : () => unawaited(_requestProjectSettings(context)),
-        // Never withheld under a preview — see `OcptWorkspaceShell.onHelpRequested`'s own doc
-        // comment: a help panel only reads.
-        onHelpRequested: () => context.read<OcptBudgetBloc>().add(
-          const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help),
+      return LayoutBuilder(
+        builder: (context, constraints) => OcptWorkspaceShell(
+          title: state.title,
+          isDirty: false,
+          isReadOnly: state.isPreviewingVersion,
+          onBack: () => context.read<OcptBudgetBloc>().add(const OcptBudgetBackRequestedEvent()),
+          // No episode selector: see the class doc comment.
+          modeLabel: Tr.of(context).workspaceModeLabelBudget,
+          onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
+          isRightDockOpen: state.rightDockTab != null,
+          onToggleRightDock: () =>
+              context.read<OcptBudgetBloc>().add(const OcptBudgetRightDockToggledEvent()),
+          onProjectSettingsRequested: state.isPreviewingVersion
+              ? null
+              : () => unawaited(_requestProjectSettings(context)),
+          // Never withheld under a preview — see `OcptWorkspaceShell.onHelpRequested`'s own doc
+          // comment: a help panel only reads.
+          onHelpRequested: () => context.read<OcptBudgetBloc>().add(
+            const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help),
+          ),
+          banner: _buildReadOnlyBanner(context, state),
+          rightPanel: _buildRightDock(context, state),
+          centre: _buildCentre(context, state, ocptIsCompactWidth(constraints.maxWidth)),
+          statusBar: OcptBudgetStatusBar(
+            posteCount: state.posteCount,
+            lineCount: state.lineCount,
+            quotedTotalCents: ocptBudgetProjectQuotedTotalCents(state.postes),
+            currencyCode: state.currencyCode,
+          ),
+          dockLayoutController: _dockLayoutController,
+          // Only the right divider can ever report a drag here — the mode carries no left dock, so
+          // `fractions.left` is always null (see the class doc comment).
+          onDockFractionsChanged: (fractions) {
+            final right = fractions.right;
+            if (right != null) {
+              context.read<OcptBudgetBloc>().add(
+                OcptBudgetRightDockFractionChangedEvent(fraction: right),
+              );
+            }
+          },
         ),
-        banner: _buildReadOnlyBanner(context, state),
-        rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state),
-        statusBar: OcptBudgetStatusBar(
-          posteCount: state.posteCount,
-          lineCount: state.lineCount,
-          quotedTotalCents: ocptBudgetProjectQuotedTotalCents(state.postes),
-          currencyCode: state.currencyCode,
-        ),
-        dockLayoutController: _dockLayoutController,
-        // Only the right divider can ever report a drag here — the mode carries no left dock, so
-        // `fractions.left` is always null (see the class doc comment).
-        onDockFractionsChanged: (fractions) {
-          final right = fractions.right;
-          if (right != null) {
-            context.read<OcptBudgetBloc>().add(OcptBudgetRightDockFractionChangedEvent(fraction: right));
-          }
-        },
       );
     },
   );
@@ -252,7 +258,11 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Opens the toolbar's `Export` panel, then dispatches the picked document's own request onto its
   /// own `_request…Export` method — each one opens its own options dialog first, the cash journal
   /// alone taking none, exactly as `OcptScheduleMode._requestExport` does for its own six documents.
-  Future<void> _requestExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptBudgetExportDocument>(
       context,
@@ -272,13 +282,13 @@ class _BudgetViewState extends State<_BudgetView> {
       case OcptWorkspaceExportDocumentPick<OcptBudgetExportDocument>(:final document):
         switch (document) {
           case OcptBudgetExportDocument.quote:
-            await _requestQuoteExport(context, state);
+            await _requestQuoteExport(context, state, shareAnchor);
           case OcptBudgetExportDocument.financingPlan:
-            await _requestFinancingPlanExport(context, state);
+            await _requestFinancingPlanExport(context, state, shareAnchor);
           case OcptBudgetExportDocument.cashJournal:
-            _requestCashJournalExport(context, state);
+            _requestCashJournalExport(context, state, shareAnchor);
           case OcptBudgetExportDocument.financialReport:
-            await _requestFinancialReportExport(context, state);
+            await _requestFinancialReportExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptBudgetExportDocument>():
         _requestProjectPackageExport(context);
@@ -288,7 +298,11 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Shows the quote export options dialog, then dispatches the export request if the user applied
   /// it, resolving here — the last place with a [BuildContext] — the labels, the breakdown element
   /// names and the localized string the native save dialog carries.
-  Future<void> _requestQuoteExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestQuoteExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final options = await OcptBudgetQuoteExportDialog.show(
       context,
       current: state.pageSetup,
@@ -308,13 +322,18 @@ class _BudgetViewState extends State<_BudgetView> {
         labels: ocptBudgetQuoteLabelsOf(context),
         elementNameById: {for (final element in state.elements) element.id: element.name},
         fileTypeLabel: tr.budgetExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
 
   /// Shows the financing plan export options dialog, then dispatches the export request if the user
   /// applied it — mirrors [_requestQuoteExport].
-  Future<void> _requestFinancingPlanExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestFinancingPlanExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final options = await OcptBudgetFinancingPlanExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
       return;
@@ -329,19 +348,21 @@ class _BudgetViewState extends State<_BudgetView> {
         options: options,
         labels: ocptBudgetFinancingPlanLabelsOf(context),
         fileTypeLabel: tr.budgetExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
 
   /// Dispatches the cash journal export request straight away — this document takes no options
   /// dialog of its own, mirroring every other options-free export in the app.
-  void _requestCashJournalExport(BuildContext context, OcptBudgetState state) {
+  void _requestCashJournalExport(BuildContext context, OcptBudgetState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
     context.read<OcptBudgetBloc>().add(
       OcptBudgetCashJournalExportRequestedEvent(
         labels: ocptBudgetCashJournalXlsxLabelsOf(context),
         linkLabelByEntryId: _linkLabelByEntryIdOf(state),
         fileTypeLabel: tr.budgetExportXlsxFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -374,7 +395,11 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Shows the financial report export options dialog, then dispatches the export request if the
   /// user applied it — mirrors [_requestFinancingPlanExport].
-  Future<void> _requestFinancialReportExport(BuildContext context, OcptBudgetState state) async {
+  Future<void> _requestFinancialReportExport(
+    BuildContext context,
+    OcptBudgetState state,
+    Rect? shareAnchor,
+  ) async {
     final options = await OcptBudgetFinancialReportExportDialog.show(
       context,
       current: state.pageSetup,
@@ -392,6 +417,7 @@ class _BudgetViewState extends State<_BudgetView> {
         options: options,
         labels: ocptBudgetFinancialReportLabelsOf(context),
         fileTypeLabel: tr.budgetExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -442,8 +468,16 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Builds the shell's `centre`: the header band, then whichever widget the current
-  /// [OcptBudgetState.view] names — see [_buildRoute].
-  Widget _buildCentre(BuildContext context, OcptBudgetState state) {
+  /// [OcptBudgetState.view] names (see [_buildRoute]), overlaid at a compact width [isCompact] with
+  /// the same floating `+ New` affordance the header band's own trailing button already fires — the
+  /// very pair [_newButtonOf] built for it, reused whole rather than resolved twice, so the floating
+  /// button can never drift from the desktop one. The two affordances are mutually exclusive: at a
+  /// wide width [OcptBudgetHeader] carries the capture button and the floating one stays hidden
+  /// ([OcptWorkspaceFloatingAddButton]'s own `isVisible: isCompact` withholds it); at a compact width
+  /// the header's own button is withheld instead (`captureLabel`/`onCaptureRequested` null) and the
+  /// floating one — icon-only, see [OcptWorkspaceFloatingAddButton.iconOnly] — takes over, so the
+  /// user is never shown both at once.
+  Widget _buildCentre(BuildContext context, OcptBudgetState state, bool isCompact) {
     final bloc = context.read<OcptBudgetBloc>();
     // Read once, here: null is "a previewed version takes it away" — the same label and gesture on
     // every route now, so there is nothing left for a route to withhold on its own account.
@@ -451,41 +485,51 @@ class _BudgetViewState extends State<_BudgetView> {
     // standing rule.
     final newButton = state.isPreviewingVersion ? null : _newButtonOf(context, state);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OcptBudgetHeader(
-          view: state.view,
-          // The header's own chips leave one document for another, so the fiche's own selection —
-          // an object that belonged to the view being left — is dropped, greeting the new view
-          // empty. Every gesture that switches the view *and* selects keeps `clearSelection` false.
-          onViewSelected: (view) =>
-              bloc.add(OcptBudgetViewSelectedEvent(view: view, clearSelection: true)),
-          toolsView: state.toolsView,
-          onToolsViewSelected: (toolsView) => bloc.add(
-            OcptBudgetToolsViewSelectedEvent(toolsView: toolsView, clearSelection: true),
+    return OcptWorkspaceFloatingAddButton(
+      isVisible: isCompact,
+      iconOnly: true,
+      icon: Icons.add,
+      label: Tr.of(context).budgetHeaderNewAction,
+      onPressed: newButton?.$2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OcptBudgetHeader(
+            view: state.view,
+            // The header's own chips leave one document for another, so the fiche's own selection —
+            // an object that belonged to the view being left — is dropped, greeting the new view
+            // empty. Every gesture that switches the view *and* selects keeps `clearSelection` false.
+            onViewSelected: (view) =>
+                bloc.add(OcptBudgetViewSelectedEvent(view: view, clearSelection: true)),
+            toolsView: state.toolsView,
+            onToolsViewSelected: (toolsView) => bloc.add(
+              OcptBudgetToolsViewSelectedEvent(toolsView: toolsView, clearSelection: true),
+            ),
+            isSimplified: state.isSimplified,
+            onSimplifiedChanged: (value) =>
+                bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
+            taxBasis: state.taxBasis,
+            onTaxBasisChanged: (basis) => bloc.add(OcptBudgetTaxBasisChangedEvent(basis: basis)),
+            postes: state.postes,
+            filterPosteId: state.filterPosteId,
+            onPosteFilterCleared: () =>
+                bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
+            alertCount: state.alerts.length,
+            // Withheld at a compact width: the floating button above takes over there, and showing
+            // both would duplicate the affordance.
+            captureLabel: isCompact ? null : newButton?.$1,
+            onCaptureRequested: isCompact ? null : newButton?.$2,
           ),
-          isSimplified: state.isSimplified,
-          onSimplifiedChanged: (value) =>
-              bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
-          taxBasis: state.taxBasis,
-          onTaxBasisChanged: (basis) => bloc.add(OcptBudgetTaxBasisChangedEvent(basis: basis)),
-          postes: state.postes,
-          filterPosteId: state.filterPosteId,
-          onPosteFilterCleared: () => bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
-          alertCount: state.alerts.length,
-          captureLabel: newButton?.$1,
-          onCaptureRequested: newButton?.$2,
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _buildRoute(context, state),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildRoute(context, state),
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-      ],
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
@@ -2532,14 +2576,15 @@ class _BudgetViewState extends State<_BudgetView> {
     }
   }
 
-  /// The SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`.
+  /// The SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`,
+  /// [OcptBudgetIoNotice.wasShared] included.
   String _ioNoticeMessage(BuildContext context, OcptBudgetIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptBudgetIoNoticeKind.fileExportSucceeded => tr.budgetExportFileSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptBudgetIoNoticeKind.fileExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.budgetExportFileSuccessMessage(notice.path ?? ""),
       OcptBudgetIoNoticeKind.exportFailed => tr.budgetExportError,
     };
   }

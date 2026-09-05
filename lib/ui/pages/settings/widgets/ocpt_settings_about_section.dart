@@ -80,6 +80,12 @@ class OcptSettingsAboutSection extends StatelessWidget {
               label: tr.settingsAboutLicensesAction,
               onTap: () => globalGetIt().get<OcptRouterManager>().push(OcptRoute.licenses),
             ),
+            const SizedBox(height: 8),
+            _OcptAboutRow(
+              icon: Icons.chevron_right,
+              label: tr.diagnosticsSettingsEntry,
+              onTap: () => globalGetIt().get<OcptRouterManager>().push(OcptRoute.diagnostics),
+            ),
           ],
         ),
       ),

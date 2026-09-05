@@ -8,9 +8,13 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/ui/pages/diagnostics/ocpt_diagnostics_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/joining_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
 
 /// Helper class mapping every [OcptRoute] to the page it displays
@@ -21,8 +25,12 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     onPage(OcptRoute.home, _createHomePage);
     onPage(OcptRoute.workspace, _createWorkspacePage);
     onPage(OcptRoute.projectSettings, _createProjectSettingsPage);
+    onPage(OcptRoute.sharing, _createSharingPage);
+    onPage(OcptRoute.joining, _createJoiningPage);
+    onPage(OcptRoute.repointing, _createRepointingPage);
     onPage(OcptRoute.settings, _createSettingsPage);
     onPage(OcptRoute.licenses, _createLicensesPage);
+    onPage(OcptRoute.diagnostics, _createDiagnosticsPage);
   }
 
   /// Callback to create the [HomePage]
@@ -47,6 +55,18 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     );
   }
 
+  /// Callback to create the [OcptSharingPage]
+  RoutePageDetails _createSharingPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptSharingPage());
+
+  /// Callback to create the [OcptJoiningPage]
+  RoutePageDetails _createJoiningPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptJoiningPage());
+
+  /// Callback to create the [OcptRepointingPage]
+  RoutePageDetails _createRepointingPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptRepointingPage());
+
   /// Callback to create the [SettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: SettingsPage());
@@ -61,4 +81,8 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
           applicationLegalese: "Apache-2.0",
         ),
       );
+
+  /// Callback to create the [OcptDiagnosticsPage]
+  RoutePageDetails _createDiagnosticsPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptDiagnosticsPage());
 }

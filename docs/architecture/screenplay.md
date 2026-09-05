@@ -218,6 +218,34 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   be worse than no number at all. Fixed paper colours, like the rest of the page-simulation
   styling, and a sheet scrolled out of view is skipped rather than laid out on every scroll frame.
 
+- On a phone (`ocptIsPhoneWidth`, the width seam `foundations.md` describes) the styled editor is
+  forced as the **only** live editing surface, page simulation off, regardless of what
+  `OcptEditorState.mode`/`isPageSimulationEnabled` are persisted as — `_EditorViewState._liveMode`/
+  `_isPageSimulationLive` in `editor_page.dart` read the width rather than the state, so raw source
+  (with its own find/replace and spell-check wiring) and a real-size simulated page are never what a
+  phone shows. The user's own raw/styled toggle and page-simulation checkbox keep reading and
+  writing the persisted preference untouched, so widening the window back out returns to whichever
+  was picked. Below the compact width breakpoint (`ocptIsCompactWidth`, a phone included) the
+  toolbar's format controls (the block-type dropdown, the B/I/U toggles) fold into
+  `OcptEditorFormatOverflowMenu`'s own single `⋮` button — the same block-type choice as a submenu
+  and the same three toggles as checkable entries, reading and writing the very same
+  `OcptStyledEditorController` `OcptEditorFormatControls` does above that width — for want of room
+  beside everything else the toolbar already carries there (`foundations.md`); a phone writer
+  additionally reaches every block type through `OcptEditorContextMenu`'s own submenu, or simply by
+  typing the Fountain markup.
+- Below the compact breakpoint (`ocptIsCompactWidth`), and only on the fluid (page-simulation-off)
+  surface, `OcptFountainEditorStylesheet.build(isCompact: true)` scales every element's indent and
+  box width down by `_compactLayoutScale` (0.5), carrying the block hierarchy by **style** —
+  character bold/accent, parenthetical italic, dialogue slightly inset — rather than by the real,
+  screenplay-sized indents (a character cue ≈ 3.7″ in) a phone has no room for. A uniform multiplier
+  on both halves of every element's box keeps the desktop proportions intact at half scale, rather
+  than redesigning each type on its own. A paginated page never sees it: the flag only ever applies
+  while page simulation is off, since a simulated sheet is sized from the very real metrics the PDF
+  exporter agrees with pixel for pixel, and compressed ones would desync the two —
+  `OcptFountainEditorStylesheet.build` guards that itself rather than trusting every caller to.
+  Desktop output is byte-identical, the flag defaulting off everywhere a desktop call site builds
+  the stylesheet.
+
 - Find and replace: one search, over **the episode the workspace has selected**, in both editing
   modes. `Ctrl+F` opens the bar on find, `Ctrl+H` on replace, `Escape` closes it — page-level
   `Shortcuts` in `editor_page.dart`, beside `Ctrl+S`/`Ctrl+Shift+M`, none of the three claimed by

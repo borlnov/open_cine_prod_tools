@@ -849,16 +849,16 @@ void main() {
   });
 
   group("opening a file from another build", () {
-    // No "older" file case is exercised here any more: per
-    // `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, the squash resets
-    // `OcptProjectDatabase.currentSchemaVersion` to `1`, the very first schema, and
-    // `OcptProjectFileCompatibilityService.probe` treats any `PRAGMA user_version <= 0` as
-    // `unreadable` rather than `older` — a database
-    // states `0` until something writes a version into it, which is never a real older project.
-    // There is therefore no positive schema number below the current one for a test file to state,
-    // so `older`/`migrationRequired` cannot be exercised through the manager until a real schema
-    // version 2 exists. `OcptProjectFileCompatibilityService`'s own tests already cover that verdict
-    // in isolation, at a schema number decoupled from this constant.
+    // No "older" file case is exercised here: while `OcptProjectDatabase.currentSchemaVersion` was
+    // still `1` — the very first schema, per
+    // `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`'s squash —
+    // `OcptProjectFileCompatibilityService.probe` had no positive schema number below the current
+    // one for a test file to state (`PRAGMA user_version <= 0` reads as `unreadable`, not `older`),
+    // so `older`/`migrationRequired` could not be exercised through the manager at all; now that a
+    // real schema version 2 exists, `home_bloc_test.dart`'s "a project file from another build"
+    // group is where that flow is actually driven through a bloc, and
+    // `OcptProjectFileCompatibilityService`'s own tests cover the verdict in isolation, at a schema
+    // number decoupled from this constant.
 
     /// Stamps [userVersion] onto the project file at [filePath], changing nothing else.
     void stampFormat(String filePath, int userVersion) {

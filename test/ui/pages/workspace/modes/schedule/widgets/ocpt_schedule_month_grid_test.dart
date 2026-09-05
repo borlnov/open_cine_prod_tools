@@ -15,8 +15,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
-/// standing in for the agenda's own centre area.
-Widget _wrapInApp(Widget child) => MaterialApp(
+/// standing in for the agenda's own centre area — [height] defaults to the roomy height every
+/// other test in this file renders at, and is only ever overridden to a short one deliberately too
+/// small for the six week rows' own fixed `minHeight` (`_OcptScheduleMonthCell`).
+Widget _wrapInApp(Widget child, {double height = 700}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -24,7 +26,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 900, height: 700, child: child)),
+  home: Scaffold(body: SizedBox(width: 900, height: height, child: child)),
 );
 
 /// Builds a shooting day dated [date] with the few fields these tests read, everything else
@@ -159,4 +161,35 @@ void main() {
     expect(find.text("2×"), findsOneWidget);
     expect(find.byTooltip("2 slots"), findsOneWidget);
   });
+
+  testWidgets(
+    'does not overflow vertically when the available height is too short for the six week rows',
+    (tester) async {
+      final day = _buildDay(id: "day-1", dayNumber: 1, date: anchorDate);
+
+      // Short enough that the six week rows' own fixed `minHeight` (82 each, ~492 in all) cannot
+      // fit without scrolling — before the fix this reproduced a bottom `RenderFlex` overflow.
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptScheduleMonthGrid(
+            anchorDate: anchorDate,
+            firstWeekday: OcptFirstWeekday.monday,
+            days: [day],
+            slotsByDayId: const {},
+            firstLocationByDayId: const {},
+            dayTintOf: (_) => Colors.transparent,
+            timelineOf: (_) => null,
+            sunTimesOf: (_) => null,
+            selectedDayId: null,
+            alertsOfDay: (dayId) => const [],
+            onDayOpenRequested: (_) {},
+          ),
+          height: 200,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

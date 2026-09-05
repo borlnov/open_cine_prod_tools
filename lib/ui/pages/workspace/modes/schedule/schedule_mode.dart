@@ -153,7 +153,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         // the project at once, so a selector would either do nothing or lie about what the day
         // view and the agenda show.
         modeLabel: Tr.of(context).workspaceModeLabelSchedule,
-        onExportRequested: () => unawaited(_requestExport(context, state)),
+        onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
         overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
@@ -272,7 +272,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Opens the export panel, then dispatches the picked document's own request onto the mode's
   /// existing `_request…Export` methods, unchanged: every one of the six opens its own options
   /// dialog, exactly as it always has.
-  Future<void> _requestExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptScheduleExportDocument>(
       context,
@@ -292,19 +296,19 @@ class _ScheduleViewState extends State<_ScheduleView> {
       case OcptWorkspaceExportDocumentPick<OcptScheduleExportDocument>(:final document):
         switch (document) {
           case OcptScheduleExportDocument.callSheets:
-            await _requestCallSheetsExport(context, state);
+            await _requestCallSheetsExport(context, state, shareAnchor);
           case OcptScheduleExportDocument.namedCallSheets:
-            await _requestNamedCallSheetsExport(context, state);
+            await _requestNamedCallSheetsExport(context, state, shareAnchor);
           case OcptScheduleExportDocument.shootingPlan:
-            await _requestShootingPlanExport(context, state);
+            await _requestShootingPlanExport(context, state, shareAnchor);
           case OcptScheduleExportDocument.shootingPlanXlsx:
-            await _requestShootingPlanXlsxExport(context, state);
+            await _requestShootingPlanXlsxExport(context, state, shareAnchor);
           case OcptScheduleExportDocument.dayOutOfDays:
-            await _requestDayOutOfDaysExport(context, state);
+            await _requestDayOutOfDaysExport(context, state, shareAnchor);
           case OcptScheduleExportDocument.oneLineSchedule:
-            await _requestOneLineScheduleExport(context, state);
+            await _requestOneLineScheduleExport(context, state, shareAnchor);
           case OcptScheduleExportDocument.sides:
-            await _requestSidesExport(context, state);
+            await _requestSidesExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptScheduleExportDocument>():
         _requestProjectPackageExport(context);
@@ -329,7 +333,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Shows the general call sheets export options dialog, then dispatches the export request if the
   /// user applied it, resolving here — the last place with a [BuildContext] — every localized string
   /// the exported documents and the native folder dialog carry.
-  Future<void> _requestCallSheetsExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestCallSheetsExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleCallSheetsExportDialog.show(
       context,
@@ -350,6 +358,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptCallSheetLabelsOf(context, days: state.days, people: state.people),
         confirmButtonText: tr.scheduleExportChooseFolderAction,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -358,7 +367,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// user applied it — mirrors [_requestCallSheetsExport]. The dialog picks its own days (the mode's
   /// own selection ticked by default, as [_requestCallSheetsExport]'s general dialog does), so no
   /// day needs to be selected for this to run.
-  Future<void> _requestNamedCallSheetsExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestNamedCallSheetsExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleNamedCallSheetsExportDialog.show(
       context,
@@ -382,13 +395,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptCallSheetLabelsOf(context, days: state.days, people: state.people),
         confirmButtonText: tr.scheduleExportChooseFolderAction,
+        shareAnchor: shareAnchor,
       ),
     );
   }
 
   /// Shows the shooting plan export options dialog, then dispatches the export request if the user
   /// applied it — mirrors [_requestCallSheetsExport].
-  Future<void> _requestShootingPlanExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestShootingPlanExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleShootingPlanExportDialog.show(
       context,
@@ -408,6 +426,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptShootingPlanLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -415,7 +434,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Shows the shooting plan **workbook**'s own export options dialog, then dispatches the export
   /// request if the user applied it — mirrors [_requestShootingPlanExport], its dialog asking for
   /// the days and nothing else (`OcptScheduleShootingPlanXlsxExportDialog`'s own doc comment).
-  Future<void> _requestShootingPlanXlsxExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestShootingPlanXlsxExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleShootingPlanXlsxExportDialog.show(context, days: state.days);
     if (options == null) {
@@ -431,13 +454,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptShootingPlanXlsxLabelsOf(context),
         fileTypeLabel: tr.scheduleExportXlsxFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
 
   /// Shows the *Day Out of Days* export options dialog, then dispatches the export request if the
   /// user applied it — mirrors [_requestShootingPlanExport].
-  Future<void> _requestDayOutOfDaysExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestDayOutOfDaysExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleDayOutOfDaysExportDialog.show(
       context,
@@ -457,13 +485,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptDayOutOfDaysLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
 
   /// Shows the one-line schedule export options dialog, then dispatches the export request if the
   /// user applied it — mirrors [_requestDayOutOfDaysExport].
-  Future<void> _requestOneLineScheduleExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestOneLineScheduleExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleOneLineScheduleExportDialog.show(
       context,
@@ -483,6 +516,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptOneLineScheduleLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -490,7 +524,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Shows the sides export options dialog, then dispatches the export request if the user applied
   /// it — mirrors [_requestOneLineScheduleExport], but hands the dialog the mode's own selected day
   /// to open on, a booklet being about one day rather than a range.
-  Future<void> _requestSidesExport(BuildContext context, OcptScheduleState state) async {
+  Future<void> _requestSidesExport(
+    BuildContext context,
+    OcptScheduleState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleSidesExportDialog.show(
       context,
@@ -515,6 +553,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           episodes: state.episodes,
         ),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -1553,17 +1592,24 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
   /// Maps [notice] to its localized, user-facing message, mirroring
   /// `OcptBreakdownMode._ioNoticeMessage`.
+  ///
+  /// The two full-success kinds degrade to the generic "shared" message on mobile
+  /// ([OcptScheduleIoNotice.wasShared]): there is no path or folder to name, the run having been
+  /// handed to the OS share sheet rather than written to a location the user picked. A **partial**
+  /// folder failure keeps naming [OcptScheduleIoNotice.folderPath] even then — a temporary directory
+  /// rather than one the user picked — since which files failed still matters more than where they
+  /// sat, and that case is rare enough on mobile (a share sheet's own temp storage failing to write)
+  /// not to warrant its own wording.
   String _ioNoticeMessage(BuildContext context, OcptScheduleIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptScheduleIoNoticeKind.fileExportSucceeded => tr.scheduleExportFileSuccessMessage(
-        notice.path ?? "",
-      ),
-      OcptScheduleIoNoticeKind.folderExportSucceeded => tr.scheduleExportFolderSuccessMessage(
-        notice.writtenCount ?? 0,
-        notice.folderPath ?? "",
-      ),
+      OcptScheduleIoNoticeKind.fileExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.scheduleExportFileSuccessMessage(notice.path ?? ""),
+      OcptScheduleIoNoticeKind.folderExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.scheduleExportFolderSuccessMessage(notice.writtenCount ?? 0, notice.folderPath ?? ""),
       OcptScheduleIoNoticeKind.folderExportPartiallySucceeded => tr.scheduleExportFolderPartialMessage(
         notice.writtenCount ?? 0,
         notice.folderPath ?? "",

@@ -6,6 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -54,10 +55,17 @@ class OcptBreakdownService {
   /// The service used to ensure the `scene_sets` link a set tag implies.
   final OcptLocationsService _locationsService;
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [reconcileTags] and [tombstoneBreakdownOfScenes] never call it: both
+  /// write inside a caller's own transaction, and take that caller's own [OcptRowStampService]
+  /// instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
   const OcptBreakdownService({
     required OcptElementsService elementsService,
     required OcptLocationsService locationsService,
+    required this.deviceId,
   }) : _elementsService = elementsService,
        _locationsService = locationsService;
 
@@ -217,7 +225,8 @@ class OcptBreakdownService {
         return null;
       }
 
-      return _insertTagAndEnsureLink(
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      final tagId = await _insertTagAndEnsureLink(
         database: database,
         sceneId: sceneId,
         startOffset: startOffset,
@@ -225,7 +234,11 @@ class OcptBreakdownService {
         taggedText: taggedText,
         targetKind: targetKind,
         targetId: targetId,
+        stamps: stamps,
       );
+      await stamps.flush(database);
+
+      return tagId;
     });
   }
 
@@ -243,11 +256,26 @@ class OcptBreakdownService {
       return;
     }
 
-    await (database.update(
-      database.ocptBreakdownTagsTable,
-    )..where((table) => table.id.equals(tagId))).write(
-      const OcptBreakdownTagsTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptBreakdownTagsTable,
+      )..where((table) => table.id.equals(tagId))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBreakdownTagsTable,
+        rowId: tagId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Clears `needsCheck` on tag [tagId] alone, leaving its `startOffset`/`endOffset` exactly where
@@ -268,11 +296,26 @@ class OcptBreakdownService {
       return;
     }
 
-    await (database.update(
-      database.ocptBreakdownTagsTable,
-    )..where((table) => table.id.equals(tagId))).write(
-      const OcptBreakdownTagsTableCompanion(needsCheck: Value(false)),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptBreakdownTagsTable,
+      )..where((table) => table.id.equals(tagId))).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBreakdownTagsTable,
+        rowId: tagId,
+        current: current,
+        next: current.copyWith(needsCheck: false),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Creates a new [category]/[sourceKind] element named [name] and tags the scene-relative
@@ -463,34 +506,52 @@ class OcptBreakdownService {
         );
       }
 
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       if (liveRow != null) {
-        await (database.update(
-          database.ocptSceneBreakdownsTable,
-        )..where((table) => table.id.equals(liveRow!.id))).write(
-          OcptSceneBreakdownsTableCompanion(status: status, notes: notes),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneBreakdownsTable,
+          rowId: liveRow.id,
+          current: liveRow,
+          next: liveRow.copyWithCompanion(OcptSceneBreakdownsTableCompanion(status: status, notes: notes)),
+          stamps: stamps,
         );
+        await stamps.flush(database);
         return;
       }
 
       if (droppedRow != null) {
-        await (database.update(
-          database.ocptSceneBreakdownsTable,
-        )..where((table) => table.id.equals(droppedRow!.id))).write(
-          OcptSceneBreakdownsTableCompanion(isDeleted: const Value(false), status: status, notes: notes),
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptSceneBreakdownsTable,
+          rowId: droppedRow.id,
+          current: droppedRow,
+          next: droppedRow.copyWithCompanion(
+            OcptSceneBreakdownsTableCompanion(isDeleted: const Value(false), status: status, notes: notes),
+          ),
+          stamps: stamps,
         );
+        await stamps.flush(database);
         return;
       }
 
-      await database
-          .into(database.ocptSceneBreakdownsTable)
-          .insert(
-            OcptSceneBreakdownsTableCompanion.insert(
-              id: const Uuid().v4(),
-              sceneId: sceneId,
-              status: status,
-              notes: notes,
-            ),
-          );
+      final id = const Uuid().v4();
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneBreakdownsTable,
+        rowId: id,
+        current: null,
+        next: OcptSceneBreakdownRow(
+          id: id,
+          sceneId: sceneId,
+          status: status.present ? status.value : OcptBreakdownSceneStatus.toDo,
+          notes: notes.present ? notes.value : '',
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
     });
   }
 
@@ -527,6 +588,7 @@ class OcptBreakdownService {
     required OcptProjectDatabase database,
     required String screenplayId,
     required String currentFountainText,
+    required OcptRowStampService? stamps,
   }) async {
     if (database.refusesUserWrite("reconcileTags")) {
       return;
@@ -554,10 +616,13 @@ class OcptBreakdownService {
       for (final tag in tagRows) {
         final scene = sceneById[tag.sceneId];
         if (scene == null || scene.isDeleted) {
-          await (database.update(
-            database.ocptBreakdownTagsTable,
-          )..where((table) => table.id.equals(tag.id))).write(
-            const OcptBreakdownTagsTableCompanion(isDeleted: Value(true)),
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptBreakdownTagsTable,
+            rowId: tag.id,
+            current: tag,
+            next: tag.copyWith(isDeleted: true),
+            stamps: stamps,
           );
           continue;
         }
@@ -570,10 +635,13 @@ class OcptBreakdownService {
 
         if (fitsInBounds && sceneText.substring(tag.startOffset, tag.endOffset) == tag.taggedText) {
           if (tag.needsCheck) {
-            await (database.update(
-              database.ocptBreakdownTagsTable,
-            )..where((table) => table.id.equals(tag.id))).write(
-              const OcptBreakdownTagsTableCompanion(needsCheck: Value(false)),
+            await OcptRowStampService.writeAndStamp(
+              database: database,
+              table: database.ocptBreakdownTagsTable,
+              rowId: tag.id,
+              current: tag,
+              next: tag.copyWith(needsCheck: false),
+              stamps: stamps,
             );
           }
           continue;
@@ -582,23 +650,29 @@ class OcptBreakdownService {
         final occurrences = _occurrencesOf(needle: tag.taggedText, haystack: sceneText);
         if (occurrences.length == 1) {
           final newStart = occurrences.single;
-          await (database.update(
-            database.ocptBreakdownTagsTable,
-          )..where((table) => table.id.equals(tag.id))).write(
-            OcptBreakdownTagsTableCompanion(
-              startOffset: Value(newStart),
-              endOffset: Value(newStart + tag.taggedText.length),
-              needsCheck: const Value(false),
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptBreakdownTagsTable,
+            rowId: tag.id,
+            current: tag,
+            next: tag.copyWith(
+              startOffset: newStart,
+              endOffset: newStart + tag.taggedText.length,
+              needsCheck: false,
             ),
+            stamps: stamps,
           );
           continue;
         }
 
         if (!tag.needsCheck) {
-          await (database.update(
-            database.ocptBreakdownTagsTable,
-          )..where((table) => table.id.equals(tag.id))).write(
-            const OcptBreakdownTagsTableCompanion(needsCheck: Value(true)),
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptBreakdownTagsTable,
+            rowId: tag.id,
+            current: tag,
+            next: tag.copyWith(needsCheck: true),
+            stamps: stamps,
           );
         }
       }
@@ -625,28 +699,60 @@ class OcptBreakdownService {
   Future<void> tombstoneBreakdownOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,
+    required OcptRowStampService? stamps,
   }) async {
     if (sceneIds.isEmpty) {
       return;
     }
 
-    await (database.update(
-      database.ocptBreakdownTagsTable,
-    )..where((table) => table.sceneId.isIn(sceneIds))).write(
-      const OcptBreakdownTagsTableCompanion(isDeleted: Value(true)),
-    );
-    await (database.update(
-      database.ocptSceneBreakdownsTable,
-    )..where((table) => table.sceneId.isIn(sceneIds))).write(
-      const OcptSceneBreakdownsTableCompanion(isDeleted: Value(true)),
-    );
+    final tagRows =
+        await (database.select(database.ocptBreakdownTagsTable)..where(
+              (table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not(),
+            ))
+            .get();
+    for (final row in tagRows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBreakdownTagsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
 
-    await _elementsService.tombstoneSceneElementsOfScenes(database: database, sceneIds: sceneIds);
-    await _locationsService.tombstoneSceneSetsOfScenes(database: database, sceneIds: sceneIds);
+    final sceneBreakdownRows =
+        await (database.select(database.ocptSceneBreakdownsTable)..where(
+              (table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not(),
+            ))
+            .get();
+    for (final row in sceneBreakdownRows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptSceneBreakdownsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+
+    await _elementsService.tombstoneSceneElementsOfScenes(
+      database: database,
+      sceneIds: sceneIds,
+      stamps: stamps,
+    );
+    await _locationsService.tombstoneSceneSetsOfScenes(
+      database: database,
+      sceneIds: sceneIds,
+      stamps: stamps,
+    );
   }
 
   /// Inserts the tag row itself and ensures the link it implies, without checking for an overlap:
-  /// the caller ([createTag]) has already done that.
+  /// the caller ([createTag]) has already done that. Stamps the tag insert through [stamps] —
+  /// [createTag]'s own instance — while the link ensured below is stamped by whichever of
+  /// [_elementsService]/[_locationsService] writes it, through its own nested transaction.
   Future<String> _insertTagAndEnsureLink({
     required OcptProjectDatabase database,
     required String sceneId,
@@ -655,24 +761,30 @@ class OcptBreakdownService {
     required String taggedText,
     required OcptBreakdownTargetKind targetKind,
     required String targetId,
+    required OcptRowStampService? stamps,
   }) async {
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptBreakdownTagsTable)
-        .insert(
-          OcptBreakdownTagsTableCompanion.insert(
-            id: id,
-            sceneId: sceneId,
-            targetKind: targetKind,
-            elementId: Value(targetKind == OcptBreakdownTargetKind.element ? targetId : null),
-            roleId: Value(targetKind == OcptBreakdownTargetKind.role ? targetId : null),
-            setId: Value(targetKind == OcptBreakdownTargetKind.set ? targetId : null),
-            startOffset: startOffset,
-            endOffset: endOffset,
-            taggedText: taggedText,
-          ),
-        );
+    await OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptBreakdownTagsTable,
+      rowId: id,
+      current: null,
+      next: OcptBreakdownTagRow(
+        id: id,
+        sceneId: sceneId,
+        targetKind: targetKind,
+        elementId: targetKind == OcptBreakdownTargetKind.element ? targetId : null,
+        roleId: targetKind == OcptBreakdownTargetKind.role ? targetId : null,
+        setId: targetKind == OcptBreakdownTargetKind.set ? targetId : null,
+        startOffset: startOffset,
+        endOffset: endOffset,
+        taggedText: taggedText,
+        needsCheck: false,
+        isDeleted: false,
+      ),
+      stamps: stamps,
+    );
 
     switch (targetKind) {
       case OcptBreakdownTargetKind.element:

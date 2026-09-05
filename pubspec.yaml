@@ -64,6 +64,39 @@ dependencies:
   # act_file_transfer_manager to a direct one now that the app calls it itself
   file_selector: ^1.1.0
 
+  # Hands an export's bytes to the OS share sheet on mobile, where file_selector's getSaveLocation
+  # and getDirectoryPath have no Android or iOS implementation
+  share_plus: ^12.0.2
+
+  # Scales fonts (.sp) and dimensions (.w/.h) on mobile only; neutralised to identity on desktop.
+  flutter_screenutil: ^5.9.3
+
+  # Speaks the sync relay's HTTP routes from OcptRelayRemoteStorage; promoted from a transitive
+  # dependency now that the app calls it itself
+  http: ^1.6.0
+
+  # Backs OcptFileExternalLogger's rotating log file (AdvancedFileOutput); promoted from a
+  # transitive dependency of act_logger_manager now that the app builds its own external logger
+  # with it
+  logger: ^2.7.0
+
+  # Speaks the sync relay's events WebSocket from OcptRelayRemoteStorage; promoted from a
+  # transitive dependency now that the app calls it itself
+  web_socket_channel: ^3.0.3
+
+  # Serves the hosted relay's shelf handler on a real socket from OcptRelayHostManager; promoted
+  # from a transitive dependency (through ocpt_sync_relay) now that the app calls it itself
+  shelf: ^1.4.2
+
+  # Draws the sharing invite's QR code; pure-Dart, no plugin. Replaces act_qr_code, whose
+  # transitive qr_code_scanner does not build against this app's AGP 8 (namespace not specified).
+  qr_flutter: ^4.1.0
+
+  # Reads a QR code from the camera on the joining screen's mobile-only scan tab. Replaces
+  # act_qr_code's QrCodeReader for the same reason as qr_flutter above; ships no Windows plugin,
+  # which is fine since this widget is only ever built on mobile.
+  mobile_scanner: ^7.1.2
+
   act_config_manager:
     path: actlibs/act_config_manager
 
@@ -106,6 +139,10 @@ dependencies:
   act_logger_manager:
     path: actlibs/act_logger_manager
 
+  # Reads the running platform (isMobile/isDesktop) to gate the mobile-only responsive scaling.
+  act_platform_manager:
+    path: actlibs/act_platform_manager
+
   act_router_manager:
     path: actlibs/act_router_manager
 
@@ -114,6 +151,13 @@ dependencies:
 
   fountain_kit:
     path: packages/fountain_kit
+
+  ocpt_sync_protocol:
+    path: packages/ocpt_sync_protocol
+
+  # Hosts the domain-blind relay in-process for the "host on this machine" sharing mode.
+  ocpt_sync_relay:
+    path: packages/ocpt_sync_relay
 
   script_import_kit:
     path: packages/script_import_kit
@@ -175,6 +219,11 @@ dev_dependencies:
   # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
   build_runner: ^2.4.13
 
+  # Provides StreamChannelMixin, used to build a fake WebSocketChannel for
+  # OcptRelayRemoteStorage's tests; promoted from a transitive dependency now that a test imports
+  # it directly
+  stream_channel: ^2.1.4
+
 
 flutter:
   uses-material-design: true
@@ -227,6 +276,12 @@ flutter:
 # Turns the branding masters of assets/branding/icons/ into every platform's launcher icon, through
 # `dart run icons_launcher:create`. The generated icons are committed, so this only has to be run
 # again when the mark itself changes.
+#
+# A non-production build rebrands these icons with a blue QUALIF corner flag: the CI's
+# .github/actions/qualif-icons swaps the `ocpt_icon_qualif_*` masters over the ones referenced here
+# and reruns the generator (turning adaptive_background_color below blue for Android) before
+# packaging, so this block always names the plain masters and the qualification variant lives only
+# in the swapped files. Both master sets come from tool/generate_branding_icons.dart.
 #
 # Linux is deliberately left out: the platform support of icons_launcher writes a snapcraft icon,
 # while this app ships a Debian package, whose icon and desktop entry are built from the same

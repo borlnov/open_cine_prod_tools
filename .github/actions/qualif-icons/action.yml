@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Qualification launcher icons"
+description: >-
+  Swap the QUALIF-banded branding masters in and regenerate the native launcher icons, for a
+  non-production build. A no-op on a production build, which keeps the committed stable icons.
+
+inputs:
+  env:
+    description: "Build environment, PROD or QUALIF (from the get-version job)"
+    required: true
+  regenerate-native:
+    description: >-
+      Whether to regenerate the embedded native launcher icons with icons_launcher. Left false for
+      the Linux job, whose only icon is the Debian hicolor PNG the packaging step reads straight from
+      the swapped master.
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Apply the qualification launcher icons
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [[ "${{ inputs.env }}" != "QUALIF" ]]; then
+          echo "Production build: keeping the stable launcher icons."
+          exit 0
+        fi
+
+        echo "Qualification build: swapping in the QUALIF-banded launcher icons."
+        ICONS="assets/branding/icons"
+
+        # Overwrite each containered master with its corner-flagged counterpart. icons_launcher and
+        # the Debian packaging both read these fixed paths, so the swap alone rebrands every icon;
+        # the adaptive foreground has no flag (see the generator) and is left untouched.
+        cp "${ICONS}/ocpt_icon_qualif_1024.png" "${ICONS}/ocpt_icon_1024.png"
+        cp "${ICONS}/ocpt_icon_qualif_ios_1024.png" "${ICONS}/ocpt_icon_ios_1024.png"
+        cp "${ICONS}/ocpt_icon_qualif_512.png" "${ICONS}/ocpt_icon_512.png"
+
+        # Turn the Android adaptive background from the accent to the qualification blue, so the
+        # system-masked foreground still reads as a qualification icon where the corner flag of the
+        # legacy icon would be clipped away. The '.bak' keeps the one sed spelling that both GNU and
+        # BSD (macOS runner) sed accept.
+        sed -i.bak 's/adaptive_background_color: "#6C5CE7"/adaptive_background_color: "#2196F3"/' \
+          pubspec.yaml
+        rm -f pubspec.yaml.bak
+
+        if [[ "${{ inputs.regenerate-native }}" == "true" ]]; then
+          # Dependencies are already resolved by the preceding generate step, so this only rewrites
+          # the platform icon assets in the checkout from the swapped masters.
+          dart run icons_launcher:create
+        fi
