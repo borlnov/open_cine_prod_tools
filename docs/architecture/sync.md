@@ -274,15 +274,23 @@ holds it — returning an `OcptReconcileOutcome` (`OcptReconcileSucceeded(pushed
 
 **Auto-restart.** A local, per-device, never-synchronised "host on launch" flag
 (`OcptPropertiesManager.loadHostOnLaunch`/`setHostOnLaunch`, keyed by the project's relay-side id)
-drives `maybeAutoStartHosting`, which the workspace bloc runs on project open. When it brings hosting
-up, its own self-seed has already started the sync session (and presence) against the freshly hosted
-relay, so the workspace bloc skips the ordinary paired-session start rather than starting a second
-one over the same project. `maybeAutoStartHosting` is **idempotent**: called again for a project it
-is already hosting — as navigating back to it does, the workspace bloc being rebuilt each time — it
-does nothing, since restarting would rebind the socket and drop connected peers. For the same
-reason, hosting is owned by `OcptRelayHostManager` across every navigation and is **not** torn down
-by the workspace bloc's `disposeLifeCycle` (nor is its self-seeded session): it stops through the
-hosting panel's switch, a different project being hosted, or app shutdown.
+drives `maybeAutoStartHosting`, which the workspace bloc runs on project open. When it **freshly**
+brings hosting up, its own self-seed has already started the sync session (and presence) against the
+hosted relay, so the workspace bloc skips the ordinary paired-session start rather than starting a
+second one over the same project. `maybeAutoStartHosting` is **idempotent**: called again for a
+project it is already hosting — as navigating back to it does, the workspace bloc being rebuilt each
+time — it does nothing, since restarting would rebind the socket and drop connected peers.
+
+Hosting (the relay) is therefore owned by `OcptRelayHostManager` across every navigation and is
+**not** torn down by the workspace bloc's `disposeLifeCycle`; it stops through the hosting panel's
+switch, a different project being hosted, or app shutdown. The **sync session is different**: it is
+tied to the project's own database, not to hosting, so `disposeLifeCycle` always stops it — the bloc
+is disposed only when the project is closed (going back to the home screen), which closes that
+database, and a session left running against a closed database only throws on its next push. Because
+an already-hosted project reopened this way self-seeds no new session (hosting was already up), the
+workspace bloc detects "not freshly hosted" and lets the ordinary paired start seed a session against
+the local relay the project stays paired to — so sync resumes on re-entry while the relay never
+dropped a peer.
 
 **The hosting panel** (`OcptHostingPanel` over a sibling `OcptHostingBloc`,
 `lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`) is the Partager screen's "Héberger sur ce

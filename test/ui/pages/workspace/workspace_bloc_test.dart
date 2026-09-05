@@ -137,9 +137,15 @@ class _RecordingSyncManager extends OcptSyncManager {
 /// `ocpt_relay_host_manager_test.dart` — this file's tests are about the workspace's own wiring to
 /// them, not their behaviour.
 class _RecordingHostManager extends OcptRelayHostManager {
-  _RecordingHostManager({required this.stateToReport});
+  _RecordingHostManager({required this.stateToReport, this.stateAfterAutoStart});
 
   OcptRelayHostState stateToReport;
+
+  /// The state [maybeAutoStartHosting] transitions [state] to, modelling a fresh host start coming
+  /// up (`stopped` before, `online` after); null leaves [state] unchanged, modelling a project
+  /// reopened while its relay was already up (`online` throughout).
+  final OcptRelayHostState? stateAfterAutoStart;
+
   bool maybeAutoStartCalled = false;
   bool stopHostingCalled = false;
 
@@ -155,6 +161,9 @@ class _RecordingHostManager extends OcptRelayHostManager {
     required String deviceId,
   }) async {
     maybeAutoStartCalled = true;
+    if (stateAfterAutoStart != null) {
+      stateToReport = stateAfterAutoStart!;
+    }
   }
 
   @override
@@ -540,8 +549,11 @@ void main() {
       );
 
       final syncManager = _RecordingSyncManager(pairingService: pairingService);
+      // A fresh host start: stopped on entry, online after its self-seed, which starts the session
+      // itself — so the workspace must not start a second one.
       final hostManager = _RecordingHostManager(
-        stateToReport: OcptRelayHostOnline(
+        stateToReport: const OcptRelayHostStopped(),
+        stateAfterAutoStart: OcptRelayHostOnline(
           lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
           enrolmentSecret: "secret",
         ),
@@ -553,6 +565,38 @@ void main() {
 
       expect(hostManager.maybeAutoStartCalled, isTrue);
       expect(syncManager.startSyncSessionCalled, isFalse);
+      await bloc.close();
+    },
+  );
+
+  test(
+    'reopening an already-hosted project starts a fresh paired session against the local relay',
+    () async {
+      // The relay stayed up across the trip home while the session was stopped with the closing
+      // database. Hosting is already online on entry (no self-seed), so the workspace has to seed a
+      // new session against the local relay the project is still paired to.
+      final project = projectsManager.currentProject!;
+      await pairingService.savePairing(
+        database: project.fileDatabase,
+        projectId: "project-abc",
+        relayBaseUri: Uri.parse("http://192.168.1.42:47600/"),
+        token: "token-1",
+      );
+
+      final syncManager = _RecordingSyncManager(pairingService: pairingService);
+      final hostManager = _RecordingHostManager(
+        stateToReport: OcptRelayHostOnline(
+          lanBaseUri: Uri.parse("http://192.168.1.42:47600"),
+          enrolmentSecret: "secret",
+        ),
+      );
+      final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+
+      await waitForState(bloc, (state) => !state.isLoading);
+      await pumpEventQueue();
+
+      expect(syncManager.startSyncSessionCalled, isTrue);
+      expect(syncManager.startedProjectId, "project-abc");
       await bloc.close();
     },
   );
@@ -600,13 +644,13 @@ void main() {
   );
 
   test(
-    'closing the workspace does not stop the sync session while hosting owns it',
+    'closing the workspace stops the sync session even while hosting (its database is closing)',
     () async {
       final project = projectsManager.currentProject!;
       await pairingService.savePairing(
         database: project.fileDatabase,
         projectId: 'project-abc',
-        relayBaseUri: Uri.parse('https://relay.example.org/'),
+        relayBaseUri: Uri.parse('http://192.168.1.42:47600/'),
         token: 'token-1',
       );
 
@@ -623,7 +667,10 @@ void main() {
       await pumpEventQueue();
       await bloc.close();
 
-      expect(syncManager.stopSyncSessionCalled, isFalse);
+      // The relay keeps running (see the test above), but the session must not: it would only fail
+      // against the database the closing project just closed.
+      expect(syncManager.stopSyncSessionCalled, isTrue);
+      expect(hostManager.stopHostingCalled, isFalse);
     },
   );
 }
