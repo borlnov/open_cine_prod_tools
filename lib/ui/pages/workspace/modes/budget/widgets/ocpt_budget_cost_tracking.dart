@@ -260,6 +260,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// A poste's own committed total, in cents, tax-inclusive — see the class doc comment.
   final int Function(String posteId) committedCentsOf;
 
+  /// A poste's own in-kind covered total, in cents — the settled bucket a counterpart quote line
+  /// contributes (`OcptBudgetState.inKindCoveredCentsOf`), folded alongside [paidByPosteId] and
+  /// [committedCentsOf] into `Reste`/`Écart` so a counterpart line never reads as an unspent
+  /// remainder — see `lib/utils/ocpt_budget_totals.dart`'s own doc comments.
+  final int Function(String posteId) inKindCoveredCentsOf;
+
   /// The total of every debit that names no poste at all — see the class doc comment.
   final OcptBudgetCoveredTotal offQuoteTotal;
 
@@ -371,6 +377,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.currencyCode,
     required this.paidByPosteId,
     required this.committedCentsOf,
+    required this.inKindCoveredCentsOf,
     required this.offQuoteTotal,
     required this.breakdownPricedElementCount,
     required this.breakdownUnpricedElementCount,
@@ -560,6 +567,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
                 currencyCode: currencyCode,
                 paidCents: paidByPosteId[poste.id]?.amountCents ?? 0,
                 committedCents: committedCentsOf(poste.id),
+                inKindCoveredCents: inKindCoveredCentsOf(poste.id),
                 onTap: () => onPosteSelected(poste.id),
               );
             },
@@ -834,6 +842,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
       currencyCode: currencyCode,
       paidCents: paidByPosteId[row.poste.id]?.amountCents ?? 0,
       committedCents: committedCentsOf(row.poste.id),
+      inKindCoveredCents: inKindCoveredCentsOf(row.poste.id),
       onTap: () => onPosteSelected(row.poste.id),
       onRenameRequested: isReadOnly ? null : () => onPosteSelected(row.poste.id),
       onMoveUpRequested: isReadOnly
@@ -1038,10 +1047,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
       );
       final paidCents = paidByPosteId[poste.id]?.amountCents ?? 0;
       final committedCents = committedCentsOf(poste.id);
+      final inKindCoveredCents = inKindCoveredCentsOf(poste.id);
       final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
         quotedAmountCents: quoted.amountCents,
         paidCents: paidCents,
         committedCents: committedCents,
+        inKindCoveredCents: inKindCoveredCents,
         typedEstimateToCompleteCents: poste.estimateToCompleteCents,
       );
 
@@ -1446,6 +1457,9 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
   /// This poste's own committed total, in cents.
   final int committedCents;
 
+  /// This poste's own in-kind covered total, in cents.
+  final int inKindCoveredCents;
+
   /// Called when this row is clicked.
   final VoidCallback onTap;
 
@@ -1475,6 +1489,7 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
     required this.currencyCode,
     required this.paidCents,
     required this.committedCents,
+    required this.inKindCoveredCents,
     required this.onTap,
     required this.onRenameRequested,
     required this.onMoveUpRequested,
@@ -1510,6 +1525,7 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
       typedEstimateToCompleteCents: poste.estimateToCompleteCents,
     );
     final finalCostCents = ocptBudgetFinalCostCents(
@@ -1547,6 +1563,7 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
                     quotedAmountCents: quoted.amountCents,
                     paidCents: paidCents,
                     committedCents: committedCents,
+                    inKindCoveredCents: inKindCoveredCents,
                   ),
                   currencyCode,
                 ),
@@ -1559,6 +1576,7 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
                     quotedAmountCents: quoted.amountCents,
                     paidCents: paidCents,
                     committedCents: committedCents,
+                    inKindCoveredCents: inKindCoveredCents,
                   ),
                   currencyCode,
                 ),
@@ -1650,8 +1668,9 @@ class _OcptCostTrackingPosteFigures {
     required this.varianceCents,
   });
 
-  /// Builds [poste]'s own figures under [taxBasis], given its own [paidCents] and [committedCents]
-  /// — the very same [ocptBudgetTotalOf]/[ocptBudgetRemainingCents]/[ocptBudgetVarianceCents] calls
+  /// Builds [poste]'s own figures under [taxBasis], given its own [paidCents], [committedCents] and
+  /// [inKindCoveredCents] — the very same
+  /// [ocptBudgetTotalOf]/[ocptBudgetRemainingCents]/[ocptBudgetVarianceCents] calls
   /// [_OcptCostTrackingPosteAmountsRow.build] makes for the desktop row.
   factory _OcptCostTrackingPosteFigures.of({
     required OcptBudgetPoste poste,
@@ -1659,6 +1678,7 @@ class _OcptCostTrackingPosteFigures {
     required int? defaultVatRateBasisPoints,
     required int paidCents,
     required int committedCents,
+    required int inKindCoveredCents,
   }) {
     final quoted = ocptBudgetTotalOf(
       poste.lines,
@@ -1671,11 +1691,13 @@ class _OcptCostTrackingPosteFigures {
         quotedAmountCents: quoted.amountCents,
         paidCents: paidCents,
         committedCents: committedCents,
+        inKindCoveredCents: inKindCoveredCents,
       ),
       varianceCents: ocptBudgetVarianceCents(
         quotedAmountCents: quoted.amountCents,
         paidCents: paidCents,
         committedCents: committedCents,
+        inKindCoveredCents: inKindCoveredCents,
       ),
     );
   }
@@ -1710,6 +1732,9 @@ class _OcptCostTrackingPosteCard extends StatelessWidget {
   /// This poste's own committed total, in cents.
   final int committedCents;
 
+  /// This poste's own in-kind covered total, in cents.
+  final int inKindCoveredCents;
+
   /// Called when this card is tapped — never withheld under a read-only preview, selecting a poste
   /// being a read, not a write ([OcptBudgetCostTracking.onPosteSelected] is never gated on
   /// `isReadOnly` for the very same reason on the desktop row).
@@ -1725,6 +1750,7 @@ class _OcptCostTrackingPosteCard extends StatelessWidget {
     required this.currencyCode,
     required this.paidCents,
     required this.committedCents,
+    required this.inKindCoveredCents,
     required this.onTap,
   });
 
@@ -1739,6 +1765,7 @@ class _OcptCostTrackingPosteCard extends StatelessWidget {
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
 
     return Card(
@@ -2170,12 +2197,20 @@ class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
       entries: entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
+    // This line's own in-kind covered figure: its own quoted total while it is itself a
+    // counterpart line ([OcptBudgetLine.inKindResourceId] not null), zero otherwise. A counterpart
+    // line is never paid or committed, so without this it would read as its own full quoted amount
+    // still outstanding — [quoted.amountCents] is safe to reuse verbatim here rather than reaching
+    // for `ocptBudgetLineTotalCents` again, since a counterpart line is frozen at 0 % VAT and so
+    // reads the same figure whichever basis [quoted] itself was resolved in.
+    final inKindCoveredCents = line.inKindResourceId == null ? 0 : quoted.amountCents;
     // A line carries no estimate to complete of its own — always derived, never typed
     // (`docs/architecture/budget.md`).
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paid.amountCents,
       committedCents: committed.amountCents,
+      inKindCoveredCents: inKindCoveredCents,
       typedEstimateToCompleteCents: null,
     );
     final finalCostCents = ocptBudgetFinalCostCents(
@@ -2187,11 +2222,13 @@ class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
       quotedAmountCents: quoted.amountCents,
       paidCents: paid.amountCents,
       committedCents: committed.amountCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
     final varianceCents = ocptBudgetVarianceCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paid.amountCents,
       committedCents: committed.amountCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
 
     return InkWell(

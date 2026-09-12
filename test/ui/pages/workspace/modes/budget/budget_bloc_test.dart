@@ -1592,6 +1592,7 @@ void main() {
           quotedAmountCents: ocptBudgetPosteQuotedTotalCents(withEntry.postes.first),
           paidCents: withEntry.paidCentsOf(posteId),
           committedCents: withEntry.committedCentsOf(posteId),
+          inKindCoveredCents: withEntry.inKindCoveredCentsOf(posteId),
         ),
         5000,
       );
@@ -1629,6 +1630,7 @@ void main() {
           quotedAmountCents: ocptBudgetPosteQuotedTotalCents(state.postes.first),
           paidCents: state.paidCentsOf(posteId),
           committedCents: state.committedCentsOf(posteId),
+          inKindCoveredCents: state.inKindCoveredCentsOf(posteId),
         ),
         0,
       );
@@ -1719,6 +1721,7 @@ void main() {
           quotedAmountCents: ocptBudgetPosteQuotedTotalCents(withCommitment.postes.first),
           paidCents: withCommitment.paidCentsOf(posteId),
           committedCents: withCommitment.committedCentsOf(posteId),
+          inKindCoveredCents: withCommitment.inKindCoveredCentsOf(posteId),
         ),
         890,
       );
@@ -1745,6 +1748,7 @@ void main() {
           quotedAmountCents: ocptBudgetPosteQuotedTotalCents(state.postes.first),
           paidCents: state.paidCentsOf(posteId),
           committedCents: state.committedCentsOf(posteId),
+          inKindCoveredCents: state.inKindCoveredCentsOf(posteId),
         ),
         0,
       );

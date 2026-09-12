@@ -961,6 +961,7 @@ class _BudgetViewState extends State<_BudgetView> {
       currencyCode: state.currencyCode,
       paidByPosteId: state.paidByPosteId,
       committedCentsOf: state.committedCentsOf,
+      inKindCoveredCentsOf: state.inKindCoveredCentsOf,
       offQuoteTotal: state.offQuotePaidTotal,
       breakdownPricedElementCount: elementLinkCounts.pricedCount,
       breakdownUnpricedElementCount: elementLinkCounts.unpricedCount,

@@ -161,74 +161,250 @@ void main() {
   group("ocptBudgetRemainingCents / ocptBudgetVarianceCents / ocptBudgetConsumedRatioOf", () {
     test("remaining and variance are mirror figures", () {
       expect(
-        ocptBudgetRemainingCents(quotedAmountCents: 10000, paidCents: 3000, committedCents: 2000),
+        ocptBudgetRemainingCents(
+          quotedAmountCents: 10000,
+          paidCents: 3000,
+          committedCents: 2000,
+          inKindCoveredCents: 0,
+        ),
         5000,
       );
       expect(
-        ocptBudgetVarianceCents(quotedAmountCents: 10000, paidCents: 3000, committedCents: 2000),
+        ocptBudgetVarianceCents(
+          quotedAmountCents: 10000,
+          paidCents: 3000,
+          committedCents: 2000,
+          inKindCoveredCents: 0,
+        ),
         -5000,
       );
     });
 
     test("remaining goes negative once a poste is over its quote", () {
       expect(
-        ocptBudgetRemainingCents(quotedAmountCents: 10000, paidCents: 9000, committedCents: 3000),
+        ocptBudgetRemainingCents(
+          quotedAmountCents: 10000,
+          paidCents: 9000,
+          committedCents: 3000,
+          inKindCoveredCents: 0,
+        ),
         -2000,
       );
       expect(
-        ocptBudgetVarianceCents(quotedAmountCents: 10000, paidCents: 9000, committedCents: 3000),
+        ocptBudgetVarianceCents(
+          quotedAmountCents: 10000,
+          paidCents: 9000,
+          committedCents: 3000,
+          inKindCoveredCents: 0,
+        ),
         2000,
       );
     });
 
     test("the consumed ratio is null rather than a division by zero", () {
       expect(
-        ocptBudgetConsumedRatioOf(quotedAmountCents: 0, paidCents: 0, committedCents: 0),
+        ocptBudgetConsumedRatioOf(
+          quotedAmountCents: 0,
+          paidCents: 0,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+        ),
         isNull,
       );
     });
 
     test("the consumed ratio reads exactly on quote as 1.0", () {
       expect(
-        ocptBudgetConsumedRatioOf(quotedAmountCents: 10000, paidCents: 6000, committedCents: 4000),
+        ocptBudgetConsumedRatioOf(
+          quotedAmountCents: 10000,
+          paidCents: 6000,
+          committedCents: 4000,
+          inKindCoveredCents: 0,
+        ),
         1.0,
       );
+    });
+
+    test("an in-kind-only poste nets to no remainder and no variance", () {
+      // A poste quoted at exactly its own counterpart line's value, nothing paid or committed.
+      expect(
+        ocptBudgetRemainingCents(
+          quotedAmountCents: 5000,
+          paidCents: 0,
+          committedCents: 0,
+          inKindCoveredCents: 5000,
+        ),
+        0,
+      );
+      expect(
+        ocptBudgetVarianceCents(
+          quotedAmountCents: 5000,
+          paidCents: 0,
+          committedCents: 0,
+          inKindCoveredCents: 5000,
+        ),
+        0,
+      );
+      expect(
+        ocptBudgetConsumedRatioOf(
+          quotedAmountCents: 5000,
+          paidCents: 0,
+          committedCents: 0,
+          inKindCoveredCents: 5000,
+        ),
+        1.0,
+      );
+    });
+
+    test("a poste mixing a paid cash line and an in-kind line also nets to zero", () {
+      // Quoted 8000 (3000 cash line + 5000 counterpart line), the cash line already paid in full.
+      expect(
+        ocptBudgetRemainingCents(
+          quotedAmountCents: 8000,
+          paidCents: 3000,
+          committedCents: 0,
+          inKindCoveredCents: 5000,
+        ),
+        0,
+      );
+      expect(
+        ocptBudgetVarianceCents(
+          quotedAmountCents: 8000,
+          paidCents: 3000,
+          committedCents: 0,
+          inKindCoveredCents: 5000,
+        ),
+        0,
+      );
+    });
+  });
+
+  group("ocptBudgetInKindCoveredCentsByPosteId", () {
+    test("sums a poste's own counterpart lines, an ordinary line contributing nothing", () {
+      final postes = [
+        buildPoste(
+          id: "p1",
+          lines: [
+            buildLine(id: "l1", amountCents: 3000),
+            buildLine(id: "l2", amountCents: 5000, inKindResourceId: "resource-1"),
+          ],
+        ),
+      ];
+
+      expect(ocptBudgetInKindCoveredCentsByPosteId(postes), {"p1": 5000});
+    });
+
+    test("a poste with no counterpart line has no key at all", () {
+      final postes = [
+        buildPoste(id: "p1", lines: [buildLine(id: "l1", amountCents: 3000)]),
+      ];
+
+      expect(ocptBudgetInKindCoveredCentsByPosteId(postes), isEmpty);
+    });
+
+    test("sums more than one counterpart line under the same poste", () {
+      final postes = [
+        buildPoste(
+          id: "p1",
+          lines: [
+            buildLine(id: "l1", amountCents: 5000, inKindResourceId: "resource-1"),
+            buildLine(id: "l2", amountCents: 2000, inKindResourceId: "resource-2"),
+          ],
+        ),
+      ];
+
+      expect(ocptBudgetInKindCoveredCentsByPosteId(postes), {"p1": 7000});
     });
   });
 
   group("ocptBudgetPosteStrainOf", () {
     test("within quote", () {
       expect(
-        ocptBudgetPosteStrainOf(quotedAmountCents: 10000, paidCents: 5000, committedCents: 0),
+        ocptBudgetPosteStrainOf(
+          quotedAmountCents: 10000,
+          paidCents: 5000,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+        ),
         OcptBudgetPosteStrain.within,
       );
     });
 
     test("near quote, above 90 %", () {
       expect(
-        ocptBudgetPosteStrainOf(quotedAmountCents: 10000, paidCents: 9500, committedCents: 0),
+        ocptBudgetPosteStrainOf(
+          quotedAmountCents: 10000,
+          paidCents: 9500,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+        ),
         OcptBudgetPosteStrain.near,
       );
     });
 
     test("over quote", () {
       expect(
-        ocptBudgetPosteStrainOf(quotedAmountCents: 10000, paidCents: 9000, committedCents: 2000),
+        ocptBudgetPosteStrainOf(
+          quotedAmountCents: 10000,
+          paidCents: 9000,
+          committedCents: 2000,
+          inKindCoveredCents: 0,
+        ),
         OcptBudgetPosteStrain.over,
       );
     });
 
     test("a poste with no quote at all and nothing moved reads within", () {
       expect(
-        ocptBudgetPosteStrainOf(quotedAmountCents: 0, paidCents: 0, committedCents: 0),
+        ocptBudgetPosteStrainOf(
+          quotedAmountCents: 0,
+          paidCents: 0,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+        ),
         OcptBudgetPosteStrain.within,
       );
     });
 
     test("a poste with no quote at all but something already moved reads over", () {
       expect(
-        ocptBudgetPosteStrainOf(quotedAmountCents: 0, paidCents: 500, committedCents: 0),
+        ocptBudgetPosteStrainOf(
+          quotedAmountCents: 0,
+          paidCents: 500,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+        ),
         OcptBudgetPosteStrain.over,
+      );
+    });
+
+    test("an in-kind-only poste never reads over — it nets exactly to its own quote", () {
+      // Consumed equals the quote exactly (100 %), which is the pre-existing "near" reading above
+      // the 90 % threshold (see "near quote, above 90 %" above) — not a fact about in-kind
+      // covering, but proof the counterpart line's own contribution never tips a poste over on its
+      // own, since it moves the quote and the consumed side by the very same amount.
+      expect(
+        ocptBudgetPosteStrainOf(
+          quotedAmountCents: 5000,
+          paidCents: 0,
+          committedCents: 0,
+          inKindCoveredCents: 5000,
+        ),
+        OcptBudgetPosteStrain.near,
+      );
+    });
+
+    test("a poste mixing a paid cash line and an in-kind line stays comfortably within", () {
+      // Quoted 9000 (3000 cash line + 5000 counterpart line + headroom), only the cash line and the
+      // counterpart line's own settlement have moved: 8000 of 9000, under the 90 % threshold.
+      expect(
+        ocptBudgetPosteStrainOf(
+          quotedAmountCents: 9000,
+          paidCents: 3000,
+          committedCents: 0,
+          inKindCoveredCents: 5000,
+        ),
+        OcptBudgetPosteStrain.within,
       );
     });
   });
@@ -243,6 +419,7 @@ void main() {
             quotedAmountCents: 10000,
             paidCents: 3000,
             committedCents: 0,
+            inKindCoveredCents: 0,
             typedEstimateToCompleteCents: 9000,
           ),
           9000,
@@ -255,6 +432,7 @@ void main() {
             quotedAmountCents: 10000,
             paidCents: 3000,
             committedCents: 0,
+            inKindCoveredCents: 0,
             typedEstimateToCompleteCents: 0,
           ),
           0,
@@ -267,6 +445,7 @@ void main() {
             quotedAmountCents: 10000,
             paidCents: 3000,
             committedCents: 2000,
+            inKindCoveredCents: 0,
             typedEstimateToCompleteCents: null,
           ),
           5000,
@@ -279,6 +458,7 @@ void main() {
             quotedAmountCents: 10000,
             paidCents: 6000,
             committedCents: 4000,
+            inKindCoveredCents: 0,
             typedEstimateToCompleteCents: null,
           ),
           0,
@@ -291,6 +471,7 @@ void main() {
             quotedAmountCents: 10000,
             paidCents: 9000,
             committedCents: 3000,
+            inKindCoveredCents: 0,
             typedEstimateToCompleteCents: null,
           ),
           0,
@@ -303,6 +484,7 @@ void main() {
             quotedAmountCents: 0,
             paidCents: 0,
             committedCents: 0,
+            inKindCoveredCents: 0,
             typedEstimateToCompleteCents: null,
           ),
           0,
@@ -317,6 +499,7 @@ void main() {
           quotedAmountCents: quotedAmountCents,
           paidCents: paidCents,
           committedCents: committedCents,
+          inKindCoveredCents: 0,
           typedEstimateToCompleteCents: null,
         );
 
@@ -356,6 +539,7 @@ void main() {
           quotedAmountCents: quotedAmountCents,
           paidCents: paidCents,
           committedCents: committedCents,
+          inKindCoveredCents: 0,
         );
 
         // The plain variance still reads the poste as under quote by 5000; the final-cost variance,

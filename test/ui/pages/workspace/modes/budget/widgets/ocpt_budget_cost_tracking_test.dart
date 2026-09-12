@@ -154,6 +154,7 @@ void main() {
     int? defaultVatRateBasisPoints,
     Map<String, OcptBudgetCoveredTotal> paidByPosteId = const {},
     int Function(String posteId) committedCentsOf = _zero,
+    int Function(String posteId) inKindCoveredCentsOf = _zero,
     OcptBudgetCoveredTotal offQuoteTotal = const OcptBudgetCoveredTotal(
       amountCents: 0,
       coveredLineCount: 0,
@@ -195,6 +196,7 @@ void main() {
     currencyCode: "EUR",
     paidByPosteId: paidByPosteId,
     committedCentsOf: committedCentsOf,
+    inKindCoveredCentsOf: inKindCoveredCentsOf,
     offQuoteTotal: offQuoteTotal,
     breakdownPricedElementCount: breakdownPricedElementCount,
     breakdownUnpricedElementCount: breakdownUnpricedElementCount,

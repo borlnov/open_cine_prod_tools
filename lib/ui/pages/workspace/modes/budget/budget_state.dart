@@ -333,6 +333,10 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
   int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
 
+  /// `posteId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries no
+  /// counterpart line against it. See [paidCentsOf]'s own doc comment for the same reading.
+  int inKindCoveredCentsOf(String posteId) => snapshot?.inKindCoveredCentsOf(posteId) ?? 0;
+
   /// `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for
   /// why this `?? 0` is the ordinary reading, and why the financing view reads [receivedByResourceId]

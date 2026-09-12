@@ -159,15 +159,21 @@ class OcptBudgetFinancialReportPdfService {
       0,
       (sum, poste) => sum + snapshot.committedCentsOf(poste.id),
     );
+    final inKindCoveredTotalCents = snapshot.postes.fold(
+      0,
+      (sum, poste) => sum + snapshot.inKindCoveredCentsOf(poste.id),
+    );
     final remainingTotalCents = ocptBudgetRemainingCents(
       quotedAmountCents: quotedTotal.amountCents,
       paidCents: paidTotalCents,
       committedCents: committedTotalCents,
+      inKindCoveredCents: inKindCoveredTotalCents,
     );
     final varianceTotalCents = ocptBudgetVarianceCents(
       quotedAmountCents: quotedTotal.amountCents,
       paidCents: paidTotalCents,
       committedCents: committedTotalCents,
+      inKindCoveredCents: inKindCoveredTotalCents,
     );
 
     final financingPlanTotalCents = ocptBudgetResourcesTotalCents(snapshot.resources);
@@ -250,15 +256,18 @@ class OcptBudgetFinancialReportPdfService {
     );
     final paidCents = snapshot.paidCentsOf(poste.id);
     final committedCents = snapshot.committedCentsOf(poste.id);
+    final inKindCoveredCents = snapshot.inKindCoveredCentsOf(poste.id);
     final remainingCents = ocptBudgetRemainingCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
     final varianceCents = ocptBudgetVarianceCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
 
     return pw.TableRow(

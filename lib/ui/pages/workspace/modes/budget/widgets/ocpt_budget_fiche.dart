@@ -343,10 +343,12 @@ class OcptBudgetFiche extends StatelessWidget {
     );
     final paidCents = _paidCentsOf(poste.id);
     final committedCents = _committedCentsOf(poste.id);
+    final inKindCoveredCents = _inKindCoveredCentsOf(poste.id);
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
       typedEstimateToCompleteCents: poste.estimateToCompleteCents,
     );
     final finalCostCents = ocptBudgetFinalCostCents(
@@ -362,6 +364,7 @@ class OcptBudgetFiche extends StatelessWidget {
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
 
     return _OcptBudgetFicheScaffold(
@@ -413,6 +416,7 @@ class OcptBudgetFiche extends StatelessWidget {
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: _inKindCoveredCentsOf(poste.id),
       typedEstimateToCompleteCents: null,
     );
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
@@ -822,16 +826,19 @@ class OcptBudgetFiche extends StatelessWidget {
         );
         final postePaidCents = _paidCentsOf(poste.id);
         final posteCommittedCents = _committedCentsOf(poste.id);
+        final posteInKindCoveredCents = _inKindCoveredCentsOf(poste.id);
         final posteStrain = ocptBudgetPosteStrainOf(
           quotedAmountCents: posteQuoted.amountCents,
           paidCents: postePaidCents,
           committedCents: posteCommittedCents,
+          inKindCoveredCents: posteInKindCoveredCents,
         );
         if (posteStrain == OcptBudgetPosteStrain.over) {
           final varianceCents = ocptBudgetVarianceCents(
             quotedAmountCents: posteQuoted.amountCents,
             paidCents: postePaidCents,
             committedCents: posteCommittedCents,
+            inKindCoveredCents: posteInKindCoveredCents,
           );
           bannerMessage = tr.budgetFicheCommitmentOffLineBannerOverQuoteText(_amount(varianceCents));
         }
@@ -962,16 +969,19 @@ class OcptBudgetFiche extends StatelessWidget {
         );
         final postePaidCents = _paidCentsOf(poste.id);
         final posteCommittedCents = _committedCentsOf(poste.id);
+        final posteInKindCoveredCents = _inKindCoveredCentsOf(poste.id);
         final posteStrain = ocptBudgetPosteStrainOf(
           quotedAmountCents: posteQuoted.amountCents,
           paidCents: postePaidCents,
           committedCents: posteCommittedCents,
+          inKindCoveredCents: posteInKindCoveredCents,
         );
         if (posteStrain == OcptBudgetPosteStrain.over) {
           final varianceCents = ocptBudgetVarianceCents(
             quotedAmountCents: posteQuoted.amountCents,
             paidCents: postePaidCents,
             committedCents: posteCommittedCents,
+            inKindCoveredCents: posteInKindCoveredCents,
           );
           bannerMessage = tr.budgetFicheEntryOffLineBannerOverQuoteText(_amount(varianceCents));
         }
@@ -1204,6 +1214,11 @@ class OcptBudgetFiche extends StatelessWidget {
     entries: entries,
     projectVatRateBasisPoints: defaultVatRateBasisPoints,
   )[posteId]?.amountCents ?? 0;
+
+  /// `posteId`'s own in-kind covered total, in cents — mirrors [_paidCentsOf], read off [postes]
+  /// directly since the fiche resolves its own poste rather than being handed one pre-resolved.
+  int _inKindCoveredCentsOf(String posteId) =>
+      ocptBudgetInKindCoveredCentsByPosteId(postes)[posteId] ?? 0;
 
   /// One editable text field bound to [fieldValueOf]/[onFieldChanged].
   Widget _inlineField({
