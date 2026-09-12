@@ -309,11 +309,13 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// 1, opening the current development cycle: schema version 2 is that cycle's first real
   /// `onUpgrade` step, following the additive-only guidance
   /// `docs/adr/0007-schema-migration-policy.md` gives for how a single step is written. From 1 to 2,
-  /// `onUpgrade` only creates [OcptSyncRelayCursorsTable] — the changeset engine's own local,
+  /// `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own local,
   /// never-synchronised delivery-cursor table (`docs/plans/collaboration-and-sync.md`, M3) — and
   /// [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which relay a
-  /// project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and touches nothing else,
-  /// so a v1 file's existing rows are untouched by the upgrade.
+  /// project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and adds
+  /// [OcptBudgetLinesTable.inKindResourceId], naming the in-kind `budget_resources` contribution a
+  /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else, so
+  /// a v1 file's existing rows are untouched by the upgrade.
   ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
@@ -325,6 +327,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       if (from < 2) {
         await m.createTable(ocptSyncRelayCursorsTable);
         await m.createTable(ocptSyncPairingsTable);
+        await m.addColumn(ocptBudgetLinesTable, ocptBudgetLinesTable.inKindResourceId);
       }
     },
     beforeOpen: (details) async {

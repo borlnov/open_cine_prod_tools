@@ -26,6 +26,7 @@ OcptBudgetLine _buildLine({
   unit: "u",
   unitPrice: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   elementId: null,
+  inKindResourceId: null,
   provisionKey: null,
   provisionDigest: null,
   notes: "",

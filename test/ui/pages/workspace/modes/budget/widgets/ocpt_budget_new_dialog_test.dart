@@ -110,6 +110,7 @@ OcptBudgetLine _line({
   unit: "",
   unitPrice: OcptMoney(amountCents: unitAmountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   elementId: null,
+  inKindResourceId: null,
   provisionKey: null,
   provisionDigest: null,
   notes: "",

@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 
 /// One quoted line of the budget: a quantity of something, at a unit price, inside a poste.
@@ -79,6 +80,16 @@ class OcptBudgetLinesTable extends Table {
   /// breakdown element are captured independently until the cost-tracking view can cross them
   /// (`elements.cost` seeding a fresh line's unit price, an unpriced element surfacing as a need).
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
+
+  /// The in-kind `budget_resources` contribution this line is the counterpart of, or null. →
+  /// [OcptBudgetResourcesTable]
+  ///
+  /// Names the valued cost that balances a `budget_resources` row of kind `inKind` on the quote
+  /// side, so the contribution appears on both the resources side and the quote side at the same
+  /// figure and nets the needs/resources balance to zero
+  /// (`docs/architecture/budget.md`). Null is the ordinary case — an ordinary quoted line is
+  /// nobody's counterpart.
+  TextColumn get inKindResourceId => text().nullable().references(OcptBudgetResourcesTable, #id)();
 
   /// What wrote this line, or null while a human typed it.
   ///

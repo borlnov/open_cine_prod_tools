@@ -32,6 +32,11 @@ class OcptBudgetLine extends Equatable {
   /// this line answers a real need rather than being typed from nothing.
   final String? elementId;
 
+  /// The in-kind `budget_resources` contribution this line is the counterpart of, or null — see
+  /// `OcptBudgetLinesTable.inKindResourceId`. Null is the ordinary case: an ordinary quoted line is
+  /// nobody's counterpart.
+  final String? inKindResourceId;
+
   /// What provisioned this line, or null while a human typed it — see
   /// `OcptBudgetLinesTable.provisionKey`.
   final String? provisionKey;
@@ -55,6 +60,7 @@ class OcptBudgetLine extends Equatable {
     required this.unit,
     required this.unitPrice,
     required this.elementId,
+    required this.inKindResourceId,
     required this.provisionKey,
     required this.provisionDigest,
     required this.notes,
@@ -74,6 +80,7 @@ class OcptBudgetLine extends Equatable {
       vatRateBasisPoints: row.vatRateBasisPoints,
     ),
     elementId: row.elementId,
+    inKindResourceId: row.inKindResourceId,
     provisionKey: row.provisionKey,
     provisionDigest: row.provisionDigest,
     notes: row.notes,
@@ -94,6 +101,7 @@ class OcptBudgetLine extends Equatable {
     unit,
     unitPrice,
     elementId,
+    inKindResourceId,
     provisionKey,
     provisionDigest,
     notes,

@@ -48,6 +48,7 @@ OcptBudgetLine _buildLine({
   unit: "u",
   unitPrice: const OcptMoney(amountCents: 0, isTaxInclusive: true, vatRateBasisPoints: null),
   elementId: elementId,
+  inKindResourceId: null,
   provisionKey: null,
   provisionDigest: null,
   notes: "",

@@ -117,6 +117,7 @@ OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBu
       unit: "u",
       unitPrice: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
       elementId: null,
+      inKindResourceId: null,
       provisionKey: null,
       provisionDigest: null,
       notes: "",

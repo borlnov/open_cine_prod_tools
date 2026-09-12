@@ -61,6 +61,7 @@ const _line = OcptBudgetLine(
   unit: "u",
   unitPrice: OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: null),
   elementId: null,
+  inKindResourceId: null,
   provisionKey: null,
   provisionDigest: null,
   notes: "",

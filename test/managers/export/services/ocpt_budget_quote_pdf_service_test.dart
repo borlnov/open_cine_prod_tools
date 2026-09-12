@@ -59,6 +59,7 @@ OcptBudgetLine _buildLine({
     vatRateBasisPoints: vatRateBasisPoints,
   ),
   elementId: elementId,
+  inKindResourceId: null,
   provisionKey: null,
   provisionDigest: null,
   notes: "",

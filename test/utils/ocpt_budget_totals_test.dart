@@ -17,6 +17,7 @@ void main() {
     int amountCents = 0,
     bool isTaxInclusive = true,
     int? vatRateBasisPoints,
+    String? inKindResourceId,
   }) => OcptBudgetLine(
     id: id,
     posteId: posteId,
@@ -29,6 +30,7 @@ void main() {
       vatRateBasisPoints: vatRateBasisPoints,
     ),
     elementId: null,
+    inKindResourceId: inKindResourceId,
     provisionKey: null,
     provisionDigest: null,
     notes: "",

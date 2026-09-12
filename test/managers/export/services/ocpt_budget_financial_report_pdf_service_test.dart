@@ -55,6 +55,7 @@ OcptBudgetLine _buildLine({required String id, required String posteId, int unit
       unit: "day",
       unitPrice: OcptMoney(amountCents: unitAmountCents, isTaxInclusive: true, vatRateBasisPoints: null),
       elementId: null,
+      inKindResourceId: null,
       provisionKey: null,
       provisionDigest: null,
       notes: "",

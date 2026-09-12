@@ -82,16 +82,18 @@ void main() {
   });
 
   test(
-    'a v1 database migrates to v2, keeping its rows and gaining the two empty local tables',
+    'a v1 database migrates to v2, keeping its rows, gaining the two empty local tables and the '
+    'budget_lines.in_kind_resource_id column',
     () async {
       final tempDir = await Directory.systemTemp.createTemp('ocpt_migration_v1_to_v2_test_');
       addTearDown(() => tempDir.delete(recursive: true));
       final filePath = p.join(tempDir.path, 'movie.ocpt');
 
       // The migration from 1 to 2 is additive-only and only ever creates `sync_relay_cursors` and
-      // `sync_pairings` (`OcptProjectDatabase.migration`'s own doc comment): a real v1 file is
-      // therefore exactly what `onCreate` produces here minus those two tables. Seed a real
-      // database at the current schema, then undo that addition by hand — the same trick
+      // `sync_pairings`, and adds `budget_lines.in_kind_resource_id`
+      // (`OcptProjectDatabase.migration`'s own doc comment): a real v1 file is therefore exactly
+      // what `onCreate` produces here minus those two tables and that column. Seed a real database
+      // at the current schema, then undo those additions by hand — the same trick
       // `home_bloc_test.dart`'s `createProjectAtPreviousFormat` uses — so reopening it exercises the
       // real `onUpgrade` step rather than a fixture standing in for it.
       final seeded = OcptProjectDatabase(File(filePath));
@@ -110,6 +112,7 @@ void main() {
       raw
         ..execute('DROP TABLE sync_relay_cursors')
         ..execute('DROP TABLE sync_pairings')
+        ..execute('ALTER TABLE budget_lines DROP COLUMN in_kind_resource_id')
         ..execute('PRAGMA user_version = 1')
         ..dispose();
 
@@ -145,6 +148,14 @@ void main() {
       final pairingsAfterInsert = await migrated.select(migrated.ocptSyncPairingsTable).get();
       expect(pairingsAfterInsert, hasLength(1));
       expect(pairingsAfterInsert.single.relayBaseUrl, 'https://relay.example.org/');
+
+      final budgetLinesColumns = await migrated
+          .customSelect('PRAGMA table_info(budget_lines)')
+          .get();
+      expect(
+        budgetLinesColumns.map((row) => row.data['name']),
+        contains('in_kind_resource_id'),
+      );
 
       final userVersion = await migrated.customSelect('PRAGMA user_version').getSingle();
       expect(userVersion.data['user_version'], OcptProjectDatabase.currentSchemaVersion);

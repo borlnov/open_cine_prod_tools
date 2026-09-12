@@ -451,6 +451,7 @@ void main() {
       final database = sqlite3.open(filePath);
       database
         ..execute("DROP TABLE sync_relay_cursors")
+        ..execute("ALTER TABLE budget_lines DROP COLUMN in_kind_resource_id")
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

@@ -661,6 +661,11 @@ class OcptProjectVersionCodec {
   /// `role_elements.elementId` or `breakdown_tags.elementId`) from a JSON object
   static const _elementIdKey = "elementId";
 
+  /// This is the key used to stringify or parse a `budget_lines.inKindResourceId` column from a
+  /// JSON object — the in-kind `budget_resources` contribution a quote line is the counterpart of,
+  /// null for an ordinary line.
+  static const _inKindResourceIdKey = "inKindResourceId";
+
   /// The row key naming what provisioned a `budget_lines` row, null while a human typed it.
   static const _provisionKeyKey = "provisionKey";
 
@@ -1912,6 +1917,7 @@ class OcptProjectVersionCodec {
     _isTaxInclusiveKey: row.isTaxInclusive,
     _vatRateBasisPointsKey: row.vatRateBasisPoints,
     _elementIdKey: row.elementId,
+    _inKindResourceIdKey: row.inKindResourceId,
     _provisionKeyKey: row.provisionKey,
     _provisionDigestKey: row.provisionDigest,
     _notesKey: row.notes,
@@ -1930,6 +1936,7 @@ class OcptProjectVersionCodec {
     isTaxInclusive: _bool(json, _isTaxInclusiveKey),
     vatRateBasisPoints: _nullableInt(json, _vatRateBasisPointsKey),
     elementId: _nullableString(json, _elementIdKey),
+    inKindResourceId: _nullableString(json, _inKindResourceIdKey),
     provisionKey: _nullableString(json, _provisionKeyKey),
     provisionDigest: _nullableString(json, _provisionDigestKey),
     notes: _string(json, _notesKey),
