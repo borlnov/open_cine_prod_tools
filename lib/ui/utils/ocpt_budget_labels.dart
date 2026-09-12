@@ -346,6 +346,7 @@ OcptBudgetQuoteLabels ocptBudgetQuoteLabelsOf(BuildContext context) {
     noLinesLabel: tr.budgetExportQuoteNoLinesLabel,
     emptyDocumentNote: tr.budgetExportQuoteEmptyDocumentNote,
     coverageReadOutTemplate: _ocptBudgetExportCoverageReadOutTemplate(tr),
+    inKindLineMarker: tr.budgetQuotePdfInKindLineMarker,
   );
 }
 

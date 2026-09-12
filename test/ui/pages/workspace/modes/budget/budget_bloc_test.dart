@@ -72,6 +72,7 @@ const _quoteLabels = OcptBudgetQuoteLabels(
   noLinesLabel: "No line yet",
   emptyDocumentNote: "No poste yet",
   coverageReadOutTemplate: "{amount} · {coveredCount} of {totalCount} known",
+  inKindLineMarker: "(in kind)",
 );
 
 /// A minimal, arbitrary set of localized strings for the financing plan export — mirrors

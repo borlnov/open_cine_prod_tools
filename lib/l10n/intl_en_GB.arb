@@ -10963,6 +10963,24 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetCostTrackingInKindLineBadge": "In kind",
+  "@budgetCostTrackingInKindLineBadge": {
+    "description": "Badge drawn beside a counterpart quote line's own label in the expenses tree",
+    "context": "Displayed next to a quote line whose inKindResourceId names an in-kind contribution",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetCostTrackingInKindCoveredHint": "({amount} covered in kind)",
+  "@budgetCostTrackingInKindCoveredHint": {
+    "description": "Muted hint drawn beside a poste's own Reste once an in-kind contribution covers part of it",
+    "context": "Displayed under the Reste cell of a poste whose id carries a positive figure in the snapshot's own inKindCoveredByPosteId",
+    "type": "text",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "budgetDashboardEmptyHint": "Add a poste to start the quote.",
   "@budgetDashboardEmptyHint": {
     "description": "Hint shown on the dashboard while the project holds no poste at all",
@@ -11623,6 +11641,28 @@
     "type": "text",
     "placeholders": {
       "varianceAmount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetFicheInKindCounterpartHint": "Covered in kind by the contribution “{contribution}”.",
+  "@budgetFicheInKindCounterpartHint": {
+    "description": "Info banner shown in place of Pay/Commit/Delete on a counterpart quote line's own fiche",
+    "context": "Displayed on a quote line whose inKindResourceId names an in-kind contribution, naming that contribution's own label",
+    "type": "text",
+    "placeholders": {
+      "contribution": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetFicheInKindOffsetsPoste": "Offsets the poste “{poste}”.",
+  "@budgetFicheInKindOffsetsPoste": {
+    "description": "Note on an in-kind resource's own fiche naming the poste its counterpart quote line offsets",
+    "context": "Displayed on an in-kind resource's own fiche once its counterpart line names a poste",
+    "type": "text",
+    "placeholders": {
+      "poste": {
         "type": "String"
       }
     }
@@ -14178,6 +14218,13 @@
   "@budgetExportQuoteEmptyDocumentNote": {
     "description": "Note the whole quote prints in place of every poste when the project holds none at all",
     "context": "OcptBudgetQuoteLabels.emptyDocumentNote",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetQuotePdfInKindLineMarker": "(in kind)",
+  "@budgetQuotePdfInKindLineMarker": {
+    "description": "Marker appended to a counterpart quote line's own label in the exported quote",
+    "context": "OcptBudgetQuoteLabels.inKindLineMarker, printed after the label of a line whose inKindResourceId is not null",
     "type": "text",
     "placeholders": {}
   },

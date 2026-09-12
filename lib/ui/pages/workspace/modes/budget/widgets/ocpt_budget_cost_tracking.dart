@@ -752,9 +752,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
       builder: (context) {
         final tr = Tr.of(context);
         final label = row.line.label;
+        final isInKindCounterpart = row.line.inKindResourceId != null;
         return _OcptCostTrackingSubLabel(
           label: label.isEmpty ? tr.budgetLineUnnamed : label,
           isItalic: label.isEmpty,
+          badgeText: isInKindCounterpart ? tr.budgetCostTrackingInKindLineBadge : null,
+          badgeColor: isInKindCounterpart ? Theme.of(context).colorScheme.primary : null,
         );
       },
     ),
@@ -1556,16 +1559,17 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
               ),
               _amountCell(context, ocptBudgetAmountLabel(committedCents, currencyCode)),
               _amountCell(context, ocptBudgetAmountLabel(paidCents, currencyCode)),
-              _amountCell(
-                context,
-                ocptBudgetAmountLabel(
-                  ocptBudgetRemainingCents(
+              SizedBox(
+                width: _ocptCostTrackingAmountColumnWidth,
+                child: _OcptCostTrackingRemainingCell(
+                  remainingCents: ocptBudgetRemainingCents(
                     quotedAmountCents: quoted.amountCents,
                     paidCents: paidCents,
                     committedCents: committedCents,
                     inKindCoveredCents: inKindCoveredCents,
                   ),
-                  currencyCode,
+                  inKindCoveredCents: inKindCoveredCents,
+                  currencyCode: currencyCode,
                 ),
               ),
               _amountCell(context, ocptBudgetAmountLabel(finalCostCents, currencyCode)),
@@ -2141,6 +2145,12 @@ class _OcptCostTrackingSubIdentityRow extends StatelessWidget {
 /// A quote line's own six amount cells — [OcptBudgetCostTracking]'s own class doc comment argues
 /// why `Engagé`/`Payé` are read through [ocptBudgetLineCommittedTotalOf]/[ocptBudgetLinePaidTotalOf]
 /// and why the estimate to complete behind `Coût final` is always derived here.
+///
+/// **A counterpart line** (`OcptBudgetLine.inKindResourceId` not null) **reads its own `Engagé`
+/// and `Payé` as [ocptBudgetEmptyValue], never the real (and always zero) totals those two
+/// functions would otherwise answer** — a valuation is neither committed nor paid, so the em dash
+/// is what tells the reader it is covered in kind rather than merely untouched. `Reste` still
+/// reads a real zero, folding the line's own quoted total in as its own in-kind covered figure.
 class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
   /// The line this row shows.
   final OcptBudgetLine line;
@@ -2203,7 +2213,8 @@ class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
     // still outstanding — [quoted.amountCents] is safe to reuse verbatim here rather than reaching
     // for `ocptBudgetLineTotalCents` again, since a counterpart line is frozen at 0 % VAT and so
     // reads the same figure whichever basis [quoted] itself was resolved in.
-    final inKindCoveredCents = line.inKindResourceId == null ? 0 : quoted.amountCents;
+    final isInKindCounterpart = line.inKindResourceId != null;
+    final inKindCoveredCents = isInKindCounterpart ? quoted.amountCents : 0;
     // A line carries no estimate to complete of its own — always derived, never typed
     // (`docs/architecture/budget.md`).
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
@@ -2247,8 +2258,21 @@ class _OcptCostTrackingLineAmountsRow extends StatelessWidget {
           child: Row(
             children: [
               _cell(context, ocptBudgetAmountLabel(quoted.amountCents, currencyCode)),
-              _cell(context, ocptBudgetAmountLabel(committed.amountCents, currencyCode)),
-              _cell(context, ocptBudgetAmountLabel(paid.amountCents, currencyCode)),
+              // A counterpart line is never committed nor paid — the em dash, rather than the
+              // real (and always zero) `committed`/`paid` totals, is what reads it as covered
+              // in kind instead of merely untouched (`docs/architecture/budget.md`).
+              _cell(
+                context,
+                isInKindCounterpart
+                    ? ocptBudgetEmptyValue
+                    : ocptBudgetAmountLabel(committed.amountCents, currencyCode),
+              ),
+              _cell(
+                context,
+                isInKindCounterpart
+                    ? ocptBudgetEmptyValue
+                    : ocptBudgetAmountLabel(paid.amountCents, currencyCode),
+              ),
               _cell(context, ocptBudgetAmountLabel(remainingCents, currencyCode)),
               _cell(context, ocptBudgetAmountLabel(finalCostCents, currencyCode)),
               _cell(context, ocptBudgetAmountLabel(varianceCents, currencyCode)),
@@ -2551,6 +2575,62 @@ class _OcptCostTrackingQuoteCell extends StatelessWidget {
                   ? theme.colorScheme.primary
                   : theme.colorScheme.onSurfaceVariant,
             ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The `Reste` column's own cell: the remaining figure, then, in small muted type, how much of it
+/// an in-kind contribution already covers — [Tr.budgetCostTrackingInKindCoveredHint] — while the
+/// poste this cell belongs to carries any in-kind coverage at all
+/// ([OcptBudgetCostTracking.inKindCoveredCentsOf] positive for it). Mirrors
+/// [_OcptCostTrackingQuoteCell]'s own two-line layout, so the extra line never drifts the row out
+/// of [_ocptCostTrackingRowHeight].
+class _OcptCostTrackingRemainingCell extends StatelessWidget {
+  /// The poste's own `Reste` figure, in cents, under the reading basis.
+  final int remainingCents;
+
+  /// The poste's own in-kind covered total, in cents — the hint draws only while this is
+  /// positive.
+  final int inKindCoveredCents;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Class constructor
+  const _OcptCostTrackingRemainingCell({
+    required this.remainingCents,
+    required this.inKindCoveredCents,
+    required this.currencyCode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          ocptBudgetAmountLabel(remainingCents, currencyCode),
+          textAlign: TextAlign.right,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall,
+        ),
+        if (inKindCoveredCents > 0)
+          Text(
+            tr.budgetCostTrackingInKindCoveredHint(
+              ocptBudgetAmountLabel(inKindCoveredCents, currencyCode),
+            ),
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
       ],
     );

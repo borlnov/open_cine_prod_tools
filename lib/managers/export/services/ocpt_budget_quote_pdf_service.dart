@@ -170,6 +170,7 @@ class OcptBudgetQuotePdfService {
           labels: labels,
           projectVatRateBasisPoints: snapshot.defaultVatRateBasisPoints,
           currencyCode: snapshot.currencyCode,
+          inKindLineMarker: labels.inKindLineMarker,
         ),
         pw.SizedBox(height: 14),
       ],
@@ -198,6 +199,7 @@ class OcptBudgetQuotePdfService {
     required OcptBudgetQuoteLabels labels,
     required int? projectVatRateBasisPoints,
     required String currencyCode,
+    required String inKindLineMarker,
   }) {
     final subtotal = ocptBudgetTotalOf(
       poste.lines,
@@ -241,6 +243,7 @@ class OcptBudgetQuotePdfService {
                   taxBasis: taxBasis,
                   projectVatRateBasisPoints: projectVatRateBasisPoints,
                   currencyCode: currencyCode,
+                  inKindLineMarker: inKindLineMarker,
                 ),
             ],
           ),
@@ -260,7 +263,11 @@ class OcptBudgetQuotePdfService {
   }
 
   /// One quote line's own row: its label (with the element it prices under it, when it prices
-  /// one), its quantity and unit, its unit price, and its own total in [taxBasis].
+  /// one, and [inKindLineMarker] appended when it is a counterpart line minted from an in-kind
+  /// contribution — `OcptBudgetLine.inKindResourceId` not null), its quantity and unit, its unit
+  /// price, and its own total in [taxBasis]. **Prints exactly the same figures a counterpart line
+  /// carries whether it is flagged or not** — this marker only ever names the row, it never
+  /// changes an amount.
   pw.TableRow _lineRow({
     required OcptScriptPagePainter painter,
     required OcptBudgetLine line,
@@ -268,6 +275,7 @@ class OcptBudgetQuotePdfService {
     required OcptBudgetTaxBasis taxBasis,
     required int? projectVatRateBasisPoints,
     required String currencyCode,
+    required String inKindLineMarker,
   }) {
     final unitPriceCents = _amountInBasisCentsOf(
       line.unitPrice,
@@ -287,7 +295,10 @@ class OcptBudgetQuotePdfService {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(line.label, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+              pw.Text(
+                line.inKindResourceId == null ? line.label : "${line.label} $inKindLineMarker",
+                style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+              ),
               if (elementName != null && elementName.trim().isNotEmpty)
                 pw.Text(
                   elementName,

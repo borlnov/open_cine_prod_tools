@@ -73,6 +73,7 @@ OcptBudgetLine _line({
   int? vatRateBasisPoints,
   int amountCents = 1000,
   String label = "",
+  String? inKindResourceId,
 }) => OcptBudgetLine(
   id: id,
   posteId: posteId,
@@ -85,7 +86,7 @@ OcptBudgetLine _line({
     vatRateBasisPoints: vatRateBasisPoints,
   ),
   elementId: null,
-  inKindResourceId: null,
+  inKindResourceId: inKindResourceId,
   provisionKey: null,
   provisionDigest: null,
   notes: "",
@@ -532,6 +533,26 @@ void main() {
       expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsNWidgets(3));
       // Only the total row's own `Engagé`, `Reste` and `Écart` cells print the em dash here.
       expect(find.text(ocptBudgetEmptyValue), findsNWidgets(3));
+    },
+  );
+
+  _testWidgets(
+    "a poste with in-kind coverage shows the covered-in-kind hint beside its own Reste",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          buildTable(
+            postes: [quotedPoste()],
+            inKindCoveredCentsOf: (posteId) => posteId == "poste-1" ? 5000 : 0,
+          ),
+        ),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(
+        find.text(tr.budgetCostTrackingInKindCoveredHint(ocptBudgetAmountLabel(5000, "EUR"))),
+        findsOneWidget,
+      );
     },
   );
 
@@ -1004,6 +1025,62 @@ void main() {
       expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
     });
+
+    _testWidgets("a counterpart line shows the in-kind badge beside its own label; an ordinary "
+        "line shows none", (tester) async {
+      final poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Poste one",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a0",
+        lines: [
+          _line(id: "line-1", posteId: "poste-1", label: "Line one", inKindResourceId: "resource-1"),
+          _line(id: "line-2", posteId: "poste-1", label: "Line two"),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _wrap(buildTable(postes: [poste], expandedNodeIds: const {"poste-1"})),
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+      expect(find.text(tr.budgetCostTrackingInKindLineBadge), findsOneWidget);
+    });
+
+    _testWidgets(
+      "a counterpart line's own Payé and Engagé cells read the em dash — a valuation is "
+      "neither paid nor committed",
+      (tester) async {
+        final poste = OcptBudgetPoste(
+          id: "poste-1",
+          code: "1",
+          label: "Poste one",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a0",
+          lines: [
+            _line(
+              id: "line-1",
+              posteId: "poste-1",
+              amountCents: 5000,
+              label: "Line one",
+              inKindResourceId: "resource-1",
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          _wrap(buildTable(postes: [poste], expandedNodeIds: const {"poste-1"})),
+        );
+
+        // The total row's own Engagé, Reste and Écart cells always print the em dash (3 — see
+        // "a poste with no entry or commitment against it..." above); the counterpart line's own
+        // Payé and Engagé cells now do too, two more, five in all.
+        expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
+      },
+    );
 
     _testWidgets("clicking a poste's own twisty toggles expansion without selecting it", (
       tester,

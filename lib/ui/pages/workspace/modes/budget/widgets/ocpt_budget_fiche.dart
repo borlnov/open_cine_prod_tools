@@ -560,9 +560,27 @@ class OcptBudgetFiche extends StatelessWidget {
       outstandingValue = null;
     }
 
+    // A counterpart line ([OcptBudgetLine.inKindResourceId] not null) is neither paid, committed
+    // nor deleted from the quote — its whole lifecycle is the contribution's
+    // (`docs/architecture/budget.md`) — so this branch runs before, and instead of, every other
+    // one below: no primary, no secondary, only a calm note naming the contribution it is covered
+    // in kind by.
+    final isInKindCounterpart = line.inKindResourceId != null;
     _OcptBudgetFicheAction? primary;
     final secondaries = <_OcptBudgetFicheAction>[];
-    if (isReadOnly) {
+    Widget? banner;
+    if (isInKindCounterpart) {
+      primary = null;
+      final contribution = resources.firstWhereOrNull(
+        (resource) => resource.id == line.inKindResourceId,
+      );
+      final contributionLabel = contribution == null || contribution.label.isEmpty
+          ? tr.budgetPosteUnnamed
+          : contribution.label;
+      banner = _OcptBudgetFicheInfoBanner(
+        message: tr.budgetFicheInKindCounterpartHint(contributionLabel),
+      );
+    } else if (isReadOnly) {
       primary = null;
     } else if (!isPromoted) {
       // Pay is the primary gesture, not commit: a production quotes then pays, the commitment made
@@ -649,6 +667,7 @@ class OcptBudgetFiche extends StatelessWidget {
       outstandingLabel: outstandingLabel,
       outstandingValue: outstandingValue,
       details: _lineEditableFields(context, line),
+      banner: banner,
       paymentsSection: payments.isEmpty
           ? null
           : _OcptBudgetCommitmentPayments(
@@ -1044,6 +1063,11 @@ class OcptBudgetFiche extends StatelessWidget {
   /// `Receive`/`Edit`/`Delete` — `docs/architecture/budget.md`'s "An in-kind contribution is valued,
   /// not collected": a valued in-kind resource no entry names yet reads the em dash for both
   /// `Received` and `Outstanding`.
+  ///
+  /// **An in-kind resource names the poste its own counterpart quote line offsets**, resolved
+  /// through [ocptBudgetInKindCounterpartLineOf] rather than a field of its own — "No new column
+  /// on `budget_resources`" (`docs/architecture/budget.md`). Nothing draws while no counterpart
+  /// line has been minted for it yet.
   Widget _buildResource(BuildContext context, String resourceId) {
     final resource = resources.firstWhereOrNull((resource) => resource.id == resourceId);
     if (resource == null) {
@@ -1063,6 +1087,21 @@ class OcptBudgetFiche extends StatelessWidget {
     final canReceive =
         !isReadOnly && !isInKind && outstandingCents > 0 && onResourceReceiptRequested != null;
 
+    Widget? offsetsPosteBanner;
+    if (isInKind) {
+      final counterpartLine = ocptBudgetInKindCounterpartLineOf(postes, resource.id);
+      final offsetPoste = counterpartLine == null
+          ? null
+          : postes.firstWhereOrNull((poste) => poste.id == counterpartLine.posteId);
+      if (offsetPoste != null) {
+        offsetsPosteBanner = _OcptBudgetFicheInfoBanner(
+          message: tr.budgetFicheInKindOffsetsPoste(
+            "${offsetPoste.code} ${ocptBudgetPosteDisplayLabel(offsetPoste, isSimplified: isSimplified)}",
+          ),
+        );
+      }
+    }
+
     return _OcptBudgetFicheScaffold(
       breadcrumb: [
         tr.budgetHeaderResourcesSegmentLabel,
@@ -1081,6 +1120,7 @@ class OcptBudgetFiche extends StatelessWidget {
       ],
       outstandingLabel: tr.budgetFinancingColumnOutstanding,
       outstandingValue: readsAsUncollected ? null : _amount(outstandingCents),
+      banner: offsetsPosteBanner,
       primary: canReceive
           ? _OcptBudgetFicheAction(
               label: tr.budgetFicheReceiveAction(_amount(outstandingCents < 0 ? 0 : outstandingCents)),
@@ -1296,9 +1336,11 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
   /// null for every other variant, and for a line whose commitment has never been paid at all.
   final Widget? paymentsSection;
 
-  /// A card drawn just above the primary action button, or null for every variant but an off-line
-  /// debit entry's or an off-line commitment's own — the fiche's own `Add to the quote`/`Move
-  /// off-quote` banner (`_OcptBudgetOffLineBanner`).
+  /// A card drawn just above the primary action button, or null while this variant draws none: an
+  /// off-line debit entry's or an off-line commitment's own `Add to the quote`/`Move off-quote`
+  /// banner (`_OcptBudgetOffLineBanner`), a counterpart quote line's own calm note naming the
+  /// contribution it is covered in kind by, or an in-kind resource's own calm note naming the
+  /// poste its counterpart line offsets (both `_OcptBudgetFicheInfoBanner`).
   final Widget? banner;
 
   /// The one primary action, or null while withheld or none applies.
@@ -1584,6 +1626,34 @@ class _OcptBudgetOffLineBanner extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A calm, action-less info banner — the fiche's own quiet note for a fact worth stating plainly
+/// rather than folding into [_OcptBudgetFicheScaffold]'s own `hint` line: a counterpart quote
+/// line's own covering contribution, or an in-kind resource's own offset poste. Shares
+/// [_OcptBudgetOffLineBanner]'s own visual vocabulary — a `Card`, the same padding, the same muted
+/// body text — without its promote/move actions, which neither of these two facts offers.
+class _OcptBudgetFicheInfoBanner extends StatelessWidget {
+  /// The banner's own text.
+  final String message;
+
+  /// Class constructor
+  const _OcptBudgetFicheInfoBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          message,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ),
     );

@@ -539,6 +539,57 @@ void main() {
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineUncommitAction), findsNothing);
     });
+
+    testWidgets(
+      "a counterpart line withholds Pay/Commit/Delete, naming the contribution it is covered "
+      "in kind by",
+      (tester) async {
+        const inKindLine = OcptBudgetLine(
+          id: "line-1",
+          posteId: "poste-1",
+          label: "Camera loan",
+          quantityMilli: 1000,
+          unit: "u",
+          unitPrice: OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: 0),
+          elementId: null,
+          inKindResourceId: "resource-1",
+          provisionKey: null,
+          provisionDigest: null,
+          notes: "",
+          sortKey: "a0",
+        );
+        const inKindPoste = OcptBudgetPoste(
+          id: "poste-1",
+          code: "5",
+          label: "Sets and costumes",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a0",
+          lines: [inKindLine],
+        );
+
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetLineSelection("line-1"),
+              postes: const [inKindPoste],
+              resources: [_buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
+              onLinePayDirectlyRequested: (_) {},
+              onLineCommitRequested: (_) {},
+              onLineDeletionRequested: (_) {},
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        expect(find.byType(FilledButton), findsNothing);
+        expect(find.widgetWithText(OutlinedButton, tr.budgetLineCommitAction), findsNothing);
+        expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsNothing);
+        // `_buildResource`'s own default label — the contribution this counterpart line is
+        // minted from.
+        expect(find.text(tr.budgetFicheInKindCounterpartHint("Region grant")), findsOneWidget);
+      },
+    );
   });
 
   group("the commitment variant", () {
@@ -972,6 +1023,66 @@ void main() {
 
         expect(find.byType(FilledButton), findsNothing);
         expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      "an in-kind resource with a counterpart line names the poste it offsets",
+      (tester) async {
+        const offsetLine = OcptBudgetLine(
+          id: "line-offset",
+          posteId: "poste-2",
+          label: "Camera loan",
+          quantityMilli: 1000,
+          unit: "u",
+          unitPrice: OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: 0),
+          elementId: null,
+          inKindResourceId: "resource-1",
+          provisionKey: null,
+          provisionDigest: null,
+          notes: "",
+          sortKey: "a0",
+        );
+        const offsetPoste = OcptBudgetPoste(
+          id: "poste-2",
+          code: "7",
+          label: "Technical equipment",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a1",
+          lines: [offsetLine],
+        );
+
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetResourceSelection("resource-1"),
+              postes: const [_poste, offsetPoste],
+              resources: [_buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        expect(find.text(tr.budgetFicheInKindOffsetsPoste("7 Technical equipment")), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "an in-kind resource with no counterpart line yet names no poste",
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetResourceSelection("resource-1"),
+              resources: [_buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
+            ),
+          ),
+        );
+
+        // Only the stepper/figures card draws — no second card for a poste-offset note, since
+        // nothing in `postes` names this resource's own id yet.
+        expect(find.byType(Card), findsOneWidget);
       },
     );
 
