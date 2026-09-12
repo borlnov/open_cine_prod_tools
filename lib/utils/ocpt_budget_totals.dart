@@ -99,6 +99,31 @@ Map<String, int> ocptBudgetInKindCoveredCentsByPosteId(List<OcptBudgetPoste> pos
   return coveredCentsByPosteId;
 }
 
+/// The counterpart quote line balancing in-kind contribution [resourceId] — the one line, across
+/// every poste, whose [OcptBudgetLine.inKindResourceId] names it — or null while it has none: an
+/// ordinary contribution not (or not yet) in kind, or one whose line has not been minted.
+///
+/// **There is always at most one.** `OcptBudgetBloc`'s own in-kind reconciliation
+/// (`budget_bloc.dart`) keeps exactly one counterpart line per in-kind contribution in step across
+/// every edit, so this never has more than one match to choose between — see
+/// `docs/architecture/budget.md`, "A balanced in-kind contribution", for the single-line invariant.
+///
+/// Takes [postes] with their own lines already loaded, exactly as
+/// [ocptBudgetInKindCoveredCentsByPosteId] does — this file does no database access of its own, and
+/// both the mode's own resource fiche/dialog (reading the poste a contribution offsets) and the
+/// bloc's own reconciliation (finding the line to update, re-home or drop) share this one lookup.
+OcptBudgetLine? ocptBudgetInKindCounterpartLineOf(List<OcptBudgetPoste> postes, String resourceId) {
+  for (final poste in postes) {
+    for (final line in poste.lines) {
+      if (line.inKindResourceId == resourceId) {
+        return line;
+      }
+    }
+  }
+
+  return null;
+}
+
 /// A total, paired with how many of the rows it was asked to sum actually carried a known rate —
 /// `lib/utils/ocpt_budget_vat.dart`'s "null, never zero" rule applied to a whole table: a row whose
 /// rate nobody has recorded contributes to neither [amountCents] nor [coveredLineCount], so the

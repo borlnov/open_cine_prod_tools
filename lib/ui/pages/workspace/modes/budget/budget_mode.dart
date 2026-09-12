@@ -1366,6 +1366,11 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Opens the resource dialog pre-filled with [resource], then dispatches the update if the user
   /// confirmed it.
+  ///
+  /// [OcptBudgetResourceDialog.initialPosteId] seeds the `Poste` picker from [resource]'s own
+  /// counterpart line, found by [ocptBudgetInKindCounterpartLineOf] — the poste an in-kind
+  /// contribution offsets lives on that line, not on the resource itself
+  /// (`OcptBudgetResourceFormFields.posteId`'s own doc comment).
   Future<void> _handleResourceEditRequested(
     BuildContext context,
     OcptBudgetState state,
@@ -1378,6 +1383,9 @@ class _BudgetViewState extends State<_BudgetView> {
       groupKind: resource.groupKind,
       people: state.people,
       currencyCode: state.currencyCode,
+      postes: state.postes,
+      initialPosteId: ocptBudgetInKindCounterpartLineOf(state.postes, resource.id)?.posteId,
+      isSimplified: state.isSimplified,
     );
     if (fields == null) {
       return;

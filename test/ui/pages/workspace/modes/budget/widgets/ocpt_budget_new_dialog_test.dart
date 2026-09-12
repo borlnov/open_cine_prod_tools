@@ -481,7 +481,11 @@ void main() {
     testWidgets("planContribution's own step 3 offers cash and in-kind, not subsidy", (
       tester,
     ) async {
-      final tr = await pumpDialog(tester, initialGesture: OcptBudgetGesture.planContribution);
+      final tr = await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.planContribution,
+        postes: [_poste(id: "p1", label: "Camera")],
+      );
 
       // planContribution attaches to nothing, so step 1 (with the gesture already pre-selected)
       // still has to be confirmed before step 3's own form draws.
@@ -498,11 +502,18 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(1), "500");
       await tester.pumpAndSettle();
 
+      // Toggling into in-kind has drawn the `Poste` picker, now required before `Save` succeeds.
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Camera").last);
+      await tester.pumpAndSettle();
+
       await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewResourceOutcome;
       expect(outcome.fields.groupKind, OcptBudgetResourceGroupKind.inKind);
+      expect(outcome.fields.posteId, "p1");
     });
 
     testWidgets(

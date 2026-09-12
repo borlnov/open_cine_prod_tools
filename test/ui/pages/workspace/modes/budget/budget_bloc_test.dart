@@ -2239,6 +2239,7 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "Lent by the lab",
+            posteId: null,
           ),
         ),
       );
@@ -2280,6 +2281,7 @@ void main() {
             status: OcptBudgetResourceStatus.confirmed,
             isReimbursable: true,
             notes: "Repaid before the split",
+            posteId: null,
           ),
         ),
       );
@@ -2315,6 +2317,311 @@ void main() {
 
       expect(state.resources, isEmpty);
       expect(state.selectedResourceId, isNull);
+    });
+  });
+
+  group("an in-kind contribution's counterpart line", () {
+    test("creating one mints exactly one line, at 0% VAT, valued at its figure", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "Lent by the lab",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      final resourceId = state.selectedResourceId!;
+
+      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
+      final counterpartLines = poste.lines.where((line) => line.inKindResourceId == resourceId);
+      expect(counterpartLines, hasLength(1));
+      final line = counterpartLines.single;
+      expect(line.label, "Camera loan");
+      expect(line.quantityMilli, 1000);
+      expect(line.unitPrice.amountCents, 250000);
+      expect(line.unitPrice.vatRateBasisPoints, 0);
+    });
+
+    test("revaluing the contribution updates the line's own amount", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      final resourceId = created.selectedResourceId!;
+
+      bloc.add(
+        OcptBudgetResourceUpdateConfirmedEvent(
+          resourceId: resourceId,
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 400000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.unitPrice.amountCents == 400000,
+      );
+
+      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
+      expect(poste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+    });
+
+    test("renaming the contribution updates the line's own label", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      final resourceId = created.selectedResourceId!;
+
+      bloc.add(
+        OcptBudgetResourceUpdateConfirmedEvent(
+          resourceId: resourceId,
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Zoom lens loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.label == "Zoom lens loan",
+      );
+
+      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
+      expect(poste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+    });
+
+    test("changing the poste re-homes the line, still exactly one", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final originalPosteId = loaded.postes[0].id;
+      final newPosteId = loaded.postes[1].id;
+
+      bloc.add(
+        OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: originalPosteId,
+          ),
+        ),
+      );
+      final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      final resourceId = created.selectedResourceId!;
+
+      bloc.add(
+        OcptBudgetResourceUpdateConfirmedEvent(
+          resourceId: resourceId,
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: newPosteId,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.posteId == newPosteId,
+      );
+
+      final oldPoste = state.postes.singleWhere((poste) => poste.id == originalPosteId);
+      final newPoste = state.postes.singleWhere((poste) => poste.id == newPosteId);
+      expect(oldPoste.lines.where((line) => line.inKindResourceId == resourceId), isEmpty);
+      expect(newPoste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+    });
+
+    test("reclassifying in-kind to cash removes the line", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      final resourceId = created.selectedResourceId!;
+      expect(ocptBudgetInKindCounterpartLineOf(created.postes, resourceId), isNotNull);
+
+      bloc.add(
+        OcptBudgetResourceUpdateConfirmedEvent(
+          resourceId: resourceId,
+          fields: const OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.cash,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: null,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId) == null,
+      );
+
+      expect(state.resources.singleWhere((r) => r.id == resourceId).groupKind, OcptBudgetResourceGroupKind.cash);
+    });
+
+    test("reclassifying cash to in-kind mints exactly one line", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        const OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.cash,
+            personId: null,
+            label: "Cash from Alice",
+            amountCents: 5000,
+            status: OcptBudgetResourceStatus.confirmed,
+            isReimbursable: false,
+            notes: "",
+            posteId: null,
+          ),
+        ),
+      );
+      final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      final resourceId = created.selectedResourceId!;
+      expect(ocptBudgetInKindCounterpartLineOf(created.postes, resourceId), isNull);
+
+      bloc.add(
+        OcptBudgetResourceUpdateConfirmedEvent(
+          resourceId: resourceId,
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Cash from Alice",
+            amountCents: 5000,
+            status: OcptBudgetResourceStatus.confirmed,
+            isReimbursable: false,
+            notes: "",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId) != null,
+      );
+
+      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
+      expect(poste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+    });
+
+    test("deleting the contribution tombstones its counterpart line", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(
+        OcptBudgetResourceCreationConfirmedEvent(
+          fields: OcptBudgetResourceFormFields(
+            groupKind: OcptBudgetResourceGroupKind.inKind,
+            personId: null,
+            label: "Camera loan",
+            amountCents: 250000,
+            status: OcptBudgetResourceStatus.agreed,
+            isReimbursable: false,
+            notes: "",
+            posteId: posteId,
+          ),
+        ),
+      );
+      final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
+      final resourceId = created.selectedResourceId!;
+      final lineId = ocptBudgetInKindCounterpartLineOf(created.postes, resourceId)!.id;
+
+      bloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
+      final state = await waitForState(bloc, (state) => state.resources.isEmpty);
+
+      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
+      expect(poste.lines.any((line) => line.id == lineId), isFalse);
     });
   });
 

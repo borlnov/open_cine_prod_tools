@@ -43,6 +43,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -1919,6 +1920,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
     if (resourceId != null) {
       await _writeResourceFields(project, resourceId, fields);
+      await _reconcileInKindCounterpartLine(project, resourceId, fields);
     }
 
     await _applyBudgetSnapshot(emitter, project);
@@ -1938,6 +1940,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     await _writeResourceFields(project, event.resourceId, event.fields);
+    await _reconcileInKindCounterpartLine(project, event.resourceId, event.fields);
     await _applyBudgetSnapshot(emitter, project);
   }
 
@@ -1959,6 +1962,79 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     isReimbursable: Value(fields.isReimbursable),
     notes: Value(fields.notes),
   );
+
+  /// Keeps in-kind contribution `resourceId`'s own counterpart quote line in step with `fields`,
+  /// called right after [_writeResourceFields] writes the contribution itself, from both
+  /// [_onResourceCreationConfirmed] and [_onResourceUpdateConfirmed] — the resource and its
+  /// counterpart line are two rows kept in step by one caller, the same "one write, two rows"
+  /// shape [OcptBudgetLinePaidDirectlyEvent] already uses to create a commitment and its entry
+  /// together (`docs/architecture/budget.md`, "A quote line is paid directly, the commitment made
+  /// for it").
+  ///
+  /// **Exactly one counterpart line exists whenever `fields` describes an in-kind contribution,
+  /// and none does otherwise** — the invariant `docs/architecture/budget.md`'s "A balanced in-kind
+  /// contribution" argues for:
+  /// - not in kind any more (or never was): the existing line, if any, is tombstoned — a
+  ///   reclassification away from in-kind offsets no poste any more.
+  /// - in kind, no line yet: one is minted, quantity 1 (`quantityMilli` 1000), tax-inclusive, frozen
+  ///   at 0 % VAT (a valuation, not an invoice — "The link, and where the single truth lives"), the
+  ///   figure and label read straight off `fields`.
+  /// - in kind, a line already exists, same poste: an ordinary field update — the label and the
+  ///   amount follow the contribution; the quantity and the 0 % rate are never touched again.
+  /// - in kind, a line already exists, a **different** poste: deleted and re-minted in the new one,
+  ///   never moved in place. `budget_lines.sortKey` is fractional **within its own `posteId`**
+  ///   (`OcptBudgetPostesTable` orders flat; `budget_lines` orders "like a shot within a scene"), so
+  ///   re-poste-ing a line is really a second operation — its position among a different poste's own
+  ///   lines — wearing the name of a field write (`docs/architecture/budget.md`, "A commitment's
+  ///   poste is editable, a quote line's is not").
+  ///
+  /// `OcptBudgetResourceDialog`'s own poste picker already blocks confirming an in-kind
+  /// contribution with no poste chosen, so `fields.posteId == null` here should not occur; this
+  /// writes nothing rather than mint an orphaned line if it somehow does.
+  Future<void> _reconcileInKindCounterpartLine(
+    OcptOpenProjectModel project,
+    String resourceId,
+    OcptBudgetResourceFormFields fields,
+  ) async {
+    final existing = ocptBudgetInKindCounterpartLineOf(state.postes, resourceId);
+
+    if (fields.groupKind != OcptBudgetResourceGroupKind.inKind) {
+      if (existing != null) {
+        await _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
+      }
+      return;
+    }
+
+    final desiredPosteId = fields.posteId;
+    if (desiredPosteId == null) {
+      return;
+    }
+
+    if (existing != null && existing.posteId == desiredPosteId) {
+      await _budgetQuoteService.updateLine(
+        database: project.database,
+        lineId: existing.id,
+        label: Value(fields.label),
+        unitAmountCents: Value(fields.amountCents),
+      );
+      return;
+    }
+
+    if (existing != null) {
+      await _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
+    }
+
+    await _budgetQuoteService.createLine(
+      database: project.database,
+      posteId: desiredPosteId,
+      label: fields.label,
+      quantityMilli: const Value(1000),
+      unitAmountCents: Value(fields.amountCents),
+      isTaxInclusive: const Value(true),
+      vatRateBasisPoints: const Value(0),
+      inKindResourceId: Value(resourceId),
+    );
+  }
 
   /// Creates a defrayal from `event.fields`.
   ///
@@ -2059,7 +2135,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Deletes financing resource `event.resourceId` for good, confirmed by the mode's own
-  /// `OcptConfirmDialog`.
+  /// `OcptConfirmDialog` — and, alongside it, its own counterpart line if it had one, found in the
+  /// live snapshot before the deletion rather than after: a resource just tombstoned names no poste
+  /// any more for [ocptBudgetInKindCounterpartLineOf] to find it by.
   Future<void> _onResourceDeletionConfirmed(
     OcptBudgetResourceDeletionConfirmedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -2069,10 +2147,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
+    final counterpartLine = ocptBudgetInKindCounterpartLineOf(state.postes, event.resourceId);
+
     await _budgetFinancingService.deleteResource(
       database: project.database,
       resourceId: event.resourceId,
     );
+    if (counterpartLine != null) {
+      await _budgetQuoteService.deleteLine(database: project.database, lineId: counterpartLine.id);
+    }
     await _applyBudgetSnapshot(emitter, project);
   }
 

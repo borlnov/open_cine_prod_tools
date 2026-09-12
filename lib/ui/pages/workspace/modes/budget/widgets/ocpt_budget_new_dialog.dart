@@ -946,6 +946,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       groupKind: OcptBudgetResourceGroupKind.cash,
       people: widget.people,
       currencyCode: widget.currencyCode,
+      postes: widget.postes,
+      isSimplified: widget.isSimplified,
       // Both gestures reaching this row (`recordFinancingReceipt`, `repayContribution`) move real
       // money, so the resource missing here is a contribution — cash or in-kind, the one question
       // left for its own dialog to ask.
@@ -1104,6 +1106,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         groupKind: OcptBudgetResourceGroupKind.subsidy,
         people: widget.people,
         currencyCode: widget.currencyCode,
+        postes: widget.postes,
+        isSimplified: widget.isSimplified,
         formKey: _formKey,
         onDraftChanged: (draft) => setState(() => _resourceDraft = draft),
       ),
@@ -1112,6 +1116,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         groupKind: OcptBudgetResourceGroupKind.cash,
         people: widget.people,
         currencyCode: widget.currencyCode,
+        postes: widget.postes,
+        isSimplified: widget.isSimplified,
         formKey: _formKey,
         onDraftChanged: (draft) => setState(() => _resourceDraft = draft),
         // `planContribution` collapses cash and in-kind into one gesture — the picker is the one

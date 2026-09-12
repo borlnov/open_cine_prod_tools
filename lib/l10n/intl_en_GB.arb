@@ -12548,6 +12548,27 @@
     "type": "text",
     "placeholders": {}
   },
+  "budgetResourceDialogPosteFieldLabel": "Poste offset",
+  "@budgetResourceDialogPosteFieldLabel": {
+    "description": "Label of the resource dialog's own poste picker, shown only while the kind is a contribution in kind",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogPosteFieldHelper": "The cost this contribution covers in the quote — a counterpart line is minted there, valued at the same figure.",
+  "@budgetResourceDialogPosteFieldHelper": {
+    "description": "Helper text under the resource dialog's own poste picker, shown only while the kind is a contribution in kind",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "budgetResourceDialogPosteRequiredError": "Choose the poste this contribution offsets.",
+  "@budgetResourceDialogPosteRequiredError": {
+    "description": "Validation error under the resource dialog's own poste picker while it is left unanswered for a contribution in kind",
+    "context": "Displayed inside OcptBudgetResourceDialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "budgetResourceDialogStatusHelperSubsidy": "How far this subsidy's paperwork has progressed.",
   "@budgetResourceDialogStatusHelperSubsidy": {
     "description": "Helper text under the resource dialog's own status picker while the kind is a subsidy",

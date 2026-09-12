@@ -304,6 +304,11 @@ class OcptBudgetQuoteService {
   /// [Value.absent], reading `budget_lines`' own ordinary defaults exactly as before these two
   /// parameters existed.
   ///
+  /// [inKindResourceId] is what the budget bloc's own in-kind reconciliation fills in when this
+  /// line is the counterpart minted for an in-kind contribution — see
+  /// `OcptBudgetLinesTable.inKindResourceId`. Every other caller leaves it at [Value.absent], null
+  /// being the ordinary case for a line nobody's contribution counterbalances.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createLine({
     required OcptProjectDatabase database,
@@ -317,6 +322,7 @@ class OcptBudgetQuoteService {
     Value<int?> vatRateBasisPoints = const Value.absent(),
     Value<String?> provisionKey = const Value.absent(),
     Value<String?> provisionDigest = const Value.absent(),
+    Value<String?> inKindResourceId = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("createLine")) {
       return null;
@@ -344,6 +350,7 @@ class OcptBudgetQuoteService {
           isTaxInclusive: !isTaxInclusive.present || isTaxInclusive.value,
           vatRateBasisPoints: vatRateBasisPoints.present ? vatRateBasisPoints.value : null,
           elementId: elementId.present ? elementId.value : null,
+          inKindResourceId: inKindResourceId.present ? inKindResourceId.value : null,
           provisionKey: provisionKey.present ? provisionKey.value : null,
           provisionDigest: provisionDigest.present ? provisionDigest.value : null,
           notes: '',
@@ -361,6 +368,10 @@ class OcptBudgetQuoteService {
   /// [reorderLine] and [deleteLine] — this table carries no "move to another poste" of its own,
   /// which would need its own `sortKey` recomputed against a different group entirely.
   ///
+  /// [inKindResourceId] is what the budget bloc's own in-kind reconciliation fills in while
+  /// revaluing or renaming an in-kind contribution's counterpart line — every other caller leaves
+  /// it at [Value.absent], the link a line already carries left untouched.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateLine({
     required OcptProjectDatabase database,
@@ -375,6 +386,7 @@ class OcptBudgetQuoteService {
     Value<String?> provisionKey = const Value.absent(),
     Value<String?> provisionDigest = const Value.absent(),
     Value<String> notes = const Value.absent(),
+    Value<String?> inKindResourceId = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateLine")) {
       return;
@@ -387,6 +399,7 @@ class OcptBudgetQuoteService {
       unitAmountCents: unitAmountCents,
       isTaxInclusive: isTaxInclusive,
       vatRateBasisPoints: vatRateBasisPoints,
+      inKindResourceId: inKindResourceId,
       elementId: elementId,
       provisionKey: provisionKey,
       provisionDigest: provisionDigest,

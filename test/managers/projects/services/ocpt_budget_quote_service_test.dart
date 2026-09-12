@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -24,6 +25,7 @@ void main() {
     assetsService: OcptAssetsService(deviceId: testDeviceId),
     deviceId: testDeviceId,
   );
+  final financingService = OcptBudgetFinancingService(deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
 
@@ -291,6 +293,27 @@ void main() {
       expect(cast.lines.map((line) => line.id), [lineB]);
     });
 
+    test("createLine can be minted linked to an in-kind contribution", () async {
+      final resourceId = await financingService.createResource(database: database, label: "Camera loan");
+      expect(resourceId, isNotNull);
+
+      final lineId = await service.createLine(
+        database: database,
+        posteId: posteId,
+        label: "Camera loan",
+        quantityMilli: const Value(1000),
+        unitAmountCents: const Value(250000),
+        isTaxInclusive: const Value(true),
+        vatRateBasisPoints: const Value(0),
+        inKindResourceId: Value(resourceId),
+      );
+
+      final poste = (await service.loadPostes(database: database, seed: const [])).single;
+      final line = poste.lines.single;
+      expect(line.id, lineId);
+      expect(line.inKindResourceId, resourceId);
+    });
+
     test("updateLine writes the money triple and the quantity", () async {
       final lineId = (await service.createLine(
         database: database,
@@ -315,6 +338,23 @@ void main() {
       expect(line.unitPrice.amountCents, 20000);
       expect(line.unitPrice.isTaxInclusive, isFalse);
       expect(line.unitPrice.vatRateBasisPoints, 550);
+    });
+
+    test("updateLine writes inKindResourceId", () async {
+      final resourceId = await financingService.createResource(database: database, label: "Camera loan");
+      expect(resourceId, isNotNull);
+
+      final lineId = (await service.createLine(
+        database: database,
+        posteId: posteId,
+        label: "Camera loan",
+      ))!;
+
+      await service.updateLine(database: database, lineId: lineId, inKindResourceId: Value(resourceId));
+
+      final poste = (await service.loadPostes(database: database, seed: const [])).single;
+      final line = poste.lines.single;
+      expect(line.inKindResourceId, resourceId);
     });
 
     test("reorderLine moves a line within its own poste and writes exactly one row", () async {
