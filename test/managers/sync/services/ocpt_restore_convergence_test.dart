@@ -101,7 +101,7 @@ void main() {
     );
     final screenplayService = OcptScreenplayService(
       sceneIndexService: const OcptSceneIndexService(),
-      shotListService: OcptShotListService(deviceId: thisDeviceId),
+      shotListService: OcptShotListService(roleIndexService: roleIndexService, deviceId: thisDeviceId),
       shotCoverageService: OcptShotCoverageService(deviceId: thisDeviceId),
       roleIndexService: roleIndexService,
       breakdownService: breakdownService,

@@ -359,7 +359,6 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptScreenplaysTable, payload.screenplays)
         ..insertAll(database.ocptScenesTable, payload.scenes)
         ..insertAll(database.ocptShotsTable, payload.shots)
-        ..insertAll(database.ocptShotCharactersTable, payload.shotCharacters)
         ..insertAll(database.ocptShotCoveragesTable, payload.shotCoverages)
         // `budget_mileage_rates` references nothing, and must be inserted before `people`, which
         // may name one through `mileageRateId` — the same reason `budget_resources` is inserted
@@ -371,6 +370,9 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptPersonUnavailabilitiesTable, payload.personUnavailabilities)
         ..insertAll(database.ocptRolesTable, payload.roles)
         ..insertAll(database.ocptRoleEpisodesTable, payload.roleEpisodes)
+        // `shot_characters.roleId` references `roles` (ADR 0030): inserted only now that the roles
+        // it names exist, rather than beside `shots` above.
+        ..insertAll(database.ocptShotCharactersTable, payload.shotCharacters)
         ..insertAll(database.ocptLocationsTable, payload.locations)
         ..insertAll(database.ocptLocationAvailabilitiesTable, payload.locationAvailabilities)
         ..insertAll(database.ocptSetsTable, payload.sets)
@@ -852,7 +854,7 @@ class OcptProjectVersionsService {
       database: database,
       table: database.ocptShotCharactersTable,
       payloadRows: payload.shotCharacters,
-      rowIdOf: (row) => ocptCompositeRowStampKey([row.shotId, row.characterName]),
+      rowIdOf: (row) => ocptCompositeRowStampKey([row.shotId, row.roleId]),
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
     );

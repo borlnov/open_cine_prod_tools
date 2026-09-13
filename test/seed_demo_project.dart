@@ -168,7 +168,7 @@ void main() {
     locationsService: locationsService,
     deviceId: deviceId,
   );
-  final shotListService = OcptShotListService(deviceId: deviceId);
+  final shotListService = OcptShotListService(roleIndexService: roleIndexService, deviceId: deviceId);
   final peopleService = OcptPeopleService(
     deviceId: deviceId,
     assetsService: assetsService,

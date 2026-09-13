@@ -51,10 +51,17 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 /// - a payload written in an **older** format would be upgraded, in memory, step by step, up to
 ///   [currentPayloadFormat]; the stored text is never rewritten, so a version stays byte-identical
 ///   to what was captured. The 0.1.0 release froze the first such format at 1; the 0.2.0 release
-///   freezes format 2 in turn, added for `budget_lines.inKindResourceId`
+///   froze format 2 in turn, added for `budget_lines.inKindResourceId`
 ///   (`docs/architecture/budget.md`) — additive and nullable, so a format-1 payload, missing the
 ///   key outright, already decodes through the very same [_nullableString] read a format-2 one
-///   does, with no dedicated upgrade step to write. The retired format-1 shape is pinned in
+///   does, with no dedicated upgrade step to write. Format 3 is the first that **isn't** additive:
+///   `shot_characters` drops `characterName` for `roleId`
+///   (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a pre-3 payload's
+///   `shotCharacters` rows cannot be reshaped into roles the way a project's live database is
+///   migrated — [decode] drops them instead, a version captured before the reshape restoring with
+///   every plan except its shot list's cast (this class's own [decode] doc comment, and the ADR's
+///   "Consequences" section, spell out why remapping was turned down). The retired format-1 and
+///   format-2 shapes are pinned in
 ///   `test/managers/projects/services/ocpt_project_version_codec_test.dart`, per the guidance
 ///   below;
 /// - a payload written in a **newer** format — the file has been opened by a later build of the
@@ -83,7 +90,7 @@ class OcptProjectVersionCodec {
   /// one of those two values. Freezing a stable release sets
   /// `lastStablePayloadFormat = currentPayloadFormat`, done at release prep alongside the schema's
   /// own freeze.
-  static const currentPayloadFormat = 2;
+  static const currentPayloadFormat = 3;
 
   /// The highest payload format a stable release has frozen.
   ///
@@ -342,10 +349,6 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a shot's `checkReason` column from a JSON object
   static const _checkReasonKey = "checkReason";
-
-  /// This is the key used to stringify or parse a shot character's `characterName` column from a
-  /// JSON object
-  static const _characterNameKey = "characterName";
 
   /// This is the key used to stringify or parse a person's `firstName` column from a JSON object
   static const _firstNameKey = "firstName";
@@ -611,8 +614,10 @@ class OcptProjectVersionCodec {
   /// the tag's `targetKind` names a role —, `shooting_slot_cast.roleId`, always non-null, the role
   /// a slot convokes, `role_elements.roleId`, the role wearing an element, or, from payload format
   /// 13, `role_episodes.roleId`, the role an episode names, or, from payload format 16,
-  /// `role_candidates.roleId`, the part somebody is seen for) from a JSON
-  /// object
+  /// `role_candidates.roleId`, the part somebody is seen for, or, from payload format 3,
+  /// `shot_characters.roleId`, the role a shot's character is
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`) — replacing that table's
+  /// retired `characterName` column) from a JSON object
   static const _roleIdKey = "roleId";
 
   /// This is the key used to stringify or parse an element's `category` column from a JSON object
@@ -1058,10 +1063,15 @@ class OcptProjectVersionCodec {
 
   /// Parses [payloadJson], the text stored in `project_versions.payload`.
   ///
-  /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release has ever
-  /// shipped, so there is no older payload format to upgrade from yet: a payload is read directly
-  /// at [currentPayloadFormat]. The first upgrade step is added once a stable release has frozen
-  /// [lastStablePayloadFormat] and a later format is needed.
+  /// Format 3 is the first to actually need an upgrade step: it drops `characterName` from
+  /// `shot_characters` in favour of `roleId`
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), a reshape rather than an
+  /// addition, so a pre-3 payload's `shotCharacters` rows cannot be read as format 3's shape at
+  /// all — [_payloadFromJson] drops them outright for `payloadFormat < 3` rather than remapping
+  /// their names to roles, deliberately (see this class's own doc comment and the ADR): a version
+  /// captured before the reshape restores with every plan except its shot list's cast. Every other
+  /// upgrade so far has been additive-only, so an older payload already decodes through the very
+  /// same nullable readers a current one does, with nothing to branch on here.
   ///
   /// Never throws: every failure comes back as an [OcptProjectVersionPayloadStatus], because the
   /// caller of a decode is always about to tell the user why a version can't be opened.
@@ -1086,7 +1096,10 @@ class OcptProjectVersionCodec {
         );
       }
 
-      return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: _payloadFromJson(decoded));
+      return ResultWithStatus(
+        status: OcptProjectVersionPayloadStatus.ok,
+        value: _payloadFromJson(decoded, payloadFormat: payloadFormat),
+      );
     } on _OcptPayloadFormatError catch (error) {
       appLogger().e("The project version payload can't be read: ${error.reason}");
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
@@ -1208,7 +1221,7 @@ class OcptProjectVersionCodec {
       _shotsKey: _canonicalRows(payload.shots, primaryKeyOf: (row) => row.id, toJson: _shotToJson),
       _shotCharactersKey: _canonicalRows(
         payload.shotCharacters,
-        primaryKeyOf: (row) => ocptCompositeRowStampKey([row.shotId, row.characterName]),
+        primaryKeyOf: (row) => ocptCompositeRowStampKey([row.shotId, row.roleId]),
         toJson: _shotCharacterToJson,
       ),
       _shotCoveragesKey: _canonicalRows(
@@ -1411,8 +1424,18 @@ class OcptProjectVersionCodec {
     return [for (final row in sortedRows) SplayTreeMap<String, dynamic>.of(toJson(row))];
   }
 
-  /// Builds the payload described by [json], read directly at [currentPayloadFormat].
-  static OcptProjectVersionPayload _payloadFromJson(Map<String, dynamic> json) {
+  /// Builds the payload described by [json], written at [payloadFormat].
+  ///
+  /// [payloadFormat] is the one branch this method needs: for `payloadFormat < 3`, `shotCharacters`
+  /// is read as empty rather than through [_shotCharacterFromJson] — a pre-3 payload's rows are
+  /// shaped around the retired `characterName` column, not `roleId`, and cannot be parsed as
+  /// format 3's shape at all (`decode`'s own doc comment). Every other field is read the same way
+  /// whatever [payloadFormat] says, an older payload's absent keys already falling back to the
+  /// nullable defaults [_nullableString] and its siblings return.
+  static OcptProjectVersionPayload _payloadFromJson(
+    Map<String, dynamic> json, {
+    required int payloadFormat,
+  }) {
     final projectSettings = _object(json, _projectSettingsKey);
     final pageMargins = _object(json, _pageMarginsKey);
 
@@ -1420,9 +1443,9 @@ class OcptProjectVersionCodec {
       screenplays: [for (final row in _rows(json, _screenplaysKey)) _screenplayFromJson(row)],
       scenes: [for (final row in _rows(json, _scenesKey)) _sceneFromJson(row)],
       shots: [for (final row in _rows(json, _shotsKey)) _shotFromJson(row)],
-      shotCharacters: [
-        for (final row in _rows(json, _shotCharactersKey)) _shotCharacterFromJson(row),
-      ],
+      shotCharacters: payloadFormat < 3
+          ? const []
+          : [for (final row in _rows(json, _shotCharactersKey)) _shotCharacterFromJson(row)],
       shotCoverages: [for (final row in _rows(json, _shotCoveragesKey)) _shotCoverageFromJson(row)],
       people: [for (final row in _rows(json, _peopleKey)) _personFromJson(row)],
       personPositions: [
@@ -1637,17 +1660,18 @@ class OcptProjectVersionCodec {
   /// Serializes one `shot_characters` row.
   static Map<String, dynamic> _shotCharacterToJson(OcptShotCharacterRow row) => {
     _shotIdKey: row.shotId,
-    _characterNameKey: row.characterName,
+    _roleIdKey: row.roleId,
     _positionKey: row.position,
     _sortKeyKey: row.sortKey,
     _isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shot_characters` row.
+  /// Parses one `shot_characters` row, from payload format 3 on — see [_payloadFromJson]'s own doc
+  /// comment for why an older payload never reaches this at all.
   static OcptShotCharacterRow _shotCharacterFromJson(Map<String, dynamic> json) =>
       OcptShotCharacterRow(
         shotId: _string(json, _shotIdKey),
-        characterName: _string(json, _characterNameKey),
+        roleId: _string(json, _roleIdKey),
         position: _int(json, _positionKey),
         sortKey: _string(json, _sortKeyKey),
         isDeleted: _bool(json, _isDeletedKey),

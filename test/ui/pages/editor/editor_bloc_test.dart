@@ -64,7 +64,17 @@ class _FailingScreenplayService extends OcptScreenplayService {
   const _FailingScreenplayService()
     : super(
         sceneIndexService: const OcptSceneIndexService(),
-        shotListService: const OcptShotListService(deviceId: _testDeviceId),
+        shotListService: const OcptShotListService(
+          roleIndexService: OcptRoleIndexService(
+            elementsService: OcptElementsService(
+              assetsService: OcptAssetsService(deviceId: _testDeviceId),
+              deviceId: _testDeviceId,
+            ),
+            roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          deviceId: _testDeviceId,
+        ),
         shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
         roleIndexService: const OcptRoleIndexService(
           elementsService: OcptElementsService(

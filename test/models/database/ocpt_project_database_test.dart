@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -195,7 +196,7 @@ void main() {
     expect(row.checkReason, OcptShotCheckReason.sceneDeleted);
   });
 
-  test('shot_characters: a row can be inserted and read back, normalised name and position', () async {
+  test('shot_characters: a row can be inserted and read back, referencing a role and a position', () async {
     await database
         .into(database.ocptScreenplaysTable)
         .insert(
@@ -204,13 +205,18 @@ void main() {
     await database
         .into(database.ocptShotsTable)
         .insert(OcptShotsTableCompanion.insert(id: "shot1", screenplayId: "s1", position: 0));
+    await database
+        .into(database.ocptRolesTable)
+        .insert(
+          OcptRolesTableCompanion.insert(id: "role1", name: "CLARA", kind: OcptRoleKind.speaking),
+        );
 
     await database
         .into(database.ocptShotCharactersTable)
         .insert(
           OcptShotCharactersTableCompanion.insert(
             shotId: "shot1",
-            characterName: "CLARA",
+            roleId: "role1",
             position: 0,
           ),
         );
@@ -218,7 +224,7 @@ void main() {
     final row = await database.select(database.ocptShotCharactersTable).getSingle();
 
     expect(row.shotId, "shot1");
-    expect(row.characterName, "CLARA");
+    expect(row.roleId, "role1");
     expect(row.position, 0);
   });
 

@@ -52,7 +52,10 @@ void main() {
   );
   final scheduleService = OcptScheduleService(deviceId: testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
-  final shotListService = OcptShotListService(deviceId: testDeviceId);
+  final shotListService = OcptShotListService(
+    roleIndexService: roleIndexService,
+    deviceId: testDeviceId,
+  );
   final shotCoverageService = OcptShotCoverageService(deviceId: testDeviceId);
   final service = OcptScreenplayService(
     sceneIndexService: sceneIndexService,

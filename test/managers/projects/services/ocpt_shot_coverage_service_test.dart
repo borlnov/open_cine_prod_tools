@@ -38,7 +38,6 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const coverageService = OcptShotCoverageService(deviceId: _testDeviceId);
-  const shotListService = OcptShotListService(deviceId: _testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
   const assetsService = OcptAssetsService(deviceId: _testDeviceId);
   const elementsService = OcptElementsService(
@@ -49,15 +48,20 @@ void main() {
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
+  const roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+    deviceId: _testDeviceId,
+  );
+  const shotListService = OcptShotListService(
+    roleIndexService: roleIndexService,
+    deviceId: _testDeviceId,
+  );
   const screenplayService = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
     shotListService: shotListService,
     shotCoverageService: coverageService,
-    roleIndexService: OcptRoleIndexService(
-      elementsService: elementsService,
-      roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
-      deviceId: _testDeviceId,
-    ),
+    roleIndexService: roleIndexService,
     breakdownService: OcptBreakdownService(
       elementsService: elementsService,
       locationsService: locationsService,

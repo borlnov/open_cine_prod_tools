@@ -8,6 +8,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
+import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v3.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_allowances_table.dart';
@@ -142,7 +143,10 @@ part 'ocpt_project_database.g.dart';
 /// [OcptSyncPairingsTable] are schema version 2's own addition — the first real `onUpgrade` step,
 /// additive only per `docs/adr/0007-schema-migration-policy.md` — created for an existing v1 file
 /// without touching anything else, and by `onCreate` alongside every other table for a brand-new
-/// one.
+/// one. Schema version 3 reshapes [OcptShotCharactersTable] to key it by `{shotId, roleId}` instead
+/// of `{shotId, characterName}` — the first **non-additive** migration
+/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
+/// `ocptMigrateToSchemaV3`.
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -279,7 +283,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// always one of those two values. Freezing a stable release is the one line
   /// `lastStableSchemaVersion = currentSchemaVersion`, done at release prep (see
   /// `docs/RELEASING.md`).
-  static const currentSchemaVersion = 2;
+  static const currentSchemaVersion = 3;
 
   /// The highest schema version a stable release has frozen.
   ///
@@ -317,6 +321,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else, so
   /// a v1 file's existing rows are untouched by the upgrade.
   ///
+  /// From 2 to 3, `onUpgrade` delegates to [ocptMigrateToSchemaV3]
+  /// (`lib/models/database/migrations/ocpt_migration_v3.dart`), per this cycle's own frozen top file
+  /// convention (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`): it reshapes
+  /// `shot_characters` from its frozen v2 `{shotId, characterName}` key to `{shotId, roleId}`,
+  /// referencing `OcptRolesTable` — the first non-additive migration this project ships
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`). See that file's own doc
+  /// comment for the full argument, including why it is safe under independent per-replica
+  /// migration.
+  ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
   /// never actually be enforced.
@@ -328,6 +341,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         await m.createTable(ocptSyncRelayCursorsTable);
         await m.createTable(ocptSyncPairingsTable);
         await m.addColumn(ocptBudgetLinesTable, ocptBudgetLinesTable.inKindResourceId);
+      }
+      if (from < 3) {
+        await ocptMigrateToSchemaV3(migrator: m, database: this);
       }
     },
     beforeOpen: (details) async {

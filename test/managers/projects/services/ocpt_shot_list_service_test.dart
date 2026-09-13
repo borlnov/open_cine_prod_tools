@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
@@ -38,7 +39,6 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const shotListService = OcptShotListService(deviceId: _testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
   const assetsService = OcptAssetsService(deviceId: _testDeviceId);
   const elementsService = OcptElementsService(
@@ -49,15 +49,20 @@ void main() {
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
+  const roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+    deviceId: _testDeviceId,
+  );
+  const shotListService = OcptShotListService(
+    roleIndexService: roleIndexService,
+    deviceId: _testDeviceId,
+  );
   const screenplayService = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
     shotListService: shotListService,
     shotCoverageService: OcptShotCoverageService(deviceId: _testDeviceId),
-    roleIndexService: OcptRoleIndexService(
-      elementsService: elementsService,
-      roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
-      deviceId: _testDeviceId,
-    ),
+    roleIndexService: roleIndexService,
     breakdownService: OcptBreakdownService(
       elementsService: elementsService,
       locationsService: locationsService,
@@ -724,8 +729,9 @@ Action.
 
       expect(await charactersOfShot(), ["MARC"]);
 
-      // The primary key is `{shotId, characterName}`, so re-attaching cannot insert a second row:
-      // it has to lift the tombstone the detach left behind, and append the character at the end.
+      // The primary key is `{shotId, roleId}`, and "Clara" resolves back to the very same live
+      // role it did before being detached, so re-attaching cannot insert a second row: it has to
+      // lift the tombstone the detach left behind, and append the character at the end.
       await shotListService.attachCharacter(
         database: database,
         shotId: shotId,
@@ -996,6 +1002,14 @@ Action.
 
     test("attachCharacter stamps the composite shot_characters row id", () async {
       final shotId = await insertShot();
+      // A live role already exists for "Clara": attachCharacter resolves it rather than minting a
+      // fresh one, so only the shot_characters row itself is stamped below, in isolation.
+      await roleIndexService.addRole(
+        database: database,
+        screenplayId: screenplayId,
+        name: "CLARA",
+        kind: OcptRoleKind.silent,
+      );
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
       await shotListService.attachCharacter(
@@ -1004,9 +1018,9 @@ Action.
         characterName: "Clara",
       );
 
-      final rowId = ocptCompositeRowStampKey([shotId, "CLARA"]);
-      final stamps = await readStamps();
       final character = (await database.select(database.ocptShotCharactersTable).get()).single;
+      final rowId = ocptCompositeRowStampKey([shotId, character.roleId]);
+      final stamps = await readStamps();
       for (final column in character.toJson().keys) {
         final stamp = stamps["shot_characters/$rowId/$column"];
         expect(stamp, isNotNull, reason: "$column should be stamped");
@@ -1021,6 +1035,7 @@ Action.
         shotId: shotId,
         characterName: "Clara",
       );
+      final roleId = (await database.select(database.ocptShotCharactersTable).get()).single.roleId;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
       await shotListService.detachCharacter(
@@ -1029,7 +1044,7 @@ Action.
         characterName: "Clara",
       );
 
-      final rowId = ocptCompositeRowStampKey([shotId, "CLARA"]);
+      final rowId = ocptCompositeRowStampKey([shotId, roleId]);
       final stamps = await readStamps();
       expect(stamps.keys.toSet(), {"shot_characters/$rowId/isDeleted"});
       expect(stamps["shot_characters/$rowId/isDeleted"]!.version, 1);

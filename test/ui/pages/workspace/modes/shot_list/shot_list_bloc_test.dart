@@ -14,6 +14,10 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -86,7 +90,18 @@ Future<String> _testDeviceId() async => "test-device";
 /// A shot list service whose [createShot] always fails, to exercise the bloc's write error path.
 class _FailingShotListService extends OcptShotListService {
   /// Class constructor
-  const _FailingShotListService() : super(deviceId: _testDeviceId);
+  const _FailingShotListService()
+    : super(
+        roleIndexService: const OcptRoleIndexService(
+          elementsService: OcptElementsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
+        ),
+        deviceId: _testDeviceId,
+      );
 
   @override
   Future<String> createShot({
