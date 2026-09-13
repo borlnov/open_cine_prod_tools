@@ -1563,11 +1563,18 @@ are all here, and this file is the whole record of them.
   `ocptBudgetPaidCentsByPosteId` — never see it, since no journal entry names it.
 - **Read as covered, not owed.** In the expenses tree the counterpart line carries an **`En nature`
   badge** and reads its own `Payé`/`Engagé` cells as the em dash and its `Reste` as zero; a poste
-  holding one shows a muted "(… couverts en nature)" note beside its own `Reste`. Its fiche withholds
-  `Pay`, `Commit this line…` and `Delete` — a valuation is none of those — and names, in a calm
-  banner, the contribution it is covered by; an in-kind resource's own fiche names, the same way, the
-  poste its counterpart line offsets (read through `ocptBudgetInKindCounterpartLineOf`, never a field
-  of its own).
+  holding one shows a muted "(… couverts en nature)" note beside its own `Reste`. **Its fiche is
+  read-only**: it withholds `Pay`, `Commit this line…` and `Delete` — a valuation is none of those —
+  and drops the editable fields and the `Estimated · Committed · Paid` stepper for a single `Valued
+  at` reading and a calm banner naming the contribution it is covered by. Its sole action,
+  `Edit the contribution`, opens that contribution — the one place the figure is changed, since
+  editing the line directly would drift it away from the resource it must equal, which
+  `OcptBudgetBloc`'s own field-edit guard also refuses. An in-kind resource's own fiche mirrors it:
+  it names the poste its counterpart line offsets (read through `ocptBudgetInKindCounterpartLineOf`,
+  never a field of its own) and, while no journal entry has named it, drops its own
+  `Promised · Received` stepper for the same `Valued at` reading — a valuation runs through no
+  collection lifecycle — keeping that stepper and a real received figure the moment an entry does
+  name it.
 - **The documents.** The exported quote prints the counterpart line as the quoted line it is, flagged
   `(en nature)` so a reader sees it is covered without a cash outlay; the financial report reads it
   covered in kind through the very same settled bucket, so its per-poste and total variances net the
