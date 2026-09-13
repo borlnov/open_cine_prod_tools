@@ -1115,6 +1115,33 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
+  /// Whether [field] targets a quote line that is an in-kind counterpart line (its
+  /// `inKindResourceId` is set) — such a line's fields follow the contribution it balances and are
+  /// never a direct edit's to write (`docs/architecture/budget.md`, "A balanced in-kind
+  /// contribution"). Defensive only: `OcptBudgetFiche` already withholds a counterpart line's
+  /// editable fields, so this guards against a future edit path reaching one.
+  bool _isInKindCounterpartLineField(OcptBudgetField field, String targetId) {
+    const lineFields = {
+      OcptBudgetField.lineLabel,
+      OcptBudgetField.lineQuantity,
+      OcptBudgetField.lineUnit,
+      OcptBudgetField.lineUnitAmount,
+      OcptBudgetField.lineVatRateOverride,
+    };
+    if (!lineFields.contains(field)) {
+      return false;
+    }
+
+    for (final poste in state.postes) {
+      for (final line in poste.lines) {
+        if (line.id == targetId) {
+          return line.inKindResourceId != null;
+        }
+      }
+    }
+    return false;
+  }
+
   /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write
   /// loop [_flushPendingFieldEdits] and [flushPendingFieldEdits] both run, so the switch over
   /// [OcptBudgetField] is written once.
@@ -1133,6 +1160,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     for (final entry in edits.entries) {
       final (targetId, field) = entry.key;
       final value = entry.value;
+
+      // A counterpart line's own fields follow the in-kind contribution it balances, never a direct
+      // edit's — the fiche withholds them, so reaching here would be a bug; skip rather than let a
+      // line drift away from the resource it must equal.
+      if (_isInKindCounterpartLineField(field, targetId)) {
+        continue;
+      }
 
       switch (field) {
         case OcptBudgetField.posteLabel:

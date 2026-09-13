@@ -11656,6 +11656,11 @@
       }
     }
   },
+  "budgetFicheEditInKindContributionAction": "Edit the contribution",
+  "@budgetFicheEditInKindContributionAction": {
+    "description": "Primary action on a counterpart quote line's own fiche, opening the in-kind contribution it balances for editing",
+    "type": "text"
+  },
   "budgetFicheInKindOffsetsPoste": "Offsets the poste “{poste}”.",
   "@budgetFicheInKindOffsetsPoste": {
     "description": "Note on an in-kind resource's own fiche naming the poste its counterpart quote line offsets",

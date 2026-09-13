@@ -570,7 +570,9 @@ class OcptBudgetFiche extends StatelessWidget {
     final secondaries = <_OcptBudgetFicheAction>[];
     Widget? banner;
     if (isInKindCounterpart) {
-      primary = null;
+      // A counterpart line is edited only through the contribution it balances — its whole
+      // lifecycle is the resource's — so its own fields read read-only here (no `details`, no
+      // stepper) and its sole action opens that contribution (`docs/architecture/budget.md`).
       final contribution = resources.firstWhereOrNull(
         (resource) => resource.id == line.inKindResourceId,
       );
@@ -580,6 +582,12 @@ class OcptBudgetFiche extends StatelessWidget {
       banner = _OcptBudgetFicheInfoBanner(
         message: tr.budgetFicheInKindCounterpartHint(contributionLabel),
       );
+      primary = (isReadOnly || contribution == null || onResourceEditRequested == null)
+          ? null
+          : _OcptBudgetFicheAction(
+              label: tr.budgetFicheEditInKindContributionAction,
+              onTap: () => onResourceEditRequested?.call(contribution),
+            );
     } else if (isReadOnly) {
       primary = null;
     } else if (!isPromoted) {
@@ -653,20 +661,24 @@ class OcptBudgetFiche extends StatelessWidget {
       title: line.label.isEmpty ? tr.budgetLineUnnamed : line.label,
       amountText: _amount(lineTotalCents),
       hint: hintLines.join("\n"),
-      stepLabels: [
-        tr.budgetFicheStepEstimatedLabel,
-        tr.budgetInspectorFigureCommitted,
-        tr.budgetInspectorFigurePaid,
-      ],
-      reachedCount: isSettled ? 3 : (isPromoted ? 2 : 1),
-      figures: [
-        (tr.budgetFicheStepEstimatedLabel, _amount(lineTotalCents)),
-        (tr.budgetInspectorFigureCommitted, _amount(committedCents)),
-        (tr.budgetInspectorFigurePaid, _amount(paidCents)),
-      ],
-      outstandingLabel: outstandingLabel,
-      outstandingValue: outstandingValue,
-      details: _lineEditableFields(context, line),
+      stepLabels: isInKindCounterpart
+          ? const []
+          : [
+              tr.budgetFicheStepEstimatedLabel,
+              tr.budgetInspectorFigureCommitted,
+              tr.budgetInspectorFigurePaid,
+            ],
+      reachedCount: isInKindCounterpart ? 0 : (isSettled ? 3 : (isPromoted ? 2 : 1)),
+      figures: isInKindCounterpart
+          ? [(tr.budgetResourceDialogValuedAtFieldLabel, _amount(lineTotalCents))]
+          : [
+              (tr.budgetFicheStepEstimatedLabel, _amount(lineTotalCents)),
+              (tr.budgetInspectorFigureCommitted, _amount(committedCents)),
+              (tr.budgetInspectorFigurePaid, _amount(paidCents)),
+            ],
+      outstandingLabel: isInKindCounterpart ? null : outstandingLabel,
+      outstandingValue: isInKindCounterpart ? null : outstandingValue,
+      details: isInKindCounterpart ? null : _lineEditableFields(context, line),
       banner: banner,
       paymentsSection: payments.isEmpty
           ? null

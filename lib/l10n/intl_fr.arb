@@ -1545,6 +1545,7 @@
   "budgetFicheCommitmentOffLineBannerText": "Cet engagement n'est pas rattaché au devis de ce poste.",
   "budgetFicheCommitmentOffLineBannerOverQuoteText": "Cet engagement n'est pas rattaché au devis de ce poste, actuellement {varianceAmount} de dépassement.",
   "budgetFicheInKindCounterpartHint": "Couvert en nature par la contribution « {contribution} ».",
+  "budgetFicheEditInKindContributionAction": "Modifier l'apport",
   "budgetFicheInKindOffsetsPoste": "Compense le poste « {poste} ».",
   "budgetExportPanelTitle": "Exporter le budget",
   "budgetExportPanelMessage": "Le devis, le plan de financement, le journal de trésorerie et le bilan financier qui les confronte.",

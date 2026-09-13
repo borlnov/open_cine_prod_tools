@@ -541,8 +541,7 @@ void main() {
     });
 
     testWidgets(
-      "a counterpart line withholds Pay/Commit/Delete, naming the contribution it is covered "
-      "in kind by",
+      "a counterpart line is read-only, its only action opening the contribution it balances",
       (tester) async {
         const inKindLine = OcptBudgetLine(
           id: "line-1",
@@ -568,6 +567,7 @@ void main() {
           lines: [inKindLine],
         );
 
+        OcptBudgetResource? edited;
         await tester.pumpWidget(
           _wrap(
             _fiche(
@@ -577,17 +577,30 @@ void main() {
               onLinePayDirectlyRequested: (_) {},
               onLineCommitRequested: (_) {},
               onLineDeletionRequested: (_) {},
+              onResourceEditRequested: (resource) => edited = resource,
             ),
           ),
         );
         final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
-        expect(find.byType(FilledButton), findsNothing);
+        // Pay/Commit/Delete are withheld; so are the editable fields and the
+        // estimate/committed/paid stepper — a counterpart line is the contribution's to change.
         expect(find.widgetWithText(OutlinedButton, tr.budgetLineCommitAction), findsNothing);
         expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsNothing);
-        // `_buildResource`'s own default label — the contribution this counterpart line is
-        // minted from.
+        expect(find.text(tr.budgetLineUnitPriceFieldLabel), findsNothing);
+        expect(find.text(tr.budgetLineLabelFieldLabel), findsNothing);
+        expect(find.text(tr.budgetInspectorFigurePaid), findsNothing);
+        // It names the contribution it is covered by (`_buildResource`'s own default label) and
+        // shows the valuation read-only.
         expect(find.text(tr.budgetFicheInKindCounterpartHint("Region grant")), findsOneWidget);
+        expect(find.text(tr.budgetResourceDialogValuedAtFieldLabel.toUpperCase()), findsOneWidget);
+
+        // Its sole action opens that contribution for editing.
+        await tester.tap(
+          find.widgetWithText(FilledButton, tr.budgetFicheEditInKindContributionAction),
+        );
+        await tester.pumpAndSettle();
+        expect(edited?.id, "resource-1");
       },
     );
   });
