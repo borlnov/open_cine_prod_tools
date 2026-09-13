@@ -6,6 +6,23 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.2.0
+
+Collaboration and sync, a mobile-usable app, and a balanced budget in-kind
+contribution.
+
+- Collaboration and sync: offline-first sharing of a project between several
+  people, backed by a self-hostable, domain-blind relay with live push and
+  presence; pairing a device by scanning a QR code or opening a link; a
+  portable on-set server and in-app relay hosting for a production with no
+  outside network; and a sync status indicator in the workspace shell.
+- The app is now usable on tablets and phones, with an Android build alongside
+  the desktop ones.
+- Budget mode: an in-kind contribution now balances against a counterpart
+  quote line, so valuing it nets the needs and the resources it is measured
+  against back to zero.
+- The collaboration and sync end-user guide.
+
 ## 0.1.0
 
 First stable release. One project is one local SQLite file (`.ocpt`) holding one

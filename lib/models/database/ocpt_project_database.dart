@@ -285,7 +285,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// See [currentSchemaVersion]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStableSchemaVersion = 1;
+  static const lastStableSchemaVersion = 2;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override

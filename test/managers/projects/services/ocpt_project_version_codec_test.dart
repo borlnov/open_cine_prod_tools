@@ -3814,6 +3814,32 @@ void main() {
       expect(result.status, OcptProjectVersionPayloadStatus.ok);
       expect(result.value, buildRichPayload());
     });
+
+    test(
+      'a retired payload-format-1 budgetLines row, written before inKindResourceId existed, '
+      'decodes with a null inKindResourceId',
+      () {
+        // Format 1 is the shape 0.1.0 froze: `budget_lines.inKindResourceId` did not exist yet, so
+        // a real format-1 payload's `budgetLines` rows carry no such key at all, rather than the
+        // key present with a null value. This is the fixture the codec's own doc comment asks to be
+        // kept once a stable release has frozen a format the next one moves past.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        encoded["payloadFormat"] = 1;
+        encoded["budgetLines"] = [
+          for (final row in encoded["budgetLines"] as List)
+            (Map<String, dynamic>.from(row as Map<String, dynamic>)
+              ..remove("inKindResourceId")),
+        ];
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(
+          result.value!.budgetLines.map((row) => row.inKindResourceId),
+          everyElement(isNull),
+        );
+      },
+    );
   });
 
   group('OcptProjectVersionCodec malformed payloads', () {
