@@ -86,6 +86,7 @@ number is a stable identifier other documents and commits can reference.
 | [0027](0027-the-budget-states-no-regulatory-figure.md) | The budget states no regulatory figure and asks for no threshold | Accepted |
 | [0028](0028-a-nomenclature-seeded-not-frozen.md) | A nomenclature seeded, not frozen | Accepted |
 | [0029](0029-schema-versions-frozen-at-stable-releases.md) | Schema versions frozen at stable releases | Accepted |
+| [0030](0030-a-shots-characters-are-the-productions-roles.md) | A shot's characters are the production's roles | Proposed |
 
 ## Candidates
 
